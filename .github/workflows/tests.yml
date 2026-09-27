@@ -1,0 +1,49 @@
+# Runs the test pyramid on every pull request and push to dev, on both host
+# platforms hq supports (WSL is Linux) - see docs/agents/testing.md.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install tmux
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then brew install tmux; else sudo apt-get update -q && sudo apt-get install -yq tmux; fi
+          tmux -V
+
+      - name: Formatting and vet
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          go vet ./... && go vet -tags integration ./... && go vet -tags e2e ./...
+
+      - name: Test pyramid shape
+        run: go run ./tools/testgate pyramid
+
+      - name: Unit tests
+        run: go test ./...
+
+      - name: Unit and integration tests with coverage
+        run: go test -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./...
+
+      - name: Coverage threshold
+        run: go run ./tools/testgate coverage cover.out | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: End-to-end journeys
+        run: if [ -d e2e ]; then go test -tags e2e ./e2e/...; else echo "no journeys yet"; fi

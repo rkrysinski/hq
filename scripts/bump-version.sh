@@ -4,9 +4,9 @@
 #
 # Usage: scripts/bump-version.sh X.Y.Z
 #
-# hq has no implementation yet, so no file records the version and the git tag
-# is the only record. When the stack is chosen, write the version into its
-# manifest here, so there is still one command to run.
+# No file records hq's version: the git tag is the only record, and a release
+# build bakes it into the binary (internal/version, set with -ldflags). If a
+# file ever needs the version, write it here, so there is still one command.
 set -eu
 
 VERSION=${1:-}

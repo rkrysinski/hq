@@ -9,7 +9,7 @@ One console for many Claude Code agents running in Docker Sandboxes (`sbx`) and 
 - `docs/adr/` - short records of decisions already taken; do not reopen them without saying so.
 - `docs/design/` - HOW hq is built: technology, architecture, key mechanics (`docs/design/hq.md`).
 - `CONTEXT.md` - the glossary. Terms are added when they are settled.
-- Implementation: none yet. Build it from the spec.
+- Implementation: Go (ADR 0011); `cmd/hq` is the binary, `internal/` its packages, `tools/testgate` the CI test gates.
 
 ## Rules
 
@@ -34,11 +34,11 @@ The repo uses a single-context domain docs layout. See `docs/agents/domain.md`.
 
 ### Testing
 
-Tests follow the test pyramid: many fast unit tests, fewer integration tests, few end-to-end journeys. Write each test at the lowest level that proves the behaviour, not where it is easiest. hq has no stack yet; the levels, commands and CI gates arrive with the first code. See `docs/agents/testing.md`.
+Tests follow the test pyramid: many fast unit tests, fewer integration tests, few end-to-end journeys. Write each test at the lowest level that proves the behaviour, not where it is easiest. Levels are Go build tags (none, `integration`, `e2e`); CI gates the shape and coverage. See `docs/agents/testing.md`.
 
 ### Local run
 
-Not defined yet: it comes with the stack (`docs/agents/testing.md`, *When the stack is chosen*). Until then, verify a change by running hq from the issue's worktree in a real terminal, isolated from other worktrees, and drive it the way a person would before calling the work done.
+Run hq from the issue's worktree with `scripts/local-dev.sh [hq arguments]` (skill `local-dev`): it builds the checkout and runs it against a tmux server private to that worktree, so it never touches the user's own hq or other worktrees. Drive it the way a person would before calling the work done; `scripts/local-dev.sh --kill-server` cleans up.
 
 ### Releases
 
