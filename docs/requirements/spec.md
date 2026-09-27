@@ -58,14 +58,14 @@ Observable definitions; the mechanism is the implementer's choice, within the gi
 - `working` - the agent is processing a prompt.
 - `question` - the agent finished a turn with a direct question to the user.
 - `needs input` - the agent is waiting for a permission or an input dialog.
-- `done` - the agent finished a turn without asking anything.
+- `done` - the agent finished a turn without asking anything, or the user ended its turn by cancelling its dialog.
 - `ended` - the session is gone (exited, crashed, sandbox stopped).
 
 Requirements:
 
 - A state change is visible in the dashboard within 1 second.
 - Each state carries the time since it was entered (`3s`, `2m`, `1h`) and the agent's last message, one line, truncated.
-- Entering `question`, `needs input` or `done` triggers exactly one desktop notification per event, whether or not that agent is docked, while the dashboard is open in a terminal (S8). Notifications name the kind and the branch (`Question: feat/42-...`, `Needs input: ...`, `Done: ...`). `working`, `starting` and `ended` never notify.
+- Entering `question`, `needs input` or `done` triggers exactly one desktop notification per event, whether or not that agent is docked, while the dashboard is open in a terminal (S8). Notifications name the kind and the branch (`Question: feat/42-...`, `Needs input: ...`, `Done: ...`). `working`, `starting` and `ended` never notify, and neither does a turn the user ended at the agent (a dialog cancelled): the user is already there.
 - Two agents on the same branch are allowed; their states may then be indistinguishable. Documented limitation.
 - Every agent started by hq reports its state with no setup: nothing is installed, configured or committed in the repository, and nothing per machine beyond installing hq.
 

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 	"testing"
@@ -161,6 +162,39 @@ func TestLsShowsTheAgentsOfAStoppedSandboxEnded(t *testing.T) {
 	f.sbx.sandboxes = f.sbx.sandboxes[:1]
 	if _, out, _ := f.run("ls"); !strings.Contains(out, "b     lib   -       ended") {
 		t.Fatalf("removed sandbox:\n%s", out)
+	}
+}
+
+func TestLsShowsACancelledDialogDoneFromWhenItWasFirstSeen(t *testing.T) {
+	f := newLsFakes()
+	rule := strings.Repeat("─", 30)
+	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/app", f.now.Add(-time.Minute), false)}
+	f.tmux.windows[0].Pane, f.tmux.windows[1].Pane = "%1", "%2"
+	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-20 * time.Second), Last: "Red or blue?"}
+	f.states["id-b"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-20 * time.Second), Last: "Green or yellow?"}
+	f.tmux.screens = map[string]string{
+		"%1": "● User declined to answer questions\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n",
+		"%2": " ☐ Colour\n❯ 1. Green\n  2. Yellow\nEnter to select · Esc to cancel\n",
+	}
+	_, out, _ := f.run("ls")
+	want := "NAME  REPO  BRANCH  STATE        AGE  LAST\n" +
+		"b     app   -       needs input  20s  Green or yellow?\n" +
+		"a     app   -       done         0s   User declined to answer questions\n"
+	if out != want {
+		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+	if f.tmux.windows[0].Options["turnend"] == "" || f.tmux.windows[1].Options["turnend"] != "" {
+		t.Fatalf("recorded %v", f.tmux.windows)
+	}
+	// Later, done counts from when it was first seen.
+	f.now = f.now.Add(7 * time.Second)
+	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done         7s   User declined") {
+		t.Fatalf("later:\n%s", out)
+	}
+	// Without the screens, the hooks' states stand.
+	f.tmux.screenErr = errors.New("tmux: no pane")
+	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       needs input  27s  Red or blue?") {
+		t.Fatalf("no screens:\n%s", out)
 	}
 }
 

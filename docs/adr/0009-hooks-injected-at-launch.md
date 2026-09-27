@@ -12,5 +12,7 @@ Agent state must leave the sandbox through the mounted repository (ADR 0001), an
 
 ## Consequences
 
-- The sandbox needs only `sh`, `git`, `cat` and `mv` for hooks to work.
+- The sandbox needs only `sh`, `git`, `cat`, `mv`, `cp`, `mkdir`, `rm`, `grep` and `awk` for hooks to work.
+- The script travels once, in the environment `--settings` sets, and each hook evaluates it (#71): with a copy per event, seven events made the settings longer than tmux accepts for the command that starts the agent.
+- Some of what Claude does fires no hook: a dialog cancelled with Esc ends the turn silently. hq reads that one case from the agent's screen (design §3.4); the hooks remain the state channel.
 - hq's hooks must coexist with a repository's own hooks; verified at build time.

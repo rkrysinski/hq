@@ -6,8 +6,12 @@
 //   - the first prompt (the last argument) and every line typed are turns:
 //     UserPromptSubmit, then Stop with the reply;
 //   - a prompt containing "question" gets a reply ending in "?";
-//   - a prompt containing "input" first fires a permission Notification and
-//     waits for a line (the answer);
+//   - a prompt containing "input" first opens a question dialog, as
+//     AskUserQuestion does: PermissionRequest at once, Claude's late
+//     permission Notification after the delay, then it waits for a line.
+//     "esc" (or a line with ESC in it) cancels the dialog, which ends the
+//     turn with no hook, as Claude Code 2.1.283 does; any other line answers
+//     it: PostToolUse, then the turn goes on;
 //   - a prompt "worktree BRANCH" makes a worktree on a new BRANCH under
 //     .claude/worktrees and moves into it, as Claude does;
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.
@@ -132,9 +136,19 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 		}
 	}
 	if strings.Contains(prompt, "input") {
+		ask := map[string]any{"questions": []map[string]any{{"question": question, "header": "Colour", "multiSelect": false,
+			"options": []map[string]string{{"label": "Red", "description": "Pick red."}, {"label": "Blue", "description": "Pick blue."}}}}}
+		c.fire("PermissionRequest", map[string]any{"tool_name": "AskUserQuestion", "tool_input": ask})
+		fmt.Println(" ☐ Colour\n" + question + "\n❯ 1. Red\n  2. Blue\nEnter to select · ↑/↓ to navigate · Esc to cancel")
+		time.Sleep(c.delay)
 		c.fire("Notification", map[string]any{"message": "Claude needs your permission", "notification_type": "permission_prompt"})
-		fmt.Println("fake claude: waiting for your answer")
 		in.Scan()
+		if answer := in.Text(); strings.TrimSpace(answer) == "esc" || strings.Contains(answer, "\x1b") {
+			fmt.Println("●\u00a0User declined to answer questions\n  ⎿  · " + question + " (Red / Blue)")
+			promptBox()
+			return
+		}
+		c.fire("PostToolUse", map[string]any{"tool_name": "AskUserQuestion", "tool_input": ask, "tool_use_id": "toolu_fake"})
 		time.Sleep(c.delay)
 	}
 	reply := "Done: " + prompt
@@ -143,6 +157,15 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	}
 	fmt.Println("● " + reply)
 	c.fire("Stop", map[string]any{"stop_hook_active": false, "last_assistant_message": reply})
+}
+
+// question is what the fake's question dialog asks.
+const question = "Which colour do you pick?"
+
+// promptBox draws Claude's prompt box, waiting for the user's next prompt.
+func promptBox() {
+	rule := strings.Repeat("─", 40)
+	fmt.Println(rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)")
 }
 
 // fire runs the hooks registered for event with a Claude-like payload.

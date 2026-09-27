@@ -41,8 +41,9 @@ type Client struct {
 }
 
 // OptionKeys are the user options hq stores on a home window: new marks an
-// agent started with hq new (not relaunched), for the list's S2.
-var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new"}
+// agent started with hq new (not relaunched), for the list's S2; turnend
+// when hq first saw a turn the user ended (design §3.4).
+var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "turnend"}
 
 func (c Client) tmux(args ...string) ([]byte, error) {
 	if c.Socket != "" {
@@ -161,6 +162,46 @@ func (c Client) NewWindow(name, dir string, options map[string]string, argv []st
 func (c Client) SetOption(id, key, value string) error {
 	_, err := c.tmux("set-option", "-w", "-t", id, "@hq_"+key, value)
 	return err
+}
+
+// screenMark starts the line Screens prints before each pane's screen.
+const screenMark = "::hq::screen "
+
+// Screens returns what the panes show, by pane id, in one tmux call.
+func (c Client) Screens(panes []string) (map[string]string, error) {
+	var args []string
+	for _, p := range panes {
+		if len(args) > 0 {
+			args = append(args, ";")
+		}
+		args = append(args, "display-message", "-p", "-t", p, screenMark+"#{pane_id}", ";", "capture-pane", "-p", "-t", p)
+	}
+	if len(args) == 0 {
+		return nil, nil
+	}
+	out, err := c.tmux(args...)
+	if err != nil {
+		return nil, err
+	}
+	screens := map[string]string{}
+	var pane string
+	var b strings.Builder
+	flush := func() {
+		if pane != "" {
+			screens[pane] = b.String()
+		}
+		b.Reset()
+	}
+	for _, line := range strings.SplitAfter(string(out), "\n") {
+		if id, ok := strings.CutPrefix(line, screenMark); ok {
+			flush()
+			pane = strings.TrimSpace(id)
+			continue
+		}
+		b.WriteString(line)
+	}
+	flush()
+	return screens, nil
 }
 
 // Start releases the program of a window made by NewWindow.

@@ -79,7 +79,35 @@ func collect(d deps) ([]agent.Agent, error) {
 			running[s.Name] = s.Running()
 		}
 	}
-	return agent.Collect(ws, d.readState, running), nil
+	return settle(d, agent.Collect(ws, d.readState, running)), nil
+}
+
+// settle looks at the screens of agents whose turn may have ended with Esc,
+// which no hook reports, and records when hq first saw it on their windows
+// (design §3.4). When tmux cannot show the screens, the hooks' states stand.
+func settle(d deps, as []agent.Agent) []agent.Agent {
+	now := d.now()
+	var panes []string
+	for _, a := range as {
+		if a.Unsettled(now) {
+			panes = append(panes, a.Pane)
+		}
+	}
+	if len(panes) == 0 {
+		return as
+	}
+	screens, err := d.tmux.Screens(panes)
+	if err != nil {
+		return as
+	}
+	for i := range as {
+		if s, ok := screens[as[i].Pane]; ok && as[i].Unsettled(now) {
+			if record := as[i].Settle(s, now); record != "" {
+				_ = d.tmux.SetOption(as[i].Window, "turnend", record)
+			}
+		}
+	}
+	return as
 }
 
 // lastWidth is how much of the last message hq ls shows; --json has it all.

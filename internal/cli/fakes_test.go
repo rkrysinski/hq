@@ -52,9 +52,11 @@ type fakeTmux struct {
 	dockTitle  string
 	titles     []string // frame titles set with SetTitle, "pane=title"
 	dockErr    error
-	popups     []string // popups opened: "pane dir WxH argv..."
-	chords     string   // what BindChords was given: "argv... | hints"
-	messages   []string // shown on the status line
+	popups     []string          // popups opened: "pane dir WxH argv..."
+	chords     string            // what BindChords was given: "argv... | hints"
+	messages   []string          // shown on the status line
+	screens    map[string]string // what panes show, by pane id
+	screenErr  error
 	focused    int      // times the keys were put on the list
 	left       []string // Leave calls, by message
 	leaveErr   error
@@ -229,6 +231,19 @@ func (f *fakeTmux) Respawn(pane, _ string, argv []string) error {
 		}
 	}
 	return errors.New("no pane " + pane)
+}
+
+func (f *fakeTmux) Screens(panes []string) (map[string]string, error) {
+	if f.screenErr != nil {
+		return nil, f.screenErr
+	}
+	out := map[string]string{}
+	for _, p := range panes {
+		if s, ok := f.screens[p]; ok {
+			out[p] = s
+		}
+	}
+	return out, nil
 }
 
 func (f *fakeTmux) SetOption(id, key, value string) error {

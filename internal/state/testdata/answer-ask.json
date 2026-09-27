@@ -1,0 +1,61 @@
+{
+  "session_id": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+  "transcript_path": "/home/agent/.claude/projects/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0.jsonl",
+  "cwd": "/w/app/.claude/worktrees/feat-42",
+  "scratchpad_dir": "/tmp/claude-1000/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0/scratchpad",
+  "prompt_id": "b4e5fe0f-6e79-4ac5-8c2c-b9181444b06f",
+  "permission_mode": "bypassPermissions",
+  "effort": {
+    "level": "high"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "AskUserQuestion",
+  "tool_input": {
+    "questions": [
+      {
+        "question": "Which colour do you pick: red or blue?",
+        "header": "Colour",
+        "options": [
+          {
+            "label": "Red",
+            "description": "Pick red."
+          },
+          {
+            "label": "Blue",
+            "description": "Pick blue."
+          }
+        ],
+        "multiSelect": false
+      }
+    ],
+    "answers": {
+      "Which colour do you pick: red or blue?": "Red"
+    },
+    "annotations": {}
+  },
+  "tool_response": {
+    "questions": [
+      {
+        "question": "Which colour do you pick: red or blue?",
+        "header": "Colour",
+        "options": [
+          {
+            "label": "Red",
+            "description": "Pick red."
+          },
+          {
+            "label": "Blue",
+            "description": "Pick blue."
+          }
+        ],
+        "multiSelect": false
+      }
+    ],
+    "answers": {
+      "Which colour do you pick: red or blue?": "Red"
+    },
+    "annotations": {}
+  },
+  "tool_use_id": "toolu_01BK3CrNUdNs4X6paRQUHP91",
+  "duration_ms": 0
+}

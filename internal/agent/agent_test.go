@@ -180,3 +180,72 @@ func TestAReportFromBeforeTheStartGivesTheMessageButNotTheState(t *testing.T) {
 		t.Fatalf("after its first report: %+v", a)
 	}
 }
+
+func TestAnAgentNeedingInputIsUnsettledAfterAMoment(t *testing.T) {
+	now := time.Unix(1000, 0)
+	report := func(s string, age time.Duration) state.Report { return state.Report{State: s, Since: now.Add(-age)} }
+	for _, tc := range []struct {
+		name   string
+		w      tmux.Window
+		r      state.Report
+		ok     bool
+		unsett bool
+	}{
+		{"needs input", tmux.Window{}, report(state.NeedsInput, time.Second), true, true},
+		{"just now", tmux.Window{}, report(state.NeedsInput, 100*time.Millisecond), true, false},
+		{"working", tmux.Window{}, report(state.Working, time.Second), true, false},
+		{"done", tmux.Window{}, report(state.Done, time.Second), true, false},
+		{"no report", tmux.Window{}, state.Report{}, false, false},
+		{"dead", tmux.Window{PaneDead: true}, report(state.NeedsInput, time.Second), true, false},
+		{"ending", tmux.Window{Options: map[string]string{"ending": "1"}}, report(state.NeedsInput, time.Second), true, false},
+	} {
+		tc.w.ID = "@1"
+		if tc.w.Options == nil {
+			tc.w.Options = map[string]string{}
+		}
+		tc.w.Options["id"] = "x"
+		a := FromWindows([]tmux.Window{tc.w})[0]
+		a.Apply(tc.r, tc.ok)
+		if got := a.Unsettled(now); got != tc.unsett {
+			t.Errorf("%s: unsettled %v", tc.name, got)
+		}
+	}
+}
+
+func TestSettleMakesATurnTheUserEndedDoneFromWhenHqFirstSawIt(t *testing.T) {
+	declined := "● User declined to answer questions\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer\n"
+	asked := time.Unix(1000, 0)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	r := state.Report{State: state.NeedsInput, Since: asked, Last: "Red or blue?"}
+	a := FromWindows([]tmux.Window{w})[0]
+	a.Apply(r, true)
+
+	// The dialog is still open: nothing changes.
+	if rec := a.Settle("Enter to select · Esc to cancel\n", asked.Add(time.Second)); rec != "" || a.State != state.NeedsInput || a.Since != asked {
+		t.Fatalf("open dialog: %q %+v", rec, a)
+	}
+	// Cancelled: done since now, and the moment is to be recorded.
+	seen := asked.Add(5 * time.Second)
+	rec := a.Settle(declined, seen)
+	if a.State != state.Done || a.Last != "User declined to answer questions" || !a.Since.Equal(seen) || a.Pane != "%1" {
+		t.Fatalf("cancelled: %+v", a)
+	}
+	if rec == "" {
+		t.Fatal("nothing to record")
+	}
+	// Seen again later, by hq ls or the list: since the recorded moment.
+	w.Options["turnend"] = rec
+	b := FromWindows([]tmux.Window{w})[0]
+	b.Apply(r, true)
+	if rec := b.Settle(declined, seen.Add(time.Minute)); rec != "" || !b.Since.Equal(seen) {
+		t.Fatalf("again: %q %+v", rec, b)
+	}
+	// A record for an earlier report does not count for a newer one.
+	r.Since = asked.Add(time.Hour)
+	c := FromWindows([]tmux.Window{w})[0]
+	c.Apply(r, true)
+	later := r.Since.Add(3 * time.Second)
+	if rec := c.Settle(declined, later); rec == "" || !c.Since.Equal(later) {
+		t.Fatalf("newer report: %q %+v", rec, c)
+	}
+}

@@ -216,7 +216,7 @@ func listSource(d deps, pane string) dash.Source {
 			if err != nil {
 				return nil, err
 			}
-			as := agent.Collect(ws, d.readState, running)
+			as := settle(d, agent.Collect(ws, d.readState, running))
 			keepTitles(d, ws, as)
 			return as, nil
 		},

@@ -147,3 +147,38 @@ func TestAttachSelectsWindowThenAttachesToHqSessionDetachingOthers(t *testing.T)
 		t.Fatalf("active window %q, want %s", out, id)
 	}
 }
+
+func TestScreensShowWhatEachPaneShows(t *testing.T) {
+	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	var panes []string
+	for _, text := range []string{"first\nscreen", "● User declined\n❯ "} {
+		id, err := c.NewWindow("w", dir, nil, []string{"printf", "%s", text})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := c.Start(id); err != nil {
+			t.Fatal(err)
+		}
+		ws, _ := c.Windows()
+		panes = append(panes, ws[len(ws)-1].Pane)
+	}
+	var screens map[string]string
+	eventually(t, "both screens", func() bool {
+		var err error
+		screens, err = c.Screens(panes)
+		return err == nil && strings.Contains(screens[panes[0]], "screen") && strings.Contains(screens[panes[1]], "❯")
+	})
+	if len(screens) != 2 || !strings.HasPrefix(screens[panes[0]], "first\nscreen\n") || !strings.HasPrefix(screens[panes[1]], "● User declined\n❯") {
+		t.Fatalf("%q", screens)
+	}
+	if s, err := c.Screens(nil); s != nil || err != nil {
+		t.Fatalf("no panes: %v %v", s, err)
+	}
+	if _, err := c.Screens([]string{"%999"}); err == nil {
+		t.Fatal("a pane that is gone is an error")
+	}
+}
