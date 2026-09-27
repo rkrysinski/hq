@@ -18,7 +18,11 @@ if [ "${1:-}" = -L ]; then socket=$2; shift 2; fi
 
 ansi=$(mktemp)
 trap 'rm -f "$ansi"' EXIT
+# freeze ignores SGR 49 (default background), which would carry a
+# background to the end of the line: it becomes freeze's own background.
+esc=$(printf '\033')
 tmux ${socket:+-L "$socket"} capture-pane -e -p -t "$1" |
+    sed -e "s/$esc\[49m/$esc[48;2;23;23;23m/g" |
     sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' >"$ansi"
 go run "$FREEZE" --language ansi --window --padding 20,30 --font.size 14 -o "$2" "$ansi" </dev/null >/dev/null
 echo "$2"

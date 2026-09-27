@@ -396,3 +396,14 @@ func (c Client) SetTitle(pane, title string) error {
 	_, err := c.tmux("set-option", "-p", "-t", pane, "@hq_title", title)
 	return err
 }
+
+// Popup opens a popup centered over the window of pane, w by h cells with
+// its frame, running argv in dir, and returns when it closes (design §3.8).
+// The popup holds the client's keys while open.
+func (c Client) Popup(pane, dir string, w, h int, argv []string) error {
+	args := []string{"display-popup", "-E", "-b", "rounded", "-S", "fg=#A78BFA", "-w", strconv.Itoa(w), "-h", strconv.Itoa(h),
+		"-d", strings.ReplaceAll(dir, "#", "##"), "-t", pane}
+	args = append(append(append(args, c.env()...), "--"), argv...)
+	_, err := c.tmux(args...)
+	return err
+}

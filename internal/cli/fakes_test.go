@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -46,6 +47,12 @@ type fakeTmux struct {
 	dockTitle string
 	titles    []string // frame titles set with SetTitle, "pane=title"
 	dockErr   error
+	popups    []string // popups opened: "pane dir WxH argv..."
+}
+
+func (f *fakeTmux) Popup(pane, dir string, w, h int, argv []string) error {
+	f.popups = append(f.popups, fmt.Sprintf("%s %s %dx%d %s", pane, dir, w, h, strings.Join(argv, " ")))
+	return nil
 }
 
 func (f *fakeTmux) Dock(window, title string) error {
@@ -293,6 +300,7 @@ type fakes struct {
 
 	alive   map[int]bool            // processes that exist
 	listRan func(dash.Source) error // the list program; returns at q
+	dialog  tea.Model               // the dialog run last
 }
 
 func newFakes() *fakes {
@@ -363,6 +371,10 @@ func (f *fakes) deps() deps {
 				return nil
 			}
 			return f.listRan(src)
+		},
+		runDialog: func(m tea.Model) error {
+			f.dialog = m
+			return nil
 		},
 		pid:   4242,
 		alive: func(pid int) bool { return f.alive[pid] },

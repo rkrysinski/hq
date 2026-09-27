@@ -155,6 +155,11 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	}
 	shows := func(what string, texts ...string) {
 		t.Helper()
+		defer func() {
+			if t.Failed() {
+				t.Log(screen())
+			}
+		}()
 		eventually(t, what, func() bool {
 			s := screen()
 			for _, x := range texts {
@@ -186,29 +191,46 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	shows("the empty dashboard", "hq  0 agents", "no agents yet - press n to start one", "▸ placeholder shell",
 		"hq: nothing docked - select an agent above or press n", "r refresh   q quit")
 
-	// An agent started from another shell appears, and follows its session.
-	if code, out := j.hq("new", "a", "say hi"); code != 0 {
-		t.Fatalf("new: exit %d %q", code, out)
+	// S2 from the New agent dialog: a gets the cursor with the new marker
+	// and, nothing being docked, the slot and the keys.
+	keys("n")
+	shows("the New agent dialog", "New agent", "×", "name", "prompt", "Start ⏎", "Cancel")
+	keys("a", "Tab", "Tab", "say hi", "Enter")
+	shows("a new, starting", "a new", "● starting")
+	// The row itself may be hidden by now: done, in the attention view.
+	shows("a docked", "▸ a · ", "fake claude: ready", "> say hi")
+	if s := screen(); strings.Contains(s, "placeholder shell") || strings.Contains(s, "New agent") {
+		t.Fatalf("placeholder or dialog still shown:\n%s", s)
 	}
+	keys("more please", "Enter")
+	shows("keys reach Claude", "> more please")
+
+	// A duplicate name keeps the dialog open with the error; Esc closes it.
+	keys("C-b", "Up", "n")
+	shows("the dialog again", "New agent")
+	keys("a", "Enter")
+	shows("the duplicate", "agent 'a' already exists")
+	keys("Escape")
+	eventually(t, "the dialog to close", func() bool { return !strings.Contains(screen(), "New agent") })
+
 	// S0: the attention view hides an agent that is done; a shows all.
 	shows("a done, hidden", "hq  1 agent · 1 done  view: attention", "nothing needs you - press a for all")
 	keys("a")
-	shows("a's row, done", "view: all", "● done", "Done: say hi", "a view: attention")
+	shows("a's row, done", "view: all", "● done", "Done: more please", "a view: attention")
 	if s := screen(); strings.Contains(s, "1:a") {
 		t.Fatalf("tmux's window list shows:\n%s", s)
 	}
 	keys("s")
 	shows("the repo sort", "REPO ▾", "s sort: repo")
 
-	// S3: Enter docks a below the list, keys in its session; the row is
-	// outlined.
+	// S3: Enter on the docked row keeps it docked and puts the keys there.
 	keys("Enter")
-	shows("a docked", "▸ a · ", "fake claude: ready", "> say hi", "│ a ")
-	if s := screen(); strings.Contains(s, "placeholder shell") {
-		t.Fatalf("placeholder still shown:\n%s", s)
-	}
-	keys("more please", "Enter")
-	shows("keys reach Claude", "> more please")
+	eventually(t, "the keys in a's session", func() bool {
+		out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_agent}").Output()
+		return strings.TrimSpace(string(out)) != ""
+	})
+	keys("once more", "Enter")
+	shows("keys reach Claude again", "> once more", "│ a ")
 	detach := func() {
 		t.Helper()
 		if out, err := exec.Command("tmux", "-L", j.socket, "detach-client", "-s", "hq").CombinedOutput(); err != nil {
@@ -223,6 +245,14 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	detach()
 	open("go", "a")
 	shows("hq go a", "▸ a · ", "> say hi", "> more please", "│ a ", "q quit")
+	// S2 from another shell, a docked: b gets the marker, a keeps the slot.
+	if code, out := j.hq("new", "b"); code != 0 {
+		t.Fatalf("new: exit %d %q", code, out)
+	}
+	shows("b new", "b new", "▸ a · ")
+	if code, out := j.hq("kill", "b", "-y"); code != 0 {
+		t.Fatalf("kill: exit %d %q", code, out)
+	}
 	if code, out := j.hq("kill", "a", "-y"); code != 0 {
 		t.Fatalf("kill: exit %d %q", code, out)
 	}

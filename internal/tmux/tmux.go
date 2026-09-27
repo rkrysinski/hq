@@ -37,8 +37,9 @@ type Client struct {
 	Socket string // tmux -L socket name; empty is the default server
 }
 
-// OptionKeys are the user options hq stores on a home window.
-var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending"}
+// OptionKeys are the user options hq stores on a home window: new marks an
+// agent started with hq new (not relaunched), for the list's S2.
+var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new"}
 
 func (c Client) tmux(args ...string) ([]byte, error) {
 	if c.Socket != "" {
