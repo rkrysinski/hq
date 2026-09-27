@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // The dashboard is the first window of hq's session (design §3.1): the list
@@ -298,12 +299,13 @@ type pane struct {
 	id, role, agent, title   string
 	placeholder              string // @hq_placeholder: placeholderMark on a placeholder hq started
 	dead                     bool
+	deadAt                   time.Time // #{pane_dead_time}, zero while it runs
 	listPID                  int
 	options                  map[string]string // the window's OptionKeys
 }
 
 func (c Client) panes() ([]pane, error) {
-	fields := []string{"#{window_id}", "#{window_name}", "#{@hq_dash}", "#{pane_id}", "#{@hq_role}", "#{@hq_agent}", "#{@hq_title}", "#{pane_dead}", "#{@hq_list_pid}", "#{@hq_placeholder}"}
+	fields := []string{"#{window_id}", "#{window_name}", "#{@hq_dash}", "#{pane_id}", "#{@hq_role}", "#{@hq_agent}", "#{@hq_title}", "#{pane_dead}", "#{@hq_list_pid}", "#{@hq_placeholder}", "#{pane_dead_time}"}
 	for _, k := range OptionKeys {
 		fields = append(fields, "#{@hq_"+k+"}")
 	}
@@ -322,8 +324,11 @@ func (c Client) panes() ([]pane, error) {
 		}
 		pid, _ := strconv.Atoi(f[8])
 		p := pane{window: f[0], windowName: f[1], dash: f[2], id: f[3], role: f[4], agent: f[5], title: f[6], dead: f[7] == "1", listPID: pid, placeholder: f[9], options: map[string]string{}}
+		if t, err := strconv.ParseInt(f[10], 10, 64); err == nil && t > 0 {
+			p.deadAt = time.Unix(t, 0)
+		}
 		for i, k := range OptionKeys {
-			if v := f[10+i]; v != "" {
+			if v := f[11+i]; v != "" {
 				p.options[k] = v
 			}
 		}

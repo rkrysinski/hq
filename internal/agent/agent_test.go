@@ -273,3 +273,103 @@ func TestSettleMakesATurnTheUserEndedDoneFromWhenHqFirstSawIt(t *testing.T) {
 		t.Fatalf("newer report: %q %+v", rec, c)
 	}
 }
+
+func TestAnEndedAgentCountsFromWhenItEnded(t *testing.T) {
+	at := func(s float64) time.Time { return time.UnixMilli(int64(s * 1000)) }
+	win := func(id string, dead bool, deadAt float64, o map[string]string) tmux.Window {
+		w := tmux.Window{ID: "@" + id, Name: id, PaneDead: dead, Options: map[string]string{"id": id, "sandbox": "claude-app", "started": "900"}}
+		if deadAt > 0 {
+			w.DeadAt = at(deadAt)
+		}
+		for k, v := range o {
+			w.Options[k] = v
+		}
+		return w
+	}
+	ws := []tmux.Window{
+		win("exit", true, 1005, nil),   // /exit: the session reported its end
+		win("crash", true, 1010, nil),  // killed: only tmux knows when
+		win("same", true, 1000, nil),   // died in the second of its last report
+		win("silent", true, 1020, nil), // never reported
+		win("stopped", false, 0, nil),  // its sandbox stopped, its pane still runs
+		win("restart", false, 0, map[string]string{"ending": "1"}),
+		win("gone", true, 0, nil), // a docked pane that is gone: tmux cannot say
+		win("working", false, 0, nil),
+	}
+	ws[4].Options["sandbox"] = "claude-lib"
+	stopped := at(950) // the stopped agent's last report
+	read := func(_, id string) (state.Report, bool) {
+		switch id {
+		case "stopped":
+			return state.Report{State: state.Working, Since: stopped}, true
+		case "exit":
+			return state.Report{State: state.Ended, Since: at(1003), Last: "bye"}, true
+		case "same":
+			return state.Report{State: state.Done, Since: at(1000.4), Last: "ok"}, true
+		case "silent":
+			return state.Report{}, false
+		}
+		return state.Report{State: state.Working, Since: at(950)}, true
+	}
+	as := Collect(ws, read, map[string]bool{"claude-app": true})
+	got := map[string]time.Time{}
+	for _, a := range as {
+		got[a.Name] = a.Since
+	}
+	for name, want := range map[string]time.Time{"exit": at(1003), "crash": at(1010), "same": at(1000.4), "silent": at(1020), "stopped": at(950), "restart": at(950), "gone": at(950), "working": at(950)} {
+		if !got[name].Equal(want) {
+			t.Errorf("%s: since %v, want %v", name, got[name], want)
+		}
+	}
+
+	// Newest end first among the ended rows.
+	SortAttention(as)
+	var order []string
+	for _, a := range as {
+		order = append(order, a.Name)
+	}
+	if want := "working silent crash exit same stopped restart gone"; strings.Join(order, " ") != want {
+		t.Errorf("order %s, want %s", strings.Join(order, " "), want)
+	}
+
+	// hq dates the ends nothing else dates when it first sees them.
+	now := at(1100)
+	records := map[string]string{}
+	for i := range as {
+		if r := as[i].SeeEnd(now); r != "" {
+			records[as[i].Name] = r
+			if !as[i].Since.Equal(now) {
+				t.Errorf("%s: since %v after SeeEnd", as[i].Name, as[i].Since)
+			}
+		}
+	}
+	if len(records) != 3 || records["stopped"] == "" || records["restart"] == "" || records["gone"] == "" {
+		t.Fatalf("records %v", records)
+	}
+	// Seen again later: from the recorded moment, nothing more to record.
+	for i := range ws {
+		if r, ok := records[ws[i].Name]; ok {
+			ws[i].Options["endseen"] = r
+		}
+	}
+	for _, a := range Collect(ws, read, map[string]bool{"claude-app": true}) {
+		if _, ok := records[a.Name]; ok {
+			if !a.Since.Equal(now) || a.SeeEnd(at(1200)) != "" {
+				t.Errorf("%s again: since %v", a.Name, a.Since)
+			}
+		}
+	}
+	// Relaunched (a new start) and reported before its sandbox stopped
+	// again: the record is the previous session's.
+	ws[4].Options["started"] = "1150"
+	stopped = at(1160)
+	a, _ := Find(Collect(ws, read, map[string]bool{"claude-app": true}), "stopped")
+	if r := a.SeeEnd(at(1300)); r == "" || !a.Since.Equal(at(1300)) {
+		t.Errorf("relaunched: %q %v", r, a.Since)
+	}
+	// A bad record counts for nothing: the last report stands.
+	ws[4].Options["endseen"] = "1150 x"
+	if a, _ := Find(Collect(ws, read, map[string]bool{"claude-app": true}), "stopped"); !a.Since.Equal(at(1160)) {
+		t.Errorf("bad record: %v", a.Since)
+	}
+}

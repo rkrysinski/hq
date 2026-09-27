@@ -54,7 +54,7 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 		t.Fatal(err)
 	}
 	ws, _ := c.Windows()
-	if len(ws) != 2 || ws[1].ID != id || ws[1].Name != "a" || ws[1].Options["repo"] != "/r e/p" || ws[1].PaneDead {
+	if len(ws) != 2 || ws[1].ID != id || ws[1].Name != "a" || ws[1].Options["repo"] != "/r e/p" || ws[1].PaneDead || !ws[1].DeadAt.IsZero() {
 		t.Fatalf("before start: %+v", ws)
 	}
 	// Notifications pass from the hidden window to the terminal; the pane
@@ -64,6 +64,7 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 			t.Fatalf("%s: %q, want %q", opt, out, want)
 		}
 	}
+	started := time.Now()
 	if err := c.Start(id); err != nil {
 		t.Fatal(err)
 	}
@@ -71,6 +72,10 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 		ws, _ := c.Windows()
 		return len(ws) == 2 && ws[1].PaneDead
 	})
+	// tmux tells when the pane died, to the second (#73).
+	if ws, _ := c.Windows(); ws[1].DeadAt.Before(started.Truncate(time.Second)) || ws[1].DeadAt.After(time.Now()) {
+		t.Fatalf("died at %v, started %v", ws[1].DeadAt, started)
+	}
 	out, _ := exec.Command("tmux", "-L", socket, "capture-pane", "-p", "-t", id).Output()
 	if !strings.Contains(string(out), `a b|'q"|$HOME|;exit|`) {
 		t.Fatalf("arguments were not passed verbatim:\n%s", out)

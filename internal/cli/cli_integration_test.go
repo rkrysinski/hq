@@ -335,6 +335,31 @@ func TestAgentWhoseSessionExitsIsEndedAndStaysListed(t *testing.T) {
 	}
 }
 
+func TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "say hi"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "done", "Done: say hi")
+	time.Sleep(3 * time.Second)
+	ws, _ := h.d.tmux.Windows()
+	a, _ := agent.Find(agent.FromWindows(ws), "a")
+	pid, err := exec.Command("tmux", "-L", h.socket, "display-message", "-p", "-t", a.Window, "#{pane_pid}").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("kill", "-KILL", strings.TrimSpace(string(pid))).CombinedOutput(); err != nil {
+		t.Fatalf("kill: %v %s", err, out)
+	}
+	// Claude crashed without a word: AGE counts from the crash, not from
+	// the report 3 s before it (#73).
+	if r := h.waitState("a", "ended"); r.AgeSeconds > 1 || r.Last != "Done: say hi" {
+		t.Fatalf("ended row %+v", r)
+	}
+}
+
 func TestKillEndsTheSessionAndFreesTheName(t *testing.T) {
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")
