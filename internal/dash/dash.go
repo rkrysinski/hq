@@ -168,6 +168,10 @@ const (
 	sbxEvery    = 4 // ticks
 	updateEvery = time.Hour
 	prEvery     = time.Minute
+	// endedGrace is how long after the list last saw an agent not ended its
+	// ended row still keeps the cursor's place: a kill ends the session a
+	// moment before it removes the row, hq stop one agent after another.
+	endedGrace = 10 * time.Second
 )
 
 // Rows is how many agents the list shows: 6, or 3 in a terminal below 24
@@ -242,6 +246,12 @@ type Model struct {
 	cursor    string // the cursor row's agent
 	cursorRow int    // its index in rows, -1 when there are none
 	offset    int    // the first row shown
+	// place is the row the cursor takes when its agent leaves the rows: the
+	// cursor row, except while its agent has just ended, which moves the
+	// row to the bottom a moment before a kill removes it (#82). live is
+	// when the list last saw each agent not ended, by name.
+	place int
+	live  map[string]time.Time
 
 	width, height int
 	ticks         int
@@ -252,7 +262,7 @@ type Model struct {
 // New is the list program before its first refresh, in the modes the user
 // left.
 func New(src Source) Model {
-	m := Model{src: src, width: 80, height: Height(24), sort: SortAttention, view: ViewAttention, cursorRow: -1}
+	m := Model{src: src, width: 80, height: Height(24), sort: SortAttention, view: ViewAttention, cursorRow: -1, place: -1}
 	sort, view := src.Modes()
 	for _, s := range sorts {
 		if sort == s {
@@ -313,19 +323,46 @@ func HintsWidth(hs []Hint) int {
 func (m Model) visible() int { return max(1, m.height-4) }
 
 // arrange filters and sorts the agents into rows and puts the cursor back on
-// its agent.
+// its agent; when the agent is gone, the cursor takes its place, the row
+// after it or, when it was the last, the one before (#82).
 func (m *Model) arrange() {
 	m.rows = Arrange(m.agents, m.sort, m.view)
-	row := min(m.cursorRow, len(m.rows)-1)
 	for i, a := range m.rows {
 		if a.Name == m.cursor {
-			row = i
+			place := m.place
+			m.moveTo(i)
+			if m.justEnded(a) {
+				m.place = place
+			}
+			return
 		}
 	}
+	row := min(m.place, len(m.rows)-1)
 	if row < 0 && len(m.rows) > 0 {
 		row = 0
 	}
 	m.moveTo(row)
+}
+
+// justEnded reports whether a is ended and the list saw it not ended in the
+// last endedGrace.
+func (m Model) justEnded(a agent.Agent) bool {
+	t, ok := m.live[a.Name]
+	return a.State == state.Ended && ok && m.src.Now().Sub(t) < endedGrace
+}
+
+// seeLive notes when each agent was last seen not ended, forgetting the
+// agents gone.
+func (m *Model) seeLive() {
+	now, live := m.src.Now(), map[string]time.Time{}
+	for _, a := range m.agents {
+		if a.State != state.Ended {
+			live[a.Name] = now
+		} else if t, ok := m.live[a.Name]; ok {
+			live[a.Name] = t
+		}
+	}
+	m.live = live
 }
 
 // rowsTop is the line of the first row: the header, a blank line and the
@@ -365,10 +402,18 @@ func (m Model) mouse(msg tea.MouseMsg) (Model, tea.Cmd) {
 	}
 }
 
-// moveTo puts the cursor on row i and scrolls to keep it in sight. With no
-// rows the cursor keeps its agent's name, so it returns to that agent when
-// it shows again (as when the list starts before its first refresh).
+// moveTo puts the cursor on row i, which becomes its place, and scrolls to
+// keep it in sight. With no rows the cursor keeps its agent's name, so it
+// returns to that agent when it shows again (as when the list starts before
+// its first refresh).
 func (m *Model) moveTo(i int) {
+	m.place = i
+	m.show(i)
+}
+
+// show puts the cursor on row i and scrolls to keep it in sight, leaving its
+// place.
+func (m *Model) show(i int) {
 	m.cursorRow = i
 	if i < 0 {
 		m.offset = 0
@@ -474,7 +519,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		m.src.Layout()
 		m.src.Footer(m.hints())
-		m.moveTo(m.cursorRow)
+		m.show(m.cursorRow)
 	case tickMsg:
 		m.ticks++
 		cmds := []tea.Cmd{m.collect(), tick()}
@@ -486,6 +531,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		m.err = msg.err
 		if msg.err == nil {
 			m.agents = msg.agents
+			m.seeLive()
 			m.followDock()
 			dock := m.welcome()
 			m.arrange()
@@ -573,6 +619,9 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, func() tea.Msg { return closedMsg{open(dir)} }
 		case "k":
 			if m.cursorRow >= 0 {
+				// The row after this one takes the cursor when it goes,
+				// even when it ended moments ago.
+				m.place = m.cursorRow
 				name, kill := m.cursor, m.src.Kill
 				m.dialog = true
 				return m, func() tea.Msg { return closedMsg{kill(name)} }
