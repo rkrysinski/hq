@@ -713,6 +713,60 @@ func TestAFailedDockIsSaidUntilTheNextKey(t *testing.T) {
 	}
 }
 
+func TestARowActionsErrorGoesAfterAFewSecondsAndTheScrollHintIsBack(t *testing.T) {
+	var as []agent.Agent
+	for i := range 8 {
+		as = append(as, ag(fmt.Sprint("a", i), state.Working, time.Duration(i)*time.Minute, ""))
+	}
+	f := &fakeSource{agents: as, view: ViewAll}
+	m := started(f, 100, 10)
+	footer := func(m Model) string { ls := lines(m); return ls[len(ls)-1] }
+	if !strings.HasSuffix(footer(m), "6 of 8  ▾ 2 more") {
+		t.Fatalf("footer line %q, want the scroll hint", footer(m))
+	}
+	// p without a pull request: the error hides the hint, and a timer is set.
+	m, gone := update(m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("p")})
+	if footer(m) != "  hq: no pull request for feat/a0" || gone == nil {
+		t.Fatalf("footer line %q, timer set %v", footer(m), gone != nil)
+	}
+	// The timer fires after errFor; nothing else happened meanwhile.
+	m = do(m, gone) // a timer: not waited for
+	m, _ = update(m, tickMsg{})
+	if footer(m) != "  hq: no pull request for feat/a0" {
+		t.Fatalf("gone before its time: %q", footer(m))
+	}
+	m, _ = update(m, errGoneMsg{m.errSeq})
+	if !strings.HasSuffix(footer(m), "6 of 8  ▾ 2 more") {
+		t.Fatalf("after %v: footer line %q, want the scroll hint", errFor, footer(m))
+	}
+	// A failed dock goes the same way.
+	f.dockErr = errors.New("no dashboard window")
+	m = key(m, "enter")
+	if footer(m) != "  hq: no dashboard window" {
+		t.Fatalf("footer line %q", footer(m))
+	}
+	m, _ = update(m, errGoneMsg{m.errSeq})
+	if !strings.HasSuffix(footer(m), "6 of 8  ▾ 2 more") {
+		t.Fatalf("failed dock: footer line %q, want the scroll hint", footer(m))
+	}
+}
+
+func TestAnOlderErrorsTimerLeavesANewerErrorShown(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := key(started(f, 120, 10), "p")
+	first := m.errSeq
+	m = key(m, "p") // the key clears the first error; p says it again
+	footer := func(m Model) string { ls := lines(m); return ls[len(ls)-1] }
+	m, _ = update(m, errGoneMsg{first})
+	if !strings.HasPrefix(footer(m), "  hq: no pull request") {
+		t.Fatalf("the first error's timer cleared the second: %q", footer(m))
+	}
+	m, _ = update(m, errGoneMsg{m.errSeq})
+	if strings.Contains(footer(m), "hq:") {
+		t.Fatalf("the second error's timer left it: %q", footer(m))
+	}
+}
+
 func TestNOpensTheNewAgentDialogWithTheCursorRowsRepo(t *testing.T) {
 	f := &fakeSource{agents: team(), view: ViewAll}
 	key(key(started(f, 120, 10), "down"), "n") // perm ask done w1 end

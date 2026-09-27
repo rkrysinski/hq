@@ -168,6 +168,9 @@ const (
 	sbxEvery    = 4 // ticks
 	updateEvery = time.Hour
 	prEvery     = time.Minute
+	// errFor is how long a row action's error shows, unless a key clears it
+	// first; then the scroll hint is back.
+	errFor = 5 * time.Second
 )
 
 // Rows is how many agents the list shows: 6, or 3 in a terminal below 24
@@ -194,12 +197,13 @@ type (
 		running map[string]bool
 		err     error
 	}
-	hintMsg   struct{ text string }
-	hourMsg   struct{}
-	actedMsg  struct{ err error } // a row action (dock, code) finished
-	closedMsg struct{ err error } // a dialog closed
-	prTickMsg struct{}
-	prsMsg    struct {
+	hintMsg    struct{ text string }
+	hourMsg    struct{}
+	actedMsg   struct{ err error } // a row action (dock, code) finished
+	closedMsg  struct{ err error } // a dialog closed
+	errGoneMsg struct{ seq int }   // the row action's error seq has shown long enough
+	prTickMsg  struct{}
+	prsMsg     struct {
 		repo string
 		prs  map[string]gh.PR
 		err  error
@@ -213,7 +217,8 @@ type Model struct {
 	rows    []agent.Agent // the agents the view shows, in sort order
 	running map[string]bool
 	err     error
-	actErr  error // why the last row action failed, until the next key
+	actErr  error // why the last row action failed, for errFor or until the next key
+	errSeq  int   // counts the row actions' errors, so an older timer clears no newer one
 	// dialog is true from n or k until the dialog closes: the keys typed before
 	// tmux shows the popup are not the list's either (spec §6.6).
 	dialog bool
@@ -521,11 +526,16 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	case hourMsg:
 		return m, m.checkUpdate()
 	case actedMsg:
-		m.actErr = msg.err
-		return m, m.collect()
+		gone := m.failed(msg.err)
+		return m, tea.Batch(gone, m.collect())
 	case closedMsg:
-		m.dialog, m.actErr = false, msg.err
-		return m, m.collect()
+		m.dialog = false
+		gone := m.failed(msg.err)
+		return m, tea.Batch(gone, m.collect())
+	case errGoneMsg:
+		if msg.seq == m.errSeq {
+			m.actErr = nil
+		}
 	case tea.MouseMsg:
 		if m.dialog || m.searching {
 			return m, nil
@@ -571,8 +581,8 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 				a := m.rows[m.cursorRow]
 				p, ok := m.pr(a)
 				if !ok {
-					m.actErr = fmt.Errorf("no pull request for %s", orDash(a.Branch))
-					return m, nil
+					gone := m.failed(fmt.Errorf("no pull request for %s", orDash(a.Branch)))
+					return m, gone
 				}
 				browse := m.src.Browse
 				return m, func() tea.Msg { return actedMsg{browse(p.URL)} }
@@ -616,6 +626,18 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// failed shows why a row action failed, err nil being none, and clears it
+// after errFor unless a newer error or a key replaced it by then.
+func (m *Model) failed(err error) tea.Cmd {
+	m.actErr = err
+	if err == nil {
+		return nil
+	}
+	m.errSeq++
+	seq := m.errSeq
+	return tea.Tick(errFor, func(time.Time) tea.Msg { return errGoneMsg{seq} })
 }
 
 // searchKey handles a key while searching: letters extend the name and
