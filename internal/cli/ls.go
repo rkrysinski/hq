@@ -62,11 +62,10 @@ func runLs(env Env, d deps, args []string) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	ws, err := d.tmux.Windows()
+	as, err := collect(d)
 	if err != nil {
-		return tmuxErr(err)
+		return err
 	}
-	as := withStates(d, agent.FromWindows(ws))
 	sortAttention(as)
 	now := d.now()
 	rows := make([]lsRow, 0, len(as))
@@ -92,12 +91,22 @@ func runLs(env Env, d deps, args []string) error {
 	return tw.Flush()
 }
 
-// withStates adds each agent's reported state (design §3.4).
-func withStates(d deps, as []agent.Agent) []agent.Agent {
-	for i := range as {
-		as[i].Apply(d.readState(as[i].RepoPath, as[i].ID))
+// collect gathers the agents with their state from tmux, the state files and
+// sbx (design §5.1). When sbx fails or does not answer in time, the states
+// come from tmux and the hooks alone.
+func collect(d deps) ([]agent.Agent, error) {
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return nil, tmuxErr(err)
 	}
-	return as
+	var running map[string]bool
+	if sbs, err := d.pollSandboxes(); err == nil {
+		running = map[string]bool{}
+		for _, s := range sbs {
+			running[s.Name] = s.Running()
+		}
+	}
+	return agent.Collect(ws, d.readState, running), nil
 }
 
 // lastWidth is how much of the last message hq ls shows; --json has it all.

@@ -64,6 +64,9 @@ type deps struct {
 	canAsk   func(stdin io.Reader) bool // stdin is a terminal to confirm on
 	// readState reads an agent's state file (design §3.4).
 	readState func(root, id string) (state.Report, bool)
+	// pollSandboxes is sbx ls within a time limit, for the state of agents
+	// (design §5.1, §7.1); a slow sbx must not hold up hq ls.
+	pollSandboxes func() ([]sbx.Sandbox, error)
 
 	releases   Releases
 	asset      string // this platform's binary in a release
@@ -71,6 +74,10 @@ type deps struct {
 	loadPrefs  func() prefs.Prefs
 	savePrefs  func(prefs.Prefs) error
 }
+
+// sbxPollTimeout bounds sbx ls when it only tells which sandboxes run;
+// sbx ls usually answers within a second.
+const sbxPollTimeout = 5 * time.Second
 
 func defaultDeps() deps {
 	run := proc.Exec{}
@@ -91,7 +98,8 @@ func defaultDeps() deps {
 		sleep:    time.Sleep,
 		canAsk:   isTerminal,
 
-		readState: state.Read,
+		readState:     state.Read,
+		pollSandboxes: sbx.Client{Run: proc.Exec{Timeout: sbxPollTimeout}, Platform: plat}.List,
 
 		releases: update.Releases{Run: run, Bin: "gh"},
 		asset:    update.Asset(runtime.GOOS, runtime.GOARCH),

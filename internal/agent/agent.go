@@ -73,6 +73,21 @@ func FromWindows(ws []tmux.Window) []Agent {
 	return as
 }
 
+// Collect is the row model's collection, shared by hq ls and the list
+// program (design §3.8, §5.1): the agents of the home windows with what
+// their state files report, and ended when sbx lists their sandbox as not
+// running. running is nil when sbx could not say, which changes nothing.
+func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), running map[string]bool) []Agent {
+	as := FromWindows(ws)
+	for i := range as {
+		as[i].Apply(read(as[i].RepoPath, as[i].ID))
+		if running != nil && !running[as[i].Sandbox] {
+			as[i].State = state.Ended
+		}
+	}
+	return as
+}
+
 // Apply adds what the agent's state file reports (ok false: nothing yet).
 // A dead pane stays ended whatever the file says, counted from the agent's
 // last report (tmux does not say when the pane died); the file still gives

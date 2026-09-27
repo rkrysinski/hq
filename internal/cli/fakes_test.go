@@ -263,6 +263,7 @@ func (f *fakes) deps() deps {
 			r, ok := f.states[id]
 			return r, ok
 		},
+		pollSandboxes: f.sbx.List,
 
 		releases:   f.releases,
 		asset:      "hq-testos-testarch",

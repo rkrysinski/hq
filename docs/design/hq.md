@@ -275,7 +275,7 @@ Satisfies: §4.1 (`ls`, `--json`), §5, §6.1, §6.2; drivers 3, 7.
 The CLI follows spec §4.2 (exit codes 0-3, one `hq:` line naming the remedy). Underneath the dashboard and the hooks:
 
 - **Hooks never get in the way.** The injected hook always exits 0 and never blocks Claude. If it cannot write the state file, the agent keeps working and the row keeps its last state; the pane's death still gives `ended`.
-- **sbx down is not a missing sandbox.** A failed or timed-out `sbx ls` changes no row; sbx contributes `ended` only when `sbx ls` succeeds without listing the sandbox as running (5.1). While sbx is unreachable the header's refresh indicator shows `sbx ?`; `gh` failures only hide `pr` (5.2).
+- **sbx down is not a missing sandbox.** A failed or timed-out `sbx ls` (no answer within 5 s; it usually answers in under a second) changes no row; sbx contributes `ended` only when `sbx ls` succeeds without listing the sandbox as running (5.1). While sbx is unreachable the header's refresh indicator shows `sbx ?`; `gh` failures only hide `pr` (5.2).
 - **A crashed list program leaves the window intact.** Its pane falls back to a shell as after `q` (S8), with one `hq:` line; the docked session is untouched and `hq` brings the list back. Diagnostics go to a small, size-capped per-user log in the XDG state directory, never into the list.
 - **Times are host times.** `AGE` and `since` come from the host's modification time of the state file, not from a timestamp written inside the sandbox, whose clock can lag after the host sleeps; after a sleep `AGE` shows real elapsed time, and `hq ls` agrees with the dashboard.
 - **Concurrent `hq new NAME`.** tmux has no atomic create-if-absent, so uniqueness (§4.2) is checked again after the home window is created; of two windows with one name, the later removes itself and exits `1`. No lock file.
@@ -353,3 +353,4 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - 1.0 (draft): security (7.3); open question closed.
 - 1.0 (draft): state channel built (#19): `starting` before the first event, `ID.stop` for the last message, Notification message while `needs input`; verified with Claude 2.1 in sbx: `env` from `--settings` reaches hooks, the image has `sh`, `git`, `cat`, `mv`, `cp`, `mkdir`, `rm`, the host modification time follows the host clock.
 - 1.0 (draft): the branch comes from the hook, which runs in Claude's current directory (verified with Claude 2.1 in sbx), as a header line before the payload (3.4, #20).
+- 1.0 (draft): `sbx ls` as the third source of `ended` in `hq ls`, bounded by a 5 s timeout, through the collection shared with the list program (5.1, 7.1, #21).
