@@ -4,9 +4,19 @@ One console for many Claude Code agents. Each agent runs in a Docker Sandboxes (
 
 Platforms: macOS (iTerm2) and Windows via WSL (Windows Terminal).
 
+## Install
+
+Prerequisites: git, tmux 3.4 or newer, Docker Sandboxes (`sbx`), GitHub CLI (`gh`, logged in), VS Code with `code` on PATH; iTerm2 on macOS, Windows Terminal and WSL (Ubuntu 24.04 or newer) on Windows.
+
+```bash
+gh release download -R rkrysinski/hq -p install.sh -O - | sh
+```
+
+This installs `hq` to `~/.local/bin` and checks the prerequisites. `hq update` moves to the latest release later; `hq --version` says when one is out.
+
 ## Stack
 
-Not chosen yet; it is decided in `docs/design/` from the specification. The tests, CI and local-run tooling arrive with it (see [Testing](docs/agents/testing.md), *When the stack is chosen*).
+Go (ADR 0011); see [Design](docs/design/hq.md), [Testing](docs/agents/testing.md) and `scripts/local-dev.sh` for running a checkout.
 
 ## Releases
 

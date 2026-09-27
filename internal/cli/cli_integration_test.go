@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +18,8 @@ import (
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/testutil"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/update"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 type realHQ struct {
@@ -189,5 +192,30 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 	}
 	if code, _, _ := h.run("sandbox", "rm", "app", "-y"); code != ExitNotFound {
 		t.Fatalf("rm again: exit %d", code)
+	}
+}
+
+func TestVersionHintKeepsItsCheckInThePreferencesFile(t *testing.T) {
+	gh, ghDir := testutil.GhStub(t)
+	if err := os.WriteFile(ghDir+"/latest", []byte("v0.2.0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	old := version.Version
+	version.Version = "v0.1.0"
+	defer func() { version.Version = old }()
+	d := defaultDeps()
+	d.releases = update.Releases{Run: proc.Exec{}, Bin: gh}
+	var out bytes.Buffer
+	if code := mainWith([]string{"--version"}, Env{Stdin: strings.NewReader(""), Stdout: &out, Stderr: &out}, d); code != 0 || out.String() != "hq v0.1.0\nv0.2.0 available - hq update\n" {
+		t.Fatalf("exit %d %q", code, out.String())
+	}
+	data, err := os.ReadFile(cfg + "/hq/preferences.json")
+	if err != nil || !strings.Contains(string(data), `"latest_release": "v0.2.0"`) {
+		t.Fatalf("%v %s", err, data)
+	}
+	if exe, err := d.executable(); err != nil || !filepath.IsAbs(exe) {
+		t.Fatalf("executable %q %v", exe, err)
 	}
 }
