@@ -262,12 +262,29 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	// scrollback intact.
 	detach()
 	open("go", "a")
-	shows("hq go a", "▸ a · ", "> say hi", "> more please", "│ a ", "q quit")
+	shows("hq go a", "▸ a · ", "> say hi", "> more please", "│ a ", "alt+l list")
 	// S2 from another shell, a docked: b gets the marker, a keeps the slot.
 	if code, out := j.hq("new", "b"); code != 0 {
 		t.Fatalf("new: exit %d %q", code, out)
 	}
 	shows("b new", "b new", "▸ a · ")
+	// §6.5 from inside a's session: the footer names the chords, Alt+j and
+	// Alt+k dock the next and previous row, Alt+l moves the keys to the
+	// list and back.
+	shows("the chords' hints", "alt+j/k dock next/previous")
+	keys("M-j")
+	shows("b docked by Alt+j", "▸ b · ")
+	keys("M-k")
+	shows("a docked by Alt+k", "▸ a · ")
+	role := func() string {
+		out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_role}").Output()
+		return strings.TrimSpace(string(out))
+	}
+	keys("M-l")
+	eventually(t, "the keys in the list", func() bool { return role() == "list" })
+	shows("the list's footer", "q quit")
+	keys("M-l")
+	eventually(t, "the keys in a's session", func() bool { return role() != "list" })
 	if code, out := j.hq("kill", "b", "-y"); code != 0 {
 		t.Fatalf("kill: exit %d %q", code, out)
 	}

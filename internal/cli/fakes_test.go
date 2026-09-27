@@ -49,7 +49,16 @@ type fakeTmux struct {
 	titles    []string // frame titles set with SetTitle, "pane=title"
 	dockErr   error
 	popups    []string // popups opened: "pane dir WxH argv..."
+	chords    string   // what BindChords was given: "argv... | hints"
+	messages  []string // shown on the status line
 }
+
+func (f *fakeTmux) BindChords(argv []string, hints string) error {
+	f.chords = strings.Join(argv, " ") + " | " + hints
+	return nil
+}
+
+func (f *fakeTmux) Message(text string) error { f.messages = append(f.messages, text); return nil }
 
 func (f *fakeTmux) Popup(pane, dir string, w, h int, argv []string) error {
 	f.popups = append(f.popups, fmt.Sprintf("%s %s %dx%d %s", pane, dir, w, h, strings.Join(argv, " ")))

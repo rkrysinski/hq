@@ -3,6 +3,7 @@
 package tmux
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -406,5 +407,83 @@ func TestANewAgentsMarkerIsStoredOnItsWindow(t *testing.T) {
 	}
 	if w := mustWindows(t, c)[id]; w.Options["new"] != "1" {
 		t.Fatalf("%+v", w)
+	}
+}
+
+func TestChordsWorkInHqsSessionAloneAndKeepOtherBindings(t *testing.T) {
+	c, socket := dashClient(t)
+	d, err := c.Dashboard(t.TempDir(), listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The user's own binding of Alt+k, and another session showing its keys.
+	tm(t, socket, "bind-key", "-n", "M-k", "send-keys", "user-k")
+	tm(t, socket, "new-session", "-d", "-s", "other", "cat", "-v")
+	// The chord command logs what it was given; its path needs quoting.
+	dir := filepath.Join(t.TempDir(), "it's #1")
+	log := filepath.Join(dir, "log")
+	chord := func(tag string) []string {
+		return []string{"sh", "-c", `mkdir -p "$(dirname "$0")"; echo "` + tag + ` $1 $HQ_TMUX_SOCKET" >> "$0"`, log}
+	}
+	if err := c.BindChords(chord("old"), "chord hints"); err != nil {
+		t.Fatal(err)
+	}
+	// hq moved: bound again, the bindings stay and name the new command.
+	if err := c.BindChords(chord("new"), "chord hints"); err != nil {
+		t.Fatal(err)
+	}
+	keys := tm(t, socket, "list-keys", "-T", "root")
+	if n := strings.Count(keys, "M-k "); n != 1 || !strings.Contains(keys, `"send-keys user-k"`) {
+		t.Fatalf("Alt+k bound %d times or the user's binding lost:\n%s", n, keys)
+	}
+
+	term := testutil.TmuxSocket(t)
+	tm(t, term, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-L", socket, "attach", "-t", Session)
+	screen := func() string { return tm(t, term, "capture-pane", "-p") }
+	eventually(t, "the client to attach", func() bool { return strings.Contains(screen(), "list:") })
+	logged := func() string {
+		b, _ := os.ReadFile(log)
+		return strings.TrimSpace(string(b))
+	}
+	tm(t, term, "send-keys", "M-j")
+	tm(t, term, "send-keys", "M-k")
+	eventually(t, "the chord commands", func() bool { return logged() == "new next "+socket+"\nnew previous "+socket })
+
+	// Alt+l toggles the keys between list and slot; the footer follows.
+	status := func() string {
+		return tm(t, socket, "display-message", "-p", "-t", Session+":", "#{E:status-format[0]}")
+	}
+	active := func() string { return tm(t, socket, "display-message", "-p", "-t", Session+":", "#{pane_id}") }
+	tm(t, socket, "select-pane", "-t", d.List)
+	tm(t, socket, "set-option", "-t", Session, "status-left", "list keys")
+	if got := status(); got != "list keys" {
+		t.Errorf("footer with the keys in the list: %q", got)
+	}
+	tm(t, term, "send-keys", "M-l")
+	eventually(t, "the keys in the slot", func() bool { return active() == d.Slot })
+	if got := status(); got != "chord hints" {
+		t.Errorf("footer with the keys in the slot: %q", got)
+	}
+	tm(t, term, "send-keys", "M-l")
+	eventually(t, "the keys in the list", func() bool { return active() == d.List })
+
+	// Another session: Alt+j reaches the pane, Alt+k the user's binding.
+	tm(t, socket, "switch-client", "-t", "other")
+	tm(t, term, "send-keys", "M-j")
+	tm(t, term, "send-keys", "M-k")
+	eventually(t, "the keys in the other session", func() bool { return strings.Contains(screen(), "^[juser-k") })
+	if got := logged(); strings.Count(got, "\n") != 1 {
+		t.Errorf("a chord ran in another session: %q", got)
+	}
+}
+
+func TestMessageShowsOnTheStatusLine(t *testing.T) {
+	c, _ := dashClient(t)
+	if _, err := c.Dashboard(t.TempDir(), listStub); err != nil {
+		t.Fatal(err)
+	}
+	// Without a client there is nothing to show it on; it is not an error.
+	if err := c.Message("no agent needs you #1"); err != nil {
+		t.Fatal(err)
 	}
 }

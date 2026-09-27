@@ -865,3 +865,82 @@ func TestSearchLooksAtTheRowsShown(t *testing.T) {
 		t.Fatalf("footer %v cursor %q", f.footer, m.cursor)
 	}
 }
+
+func names(as []agent.Agent) string {
+	var ns []string
+	for _, a := range as {
+		ns = append(ns, a.Name)
+	}
+	return strings.Join(ns, " ")
+}
+
+func TestChordsDockTheRowsAsTheListShowsThem(t *testing.T) {
+	rows := Arrange(team(), SortAttention, ViewAll)
+	if got := names(rows); got != "perm ask done w1 end" {
+		t.Fatalf("rows %s", got)
+	}
+	if got := names(Arrange(team(), "bogus", "bogus")); got != "perm ask" {
+		t.Fatalf("unknown modes: %s", got)
+	}
+	for _, tc := range []struct {
+		docked, cursor string
+		step           int
+		want           string
+	}{
+		{"ask", "ask", 1, "done"},
+		{"ask", "w1", -1, "perm"},
+		{"end", "end", 1, ""},       // the last row: nothing after it
+		{"perm", "", -1, ""},        // the first: nothing before it
+		{"gone", "done", 1, "done"}, // docked not shown: from the cursor
+		{"gone", "done", -1, "ask"},
+		{"", "", 1, "perm"}, // nothing to go by: the ends
+		{"", "", -1, "end"},
+	} {
+		got, ok := Neighbour(rows, tc.docked, tc.cursor, tc.step)
+		if got != tc.want || ok != (tc.want != "") {
+			t.Errorf("docked %q cursor %q step %d: %q %v, want %q", tc.docked, tc.cursor, tc.step, got, ok, tc.want)
+		}
+	}
+	if _, ok := Neighbour(nil, "", "", 1); ok {
+		t.Error("no rows gave a neighbour")
+	}
+}
+
+func TestAltADocksTheFirstNeedingYouButNotTheDockedOne(t *testing.T) {
+	for _, tc := range []struct{ docked, want string }{{"", "perm"}, {"w1", "perm"}, {"perm", "ask"}} {
+		if got, _ := FirstNeedingYou(team(), tc.docked); got != tc.want {
+			t.Errorf("docked %q: %q, want %q", tc.docked, got, tc.want)
+		}
+	}
+	if got, ok := FirstNeedingYou([]agent.Agent{ag("w1", state.Working, 0, ""), ag("x", state.Question, 0, "")}, "x"); ok {
+		t.Errorf("only the docked agent needs you: %q", got)
+	}
+}
+
+func TestTheCursorFollowsAnAgentDockedElsewhere(t *testing.T) {
+	as := team()
+	as[2].Docked = true // done
+	f := &fakeSource{agents: as, view: ViewAll, cursor: "w1"}
+	m := started(f, 120, 10)
+	if m.cursor != "w1" {
+		t.Fatalf("the docked agent took the cursor at start: %q", m.cursor)
+	}
+	// A chord or hq go docks ask.
+	as[2].Docked, as[1].Docked = false, true
+	m, _ = update(m, agentsMsg{agents: as})
+	if m.cursor != "ask" || f.cursor != "ask" {
+		t.Fatalf("cursor %q kept %q, want ask", m.cursor, f.cursor)
+	}
+	// The cursor moved on by hand stays while ask stays docked.
+	m = key(m, "down")
+	m, _ = update(m, agentsMsg{agents: as})
+	if m.cursor == "ask" {
+		t.Fatal("cursor pulled back to the docked agent")
+	}
+	// Nothing docked (killed): the cursor stays.
+	as[1].Docked = false
+	before := m.cursor
+	if m, _ = update(m, agentsMsg{agents: as}); m.cursor != before {
+		t.Fatalf("cursor %q, want %q", m.cursor, before)
+	}
+}
