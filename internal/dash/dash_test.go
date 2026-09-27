@@ -201,7 +201,7 @@ func TestEmptyListShowsHowToStart(t *testing.T) {
 func TestRowsInAttentionOrderWithCountsInTheHeader(t *testing.T) {
 	f := &fakeSource{view: ViewAll, agents: []agent.Agent{
 		ag("idm", state.Working, 3*time.Second, "Running mvn verify ..."),
-		ag("spike", state.Ended, time.Hour, ""),
+		ag("spike", state.Ended, time.Hour, agent.EndedLast), // as Collect gives it
 		ag("43", state.Done, 11*time.Minute, "PR #58 opened"),
 		ag("42", state.NeedsInput, 2*time.Minute, "Which Entra tenant?"),
 		ag("bok", state.Question, 6*time.Minute, "Changelog too?"),

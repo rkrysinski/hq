@@ -1112,10 +1112,6 @@ func (c columns) row(a agent.Agent, now time.Time, cursor bool, strip string) st
 	if !ok {
 		st = cText
 	}
-	last := a.Last
-	if last == "" && a.State == state.Ended {
-		last = "[session ended]"
-	}
 	lastStyle := cText
 	if a.State == state.Ended {
 		lastStyle = cDim
@@ -1140,7 +1136,7 @@ func (c columns) row(a agent.Agent, now time.Time, cursor bool, strip string) st
 		case "AGE":
 			cells = append(cells, paint(cDim, fit(agent.Age(max(0, now.Sub(a.Since))), col.w)))
 		case "LAST":
-			cells = append(cells, paint(lastStyle, fit(orDash(last), col.w)))
+			cells = append(cells, paint(lastStyle, fit(orDash(a.Last), col.w)))
 		}
 	}
 	left, right := paint(plain, margin), paint(plain, margin)

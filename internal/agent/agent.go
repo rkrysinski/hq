@@ -83,10 +83,16 @@ func FromWindows(ws []tmux.Window) []Agent {
 	return as
 }
 
+// EndedLast is the last message of an agent that ended without one: it
+// never reported a message before its session went (spec S7, the mocks).
+const EndedLast = "[session ended]"
+
 // Collect is the row model's collection, shared by hq ls and the list
 // program (design §3.8, §5.1): the agents of the home windows with what
 // their state files report, and ended when sbx lists their sandbox as not
 // running. running is nil when sbx could not say, which changes nothing.
+// An ended agent without a last message has EndedLast, so hq ls and the
+// list show the same (design §6).
 func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), running map[string]bool) []Agent {
 	as := FromWindows(ws)
 	for i := range as {
@@ -94,6 +100,9 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 		if running != nil && !running[as[i].Sandbox] {
 			as[i].State = state.Ended
 			as[i].New = false
+		}
+		if as[i].State == state.Ended && as[i].Last == "" {
+			as[i].Last = EndedLast
 		}
 	}
 	return as

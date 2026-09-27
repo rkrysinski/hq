@@ -162,7 +162,7 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 
 **S6. Kill** - `k`, strip `kill`, or `hq kill NAME`: Kill dialog, `No` default. On `Yes` the Claude session ends cleanly, the sandbox stays. If the killed agent was docked, the session slot becomes an empty placeholder with a hint, focus stays in the list. The same name may be reused afterwards.
 
-**S7. Agent ends by itself** (Claude exited, sandbox stopped, launch failed): the row turns grey `ended` with the last known message; its output stays readable when docked; `k` removes the row.
+**S7. Agent ends by itself** (Claude exited, sandbox stopped, launch failed): the row turns grey `ended` with the last known message, `[session ended]` when it had none, in the list and in `hq ls` alike; its output stays readable when docked; `k` removes the row.
 
 **S8. Quit** - `q`: the dashboard closes and the terminal is back at the shell it had before `hq`, full height and scrolling normally, with nothing of hq left on screen; a hint there says how to bring the dashboard back. The docked session stays where it is and keeps working. `hq` restores the dashboard with the list and the same docked session. While the dashboard is closed (after `q`, or with the terminal detached or closed), desktop notifications are not shown.
 
@@ -192,7 +192,7 @@ Creating worktrees or branches, managing pull requests, PR status per branch (le
 - Manual test below passes on macOS and on a Windows 11 machine with WSL (Ubuntu 24.04), Windows Terminal and `sbx`.
 - With three agents in two repos (one `needs input`, one `done`, one `working`), the list shows them in that order within 1s of each state change; `Enter` on the first docks its live session and keystrokes reach Claude.
 - Resizing the window keeps 6 list rows and gives the rest to the session.
-- Stopping a sandbox from outside flips its rows to `ended` within 2s.
+- Stopping a sandbox from outside flips its rows to `ended` within 2s of the sandbox having stopped (its sessions ended; `sbx stop` itself takes several seconds before that).
 - Every attention event produces exactly one desktop notification.
 
 ### Manual test
