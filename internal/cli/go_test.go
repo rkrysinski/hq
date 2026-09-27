@@ -101,3 +101,52 @@ func TestGoReportsAFailedDock(t *testing.T) {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 }
+
+func TestGoWithADashboardOpenElsewhereRaisesItsWindow(t *testing.T) {
+	f := goFakes()
+	f.tmux.clients = []string{"/dev/ttys004"}
+	code, out, errOut := f.run("go", "a")
+	if code != 0 || f.tmux.docked != "@4" || f.tmux.attached != "" || f.tmux.shown != "@0" || strings.Join(f.raised, " ") != "/dev/ttys004" {
+		t.Fatalf("exit %d %q docked %q attached %q shown %q raised %v", code, errOut, f.tmux.docked, f.tmux.attached, f.tmux.shown, f.raised)
+	}
+	if out != "docked a in the open dashboard\n" || errOut != "" {
+		t.Errorf("out %q err %q", out, errOut)
+	}
+}
+
+func TestAFailedRaiseLeavesTheAgentDockedAndSaysSo(t *testing.T) {
+	f := goFakes()
+	f.tmux.clients = []string{"/dev/pts/3"}
+	f.raiseErr = errors.New("powershell.exe: no window titled hq, or Windows refused to bring it to the front")
+	code, out, errOut := f.run("go", "a")
+	if code != 0 || f.tmux.docked != "@4" || f.tmux.attached != "" || out != "" {
+		t.Fatalf("exit %d out %q docked %q attached %q", code, out, f.tmux.docked, f.tmux.attached)
+	}
+	if errOut != "hq: docked a in the open dashboard; could not bring its window to the front: powershell.exe: no window titled hq, or Windows refused to bring it to the front\n" {
+		t.Errorf("err %q", errOut)
+	}
+}
+
+func TestGoInsideHqServerNeverRaises(t *testing.T) {
+	f := goFakes()
+	f.tmux.clients = []string{"/dev/ttys004"}
+	f.env["TMUX"] = f.tmux.socket + ",1,0"
+	if code, _, _ := f.run("go", "a"); code != 0 || f.tmux.entered != "@0" || len(f.raised) != 0 {
+		t.Fatalf("exit %d entered %q raised %v", code, f.tmux.entered, f.raised)
+	}
+}
+
+func TestTheTitleIsClearedWhenTheAttachEnds(t *testing.T) {
+	for _, env := range []map[string]string{{}, {"TMUX": "/tmp/tmux-501/default,1,0"}} {
+		f := goFakes()
+		for k, v := range env {
+			f.env[k] = v
+		}
+		_, out, _ := f.run("go", "a")
+		// Attached: the title hq is cleared once tmux gives the terminal
+		// back; switched: the terminal stays tmux's.
+		if want := f.tmux.attached != ""; strings.HasSuffix(out, resetTitle) != want {
+			t.Errorf("%v: out %q, want the reset %v", env, out, want)
+		}
+	}
+}

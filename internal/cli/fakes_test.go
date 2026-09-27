@@ -33,8 +33,10 @@ type fakeTmux struct {
 	onNewWindow  func(f *fakeTmux)
 	newWindowErr error
 	socket       string
-	entered      string // window shown with Enter
-	attached     string // window shown with Attach
+	entered      string   // window shown with Enter
+	attached     string   // window shown with Attach
+	clients      []string // terminals of the clients attached to hq's session
+	shown        string   // window shown to them
 	windowsErr   error
 
 	dash      tmux.Dash // the dashboard window, once made
@@ -130,6 +132,13 @@ func (f *fakeTmux) SocketPath() (string, error) { return f.socket, nil }
 func (f *fakeTmux) Enter(id string) error { f.entered = id; return nil }
 
 func (f *fakeTmux) Attach(id string, _ tmux.Terminal) error { f.attached = id; return nil }
+
+func (f *fakeTmux) ShowAttached(id string) ([]string, error) {
+	if len(f.clients) > 0 {
+		f.shown = id
+	}
+	return f.clients, nil
+}
 
 func (f *fakeTmux) Version() (string, error) {
 	if f.missing {
@@ -302,13 +311,17 @@ type fakes struct {
 	editorErr error
 	// browsed are the URLs opened; prs is gh's answer by repository.
 	browsed []string
-	prs     map[string]map[string]gh.PR
-	dirs    map[string]bool
-	cwd     string
-	now     time.Time
-	env     map[string]string
-	tty     bool   // stdin is a terminal
-	stdin   string // what the user types
+	// raised are the terminals whose window was brought to the front;
+	// raiseErr fails it.
+	raised   []string
+	raiseErr error
+	prs      map[string]map[string]gh.PR
+	dirs     map[string]bool
+	cwd      string
+	now      time.Time
+	env      map[string]string
+	tty      bool   // stdin is a terminal
+	stdin    string // what the user types
 
 	states map[string]state.Report // agent id -> its state file
 
@@ -378,6 +391,10 @@ func (f *fakes) deps() deps {
 		},
 		fromSbx: platformtest.Fake{}.FromSbx,
 		browse:  func(url string) error { f.browsed = append(f.browsed, url); return nil },
+		raise: func(tty string) error {
+			f.raised = append(f.raised, tty)
+			return f.raiseErr
+		},
 		pullRequests: func(repo string) (map[string]gh.PR, error) {
 			return f.prs[repo], nil
 		},

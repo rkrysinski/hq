@@ -11,8 +11,9 @@ import (
 )
 
 // Contract checks what hq relies on from any platform: an sbx command,
-// paths that survive the trip to sbx and back, and a notification sequence
-// that is the content of a JSON string with at most one %s.
+// paths that survive the trip to sbx and back, a notification sequence
+// that is the content of a JSON string with at most one %s, and commands
+// for the editor, the browser and raising the window.
 func Contract(t *testing.T, p platform.Platform) {
 	t.Helper()
 	if p.SbxCommand() == "" {
@@ -28,6 +29,9 @@ func Contract(t *testing.T, p platform.Platform) {
 	}
 	if b := p.Browser("https://github.com/o/r/pull/7"); len(b) < 2 || b[len(b)-1] != "https://github.com/o/r/pull/7" {
 		t.Errorf("browser %q", b)
+	}
+	if r := p.Raise("/dev/ttys004"); len(r) == 0 || r[0] == "" {
+		t.Errorf("raise %q", r)
 	}
 	for _, path := range []string{"/home/dev/app", "/Users/dev/work/hq", "/w/repo with space"} {
 		s, err := p.ToSbx(path)
@@ -69,5 +73,8 @@ func (Fake) Editor(dir string) []string { return []string{"editor", dir} }
 
 // Browser names the fake browser.
 func (Fake) Browser(url string) []string { return []string{"browser", url} }
+
+// Raise names the fake raise.
+func (Fake) Raise(tty string) []string { return []string{"raise", tty} }
 
 var _ platform.Platform = Fake{}

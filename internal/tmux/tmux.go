@@ -218,6 +218,16 @@ func (c Client) Enter(id string) error {
 	return err
 }
 
+// ShowAttached shows a window to the clients attached to hq's session and
+// returns their terminals, none when no client is attached (design §3.11).
+func (c Client) ShowAttached(id string) ([]string, error) {
+	out, err := c.tmux("select-window", "-t", id, ";", "list-clients", "-t", Session, "-F", "#{client_tty}")
+	if err != nil {
+		return nil, err
+	}
+	return strings.Fields(string(out)), nil
+}
+
 // Attach selects a window and attaches this terminal to hq's session,
 // detaching any other client, until the user detaches (design §3.11).
 func (c Client) Attach(id string, t Terminal) error {

@@ -499,3 +499,41 @@ func TestMessageShowsOnTheStatusLine(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestShowAttachedNamesTheClientsTerminalAndShowsItTheWindow(t *testing.T) {
+	c, socket := dashClient(t)
+	d, err := c.Dashboard(t.TempDir(), listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, _ := agentWindow(t, c, "a", t.TempDir())
+	if ttys, err := c.ShowAttached(d.Window); err != nil || len(ttys) != 0 {
+		t.Fatalf("no client: %q %v", ttys, err)
+	}
+	term := testutil.TmuxSocket(t)
+	tm(t, term, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-L", socket, "attach", "-t", Session)
+	eventually(t, "the client to attach", func() bool { return tm(t, socket, "list-clients", "-t", Session) != "" })
+	tm(t, socket, "select-window", "-t", other)
+	ttys, err := c.ShowAttached(d.Window)
+	want := tm(t, term, "display-message", "-p", "#{pane_tty}")
+	if err != nil || len(ttys) != 1 || ttys[0] != want {
+		t.Fatalf("clients %q %v, want [%s]", ttys, err, want)
+	}
+	if got := tm(t, socket, "display-message", "-p", "-t", Session, "#{window_id}"); got != d.Window {
+		t.Fatalf("window shown %s, want %s", got, d.Window)
+	}
+}
+
+func TestTheTitleIsHqForHqsSessionAlone(t *testing.T) {
+	c, socket := dashClient(t)
+	if _, err := c.Dashboard(t.TempDir(), listStub); err != nil {
+		t.Fatal(err)
+	}
+	tm(t, socket, "new-session", "-d", "-s", "other")
+	if got := tm(t, socket, "show-options", "-gv", "set-titles"); got != "off" {
+		t.Errorf("global set-titles %q", got)
+	}
+	if got := tm(t, socket, "show-options", "-v", "-t", "other", "set-titles"); got != "" {
+		t.Errorf("other session's set-titles %q", got)
+	}
+}

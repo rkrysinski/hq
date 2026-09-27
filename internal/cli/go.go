@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -59,5 +60,26 @@ func runGo(env Env, d deps, args []string) error {
 	if err := d.tmux.Dock(a.Window, frameTitle(a)); err != nil {
 		return tmuxErr(err)
 	}
+	if mode == goAttach {
+		ttys, err := d.tmux.ShowAttached(w.Window)
+		if err != nil {
+			return tmuxErr(err)
+		}
+		if len(ttys) > 0 {
+			raise(env, d, name, ttys[0])
+			return nil
+		}
+	}
 	return show(env, d, w, mode)
+}
+
+// raise brings the attached dashboard's window to the front rather than
+// taking this terminal (design §3.11). A failure leaves the agent docked
+// and is said in one line: the dashboard is still open elsewhere.
+func raise(env Env, d deps, name, tty string) {
+	if err := d.raise(tty); err != nil {
+		fmt.Fprintf(env.Stderr, "hq: docked %s in the open dashboard; could not bring its window to the front: %v\n", name, err)
+		return
+	}
+	fmt.Fprintf(env.Stdout, "docked %s in the open dashboard\n", name)
 }
