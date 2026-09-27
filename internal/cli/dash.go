@@ -6,6 +6,7 @@ import (
 
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
+	"github.com/rkrysinski/hq/internal/tmux"
 )
 
 // listCommand is the hidden command the list pane runs (design §3.8).
@@ -31,32 +32,52 @@ func runDash(env Env, d deps, args []string) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
+	w, mode, inList, err := dashboard(d)
+	if err != nil {
+		return err
+	}
+	if inList {
+		return runList(env, d, nil)
+	}
+	return show(d, w, mode)
+}
+
+// dashboard finds or makes the dashboard window and starts its list program
+// when it is not running; inList is true when hq runs in the list pane
+// itself, which is left to the caller. mode is how to show it from here.
+func dashboard(d deps) (w tmux.Dash, mode string, inList bool, err error) {
 	exe, err := d.executable()
 	if err != nil {
-		return envErr("cannot find the running hq: %v", err)
+		return w, "", false, envErr("cannot find the running hq: %v", err)
 	}
 	dir, err := d.getwd()
 	if err != nil {
-		return envErr("%v", err)
+		return w, "", false, envErr("%v", err)
 	}
 	list := []string{exe, listCommand}
-	w, err := d.tmux.Dashboard(dir, list)
-	if err != nil {
-		return tmuxErr(err)
+	if w, err = d.tmux.Dashboard(dir, list); err != nil {
+		return w, "", false, tmuxErr(err)
 	}
 	socket, err := d.tmux.SocketPath()
 	if err != nil {
-		return tmuxErr(err)
+		return w, "", false, tmuxErr(err)
 	}
-	mode := goMode(d.getenv("TMUX"), socket)
+	mode = goMode(d.getenv("TMUX"), socket)
 	if mode == goSwitch && d.getenv("TMUX_PANE") == w.List {
-		return runList(env, d, nil)
+		return w, mode, true, nil
 	}
 	if !w.Started && (w.ListPID == 0 || !d.alive(w.ListPID)) {
 		if err := d.tmux.RespawnList(w.List, list); err != nil {
-			return tmuxErr(err)
+			return w, "", false, tmuxErr(err)
 		}
 	}
+	return w, mode, false, nil
+}
+
+// show puts the dashboard in front of the user: attached in a plain
+// terminal, switched to inside hq's server, refused inside another.
+func show(d deps, w tmux.Dash, mode string) error {
+	var err error
 	switch mode {
 	case goSwitch:
 		err = d.tmux.Enter(w.Window)
@@ -69,6 +90,44 @@ func runDash(env Env, d deps, args []string) error {
 		return tmuxErr(err)
 	}
 	return nil
+}
+
+// frameTitle is the docked session's frame title: name · branch · sandbox
+// (design §3.1), without the branch while it is not known.
+func frameTitle(a agent.Agent) string {
+	parts := []string{a.Name}
+	if a.Branch != "" {
+		parts = append(parts, a.Branch)
+	}
+	return strings.Join(append(parts, a.Sandbox), " · ")
+}
+
+// dock docks the agent named name, framed with its title.
+func dock(d deps, name string) error {
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return err
+	}
+	a, ok := agent.Find(agent.Collect(ws, d.readState, nil), name)
+	if !ok {
+		return fmt.Errorf("no agent '%s'", name)
+	}
+	return d.tmux.Dock(a.Window, frameTitle(a))
+}
+
+// keepTitles keeps the docked session's frame title current as its branch
+// changes.
+func keepTitles(d deps, ws []tmux.Window, as []agent.Agent) {
+	for _, w := range ws {
+		if !w.Docked {
+			continue
+		}
+		for _, a := range as {
+			if t := frameTitle(a); a.Window == w.ID && t != w.Title {
+				_ = d.tmux.SetTitle(w.Pane, t)
+			}
+		}
+	}
 }
 
 // runList runs the list program in the list pane until q, then leaves the
@@ -99,8 +158,11 @@ func listSource(d deps, pane string) dash.Source {
 			if err != nil {
 				return nil, err
 			}
-			return agent.Collect(ws, d.readState, running), nil
+			as := agent.Collect(ws, d.readState, running)
+			keepTitles(d, ws, as)
+			return as, nil
 		},
+		Dock: func(name string) error { return dock(d, name) },
 		Running: func() (map[string]bool, error) {
 			sbs, err := d.pollSandboxes()
 			if err != nil {

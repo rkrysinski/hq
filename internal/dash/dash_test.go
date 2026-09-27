@@ -29,6 +29,8 @@ type fakeSource struct {
 	saved      []string // modes kept, "sort/view"
 	cursor     string   // the cursor kept on the session
 	cursorSets int
+	docked     []string // agents docked, in order
+	dockErr    error
 
 	collects, polls, layouts int
 	seen                     []map[string]bool // running as given to Agents
@@ -54,6 +56,16 @@ func (f *fakeSource) source() Source {
 		SaveModes:  func(sort, view string) { f.saved = append(f.saved, sort+"/"+view) },
 		Cursor:     func() string { return f.cursor },
 		SetCursor:  func(name string) { f.cursor = name; f.cursorSets++ },
+		Dock: func(name string) error {
+			if f.dockErr != nil {
+				return f.dockErr
+			}
+			f.docked = append(f.docked, name)
+			for i := range f.agents {
+				f.agents[i].Docked = f.agents[i].Name == name
+			}
+			return nil
+		},
 	}
 }
 
@@ -293,7 +305,7 @@ func TestQAndCtrlCQuit(t *testing.T) {
 func TestStartShowsTheFooterAndEveryResizeReappliesTheLayout(t *testing.T) {
 	f := &fakeSource{}
 	m := started(f, 100, 10)
-	if got := fmt.Sprint(f.footer); got != "[{↑↓ select} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
+	if got := fmt.Sprint(f.footer); got != "[{↑↓ select} {⏎ open session below} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
 		t.Errorf("footer %s", got)
 	}
 	update(m, tea.WindowSizeMsg{Width: 90, Height: 12})
@@ -326,6 +338,8 @@ func key(m Model, k string) Model {
 		msg = tea.KeyMsg{Type: tea.KeyDown}
 	case "up":
 		msg = tea.KeyMsg{Type: tea.KeyUp}
+	case "enter":
+		msg = tea.KeyMsg{Type: tea.KeyEnter}
 	}
 	m, cmd := update(m, msg)
 	return do(m, cmd)
@@ -370,7 +384,7 @@ func TestAttentionViewShowsOnlyWhoNeedsYouAndCountsAll(t *testing.T) {
 	if len(f.saved) != 1 || f.saved[0] != "attention/all" {
 		t.Errorf("kept %v", f.saved)
 	}
-	if got := f.footer[2]; got != (Hint{"a", "view: attention"}) {
+	if got := f.footer[3]; got != (Hint{"a", "view: attention"}) {
 		t.Errorf("footer after a: %v", got)
 	}
 	m = key(m, "a")
@@ -407,7 +421,7 @@ func TestSortCyclesAndIsMarkedInTheColumnHeader(t *testing.T) {
 		if got := strings.Join(strings.Fields(lines(m)[2]), " "); !strings.HasPrefix(got, tc.marked) {
 			t.Errorf("sort %s: column header %q, want %q", tc.sort, got, tc.marked)
 		}
-		if got := f.footer[1]; got != (Hint{"s", "sort: " + tc.sort}) {
+		if got := f.footer[2]; got != (Hint{"s", "sort: " + tc.sort}) {
 			t.Errorf("footer %v", got)
 		}
 		m = key(m, "s")
@@ -548,5 +562,48 @@ func TestKeptCursorSurvivesTheSizeArrivingFirst(t *testing.T) {
 	m, _ = m.Update(agentsMsg{f.agents, nil})
 	if got := m.(Model); got.cursor != "done" || got.cursorRow != 2 || f.cursor != "done" {
 		t.Fatalf("cursor %q at %d, kept %q", got.cursor, got.cursorRow, f.cursor)
+	}
+}
+
+func TestEnterDocksTheCursorRowAndTheListMarksIt(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := key(key(started(f, 120, 10), "j"), "enter") // perm ask done w1 end
+	if len(f.docked) != 1 || f.docked[0] != "ask" {
+		t.Fatalf("docked %v, want ask", f.docked)
+	}
+	if !m.rows[1].Docked {
+		t.Fatalf("the list does not know ask is docked: %+v", m.rows[1])
+	}
+	// The cursor moves on; the docked row keeps its outline.
+	m = key(m, "j")
+	ls := lines(m)
+	if !strings.HasPrefix(ls[4], "│ ask") || !strings.HasSuffix(ls[4], " │") || strings.Contains(ls[5], "│") {
+		t.Fatalf("outline on the wrong row:\n%s\n%s", ls[4], ls[5])
+	}
+	if m.cursor != "done" {
+		t.Errorf("cursor %q", m.cursor)
+	}
+	if n, o := ansi.StringWidth(ls[4]), ansi.StringWidth(ls[3]); n != o {
+		t.Errorf("outlined row is %d wide, others %d", n, o)
+	}
+}
+
+func TestEnterWithNothingToDockDoesNothing(t *testing.T) {
+	f := &fakeSource{}
+	key(started(f, 120, 10), "enter")
+	if len(f.docked) != 0 {
+		t.Fatalf("docked %v", f.docked)
+	}
+}
+
+func TestAFailedDockIsSaidUntilTheNextKey(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll, dockErr: errors.New("no dashboard window")}
+	m := key(started(f, 120, 10), "enter")
+	if ls := lines(m); ls[len(ls)-1] != "  hq: no dashboard window" {
+		t.Fatalf("footer line %q", ls[len(ls)-1])
+	}
+	m = key(m, "r")
+	if ls := lines(m); strings.Contains(ls[len(ls)-1], "hq:") {
+		t.Fatalf("error still shown: %q", ls[len(ls)-1])
 	}
 }

@@ -50,9 +50,12 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 	if len(ws) != 2 || ws[1].ID != id || ws[1].Name != "a" || ws[1].Options["repo"] != "/r e/p" || ws[1].PaneDead {
 		t.Fatalf("before start: %+v", ws)
 	}
-	// Notifications pass from the hidden window to the terminal.
-	if out, _ := exec.Command("tmux", "-L", socket, "show-options", "-wv", "-t", id, "allow-passthrough").Output(); strings.TrimSpace(string(out)) != "all" {
-		t.Fatalf("allow-passthrough: %q", out)
+	// Notifications pass from the hidden window to the terminal; the pane
+	// carries its agent's id and its settings when it is docked.
+	for opt, want := range map[string]string{"allow-passthrough": "all", "remain-on-exit": "on", "@hq_agent": "x1"} {
+		if out, _ := exec.Command("tmux", "-L", socket, "show-options", "-pv", "-t", id, opt).Output(); strings.TrimSpace(string(out)) != want {
+			t.Fatalf("%s: %q, want %q", opt, out, want)
+		}
 	}
 	if err := c.Start(id); err != nil {
 		t.Fatal(err)
