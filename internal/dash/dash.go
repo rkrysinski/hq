@@ -30,7 +30,7 @@ type Source struct {
 	// UpdateHint is "vX.Y.Z available - hq update" when a newer release
 	// exists, else empty; it asks GitHub at most once a day.
 	UpdateHint func() string
-	// Layout re-applies the list pane's height to the window's (§6.1).
+	// Layout re-applies the list pane's height to the terminal's (§6.1).
 	Layout func()
 	// Footer shows the key hints on the dashboard's status line.
 	Footer func([]Hint)
@@ -170,18 +170,19 @@ const (
 	prEvery     = time.Minute
 )
 
-// Rows is how many agents the list shows: 6, or 3 in a window below 24
-// lines (spec §6.1).
-func Rows(windowHeight int) int {
-	if windowHeight < 24 {
+// Rows is how many agents the list shows: 6, or 3 in a terminal below 24
+// rows (spec §6.1). It counts the terminal's rows, the status line
+// included, so the classic 80x24 terminal shows 6.
+func Rows(terminalHeight int) int {
+	if terminalHeight < 24 {
 		return 3
 	}
 	return 6
 }
 
-// Height is the list pane's height for a window: the header, a blank line,
+// Height is the list pane's height in a terminal: the header, a blank line,
 // the column header, the rows and the scroll hint line.
-func Height(windowHeight int) int { return Rows(windowHeight) + 4 }
+func Height(terminalHeight int) int { return Rows(terminalHeight) + 4 }
 
 type (
 	tickMsg   struct{}

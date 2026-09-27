@@ -191,14 +191,14 @@ func TestListSourceReadsTmuxStateFilesAndSbx(t *testing.T) {
 	}
 }
 
-func TestListSourceFitsTheListToTheWindow(t *testing.T) {
+func TestListSourceFitsTheListToTheTerminal(t *testing.T) {
 	f := newFakes()
 	src := listSource(f.deps(), "%1")
-	for _, tc := range []struct{ window, want int }{{40, 10}, {24, 10}, {23, 7}} {
-		f.tmux.height = tc.window
+	for _, tc := range []struct{ terminal, want int }{{40, 10}, {24, 10}, {23, 7}} {
+		f.tmux.height = tc.terminal
 		src.Layout()
 		if got := f.tmux.resized[len(f.tmux.resized)-1]; got != tc.want {
-			t.Errorf("window %d: list %d lines, want %d", tc.window, got, tc.want)
+			t.Errorf("terminal %d: list %d lines, want %d", tc.terminal, got, tc.want)
 		}
 	}
 }

@@ -378,10 +378,12 @@ func TestUpdateHintIsCheckedAgainHourly(t *testing.T) {
 	}
 }
 
-func TestRowsFollowTheWindowHeight(t *testing.T) {
-	for _, tc := range []struct{ window, rows, height int }{{50, 6, 10}, {24, 6, 10}, {23, 3, 7}} {
-		if Rows(tc.window) != tc.rows || Height(tc.window) != tc.height {
-			t.Errorf("window %d: %d rows in %d lines", tc.window, Rows(tc.window), Height(tc.window))
+// The threshold is the terminal's height, status line included: the
+// classic 80x24 terminal shows 6 rows, one row less shows 3 (#79).
+func TestRowsFollowTheTerminalHeight(t *testing.T) {
+	for _, tc := range []struct{ terminal, rows, height int }{{50, 6, 10}, {25, 6, 10}, {24, 6, 10}, {23, 3, 7}, {20, 3, 7}} {
+		if Rows(tc.terminal) != tc.rows || Height(tc.terminal) != tc.height {
+			t.Errorf("terminal %d: %d rows in %d lines, want %d in %d", tc.terminal, Rows(tc.terminal), Height(tc.terminal), tc.rows, tc.height)
 		}
 	}
 }

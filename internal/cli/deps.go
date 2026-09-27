@@ -41,7 +41,7 @@ type Tmux interface {
 	ShowAttached(id string) ([]string, error)
 	Dashboard(dir string, list []string) (tmux.Dash, error)
 	RespawnList(pane string, list []string) error
-	WindowHeight(pane string) (int, error)
+	TerminalHeight(pane string) (int, error)
 	ResizeHeight(pane string, lines int) error
 	SetFooter(text string) error
 	MarkList(pane string, pid int) error
