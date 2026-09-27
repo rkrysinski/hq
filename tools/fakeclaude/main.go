@@ -12,6 +12,10 @@
 //     .claude/worktrees and moves into it, as Claude does;
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.
 //
+// Like Claude Code 2.1.283 it draws in the terminal's alternate screen: it
+// leaves it on /exit, and clears it first when it is terminated, as when
+// its sandbox stops (#38).
+//
 // FAKE_CLAUDE_DELAY (a Go duration, default 200ms) is how long it takes to
 // start and how long a turn works.
 package main
@@ -29,6 +33,13 @@ import (
 	"strings"
 	"syscall"
 	"time"
+)
+
+// The terminal sequences Claude draws with.
+const (
+	enterAltScreen = "\x1b[?1049h"
+	leaveAltScreen = "\x1b[?1049l"
+	clearScreen    = "\x1b[H\x1b[2J"
 )
 
 type settings struct {
@@ -83,10 +94,12 @@ func main() {
 	go func() {
 		<-sig
 		c.fire("SessionEnd", map[string]any{"reason": "other"})
+		fmt.Print(clearScreen + leaveAltScreen)
 		os.Exit(0)
 	}()
 
 	time.Sleep(c.delay)
+	fmt.Print(enterAltScreen)
 	fmt.Println("fake claude: ready")
 	in := bufio.NewScanner(os.Stdin)
 	if prompt != "" {
@@ -98,6 +111,7 @@ func main() {
 		case "":
 		case "/exit":
 			c.fire("SessionEnd", map[string]any{"reason": "prompt_input_exit"})
+			fmt.Print(leaveAltScreen)
 			return
 		default:
 			c.turn(line, in)

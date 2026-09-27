@@ -112,6 +112,18 @@ func (h *realHQ) pane(name string) string {
 	return string(out)
 }
 
+// history is the agent's session with the lines scrolled off its screen.
+func (h *realHQ) history(name string) string {
+	h.t.Helper()
+	ws, _ := h.d.tmux.Windows()
+	a, ok := agent.Find(agent.FromWindows(ws), name)
+	if !ok {
+		h.t.Fatalf("no agent %s", name)
+	}
+	out, _ := exec.Command("tmux", "-L", h.socket, "capture-pane", "-p", "-S", "-", "-t", a.Window).Output()
+	return string(out)
+}
+
 // waitPane waits until the agent's session has printed text.
 func (h *realHQ) waitPane(name, text string) {
 	h.t.Helper()
@@ -205,9 +217,13 @@ func TestStatesFollowTheSessionAndLeaveTheRepositoryClean(t *testing.T) {
 	}
 	h.waitReport("b", "done", "Done: hi")
 
-	// A session that ends keeps its last message.
+	// A session that ends keeps its last message, and its screen stays
+	// readable though Claude drew it in the alternate screen (S7, #38).
 	h.typeIn("a", "/exit")
 	h.waitReport("a", "ended", "Done: needs input")
+	if out := h.pane("a"); !strings.Contains(out, "● Done: needs input") {
+		t.Fatalf("a's screen after /exit:\n%s", out)
+	}
 
 	for _, dir := range []string{r, wt} {
 		cmd := exec.Command("git", "status", "--porcelain")
@@ -399,5 +415,24 @@ func TestVersionHintKeepsItsCheckInThePreferencesFile(t *testing.T) {
 	}
 	if exe, err := d.executable(); err != nil || !filepath.IsAbs(exe) {
 		t.Fatalf("executable %q %v", exe, err)
+	}
+}
+
+func TestAStoppedSandboxLeavesTheSessionReadable(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("new a: exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	// Claude clears its screen when its sandbox stops; what it drew goes to
+	// the pane's history rather than away (S7, #38).
+	if err := h.d.sbx.Stop("claude-app"); err != nil {
+		t.Fatal(err)
+	}
+	h.waitState("a", "ended")
+	if out := h.history("a"); !strings.Contains(out, "● Done: hello") {
+		t.Fatalf("a's history after the sandbox stopped:\n%s", out)
 	}
 }

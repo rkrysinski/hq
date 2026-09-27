@@ -168,11 +168,13 @@ func (c Client) Start(id string) error {
 
 // agentPane marks target, an agent's pane, as the agent's own: its id, so it
 // is found when docked, and what must travel with it when it moves between
-// windows. It stays readable after its process ends (S7), and passthrough
-// lets the agent's notifications (design §3.5) out of a window nobody looks
-// at.
+// windows. It stays readable after its process ends (S7): the pane is kept,
+// and it has no alternate screen, so what Claude drew there is not thrown
+// away when Claude leaves it; passthrough lets the agent's notifications
+// (design §3.5) out of a window nobody looks at.
 func agentPane(target, id string) []string {
 	cmds := []string{"set-option", "-p", "-t", target, "remain-on-exit", "on",
+		";", "set-option", "-p", "-t", target, "alternate-screen", "off",
 		";", "set-option", "-p", "-t", target, "allow-passthrough", "all"}
 	if id != "" {
 		cmds = append(cmds, ";", "set-option", "-p", "-t", target, "@hq_agent", id)

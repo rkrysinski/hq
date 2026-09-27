@@ -59,7 +59,7 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 	}
 	// Notifications pass from the hidden window to the terminal; the pane
 	// carries its agent's id and its settings when it is docked.
-	for opt, want := range map[string]string{"allow-passthrough": "all", "remain-on-exit": "on", "@hq_agent": "x1"} {
+	for opt, want := range map[string]string{"allow-passthrough": "all", "remain-on-exit": "on", "alternate-screen": "off", "@hq_agent": "x1"} {
 		if out, _ := exec.Command("tmux", "-L", socket, "show-options", "-pv", "-t", id, opt).Output(); strings.TrimSpace(string(out)) != want {
 			t.Fatalf("%s: %q, want %q", opt, out, want)
 		}
