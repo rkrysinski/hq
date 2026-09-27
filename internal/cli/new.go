@@ -2,11 +2,13 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 )
@@ -75,35 +77,50 @@ func runNew(env Env, d deps, args []string) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	root, ok := d.repoRoot(n.dir)
-	if !ok {
-		return notFoundErr("%s is not in a git repository", n.dir)
-	}
-	ws, err := d.tmux.Windows()
-	if err != nil {
-		return tmuxErr(err)
-	}
-	if _, exists := agent.Find(agent.FromWindows(ws), n.name); exists {
-		return usageErr("agent '%s' already exists (see hq ls; hq kill %s frees the name)", n.name, n.name)
-	}
-
-	sandbox, err := findOrCreateSandbox(env, d, root)
+	root, sandbox, err := createAgent(env.Stdout, d, n)
 	if err != nil {
 		return err
 	}
-
-	if err := startAgent(d, n.name, root, sandbox.Name, "", n.prompt); err != nil {
-		return err
-	}
-	fmt.Fprintf(env.Stdout, "started %s in %s (sandbox %s); enter it with: hq go %s\n", n.name, filepath.Base(root), sandbox.Name, n.name)
+	fmt.Fprintf(env.Stdout, "started %s in %s (sandbox %s); enter it with: hq go %s\n", n.name, filepath.Base(root), sandbox, n.name)
 	return nil
 }
 
+// createAgent starts a new agent, as hq new and the New agent dialog do,
+// marked new for the list (S2). What is wrong with the name or the dir is a
+// dialog.FieldError, so the dialog shows it under that field.
+func createAgent(out io.Writer, d deps, n newArgs) (root, sandbox string, err error) {
+	if !agent.ValidName(n.name) {
+		return "", "", dialog.FieldError{Field: dialog.Name, Err: usageErr("invalid name '%s': use letters, digits, - and _", n.name)}
+	}
+	root, ok := d.repoRoot(n.dir)
+	if !ok {
+		return "", "", dialog.FieldError{Field: dialog.Dir, Err: notFoundErr("%s is not in a git repository", n.dir)}
+	}
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return "", "", tmuxErr(err)
+	}
+	if _, exists := agent.Find(agent.FromWindows(ws), n.name); exists {
+		return "", "", dialog.FieldError{Field: dialog.Name, Err: duplicateErr(n.name)}
+	}
+	sb, err := findOrCreateSandbox(out, d, root)
+	if err != nil {
+		return "", "", err
+	}
+	if err := startAgent(d, n.name, root, sb.Name, "", n.prompt, true); err != nil {
+		return "", "", err
+	}
+	return root, sb.Name, nil
+}
+
+func duplicateErr(name string) error {
+	return usageErr("agent '%s' already exists (see hq ls; hq kill %s frees the name)", name, name)
+}
+
 // startAgent opens the agent's home window running a new Claude session in
-// the sandbox and releases it.
-// startAgent launches Claude as agent name, resuming the Claude session resume
-// when it is set.
-func startAgent(d deps, name, root, sandbox, resume, prompt string) error {
+// the sandbox and releases it, resuming the Claude session resume when it
+// is set; fresh marks the agent new (S2).
+func startAgent(d deps, name, root, sandbox, resume, prompt string, fresh bool) error {
 	if err := d.tmux.EnsureSession(root); err != nil {
 		return tmuxErr(err)
 	}
@@ -111,6 +128,9 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string) error {
 	opts := map[string]string{
 		"id": id, "name": name, "repo": root, "sandbox": sandbox,
 		"started": strconv.FormatInt(d.now().Unix(), 10),
+	}
+	if fresh {
+		opts["new"] = "1"
 	}
 	win, err := d.tmux.NewWindow(name, root, opts, d.sbx.RunArgv(sandbox, claudeArgs(name, id, d.notify, resume, prompt)...))
 	if err != nil {
@@ -123,7 +143,7 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string) error {
 		if err != nil {
 			return tmuxErr(err)
 		}
-		return usageErr("agent '%s' already exists (see hq ls; hq kill %s frees the name)", name, name)
+		return dialog.FieldError{Field: dialog.Name, Err: duplicateErr(name)}
 	}
 	if err := d.tmux.Start(win); err != nil {
 		_ = d.tmux.KillWindow(win)
@@ -132,7 +152,7 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string) error {
 	return nil
 }
 
-func findOrCreateSandbox(env Env, d deps, root string) (sbx.Sandbox, error) {
+func findOrCreateSandbox(out io.Writer, d deps, root string) (sbx.Sandbox, error) {
 	all, err := d.sbx.List()
 	if err != nil {
 		return sbx.Sandbox{}, sbxErr(err)
@@ -140,7 +160,7 @@ func findOrCreateSandbox(env Env, d deps, root string) (sbx.Sandbox, error) {
 	if s, ok := sbx.ByWorkspace(all, root, d.samePath); ok {
 		return s, nil
 	}
-	fmt.Fprintf(env.Stdout, "creating a sandbox for %s (first time only; log in to Claude when the session asks)\n", filepath.Base(root))
+	fmt.Fprintf(out, "creating a sandbox for %s (first time only; log in to Claude when the session asks)\n", filepath.Base(root))
 	if err := d.sbx.Create(root); err != nil {
 		return sbx.Sandbox{}, sbxErr(err)
 	}

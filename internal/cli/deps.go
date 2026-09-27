@@ -10,7 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rkrysinski/hq/internal/dash"
+	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -44,6 +46,7 @@ type Tmux interface {
 	Dock(window, title string) error
 	SetTitle(pane, title string) error
 	SetSessionValue(key, value string) error
+	Popup(pane, dir string, w, h int, argv []string) error
 }
 
 // Sandboxes is the seam to sbx (design §7.2).
@@ -85,8 +88,10 @@ type deps struct {
 
 	// runList runs the list program on this terminal until q (design §3.8).
 	runList func(dash.Source) error
-	pid     int                // this process
-	alive   func(pid int) bool // a process with that pid exists
+	// runDialog runs a dialog on this terminal, a popup's, until it closes.
+	runDialog func(tea.Model) error
+	pid       int                // this process
+	alive     func(pid int) bool // a process with that pid exists
 
 	releases   Releases
 	asset      string // this platform's binary in a release
@@ -122,9 +127,10 @@ func defaultDeps() deps {
 		pollSandboxes: sbx.Client{Run: proc.Exec{Timeout: sbxPollTimeout}, Platform: plat}.List,
 		notify:        plat.NotifySequence(),
 
-		runList: dash.Run,
-		pid:     os.Getpid(),
-		alive:   func(pid int) bool { return syscall.Kill(pid, 0) == nil },
+		runList:   dash.Run,
+		runDialog: dialog.Run,
+		pid:       os.Getpid(),
+		alive:     func(pid int) bool { return syscall.Kill(pid, 0) == nil },
 
 		releases: update.Releases{Run: run, Bin: "gh"},
 		asset:    update.Asset(runtime.GOOS, runtime.GOARCH),

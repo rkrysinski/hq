@@ -63,7 +63,7 @@ func TestSandboxRestartRelaunchesItsAgentsUnderTheSameNames(t *testing.T) {
 		t.Fatalf("windows %q", f.names())
 	}
 	for _, w := range f.tmux.windows[2:] {
-		if w.PaneDead || !f.tmux.started[w.ID] || w.Options["id"] == "id-"+w.Name || w.Options["sandbox"] != "claude-x" || w.Options["ending"] != "" {
+		if w.PaneDead || !f.tmux.started[w.ID] || w.Options["id"] == "id-"+w.Name || w.Options["sandbox"] != "claude-x" || w.Options["ending"] != "" || w.Options["new"] != "" {
 			t.Fatalf("relaunched window %+v", w)
 		}
 		argv := f.tmux.argv[w.ID]

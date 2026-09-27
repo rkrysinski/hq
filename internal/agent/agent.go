@@ -25,6 +25,7 @@ type Agent struct {
 	Started  time.Time `json:"started"`
 	Alive    bool      `json:"-"` // the agent's pane's process runs
 	Docked   bool      `json:"-"` // its pane is in the dashboard's slot
+	New      bool      `json:"-"` // started with hq new, not yet reported (S2)
 	ending   bool      // hq is taking the agent down (its sandbox restarting)
 	State    string    `json:"state"`
 	Since    time.Time `json:"since"`
@@ -72,6 +73,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if w.PaneDead || a.ending {
 			a.State = state.Ended
 		}
+		a.New = o["new"] != "" && a.State == state.Starting
 		as = append(as, a)
 	}
 	return as
@@ -87,6 +89,7 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 		as[i].Apply(read(as[i].RepoPath, as[i].ID))
 		if running != nil && !running[as[i].Sandbox] {
 			as[i].State = state.Ended
+			as[i].New = false
 		}
 	}
 	return as
@@ -100,6 +103,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	if !ok {
 		return
 	}
+	a.New = false
 	if a.Alive && !a.ending {
 		a.State = r.State
 	}

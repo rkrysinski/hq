@@ -31,6 +31,8 @@ type fakeSource struct {
 	cursorSets int
 	docked     []string // agents docked, in order
 	dockErr    error
+	dialogs    []string // dirs the New agent dialog opened with
+	onDialog   func()   // what the user does in the dialog
 
 	collects, polls, layouts int
 	seen                     []map[string]bool // running as given to Agents
@@ -63,6 +65,13 @@ func (f *fakeSource) source() Source {
 			f.docked = append(f.docked, name)
 			for i := range f.agents {
 				f.agents[i].Docked = f.agents[i].Name == name
+			}
+			return nil
+		},
+		NewAgent: func(dir string) error {
+			f.dialogs = append(f.dialogs, dir)
+			if f.onDialog != nil {
+				f.onDialog()
 			}
 			return nil
 		},
@@ -305,7 +314,7 @@ func TestQAndCtrlCQuit(t *testing.T) {
 func TestStartShowsTheFooterAndEveryResizeReappliesTheLayout(t *testing.T) {
 	f := &fakeSource{}
 	m := started(f, 100, 10)
-	if got := fmt.Sprint(f.footer); got != "[{↑↓ select} {⏎ open session below} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
+	if got := fmt.Sprint(f.footer); got != "[{↑↓ select} {⏎ open session below} {n new} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
 		t.Errorf("footer %s", got)
 	}
 	update(m, tea.WindowSizeMsg{Width: 90, Height: 12})
@@ -384,7 +393,7 @@ func TestAttentionViewShowsOnlyWhoNeedsYouAndCountsAll(t *testing.T) {
 	if len(f.saved) != 1 || f.saved[0] != "attention/all" {
 		t.Errorf("kept %v", f.saved)
 	}
-	if got := f.footer[3]; got != (Hint{"a", "view: attention"}) {
+	if got := f.footer[4]; got != (Hint{"a", "view: attention"}) {
 		t.Errorf("footer after a: %v", got)
 	}
 	m = key(m, "a")
@@ -421,7 +430,7 @@ func TestSortCyclesAndIsMarkedInTheColumnHeader(t *testing.T) {
 		if got := strings.Join(strings.Fields(lines(m)[2]), " "); !strings.HasPrefix(got, tc.marked) {
 			t.Errorf("sort %s: column header %q, want %q", tc.sort, got, tc.marked)
 		}
-		if got := f.footer[2]; got != (Hint{"s", "sort: " + tc.sort}) {
+		if got := f.footer[3]; got != (Hint{"s", "sort: " + tc.sort}) {
 			t.Errorf("footer %v", got)
 		}
 		m = key(m, "s")
@@ -605,5 +614,134 @@ func TestAFailedDockIsSaidUntilTheNextKey(t *testing.T) {
 	m = key(m, "r")
 	if ls := lines(m); strings.Contains(ls[len(ls)-1], "hq:") {
 		t.Fatalf("error still shown: %q", ls[len(ls)-1])
+	}
+}
+
+func TestNOpensTheNewAgentDialogWithTheCursorRowsRepo(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	key(key(started(f, 120, 10), "j"), "n") // perm ask done w1 end
+	if len(f.dialogs) != 1 || f.dialogs[0] != "/w/ask-repo" {
+		t.Fatalf("dialogs %q", f.dialogs)
+	}
+	f = &fakeSource{}
+	key(started(f, 120, 10), "n")
+	if len(f.dialogs) != 1 || f.dialogs[0] != "" {
+		t.Fatalf("with no rows: dialogs %q, want where hq started", f.dialogs)
+	}
+}
+
+// fresh is an agent just started with hq new, before its first report.
+func fresh(name string) agent.Agent {
+	a := ag(name, state.Starting, 0, "")
+	a.ID, a.New = name+"-id", true
+	return a
+}
+
+func TestANewAgentGetsTheCursorAndIsDockedWhenNothingIs(t *testing.T) {
+	f := &fakeSource{agents: team()}
+	for i := range f.agents {
+		f.agents[i].ID = f.agents[i].Name + "-id"
+	}
+	m := started(f, 120, 10)
+	f.onDialog = func() { f.agents = append(f.agents, fresh("n1")) }
+	m = key(m, "n")
+	if m.cursor != "n1" || len(f.docked) != 1 || f.docked[0] != "n1" {
+		t.Fatalf("cursor %q, docked %v", m.cursor, f.docked)
+	}
+	// Shown in the attention view while new, with the marker.
+	if !strings.Contains(rowNames(m), "n1") {
+		t.Fatalf("rows %q", rowNames(m))
+	}
+	var row string
+	for _, l := range lines(m) {
+		if strings.Contains(l, "n1") {
+			row = l
+		}
+	}
+	if !strings.Contains(row, "n1 new") || !strings.Contains(row, "● starting") {
+		t.Fatalf("row %q", row)
+	}
+
+	// Another one, from hq new in another shell: the cursor, not the dock.
+	f.agents = append(f.agents, fresh("n2"))
+	m = key(m, "r")
+	if m.cursor != "n2" || len(f.docked) != 1 {
+		t.Fatalf("cursor %q, docked %v", m.cursor, f.docked)
+	}
+	// The cursor stays free to move: the agent is welcomed once.
+	m = key(key(m, "up"), "r")
+	if m.cursor == "n2" {
+		t.Fatal("the cursor went back to n2")
+	}
+
+	// Its first report ends the marker, and the attention view lets it go.
+	f.agents[len(f.agents)-1].New, f.agents[len(f.agents)-1].State = false, state.Working
+	m = key(m, "r")
+	if strings.Contains(rowNames(m), "n2") {
+		t.Fatalf("rows %q", rowNames(m))
+	}
+}
+
+func TestAgentsRunningWhenTheListStartsAreNotWelcomed(t *testing.T) {
+	f := &fakeSource{agents: []agent.Agent{fresh("a"), fresh("b")}}
+	m := started(f, 120, 10)
+	if len(f.docked) != 0 || m.cursor != "a" {
+		t.Fatalf("docked %v, cursor %q", f.docked, m.cursor)
+	}
+}
+
+func TestTheNewMarkerFitsALongName(t *testing.T) {
+	long := fresh(strings.Repeat("x", 20))
+	f := &fakeSource{agents: []agent.Agent{long, ag("b", state.Working, 0, "")}, view: ViewAll}
+	ls := lines(started(f, 120, 10))
+	if !strings.Contains(ls[4], "… new ") { // after b, which works
+		t.Fatalf("row %q", ls[4])
+	}
+	if a, b := ansi.StringWidth(ls[3]), ansi.StringWidth(ls[4]); a != b {
+		t.Fatalf("rows %d and %d wide", a, b)
+	}
+}
+
+func TestAClosedDialogsErrorIsSaid(t *testing.T) {
+	f := &fakeSource{}
+	src := f.source()
+	src.NewAgent = func(string) error { return errors.New("no hq executable") }
+	m := New(src)
+	m = do(m, m.Init())
+	m = key(m, "n")
+	if ls := lines(m); ls[len(ls)-1] != "  hq: no hq executable" {
+		t.Fatalf("footer line %q", ls[len(ls)-1])
+	}
+}
+
+func TestANewAgentThatFirstLooksEndedIsStillWelcomed(t *testing.T) {
+	f := &fakeSource{}
+	m := started(f, 120, 10)
+	// sbx's last answer predates the agent's sandbox: ended for a moment.
+	a := fresh("a")
+	a.New, a.State = false, state.Ended
+	f.agents = []agent.Agent{a}
+	m = key(m, "r")
+	f.agents[0].New, f.agents[0].State = true, state.Starting
+	m = key(m, "r")
+	if m.cursor != "a" || len(f.docked) != 1 {
+		t.Fatalf("cursor %q, docked %v", m.cursor, f.docked)
+	}
+}
+
+func TestTheListTakesNoKeysWhileADialogIsOpen(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := started(f, 120, 10)
+	m, open := update(m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
+	// Typed before tmux shows the popup: neither q nor Enter reach the list.
+	for _, k := range []tea.KeyMsg{{Type: tea.KeyRunes, Runes: []rune("q")}, {Type: tea.KeyEnter}, {Type: tea.KeyDown}} {
+		var cmd tea.Cmd
+		if m, cmd = update(m, k); cmd != nil || m.cursorRow != 0 {
+			t.Fatalf("%v reached the list", k)
+		}
+	}
+	m = do(m, open) // the dialog closes
+	if m = key(m, "j"); m.cursorRow != 1 {
+		t.Fatal("keys still ignored after the dialog closed")
 	}
 }

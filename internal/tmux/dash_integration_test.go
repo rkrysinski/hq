@@ -4,6 +4,7 @@ package tmux
 
 import (
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -342,5 +343,68 @@ func TestDockWithoutADashboardIsAnError(t *testing.T) {
 	}
 	if err := c.Dock("@999", "x"); err == nil {
 		t.Fatal("docked a window that does not exist")
+	}
+}
+
+func TestPopupRunsCenteredOverTheClientAndReturnsWhenItCloses(t *testing.T) {
+	c, socket := dashClient(t)
+	d, err := c.Dashboard(t.TempDir(), listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A terminal attached to hq's session: popups need a client.
+	term := testutil.TmuxSocket(t)
+	tm(t, term, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-L", socket, "attach", "-t", Session)
+	screen := func() string { return tm(t, term, "capture-pane", "-p") }
+	eventually(t, "the client to attach", func() bool { return strings.Contains(screen(), "list:") })
+
+	dir := t.TempDir()
+	done := make(chan error, 1)
+	go func() {
+		done <- c.Popup(d.List, dir, 40, 8, []string{"sh", "-c", `printf 'popup %s %s\n' "$HQ_TMUX_SOCKET" "$(basename "$(pwd -P)")"; read _`})
+	}()
+	eventually(t, "the popup", func() bool {
+		return strings.Contains(screen(), "popup "+socket+" "+filepath.Base(dir))
+	})
+	lines := strings.Split(screen(), "\n")
+	for i, l := range lines {
+		if strings.Contains(l, "popup ") {
+			// Centered: as much room left and right of the 40 cells.
+			r := []rune(l)
+			left := strings.IndexRune(l, '│')
+			left = len([]rune(l[:max(0, left)]))
+			if right := 100 - left - 40; left < 0 || len(r) < left+40 || r[left+39] != '│' || left-right > 2 || right-left > 2 {
+				t.Errorf("popup not centered:\n%s", strings.Join(lines, "\n"))
+			}
+			if !strings.Contains(lines[i-1], "╭") {
+				t.Errorf("no rounded frame above:\n%s", strings.Join(lines, "\n"))
+			}
+		}
+	}
+	select {
+	case err := <-done:
+		t.Fatalf("Popup returned while open: %v", err)
+	default:
+	}
+	tm(t, term, "send-keys", "Enter")
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(screen(), "popup ") {
+		t.Fatalf("popup still shown:\n%s", screen())
+	}
+}
+
+func TestANewAgentsMarkerIsStoredOnItsWindow(t *testing.T) {
+	c, _ := dashClient(t)
+	if err := c.EnsureSession(t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	id, err := c.NewWindow("a", t.TempDir(), map[string]string{"id": "x", "new": "1"}, []string{"sleep", "30"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w := mustWindows(t, c)[id]; w.Options["new"] != "1" {
+		t.Fatalf("%+v", w)
 	}
 }

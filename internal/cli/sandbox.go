@@ -135,7 +135,7 @@ func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent) error {
 	}
 	var names []string
 	for _, a := range mine {
-		if err := startAgent(d, a.Name, a.RepoPath, sb.Name, resume[a.ID], ""); err != nil {
+		if err := startAgent(d, a.Name, a.RepoPath, sb.Name, resume[a.ID], "", false); err != nil {
 			return err
 		}
 		names = append(names, a.Name)

@@ -65,6 +65,9 @@ func TestNewStartsAgentInRepositorysSandbox(t *testing.T) {
 	if !f.tmux.started[w.ID] {
 		t.Fatal("window not started")
 	}
+	if w.Options["new"] == "" {
+		t.Fatal("not marked new (S2)")
+	}
 	if len(f.sbx.created) != 0 {
 		t.Fatal("created a sandbox although one existed")
 	}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
+	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
@@ -115,6 +116,23 @@ func dock(d deps, name string) error {
 	return d.tmux.Dock(a.Window, frameTitle(a))
 }
 
+// newDialog opens the New agent dialog over the dashboard, dir prefilled
+// (the directory hq was started from when empty), until it closes.
+func newDialog(d deps, pane, dir string) error {
+	exe, err := d.executable()
+	if err != nil {
+		return err
+	}
+	cwd, err := d.getwd()
+	if err != nil {
+		return err
+	}
+	if dir == "" {
+		dir = cwd
+	}
+	return d.tmux.Popup(pane, cwd, dialog.Width, dialog.Height, []string{exe, newDialogCommand, dir})
+}
+
 // keepTitles keeps the docked session's frame title current as its branch
 // changes.
 func keepTitles(d deps, ws []tmux.Window, as []agent.Agent) {
@@ -162,7 +180,8 @@ func listSource(d deps, pane string) dash.Source {
 			keepTitles(d, ws, as)
 			return as, nil
 		},
-		Dock: func(name string) error { return dock(d, name) },
+		Dock:     func(name string) error { return dock(d, name) },
+		NewAgent: func(dir string) error { return newDialog(d, pane, dir) },
 		Running: func() (map[string]bool, error) {
 			sbs, err := d.pollSandboxes()
 			if err != nil {

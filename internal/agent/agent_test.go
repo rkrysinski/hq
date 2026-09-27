@@ -97,3 +97,25 @@ func TestApplyTakesTheReportedStateWhileThePaneLives(t *testing.T) {
 		t.Fatalf("old report: %+v", old)
 	}
 }
+
+func TestAnAgentIsNewUntilItsFirstReport(t *testing.T) {
+	ws := []tmux.Window{
+		{ID: "@1", Name: "a", Options: map[string]string{"id": "a", "new": "1"}},
+		{ID: "@2", Name: "b", Options: map[string]string{"id": "b", "new": "1"}},
+		{ID: "@3", Name: "c", PaneDead: true, Options: map[string]string{"id": "c", "new": "1"}},
+		{ID: "@4", Name: "d", Options: map[string]string{"id": "d", "new": "1", "sandbox": "gone"}},
+		{ID: "@5", Name: "e", Options: map[string]string{"id": "e"}}, // relaunched, not new
+	}
+	read := func(_, id string) (state.Report, bool) {
+		return state.Report{State: state.Working}, id == "b"
+	}
+	var got []string
+	for _, a := range Collect(ws, read, map[string]bool{"": true}) {
+		if a.New {
+			got = append(got, a.Name)
+		}
+	}
+	if strings.Join(got, " ") != "a" {
+		t.Fatalf("new: %v, want a (b reported, c ended, d's sandbox stopped, e relaunched)", got)
+	}
+}

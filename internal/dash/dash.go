@@ -43,6 +43,10 @@ type Source struct {
 	// Dock docks the agent named name below the list, keys in its session
 	// (spec §6.4 open).
 	Dock func(name string) error
+	// NewAgent opens the New agent dialog over the dashboard, dir
+	// prefilled (empty: where hq was started), and returns when it closes
+	// (spec §6.6).
+	NewAgent func(dir string) error
 }
 
 // Sorts, cycled with s, and views, toggled with a (spec §6.2).
@@ -74,7 +78,7 @@ func sortRows(rows []agent.Agent, mode string) {
 func filterRows(as []agent.Agent, view string) []agent.Agent {
 	rows := make([]agent.Agent, 0, len(as))
 	for _, a := range as {
-		if view == ViewAll || a.NeedsYou() {
+		if view == ViewAll || a.NeedsYou() || a.New {
 			rows = append(rows, a)
 		}
 	}
@@ -117,6 +121,7 @@ type (
 	hintMsg   struct{ text string }
 	hourMsg   struct{}
 	dockedMsg struct{ err error }
+	closedMsg struct{ err error } // a dialog closed
 )
 
 // Model is the list program's state.
@@ -126,8 +131,14 @@ type Model struct {
 	rows    []agent.Agent // the agents the view shows, in sort order
 	running map[string]bool
 	err     error
-	dockErr error  // why the last Enter did not dock, until the next key
-	hint    string // update hint
+	dockErr error // why the last Enter did not dock, until the next key
+	// dialog is true from n until the dialog closes: the keys typed before
+	// tmux shows the popup are not the list's either (spec §6.6).
+	dialog bool
+	hint   string // update hint
+	// seen are the new agents the list has welcomed and the agents it
+	// found at its start, by id; nil before the first refresh (S2).
+	seen map[string]bool
 
 	sort, view string
 
@@ -167,7 +178,7 @@ func (m Model) hints() []Hint {
 	if m.view == ViewAll {
 		other = ViewAttention
 	}
-	return []Hint{{"↑↓", "select"}, {"⏎", "open session below"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
+	return []Hint{{"↑↓", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
 }
 
 // visible is how many rows the pane shows.
@@ -264,7 +275,9 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		m.err = msg.err
 		if msg.err == nil {
 			m.agents = msg.agents
+			dock := m.welcome()
 			m.arrange()
+			return m, dock
 		}
 	case runningMsg:
 		m.polling = false
@@ -282,7 +295,13 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	case dockedMsg:
 		m.dockErr = msg.err
 		return m, m.collect()
+	case closedMsg:
+		m.dialog, m.dockErr = false, msg.err
+		return m, m.collect()
 	case tea.KeyMsg:
+		if m.dialog {
+			return m, nil
+		}
 		m.dockErr = nil
 		switch msg.String() {
 		case "enter":
@@ -290,6 +309,13 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 				name, dock := m.cursor, m.src.Dock
 				return m, func() tea.Msg { return dockedMsg{dock(name)} }
 			}
+		case "n":
+			dir, open := "", m.src.NewAgent
+			if m.cursorRow >= 0 {
+				dir = m.rows[m.cursorRow].RepoPath
+			}
+			m.dialog = true
+			return m, func() tea.Msg { return closedMsg{open(dir)} }
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "r":
@@ -318,6 +344,39 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
+// welcome gives the cursor to an agent started since the last refresh, from
+// the dialog or hq new in any shell, and docks it when nothing is docked, so
+// a fresh sandbox's login happens in front of the user (S2). Agents running
+// when the list starts are not new to it. An agent is welcomed once, when
+// first seen new: before that it may look ended for a moment, while the
+// list's last answer from sbx predates its sandbox.
+func (m *Model) welcome() tea.Cmd {
+	first := m.seen == nil
+	if first {
+		m.seen = map[string]bool{}
+	}
+	var fresh string
+	docked := false
+	for _, a := range m.agents {
+		docked = docked || a.Docked
+		if first || a.New && !m.seen[a.ID] {
+			if !first {
+				fresh = a.Name
+			}
+			m.seen[a.ID] = true
+		}
+	}
+	if fresh == "" {
+		return nil
+	}
+	m.cursor = fresh
+	if docked {
+		return nil
+	}
+	dock := m.src.Dock
+	return func() tea.Msg { return dockedMsg{dock(fresh)} }
+}
+
 // modesChanged re-arranges the rows, keeps the modes for the next run and
 // shows them in the footer.
 func (m *Model) modesChanged() {
@@ -335,6 +394,7 @@ var (
 	cErr     = lipgloss.NewStyle().Foreground(lipgloss.Color("#F87171"))
 	cCursor  = lipgloss.Color("#2A2E37")                                 // the cursor row's background
 	cOutline = lipgloss.NewStyle().Foreground(lipgloss.Color("#A78BFA")) // the docked row's outline
+	cNew     = lipgloss.NewStyle().Foreground(lipgloss.Color("#A78BFA")) // the new marker
 	cByState = map[string]lipgloss.Style{
 		state.NeedsInput: lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
 		state.Question:   lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
@@ -456,7 +516,7 @@ type columns struct{ tab, repo, branch, state, age, last int }
 func (m Model) columns() columns {
 	c := columns{tab: 6, repo: 10, branch: 12, state: ansi.StringWidth("● needs input"), age: 4}
 	for _, a := range m.agents {
-		c.tab = max(c.tab, ansi.StringWidth(a.Name))
+		c.tab = max(c.tab, ansi.StringWidth(a.Name)+len(newMark)*boolInt(a.New))
 		c.repo = max(c.repo, ansi.StringWidth(a.Repo()))
 		c.branch = max(c.branch, ansi.StringWidth(a.Branch))
 	}
@@ -503,8 +563,13 @@ func (c columns) row(a agent.Agent, now time.Time, cursor bool) string {
 		lastStyle = cDim
 	}
 	plain := lipgloss.NewStyle()
+	name := paint(cName, fit(a.Name, c.tab))
+	if a.New {
+		n := ansi.Truncate(a.Name, max(0, c.tab-len(newMark)), "…")
+		name = paint(cName, n) + paint(cNew, fit(newMark, c.tab-ansi.StringWidth(n)))
+	}
 	cells := []string{
-		paint(cName, fit(a.Name, c.tab)),
+		name,
 		paint(cText, fit(a.Repo(), c.repo)),
 		paint(cText, fit(orDash(a.Branch), c.branch)),
 		paint(st, fit("● "+a.State, c.state)),
@@ -516,6 +581,16 @@ func (c columns) row(a agent.Agent, now time.Time, cursor bool) string {
 		left, right = paint(cOutline, "│")+paint(plain, " "), paint(plain, " ")+paint(cOutline, "│")
 	}
 	return left + strings.Join(cells, paint(plain, gap)) + right
+}
+
+// newMark follows the name of an agent new since its start (S2).
+const newMark = " new"
+
+func boolInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // fit cuts s to w cells, marking the cut, and pads it to w.
