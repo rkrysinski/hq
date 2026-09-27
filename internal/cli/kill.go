@@ -128,7 +128,9 @@ func endAgents(d deps, as []agent.Agent) error {
 }
 
 // removeAgents waits up to endWait for the agents' sessions to exit, then
-// removes their home windows.
+// removes their home windows and their state files (design §3.4): nothing
+// reads those once the window is gone. Only these agents' files go; a file
+// that cannot be removed does not stop the removal.
 func removeAgents(d deps, as []agent.Agent) error {
 	pending := map[string]bool{}
 	for _, a := range as {
@@ -167,6 +169,9 @@ func removeAgents(d deps, as []agent.Agent) error {
 		if err := d.tmux.KillWindow(a.Window); err != nil {
 			return tmuxErr(err)
 		}
+	}
+	for _, a := range as {
+		_ = d.removeState(a.RepoPath, a.ID)
 	}
 	return nil
 }
