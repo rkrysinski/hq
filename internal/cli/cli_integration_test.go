@@ -76,7 +76,12 @@ func TestNewStartsSessionInSandboxAndLsListsIt(t *testing.T) {
 		t.Fatalf("stdout %q", out)
 	}
 	h.waitState("a", "running")
-	log, _ := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/runs.log")
+	// The window runs as soon as it is released; the stub logs its args a moment later.
+	var log []byte
+	for i := 0; i < 50 && !strings.Contains(string(log), "say hi"); i++ {
+		time.Sleep(100 * time.Millisecond)
+		log, _ = os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/runs.log")
+	}
 	if !strings.Contains(string(log), `"HQ_AGENT":"a"`) || !strings.HasSuffix(strings.TrimSpace(string(log)), "say hi") {
 		t.Fatalf("session args %q", log)
 	}
