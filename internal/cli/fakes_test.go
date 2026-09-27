@@ -42,6 +42,29 @@ type fakeTmux struct {
 	footer    string
 	listPID   int // @hq_list_pid on the list pane
 	session   map[string]string
+	docked    string // window docked last, with its frame title
+	dockTitle string
+	titles    []string // frame titles set with SetTitle, "pane=title"
+	dockErr   error
+}
+
+func (f *fakeTmux) Dock(window, title string) error {
+	if f.dockErr != nil {
+		return f.dockErr
+	}
+	f.docked, f.dockTitle = window, title
+	for i := range f.windows {
+		f.windows[i].Docked = f.windows[i].ID == window
+		if f.windows[i].Docked {
+			f.windows[i].Title = title
+		}
+	}
+	return nil
+}
+
+func (f *fakeTmux) SetTitle(pane, title string) error {
+	f.titles = append(f.titles, pane+"="+title)
+	return nil
 }
 
 func (f *fakeTmux) SessionValue(key string) (string, error) { return f.session[key], nil }

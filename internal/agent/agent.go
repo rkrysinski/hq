@@ -23,7 +23,8 @@ type Agent struct {
 	RepoPath string    `json:"repo_path"`
 	Sandbox  string    `json:"sandbox"`
 	Started  time.Time `json:"started"`
-	Alive    bool      `json:"-"` // the home window's process runs
+	Alive    bool      `json:"-"` // the agent's pane's process runs
+	Docked   bool      `json:"-"` // its pane is in the dashboard's slot
 	ending   bool      // hq is taking the agent down (its sandbox restarting)
 	State    string    `json:"state"`
 	Since    time.Time `json:"since"`
@@ -58,7 +59,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if o["id"] == "" {
 			continue
 		}
-		a := Agent{Window: w.ID, ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, ending: o["ending"] != "", State: state.Starting}
+		a := Agent{Window: w.ID, ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting}
 		if a.Name == "" {
 			a.Name = w.Name
 		}

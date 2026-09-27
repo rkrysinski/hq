@@ -1,6 +1,7 @@
 package tmux
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -30,8 +31,16 @@ type Dash struct {
 }
 
 // placeholder is the slot's shell: the hint, then the user's shell.
-func placeholder() []string {
-	return []string{"sh", "-c", `printf '%s\n\n' "$1"; exec "${SHELL:-/bin/sh}"`, "sh", PlaceholderHint}
+func placeholder() []string { return placeholderWith(PlaceholderHint) }
+
+func placeholderWith(hint string) []string {
+	return []string{"sh", "-c", `printf '%s\n\n' "$1"; exec "${SHELL:-/bin/sh}"`, "sh", hint}
+}
+
+// KilledHint is what the placeholder says when the docked agent was killed
+// (S6).
+func KilledHint(name string) string {
+	return "hq: " + name + " killed - select an agent above or press n"
 }
 
 // listShell runs the list program in a shell that stays when it exits, so
@@ -108,15 +117,21 @@ func (c Client) batch(cmds ...[]string) error {
 	return err
 }
 
-// pane is one pane of hq's session with what hq keeps on it and its window.
+// pane is one pane of hq's session with what hq keeps on it and on its
+// window.
 type pane struct {
-	window, windowName, dash, agentID string
-	id, role                          string
-	listPID                           int
+	window, windowName, dash string
+	id, role, agent, title   string
+	dead                     bool
+	listPID                  int
+	options                  map[string]string // the window's OptionKeys
 }
 
 func (c Client) panes() ([]pane, error) {
-	fields := []string{"#{window_id}", "#{window_name}", "#{@hq_dash}", "#{@hq_id}", "#{pane_id}", "#{@hq_role}", "#{@hq_list_pid}"}
+	fields := []string{"#{window_id}", "#{window_name}", "#{@hq_dash}", "#{pane_id}", "#{@hq_role}", "#{@hq_agent}", "#{@hq_title}", "#{pane_dead}", "#{@hq_list_pid}"}
+	for _, k := range OptionKeys {
+		fields = append(fields, "#{@hq_"+k+"}")
+	}
 	out, err := c.tmux("list-panes", "-s", "-t", Session+":", "-F", strings.Join(fields, sep))
 	if err != nil {
 		return nil, err
@@ -130,8 +145,14 @@ func (c Client) panes() ([]pane, error) {
 		if len(f) != len(fields) {
 			return nil, fmt.Errorf("tmux: unexpected list-panes line %q", line)
 		}
-		pid, _ := strconv.Atoi(f[6])
-		ps = append(ps, pane{window: f[0], windowName: f[1], dash: f[2], agentID: f[3], id: f[4], role: f[5], listPID: pid})
+		pid, _ := strconv.Atoi(f[8])
+		p := pane{window: f[0], windowName: f[1], dash: f[2], id: f[3], role: f[4], agent: f[5], title: f[6], dead: f[7] == "1", listPID: pid, options: map[string]string{}}
+		for i, k := range OptionKeys {
+			if v := f[9+i]; v != "" {
+				p.options[k] = v
+			}
+		}
+		ps = append(ps, p)
 	}
 	return ps, nil
 }
@@ -158,7 +179,7 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 	}
 	if d.Window == "" {
 		for _, p := range ps {
-			if p.windowName == Session && p.agentID == "" {
+			if p.windowName == Session && p.options["id"] == "" {
 				d.Window = p.window
 				if err := c.decorate(p.window, p.id); err != nil {
 					return Dash{}, err
@@ -273,5 +294,105 @@ func (c Client) SessionValue(key string) (string, error) {
 // SetSessionValue stores a user option on hq's session.
 func (c Client) SetSessionValue(key, value string) error {
 	_, err := c.tmux("set-option", "-t", Session, "@hq_"+key, value)
+	return err
+}
+
+// ErrNoDashboard is returned by Dock when the dashboard window is missing.
+var ErrNoDashboard = errors.New("tmux: no dashboard window")
+
+// Dock shows an agent's own pane in the docking slot, framed with title,
+// and puts the keys there (design §3.1). The pane that was in the slot goes
+// back to its home: another agent to its home window, the placeholder to
+// the home window of the agent now docked, where it waits. Panes are only
+// swapped, so no process, scrollback or cursor is interrupted.
+func (c Client) Dock(window, title string) error {
+	ps, err := c.panes()
+	if err != nil {
+		return err
+	}
+	var home pane
+	for _, p := range ps {
+		if p.window == window {
+			home = p
+		}
+	}
+	if home.id == "" || home.options["id"] == "" {
+		return fmt.Errorf("tmux: no agent window %s", window)
+	}
+	id := home.options["id"]
+	if home.role == roleSlot { // already docked
+		for _, p := range ps {
+			if p.agent == id {
+				return c.batch([]string{"set-option", "-p", "-t", p.id, "@hq_title", title}, []string{"select-pane", "-t", p.id})
+			}
+		}
+	}
+	slot, ok := dashSlot(ps)
+	if !ok {
+		return ErrNoDashboard
+	}
+	if slot.agent != "" {
+		if err := c.undock(ps, ""); err != nil {
+			return err
+		}
+		if ps, err = c.panes(); err != nil {
+			return err
+		}
+		if slot, ok = dashSlot(ps); !ok {
+			return ErrNoDashboard
+		}
+	}
+	cmds := agentPane(home.id, id)
+	cmds = append(cmds, ";", "set-option", "-p", "-t", home.id, "@hq_title", title,
+		";", "swap-pane", "-d", "-s", home.id, "-t", slot.id,
+		";", "select-pane", "-t", home.id)
+	_, err = c.tmux(cmds...)
+	return err
+}
+
+// dashSlot is the pane in the docking slot: the dashboard's pane that is not
+// the list.
+func dashSlot(ps []pane) (pane, bool) {
+	for _, p := range ps {
+		if p.dash == "1" && p.role != roleList {
+			return p, true
+		}
+	}
+	return pane{}, false
+}
+
+// undock sends the agent in the slot back to its home window, bringing the
+// placeholder back into the slot, and puts the keys on the list. With a
+// hint, the placeholder starts afresh saying it.
+func (c Client) undock(ps []pane, hint string) error {
+	slot, ok := dashSlot(ps)
+	if !ok || slot.agent == "" {
+		return nil
+	}
+	var list string
+	for _, p := range ps {
+		if p.dash == "1" && p.role == roleList {
+			list = p.id
+		}
+	}
+	for _, p := range ps {
+		if p.options["id"] == slot.agent && p.role == roleSlot {
+			cmds := []string{"swap-pane", "-d", "-s", slot.id, "-t", p.id}
+			if hint != "" {
+				cmds = append(append(cmds, ";", "respawn-pane", "-k", "-t", p.id, "--"), placeholderWith(hint)...)
+			}
+			if list != "" {
+				cmds = append(cmds, ";", "select-pane", "-t", list)
+			}
+			_, err := c.tmux(cmds...)
+			return err
+		}
+	}
+	return nil
+}
+
+// SetTitle sets the frame title of a pane.
+func (c Client) SetTitle(pane, title string) error {
+	_, err := c.tmux("set-option", "-p", "-t", pane, "@hq_title", title)
 	return err
 }

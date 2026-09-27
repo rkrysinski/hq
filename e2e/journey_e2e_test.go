@@ -142,10 +142,10 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	j := newJourney(t)
 	t.Setenv("SHELL", "/bin/sh") // the shells in the dashboard's panes
 	term := testutil.TmuxSocket(t)
-	open := func() {
+	open := func(args ...string) {
 		t.Helper()
-		if out, err := exec.Command("tmux", "-L", term, "new-session", "-d", "-x", "120", "-y", "30",
-			"-c", j.repo, "env", "-u", "TMUX", j.bin).CombinedOutput(); err != nil {
+		if out, err := exec.Command("tmux", append([]string{"-L", term, "new-session", "-d", "-x", "120", "-y", "30",
+			"-c", j.repo, "env", "-u", "TMUX", j.bin}, args...)...).CombinedOutput(); err != nil {
 			t.Fatalf("terminal: %v %s", err, out)
 		}
 	}
@@ -199,10 +199,34 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	}
 	keys("s")
 	shows("the repo sort", "REPO ▾", "s sort: repo")
+
+	// S3: Enter docks a below the list, keys in its session; the row is
+	// outlined.
+	keys("Enter")
+	shows("a docked", "▸ a · ", "fake claude: ready", "> say hi", "│ a ")
+	if s := screen(); strings.Contains(s, "placeholder shell") {
+		t.Fatalf("placeholder still shown:\n%s", s)
+	}
+	keys("more please", "Enter")
+	shows("keys reach Claude", "> more please")
+	detach := func() {
+		t.Helper()
+		if out, err := exec.Command("tmux", "-L", j.socket, "detach-client", "-s", "hq").CombinedOutput(); err != nil {
+			t.Fatalf("detach: %v %s", err, out)
+		}
+		eventually(t, "the terminal to end", func() bool {
+			return exec.Command("tmux", "-L", term, "has-session").Run() != nil
+		})
+	}
+	// hq go from a plain terminal: the dashboard with a docked, its
+	// scrollback intact.
+	detach()
+	open("go", "a")
+	shows("hq go a", "▸ a · ", "> say hi", "> more please", "│ a ", "q quit")
 	if code, out := j.hq("kill", "a", "-y"); code != 0 {
 		t.Fatalf("kill: exit %d %q", code, out)
 	}
-	shows("the list empty again", "hq  0 agents")
+	shows("the list empty again, the placeholder back", "hq  0 agents", "▸ placeholder shell", "hq: a killed - select an agent above or press n")
 
 	// S8: q leaves the hint in the list pane; hq dash there brings the list back.
 	keys("q")
@@ -215,12 +239,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	before := listPane()
 
 	// S9: detach, then hq again: the same layout, the same list program.
-	if out, err := exec.Command("tmux", "-L", j.socket, "detach-client", "-s", "hq").CombinedOutput(); err != nil {
-		t.Fatalf("detach: %v %s", err, out)
-	}
-	eventually(t, "the terminal to end", func() bool {
-		return exec.Command("tmux", "-L", term, "has-session").Run() != nil
-	})
+	detach()
 	open()
 	shows("the dashboard again", "hq  0 agents", "▸ placeholder shell", "q quit")
 	if after := listPane(); after != before || before == "" {

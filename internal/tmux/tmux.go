@@ -5,7 +5,6 @@ package tmux
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,11 +18,16 @@ const Session = "hq"
 // MinVersion is the oldest tmux hq supports (design §3.2).
 const MinVersion = "3.4"
 
-// Window is one window of hq's session with the options hq keeps on it.
+// Window is one window of hq's session with the options hq keeps on it. For
+// an agent's home window, the pane fields are the agent's own pane, wherever
+// it is: in its home window, or docked in the dashboard (design §3.1).
 type Window struct {
 	ID       string // tmux window id, e.g. "@3"
 	Name     string
+	Pane     string // the agent's pane id
 	PaneDead bool
+	Docked   bool              // the agent's pane is in the docking slot
+	Title    string            // the frame title on the agent's pane
 	Options  map[string]string // @hq_* user options, without the "@hq_" prefix
 }
 
@@ -87,33 +91,35 @@ func isNoServerOrSession(err error) bool {
 const sep = "::hq::"
 
 // Windows lists the windows of hq's session. No server or no session is an
-// empty list.
+// empty list. A home window whose pane is the placeholder has its agent
+// docked; the agent's pane is then the one carrying its id (see Dock).
 func (c Client) Windows() ([]Window, error) {
-	fields := []string{"#{window_id}", "#{window_name}", "#{pane_dead}"}
-	for _, k := range OptionKeys {
-		fields = append(fields, "#{@hq_"+k+"}")
-	}
-	out, err := c.tmux("list-windows", "-t", Session+":", "-F", strings.Join(fields, sep))
+	ps, err := c.panes()
 	if err != nil {
 		if isNoServerOrSession(err) {
 			return nil, nil
 		}
 		return nil, err
 	}
+	byAgent := map[string]pane{}
+	for _, p := range ps {
+		if p.agent != "" {
+			byAgent[p.agent] = p
+		}
+	}
 	var ws []Window
-	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
-		if line == "" {
+	seen := map[string]bool{}
+	for _, p := range ps {
+		if seen[p.window] {
 			continue
 		}
-		f := strings.Split(line, sep)
-		if len(f) != 3+len(OptionKeys) {
-			return nil, fmt.Errorf("tmux: unexpected list-windows line %q", line)
-		}
-		w := Window{ID: f[0], Name: f[1], PaneDead: f[2] == "1", Options: map[string]string{}}
-		for i, k := range OptionKeys {
-			if v := f[3+i]; v != "" {
-				w.Options[k] = v
-			}
+		seen[p.window] = true
+		w := Window{ID: p.window, Name: p.windowName, Pane: p.id, PaneDead: p.dead, Title: p.title, Options: p.options}
+		if id := p.options["id"]; id != "" && p.role == roleSlot {
+			w.Docked = true
+			a, ok := byAgent[id]
+			// A docked pane that is gone took the agent with it.
+			w.Pane, w.PaneDead, w.Title = a.id, a.dead || !ok, a.title
 		}
 		ws = append(ws, w)
 	}
@@ -134,10 +140,7 @@ func (c Client) NewWindow(name, dir string, options map[string]string, argv []st
 		return "", err
 	}
 	id := strings.TrimSpace(string(out))
-	// Passthrough lets the agent's notifications (design §3.5) out of a
-	// window nobody looks at.
-	set := []string{"set-option", "-w", "-t", id, "remain-on-exit", "on",
-		";", "set-option", "-w", "-t", id, "allow-passthrough", "all"}
+	set := agentPane(id, options["id"])
 	for _, k := range OptionKeys {
 		if v, ok := options[k]; ok {
 			set = append(set, ";", "set-option", "-w", "-t", id, "@hq_"+k, v)
@@ -162,8 +165,38 @@ func (c Client) Start(id string) error {
 	return err
 }
 
-// KillWindow removes a window.
+// agentPane marks target, an agent's pane, as the agent's own: its id, so it
+// is found when docked, and what must travel with it when it moves between
+// windows. It stays readable after its process ends (S7), and passthrough
+// lets the agent's notifications (design §3.5) out of a window nobody looks
+// at.
+func agentPane(target, id string) []string {
+	cmds := []string{"set-option", "-p", "-t", target, "remain-on-exit", "on",
+		";", "set-option", "-p", "-t", target, "allow-passthrough", "all"}
+	if id != "" {
+		cmds = append(cmds, ";", "set-option", "-p", "-t", target, "@hq_agent", id)
+	}
+	return cmds
+}
+
+// KillWindow removes a window. An agent that is docked goes back to its home
+// window first, so its own pane goes with the window and the slot gets the
+// placeholder back (S6).
 func (c Client) KillWindow(id string) error {
+	if ps, err := c.panes(); err == nil {
+		for _, p := range ps {
+			if p.window == id && p.role == roleSlot && p.options["id"] != "" {
+				name := p.options["name"]
+				if name == "" {
+					name = p.windowName
+				}
+				if err := c.undock(ps, KilledHint(name)); err != nil {
+					return err
+				}
+				break
+			}
+		}
+	}
 	_, err := c.tmux("kill-window", "-t", id)
 	return err
 }

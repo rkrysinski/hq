@@ -216,3 +216,38 @@ func TestListSourceKeepsTheCursorOnTheSession(t *testing.T) {
 		t.Fatalf("cursor %q", got)
 	}
 }
+
+func TestListSourceDocksByNameWithTheFrameTitle(t *testing.T) {
+	f := newFakes()
+	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, agentWindow("@4", "a", "/w/app", f.now, false)}
+	f.states["id-a"] = state.Report{State: state.Working, Branch: "feat/1"}
+	src := listSource(f.deps(), "%1")
+	if err := src.Dock("a"); err != nil || f.tmux.docked != "@4" || f.tmux.dockTitle != "a · feat/1 · claude-x" {
+		t.Fatalf("%v docked %q %q", err, f.tmux.docked, f.tmux.dockTitle)
+	}
+	if err := src.Dock("gone"); err == nil {
+		t.Error("docked an agent that is not there")
+	}
+	f.tmux.windowsErr = errors.New("tmux gone")
+	if err := src.Dock("a"); err == nil {
+		t.Error("a failed tmux is not reported")
+	}
+}
+
+func TestListSourceKeepsTheFrameTitleCurrent(t *testing.T) {
+	f := newFakes()
+	w := agentWindow("@4", "a", "/w/app", f.now, false)
+	w.Docked, w.Pane, w.Title = true, "%7", "a · feat/1 · claude-x"
+	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, w, agentWindow("@5", "b", "/w/app", f.now, false)}
+	f.states["id-a"] = state.Report{State: state.Working, Branch: "feat/1"}
+	src := listSource(f.deps(), "%1")
+	as, _ := src.Agents(nil)
+	if len(f.tmux.titles) != 0 || !as[0].Docked || as[1].Docked {
+		t.Fatalf("titles %v, agents %+v", f.tmux.titles, as)
+	}
+	f.states["id-a"] = state.Report{State: state.Working, Branch: "feat/2"}
+	src.Agents(nil)
+	if want := []string{"%7=a · feat/2 · claude-x"}; !reflect.DeepEqual(f.tmux.titles, want) {
+		t.Fatalf("titles %v, want %v", f.tmux.titles, want)
+	}
+}

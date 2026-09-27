@@ -35,6 +35,16 @@ func TestFromWindowsSkipsNonAgentsAndMarksDeadPanesEnded(t *testing.T) {
 	}
 }
 
+func TestFromWindowsKnowsTheDockedAgent(t *testing.T) {
+	as := FromWindows([]tmux.Window{
+		{ID: "@1", Name: "a", Docked: true, Options: map[string]string{"id": "x"}},
+		{ID: "@2", Name: "b", Options: map[string]string{"id": "y"}},
+	})
+	if !as[0].Docked || as[1].Docked || !as[0].Alive {
+		t.Fatalf("%+v", as)
+	}
+}
+
 func TestNewIDIsFresh(t *testing.T) {
 	if a, b := NewID(), NewID(); a == b || len(a) != 12 {
 		t.Fatalf("%q %q", a, b)

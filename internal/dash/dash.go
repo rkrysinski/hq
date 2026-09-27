@@ -40,6 +40,9 @@ type Source struct {
 	// SetCursor keeps it for the next one (design §3.3).
 	Cursor    func() string
 	SetCursor func(name string)
+	// Dock docks the agent named name below the list, keys in its session
+	// (spec §6.4 open).
+	Dock func(name string) error
 }
 
 // Sorts, cycled with s, and views, toggled with a (spec §6.2).
@@ -111,8 +114,9 @@ type (
 		running map[string]bool
 		err     error
 	}
-	hintMsg struct{ text string }
-	hourMsg struct{}
+	hintMsg   struct{ text string }
+	hourMsg   struct{}
+	dockedMsg struct{ err error }
 )
 
 // Model is the list program's state.
@@ -122,6 +126,7 @@ type Model struct {
 	rows    []agent.Agent // the agents the view shows, in sort order
 	running map[string]bool
 	err     error
+	dockErr error  // why the last Enter did not dock, until the next key
 	hint    string // update hint
 
 	sort, view string
@@ -162,7 +167,7 @@ func (m Model) hints() []Hint {
 	if m.view == ViewAll {
 		other = ViewAttention
 	}
-	return []Hint{{"↑↓", "select"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
+	return []Hint{{"↑↓", "select"}, {"⏎", "open session below"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
 }
 
 // visible is how many rows the pane shows.
@@ -274,8 +279,17 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, tea.Tick(updateEvery, func(time.Time) tea.Msg { return hourMsg{} })
 	case hourMsg:
 		return m, m.checkUpdate()
+	case dockedMsg:
+		m.dockErr = msg.err
+		return m, m.collect()
 	case tea.KeyMsg:
+		m.dockErr = nil
 		switch msg.String() {
+		case "enter":
+			if m.cursorRow >= 0 {
+				name, dock := m.cursor, m.src.Dock
+				return m, func() tea.Msg { return dockedMsg{dock(name)} }
+			}
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "r":
@@ -319,7 +333,8 @@ var (
 	cText    = lipgloss.NewStyle().Foreground(lipgloss.Color("#D1D5DB"))
 	cName    = lipgloss.NewStyle().Foreground(lipgloss.Color("#F3F4F6")).Bold(true)
 	cErr     = lipgloss.NewStyle().Foreground(lipgloss.Color("#F87171"))
-	cCursor  = lipgloss.Color("#2A2E37") // the cursor row's background
+	cCursor  = lipgloss.Color("#2A2E37")                                 // the cursor row's background
+	cOutline = lipgloss.NewStyle().Foreground(lipgloss.Color("#A78BFA")) // the docked row's outline
 	cByState = map[string]lipgloss.Style{
 		state.NeedsInput: lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
 		state.Question:   lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
@@ -405,8 +420,10 @@ func (m Model) header() string {
 // footerLine is the last line: an error from tmux, or the scroll hint when
 // more rows exist than fit.
 func (m Model) footerLine(v int) string {
-	if m.err != nil {
-		return margin + cErr.Render(ansi.Truncate("hq: "+m.err.Error(), m.width-4, "…"))
+	for _, err := range []error{m.err, m.dockErr} {
+		if err != nil {
+			return margin + cErr.Render(ansi.Truncate("hq: "+err.Error(), m.width-4, "…"))
+		}
 	}
 	if len(m.rows) <= v {
 		return ""
@@ -464,7 +481,8 @@ func (c columns) header(sort string) string {
 	return margin + strings.Join([]string{cell("TAB", c.tab), cell("REPO", c.repo), cell("BRANCH", c.branch), cell("STATE", c.state), cell("AGE", c.age), cell("LAST", c.last)}, cDim.Render(gap))
 }
 
-// row is one agent; the cursor row has a background (spec §6.1).
+// row is one agent; the cursor row has a background, the docked row an
+// outline, drawn as bars at both ends so it takes no extra lines (spec §6.1).
 func (c columns) row(a agent.Agent, now time.Time, cursor bool) string {
 	paint := func(st lipgloss.Style, s string) string {
 		if cursor {
@@ -493,7 +511,11 @@ func (c columns) row(a agent.Agent, now time.Time, cursor bool) string {
 		paint(cDim, fit(agent.Age(max(0, now.Sub(a.Since))), c.age)),
 		paint(lastStyle, fit(orDash(last), c.last)),
 	}
-	return paint(plain, margin) + strings.Join(cells, paint(plain, gap)) + paint(plain, margin)
+	left, right := paint(plain, margin), paint(plain, margin)
+	if a.Docked {
+		left, right = paint(cOutline, "│")+paint(plain, " "), paint(plain, " ")+paint(cOutline, "│")
+	}
+	return left + strings.Join(cells, paint(plain, gap)) + right
 }
 
 // fit cuts s to w cells, marking the cut, and pads it to w.

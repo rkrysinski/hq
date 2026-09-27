@@ -41,6 +41,8 @@ type Tmux interface {
 	SetFooter(text string) error
 	MarkList(pane string, pid int) error
 	SessionValue(key string) (string, error)
+	Dock(window, title string) error
+	SetTitle(pane, title string) error
 	SetSessionValue(key, value string) error
 }
 

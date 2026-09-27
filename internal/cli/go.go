@@ -27,6 +27,8 @@ func goMode(tmuxEnv, hqSocket string) string {
 	return goRefused
 }
 
+// runGo docks the agent in the dashboard and shows the dashboard (spec
+// §4.1, design §3.11), opening it when it is not open.
 func runGo(_ Env, d deps, args []string) error {
 	if len(args) != 1 || strings.HasPrefix(args[0], "-") {
 		return usageErr("usage: hq go NAME")
@@ -39,7 +41,7 @@ func runGo(_ Env, d deps, args []string) error {
 	if err != nil {
 		return tmuxErr(err)
 	}
-	a, ok := agent.Find(agent.FromWindows(ws), name)
+	a, ok := agent.Find(agent.Collect(ws, d.readState, nil), name)
 	if !ok {
 		return notFoundErr("no agent '%s' (see hq ls)", name)
 	}
@@ -47,16 +49,15 @@ func runGo(_ Env, d deps, args []string) error {
 	if err != nil {
 		return tmuxErr(err)
 	}
-	switch goMode(d.getenv("TMUX"), socket) {
-	case goSwitch:
-		err = d.tmux.Enter(a.Window)
-	case goRefused:
+	if goMode(d.getenv("TMUX"), socket) == goRefused {
 		return usageErr("this shell is inside another tmux server; run hq go %s from a plain terminal or detach first", name)
-	default:
-		err = d.tmux.Attach(a.Window, d.terminal)
 	}
+	w, mode, _, err := dashboard(d)
 	if err != nil {
+		return err
+	}
+	if err := d.tmux.Dock(a.Window, frameTitle(a)); err != nil {
 		return tmuxErr(err)
 	}
-	return nil
+	return show(d, w, mode)
 }
