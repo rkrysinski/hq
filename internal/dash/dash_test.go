@@ -257,10 +257,10 @@ func TestLongCellsAreCutToTheLine(t *testing.T) {
 		Name: "a-very-long-agent-name-indeed", RepoPath: "/w/r", Branch: "feat/" + strings.Repeat("b", 40),
 		State: state.Working, Since: now.Add(-time.Minute), Last: strings.Repeat("words ", 40),
 	}}}
-	ls := lines(started(f, 100, 10))
+	ls := lines(started(f, 120, 10))
 	row := ls[4]
-	if w := ansi.StringWidth(row); w > 100 {
-		t.Errorf("row %d cells wide in 100: %q", w, row)
+	if w := ansi.StringWidth(row); w > 120 {
+		t.Errorf("row %d cells wide in 120: %q", w, row)
 	}
 	for _, want := range []string{"a-very-long-age…", "feat/bbbbbbbbbbbbbbbbbbbbbb…"} {
 		if !strings.Contains(row, want) {
@@ -1064,5 +1064,135 @@ func TestTheCursorFollowsAnAgentDockedElsewhere(t *testing.T) {
 	before := m.cursor
 	if m, _ = update(m, agentsMsg{agents: as}); m.cursor != before {
 		t.Fatalf("cursor %q, want %q", m.cursor, before)
+	}
+}
+
+// narrowTeam is team with one long repository and branch, as in
+// dash-s12-narrow.png, and a pull request for the cursor row.
+func narrowTeam() *fakeSource {
+	as := team()
+	as[3].RepoPath, as[3].Branch = "/w/shop-portal", "feat/42-partner-login-with-entra"
+	return &fakeSource{agents: as, view: ViewAll, prs: map[string]map[string]gh.PR{"/w/shop-portal": {"feat/42-partner-login-with-entra": {Number: 42, URL: "u"}}}}
+}
+
+func TestColumnsGiveWayByWidth(t *testing.T) {
+	for _, tc := range []struct {
+		width      int
+		repo, last bool
+		strip      string
+	}{
+		{120, true, true, "⏎ open   c code   p pr   k kill"},
+		{100, true, true, "⏎ open   c code   p pr   k kill"},
+		{99, true, false, "⏎   c   p   ✕"},
+		{80, true, false, "⏎   c   p   ✕"},
+		{79, false, false, "⏎   c   p   ✕"},
+		{60, false, false, "⏎   c   p   ✕"},
+	} {
+		m := started(narrowTeam(), tc.width, 12)
+		ls := lines(m)
+		head := ls[2]
+		if strings.Contains(head, "REPO") != tc.repo || strings.Contains(head, "LAST") != tc.last {
+			t.Errorf("%d: header %q, want REPO %v LAST %v", tc.width, head, tc.repo, tc.last)
+		}
+		for i, l := range ls {
+			if w := ansi.StringWidth(l); w > tc.width {
+				t.Errorf("%d: line %d is %d wide: %q", tc.width, i, w, l)
+			}
+		}
+		// The cursor row (perm, needing input, first) carries the strip at
+		// its end; its columns stay where the header puts them.
+		row := ls[3]
+		if !strings.HasSuffix(strings.TrimRight(row, " "), tc.strip) {
+			t.Errorf("%d: cursor row %q, want the strip %q", tc.width, row, tc.strip)
+		}
+		// Right-aligned at every width, a margin from the edge (the last
+		// chip ends in a space of its own).
+		if w := ansi.StringWidth(row); w != tc.width {
+			t.Errorf("%d: row %d wide", tc.width, w)
+		}
+		if w := ansi.StringWidth(strings.TrimRight(row, " ")); w != tc.width-3 {
+			t.Errorf("%d: strip ends at %d, want %d", tc.width, w, tc.width-3)
+		}
+		if at := strings.Index(head, "BRANCH"); !strings.HasPrefix(row[at:], "feat/42") {
+			t.Errorf("%d: branch moved:\n%s\n%s", tc.width, head, row)
+		}
+		if tc.width < 120 && !strings.Contains(row, "…") {
+			t.Errorf("%d: long branch not cut with …: %q", tc.width, row)
+		}
+		// With labels the strip covers LAST alone; glyphs cover the tail
+		// of AGE and STATE.
+		if tc.last && !strings.Contains(row, "● needs input  1m") {
+			t.Errorf("%d: the strip covers STATE or AGE: %q", tc.width, row)
+		}
+	}
+}
+
+func TestTheHeaderKeepsWhatFitsAndTheClock(t *testing.T) {
+	f := narrowTeam()
+	f.hint = "v9.9.9 available - hq update"
+	for _, tc := range []struct {
+		width      int
+		want, gone []string
+	}{
+		{160, []string{"5 agents · 2 need you · 1 done · 1 working", "view: all", "v9.9.9"}, nil},
+		{100, []string{"5 agents · 2 need you · 1 done · 1 working", "view: all"}, []string{"v9.9.9"}},
+		{70, []string{"5 agents · 2 need you · 1 done · 1 working"}, []string{"view:"}},
+		{50, []string{"5 agents · 2 need you"}, []string{"done", "view:"}},
+	} {
+		h := lines(started(f, tc.width, 12))[0]
+		for _, s := range tc.want {
+			if !strings.Contains(h, s) {
+				t.Errorf("%d: header %q lacks %q", tc.width, h, s)
+			}
+		}
+		for _, s := range tc.gone {
+			if strings.Contains(h, s) {
+				t.Errorf("%d: header %q keeps %q", tc.width, h, s)
+			}
+		}
+		if !strings.HasSuffix(h, "Sat 14:32  ⟳ 0s") {
+			t.Errorf("%d: clock gone: %q", tc.width, h)
+		}
+	}
+}
+
+func TestTheFooterKeepsTheLabelsWhenNarrow(t *testing.T) {
+	for _, tc := range []struct {
+		width int
+		want  string
+	}{
+		{110, "↑↓ /name select  ⏎ open  n new  k kill  c code  p pr  s sort: attention  a view: attention  r refresh  q quit"},
+		{109, "⏎ open  c code  p pr  k kill  n new  / name  q quit"},
+		{80, "⏎ open  c code  p pr  k kill  n new  / name  q quit"},
+		{45, "⏎ open  c code  p pr  k kill  n new  q quit"},
+	} {
+		f := narrowTeam()
+		started(f, tc.width, 12)
+		var parts []string
+		for _, h := range f.footer {
+			parts = append(parts, h.Key+" "+h.Label)
+		}
+		got := strings.Join(parts, "  ")
+		if got != tc.want || HintsWidth(f.footer) > tc.width {
+			t.Errorf("%d: footer %q (%d wide), want %q", tc.width, got, HintsWidth(f.footer), tc.want)
+		}
+	}
+}
+
+func TestEveryKeyWorksNarrow(t *testing.T) {
+	f := narrowTeam()
+	m := started(f, 80, 12)
+	m = key(m, "down")
+	if m.cursor == "perm" {
+		t.Fatal("down did not move")
+	}
+	m = key(m, "up")
+	m = key(m, "p")
+	if len(f.browsed) != 1 {
+		t.Errorf("p at 80 opened %v", f.browsed)
+	}
+	m = key(m, "a")
+	if m.view != ViewAttention {
+		t.Errorf("a at 80: view %s", m.view)
 	}
 }

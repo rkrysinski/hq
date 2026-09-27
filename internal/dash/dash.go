@@ -276,8 +276,19 @@ func (m Model) hints() []Hint {
 		other = ViewAttention
 	}
 	hs := []Hint{{"↑↓ /name", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"k", "kill"}, {"c", "code"}, {"p", "pr"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
-	if HintsWidth(hs) > m.width {
-		hs[1].Label = "open" // so q quit still fits 120 columns
+	if HintsWidth(hs) <= m.width {
+		return hs
+	}
+	hs[1].Label = "open" // so q quit still fits 120 columns
+	if HintsWidth(hs) <= m.width {
+		return hs
+	}
+	// Narrow (dash-s12-narrow.png): the strip's actions, then new, the
+	// search and quit; the other keys still work. Narrower still, hints go
+	// from before q quit until the rest fits.
+	hs = []Hint{{"⏎", "open"}, {"c", "code"}, {"p", "pr"}, {"k", "kill"}, {"n", "new"}, {"/", "name"}, {"q", "quit"}}
+	for len(hs) > 1 && HintsWidth(hs) > m.width {
+		hs = append(hs[:len(hs)-2], hs[len(hs)-1])
 	}
 	return hs
 }
@@ -716,7 +727,7 @@ func (m Model) View() string {
 				continue
 			}
 			_, pr := m.pr(a)
-			lines = append(lines, cols.row(a, now, true, strip(pr)))
+			lines = append(lines, cols.row(a, now, true, strip(pr, m.width >= wideFrom)))
 		}
 		if hidden := len(m.agents) - len(m.rows); hidden > 0 && len(m.rows) <= v {
 			lines = append(lines, margin+cDim.Render(fmt.Sprintf("nothing else needs you · %s hidden · press a to show all", plural(hidden, "more agent"))))
@@ -726,6 +737,10 @@ func (m Model) View() string {
 		lines = append(lines, "")
 	}
 	lines = append(lines, m.footerLine(v))
+	// Nothing wraps, whatever the width (S12).
+	for i, l := range lines {
+		lines[i] = ansi.Truncate(l, m.width, "")
+	}
 	return strings.Join(lines, "\n")
 }
 
@@ -753,18 +768,34 @@ func (m Model) header() string {
 			parts = append(parts, fmt.Sprintf("%d %s", p.n, p.label))
 		}
 	}
-	left := cTitle.Render("hq") + "  " + cText.Render(strings.Join(parts, " · ")) + "  " + cDim.Render("view: "+m.view)
-	if m.hint != "" {
-		left += "  " + cDim.Render(m.hint)
-	}
 	now := m.src.Now()
 	right := now.Format("Mon 15:04")
 	if !m.polled.IsZero() {
 		right += "  ⟳ " + agent.Age(now.Sub(m.polled).Round(time.Second))
 	}
 	right = cDim.Render(right)
-	pad := m.width - len(margin) - lipgloss.Width(left) - lipgloss.Width(right) - len(margin)
-	return margin + left + strings.Repeat(" ", max(1, pad)) + right
+	// The clock and refresh stay; the left keeps what fits, giving up the
+	// update hint, the view, then the counts from the last (S12).
+	hint, view := m.hint, "view: "+m.view
+	room := m.width - 2*len(margin) - lipgloss.Width(right) - 1
+	left := func() string {
+		l := cTitle.Render("hq") + "  " + cText.Render(strings.Join(parts, " · "))
+		for _, s := range []string{view, hint} {
+			if s != "" {
+				l += "  " + cDim.Render(s)
+			}
+		}
+		return l
+	}
+	for _, drop := range []func(){func() { hint = "" }, func() { view = "" }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:1] }} {
+		if lipgloss.Width(left()) <= room {
+			break
+		}
+		drop()
+	}
+	l := left()
+	pad := m.width - len(margin) - lipgloss.Width(l) - lipgloss.Width(right) - len(margin)
+	return margin + l + strings.Repeat(" ", max(1, pad)) + right
 }
 
 // footerLine is the last line: an error from tmux, or the scroll hint when
@@ -799,8 +830,17 @@ func center(s string, w, width int) string {
 	return strings.Repeat(" ", max(0, (width-w)/2)) + s
 }
 
+// Widths where the layout changes (spec §6.1, §6.4, S12): from wideFrom
+// columns the rows show LAST and the strip its labels; below, LAST goes and
+// the strip is glyphs; below narrowFrom REPO goes too.
+const (
+	wideFrom   = 100
+	narrowFrom = 80
+	minLast    = 32 // LAST shown is at least this wide: the strip with labels covers it alone
+)
+
 // columns are the widths of TAB, REPO, BRANCH, STATE and AGE; LAST takes the
-// rest of the line.
+// rest of the line. A column of width 0 is not shown.
 type columns struct{ tab, repo, branch, state, age, last int }
 
 func (m Model) columns() columns {
@@ -811,8 +851,36 @@ func (m Model) columns() columns {
 		c.branch = max(c.branch, ansi.StringWidth(a.Branch))
 	}
 	c.tab, c.repo, c.branch = min(c.tab, 16), min(c.repo, 24), min(c.branch, 28)
-	used := len(margin) + c.tab + c.repo + c.branch + c.state + c.age + 5*len(gap) + len(margin)
-	c.last = max(0, m.width-used)
+	if m.width < narrowFrom {
+		c.repo = 0
+	}
+	wide := m.width >= wideFrom
+	room := func() int {
+		used, n := 0, 0
+		for _, w := range []int{c.tab, c.repo, c.branch, c.state, c.age} {
+			if w > 0 {
+				used, n = used+w, n+1
+			}
+		}
+		if wide {
+			used, n = used+minLast, n+1
+		}
+		return m.width - 2*len(margin) - used - (n-1)*len(gap)
+	}
+	// Too wide: the branch gives way first, then the repository, then the
+	// name, each down to what still reads; fit cuts them with ….
+	for _, col := range []*int{&c.branch, &c.repo, &c.tab} {
+		if over := -room(); over > 0 && *col > 0 {
+			*col = max(min(*col, 6), *col-over)
+		}
+	}
+	// The last column takes the rest, so rows, the docked outline and the
+	// strip reach the right edge.
+	if wide {
+		c.last = minLast + max(0, room())
+	} else {
+		c.age += max(0, room())
+	}
 	return c
 }
 
@@ -828,16 +896,41 @@ func (c columns) header(sort string) string {
 		}
 		return cDim.Render(fit(name, w))
 	}
-	return margin + strings.Join([]string{cell("TAB", c.tab), cell("REPO", c.repo), cell("BRANCH", c.branch), cell("STATE", c.state), cell("AGE", c.age), cell("LAST", c.last)}, cDim.Render(gap))
+	var cells []string
+	for _, col := range c.shown() {
+		cells = append(cells, cell(col.name, col.w))
+	}
+	return margin + strings.Join(cells, cDim.Render(gap))
+}
+
+type column struct {
+	name string
+	w    int
+}
+
+// shown are the columns with a width, in order.
+func (c columns) shown() []column {
+	var cs []column
+	for _, col := range []column{{"TAB", c.tab}, {"REPO", c.repo}, {"BRANCH", c.branch}, {"STATE", c.state}, {"AGE", c.age}, {"LAST", c.last}} {
+		if col.w > 0 {
+			cs = append(cs, col)
+		}
+	}
+	return cs
 }
 
 // strip is the cursor row's actions, pr only with a pull request (spec
-// §6.4, mock dash.png).
-func strip(pr bool) string {
-	items := [][2]string{{"⏎", "open"}, {"c", "code"}, {"p", "pr"}, {"k", "kill"}}
+// §6.4, mock dash.png); below wideFrom columns, glyphs alone
+// (dash-s12-narrow.png).
+func strip(pr, wide bool) string {
+	items := [][3]string{{"⏎", "open", "⏎"}, {"c", "code", "c"}, {"p", "pr", "p"}, {"k", "kill", "✕"}}
 	var chips []string
 	for _, it := range items {
 		if it[0] == "p" && !pr {
+			continue
+		}
+		if !wide {
+			chips = append(chips, cChipKey.Render(" "+it[2]+" "))
 			continue
 		}
 		chips = append(chips, cChipKey.Render(" "+it[0])+cChip.Render(" "+it[1]+" "))
@@ -873,13 +966,22 @@ func (c columns) row(a agent.Agent, now time.Time, cursor bool, strip string) st
 		n := ansi.Truncate(a.Name, max(0, c.tab-len(newMark)), "…")
 		name = paint(cName, n) + paint(cNew, fit(newMark, c.tab-ansi.StringWidth(n)))
 	}
-	cells := []string{
-		name,
-		paint(cText, fit(a.Repo(), c.repo)),
-		paint(cText, fit(orDash(a.Branch), c.branch)),
-		paint(st, fit("● "+a.State, c.state)),
-		paint(cDim, fit(agent.Age(max(0, now.Sub(a.Since))), c.age)),
-		paint(lastStyle, fit(orDash(last), c.last)),
+	var cells []string
+	for _, col := range c.shown() {
+		switch col.name {
+		case "TAB":
+			cells = append(cells, name)
+		case "REPO":
+			cells = append(cells, paint(cText, fit(a.Repo(), col.w)))
+		case "BRANCH":
+			cells = append(cells, paint(cText, fit(orDash(a.Branch), col.w)))
+		case "STATE":
+			cells = append(cells, paint(st, fit("● "+a.State, col.w)))
+		case "AGE":
+			cells = append(cells, paint(cDim, fit(agent.Age(max(0, now.Sub(a.Since))), col.w)))
+		case "LAST":
+			cells = append(cells, paint(lastStyle, fit(orDash(last), col.w)))
+		}
 	}
 	left, right := paint(plain, margin), paint(plain, margin)
 	if a.Docked {
