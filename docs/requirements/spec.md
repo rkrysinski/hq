@@ -103,7 +103,7 @@ All row actions work on any visible row in either view; an agent needs no pendin
 
 ### 6.3 Selecting
 
-- `↑/↓`, `j/k` move the cursor.
+- `↑/↓` move the cursor.
 - `/` then a name selects by prefix match, case-insensitive, shown in the footer as `/bo · 1 match: bok-17`; `Enter` docks the match, `Esc` clears. The `/` prefix keeps names from colliding with single-letter keys. Same names as `hq go NAME`, so the shortcut is stable across re-sorts.
 - Mouse: a click on a row moves the cursor there. A click on the row that is already the cursor row does nothing (docking is `Enter` or `open`).
 
