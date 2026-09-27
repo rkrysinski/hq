@@ -197,7 +197,8 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	shows("the New agent dialog", "New agent", "×", "name", "prompt", "Start ⏎", "Cancel")
 	keys("a", "Tab", "Tab", "say hi", "Enter")
 	shows("a new, starting", "a new", "● starting")
-	shows("a docked", "▸ a · ", "fake claude: ready", "> say hi", "│ a ")
+	// The row itself may be hidden by now: done, in the attention view.
+	shows("a docked", "▸ a · ", "fake claude: ready", "> say hi")
 	if s := screen(); strings.Contains(s, "placeholder shell") || strings.Contains(s, "New agent") {
 		t.Fatalf("placeholder or dialog still shown:\n%s", s)
 	}
