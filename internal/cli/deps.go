@@ -33,6 +33,8 @@ type Sandboxes interface {
 	Create(workspace string) error
 	RunArgv(sandbox string, agentArgs ...string) []string
 	Exec(sandbox string, args ...string) error
+	Stop(sandbox string) error
+	Remove(sandbox string) error
 }
 
 // deps is everything a command needs from outside hq.

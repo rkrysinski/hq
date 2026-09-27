@@ -143,3 +143,51 @@ func TestKillEndsTheSessionAndFreesTheName(t *testing.T) {
 		t.Fatalf("name not freed: exit %d %s", code, errOut)
 	}
 }
+
+func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	for _, name := range []string{"a", "b"} {
+		if code, _, errOut := h.run("new", name); code != 0 {
+			t.Fatalf("new %s: exit %d %s", name, code, errOut)
+		}
+		h.waitState(name, "running")
+	}
+	ids := func() map[string]string {
+		ws, _ := h.d.tmux.Windows()
+		m := map[string]string{}
+		for _, a := range agent.FromWindows(ws) {
+			m[a.Name] = a.ID
+		}
+		return m
+	}
+	before := ids()
+
+	if code, out, errOut := h.run("sandbox", "restart", "app"); code != 0 || out != "restarted the sandbox claude-app; relaunched a, b\n" {
+		t.Fatalf("restart: exit %d %q %q", code, out, errOut)
+	}
+	h.waitState("a", "running")
+	h.waitState("b", "running")
+	after := ids()
+	for name, id := range before {
+		if after[name] == "" || after[name] == id {
+			t.Fatalf("%s: id before %s, after %s", name, id, after[name])
+		}
+		if exec.Command("pgrep", "-f", `HQ_ID":"`+id+`"`).Run() == nil {
+			t.Fatalf("%s's old session still runs", name)
+		}
+	}
+
+	if code, _, errOut := h.run("sandbox", "rm", "app", "-y"); code != ExitUsage || !strings.Contains(errOut, "(a, b)") {
+		t.Fatalf("rm with agents: exit %d %q", code, errOut)
+	}
+	if code, _, _ := h.run("stop", "-y"); code != 0 {
+		t.Fatal("stop")
+	}
+	if code, out, errOut := h.run("sandbox", "rm", h.cwd, "-y"); code != 0 || out != "removed the sandbox claude-app\n" {
+		t.Fatalf("rm: exit %d %q %q", code, out, errOut)
+	}
+	if code, _, _ := h.run("sandbox", "rm", "app", "-y"); code != ExitNotFound {
+		t.Fatalf("rm again: exit %d", code)
+	}
+}

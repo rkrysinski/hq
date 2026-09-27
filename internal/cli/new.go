@@ -88,32 +88,41 @@ func runNew(env Env, d deps, args []string) error {
 		return err
 	}
 
+	if err := startAgent(d, n.name, root, sandbox.Name, n.prompt); err != nil {
+		return err
+	}
+	fmt.Fprintf(env.Stdout, "started %s in %s (sandbox %s); enter it with: hq go %s\n", n.name, filepath.Base(root), sandbox.Name, n.name)
+	return nil
+}
+
+// startAgent opens the agent's home window running a new Claude session in
+// the sandbox and releases it.
+func startAgent(d deps, name, root, sandbox, prompt string) error {
 	if err := d.tmux.EnsureSession(root); err != nil {
 		return tmuxErr(err)
 	}
 	id := agent.NewID()
 	opts := map[string]string{
-		"id": id, "name": n.name, "repo": root, "sandbox": sandbox.Name,
+		"id": id, "name": name, "repo": root, "sandbox": sandbox,
 		"started": strconv.FormatInt(d.now().Unix(), 10),
 	}
-	win, err := d.tmux.NewWindow(n.name, root, opts, d.sbx.RunArgv(sandbox.Name, claudeArgs(n.name, id, n.prompt)...))
+	win, err := d.tmux.NewWindow(name, root, opts, d.sbx.RunArgv(sandbox, claudeArgs(name, id, prompt)...))
 	if err != nil {
 		return tmuxErr(err)
 	}
 	// tmux cannot create a window only if its name is free, so two hq new of
 	// one name can both get here; the later window gives way (design §7.1).
-	if lost, err := lostNameRace(d, n.name, win); err != nil || lost {
+	if lost, err := lostNameRace(d, name, win); err != nil || lost {
 		_ = d.tmux.KillWindow(win)
 		if err != nil {
 			return tmuxErr(err)
 		}
-		return usageErr("agent '%s' already exists (see hq ls; hq kill %s frees the name)", n.name, n.name)
+		return usageErr("agent '%s' already exists (see hq ls; hq kill %s frees the name)", name, name)
 	}
 	if err := d.tmux.Start(win); err != nil {
 		_ = d.tmux.KillWindow(win)
 		return tmuxErr(err)
 	}
-	fmt.Fprintf(env.Stdout, "started %s in %s (sandbox %s); enter it with: hq go %s\n", n.name, filepath.Base(root), sandbox.Name, n.name)
 	return nil
 }
 

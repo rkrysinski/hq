@@ -33,7 +33,7 @@ func commands() []command {
 		{"go", "NAME", "enter that agent's session", runGo},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
-		{"sandbox", "rm|restart REPO", "remove or restart a repository's sandbox", notYet("sandbox")},
+		{"sandbox", "rm|restart REPO [-y]", "remove or restart a repository's sandbox", runSandbox},
 		{"update", "", "replace hq with the latest release", notYet("update")},
 		{"help", "", "show this help", runHelp},
 	}
