@@ -13,6 +13,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/dialog"
+	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -76,16 +77,19 @@ type deps struct {
 	// root); fromSbx turns a path the sandbox sees into hq's.
 	worktreeTop func(dir string) (string, bool)
 	fromSbx     func(path string) (string, error)
-	// editor opens VS Code on a directory (design §3.10).
-	editor   func(dir string) error
-	samePath func(a, b string) bool
-	isDir    func(path string) bool
-	getwd    func() (string, error)
-	now      func() time.Time
-	getenv   func(key string) string
-	terminal tmux.Terminal
-	sleep    func(time.Duration)
-	canAsk   func(stdin io.Reader) bool // stdin is a terminal to confirm on
+	// editor opens VS Code on a directory, browse a URL (design §3.10).
+	editor func(dir string) error
+	browse func(url string) error
+	// pullRequests asks gh for a repository's pull requests (design §5.2).
+	pullRequests func(repo string) (map[string]gh.PR, error)
+	samePath     func(a, b string) bool
+	isDir        func(path string) bool
+	getwd        func() (string, error)
+	now          func() time.Time
+	getenv       func(key string) string
+	terminal     tmux.Terminal
+	sleep        func(time.Duration)
+	canAsk       func(stdin io.Reader) bool // stdin is a terminal to confirm on
 	// readState reads an agent's state file (design §3.4).
 	readState func(root, id string) (state.Report, bool)
 	// pollSandboxes is sbx ls within a time limit, for the state of agents
@@ -108,6 +112,9 @@ type deps struct {
 	savePrefs  func(prefs.Prefs) error
 }
 
+// ghTimeout bounds gh pr list, which goes to GitHub.
+const ghTimeout = 30 * time.Second
+
 // sbxPollTimeout bounds sbx ls when it only tells which sandboxes run;
 // sbx ls usually answers within a second.
 const sbxPollTimeout = 5 * time.Second
@@ -126,6 +133,14 @@ func defaultDeps() deps {
 			argv := plat.Editor(dir)
 			_, err := run.Run(argv[0], argv[1:]...)
 			return err
+		},
+		browse: func(url string) error {
+			argv := plat.Browser(url)
+			_, err := run.Run(argv[0], argv[1:]...)
+			return err
+		},
+		pullRequests: func(repo string) (map[string]gh.PR, error) {
+			return gh.PullRequests(proc.Exec{Dir: repo, Timeout: ghTimeout})
 		},
 		isDir: func(path string) bool {
 			fi, err := os.Stat(path)

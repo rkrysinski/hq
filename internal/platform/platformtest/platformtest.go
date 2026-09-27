@@ -26,6 +26,9 @@ func Contract(t *testing.T, p platform.Platform) {
 	if e := p.Editor("/w/app"); len(e) < 2 || e[len(e)-1] != "/w/app" {
 		t.Errorf("editor %q", e)
 	}
+	if b := p.Browser("https://github.com/o/r/pull/7"); len(b) < 2 || b[len(b)-1] != "https://github.com/o/r/pull/7" {
+		t.Errorf("browser %q", b)
+	}
 	for _, path := range []string{"/home/dev/app", "/Users/dev/work/hq", "/w/repo with space"} {
 		s, err := p.ToSbx(path)
 		if err != nil || s == "" {
@@ -63,5 +66,8 @@ func (Fake) NotifySequence() string { return "[notify %s]" }
 
 // Editor names the fake editor.
 func (Fake) Editor(dir string) []string { return []string{"editor", dir} }
+
+// Browser names the fake browser.
+func (Fake) Browser(url string) []string { return []string{"browser", url} }
 
 var _ platform.Platform = Fake{}

@@ -135,3 +135,23 @@ func TestDetectFindsWSLFromTheEnvironmentOrTheKernel(t *testing.T) {
 		}
 	}
 }
+
+func TestBrowserIsGhOpeningThePullRequest(t *testing.T) {
+	url := "https://github.com/o/r/pull/7"
+	for _, tc := range []struct {
+		p    platform.Platform
+		want string
+	}{
+		{platform.Native{}, "gh pr view --web " + url},
+		{platform.WSL{}, "env BROWSER=explorer.exe gh pr view --web " + url},
+		{platform.WSL{BrowserSet: true}, "gh pr view --web " + url},
+	} {
+		if got := strings.Join(tc.p.Browser(url), " "); got != tc.want {
+			t.Errorf("%T: %q, want %q", tc.p, got, tc.want)
+		}
+	}
+	wsl := platform.Detect(func(k string) string { return map[string]string{"WSL_DISTRO_NAME": "U", "BROWSER": "wslview"}[k] }, nil, nil)
+	if !wsl.(platform.WSL).BrowserSet {
+		t.Error("BROWSER not seen")
+	}
+}

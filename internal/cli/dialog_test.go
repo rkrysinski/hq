@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/rkrysinski/hq/internal/dialog"
+	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -155,5 +156,18 @@ func TestTheKillDialogNeedsAnAgent(t *testing.T) {
 	}
 	if code, _, _ := f.run("__kill-dialog"); code != ExitUsage {
 		t.Fatalf("no name: exit %d", code)
+	}
+}
+
+func TestTheListAsksGhAndOpensPullRequestsThroughTheBrowser(t *testing.T) {
+	f := newFakes()
+	f.prs = map[string]map[string]gh.PR{"/w/app": {"feat/1": {Number: 1, URL: "https://github.com/o/r/pull/1"}}}
+	src := listSource(f.deps(), "%1")
+	prs, err := src.PullRequests("/w/app")
+	if err != nil || prs["feat/1"].Number != 1 {
+		t.Fatalf("%v %v", prs, err)
+	}
+	if err := src.Browse("https://github.com/o/r/pull/1"); err != nil || strings.Join(f.browsed, " ") != "https://github.com/o/r/pull/1" {
+		t.Fatalf("browsed %q %v", f.browsed, err)
 	}
 }

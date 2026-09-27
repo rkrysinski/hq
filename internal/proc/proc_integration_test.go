@@ -4,6 +4,8 @@ package proc
 
 import (
 	"errors"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -46,5 +48,14 @@ func TestInteractiveRunsWithoutTMUXVariable(t *testing.T) {
 	t.Setenv("TMUX", "/tmp/x,1,0")
 	if err := (Exec{}).Interactive("sh", "-c", `test -z "${TMUX:-}"`); err != nil {
 		t.Fatalf("TMUX leaked into the attached program: %v", err)
+	}
+}
+
+func TestRunRunsInDir(t *testing.T) {
+	dir := t.TempDir()
+	out, err := Exec{Dir: dir}.Run("pwd", "-P")
+	want, _ := filepath.EvalSymlinks(dir)
+	if err != nil || strings.TrimSpace(string(out)) != want {
+		t.Fatalf("%q %v, want %q", out, err, want)
 	}
 }

@@ -204,6 +204,8 @@ func listSource(d deps, pane string) dash.Source {
 			_, err := openCode(d, name)
 			return err
 		},
+		PullRequests: d.pullRequests,
+		Browse:       d.browse,
 		Running: func() (map[string]bool, error) {
 			sbs, err := d.pollSandboxes()
 			if err != nil {

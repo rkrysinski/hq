@@ -3,7 +3,9 @@ package dash
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/muesli/termenv"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -35,8 +38,13 @@ type fakeSource struct {
 	onDialog   func()   // what the user does in the dialog
 	coded      []string // agents VS Code opened on
 	codeErr    error
-	killed     []string // agents the Kill dialog opened on
-	onKill     func()   // what the user answers in it
+	killed     []string                    // agents the Kill dialog opened on
+	onKill     func()                      // what the user answers in it
+	prs        map[string]map[string]gh.PR // gh's answer, by repository
+	prErr      error
+	mu         sync.Mutex
+	asked      []string // repositories gh was asked about, in order
+	browsed    []string // URLs opened
 
 	collects, polls, layouts int
 	seen                     []map[string]bool // running as given to Agents
@@ -90,7 +98,25 @@ func (f *fakeSource) source() Source {
 			}
 			return nil
 		},
+		PullRequests: func(repo string) (map[string]gh.PR, error) {
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			f.asked = append(f.asked, repo)
+			return f.prs[repo], f.prErr
+		},
+		Browse: func(url string) error { f.browsed = append(f.browsed, url); return nil },
 	}
+}
+
+// askedAbout is the repositories gh was asked about since the last call,
+// sorted.
+func (f *fakeSource) askedAbout() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	a := append([]string(nil), f.asked...)
+	f.asked = nil
+	sort.Strings(a)
+	return strings.Join(a, " ")
 }
 
 // do runs cmd and every command it batches, feeding the messages to m.
@@ -226,12 +252,13 @@ func TestMoreAgentsThanRowsScrollWithAHint(t *testing.T) {
 }
 
 func TestLongCellsAreCutToTheLine(t *testing.T) {
-	f := &fakeSource{view: ViewAll, agents: []agent.Agent{{
+	// The long row is below the cursor, whose strip would cover LAST.
+	f := &fakeSource{view: ViewAll, agents: []agent.Agent{ag("cur", state.Working, 0, ""), {
 		Name: "a-very-long-agent-name-indeed", RepoPath: "/w/r", Branch: "feat/" + strings.Repeat("b", 40),
-		State: state.Working, Since: now, Last: strings.Repeat("words ", 40),
+		State: state.Working, Since: now.Add(-time.Minute), Last: strings.Repeat("words ", 40),
 	}}}
 	ls := lines(started(f, 100, 10))
-	row := ls[3]
+	row := ls[4]
 	if w := ansi.StringWidth(row); w > 100 {
 		t.Errorf("row %d cells wide in 100: %q", w, row)
 	}
@@ -328,13 +355,17 @@ func TestQAndCtrlCQuit(t *testing.T) {
 
 func TestStartShowsTheFooterAndEveryResizeReappliesTheLayout(t *testing.T) {
 	f := &fakeSource{}
-	m := started(f, 100, 10)
-	if got := fmt.Sprint(f.footer); got != "[{↑↓ /name select} {⏎ open session below} {n new} {k kill} {c code} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
+	m := started(f, 130, 10)
+	if got := fmt.Sprint(f.footer); got != "[{↑↓ /name select} {⏎ open session below} {n new} {k kill} {c code} {p pr} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
 		t.Errorf("footer %s", got)
 	}
-	update(m, tea.WindowSizeMsg{Width: 90, Height: 12})
+	// Narrower than the footer: open loses its words, so q quit stays.
+	update(m, tea.WindowSizeMsg{Width: 110, Height: 12})
 	if f.layouts != 2 {
 		t.Errorf("%d layouts after two sizes", f.layouts)
+	}
+	if f.footer[1] != (Hint{"⏎", "open"}) || HintsWidth(f.footer) > 110 {
+		t.Errorf("footer at 110: %v, %d cells", f.footer, HintsWidth(f.footer))
 	}
 }
 
@@ -412,7 +443,7 @@ func TestAttentionViewShowsOnlyWhoNeedsYouAndCountsAll(t *testing.T) {
 	if len(f.saved) != 1 || f.saved[0] != "attention/all" {
 		t.Errorf("kept %v", f.saved)
 	}
-	if got := f.footer[6]; got != (Hint{"a", "view: attention"}) {
+	if got := f.footer[7]; got != (Hint{"a", "view: attention"}) {
 		t.Errorf("footer after a: %v", got)
 	}
 	m = key(m, "a")
@@ -449,7 +480,7 @@ func TestSortCyclesAndIsMarkedInTheColumnHeader(t *testing.T) {
 		if got := strings.Join(strings.Fields(lines(m)[2]), " "); !strings.HasPrefix(got, tc.marked) {
 			t.Errorf("sort %s: column header %q, want %q", tc.sort, got, tc.marked)
 		}
-		if got := f.footer[5]; got != (Hint{"s", "sort: " + tc.sort}) {
+		if got := f.footer[6]; got != (Hint{"s", "sort: " + tc.sort}) {
 			t.Errorf("footer %v", got)
 		}
 		m = key(m, "s")
@@ -863,6 +894,97 @@ func TestSearchLooksAtTheRowsShown(t *testing.T) {
 	m := typed(key(started(f, 120, 10), "/"), "w")
 	if fmt.Sprint(f.footer[0]) != "{/w no match}" || m.cursor != "perm" {
 		t.Fatalf("footer %v cursor %q", f.footer, m.cursor)
+	}
+}
+
+func TestTheCursorRowAloneCarriesTheActionStrip(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := started(f, 120, 10)
+	ls := lines(m)
+	// perm has the cursor: the strip on its tail, right-aligned, without pr.
+	if !strings.HasSuffix(ls[3], "⏎ open   c code   k kill   ") || strings.Contains(ls[3], " pr ") {
+		t.Fatalf("cursor row %q", ls[3])
+	}
+	for _, l := range ls[4:8] {
+		if strings.Contains(l, "⏎ open") {
+			t.Fatalf("strip on another row: %q", l)
+		}
+	}
+	// Columns stay put: the cursor row starts as it would without the strip.
+	plain := ansi.Strip(m.columns().row(m.rows[0], now, true, ""))
+	if cut := len([]rune(ls[3])) - len([]rune("⏎ open   c code   k kill   ")) - 1; string([]rune(ls[3])[:cut]) != string([]rune(plain)[:cut]) {
+		t.Fatalf("columns moved:\n%q\n%q", ls[3], plain)
+	}
+	if w := ansi.StringWidth(ls[3]); w != 120 {
+		t.Fatalf("cursor row %d cells", w)
+	}
+	// The strip follows the cursor.
+	ls = lines(key(m, "down"))
+	if strings.Contains(ls[3], "⏎ open") || !strings.Contains(ls[4], "⏎ open") {
+		t.Fatalf("strip did not follow:\n%s", strings.Join(ls, "\n"))
+	}
+}
+
+func TestPrShowsAndOpensWithAPullRequestOnly(t *testing.T) {
+	as := team() // perm has the cursor, on feat/perm in /w/perm-repo
+	f := &fakeSource{agents: as, view: ViewAll, prs: map[string]map[string]gh.PR{
+		"/w/perm-repo": {"feat/perm": {Number: 7, Branch: "feat/perm", URL: "https://github.com/o/r/pull/7"}},
+	}}
+	m := started(f, 120, 10)
+	if ls := lines(m); !strings.HasSuffix(ls[3], "⏎ open   c code   p pr   k kill   ") {
+		t.Fatalf("cursor row %q", ls[3])
+	}
+	key(m, "p")
+	if strings.Join(f.browsed, " ") != "https://github.com/o/r/pull/7" {
+		t.Fatalf("browsed %q", f.browsed)
+	}
+	// ask has no pull request: p says so in the footer line, until a key.
+	m = key(key(m, "down"), "p")
+	if ls := lines(m); !strings.Contains(ls[len(ls)-1], "hq: no pull request for feat/ask") || len(f.browsed) != 1 {
+		t.Fatalf("footer line %q, browsed %q", ls[len(ls)-1], f.browsed)
+	}
+	if ls := lines(key(m, "up")); ls[len(ls)-1] != "" {
+		t.Fatalf("footer line kept %q", ls[len(ls)-1])
+	}
+}
+
+func TestGhFailingOnlyHidesPr(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll, prErr: errors.New("gh: not logged in"),
+		prs: map[string]map[string]gh.PR{"/w/perm-repo": {"feat/perm": {Number: 7}}}}
+	ls := lines(started(f, 120, 10))
+	if strings.Contains(ls[3], " pr ") || ls[len(ls)-1] != "" {
+		t.Fatalf("cursor row %q, footer line %q", ls[3], ls[len(ls)-1])
+	}
+}
+
+func TestPullRequestsAreAskedAtStartEveryMinuteAndOnDone(t *testing.T) {
+	as := []agent.Agent{ag("a", state.Working, 0, ""), ag("b", state.Working, 0, ""), ag("c", state.Working, 0, "")}
+	as[0].ID, as[1].ID, as[2].ID = "ia", "ib", "ic"
+	as[1].RepoPath = as[0].RepoPath // a and b share a repository
+	f := &fakeSource{agents: as, view: ViewAll}
+	m := started(f, 120, 10)
+	if got := f.askedAbout(); got != "/w/a-repo /w/c-repo" {
+		t.Fatalf("at start: %q", got)
+	}
+	m, _ = update(m, agentsMsg{agents: as})
+	if got := f.askedAbout(); got != "" {
+		t.Fatalf("asked again on a refresh: %q", got)
+	}
+	// b turns done: its repository is asked at once, once.
+	as[1].State = state.Done
+	m = do(update(m, agentsMsg{agents: as}))
+	m = do(update(m, agentsMsg{agents: as}))
+	if got := f.askedAbout(); got != "/w/a-repo" {
+		t.Fatalf("on done: %q", got)
+	}
+	m, cmd := update(m, prTickMsg{})
+	for _, msg := range msgs(cmd) {
+		if _, ok := msg.(prsMsg); ok {
+			m, _ = update(m, msg)
+		}
+	}
+	if got := f.askedAbout(); got != "/w/a-repo /w/c-repo" {
+		t.Fatalf("every minute: %q", got)
 	}
 }
 
