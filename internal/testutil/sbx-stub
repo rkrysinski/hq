@@ -2,6 +2,7 @@
 # Stub of Docker Sandboxes' sbx for integration and end-to-end tests: sandboxes
 # are files in $SBX_STUB_DIR/sandboxes (line 1 status, line 2 workspace), and
 # `run` behaves like a Claude session that stays until it is terminated.
+# Workspaces may be Windows paths, as sbx.exe sees them from WSL.
 set -eu
 d=${SBX_STUB_DIR:?SBX_STUB_DIR not set}
 mkdir -p "$d/sandboxes"
@@ -14,7 +15,7 @@ ls)
     for f in "$d"/sandboxes/*; do
         [ -e "$f" ] || continue
         status=$(sed -n 1p "$f")
-        ws=$(sed -n 2p "$f")
+        ws=$(sed -n 2p "$f" | sed 's/\\/\\\\/g')
         printf '%s{"name":"%s","agent":"claude","status":"%s","workspaces":["%s"]}' "$sep" "$(basename "$f")" "$status" "$ws"
         sep=,
     done
@@ -25,7 +26,7 @@ create)
     for a in "$@"; do
         case $a in -q | --quiet | claude) ;; *) ws=$a ;; esac
     done
-    printf 'stopped\n%s\n' "$ws" >"$d/sandboxes/claude-$(basename "$ws")"
+    printf 'stopped\n%s\n' "$ws" >"$d/sandboxes/claude-$(basename "$(printf %s "$ws" | tr '\\' /)")"
     ;;
 run)
     [ "$1" = --name ] || { echo "stub: run needs --name" >&2; exit 1; }

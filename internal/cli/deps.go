@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/repo"
@@ -70,9 +71,10 @@ type deps struct {
 
 func defaultDeps() deps {
 	run := proc.Exec{}
+	plat := platform.Detect(os.Getenv, os.ReadFile, run)
 	return deps{
 		tmux:     tmux.Client{Run: run, Socket: os.Getenv("HQ_TMUX_SOCKET")},
-		sbx:      sbx.Client{Run: run, Bin: "sbx"},
+		sbx:      sbx.Client{Run: run, Platform: plat},
 		repoRoot: func(dir string) (string, bool) { return repo.Root(run, dir) },
 		samePath: repo.Same,
 		isDir: func(path string) bool {

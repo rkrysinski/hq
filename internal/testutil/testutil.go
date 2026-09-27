@@ -40,6 +40,22 @@ func SbxStub(t *testing.T) (bin, dir string) {
 	return bin, dir
 }
 
+// WSLStubs puts the stub sbx on PATH as sbx.exe and the stub wslpath as
+// wslpath, as hq finds them on WSL, and returns the stub sbx's state
+// directory, set in SBX_STUB_DIR for this test.
+func WSLStubs(t *testing.T) string {
+	t.Helper()
+	sbx, dir := SbxStub(t)
+	bin := t.TempDir()
+	for name, target := range map[string]string{"sbx.exe": sbx, "wslpath": filepath.Join(filepath.Dir(sbx), "wslpath-stub")} {
+		if err := os.Symlink(target, filepath.Join(bin, name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return dir
+}
+
 // GhStub returns the path of the stub gh and its release directory, set in
 // GH_STUB_DIR for this test.
 func GhStub(t *testing.T) (bin, dir string) {

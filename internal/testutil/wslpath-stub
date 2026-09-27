@@ -1,0 +1,22 @@
+#!/bin/sh
+# Stub of WSL's wslpath for integration tests: Linux paths are
+# \\wsl.localhost\Stub\... to Windows, and /mnt/c/... is C:\...
+set -eu
+unc='\\wsl.localhost\Stub'
+case $1 in
+-w)
+    case $2 in
+    /mnt/c/*) printf 'C:\\%s\n' "$(printf %s "${2#/mnt/c/}" | tr / '\\')" ;;
+    /*) printf '%s%s\n' "$unc" "$(printf %s "$2" | tr / '\\')" ;;
+    *) echo "wslpath: $2: not an absolute path" >&2; exit 1 ;;
+    esac
+    ;;
+-u)
+    case $2 in
+    "$unc"*) printf '%s\n' "$(printf %s "${2#"$unc"}" | tr '\\' /)" ;;
+    'C:\'*) printf '/mnt/c/%s\n' "$(printf %s "${2#'C:\'}" | tr '\\' /)" ;;
+    *) echo "wslpath: $2: not a Windows path" >&2; exit 1 ;;
+    esac
+    ;;
+*) echo "wslpath: unknown option $1" >&2; exit 1 ;;
+esac
