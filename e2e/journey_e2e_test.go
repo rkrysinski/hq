@@ -20,6 +20,7 @@ type journey struct {
 	bin    string // the built binary
 	socket string // hq's private tmux server
 	repo   string
+	edited string // the directories the stand-in for VS Code opened
 }
 
 func newJourney(t *testing.T) *journey {
@@ -31,6 +32,11 @@ func newJourney(t *testing.T) *journey {
 	stub, _ := testutil.SbxStub(t)
 	bin := t.TempDir()
 	if err := os.Symlink(stub, filepath.Join(bin, "sbx")); err != nil {
+		t.Fatal(err)
+	}
+	// A stand-in for VS Code's code, logging the directory it opens.
+	j.edited = filepath.Join(t.TempDir(), "edited")
+	if err := os.WriteFile(filepath.Join(bin, "code"), []byte("#!/bin/sh\necho \"$1\" >> "+j.edited+"\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -222,6 +228,14 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	}
 	keys("s")
 	shows("the repo sort", "REPO ▾", "s sort: repo")
+	// c opens the editor on a's worktree: here the repository itself.
+	keys("c")
+	eventually(t, "the editor on the repository", func() bool {
+		b, _ := os.ReadFile(j.edited)
+		got, _ := filepath.EvalSymlinks(strings.TrimSpace(string(b)))
+		want, _ := filepath.EvalSymlinks(j.repo)
+		return got != "" && got == want
+	})
 
 	// S3: Enter on the docked row keeps it docked and puts the keys there.
 	keys("Enter")

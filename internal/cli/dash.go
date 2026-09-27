@@ -197,6 +197,10 @@ func listSource(d deps, pane string) dash.Source {
 		Dock:     func(name string) error { return dock(d, name) },
 		NewAgent: func(dir string) error { return newDialog(d, pane, dir) },
 		Kill:     func(name string) error { return killDialog(d, pane, name) },
+		Code: func(name string) error {
+			_, err := openCode(d, name)
+			return err
+		},
 		Running: func() (map[string]bool, error) {
 			sbs, err := d.pollSandboxes()
 			if err != nil {

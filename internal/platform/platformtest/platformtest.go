@@ -23,6 +23,9 @@ func Contract(t *testing.T, p platform.Platform) {
 	if seq == "" || json.Unmarshal([]byte(`"`+seq+`"`), &s) != nil || strings.Count(seq, "%s") > 1 {
 		t.Errorf("notification sequence %q", seq)
 	}
+	if e := p.Editor("/w/app"); len(e) < 2 || e[len(e)-1] != "/w/app" {
+		t.Errorf("editor %q", e)
+	}
 	for _, path := range []string{"/home/dev/app", "/Users/dev/work/hq", "/w/repo with space"} {
 		s, err := p.ToSbx(path)
 		if err != nil || s == "" {
@@ -57,5 +60,8 @@ func (Fake) FromSbx(path string) (string, error) {
 
 // NotifySequence is plain text, readable in a test's output.
 func (Fake) NotifySequence() string { return "[notify %s]" }
+
+// Editor names the fake editor.
+func (Fake) Editor(dir string) []string { return []string{"editor", dir} }
 
 var _ platform.Platform = Fake{}

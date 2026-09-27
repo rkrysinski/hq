@@ -39,3 +39,21 @@ func TestSameResolvesSymlinks(t *testing.T) {
 		t.Fatal("Same")
 	}
 }
+
+func TestTopIsTheWorktreesOwnRoot(t *testing.T) {
+	r := testutil.GitRepo(t, "app")
+	wt := filepath.Join(r, ".claude", "worktrees", "x")
+	testutil.Git(t, r, "worktree", "add", "-q", "-b", "x", wt)
+	sub := filepath.Join(wt, "sub")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for dir, want := range map[string]string{r: r, wt: wt, sub: wt} {
+		if top, ok := Top(proc.Exec{}, dir); !ok || !Same(top, want) {
+			t.Errorf("Top(%s) = %q %v, want %q", dir, top, ok, want)
+		}
+	}
+	if _, ok := Top(proc.Exec{}, t.TempDir()); ok {
+		t.Error("a plain directory has no work tree")
+	}
+}

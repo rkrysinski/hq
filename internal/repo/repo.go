@@ -28,6 +28,16 @@ func Root(r proc.Runner, dir string) (root string, ok bool) {
 	return strings.TrimSpace(string(out)), true
 }
 
+// Top returns the top of the work tree dir is in: a worktree's own root,
+// or the main checkout's. ok is false when dir is not in a git repository.
+func Top(r proc.Runner, dir string) (top string, ok bool) {
+	out, err := r.Run("git", "-C", dir, "rev-parse", "--show-toplevel")
+	if err != nil {
+		return "", false
+	}
+	return strings.TrimSpace(string(out)), true
+}
+
 // Same reports whether two paths name the same directory, resolving symlinks
 // (e.g. /tmp and /private/tmp on macOS).
 func Same(a, b string) bool {
