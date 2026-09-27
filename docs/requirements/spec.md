@@ -12,7 +12,7 @@ These are facts about the environment, not design choices. hq is designed with t
 
 - Each agent is a Claude Code session running inside a Docker Sandboxes (`sbx`) microVM. One sandbox per repository, shared by all agents of that repository.
 - From inside the sandbox nothing on the host is reachable: no host binaries, no host sockets, no host home directory. The only channel out is the repository directory mounted into the sandbox.
-- Agent sessions live in tmux. On macOS the user works in iTerm2 with its tmux integration; on Windows the team works in Windows Terminal with WSL (Ubuntu) and plain tmux. Both must be supported with identical behaviour.
+- Agent sessions live in tmux. On macOS the user works in iTerm2; on Windows the team works in Windows Terminal with WSL (Ubuntu). In both, hq's dashboard is plain tmux inside the terminal. Both must be supported with identical behaviour.
 - Claude Code creates git worktrees and branches itself. hq never creates or manages worktrees, branches or pull requests.
 - Claude Code can run user-provided hooks on its lifecycle events (prompt submitted, turn finished, waiting for input, session ended); this is how an agent's state can be observed from outside.
 - Both terminals can show a desktop notification triggered by the terminal output stream.
@@ -189,7 +189,7 @@ Creating worktrees or branches, managing pull requests, PR status per branch (le
 
 ## 10. Acceptance
 
-- Manual test below passes on macOS and on a Windows 11 machine with WSL (Ubuntu), Windows Terminal and `sbx`.
+- Manual test below passes on macOS and on a Windows 11 machine with WSL (Ubuntu 24.04), Windows Terminal and `sbx`.
 - With three agents in two repos (one `needs input`, one `done`, one `working`), the list shows them in that order within 1s of each state change; `Enter` on the first docks its live session and keystrokes reach Claude.
 - Resizing the window keeps 6 list rows and gives the rest to the session.
 - Stopping a sandbox from outside flips its rows to `ended` within 2s.
@@ -206,7 +206,7 @@ Creating worktrees or branches, managing pull requests, PR status per branch (le
 
 ## 11. Setup
 
-- Prerequisites on the host: git, tmux, Docker Sandboxes (`sbx`), GitHub CLI (`gh`, authenticated), VS Code with `code` on PATH. macOS: iTerm2. Windows: Windows Terminal, WSL (Ubuntu) with the same tools; `sbx` is the Windows binary, reachable from WSL.
+- Prerequisites on the host: git, tmux 3.4 or newer, Docker Sandboxes (`sbx`), GitHub CLI (`gh`, authenticated), VS Code with `code` on PATH. macOS: iTerm2. Windows: Windows Terminal, WSL (Ubuntu 24.04 or newer) with the same tools; `sbx` is the Windows binary, reachable from WSL.
 - hq is installed once per machine with one command and available on PATH as `hq`; there is no service to start. `hq update` brings it to the latest release.
 - Repositories need no preparation: any repository with a sandbox can host agents as it is.
 

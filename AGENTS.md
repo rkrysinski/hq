@@ -7,7 +7,7 @@ One console for many Claude Code agents running in Docker Sandboxes (`sbx`) and 
 - `docs/requirements/spec.md` - the requirements specification, source of truth for WHAT hq does: commands, state model, dashboard, scenarios, acceptance, and the milestones to build it in steps (M1 CLI -> M2 state -> M3 dashboard -> M4 extras).
 - `docs/requirements/look-and-feel.pen` and `docs/requirements/dash*.png` - the visual design of the dashboard, one export per scenario named in the spec.
 - `docs/adr/` - short records of decisions already taken; do not reopen them without saying so.
-- `docs/design/` - HOW hq is built: technology, architecture, key mechanics. Empty until the design is written.
+- `docs/design/` - HOW hq is built: technology, architecture, key mechanics (`docs/design/hq.md`).
 - `CONTEXT.md` - the glossary. Terms are added when they are settled.
 - Implementation: none yet. Build it from the spec.
 

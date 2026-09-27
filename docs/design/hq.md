@@ -58,7 +58,10 @@ Satisfies: §6.1, §6.4 (drawn by the list program), §6.6, S1, S3, S6, S8, S12;
 
 Plain tmux on both platforms ([ADR 0008](../adr/0008-plain-tmux-on-both-platforms.md)). On macOS the dashboard is an ordinary `tmux attach` inside an iTerm2 window; on WSL, the same inside Windows Terminal. The terminal only hosts tmux; everything hq shows is drawn by tmux and the list program, so both platforms share one code path for the dashboard.
 
-Satisfies: §2, §8 (identical behaviour), S13; driver 4.
+**Decision:** tmux 3.4 or newer on both platforms. Notifications come mostly from agents that are not docked, whose panes sit in hidden home windows, and tmux passes their sequences to the terminal only with `allow-passthrough all` (3.4; 3.3 passes only from the visible pane, 3.2a not at all). hq checks the version at install and at start and exits 3 with the remedy (`hq: tmux 3.2a is too old, 3.4 or newer needed (Ubuntu 24.04 ships it)`). WSL baseline: Ubuntu 24.04; macOS gets a current tmux from Homebrew.
+**Alternatives considered:** a fallback for older tmux (a bell from the hidden window): a second code path with weaker behaviour, no text, against spec §5 (kind and branch named).
+
+Satisfies: §2, §5 (notifications from hidden panes), §8 (identical behaviour), §11 (prerequisites), S13; driver 4.
 
 ### 3.3 Agent registry
 
@@ -124,7 +127,7 @@ Docking by chord moves the cursor to the newly docked row. Each chord runs an in
 **Alternatives considered:** Alt+arrows and Alt+Enter (collisions above); the tmux prefix (two keystrokes, and tmux's default prefix Ctrl+B is a Claude Code key); function keys (off the home row, need Fn on Mac laptops).
 **Satisfies:** §6.3, §6.5 (in-session dock previous/next/first needing attention, focus switching), S3, S4; drivers 2, 4.
 
-- **Option as Alt on macOS.** iTerm2 sends Option as a special character by default; hq's installation adds an iTerm2 dynamic profile with Option as Esc+, and hq opens its window with that profile. No user setup (spec §5, §11).
+- **Option as Alt on macOS.** iTerm2 sends Option as a special character by default; hq's installation adds an iTerm2 dynamic profile with Option as Esc+, and hq switches the dashboard's tab to that profile when it attaches (3.11). No user setup (spec §5, §11).
 - **Mouse.** tmux mouse mode on for the `hq` session only. Clicks in the list go to the list program (row: cursor; strip item: action, §6.3, §6.4); clicks in the docked pane focus it and pass to Claude; an open popup takes all clicks (§6.6).
 
 ### 3.8 Components of the hq binary
@@ -165,7 +168,7 @@ Satisfies: §4.1, §6.1-6.6, S2, S6; drivers 2, 3.
 
 ### 3.10 Platform adapter
 
-**Decision:** one component is the only code that knows the platform. hq detects it at startup, not at build time: the Linux binary is on WSL when `WSL_DISTRO_NAME` is set or `/proc/sys/kernel/osrelease` names Microsoft. The adapter covers exactly five concerns:
+**Decision:** one component is the only code that knows the platform. hq detects it at startup, not at build time: the Linux binary is on WSL when `WSL_DISTRO_NAME` is set or `/proc/sys/kernel/osrelease` names Microsoft. The adapter covers exactly six concerns:
 
 | Concern | macOS | WSL |
 |---|---|---|
@@ -174,11 +177,23 @@ Satisfies: §4.1, §6.1-6.6, S2, S6; drivers 2, 3.
 | Editor (`c`, `hq code`) | `code PATH` | `code PATH`; the Remote-WSL shim takes Linux paths |
 | Browser (`p`) | `gh pr view --web` | the same, with `BROWSER` set to `wslview` or `explorer.exe` when unset |
 | Notification sequence baked into the hook (3.5) | OSC 9 | what Windows Terminal honours (§9); BEL at least, shown as a taskbar flash |
+| Raise the window titled `hq` (3.11) | `osascript` to iTerm2 | `powershell.exe`, activate the window by title |
 
 Everything else (tmux, registry, state files, keys, dialogs) is one code path.
 **Rationale:** these are the only points where the platforms really differ; a narrow interface keeps the rest free of platform branches and lets both sides share one set of contract tests with a fake.
 **Alternatives considered:** build-time selection (a WSL binary and a plain Linux binary would differ for no reason); platform checks at each call site (scattered, against spec §8).
 **Satisfies:** §2, §4.1 (`hq code`), §6.4 (`c`, `p`), §8 (identical behaviour, platform code isolated), S13; driver 4.
+
+### 3.11 Opening and raising the dashboard
+
+**Decision:** hq never opens terminal windows; it uses the terminal it is run in.
+- `hq` / `hq dash` outside tmux attaches there with `attach -d`, detaching any other client, so there is one dashboard at a time. Inside the `hq` session it selects the dashboard window; inside another tmux session it switches the client rather than nesting.
+- On iTerm2, just before attaching, hq sends iTerm2's `SetProfile=hq` sequence, so that tab alone takes the installed profile with Option as Esc+ (3.7). Windows Terminal needs nothing.
+- While attached, tmux sets the terminal's title to `hq` (`set-titles`, the `hq` session only). `hq go NAME` from another shell docks the agent; if a dashboard client is attached it asks the platform adapter to raise the window titled `hq` (3.10); if none is, it attaches in the current terminal as `hq` does.
+
+**Rationale:** attaching in place avoids driving terminal windows, which differs per terminal; what remains is one narrow action, "raise the window titled hq", with the same shape on both platforms.
+**Alternatives considered:** opening a new terminal window per `hq` (iTerm2 AppleScript and `wt.exe` differ in every detail, and the user loses the terminal they chose); several attached dashboards (tmux clients fight over the window size).
+**Satisfies:** §4.1 (`hq`, `hq dash`, `hq go`), §4.2 (same from any shell), §6.5 (Alt chords need Option as Esc+), S1, S8, S9; drivers 2, 4.
 
 ## 4. Technology choices
 
@@ -278,23 +293,31 @@ CI runs a matrix of `ubuntu-latest` and `macos-latest` (both have tmux) plus the
 **Alternatives considered:** mocking tmux in integration tests (tests the fake, not the composition of ADR 0007); CI with real sbx (needs microVM support and a Claude login on the runner).
 **Satisfies:** §10 (acceptance, manual test), S13; `docs/agents/testing.md`; drivers 1, 4.
 
+### 7.3 Security
+
+The one boundary hq opens is files written inside the sandbox and read and shown on the host. The threat is Claude, or content it read from a repository or the web, pushing something harmful across it. A spoofed state is harmless: the user's own agent misreporting itself.
+
+- **Output is stripped.** `last_assistant_message` and every other field from a state file lose control characters and escape sequences before they reach the list or `hq ls`, so a message cannot retitle the terminal, redraw the screen or fake a notification.
+- **State files are data only.** hq reads only `agents/ID` for ids it issued; it checks with `lstat` and opens without following links, rejecting anything but a regular file, so a symlink planted in the repository cannot make the host read `~/.ssh/...` and show it in `LAST`; it caps the size at 64 KiB and parses defensively.
+- **No shell in between.** hq starts processes as argument lists, tmux's `new-window` in its multi-argument form that executes directly; names are restricted by §4.2; prompts and paths are always one argument, never pasted into a command string. The injected hook never uses the branch or the message as a `printf` format or in `eval`.
+- **Updates are verified.** Every release publishes `SHA256SUMS`; `install.sh` and `hq update` check the downloaded binary against it before replacing anything (3.9).
+- **Nothing new crosses the sandbox boundary.** The hook writes only into `.git/hq/` of the already mounted repository; hq passes nothing into the sandbox beyond what `sbx run` receives at launch.
+
+**Satisfies:** §2 (sandboxes as isolation), §5 (last message shown), §8; drivers 1, 6.
+
 ## 8. Risks & open questions
 
-- **Spec §2 wording (raised with the owner).** §2 says the macOS user works in iTerm2 with its tmux integration; ADR 0008 uses iTerm2 only as the terminal for the dashboard. To be aligned in the spec (grill-to-spec), not from here.
-
-- **Minimum tmux version.** `allow-passthrough all` (ADR 0010) is believed to need tmux 3.4: Ubuntu 24.04 ships it, Ubuntu 22.04 ships 3.2a without passthrough. WSL then needs Ubuntu 24.04 or a newer tmux; to be stated in the prerequisites (spec §11) once verified.
-
-- **Repositories on the WSL file system.** Whether `sbx.exe` can mount a repository that lives in the WSL file system (`\\wsl.localhost\...`), and fast enough. If not, repositories on WSL must live under `/mnt/c`, which would need a line in spec §11. Verify first on the Windows machine during M1.
-
-- **Bringing the dashboard to the front (open question).** `hq go` from another shell must bring the dashboard's terminal window to the front (§4.1), and `hq` must open it with the iTerm2 profile of 3.7. This is window management, a sixth concern for the platform adapter (3.10) on each terminal; not yet designed.
-- **Security.** Not examined in depth: the state files are written by code running inside the sandbox, so an agent can misreport its own state; hq only reads them, parses defensively and never executes their content.
+- **Repositories on the WSL file system (open, needs testing).** Whether `sbx.exe` can mount a repository that lives in the WSL file system (`\\wsl.localhost\...`) at usable speed for Claude's work. Unknown until the team runs hq on WSL. Rule fixed in advance:
+  - it works: nothing changes;
+  - it does not: spec §11 states that on Windows repositories live on the Windows file system (`/mnt/<drive>/...`); `hq new` refuses a DIR outside it with exit 3 and the remedy; the platform adapter (3.10) opens the editor with Windows VS Code on the Windows path instead of the Remote-WSL shim.
 
 ## 9. Deferred implementation notes
 
-- Verify tmux passes the hook's notification sequence from panes in hidden windows with `allow-passthrough all`, and the minimum tmux version that has it, on both platforms.
+- Verify tmux passes the hook's notification sequence from panes in hidden windows with `allow-passthrough all`, and confirm 3.4 as the floor, on both platforms.
 - Pick the notification sequence per terminal (iTerm2, Windows Terminal) and bake it into the hook at launch.
 - Verify the chords of 3.7 against Claude Code's default key bindings and Windows Terminal's default actions; verify that clicks outside an open tmux popup do nothing.
-- Build the iTerm2 dynamic profile (Option as Esc+) and open hq's window with it.
+- Build the iTerm2 dynamic profile (Option as Esc+); verify that `SetProfile=hq` on attach keeps the Option setting for that tab.
+- Verify that Windows lets a background `powershell.exe` activate the window titled `hq` (the foreground lock can refuse).
 - `hq update` replaces the binary while a list program may be running; the running list keeps the old version until it is restarted; say so in the update output.
 - Verify that `env` passed through `--settings` reaches hook processes; fallback: key by session id and re-link on the `SessionStart` event after `/clear`.
 - Verify that hooks passed through `--settings` run alongside a repository's own hooks rather than replacing them.
@@ -322,3 +345,8 @@ CI runs a matrix of `ubuntu-latest` and `macos-latest` (both have tmux) plus the
 - 1.0 (draft): failure handling (7.1).
 - 1.0 (draft): testability (7.2).
 - 1.0 (draft): conceptual data model (6); driver 4 aligned with ADR 0008; open question on bringing the dashboard to the front.
+- 1.0 (draft): spec §2 aligned with ADR 0008 (plain tmux in iTerm2); risk closed.
+- 1.0 (draft): tmux 3.4 minimum, WSL on Ubuntu 24.04 (3.2); spec §10, §11 updated; risk closed.
+- 1.0 (draft): decision rule for repositories on the WSL file system (8), pending the team's test.
+- 1.0 (draft): opening and raising the dashboard (3.11), sixth platform concern; open question closed.
+- 1.0 (draft): security (7.3); open question closed.
