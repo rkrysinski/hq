@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -55,6 +56,22 @@ func NewID() string {
 	return hex.EncodeToString(b)
 }
 
+// Stamp is how hq stores a start time on a home window: Unix seconds with
+// milliseconds, fine enough to tell a report of the session before a
+// relaunch from one of the relaunched session (see Apply).
+func Stamp(t time.Time) string {
+	return strconv.FormatFloat(float64(t.UnixMilli())/1000, 'f', 3, 64)
+}
+
+// ParseStamp reads a Stamp, or whole Unix seconds as hq stored them before.
+func ParseStamp(s string) (time.Time, bool) {
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return time.UnixMilli(int64(math.Round(f * 1000))), true
+}
+
 // FromWindows returns the agents among hq's windows, in window order.
 // Windows without an hq id (the dashboard's own window) are not agents.
 func FromWindows(ws []tmux.Window) []Agent {
@@ -68,8 +85,8 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if a.Name == "" {
 			a.Name = w.Name
 		}
-		if s, err := strconv.ParseInt(o["started"], 10, 64); err == nil {
-			a.Started = time.Unix(s, 0)
+		if t, ok := ParseStamp(o["started"]); ok {
+			a.Started = t
 		}
 		a.Since = a.Started
 		// A window marked ending belongs to an agent hq is taking down (its
@@ -111,9 +128,18 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 // Apply adds what the agent's state file reports (ok false: nothing yet).
 // A dead pane, or one hq is taking down, stays ended whatever the file
 // says, counted from the agent's last report (tmux does not say when the
-// pane died); the file still gives the last known message.
+// pane died); the file still gives the last known message. A report older
+// than the agent's start is its previous session's (hq sandbox restart
+// relaunches an agent under its id, design §3.6): it gives the last known
+// message, branch and worktree until the new session reports, but neither
+// the state nor its time.
 func (a *Agent) Apply(r state.Report, ok bool) {
 	if !ok {
+		return
+	}
+	a.Last = r.Last
+	a.Branch, a.Worktree = r.Branch, r.Cwd
+	if r.Since.Before(a.Started) {
 		return
 	}
 	a.New = false
@@ -123,8 +149,6 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	if a.Alive || r.Since.After(a.Since) {
 		a.Since = r.Since
 	}
-	a.Last = r.Last
-	a.Branch, a.Worktree = r.Branch, r.Cwd
 }
 
 // Find returns the agent named name.

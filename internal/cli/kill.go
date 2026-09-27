@@ -132,6 +132,34 @@ func endAgents(d deps, as []agent.Agent) error {
 // reads those once the window is gone. Only these agents' files go; a file
 // that cannot be removed does not stop the removal.
 func removeAgents(d deps, as []agent.Agent) error {
+	if err := waitEnded(d, as); err != nil {
+		return err
+	}
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return tmuxErr(err)
+	}
+	present := map[string]bool{}
+	for _, w := range ws {
+		present[w.ID] = true
+	}
+	for _, a := range as {
+		if !present[a.Window] {
+			continue
+		}
+		if err := d.tmux.KillWindow(a.Window); err != nil {
+			return tmuxErr(err)
+		}
+	}
+	for _, a := range as {
+		_ = d.removeState(a.RepoPath, a.ID)
+	}
+	return nil
+}
+
+// waitEnded waits up to endWait for the sessions of the agents that were
+// alive to exit, their last hooks included: their panes die.
+func waitEnded(d deps, as []agent.Agent) error {
 	pending := map[string]bool{}
 	for _, a := range as {
 		if a.Alive {
@@ -153,25 +181,6 @@ func removeAgents(d deps, as []agent.Agent) error {
 				delete(pending, id)
 			}
 		}
-	}
-	ws, err := d.tmux.Windows()
-	if err != nil {
-		return tmuxErr(err)
-	}
-	present := map[string]bool{}
-	for _, w := range ws {
-		present[w.ID] = true
-	}
-	for _, a := range as {
-		if !present[a.Window] {
-			continue
-		}
-		if err := d.tmux.KillWindow(a.Window); err != nil {
-			return tmuxErr(err)
-		}
-	}
-	for _, a := range as {
-		_ = d.removeState(a.RepoPath, a.ID)
 	}
 	return nil
 }

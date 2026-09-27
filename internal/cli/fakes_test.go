@@ -39,26 +39,28 @@ type fakeTmux struct {
 	shown        string   // window shown to them
 	windowsErr   error
 
-	dash      tmux.Dash // the dashboard window, once made
-	dashList  []string  // the list pane's program
-	respawned int       // times the list program was started again
-	height    int       // the height of the terminal showing the dashboard
-	resized   []int     // heights given to the list pane, in order
-	footer    string
-	listPID   int // @hq_list_pid on the list pane
-	session   map[string]string
-	docked    string // window docked last, with its frame title
-	dockTitle string
-	titles    []string // frame titles set with SetTitle, "pane=title"
-	dockErr   error
-	popups    []string // popups opened: "pane dir WxH argv..."
-	chords    string   // what BindChords was given: "argv... | hints"
-	messages  []string // shown on the status line
-	focused   int      // times the keys were put on the list
-	left      []string // Leave calls, by message
-	leaveErr  error
-	onLeave   func()
-	onAttach  func()
+	dash       tmux.Dash // the dashboard window, once made
+	dashList   []string  // the list pane's program
+	respawned  int       // times the list program was started again
+	height     int       // the height of the terminal showing the dashboard
+	resized    []int     // heights given to the list pane, in order
+	footer     string
+	listPID    int // @hq_list_pid on the list pane
+	session    map[string]string
+	docked     string // window docked last, with its frame title
+	dockTitle  string
+	titles     []string // frame titles set with SetTitle, "pane=title"
+	dockErr    error
+	popups     []string // popups opened: "pane dir WxH argv..."
+	chords     string   // what BindChords was given: "argv... | hints"
+	messages   []string // shown on the status line
+	focused    int      // times the keys were put on the list
+	left       []string // Leave calls, by message
+	leaveErr   error
+	onLeave    func()
+	onAttach   func()
+	respawns   []string // agent panes given a new program, in order
+	respawnErr error
 }
 
 func (f *fakeTmux) FocusList() error { f.focused++; return nil }
@@ -209,6 +211,22 @@ func (f *fakeTmux) NewWindow(name, _ string, opts map[string]string, argv []stri
 }
 
 func (f *fakeTmux) Start(id string) error { f.started[id] = true; return nil }
+
+// Respawn runs argv in the window whose pane is pane: the pane lives again.
+func (f *fakeTmux) Respawn(pane, _ string, argv []string) error {
+	if f.respawnErr != nil {
+		return f.respawnErr
+	}
+	for i, w := range f.windows {
+		if w.Pane == pane {
+			f.windows[i].PaneDead = false
+			f.argv[w.ID] = argv
+			f.respawns = append(f.respawns, pane)
+			return nil
+		}
+	}
+	return errors.New("no pane " + pane)
+}
 
 func (f *fakeTmux) SetOption(id, key, value string) error {
 	for _, w := range f.windows {

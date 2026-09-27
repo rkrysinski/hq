@@ -34,7 +34,7 @@ func runSandbox(env Env, d deps, args []string) error {
 	if rest[0] == "rm" {
 		return sandboxRm(env, d, sb, mine, yes)
 	}
-	return sandboxRestart(env, d, sb, mine)
+	return sandboxRestart(env, d, sb, mine, yes)
 }
 
 // resolveSandbox finds the sandbox of REPO: a directory in the repository
@@ -104,9 +104,24 @@ func sandboxRm(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes bool) er
 var sessionID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 // sandboxRestart stops and starts the sandbox, then relaunches each of its
-// agents under the same name with a new id, continuing its conversation
-// (design §3.6).
-func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent) error {
+// agents in its own pane, continuing its conversation (design §3.6). The
+// agents keep their windows, names and ids throughout, so their rows stay
+// (ended, then starting), a docked agent stays docked, and what they last
+// reported stays until they report anew.
+func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes bool) error {
+	var names []string
+	for _, a := range mine {
+		names = append(names, a.Name)
+	}
+	if !yes {
+		q := fmt.Sprintf("Restart the sandbox %s?", sb.Name)
+		if len(mine) > 0 {
+			q += fmt.Sprintf(" This ends and relaunches %s (%s).", plural(len(mine), "agent"), strings.Join(names, ", "))
+		}
+		if ok, err := confirm(env, d, q); !ok || err != nil {
+			return err
+		}
+	}
 	// Each agent continues its conversation: the Claude session of its latest
 	// report, read before the agents go. One that never reported starts fresh.
 	resume := map[string]string{}
@@ -115,9 +130,9 @@ func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent) error {
 			resume[a.ID] = r.SessionID
 		}
 	}
-	// Stopping ends every session in the sandbox; their windows go next. The
-	// agents show ended from now on: sbx lists the sandbox as running until
-	// the stop is done, which takes seconds (S9).
+	// Stopping ends every session in the sandbox. The agents show ended from
+	// now on: sbx lists the sandbox as running until the stop is done, which
+	// takes seconds (S9).
 	for _, a := range mine {
 		if err := d.tmux.SetOption(a.Window, "ending", "1"); err != nil {
 			return tmuxErr(err)
@@ -126,16 +141,31 @@ func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent) error {
 	if err := d.sbx.Stop(sb.Name); err != nil {
 		return sbxErr(err)
 	}
-	if err := removeAgents(d, mine); err != nil {
+	// A relaunched agent keeps its id, so its old session must be done
+	// writing its state file before the new one starts; sbx stop usually
+	// returns after that.
+	if err := waitEnded(d, mine); err != nil {
 		return err
 	}
 	// sbx has no start command; running anything in a sandbox starts it.
 	if err := d.sbx.Exec(sb.Name, "true"); err != nil {
 		return sbxErr(err)
 	}
-	var names []string
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return tmuxErr(err)
+	}
+	panes := map[string]string{}
+	for _, w := range ws {
+		panes[w.ID] = w.Pane
+	}
+	names = names[:0]
 	for _, a := range mine {
-		if err := startAgent(d, a.Name, a.RepoPath, sb.Name, resume[a.ID], "", false); err != nil {
+		pane, ok := panes[a.Window]
+		if !ok {
+			continue // killed while the sandbox restarted
+		}
+		if err := relaunchAgent(d, a, pane, resume[a.ID]); err != nil {
 			return err
 		}
 		names = append(names, a.Name)
@@ -145,5 +175,26 @@ func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent) error {
 		return nil
 	}
 	fmt.Fprintf(env.Stdout, "restarted the sandbox %s; relaunched %s\n", sb.Name, strings.Join(names, ", "))
+	return nil
+}
+
+// relaunchAgent starts a new Claude session in the agent's own pane,
+// wherever the pane is, under the agent's id, resuming the Claude session
+// resume when it is set. Its start moves to now: what its state file says
+// until the new session reports is the previous session's, which gives the
+// branch and the last message but not the state (design §3.6).
+func relaunchAgent(d deps, a agent.Agent, pane, resume string) error {
+	for _, o := range [][2]string{{"started", agent.Stamp(d.now())}, {"new", ""}} {
+		if err := d.tmux.SetOption(a.Window, o[0], o[1]); err != nil {
+			return tmuxErr(err)
+		}
+	}
+	argv := d.sbx.RunArgv(a.Sandbox, claudeArgs(a.Name, a.ID, d.notify, resume, "")...)
+	if err := d.tmux.Respawn(pane, a.RepoPath, argv); err != nil {
+		return tmuxErr(err)
+	}
+	if err := d.tmux.SetOption(a.Window, "ending", ""); err != nil {
+		return tmuxErr(err)
+	}
 	return nil
 }

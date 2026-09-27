@@ -127,6 +127,8 @@ func TestCollectSaysSessionEndedForAnEndedAgentWithoutAMessage(t *testing.T) {
 		{ID: "@3", Name: "said", PaneDead: true, Options: map[string]string{"id": "c", "sandbox": "claude-app"}},
 		{ID: "@4", Name: "quiet", Options: map[string]string{"id": "d", "sandbox": "claude-app"}},
 		{ID: "@5", Name: "silent", PaneDead: true, Options: map[string]string{"id": "e", "sandbox": "claude-app"}},
+		// Its sandbox restarting (hq sandbox restart): ended, its pane still runs.
+		{ID: "@6", Name: "restarting", Options: map[string]string{"id": "f", "sandbox": "claude-app", "ending": "1"}},
 	}
 	read := func(_, id string) (state.Report, bool) {
 		switch id {
@@ -141,7 +143,22 @@ func TestCollectSaysSessionEndedForAnEndedAgentWithoutAMessage(t *testing.T) {
 	for _, a := range Collect(ws, read, map[string]bool{"claude-app": true}) {
 		got = append(got, a.Name+"="+a.Last)
 	}
-	if want := "dead=[session ended] stopped=[session ended] said=hi quiet= silent=[session ended]"; strings.Join(got, " ") != want {
+	if want := "dead=[session ended] stopped=[session ended] said=hi quiet= silent=[session ended] restarting=[session ended]"; strings.Join(got, " ") != want {
 		t.Fatalf("got  %s\nwant %s", strings.Join(got, " "), want)
+	}
+}
+
+func TestAReportFromBeforeTheStartGivesTheMessageButNotTheState(t *testing.T) {
+	// Relaunched at 900 (hq sandbox restart); the file is the previous
+	// session's, written at 500.
+	old := state.Report{State: state.Done, Since: time.Unix(500, 0), Last: "PR #58 opened", Branch: "feat/42", Cwd: "/w/app/.claude/worktrees/42"}
+	a := FromWindows([]tmux.Window{{ID: "@1", Options: map[string]string{"id": "x", "started": "900"}}})[0]
+	a.Apply(old, true)
+	if a.State != state.Starting || a.Since.Unix() != 900 || a.Last != "PR #58 opened" || a.Branch != "feat/42" || a.Worktree != "/w/app/.claude/worktrees/42" {
+		t.Fatalf("relaunched: %+v", a)
+	}
+	a.Apply(state.Report{State: state.Working, Since: time.Unix(901, 0), Branch: "feat/42"}, true)
+	if a.State != state.Working || a.Since.Unix() != 901 || a.Last != "" {
+		t.Fatalf("after its first report: %+v", a)
 	}
 }

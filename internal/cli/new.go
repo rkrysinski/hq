@@ -140,7 +140,7 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string, fresh bool) 
 	id := agent.NewID()
 	opts := map[string]string{
 		"id": id, "name": name, "repo": root, "sandbox": sandbox,
-		"started": strconv.FormatInt(d.now().Unix(), 10),
+		"started": agent.Stamp(d.now()),
 	}
 	if fresh {
 		opts["new"] = "1"
