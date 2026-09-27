@@ -6,9 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/testutil"
@@ -26,6 +28,26 @@ func tm(t *testing.T, socket string, args ...string) string {
 	return strings.TrimSpace(string(out))
 }
 
+// framed lists the dashboard's panes other than the margins beside the
+// slot, top to bottom: the list, then the slot.
+func framed(t *testing.T, socket, win string) string {
+	t.Helper()
+	var ids []string
+	for _, l := range strings.Split(tm(t, socket, "list-panes", "-t", win, "-F", "#{pane_id} #{@hq_role}"), "\n") {
+		if id, role, _ := strings.Cut(l, " "); role != roleSpacer {
+			ids = append(ids, id)
+		}
+	}
+	return strings.Join(ids, "\n")
+}
+
+// shownTitle is the title the row above the slot shows, its styles left out.
+func shownTitle(t *testing.T, socket, list string) string {
+	t.Helper()
+	got := tm(t, socket, "display-message", "-p", "-t", list, "#{T:pane-border-format}")
+	return strings.TrimSpace(regexp.MustCompile(`#\[[^]]*\]`).ReplaceAllString(got, ""))
+}
+
 func dashClient(t *testing.T) (Client, string) {
 	socket := testutil.TmuxSocket(t)
 	return Client{Run: proc.Exec{}, Socket: socket}, socket
@@ -40,7 +62,7 @@ func TestDashboardHasTheListOnTopAndThePlaceholderBelow(t *testing.T) {
 	if !d.Started || d.List == "" || d.Slot == "" || d.List == d.Slot {
 		t.Fatalf("%+v", d)
 	}
-	if got := tm(t, socket, "list-panes", "-t", d.Window, "-F", "#{pane_id}"); got != d.List+"\n"+d.Slot {
+	if got := framed(t, socket, d.Window); got != d.List+"\n"+d.Slot {
 		t.Fatalf("panes top to bottom %q, want list then slot", got)
 	}
 	if tm(t, socket, "show-options", "-wv", "-t", d.Window, "@hq_dash") != "1" {
@@ -52,13 +74,13 @@ func TestDashboardHasTheListOnTopAndThePlaceholderBelow(t *testing.T) {
 	eventually(t, "placeholder hint", func() bool {
 		return strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", d.Slot), PlaceholderHint)
 	})
-	if got := tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{T:pane-border-format}"); !strings.Contains(got, "▸ placeholder") || strings.Contains(got, "shell") {
-		t.Errorf("slot frame %q", got)
+	if got := shownTitle(t, socket, d.List); got != "▸ placeholder" {
+		t.Errorf("slot title %q", got)
 	}
-	if got := tm(t, socket, "display-message", "-p", "-t", d.List, "#{T:pane-border-format}"); strings.Contains(got, "▸") {
-		t.Errorf("list pane titled %q", got)
+	if got := tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{T:pane-border-format}"); got != "" {
+		t.Errorf("the slot's own status row shows %q, want the empty margin", got)
 	}
-	for opt, want := range map[string]string{"set-titles": "on", "set-titles-string": "hq", "mouse": "on"} {
+	for opt, want := range map[string]string{"set-titles": "on", "set-titles-string": "hq - agents", "mouse": "on"} {
 		if got := tm(t, socket, "show-options", "-v", "-t", Session, opt); got != want {
 			t.Errorf("%s = %q, want %q", opt, got, want)
 		}
@@ -122,7 +144,7 @@ func TestDashboardIsFoundAgainAndRepairedWhenAPaneIsGone(t *testing.T) {
 	if err != nil || !d.Started || d.Slot != first.Slot || d.List == first.List {
 		t.Fatalf("list pane not made again: %+v %v", d, err)
 	}
-	if got := tm(t, socket, "list-panes", "-t", d.Window, "-F", "#{pane_id}"); got != d.List+"\n"+d.Slot {
+	if got := framed(t, socket, d.Window); got != d.List+"\n"+d.Slot {
 		t.Fatalf("panes %q, want the list above the slot", got)
 	}
 
@@ -243,7 +265,7 @@ func TestDashboardIsMadeWhenOnlyAgentWindowsRemain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := tm(t, socket, "display-message", "-p", "-t", d.Window, "#{window_name} #{window_panes}"); n != "hq 2" {
+	if n := tm(t, socket, "display-message", "-p", "-t", d.Window, "#{window_name} #{window_panes}"); n != "hq 4" {
 		t.Fatalf("dashboard window %q", n)
 	}
 }
@@ -353,8 +375,8 @@ func TestDockSwapsAgentsIntoTheSlotAndBackHome(t *testing.T) {
 	if got := tm(t, socket, "display-message", "-p", "-t", d.Window, "#{pane_id}"); got != ap {
 		t.Errorf("keys on %s, want a's pane %s", got, ap)
 	}
-	if got := tm(t, socket, "display-message", "-p", "-t", ap, "#{T:pane-border-format}"); !strings.Contains(got, "▸ a · main · claude-x") {
-		t.Errorf("frame %q", got)
+	if got := shownTitle(t, socket, d.List); got != "▸ a · main · claude-x" {
+		t.Errorf("slot title %q", got)
 	}
 	ws := mustWindows(t, c)
 	if a := ws["a"]; !a.Docked || a.Pane != ap || a.PaneDead || a.Title != "a · main · claude-x" || ws["b"].Docked {
@@ -394,7 +416,7 @@ func TestDockSwapsAgentsIntoTheSlotAndBackHome(t *testing.T) {
 	if strings.Contains(tm(t, socket, "list-panes", "-a", "-F", "#{pane_id}")+"\n", bp+"\n") {
 		t.Fatal("b's pane outlived its window")
 	}
-	if got := tm(t, socket, "list-panes", "-t", d.Window, "-F", "#{pane_id}"); got != d.List+"\n"+d.Slot {
+	if got := framed(t, socket, d.Window); got != d.List+"\n"+d.Slot {
 		t.Fatalf("dashboard panes %q", got)
 	}
 	if got := tm(t, socket, "display-message", "-p", "-t", d.Window, "#{pane_id}"); got != d.List {
@@ -707,7 +729,217 @@ func TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack(t *testing.T) {
 		return strings.Contains(tm(t, plain, "capture-pane", "-p"), "back-in-the-shell")
 	})
 	// hq's session and its panes are untouched.
-	if got := tm(t, socket, "list-panes", "-t", d.Window, "-F", "#{pane_id}"); got != d.List+"\n"+d.Slot {
+	if got := framed(t, socket, d.Window); got != d.List+"\n"+d.Slot {
 		t.Fatalf("dashboard panes %q", got)
+	}
+}
+
+// geometry is each dashboard pane's role (the slot's is blank or slot),
+// left edge, top and width.
+func geometry(t *testing.T, socket, win string) []string {
+	t.Helper()
+	return strings.Split(tm(t, socket, "list-panes", "-t", win, "-F", "#{@hq_role}:#{pane_left},#{pane_top},#{pane_width}"), "\n")
+}
+
+func TestTheSlotSitsInADarkerAreaFramedByTheSurround(t *testing.T) {
+	c, socket := dashClient(t)
+	dir := t.TempDir()
+	d, err := c.Dashboard(dir, listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, _ := strconv.Atoi(tm(t, socket, "display-message", "-p", "-t", d.Window, "#{window_width}"))
+	top := tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{pane_top}")
+	// The list from the window's first row across its width; below it the
+	// slot, one column of margin and one of border each side.
+	want := []string{
+		"list:0,0," + strconv.Itoa(w),
+		"spacer:0," + top + ",1",
+		"slot:2," + top + "," + strconv.Itoa(w-4),
+		"spacer:" + strconv.Itoa(w-1) + "," + top + ",1",
+	}
+	if got := geometry(t, socket, d.Window); strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("panes %v, want %v", got, want)
+	}
+	// The title row is the list's bottom status, as wide as the slot.
+	if got := tm(t, socket, "show-options", "-wv", "-t", d.Window, "pane-border-status"); got != "bottom" {
+		t.Errorf("pane-border-status %q", got)
+	}
+	// The slot's colour is the window's, whatever pane is docked; the
+	// list and the margins have the surround's; borders are invisible.
+	for opt, want := range map[string]string{"window-style": "bg=#111317", "window-active-style": "bg=#111317",
+		"pane-border-style": "fg=#16181d,bg=#16181d", "pane-active-border-style": "fg=#16181d,bg=#16181d"} {
+		if got := tm(t, socket, "show-options", "-wv", "-t", d.Window, opt); !strings.EqualFold(got, want) {
+			t.Errorf("%s = %q, want %q", opt, got, want)
+		}
+	}
+	for _, l := range strings.Split(tm(t, socket, "list-panes", "-t", d.Window, "-F", "#{pane_id} #{@hq_role}"), "\n") {
+		id, role, _ := strings.Cut(l, " ")
+		got := tm(t, socket, "show-options", "-pv", "-t", id, "window-style")
+		if want := "bg=#16181d"; role == "slot" && got != "" || role != "slot" && !strings.EqualFold(got, want) {
+			t.Errorf("%s pane's window-style %q", role, got)
+		}
+	}
+	if got := tm(t, socket, "show-options", "-v", "-t", Session, "status-style"); !strings.Contains(strings.ToLower(got), "bg=#16181d") {
+		t.Errorf("status-style %q", got)
+	}
+
+	// A docked agent takes the slot's place between the margins.
+	aw, ap := agentWindow(t, c, "a", dir, "sleep", "30")
+	if err := c.Dock(aw, "a"); err != nil {
+		t.Fatal(err)
+	}
+	if got := tm(t, socket, "display-message", "-p", "-t", ap, "#{pane_left} #{pane_width}"); got != "2 "+strconv.Itoa(w-4) {
+		t.Errorf("docked pane at %q", got)
+	}
+	if got := framed(t, socket, d.Window); got != d.List+"\n"+ap {
+		t.Errorf("dashboard panes %q", got)
+	}
+
+	// A wider terminal widens the slot, the margins set back to one column.
+	tm(t, socket, "resize-window", "-t", d.Window, "-x", strconv.Itoa(w+7))
+	if err := c.KeepMargins(d.List); err != nil {
+		t.Fatal(err)
+	}
+	if got := tm(t, socket, "display-message", "-p", "-t", ap, "#{pane_left} #{pane_width}"); got != "2 "+strconv.Itoa(w+3) {
+		t.Errorf("after a resize the docked pane is at %q", got)
+	}
+}
+
+func TestMissingMarginsOrListAreMadeAgainAroundTheSlot(t *testing.T) {
+	c, socket := dashClient(t)
+	dir := t.TempDir()
+	d, err := c.Dashboard(dir, listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, _ := strconv.Atoi(tm(t, socket, "display-message", "-p", "-t", d.Window, "#{window_width}"))
+	wide := strconv.Itoa(w)
+	for _, l := range strings.Split(tm(t, socket, "list-panes", "-t", d.Window, "-F", "#{pane_id} #{@hq_role}"), "\n") {
+		if id, role, _ := strings.Cut(l, " "); role == roleSpacer {
+			tm(t, socket, "kill-pane", "-t", id)
+			break
+		}
+	}
+	again, err := c.Dashboard(dir, listStub)
+	if err != nil || again.Slot != d.Slot || again.List != d.List {
+		t.Fatalf("%+v %v", again, err)
+	}
+	top := tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{pane_top}")
+	want := "list:0,0," + wide + " spacer:0," + top + ",1 slot:2," + top + "," + strconv.Itoa(w-4) + " spacer:" + strconv.Itoa(w-1) + "," + top + ",1"
+	if got := strings.Join(geometry(t, socket, d.Window), " "); got != want {
+		t.Fatalf("with a margin gone, made again as %s, want %s", got, want)
+	}
+	tm(t, socket, "kill-pane", "-t", d.List)
+	again, err = c.Dashboard(dir, listStub)
+	if err != nil || !again.Started {
+		t.Fatalf("%+v %v", again, err)
+	}
+	if got := geometry(t, socket, d.Window)[0]; got != "list:0,0,"+wide {
+		t.Fatalf("list made again at %s, want across the top", got)
+	}
+}
+
+func TestAltLFromAnOlderHqIsBroughtUpToDate(t *testing.T) {
+	c, socket := dashClient(t)
+	if _, err := c.Dashboard(t.TempDir(), listStub); err != nil {
+		t.Fatal(err)
+	}
+	// What an older hq bound, over the user's own binding of Alt+l.
+	tm(t, socket, "bind-key", "-n", "M-l", "if-shell", "-F", "#{==:#{session_name},hq}", "select-pane -t :.+", `send-keys "user $HOME"`)
+	if err := c.BindChords([]string{"true"}, "hints"); err != nil {
+		t.Fatal(err)
+	}
+	cmd, ours := rootBinding(tm(t, socket, "list-keys", "-T", "root"), "M-l")
+	if !ours || !strings.Contains(cmd, "{bottom}") || strings.Contains(cmd, ":.+") || !strings.Contains(cmd, "user") {
+		t.Fatalf("Alt+l bound as %q", cmd)
+	}
+	// Bound once more, it stays as it is.
+	if err := c.BindChords([]string{"true"}, "hints"); err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := rootBinding(tm(t, socket, "list-keys", "-T", "root"), "M-l"); again != cmd {
+		t.Fatalf("Alt+l bound again as %q, was %q", again, cmd)
+	}
+}
+
+// backgrounds is the background of each cell of each line of a capture
+// with escape sequences (capture-pane -e -N), as the SGR parameters that
+// set it; a line's sequences carry on from the line before.
+func backgrounds(capture string) [][]string {
+	var rows [][]string
+	bg := ""
+	for _, line := range strings.Split(capture, "\n") {
+		rows = append(rows, lineBackgrounds(line, &bg))
+	}
+	return rows
+}
+
+func lineBackgrounds(line string, bg *string) []string {
+	var bgs []string
+	for i := 0; i < len(line); {
+		if strings.HasPrefix(line[i:], "\x1b[") {
+			end := strings.IndexByte(line[i:], 'm')
+			ps := strings.Split(line[i+2:i+end], ";")
+			for j := 0; j < len(ps); j++ {
+				switch {
+				case ps[j] == "" || ps[j] == "0" || ps[j] == "49":
+					*bg = ""
+				case (ps[j] == "38" || ps[j] == "48") && j+1 < len(ps) && ps[j+1] == "5":
+					if ps[j] == "48" {
+						*bg = strings.Join(ps[j:j+3], ";")
+					}
+					j += 2
+				case (ps[j] == "38" || ps[j] == "48") && j+1 < len(ps) && ps[j+1] == "2":
+					if ps[j] == "48" {
+						*bg = strings.Join(ps[j:j+5], ";")
+					}
+					j += 4
+				case len(ps[j]) == 2 && ps[j][0] == '4', len(ps[j]) == 3 && strings.HasPrefix(ps[j], "10"):
+					*bg = ps[j]
+				}
+			}
+			i += end + 1
+			continue
+		}
+		_, size := utf8.DecodeRuneInString(line[i:])
+		bgs = append(bgs, *bg)
+		i += size
+	}
+	return bgs
+}
+
+func TestTheSlotAndItsTitleRowMakeOneDarkerAreaOnScreen(t *testing.T) {
+	c, socket := dashClient(t)
+	d, err := c.Dashboard(t.TempDir(), listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	term := testutil.TmuxSocket(t)
+	tm(t, term, "new-session", "-d", "-x", "60", "-y", "20", "env", "-u", "TMUX", "tmux", "-L", socket, "attach", "-t", Session)
+	eventually(t, "the client to attach", func() bool {
+		return strings.Contains(tm(t, term, "capture-pane", "-p"), "▸ placeholder")
+	})
+	capture := tm(t, term, "capture-pane", "-p", "-e", "-N")
+	rows := backgrounds(capture)
+	top, _ := strconv.Atoi(tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{pane_top}"))
+	list, title, slot := rows[0], rows[top-1], rows[top]
+	if len(title) < 60 || len(slot) < 60 {
+		t.Fatalf("rows of %d and %d cells:\n%s", len(title), len(slot), capture)
+	}
+	surround, dark := list[0], slot[2]
+	if surround == dark {
+		t.Fatalf("the slot has the list's background %q", dark)
+	}
+	// Two columns of surround each side; between them, the title row and
+	// the slot's rows alike.
+	for x := 0; x < 60; x++ {
+		want := dark
+		if x < 2 || x >= 58 {
+			want = surround
+		}
+		if title[x] != want || slot[x] != want {
+			t.Errorf("column %d: title row %q, slot %q, want %q", x, title[x], slot[x], want)
+		}
 	}
 }

@@ -168,9 +168,9 @@ func TestRaiseFindsTheWindowPerPlatform(t *testing.T) {
 			t.Errorf("the script has no %q:\n%s", want, r[2])
 		}
 	}
-	// WSL: the window titled hq; a refusal is an error.
+	// WSL: the window titled hq - agents; a refusal is an error.
 	w := platform.WSL{}.Raise("/dev/pts/3")
-	if w[0] != "powershell.exe" || !strings.Contains(w[len(w)-1], "AppActivate('hq')") || !strings.Contains(w[len(w)-1], "exit 1") {
+	if w[0] != "powershell.exe" || !strings.Contains(w[len(w)-1], "AppActivate('hq - agents')") || !strings.Contains(w[len(w)-1], "exit 1") {
 		t.Fatalf("wsl %q", w)
 	}
 }

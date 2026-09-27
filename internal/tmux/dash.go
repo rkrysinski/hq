@@ -12,8 +12,9 @@ import (
 // line. Its panes are told apart by the pane option @hq_role, so docking can
 // move them between windows.
 const (
-	roleList = "list"
-	roleSlot = "slot"
+	roleList   = "list"
+	roleSlot   = "slot"
+	roleSpacer = "spacer"
 
 	// PlaceholderTitle frames the slot while nothing is docked (S1).
 	PlaceholderTitle = "placeholder"
@@ -24,6 +25,20 @@ const (
 	// opposed to the shell older versions of hq left in the slot.
 	placeholderMark = "program"
 )
+
+// The dashboard's colours (design §3.1, from the design's tokens): the
+// docked session and the empty slot sit in a darker area, framed on every
+// side by a slightly lighter surround: the list, the margins beside and
+// below the slot, the footer.
+const (
+	surroundColour = "#16181D" // the list, the margins, the footer
+	slotColour     = "#111317" // the slot and its title row
+	titleColour    = "#5C626C" // the slot's title
+)
+
+// TerminalTitle is the terminal's title while the dashboard is attached
+// (design §3.11); the WSL adapter raises the window by it.
+const TerminalTitle = "hq - agents"
 
 // Dash is the dashboard window as hq found or made it.
 type Dash struct {
@@ -104,26 +119,64 @@ func (c Client) decorate(win, pane string) error {
 	return c.batch(append([][]string{{"set-option", "-w", "-t", win, "@hq_dash", "1"}}, placeholderPane(pane)...)...)
 }
 
-// style gives the dashboard and hq's session the look of the mocks: framed,
-// titled panes; a status line that is only the footer, without tmux's window
-// list; the terminal titled hq (design §3.1, §3.11). Only hq's session and
-// its dashboard window are touched, never the server's global options. The
-// mouse is on for hq's session alone (design §3.7): clicks reach the list
-// program and the dialogs, and a click in the docked pane focuses it.
+// style gives the dashboard and hq's session the look of the mocks (design
+// §3.1): the slot's window area darker than the surround, which the list
+// pane, the margin panes (spacers), the invisible pane borders and the
+// status line share; the slot's title on the row above it, drawn as the
+// list pane's bottom status in the slot's colour so the title row and the
+// slot make one area; a status line that is only the footer, without
+// tmux's window list; the terminal titled hq - agents (design §3.11). Only
+// hq's session and its dashboard window are touched, never the server's
+// global options. The mouse is on for hq's session alone (design §3.7):
+// clicks reach the list program and the dialogs, and a click in the docked
+// pane focuses it.
 func (c Client) style(win string) error {
-	border := `#{?#{==:#{@hq_role},list},,#[fg=colour243] ▸ #{?#{@hq_title},#{@hq_title},#{pane_title}} }`
+	version, err := c.Version()
+	if err != nil {
+		return err
+	}
 	return c.batch(
-		[]string{"set-option", "-w", "-t", win, "pane-border-status", "top"},
-		[]string{"set-option", "-w", "-t", win, "pane-border-format", border},
-		[]string{"set-option", "-w", "-t", win, "pane-border-style", "fg=colour238"},
-		[]string{"set-option", "-w", "-t", win, "pane-active-border-style", "fg=colour238"},
-		[]string{"set-option", "-t", Session, "status-style", "bg=default,fg=colour245"},
+		[]string{"set-option", "-w", "-t", win, "pane-border-status", "bottom"},
+		[]string{"set-option", "-w", "-t", win, "pane-border-format", borderFormat(version)},
+		[]string{"set-option", "-w", "-t", win, "pane-border-lines", "single"},
+		[]string{"set-option", "-w", "-t", win, "pane-border-style", "fg=" + surroundColour + ",bg=" + surroundColour},
+		[]string{"set-option", "-w", "-t", win, "pane-active-border-style", "fg=" + surroundColour + ",bg=" + surroundColour},
+		[]string{"set-option", "-w", "-t", win, "window-style", "bg=" + slotColour},
+		[]string{"set-option", "-w", "-t", win, "window-active-style", "bg=" + slotColour},
+		[]string{"set-option", "-t", Session, "status-style", "bg=" + surroundColour + ",fg=colour245"},
 		[]string{"set-option", "-t", Session, "status-format[0]", footerFormat},
 		[]string{"set-option", "-t", Session, "set-titles", "on"},
-		[]string{"set-option", "-t", Session, "set-titles-string", "hq"},
+		[]string{"set-option", "-t", Session, "set-titles-string", TerminalTitle},
 		[]string{"set-option", "-t", Session, "mouse", "on"},
 	)
 }
+
+// surroundPane gives pane the surround's colour instead of the slot's.
+func surroundPane(pane string) [][]string {
+	return [][]string{
+		{"set-option", "-p", "-t", pane, "window-style", "bg=" + surroundColour},
+		{"set-option", "-p", "-t", pane, "window-active-style", "bg=" + surroundColour},
+	}
+}
+
+// borderFormat titles the slot: the list pane's bottom status, the row
+// right above the slot, shows the title of the pane in the slot (the pane
+// neither list nor spacer) on the slot's colour, as wide as the slot. The
+// other panes' status rows (the margin below the slot) stay empty. tmux
+// draws a pane's status from its third column to four columns short of its
+// width until 3.5, two short from 3.6 on: there the last two columns are
+// given the surround's colour, to end where the slot ends.
+func borderFormat(version string) string {
+	end := ""
+	if AtLeast(version, "3.6") {
+		end = `#[align=right bg=` + surroundColour + `]  `
+	}
+	return `#{?#{==:#{@hq_role},list},#[fill=` + slotColour + ` bg=` + slotColour + ` fg=` + titleColour + `] ▸ ` + slotTitle + end + `,}`
+}
+
+// slotTitle is the frame title of the pane in the slot, as a format of the
+// dashboard window.
+const slotTitle = `#{P:#{?#{||:#{==:#{@hq_role},list},#{==:#{@hq_role},spacer}},,#{?#{@hq_title},#{@hq_title},#{pane_title}}}}`
 
 // footerFormat is the status line: the chords' hints (@hq_chords) while the
 // keys are in the dashboard's slot, else the list's footer (design §3.7).
@@ -135,13 +188,23 @@ var ChordKeys = []struct{ Key, Arg string }{
 	{"M-j", "next"}, {"M-k", "previous"}, {"M-a", "attention"}, {"M-n", "new"}, {"M-l", ""},
 }
 
+// switchPanes is Alt+l: the keys go from the list to the slot and from
+// anywhere else back to the list, by position, never onto a margin pane
+// ({bottom} and {top} are the panes at the window's bottom and top centre).
+const switchPanes = `if-shell -F '#{==:#{@hq_role},list}' "select-pane -t '{bottom}'" "select-pane -t '{top}'"`
+
+// oldSwitchPanes is Alt+l as hq bound it before the margin panes: the next
+// pane, which is now a margin.
+const oldSwitchPanes = `"select-pane -t :.+"`
+
 // BindChords binds the Alt chords for hq's session alone (design §3.7):
 // each runs argv, hq's chord command, with its argument, and the chords'
 // hints are kept for the footer. Keys are bound in tmux's root table, so
 // the binding itself hands the key on in any other session: to the key's
 // earlier binding when there was one, else to the pane. The bindings name
 // the command through the session option @hq_chord, so they stay the same
-// when hq moves and are bound once per server.
+// when hq moves and are bound once per server; an Alt+l bound by an older
+// hq is brought up to date, keeping what it hands on.
 func (c Client) BindChords(argv []string, hints string) error {
 	env := "HQ_TMUX_SOCKET=" + shellQuote(c.Socket)
 	quoted := make([]string, len(argv))
@@ -162,6 +225,12 @@ func (c Client) BindChords(argv []string, hints string) error {
 	for _, k := range ChordKeys {
 		earlier, ours := rootBinding(string(out), k.Key)
 		if ours {
+			if k.Arg == "" && strings.Contains(earlier, oldSwitchPanes) {
+				// The binding is tmux's own text: changed in place and
+				// parsed again, what it hands on stays as it was.
+				line := "bind-key -n " + k.Key + " " + strings.Replace(earlier, oldSwitchPanes, tmuxQuote(switchPanes), 1)
+				cmds = append(cmds, []string{"if-shell", "-F", "1", line})
+			}
 			continue
 		}
 		if earlier == "" {
@@ -169,7 +238,7 @@ func (c Client) BindChords(argv []string, hints string) error {
 		}
 		cmd := "run-shell -b '#{@hq_chord} " + k.Arg + "'"
 		if k.Arg == "" {
-			cmd = "select-pane -t :.+"
+			cmd = switchPanes
 		}
 		cmds = append(cmds, []string{"bind-key", "-n", k.Key, "if-shell", "-F", "#{==:#{session_name}," + Session + "}", cmd, earlier})
 	}
@@ -177,6 +246,11 @@ func (c Client) BindChords(argv []string, hints string) error {
 		return nil
 	}
 	return c.batch(cmds...)
+}
+
+// tmuxQuote quotes s for tmux's command parser.
+func tmuxQuote(s string) string {
+	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`, `$`, `\$`).Replace(s) + `"`
 }
 
 // rootBinding finds key's command in list-keys output for the root table;
@@ -310,6 +384,7 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 	if err := c.style(d.Window); err != nil {
 		return Dash{}, err
 	}
+	var spacers []string
 	for _, p := range ps {
 		if p.role == roleSlot && (p.placeholder != placeholderMark || p.dead) {
 			if err := c.restartPlaceholder(p.id, PlaceholderHint); err != nil {
@@ -322,9 +397,21 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 		switch {
 		case p.role == roleList:
 			d.List, d.ListPID = p.id, p.listPID
+		case p.role == roleSpacer:
+			spacers = append(spacers, p.id)
 		case d.Slot == "":
 			d.Slot = p.id
 		}
+	}
+	// The margins beside the slot are made again whenever they are not
+	// both there, and before a slot is made, so they always flank it.
+	if d.Slot == "" || len(spacers) != 2 {
+		for _, p := range spacers {
+			if _, err := c.tmux("kill-pane", "-t", p); err != nil {
+				return Dash{}, err
+			}
+		}
+		spacers = nil
 	}
 	if d.Slot == "" {
 		args := append(append([]string{"split-window", "-v", "-d", "-P", "-F", "#{pane_id}", "-t", d.List, "-c", dir}, c.env()...), "--")
@@ -339,7 +426,7 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 	}
 	if d.List == "" {
 		// The list program fits its own height once it runs.
-		args := append([]string{"split-window", "-v", "-b", "-d", "-l", "10", "-P", "-F", "#{pane_id}", "-t", d.Slot, "-c", dir}, c.env()...)
+		args := append([]string{"split-window", "-v", "-b", "-f", "-d", "-l", "10", "-P", "-F", "#{pane_id}", "-t", d.Slot, "-c", dir}, c.env()...)
 		args = append(append(args, "--"), listShell(list)...)
 		out, err := c.tmux(args...)
 		if err != nil {
@@ -348,6 +435,27 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 		d.List, d.Started = strings.TrimSpace(string(out)), true
 		if _, err := c.tmux("set-option", "-p", "-t", d.List, "@hq_role", roleList, ";", "select-pane", "-t", d.List); err != nil {
 			return Dash{}, err
+		}
+	}
+	if err := c.batch(surroundPane(d.List)...); err != nil {
+		return Dash{}, err
+	}
+	if len(spacers) == 0 {
+		// One column each side of the slot, left then right.
+		for _, before := range []bool{true, false} {
+			args := []string{"split-window", "-h", "-d", "-l", "1", "-P", "-F", "#{pane_id}", "-t", d.Slot, "-c", dir}
+			if before {
+				args = append(args, "-b")
+			}
+			args = append(append(append(args, c.env()...), "--"), c.placeholderArgv("")...)
+			out, err := c.tmux(args...)
+			if err != nil {
+				return Dash{}, err
+			}
+			p := strings.TrimSpace(string(out))
+			if err := c.batch(append(surroundPane(p), []string{"set-option", "-p", "-t", p, "@hq_role", roleSpacer})...); err != nil {
+				return Dash{}, err
+			}
 		}
 	}
 	return d, nil
@@ -433,6 +541,27 @@ func (c Client) ResizeHeight(pane string, lines int) error {
 	return err
 }
 
+// KeepMargins sets the margins beside the slot back to one column each;
+// tmux shares out a change of the terminal's width among all the panes of
+// a row, the margins included. pane is any pane of the dashboard.
+func (c Client) KeepMargins(pane string) error {
+	out, err := c.tmux("list-panes", "-t", pane, "-F", "#{pane_id} #{pane_width} #{@hq_role}")
+	if err != nil {
+		return err
+	}
+	var cmds [][]string
+	for _, l := range strings.Split(string(out), "\n") {
+		f := strings.Fields(l)
+		if len(f) == 3 && f[2] == roleSpacer && f[1] != "1" {
+			cmds = append(cmds, []string{"resize-pane", "-t", f[0], "-x", "1"})
+		}
+	}
+	if len(cmds) == 0 {
+		return nil
+	}
+	return c.batch(cmds...)
+}
+
 // SetFooter puts text, a tmux format, on the status line of hq's session.
 func (c Client) SetFooter(text string) error {
 	_, err := c.tmux("set-option", "-t", Session, "status-left", text)
@@ -516,11 +645,11 @@ func (c Client) Dock(window, title string) error {
 	return err
 }
 
-// dashSlot is the pane in the docking slot: the dashboard's pane that is not
-// the list.
+// dashSlot is the pane in the docking slot: the dashboard's pane that is
+// neither the list nor a margin.
 func dashSlot(ps []pane) (pane, bool) {
 	for _, p := range ps {
-		if p.dash == "1" && p.role != roleList {
+		if p.dash == "1" && p.role != roleList && p.role != roleSpacer {
 			return p, true
 		}
 	}

@@ -44,6 +44,7 @@ type fakeTmux struct {
 	respawned  int       // times the list program was started again
 	height     int       // the height of the terminal showing the dashboard
 	resized    []int     // heights given to the list pane, in order
+	margins    int       // times the margins beside the slot were set back
 	footer     string
 	listPID    int // @hq_list_pid on the list pane
 	session    map[string]string
@@ -139,6 +140,8 @@ func (f *fakeTmux) ResizeHeight(_ string, lines int) error {
 	f.resized = append(f.resized, lines)
 	return nil
 }
+
+func (f *fakeTmux) KeepMargins(string) error { f.margins++; return nil }
 
 func (f *fakeTmux) SetFooter(text string) error { f.footer = text; return nil }
 

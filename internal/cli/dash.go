@@ -246,6 +246,7 @@ func listSource(d deps, pane string) dash.Source {
 			if h, err := d.tmux.TerminalHeight(pane); err == nil {
 				_ = d.tmux.ResizeHeight(pane, dash.Height(h))
 			}
+			_ = d.tmux.KeepMargins(pane)
 		},
 		Footer: func(hs []dash.Hint) { _ = d.tmux.SetFooter(footer(hs)) },
 		Modes: func() (string, string) {
