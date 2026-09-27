@@ -37,6 +37,30 @@ func TestParseNewRejectsBadInput(t *testing.T) {
 	}
 }
 
+func TestNewNamesWhatIsWrongWithTheName(t *testing.T) {
+	long := strings.Repeat("a", 33)
+	for name, want := range map[string]string{
+		strings.Repeat("a", 32): "",
+		long:                    "hq: name '" + long + "' is too long: at most 32 characters\n",
+		"bad name":              "hq: invalid name 'bad name': use letters, digits, - and _\n",
+		long + "/b":             "hq: invalid name '" + long + "/b': use letters, digits, - and _\n",
+	} {
+		_, err := parseNew([]string{name}, func(string) bool { return false }, "/w")
+		if want == "" {
+			if err != nil {
+				t.Errorf("%s: %v", name, err)
+			}
+			continue
+		}
+		f := newFakes()
+		f.sbx.sandboxes = sandboxesFor("/w/app")
+		code, _, errOut := f.run("new", name)
+		if code != ExitUsage || errOut != want || len(f.tmux.windows) != 0 {
+			t.Errorf("%s: exit %d, stderr %q, %d windows", name, code, errOut, len(f.tmux.windows))
+		}
+	}
+}
+
 func TestNewStartsAgentInRepositorysSandbox(t *testing.T) {
 	f := newFakes()
 	f.sbx.sandboxes = sandboxesFor("/w/app")

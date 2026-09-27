@@ -9,10 +9,10 @@ import (
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
-func TestValidName(t *testing.T) {
-	for name, ok := range map[string]bool{"42": true, "bok-17": true, "a_b": true, "": false, "a b": false, "a/b": false, "ą": false} {
-		if ValidName(name) != ok {
-			t.Errorf("ValidName(%q) != %v", name, ok)
+func TestNameChars(t *testing.T) {
+	for name, ok := range map[string]bool{"42": true, "bok-17": true, "a_b": true, strings.Repeat("a", 40): true, "": false, "a b": false, "a/b": false, "ą": false} {
+		if NameChars(name) != ok {
+			t.Errorf("NameChars(%q) != %v", name, ok)
 		}
 	}
 }
