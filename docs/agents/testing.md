@@ -7,8 +7,8 @@ hq is written in Go (ADR 0011). The suite follows the [Practical Test Pyramid](h
 | Level | Selected by | Use it for |
 |---|---|---|
 | Unit | no build tag; `_test.go` next to the code | Pure logic: parsing, state and attention rules, sorting and filtering, what a dashboard row or a command's output contains, mapping the answer of `sbx`, tmux or a hook with a fake. No processes, sockets, terminals or real `sbx`/tmux |
-| Integration | `//go:build integration`; `_integration_test.go` next to the code | The contract of a command or an adapter: what it runs against tmux (on a private socket per test, `tmux -L`), a stub `sbx`, or the file system, and what it reports. Flows that need a real process, file or socket |
-| End-to-end | `//go:build e2e`; in `e2e/` only | A few critical journeys a person drives in a terminal (start an agent, see it, enter it, kill it), in real tmux with the stub `sbx` |
+| Integration | `//go:build integration`; `_integration_test.go` next to the code | The contract of a command or an adapter: what it runs against tmux (on a private socket per test, `tmux -L`), a stub `sbx` or `gh`, or the file system, and what it reports. Flows that need a real process, file or socket |
+| End-to-end | `//go:build e2e`; in `e2e/` only | A few critical journeys a person drives in a terminal (start an agent, see it, enter it, kill it; install and update), in real tmux with the stub `sbx` and `gh` |
 
 Rules of thumb:
 

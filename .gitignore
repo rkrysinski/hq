@@ -10,3 +10,4 @@ __pycache__/
 # Go: local builds and coverage
 /.local-dev/
 cover.out
+/dist/

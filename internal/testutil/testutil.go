@@ -40,6 +40,17 @@ func SbxStub(t *testing.T) (bin, dir string) {
 	return bin, dir
 }
 
+// GhStub returns the path of the stub gh and its release directory, set in
+// GH_STUB_DIR for this test.
+func GhStub(t *testing.T) (bin, dir string) {
+	t.Helper()
+	_, file, _, _ := runtime.Caller(0)
+	bin = filepath.Join(filepath.Dir(file), "gh-stub")
+	dir = t.TempDir()
+	t.Setenv("GH_STUB_DIR", dir)
+	return bin, dir
+}
+
 // GitRepo creates a git repository with one commit and returns its path with
 // symlinks resolved.
 func GitRepo(t *testing.T, name string) string {

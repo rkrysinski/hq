@@ -58,10 +58,9 @@ the cut never reached origin; undo it with `git tag -d vX.Y.Z` followed by
 
 ### Version files
 
-hq has no implementation yet, so no file records the version: the tag is the
-only record and `scripts/bump-version.sh` changes nothing. When the stack is
-chosen, its manifest becomes the single source of truth and
-`scripts/bump-version.sh` writes the version into it.
+No file records the version: the tag is the only record, and
+`scripts/bump-version.sh` changes nothing. The release build bakes the tag
+into the binary (`hq --version`).
 
 ## 2. Release notes
 
@@ -79,6 +78,13 @@ grouped by their label.
 
 The notes are in Polish, for the people who read them. The wording sits in one
 block at the top of `scripts/release.sh`.
+
+The same workflow builds hq for macOS (arm64, amd64) and Linux (amd64, arm64)
+with `scripts/build-release.sh`, which bakes the tag in as the version, and
+attaches the binaries (`hq-<os>-<arch>`), `install.sh` and `SHA256SUMS` to the
+release. `install.sh` and `hq update` take the latest release and verify the
+binary against `SHA256SUMS` before installing it. To check the build without a
+tag: `scripts/build-release.sh v0.0.1 /tmp/dist`.
 
 **Deployment prerequisites come from the pull requests.** A pull request whose
 change needs work outside the code states it in its own description, in one or

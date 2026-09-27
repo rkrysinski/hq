@@ -1,0 +1,38 @@
+#!/bin/sh
+# Stub of the GitHub CLI's release commands for integration and end-to-end
+# tests: $GH_STUB_DIR/latest holds the latest tag and $GH_STUB_DIR/<tag>/ the
+# files of that release.
+set -eu
+d=${GH_STUB_DIR:?GH_STUB_DIR not set}
+case "$1 $2" in
+"release view")
+    [ -s "$d/latest" ] || { echo "release not found" >&2; exit 1; }
+    cat "$d/latest"
+    ;;
+"release download")
+    shift 2
+    tag=
+    case ${1:-} in -* | "") ;; *) tag=$1; shift ;; esac
+    [ -n "$tag" ] || tag=$(cat "$d/latest")
+    dir=.
+    out=
+    patterns=
+    while [ $# -gt 0 ]; do
+        case $1 in
+        -R) shift 2 ;;
+        -D) dir=$2; shift 2 ;;
+        -O) out=$2; shift 2 ;;
+        -p) patterns="$patterns $2"; shift 2 ;;
+        *) echo "stub: unknown flag $1" >&2; exit 1 ;;
+        esac
+    done
+    for p in $patterns; do
+        [ -e "$d/$tag/$p" ] || { echo "no assets match the file pattern" >&2; exit 1; }
+        if [ "$out" = - ]; then cat "$d/$tag/$p"; else cp "$d/$tag/$p" "$dir/$p"; fi
+    done
+    ;;
+*)
+    echo "stub: unsupported gh $1 $2" >&2
+    exit 1
+    ;;
+esac

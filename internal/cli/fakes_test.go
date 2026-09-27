@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -161,6 +164,32 @@ func (f *fakeSbx) RunArgv(sandbox string, args ...string) []string {
 	return append([]string{"sbx", "run", "--name", sandbox, "--"}, args...)
 }
 
+// fakeReleases holds hq's releases in memory: tag -> file name -> content.
+type fakeReleases struct {
+	latest  string
+	files   map[string]map[string][]byte
+	err     error
+	lookups int
+}
+
+func (r *fakeReleases) Latest() (string, error) {
+	r.lookups++
+	return r.latest, r.err
+}
+
+func (r *fakeReleases) Download(tag, dir string, files ...string) error {
+	for _, name := range files {
+		data, ok := r.files[tag][name]
+		if !ok {
+			return fmt.Errorf("no asset %s in %s", name, tag)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type fakes struct {
 	tmux  *fakeTmux
 	sbx   *fakeSbx
@@ -171,6 +200,10 @@ type fakes struct {
 	env   map[string]string
 	tty   bool   // stdin is a terminal
 	stdin string // what the user types
+
+	releases *fakeReleases
+	exe      string // the running hq, for hq update
+	prefs    prefs.Prefs
 }
 
 func newFakes() *fakes {
@@ -183,6 +216,9 @@ func newFakes() *fakes {
 		cwd:   "/w/app",
 		now:   time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
 		tty:   true,
+
+		releases: &fakeReleases{files: map[string]map[string][]byte{}},
+		exe:      "/nonexistent/hq",
 	}
 	// pkill -f 'HQ_ID":"<id>"' ends the session: its pane dies.
 	f.sbx.onExec = func(args []string) {
@@ -218,5 +254,11 @@ func (f *fakes) deps() deps {
 		getenv:   func(k string) string { return f.env[k] },
 		sleep:    func(d time.Duration) { f.now = f.now.Add(d) },
 		canAsk:   func(io.Reader) bool { return f.tty },
+
+		releases:   f.releases,
+		asset:      "hq-testos-testarch",
+		executable: func() (string, error) { return f.exe, nil },
+		loadPrefs:  func() prefs.Prefs { return f.prefs },
+		savePrefs:  func(p prefs.Prefs) error { f.prefs = p; return nil },
 	}
 }

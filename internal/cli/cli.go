@@ -34,14 +34,8 @@ func commands() []command {
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
 		{"sandbox", "rm|restart REPO [-y]", "remove or restart a repository's sandbox", runSandbox},
-		{"update", "", "replace hq with the latest release", notYet("update")},
+		{"update", "", "replace hq with the latest release", runUpdate},
 		{"help", "", "show this help", runHelp},
-	}
-}
-
-func notYet(name string) func(Env, deps, []string) error {
-	return func(Env, deps, []string) error {
-		return usageErr("'%s' is not available in this version (see hq help)", name)
 	}
 }
 
@@ -71,7 +65,7 @@ func run(env Env, d deps, args []string) error {
 	name, rest := args[0], args[1:]
 	switch name {
 	case "--version", "-V":
-		fmt.Fprintf(env.Stdout, "hq %s\n", version.Version)
+		fmt.Fprintf(env.Stdout, "hq %s\n%s", version.Version, updateHint(d))
 		return nil
 	case "--help", "-h":
 		return runHelp(env, d, nil)

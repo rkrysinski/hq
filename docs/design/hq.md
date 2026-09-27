@@ -163,6 +163,7 @@ Satisfies: §4.1, §6.1-6.6, S2, S6; drivers 2, 3.
 **Alternatives considered:** a Homebrew tap (a private tap needs a token per machine; poor on WSL); `go install` (every machine needs the Go toolchain); a public download URL (the repository is private for now).
 **Satisfies:** §4.1 (`hq update`, `--version`), §6.1 (update hint), §8 (one-command install), §11; drivers 3, 6.
 
+- A release holds `hq-<os>-<arch>` for each platform, `install.sh` and `SHA256SUMS`. `hq update` replaces its own executable by writing the new binary next to it and renaming it over it, so hq is never half-written. The per-user preferences file is `$XDG_CONFIG_HOME/hq/preferences.json` (default `~/.config`) on both platforms. A development build (version `dev`) shows no update hint, and `hq update` moves it to the latest release.
 - Once the repository is public, the first-install one-liner can become a plain HTTPS download without `gh`; `hq update` keeps working as is.
 - The installer and hq check the prerequisites (`tmux` with the minimum version, `sbx`, `gh`, `code`) and fail with exit code 3 and the remedy (§4.2).
 

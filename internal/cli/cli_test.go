@@ -73,10 +73,3 @@ func TestErrorsCarryTheirExitCode(t *testing.T) {
 		}
 	}
 }
-
-func TestCommandsOfLaterIssuesSayTheyAreNotAvailable(t *testing.T) {
-	code, _, errOut := runCLI("update")
-	if code != ExitUsage || errOut != "hq: 'update' is not available in this version (see hq help)\n" {
-		t.Fatalf("exit %d %q", code, errOut)
-	}
-}

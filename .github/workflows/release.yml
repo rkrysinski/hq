@@ -1,6 +1,7 @@
-# Publishes the GitHub release for a tag. All the logic lives in
-# scripts/release.sh, so the workflow and a local run produce the same notes -
-# see docs/releasing.md.
+# Publishes the GitHub release for a tag: the notes from scripts/release.sh,
+# then hq for every platform, install.sh and SHA256SUMS from
+# scripts/build-release.sh. The logic lives in the scripts, so the workflow
+# and a local run produce the same release - see docs/releasing.md.
 name: Release
 
 on:
@@ -22,7 +23,19 @@ jobs:
           # release.sh walks the commits between this tag and the previous one.
           fetch-depth: 0
 
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build hq for every platform
+        run: scripts/build-release.sh "$GITHUB_REF_NAME" dist
+
       - name: Publish release notes
         env:
           GH_TOKEN: ${{ github.token }}
         run: scripts/release.sh "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"
+
+      - name: Attach the binaries, install.sh and SHA256SUMS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber --repo "$GITHUB_REPOSITORY"
