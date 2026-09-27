@@ -96,7 +96,7 @@ Sort, cycled with `s`, current mode marked in the column header, remembered betw
 
 View, toggled with `a`, remembered between runs:
 
-- **attention** (default): only agents in an attention state. Empty state reads "nothing needs you - press a for all". The calmest possible list.
+- **attention** (default): only agents in an attention state, plus the docked agent in any state, marked with its outline as in the all view, so the list always shows the agent whose session is on screen. Agents neither docked nor in an attention state stay hidden. Empty state, when no row qualifies, reads "nothing needs you - press a for all". The calmest possible list: at most one extra row, and it is the one on screen anyway.
 - **all**: every agent, all states.
 
 All row actions work on any visible row in either view; an agent needs no pending question to be docked.
@@ -146,7 +146,7 @@ The `/name` search is the one exception and stays in the footer, because it filt
 
 Trigger, what the user sees, what must be true afterwards. These are the acceptance narrative for the implementation and the manual test.
 
-**S0. Default view** - `hq` with agents running: the list shows only agents that need the user; the header still counts all; `a` shows everything.
+**S0. Default view** - `hq` with agents running: the list shows only agents that need the user, and the docked agent whatever its state (6.2); the header still counts all; `a` shows everything. With nothing docked and nothing needing the user, the list reads "nothing needs you - press a for all".
 
 **S1. Start of day** - `hq` with nothing running: the dashboard opens with an empty list ("no agents yet - press n to start one, or run: hq new NAME [DIR] [PROMPT]") and an empty session slot. With agents already running: the dashboard opens showing them, with the previously docked session still docked.
 
