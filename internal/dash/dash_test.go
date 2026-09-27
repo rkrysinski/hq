@@ -3,6 +3,7 @@ package dash
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -915,6 +916,91 @@ func TestKOpensTheKillDialogOnTheCursorRow(t *testing.T) {
 	f = &fakeSource{}
 	if key(started(f, 120, 10), "k"); len(f.killed) != 0 {
 		t.Fatalf("killed %v", f.killed)
+	}
+}
+
+// four are working agents in attention order: w0 w1 w2 w3.
+func four() []agent.Agent {
+	var as []agent.Agent
+	for i := range 4 {
+		as = append(as, ag(fmt.Sprint("w", i), state.Working, time.Duration(i)*time.Minute, ""))
+	}
+	return as
+}
+
+// onRow moves the cursor down to the row of name.
+func onRow(m Model, name string) Model {
+	for m.cursor != name && m.cursorRow+1 < len(m.rows) {
+		m = key(m, "down")
+	}
+	return m
+}
+
+func TestAKilledAgentsRowGivesTheCursorToTheRowThatTookItsPlace(t *testing.T) {
+	// A kill ends the session a moment before it removes the row, so a
+	// refresh may see the row ended, at the bottom, before it goes.
+	for _, tc := range []struct{ killed, want string }{{"w0", "w1"}, {"w1", "w2"}, {"w3", "w2"}} {
+		f := &fakeSource{agents: four(), view: ViewAll}
+		m := onRow(started(f, 120, 10), tc.killed)
+		i := slices.IndexFunc(f.agents, func(a agent.Agent) bool { return a.Name == tc.killed })
+		f.agents[i].State = state.Ended
+		if m = key(m, "r"); m.cursor != tc.killed || m.cursorRow != 3 {
+			t.Fatalf("%s ended: cursor %q at %d, want it followed to the bottom", tc.killed, m.cursor, m.cursorRow)
+		}
+		f.agents = remove(f.agents, tc.killed)
+		if m = key(m, "r"); m.cursor != tc.want {
+			t.Errorf("%s removed: cursor on %q, want %q (rows %s)", tc.killed, m.cursor, tc.want, rowNames(m))
+		}
+	}
+}
+
+func TestKillingARowWithoutAnEndedPhaseGivesTheCursorToTheNextRow(t *testing.T) {
+	for _, tc := range []struct{ killed, want string }{{"w0", "w1"}, {"w2", "w3"}, {"w3", "w2"}} {
+		f := &fakeSource{agents: four(), view: ViewAll}
+		m := onRow(started(f, 120, 10), tc.killed)
+		f.onKill = func() { f.agents = remove(f.agents, tc.killed) }
+		if m = key(m, "k"); m.cursor != tc.want {
+			t.Errorf("%s killed: cursor on %q, want %q", tc.killed, m.cursor, tc.want)
+		}
+	}
+}
+
+func TestKOnAnEndedRowGivesTheCursorToTheRowAfterIt(t *testing.T) {
+	// S7: the rows ended by themselves, long before.
+	as := four()
+	as[2].State, as[3].State = state.Ended, state.Ended // w0 w1 w2 w3
+	for _, tc := range []struct{ killed, want string }{{"w2", "w3"}, {"w3", "w2"}} {
+		f := &fakeSource{agents: slices.Clone(as), view: ViewAll}
+		m := onRow(started(f, 120, 10), tc.killed)
+		f.onKill = func() { f.agents = remove(f.agents, tc.killed) }
+		if m = key(m, "k"); m.cursor != tc.want {
+			t.Errorf("%s killed: cursor on %q, want %q", tc.killed, m.cursor, tc.want)
+		}
+	}
+	// w0 ends by itself as the user looks at it, and is killed at once:
+	// the cursor is where the user sees it, at the bottom, so it takes the
+	// row before.
+	f := &fakeSource{agents: four(), view: ViewAll}
+	m := started(f, 120, 10)
+	f.agents[0].State = state.Ended
+	m = key(m, "r") // w1 w2 w3 w0
+	f.onKill = func() { f.agents = remove(f.agents, "w0") }
+	if m = key(m, "k"); m.cursor != "w3" {
+		t.Errorf("w0 killed from the bottom: cursor on %q, want w3", m.cursor)
+	}
+}
+
+func TestARowEndedLongAgoKeepsTheCursorWhereItIs(t *testing.T) {
+	f := &fakeSource{agents: four(), view: ViewAll}
+	m := started(f, 120, 10)
+	f.agents[0].State = state.Ended
+	m = key(m, "r") // w1 w2 w3 w0, the cursor on w0
+	later := now.Add(endedGrace)
+	m.src.Now = func() time.Time { return later }
+	m = key(m, "r")
+	f.agents = remove(f.agents, "w0") // hq kill from a shell
+	if m = key(m, "r"); m.cursor != "w3" {
+		t.Errorf("cursor on %q, want w3, the row before w0 at the bottom", m.cursor)
 	}
 }
 
