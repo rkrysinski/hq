@@ -6,3 +6,7 @@ __pycache__/
 .claude/status/
 .claude/worktrees/
 .claude/settings.local.json
+
+# Go: local builds and coverage
+/.local-dev/
+cover.out
