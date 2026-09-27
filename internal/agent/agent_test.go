@@ -42,13 +42,13 @@ func TestNewIDIsFresh(t *testing.T) {
 
 func TestApplyTakesTheReportedStateWhileThePaneLives(t *testing.T) {
 	since := time.Unix(500, 0)
-	r := state.Report{State: state.Question, Since: since, Last: "Shall I?"}
+	r := state.Report{State: state.Question, Since: since, Last: "Shall I?", Branch: "feat/42-x", Cwd: "/w/app/.claude/worktrees/x"}
 	a := FromWindows([]tmux.Window{{ID: "@1", Options: map[string]string{"id": "x", "started": "100"}}})[0]
 	if a.State != state.Starting || a.Since.Unix() != 100 {
 		t.Fatalf("before any report: %+v", a)
 	}
 	a.Apply(r, true)
-	if a.State != state.Question || a.Since != since || a.Last != "Shall I?" {
+	if a.State != state.Question || a.Since != since || a.Last != "Shall I?" || a.Branch != "feat/42-x" || a.Worktree != "/w/app/.claude/worktrees/x" {
 		t.Fatalf("%+v", a)
 	}
 	dead := FromWindows([]tmux.Window{{ID: "@2", PaneDead: true, Options: map[string]string{"id": "y", "started": "100"}}})[0]

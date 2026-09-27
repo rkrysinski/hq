@@ -24,23 +24,28 @@ type lsRow struct {
 	Sandbox    string    `json:"sandbox"`
 }
 
-// attentionRank orders states for hq ls: ended last (the full attention
-// order of spec §6.2 comes with #20).
+// attentionOrder lists the states the user should look at first first
+// (spec §6.2).
+var attentionOrder = []string{state.NeedsInput, state.Question, state.Done, state.Working, state.Starting, state.Ended}
+
 func attentionRank(s string) int {
-	if s == state.Ended {
-		return 1
+	for i, o := range attentionOrder {
+		if s == o {
+			return i
+		}
 	}
-	return 0
+	return len(attentionOrder)
 }
 
-// sortAttention sorts agents in attention order, newest first within a state.
+// sortAttention sorts agents in attention order; within a state, the one
+// that entered it last comes first.
 func sortAttention(as []agent.Agent) {
 	sort.SliceStable(as, func(i, j int) bool {
 		ri, rj := attentionRank(as[i].State), attentionRank(as[j].State)
 		if ri != rj {
 			return ri < rj
 		}
-		return as[i].Started.After(as[j].Started)
+		return as[i].Since.After(as[j].Since)
 	})
 }
 

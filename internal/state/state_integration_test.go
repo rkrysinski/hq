@@ -17,11 +17,13 @@ import (
 
 // fire runs the injected hook as Claude does: sh with the event's kind, the
 // payload on stdin, the agent's environment, in dir.
-func fire(t *testing.T, dir, id, kind string, payload []byte) {
+// fire runs the hook as Claude does: in Claude's current directory cwd, with
+// the project directory the session started in.
+func fire(t *testing.T, cwd, project, id, kind string, payload []byte) {
 	t.Helper()
 	cmd := exec.Command("sh", hook(kind).Args...)
-	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "HQ_ID="+id, "CLAUDE_PROJECT_DIR="+dir)
+	cmd.Dir = cwd
+	cmd.Env = append(os.Environ(), "HQ_ID="+id, "CLAUDE_PROJECT_DIR="+project)
 	cmd.Stdin = bytes.NewReader(payload)
 	if out, err := cmd.CombinedOutput(); err != nil || len(out) != 0 {
 		t.Fatalf("hook %s: %v %q", kind, err, out)
@@ -37,16 +39,20 @@ func TestHookReportsToTheMainRepositoryFromAWorktree(t *testing.T) {
 	if _, ok := Read(root, id); ok {
 		t.Fatal("a report before the first event")
 	}
-	fire(t, wt, id, "prompt", fixture(t, "prompt"))
-	if r, ok := Read(root, id); !ok || r.State != Working || time.Since(r.Since) > time.Minute {
+	// Claude starts in the repository, then moves into a worktree.
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	if r, ok := Read(root, id); !ok || r.State != Working || r.Branch != "main" || time.Since(r.Since) > time.Minute {
 		t.Fatalf("after the prompt: %+v %v", r, ok)
 	}
-	fire(t, wt, id, "stop", fixture(t, "stop-question"))
-	fire(t, wt, id, "input", fixture(t, "notification"))
+	fire(t, wt, root, id, "stop", fixture(t, "stop-question"))
+	if r, _ := Read(root, id); r.Branch != "feat-42" {
+		t.Fatalf("in the worktree: %+v", r)
+	}
+	fire(t, wt, root, id, "input", fixture(t, "notification"))
 	if r, _ := Read(root, id); r.State != NeedsInput || r.Last != "Claude needs your permission" {
 		t.Fatalf("after the notification: %+v", r)
 	}
-	fire(t, wt, id, "end", fixture(t, "session-end"))
+	fire(t, wt, root, id, "end", fixture(t, "session-end"))
 	if r, _ := Read(root, id); r.State != Ended || r.Last != "Should I also update the README?" {
 		t.Fatalf("after the end, the last message stays: %+v", r)
 	}
@@ -67,12 +73,13 @@ func TestHookReportsToTheMainRepositoryFromAWorktree(t *testing.T) {
 func TestHookNeverFailsAndWritesNothingWithoutAnAgentOrARepository(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	for _, id := range []string{"", "../x", "ABC", "a b"} {
-		fire(t, root, id, "stop", fixture(t, "stop-done"))
+		fire(t, root, root, id, "stop", fixture(t, "stop-done"))
 		if _, err := os.Stat(filepath.Join(root, ".git", "hq")); !os.IsNotExist(err) {
 			t.Fatalf("wrote for the invalid id %q: %v", id, err)
 		}
 	}
-	fire(t, t.TempDir(), "abc", "stop", fixture(t, "stop-done")) // not a repository
+	d := t.TempDir()
+	fire(t, d, d, "abc", "stop", fixture(t, "stop-done")) // not a repository
 }
 
 func TestReadRefusesAnythingButASmallRegularFile(t *testing.T) {

@@ -6,23 +6,28 @@ import (
 	"strings"
 )
 
-// hookScript runs inside the sandbox on each lifecycle event, with Claude's
-// event payload on stdin and the event's kind in $1. It copies the payload
-// to the main repository's .git/hq/agents/$HQ_ID, replacing it in one step,
-// and keeps the latest Stop event beside it (.stop) for the last message. It
-// needs only sh, git, cat, mv and cp, never blocks Claude and always exits 0
-// (design §3.4, §7.1).
+// hookScript runs inside the sandbox on each lifecycle event, in Claude's
+// current directory, with the event payload on stdin and the event's kind in
+// $1. It writes the branch checked out there as a header line, then the
+// payload, to the main repository's .git/hq/agents/$HQ_ID, replacing it in
+// one step, and keeps the latest Stop event beside it (.stop) for the last
+// message. It needs only sh, git, cat, mv, cp, mkdir and rm, never blocks
+// Claude and always exits 0 (design §3.4, §7.1).
 const hookScript = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
+b=$(git branch --show-current 2>/dev/null)
 cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null
 d=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
 d=$d/hq/agents
 mkdir -p "$d" 2>/dev/null || exit 0
 f=$d/$HQ_ID
-if cat >"$f.$$" 2>/dev/null && mv -f "$f.$$" "$f" 2>/dev/null && [ "$1" = stop ]; then
+if { printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$f.$$" 2>/dev/null && mv -f "$f.$$" "$f" 2>/dev/null && [ "$1" = stop ]; then
     cp -f "$f" "$f.$$" 2>/dev/null && mv -f "$f.$$" "$f.stop" 2>/dev/null
 fi
 rm -f "$f.$$" 2>/dev/null
 exit 0`
+
+// branchHeader starts the line the hook writes before the payload.
+const branchHeader = "branch"
 
 // attentionNotifications are the Notification kinds that mean the agent
 // waits for the user (design §3.4).

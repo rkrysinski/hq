@@ -3,6 +3,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 	"time"
@@ -26,7 +27,8 @@ type Report struct {
 	Since     time.Time // host modification time of the file (design §7.1)
 	Last      string    // the agent's last message, one line, stripped
 	SessionID string    // Claude's session id
-	Cwd       string    // where Claude works (a worktree or the repository)
+	Cwd       string    // where Claude works (a worktree or the repository), as the sandbox sees it
+	Branch    string    // the branch checked out in Cwd, empty when detached or unknown
 }
 
 // payload is the part of a Claude hook event hq reads.
@@ -41,13 +43,14 @@ type payload struct {
 // Parse derives the report from the latest event and the latest Stop event
 // (empty when there is none), which keeps the last message across events.
 func Parse(latest, lastStop []byte) Report {
+	branch, latest := splitHeader(latest)
 	var p payload
 	if json.Unmarshal(latest, &p) != nil {
 		return Report{State: Starting}
 	}
-	r := Report{SessionID: Clean(p.SessionID), Cwd: p.Cwd}
+	r := Report{SessionID: Clean(p.SessionID), Cwd: p.Cwd, Branch: Clean(branch)}
 	var stop payload
-	if json.Unmarshal(lastStop, &stop) == nil {
+	if _, lastStop = splitHeader(lastStop); json.Unmarshal(lastStop, &stop) == nil {
 		r.Last = Clean(stop.AssistantMessage)
 	}
 	switch p.Event {
@@ -70,6 +73,16 @@ func Parse(latest, lastStop []byte) Report {
 		r.State = Starting
 	}
 	return r
+}
+
+// splitHeader separates the hook's branch line from the payload after it; a
+// file without the line (written by an older hook) is all payload.
+func splitHeader(data []byte) (branch string, payload []byte) {
+	head, rest, ok := bytes.Cut(data, []byte("\n"))
+	if !ok || !bytes.HasPrefix(head, []byte(branchHeader+" ")) {
+		return "", data
+	}
+	return string(head[len(branchHeader)+1:]), rest
 }
 
 // IsQuestion is the rule that tells question from done: the last assistant

@@ -87,11 +87,13 @@ func TestStartSeeEnterKill(t *testing.T) {
 		}
 		return ""
 	}
-	for _, state := range []string{"starting", "working"} {
-		eventually(t, "a listed as "+state, func() bool { return strings.HasPrefix(row(), "a app - "+state+" ") })
+	// Before its first report the agent has no branch; then it names the
+	// branch Claude works on.
+	for _, want := range []string{"a app - starting ", "a app main working "} {
+		eventually(t, want, func() bool { return strings.HasPrefix(row(), want) })
 	}
 	eventually(t, "a listed as done", func() bool {
-		return strings.HasPrefix(row(), "a app - done ") && strings.HasSuffix(row(), " Done: say hi")
+		return strings.HasPrefix(row(), "a app main done ") && strings.HasSuffix(row(), " Done: say hi")
 	})
 
 	// Enter, from a plain terminal: an outer tmux server serves as the terminal.
@@ -113,7 +115,7 @@ func TestStartSeeEnterKill(t *testing.T) {
 		t.Fatalf("send-keys: %v %s", err, out)
 	}
 	eventually(t, "a listed as asking a question", func() bool {
-		return strings.HasPrefix(row(), "a app - question ") && strings.HasSuffix(row(), " Shall I go on?")
+		return strings.HasPrefix(row(), "a app main question ") && strings.HasSuffix(row(), " Shall I go on?")
 	})
 
 	// Kill.

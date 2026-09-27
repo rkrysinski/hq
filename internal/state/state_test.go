@@ -46,6 +46,21 @@ func TestParseDerivesTheStateFromTheLatestEvent(t *testing.T) {
 	}
 }
 
+func TestParseTakesTheBranchFromTheHookHeader(t *testing.T) {
+	stop := append([]byte("branch main\n"), fixture(t, "stop-done")...)
+	for _, tc := range []struct{ header, branch string }{
+		{"branch feat/42-x\n", "feat/42-x"},
+		{"branch \n", ""},                         // detached HEAD
+		{"branch feat/\x1b[31mred\n", "feat/red"}, // stripped like any field
+		{"", ""}, // an older hook, no header
+	} {
+		r := Parse(append([]byte(tc.header), fixture(t, "prompt")...), stop)
+		if r.State != Working || r.Branch != tc.branch || r.Last != "Hi. The tests pass and PR #58 is open." {
+			t.Errorf("%q: %+v", tc.header, r)
+		}
+	}
+}
+
 func TestParseTreatsUnknownOrBrokenEventsAsStarting(t *testing.T) {
 	for _, latest := range []string{`not json`, `{"hook_event_name":"PreCompact"}`, ``} {
 		if r := Parse([]byte(latest), nil); r.State != Starting {
