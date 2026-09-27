@@ -168,10 +168,6 @@ const (
 	sbxEvery    = 4 // ticks
 	updateEvery = time.Hour
 	prEvery     = time.Minute
-	// endedGrace is how long after the list last saw an agent not ended its
-	// ended row still keeps the cursor's place: a kill ends the session a
-	// moment before it removes the row, hq stop one agent after another.
-	endedGrace = 10 * time.Second
 )
 
 // Rows is how many agents the list shows: 6, or 3 in a terminal below 24
@@ -343,6 +339,11 @@ func (m *Model) arrange() {
 	}
 	m.moveTo(row)
 }
+
+// endedGrace is how long after the list last saw an agent not ended its
+// ended row still keeps the cursor's place: a kill ends the session a moment
+// before it removes the row, hq stop one agent after another.
+const endedGrace = 10 * time.Second
 
 // justEnded reports whether a is ended and the list saw it not ended in the
 // last endedGrace.
