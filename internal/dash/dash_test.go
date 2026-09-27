@@ -943,6 +943,46 @@ func TestSearchLooksAtTheRowsShown(t *testing.T) {
 	}
 }
 
+// burst feeds runes arriving together, typed fast or pasted, as the one key
+// message Bubble Tea makes of them.
+func burst(m Model, text string, paste bool) (Model, tea.Cmd) {
+	return update(m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(text), Paste: paste})
+}
+
+func TestKeysArrivingTogetherAreTheSameKeysOneAfterAnother(t *testing.T) {
+	as := []agent.Agent{ag("x80", state.Question, 0, ""), ag("c-1", state.Working, time.Minute, ""), ag("c-2", state.Working, 2*time.Minute, "")}
+	f := &fakeSource{agents: as, view: ViewAll} // x80 c-1 c-2
+	m := do(burst(started(f, 120, 10), "/c-", false))
+	if !m.searching || m.search != "c-" || m.cursor != "c-1" || fmt.Sprint(f.footer[0]) != "{/c- 2 matches: c-1 c-2}" {
+		t.Fatalf("searching %v %q cursor %q footer %v", m.searching, m.search, m.cursor, f.footer)
+	}
+	// / then a pasted name selects it; Enter docks it.
+	m = key(key(m, "esc"), "/")
+	m = do(burst(m, "c-2", true))
+	if m.cursor != "c-2" || fmt.Sprint(f.footer[0]) != "{/c-2 1 match: c-2}" {
+		t.Fatalf("pasted: cursor %q footer %v", m.cursor, f.footer)
+	}
+	if m = key(m, "enter"); strings.Join(f.docked, " ") != "c-2" {
+		t.Fatalf("docked %v", f.docked)
+	}
+	// In the list, s and a together cycle the sort and switch the view.
+	m = do(burst(m, "sa", false))
+	if m.sort != SortRepo || m.view != ViewAttention {
+		t.Fatalf("after sa: sort %s view %s", m.sort, m.view)
+	}
+	// k opens the dialog: the keys after it are not the list's, q included.
+	cursor := m.cursor
+	m, cmd := burst(m, "kq", false)
+	for _, msg := range msgs(cmd) {
+		if _, quit := msg.(tea.QuitMsg); quit {
+			t.Fatal("q after k quit the list")
+		}
+	}
+	if !m.dialog || strings.Join(f.killed, " ") != cursor {
+		t.Fatalf("dialog %v, killed %v, want %s", m.dialog, f.killed, cursor)
+	}
+}
+
 func TestTheCursorRowAloneCarriesTheActionStrip(t *testing.T) {
 	f := &fakeSource{agents: team(), view: ViewAll}
 	m := started(f, 120, 10)
