@@ -531,6 +531,19 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		return m.mouse(msg)
 	case tea.KeyMsg:
+		// Bubble Tea delivers runes that arrive together, typed fast or
+		// pasted, as one key message ("/c-"): they are the same keys one
+		// after another, so a k among them opens the dialog and the rest
+		// are ignored, as if typed.
+		if msg.Type == tea.KeyRunes && len(msg.Runes) > 1 {
+			var cmds []tea.Cmd
+			for _, r := range msg.Runes {
+				var cmd tea.Cmd
+				m, cmd = m.update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}, Alt: msg.Alt})
+				cmds = append(cmds, cmd)
+			}
+			return m, tea.Batch(cmds...)
+		}
 		if m.dialog {
 			return m, nil
 		}
