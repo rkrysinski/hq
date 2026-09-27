@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"syscall"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -32,6 +34,12 @@ type Tmux interface {
 	SocketPath() (string, error)
 	Enter(id string) error
 	Attach(id string, t tmux.Terminal) error
+	Dashboard(dir string, list []string) (tmux.Dash, error)
+	RespawnList(pane string, list []string) error
+	WindowHeight(pane string) (int, error)
+	ResizeHeight(pane string, lines int) error
+	SetFooter(text string) error
+	MarkList(pane string, pid int) error
 }
 
 // Sandboxes is the seam to sbx (design §7.2).
@@ -71,6 +79,11 @@ type deps struct {
 	// notify is the terminal's desktop notification sequence (design §3.5).
 	notify string
 
+	// runList runs the list program on this terminal until q (design §3.8).
+	runList func(dash.Source) error
+	pid     int                // this process
+	alive   func(pid int) bool // a process with that pid exists
+
 	releases   Releases
 	asset      string // this platform's binary in a release
 	executable func() (string, error)
@@ -104,6 +117,10 @@ func defaultDeps() deps {
 		readState:     state.Read,
 		pollSandboxes: sbx.Client{Run: proc.Exec{Timeout: sbxPollTimeout}, Platform: plat}.List,
 		notify:        plat.NotifySequence(),
+
+		runList: dash.Run,
+		pid:     os.Getpid(),
+		alive:   func(pid int) bool { return syscall.Kill(pid, 0) == nil },
 
 		releases: update.Releases{Run: run, Bin: "gh"},
 		asset:    update.Asset(runtime.GOOS, runtime.GOARCH),

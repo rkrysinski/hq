@@ -3,12 +3,10 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 	"text/tabwriter"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
-	"github.com/rkrysinski/hq/internal/state"
 )
 
 // lsRow is one agent as hq ls --json prints it.
@@ -22,31 +20,6 @@ type lsRow struct {
 	AgeSeconds int64     `json:"age_seconds"`
 	Last       string    `json:"last"`
 	Sandbox    string    `json:"sandbox"`
-}
-
-// attentionOrder lists the states the user should look at first first
-// (spec §6.2).
-var attentionOrder = []string{state.NeedsInput, state.Question, state.Done, state.Working, state.Starting, state.Ended}
-
-func attentionRank(s string) int {
-	for i, o := range attentionOrder {
-		if s == o {
-			return i
-		}
-	}
-	return len(attentionOrder)
-}
-
-// sortAttention sorts agents in attention order; within a state, the one
-// that entered it last comes first.
-func sortAttention(as []agent.Agent) {
-	sort.SliceStable(as, func(i, j int) bool {
-		ri, rj := attentionRank(as[i].State), attentionRank(as[j].State)
-		if ri != rj {
-			return ri < rj
-		}
-		return as[i].Since.After(as[j].Since)
-	})
 }
 
 func runLs(env Env, d deps, args []string) error {
@@ -66,7 +39,7 @@ func runLs(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	sortAttention(as)
+	agent.SortAttention(as)
 	now := d.now()
 	rows := make([]lsRow, 0, len(as))
 	for _, a := range as {
@@ -86,7 +59,7 @@ func runLs(env Env, d deps, args []string) error {
 	tw := tabwriter.NewWriter(env.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "NAME\tREPO\tBRANCH\tSTATE\tAGE\tLAST")
 	for _, r := range rows {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, dash(r.Branch), r.State, agent.Age(time.Duration(r.AgeSeconds)*time.Second), dash(truncate(r.Last, lastWidth)))
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, agent.Age(time.Duration(r.AgeSeconds)*time.Second), orDash(truncate(r.Last, lastWidth)))
 	}
 	return tw.Flush()
 }
@@ -121,7 +94,7 @@ func truncate(s string, n int) string {
 	return string(r[:n-1]) + "…"
 }
 
-func dash(s string) string {
+func orDash(s string) string {
 	if s == "" {
 		return "-"
 	}

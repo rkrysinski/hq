@@ -28,6 +28,7 @@ type command struct {
 
 func commands() []command {
 	return []command{
+		{"dash", "", "open the dashboard (also: hq alone)", runDash},
 		{"new", "NAME [DIR] [PROMPT]", "start an agent for the repository in DIR, with an optional first prompt", runNew},
 		{"ls", "[--json]", "list agents", runLs},
 		{"go", "NAME", "enter that agent's session", runGo},
@@ -59,11 +60,12 @@ func mainWith(args []string, env Env, d deps) int {
 
 func run(env Env, d deps, args []string) error {
 	if len(args) == 0 {
-		// The dashboard arrives with milestone M3; until then, hq alone shows help.
-		return runHelp(env, d, nil)
+		return runDash(env, d, nil)
 	}
 	name, rest := args[0], args[1:]
 	switch name {
+	case listCommand:
+		return runList(env, d, rest)
 	case "--version", "-V":
 		fmt.Fprintf(env.Stdout, "hq %s\n%s", version.Version, updateHint(d))
 		return nil

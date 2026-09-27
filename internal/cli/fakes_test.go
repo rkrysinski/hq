@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
@@ -32,7 +33,45 @@ type fakeTmux struct {
 	entered      string // window shown with Enter
 	attached     string // window shown with Attach
 	windowsErr   error
+
+	dash      tmux.Dash // the dashboard window, once made
+	dashList  []string  // the list pane's program
+	respawned int       // times the list program was started again
+	height    int       // the dashboard window's height
+	resized   []int     // heights given to the list pane, in order
+	footer    string
+	listPID   int // @hq_list_pid on the list pane
 }
+
+func (f *fakeTmux) Dashboard(dir string, list []string) (tmux.Dash, error) {
+	_ = f.EnsureSession(dir)
+	f.dashList = list
+	if f.dash.Window == "" {
+		f.dash = tmux.Dash{Window: f.windows[0].ID, List: "%1", Slot: "%0", Started: true}
+	} else {
+		f.dash.Started = false
+	}
+	d := f.dash
+	d.ListPID = f.listPID
+	return d, nil
+}
+
+func (f *fakeTmux) RespawnList(pane string, list []string) error {
+	f.respawned++
+	f.dashList = list
+	return nil
+}
+
+func (f *fakeTmux) WindowHeight(string) (int, error) { return f.height, nil }
+
+func (f *fakeTmux) ResizeHeight(_ string, lines int) error {
+	f.resized = append(f.resized, lines)
+	return nil
+}
+
+func (f *fakeTmux) SetFooter(text string) error { f.footer = text; return nil }
+
+func (f *fakeTmux) MarkList(_ string, pid int) error { f.listPID = pid; return nil }
 
 func (f *fakeTmux) SocketPath() (string, error) { return f.socket, nil }
 
@@ -217,6 +256,9 @@ type fakes struct {
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
 	prefs    prefs.Prefs
+
+	alive   map[int]bool            // processes that exist
+	listRan func(dash.Source) error // the list program; returns at q
 }
 
 func newFakes() *fakes {
@@ -281,5 +323,14 @@ func (f *fakes) deps() deps {
 		executable: func() (string, error) { return f.exe, nil },
 		loadPrefs:  func() prefs.Prefs { return f.prefs },
 		savePrefs:  func(p prefs.Prefs) error { f.prefs = p; return nil },
+
+		runList: func(src dash.Source) error {
+			if f.listRan == nil {
+				return nil
+			}
+			return f.listRan(src)
+		},
+		pid:   4242,
+		alive: func(pid int) bool { return f.alive[pid] },
 	}
 }

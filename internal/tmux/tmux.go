@@ -120,20 +120,6 @@ func (c Client) Windows() ([]Window, error) {
 	return ws, nil
 }
 
-// EnsureSession creates hq's session, detached, when it does not exist. Its
-// first window is a shell named "hq" (the dashboard's window in later
-// milestones).
-func (c Client) EnsureSession(dir string) error {
-	if _, err := c.tmux("has-session", "-t", "="+Session); err == nil {
-		return nil
-	}
-	_, err := c.tmux("new-session", "-d", "-s", Session, "-n", Session, "-c", dir)
-	if err != nil && strings.Contains(err.Error(), "duplicate session") {
-		return nil
-	}
-	return err
-}
-
 // NewWindow creates a home window named name in hq's session running argv,
 // with options stored on it. The program starts only after the options and
 // remain-on-exit are set, so a program that exits at once still leaves its

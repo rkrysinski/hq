@@ -30,22 +30,15 @@ func TestVersionPrintsReleaseTag(t *testing.T) {
 	}
 }
 
-func TestHelpListsEveryM1Command(t *testing.T) {
+func TestHelpListsEveryCommand(t *testing.T) {
 	code, out, _ := runCLI("help")
 	if code != ExitOK {
 		t.Fatalf("exit %d", code)
 	}
-	for _, want := range []string{"hq new NAME [DIR] [PROMPT]", "hq ls [--json]", "hq go NAME", "hq kill NAME [-y]", "hq stop [-y]", "hq sandbox rm|restart REPO", "hq update", "hq help", "hq --version"} {
+	for _, want := range []string{"hq dash", "hq new NAME [DIR] [PROMPT]", "hq ls [--json]", "hq go NAME", "hq kill NAME [-y]", "hq stop [-y]", "hq sandbox rm|restart REPO", "hq update", "hq help", "hq --version"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("help lacks %q", want)
 		}
-	}
-}
-
-func TestNoArgumentsShowsHelp(t *testing.T) {
-	code, out, _ := runCLI()
-	if code != ExitOK || !strings.Contains(out, "Usage:") {
-		t.Fatalf("got %d %q", code, out)
 	}
 }
 
