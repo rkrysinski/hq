@@ -46,6 +46,12 @@ func (c Client) Create(workspace string) error {
 	return err
 }
 
+// Exec runs a command inside a running sandbox.
+func (c Client) Exec(sandbox string, args ...string) error {
+	_, err := c.Run.Run(c.Bin, append([]string{"exec", sandbox}, args...)...)
+	return err
+}
+
 // RunArgv is the command that runs one more Claude session in a sandbox,
 // starting the sandbox when it is stopped; agentArgs go to Claude.
 func (c Client) RunArgv(sandbox string, agentArgs ...string) []string {

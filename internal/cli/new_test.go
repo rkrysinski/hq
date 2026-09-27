@@ -12,7 +12,7 @@ import (
 
 func (f *fakes) run(args ...string) (int, string, string) {
 	var out, errOut bytes.Buffer
-	code := mainWith(args, Env{Stdin: strings.NewReader(""), Stdout: &out, Stderr: &errOut}, f.deps())
+	code := mainWith(args, Env{Stdin: strings.NewReader(f.stdin), Stdout: &out, Stderr: &errOut}, f.deps())
 	return code, out.String(), errOut.String()
 }
 

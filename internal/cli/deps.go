@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/rkrysinski/hq/internal/repo"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"golang.org/x/term"
 )
 
 // Tmux is the seam to the tmux server (design §7.2).
@@ -30,6 +32,7 @@ type Sandboxes interface {
 	List() ([]sbx.Sandbox, error)
 	Create(workspace string) error
 	RunArgv(sandbox string, agentArgs ...string) []string
+	Exec(sandbox string, args ...string) error
 }
 
 // deps is everything a command needs from outside hq.
@@ -43,6 +46,8 @@ type deps struct {
 	now      func() time.Time
 	getenv   func(key string) string
 	terminal tmux.Terminal
+	sleep    func(time.Duration)
+	canAsk   func(stdin io.Reader) bool // stdin is a terminal to confirm on
 }
 
 func defaultDeps() deps {
@@ -60,7 +65,16 @@ func defaultDeps() deps {
 		now:      time.Now,
 		getenv:   os.Getenv,
 		terminal: run,
+		sleep:    time.Sleep,
+		canAsk:   isTerminal,
 	}
+}
+
+// isTerminal reports whether r is a terminal that a confirmation can be
+// asked on (not a pipe, a file or /dev/null).
+func isTerminal(r io.Reader) bool {
+	f, ok := r.(*os.File)
+	return ok && term.IsTerminal(int(f.Fd()))
 }
 
 // checkTmux fails with exit 3 when tmux is missing or too old (design §3.2).
