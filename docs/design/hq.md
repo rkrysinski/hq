@@ -110,7 +110,7 @@ Satisfies: §5 (exactly one notification per attention or done event, docked or 
 **Rationale:** lookup by workspace path cannot collide on two repositories with the same folder name and adopts sandboxes the user created by hand.
 **Satisfies:** §2 (one sandbox per repository), §4.1 (`hq new`, `hq sandbox`), S2, S11.
 
-- **`hq sandbox restart REPO`** (S9): stop and start the sandbox, then relaunch each of the repository's agents in its own home window, same name, new id, with `--resume <last Claude session id>` taken from the agent's last state file, so each conversation continues. Rows go `ended`, then `starting`. sbx has no start command: running anything in a stopped sandbox (`sbx exec`) starts it, which also restarts a sandbox without agents. Until the agent state of M2 exists, agents relaunch without `--resume`.
+- **`hq sandbox restart REPO`** (S9): stop and start the sandbox, then relaunch each of the repository's agents in its own home window, same name, new id, with `--resume <last Claude session id>` taken from the agent's last state file, so each conversation continues. Rows go `ended`, then `starting`. sbx has no start command: running anything in a stopped sandbox (`sbx exec`) starts it, which also restarts a sandbox without agents. The session id is read before the stop and passed only when it has the form of a Claude session id, since the sandbox writes the state file; an agent that never reported starts fresh.
 - **`hq sandbox rm REPO`**: refused while agents of the repository run (§4.1), then hq asks and runs `sbx rm --force` (sbx would otherwise ask a second time). REPO is a directory in the repository or its name as `hq ls` shows it, matched against the base name of each sandbox's workspace.
 
 ### 3.7 Keys and mouse
@@ -322,8 +322,6 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - Build the iTerm2 dynamic profile (Option as Esc+); verify that `SetProfile=hq` on attach keeps the Option setting for that tab.
 - Verify that Windows lets a background `powershell.exe` activate the window titled `hq` (the foreground lock can refuse).
 - `hq update` replaces the binary while a list program may be running; the running list keeps the old version until it is restarted; say so in the update output.
-- Verify that hooks passed through `--settings` run alongside a repository's own hooks rather than replacing them.
-- Verify that `sbx run --name` on a running sandbox starts an additional agent session rather than attaching to an existing one (spec §2 given; the removed bash prototype relied on it), and that `--resume` passes through `sbx run`.
 
 ## 10. Version changes
 
@@ -354,3 +352,4 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - 1.0 (draft): the branch comes from the hook, which runs in Claude's current directory (verified with Claude 2.1 in sbx), as a header line before the payload (3.4, #20).
 - 1.0 (draft): `sbx ls` as the third source of `ended` in `hq ls`, bounded by a 5 s timeout, through the collection shared with the list program; the `ending` marker (3.3, 5.1, 7.1, #21).
 - 1.0 (draft): notifications built (#22): the hook's `terminalSequence` on Stop and the attention Notifications, the branch or the directory name, OSC 9 on macOS and BEL on WSL, `allow-passthrough all` per window, `TMUX` set for Claude so it wraps the sequence for tmux; verified with Claude 2.1 in sbx that the sequence from a hidden window reaches the terminal exactly once per event.
+- 1.0 (draft): `hq sandbox restart` resumes each conversation with `--resume` (3.6, #23); verified with Claude 2.1 in sbx that `--resume` passes through `sbx run`, that a second `sbx run --name` starts its own session, and (#19) that hooks from `--settings` run alongside a repository's own.

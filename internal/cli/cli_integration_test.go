@@ -100,6 +100,30 @@ func (h *realHQ) waitReport(name, state, last string) {
 	h.t.Fatalf("%s never showed %s with %q: %+v", name, state, last, h.ls())
 }
 
+// pane is what the agent's session has printed.
+func (h *realHQ) pane(name string) string {
+	h.t.Helper()
+	ws, _ := h.d.tmux.Windows()
+	a, ok := agent.Find(agent.FromWindows(ws), name)
+	if !ok {
+		h.t.Fatalf("no agent %s", name)
+	}
+	out, _ := exec.Command("tmux", "-L", h.socket, "capture-pane", "-p", "-t", a.Window).Output()
+	return string(out)
+}
+
+// waitPane waits until the agent's session has printed text.
+func (h *realHQ) waitPane(name, text string) {
+	h.t.Helper()
+	for i := 0; i < 50; i++ {
+		if strings.Contains(h.pane(name), text) {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	h.t.Fatalf("%s never printed %q:\n%s", name, text, h.pane(name))
+}
+
 // typeIn types a line into the agent's session, as a person in hq go does.
 func (h *realHQ) typeIn(name, line string) {
 	h.t.Helper()
@@ -293,14 +317,18 @@ func TestKillEndsTheSessionAndFreesTheName(t *testing.T) {
 }
 
 func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
+	testutil.FakeClaude(t)
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")
-	for _, name := range []string{"a", "b"} {
-		if code, _, errOut := h.run("new", name); code != 0 {
-			t.Fatalf("new %s: exit %d %s", name, code, errOut)
-		}
-		h.waitState(name, "starting")
+	// a has a conversation to continue; b never reported.
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("new a: exit %d %s", code, errOut)
 	}
+	h.waitReport("a", "done", "Done: hello")
+	if code, _, errOut := h.run("new", "b"); code != 0 {
+		t.Fatalf("new b: exit %d %s", code, errOut)
+	}
+	h.waitState("b", "starting")
 	h.waitSessions("claude-app", 2)
 	ids := func() map[string]string {
 		ws, _ := h.d.tmux.Windows()
@@ -311,6 +339,10 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 		return m
 	}
 	before := ids()
+	session, ok := h.d.readState(h.cwd, before["a"])
+	if !ok || session.SessionID == "" {
+		t.Fatalf("a's session: %+v", session)
+	}
 
 	if code, out, errOut := h.run("sandbox", "restart", "app"); code != 0 || out != "restarted the sandbox claude-app; relaunched a, b\n" {
 		t.Fatalf("restart: exit %d %q %q", code, out, errOut)
@@ -325,6 +357,10 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 		if exec.Command("pgrep", "-f", `HQ_ID":"`+id+`"`).Run() == nil {
 			t.Fatalf("%s's old session still runs", name)
 		}
+	}
+	h.waitPane("a", "fake claude: resumed "+session.SessionID)
+	if out := h.pane("b"); strings.Contains(out, "resumed") {
+		t.Fatalf("b resumed:\n%s", out)
 	}
 
 	if code, _, errOut := h.run("sandbox", "rm", "app", "-y"); code != ExitUsage || !strings.Contains(errOut, "(a, b)") {

@@ -51,7 +51,7 @@ type claude struct {
 }
 
 func main() {
-	c := claude{delay: 200 * time.Millisecond, session: fmt.Sprintf("fake-%d", os.Getpid())}
+	c := claude{delay: 200 * time.Millisecond, session: fmt.Sprintf("fa4ec1a0-0000-4000-8000-%012x", os.Getpid())}
 	c.cwd, _ = os.Getwd()
 	if d, err := time.ParseDuration(os.Getenv("FAKE_CLAUDE_DELAY")); err == nil {
 		c.delay = d
