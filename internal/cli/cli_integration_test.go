@@ -37,6 +37,7 @@ func newRealHQ(t *testing.T) *realHQ {
 	d := defaultDeps()
 	d.tmux = tmux.Client{Run: proc.Exec{}, Socket: h.socket}
 	d.sbx = sbx.Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
+	d.pollSandboxes = sbx.Client{Run: proc.Exec{Timeout: sbxPollTimeout}, Platform: platformtest.Fake{Sbx: bin}}.List
 	d.getwd = func() (string, error) { return h.cwd, nil }
 	h.d = d
 	return h
@@ -216,6 +217,37 @@ func TestAgentsInOneRepositoryAreToldApartByBranch(t *testing.T) {
 	h.waitReport("a", "done", "Done: hello")
 	if r := h.waitState("a", "done"); r.Branch != "feat/42-x" {
 		t.Fatalf("a stays in its worktree: %+v", r)
+	}
+}
+
+func TestAgentsOfASandboxStoppedOutsideHqAreEnded(t *testing.T) {
+	h := newRealHQ(t)
+	for name, dir := range map[string]string{"a": testutil.GitRepo(t, "app"), "b": testutil.GitRepo(t, "lib")} {
+		h.cwd = dir
+		if code, _, errOut := h.run("new", name); code != 0 {
+			t.Fatalf("new %s: exit %d %s", name, code, errOut)
+		}
+		h.waitState(name, "starting")
+	}
+	// sbx reports claude-lib stopped while b's pane has not caught up yet.
+	f := filepath.Join(os.Getenv("SBX_STUB_DIR"), "sandboxes", "claude-lib")
+	b, _ := os.ReadFile(f)
+	if err := os.WriteFile(f, []byte(strings.Replace(string(b), "running", "stopped", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, r := range h.ls() {
+		got[r.Name] = r.State
+	}
+	if got["a"] != "starting" || got["b"] != "ended" {
+		t.Fatalf("states %v", got)
+	}
+
+	// With sbx failing, hq ls shows what tmux and the hooks say.
+	h.d.pollSandboxes = sbx.Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: filepath.Join(t.TempDir(), "sbx")}}.List
+	code, out, errOut := h.run("ls")
+	if code != 0 || errOut != "" || strings.Count(out, "starting") != 2 {
+		t.Fatalf("sbx failing: exit %d %q %q", code, out, errOut)
 	}
 }
 

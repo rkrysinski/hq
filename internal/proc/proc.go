@@ -4,11 +4,13 @@ package proc
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // Runner runs a program and returns its standard output.
@@ -17,15 +19,28 @@ type Runner interface {
 }
 
 // Exec runs programs with os/exec.
-type Exec struct{}
+type Exec struct {
+	// Timeout, when set, ends a program that runs longer (Run only).
+	Timeout time.Duration
+}
 
 // Run runs name with args. A non-zero exit becomes an error carrying the
 // program's first line of stderr.
-func (Exec) Run(name string, args ...string) ([]byte, error) {
-	cmd := exec.Command(name, args...)
+func (e Exec) Run(name string, args ...string) ([]byte, error) {
+	ctx := context.Background()
+	if e.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, e.Timeout)
+		defer cancel()
+	}
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.WaitDelay = time.Second
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
+	if ctx.Err() != nil {
+		return out, &Error{Name: name, Msg: fmt.Sprintf("no answer within %s", e.Timeout)}
+	}
 	if err != nil {
 		msg := strings.TrimSpace(stderr.String())
 		if i := strings.IndexByte(msg, '\n'); i >= 0 {

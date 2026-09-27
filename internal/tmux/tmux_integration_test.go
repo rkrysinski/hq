@@ -61,6 +61,12 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 	if !strings.Contains(string(out), `a b|'q"|$HOME|;exit|`) {
 		t.Fatalf("arguments were not passed verbatim:\n%s", out)
 	}
+	if err := c.SetOption(id, "ending", "1"); err != nil {
+		t.Fatal(err)
+	}
+	if ws, _ := c.Windows(); ws[1].Options["ending"] != "1" || ws[1].Options["repo"] != "/r e/p" {
+		t.Fatalf("after set: %+v", ws[1])
+	}
 	if err := c.KillWindow(id); err != nil {
 		t.Fatal(err)
 	}

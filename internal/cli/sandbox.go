@@ -102,7 +102,14 @@ func sandboxRm(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes bool) er
 // agents under the same name with a new id (design §3.6). Without the agent
 // state of M2 there is no Claude session id to resume, so they start fresh.
 func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent) error {
-	// Stopping ends every session in the sandbox; their windows go next.
+	// Stopping ends every session in the sandbox; their windows go next. The
+	// agents show ended from now on: sbx lists the sandbox as running until
+	// the stop is done, which takes seconds (S9).
+	for _, a := range mine {
+		if err := d.tmux.SetOption(a.Window, "ending", "1"); err != nil {
+			return tmuxErr(err)
+		}
+	}
 	if err := d.sbx.Stop(sb.Name); err != nil {
 		return sbxErr(err)
 	}

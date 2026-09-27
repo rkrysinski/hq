@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -37,6 +38,29 @@ func TestFromWindowsSkipsNonAgentsAndMarksDeadPanesEnded(t *testing.T) {
 func TestNewIDIsFresh(t *testing.T) {
 	if a, b := NewID(), NewID(); a == b || len(a) != 12 {
 		t.Fatalf("%q %q", a, b)
+	}
+}
+
+func TestCollectEndsAgentsWhoseSandboxIsNotRunning(t *testing.T) {
+	ws := []tmux.Window{
+		{ID: "@1", Options: map[string]string{"id": "a", "name": "a", "sandbox": "claude-app", "started": "100"}},
+		{ID: "@2", Options: map[string]string{"id": "b", "name": "b", "sandbox": "claude-lib", "started": "100"}},
+	}
+	read := func(root, id string) (state.Report, bool) {
+		return state.Report{State: state.Working, Since: time.Unix(200, 0), Last: "on it " + id}, true
+	}
+	states := func(as []Agent) string {
+		var s []string
+		for _, a := range as {
+			s = append(s, a.Name+"="+a.State+"/"+a.Last)
+		}
+		return strings.Join(s, " ")
+	}
+	if got := states(Collect(ws, read, map[string]bool{"claude-app": true})); got != "a=working/on it a b=ended/on it b" {
+		t.Fatalf("claude-lib stopped: %s", got)
+	}
+	if got := states(Collect(ws, read, nil)); got != "a=working/on it a b=working/on it b" {
+		t.Fatalf("sbx could not say: %s", got)
 	}
 }
 

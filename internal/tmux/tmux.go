@@ -34,7 +34,7 @@ type Client struct {
 }
 
 // OptionKeys are the user options hq stores on a home window.
-var OptionKeys = []string{"id", "name", "repo", "sandbox", "started"}
+var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending"}
 
 func (c Client) tmux(args ...string) ([]byte, error) {
 	if c.Socket != "" {
@@ -159,6 +159,12 @@ func (c Client) NewWindow(name, dir string, options map[string]string, argv []st
 		return "", err
 	}
 	return id, nil
+}
+
+// SetOption stores one of OptionKeys on a window.
+func (c Client) SetOption(id, key, value string) error {
+	_, err := c.tmux("set-option", "-w", "-t", id, "@hq_"+key, value)
+	return err
 }
 
 // Start releases the program of a window made by NewWindow.

@@ -30,8 +30,15 @@ func agentWindow(id, name, repo string, started time.Time, dead bool) tmux.Windo
 	}}
 }
 
-func TestLsListsAgentsInAttentionOrder(t *testing.T) {
+// newLsFakes has the agents' sandbox, claude-x, running.
+func newLsFakes() *fakes {
 	f := newFakes()
+	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "running"}}
+	return f
+}
+
+func TestLsListsAgentsInAttentionOrder(t *testing.T) {
+	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{
 		{ID: "@0", Name: "hq", Options: map[string]string{}},
 		agentWindow("@1", "old", "/w/app", f.now.Add(-2*time.Hour), false),
@@ -56,7 +63,7 @@ func TestLsListsAgentsInAttentionOrder(t *testing.T) {
 }
 
 func TestLsPutsWhatNeedsTheUserFirstAndNewestFirstWithinAState(t *testing.T) {
-	f := newFakes()
+	f := newLsFakes()
 	start := f.now.Add(-time.Hour)
 	for i, name := range []string{"w", "d1", "n", "q", "d2", "s"} {
 		f.tmux.windows = append(f.tmux.windows, agentWindow("@"+strconv.Itoa(i), name, "/w/app", start, false))
@@ -87,7 +94,7 @@ func TestLsPutsWhatNeedsTheUserFirstAndNewestFirstWithinAState(t *testing.T) {
 }
 
 func TestLsNamesEachAgentsBranch(t *testing.T) {
-	f := newFakes()
+	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{
 		agentWindow("@1", "a", "/w/app", f.now, false),
 		agentWindow("@2", "b", "/w/app", f.now, false),
@@ -110,7 +117,7 @@ func TestLsNamesEachAgentsBranch(t *testing.T) {
 }
 
 func TestLsJSONHasTheSameFields(t *testing.T) {
-	f := newFakes()
+	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-5*time.Minute), false)}
 	long := strings.Repeat("word ", 30) + "end?"
 	f.states["id-a"] = state.Report{State: state.Question, Since: f.now.Add(-90 * time.Second), Last: long}
@@ -127,7 +134,7 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 }
 
 func TestLsCutsTheLastMessageToOneColumn(t *testing.T) {
-	f := newFakes()
+	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now, false)}
 	f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: strings.Repeat("x", 100)}
 	_, out, _ := f.run("ls")
@@ -136,8 +143,40 @@ func TestLsCutsTheLastMessageToOneColumn(t *testing.T) {
 	}
 }
 
-func TestLsWithNoAgentsPrintsNothing(t *testing.T) {
+func TestLsShowsTheAgentsOfAStoppedSandboxEnded(t *testing.T) {
+	f := newLsFakes()
+	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/lib", f.now.Add(-time.Minute), false)}
+	f.tmux.windows[1].Options["sandbox"] = "claude-lib"
+	f.sbx.sandboxes = append(f.sbx.sandboxes, sbx.Sandbox{Name: "claude-lib", Status: "stopped"})
+	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second)}
+	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Last: "Tests pass"}
+	_, out, _ := f.run("ls")
+	want := "NAME  REPO  BRANCH  STATE    AGE  LAST\n" +
+		"a     app   -       working  1s   -\n" +
+		"b     lib   -       ended    1s   Tests pass\n"
+	if out != want {
+		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+	// A sandbox sbx no longer lists at all is not running either.
+	f.sbx.sandboxes = f.sbx.sandboxes[:1]
+	if _, out, _ := f.run("ls"); !strings.Contains(out, "b     lib   -       ended") {
+		t.Fatalf("removed sandbox:\n%s", out)
+	}
+}
+
+func TestLsWithSbxFailingShowsTheStatesItHas(t *testing.T) {
 	f := newFakes()
+	f.sbx.err = sbxNotFound()
+	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false)}
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Second), Last: "ok"}
+	code, out, errOut := f.run("ls")
+	if code != 0 || errOut != "" || !strings.Contains(out, "a     app   -       done   1s   ok") {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+}
+
+func TestLsWithNoAgentsPrintsNothing(t *testing.T) {
+	f := newLsFakes()
 	if code, out, _ := f.run("ls"); code != 0 || out != "" {
 		t.Fatalf("exit %d %q", code, out)
 	}

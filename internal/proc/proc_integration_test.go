@@ -5,6 +5,7 @@ package proc
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 func TestRunReturnsStdoutAndFirstStderrLineOnFailure(t *testing.T) {
@@ -23,6 +24,15 @@ func TestRunReportsMissingProgram(t *testing.T) {
 	var pe *Error
 	if !errors.As(err, &pe) || !pe.NotFound {
 		t.Fatalf("%v", err)
+	}
+}
+
+func TestRunEndsAProgramThatOutlivesTheTimeout(t *testing.T) {
+	start := time.Now()
+	_, err := Exec{Timeout: 200 * time.Millisecond}.Run("sleep", "5")
+	var pe *Error
+	if !errors.As(err, &pe) || pe.Msg != "no answer within 200ms" || time.Since(start) > 2*time.Second {
+		t.Fatalf("%v after %s", err, time.Since(start))
 	}
 }
 

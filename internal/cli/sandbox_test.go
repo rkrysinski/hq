@@ -4,7 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
@@ -31,7 +33,21 @@ func sandboxFakes() *fakes {
 
 func TestSandboxRestartRelaunchesItsAgentsUnderTheSameNames(t *testing.T) {
 	f := sandboxFakes()
+	// While sbx stops the sandbox (and still lists it running), its agents
+	// already show ended; the other sandbox's agent does not.
+	var during []string
+	stop := f.sbx.onStop
+	f.sbx.onStop = func(sandbox string) {
+		read := func(_, id string) (state.Report, bool) { return state.Report{State: state.Done}, true }
+		for _, a := range agent.Collect(f.tmux.windows, read, nil) {
+			during = append(during, a.Name+"="+a.State)
+		}
+		stop(sandbox)
+	}
 	code, out, errOut := f.run("sandbox", "restart", "app")
+	if strings.Join(during, " ") != "a=ended b=ended c=done" {
+		t.Fatalf("during the stop: %v", during)
+	}
 	if code != 0 || out != "restarted the sandbox claude-x; relaunched a, b\n" {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
@@ -42,7 +58,7 @@ func TestSandboxRestartRelaunchesItsAgentsUnderTheSameNames(t *testing.T) {
 		t.Fatalf("windows %q", f.names())
 	}
 	for _, w := range f.tmux.windows[2:] {
-		if w.PaneDead || !f.tmux.started[w.ID] || w.Options["id"] == "id-"+w.Name || w.Options["sandbox"] != "claude-x" {
+		if w.PaneDead || !f.tmux.started[w.ID] || w.Options["id"] == "id-"+w.Name || w.Options["sandbox"] != "claude-x" || w.Options["ending"] != "" {
 			t.Fatalf("relaunched window %+v", w)
 		}
 		if argv := strings.Join(f.tmux.argv[w.ID], " "); !strings.HasPrefix(argv, "sbx run --name claude-x -- --settings") {
