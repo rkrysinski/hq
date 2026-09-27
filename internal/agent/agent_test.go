@@ -74,6 +74,24 @@ func TestCollectEndsAgentsWhoseSandboxIsNotRunning(t *testing.T) {
 	}
 }
 
+func TestCollectLeavesAnAgentStartingWhileItsSandboxHasNotStarted(t *testing.T) {
+	// hq new has released c's session into claude-lib, stopped or just
+	// created; sbx run is starting it and c has not reported yet (S2).
+	ws := []tmux.Window{
+		{ID: "@1", Options: map[string]string{"id": "c", "name": "c", "sandbox": "claude-lib", "new": "1"}},
+		{ID: "@2", PaneDead: true, Options: map[string]string{"id": "d", "name": "d", "sandbox": "claude-lib"}},
+	}
+	read := func(root, id string) (state.Report, bool) { return state.Report{}, false }
+	as := Collect(ws, read, map[string]bool{})
+	if as[0].State != state.Starting || !as[0].New {
+		t.Fatalf("c while its sandbox starts: %+v", as[0])
+	}
+	// Its pane dying (the launch failed, or sbx run returned) still ends it.
+	if as[1].State != state.Ended {
+		t.Fatalf("d with a dead pane: %+v", as[1])
+	}
+}
+
 func TestApplyTakesTheReportedStateWhileThePaneLives(t *testing.T) {
 	since := time.Unix(500, 0)
 	r := state.Report{State: state.Question, Since: since, Last: "Shall I?", Branch: "feat/42-x", Cwd: "/w/app/.claude/worktrees/x"}
@@ -103,7 +121,7 @@ func TestAnAgentIsNewUntilItsFirstReport(t *testing.T) {
 		{ID: "@1", Name: "a", Options: map[string]string{"id": "a", "new": "1"}},
 		{ID: "@2", Name: "b", Options: map[string]string{"id": "b", "new": "1"}},
 		{ID: "@3", Name: "c", PaneDead: true, Options: map[string]string{"id": "c", "new": "1"}},
-		{ID: "@4", Name: "d", Options: map[string]string{"id": "d", "new": "1", "sandbox": "gone"}},
+		{ID: "@4", Name: "d", Options: map[string]string{"id": "d", "new": "1", "sandbox": "booting"}},
 		{ID: "@5", Name: "e", Options: map[string]string{"id": "e"}}, // relaunched, not new
 	}
 	read := func(_, id string) (state.Report, bool) {
@@ -115,8 +133,8 @@ func TestAnAgentIsNewUntilItsFirstReport(t *testing.T) {
 			got = append(got, a.Name)
 		}
 	}
-	if strings.Join(got, " ") != "a" {
-		t.Fatalf("new: %v, want a (b reported, c ended, d's sandbox stopped, e relaunched)", got)
+	if strings.Join(got, " ") != "a d" {
+		t.Fatalf("new: %v, want a d (b reported, c ended, d's sandbox not started yet, e relaunched)", got)
 	}
 }
 
@@ -134,7 +152,7 @@ func TestCollectSaysSessionEndedForAnEndedAgentWithoutAMessage(t *testing.T) {
 		switch id {
 		case "c":
 			return state.Report{State: state.Done, Last: "hi"}, true
-		case "e": // reported, but never a message
+		case "b", "e": // reported, but never a message
 			return state.Report{State: state.Working}, true
 		}
 		return state.Report{}, false

@@ -28,6 +28,7 @@ type Agent struct {
 	Docked   bool      `json:"-"` // its pane is in the dashboard's slot
 	New      bool      `json:"-"` // started with hq new, not yet reported (S2)
 	ending   bool      // hq is taking the agent down (its sandbox restarting)
+	reported bool      // its session has reported, so its sandbox has run
 	State    string    `json:"state"`
 	Since    time.Time `json:"since"`
 	Branch   string    `json:"branch"`
@@ -108,13 +109,17 @@ const EndedLast = "[session ended]"
 // program (design §3.8, §5.1): the agents of the home windows with what
 // their state files report, and ended when sbx lists their sandbox as not
 // running. running is nil when sbx could not say, which changes nothing.
-// An ended agent without a last message has EndedLast, so hq ls and the
-// list show the same (design §6).
+// sbx ends only an agent that has reported: until then its sandbox may not
+// have started yet (sbx run starts a stopped one, which takes seconds), so
+// a sandbox not running is no sign that the session ended; the agent is
+// starting (S2), and ended when its pane dies, as sbx run returns when its
+// sandbox stops. An ended agent without a last message has EndedLast, so
+// hq ls and the list show the same (design §6).
 func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), running map[string]bool) []Agent {
 	as := FromWindows(ws)
 	for i := range as {
 		as[i].Apply(read(as[i].RepoPath, as[i].ID))
-		if running != nil && !running[as[i].Sandbox] {
+		if running != nil && !running[as[i].Sandbox] && as[i].reported {
 			as[i].State = state.Ended
 			as[i].New = false
 		}
@@ -142,7 +147,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	if r.Since.Before(a.Started) {
 		return
 	}
-	a.New = false
+	a.New, a.reported = false, true
 	if a.Alive && !a.ending {
 		a.State = r.State
 	}

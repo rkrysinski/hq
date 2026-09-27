@@ -262,32 +262,36 @@ func TestAgentsInOneRepositoryAreToldApartByBranch(t *testing.T) {
 }
 
 func TestAgentsOfASandboxStoppedOutsideHqAreEnded(t *testing.T) {
+	testutil.FakeClaude(t)
 	h := newRealHQ(t)
 	for name, dir := range map[string]string{"a": testutil.GitRepo(t, "app"), "b": testutil.GitRepo(t, "lib")} {
 		h.cwd = dir
-		if code, _, errOut := h.run("new", name); code != 0 {
+		if code, _, errOut := h.run("new", name, "hello"); code != 0 {
 			t.Fatalf("new %s: exit %d %s", name, code, errOut)
 		}
-		h.waitState(name, "starting")
+		h.waitReport(name, "done", "Done: hello")
 	}
 	// sbx reports claude-lib stopped while b's pane has not caught up yet.
 	f := filepath.Join(os.Getenv("SBX_STUB_DIR"), "sandboxes", "claude-lib")
 	b, _ := os.ReadFile(f)
-	if err := os.WriteFile(f, []byte(strings.Replace(string(b), "running", "stopped", 1)), 0o644); err != nil {
+	if err := os.WriteFile(f+".new", []byte(strings.Replace(string(b), "running", "stopped", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(f+".new", f); err != nil {
 		t.Fatal(err)
 	}
 	got := map[string]string{}
 	for _, r := range h.ls() {
 		got[r.Name] = r.State
 	}
-	if got["a"] != "starting" || got["b"] != "ended" {
+	if got["a"] != "done" || got["b"] != "ended" {
 		t.Fatalf("states %v", got)
 	}
 
 	// With sbx failing, hq ls shows what tmux and the hooks say.
 	h.d.pollSandboxes = sbx.Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: filepath.Join(t.TempDir(), "sbx")}}.List
 	code, out, errOut := h.run("ls")
-	if code != 0 || errOut != "" || strings.Count(out, "starting") != 2 {
+	if code != 0 || errOut != "" || strings.Count(out, " done ") != 2 {
 		t.Fatalf("sbx failing: exit %d %q %q", code, out, errOut)
 	}
 }
@@ -296,8 +300,18 @@ func TestAgentWhoseSessionExitsIsEndedAndStaysListed(t *testing.T) {
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")
 	t.Setenv("SBX_STUB_EXIT", "1")
+	booted := filepath.Join(t.TempDir(), "booted")
+	t.Setenv("SBX_STUB_BOOT", booted)
 	if code, _, errOut := h.run("new", "a"); code != 0 {
 		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	// While sbx run starts the new sandbox, the agent is starting, not ended
+	// by the sandbox being stopped (S2, #94).
+	if rows := h.ls(); len(rows) != 1 || rows[0].State != "starting" {
+		t.Fatalf("while the sandbox starts: %+v", rows)
+	}
+	if err := os.WriteFile(booted, nil, 0o644); err != nil {
+		t.Fatal(err)
 	}
 	h.waitState("a", "ended")
 	code, out, _ := h.run("ls")
