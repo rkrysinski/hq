@@ -119,7 +119,7 @@ func plural(n int, word string) string {
 // SIGTERM there, found by the HQ_ID in its settings argument.
 func endAgents(d deps, as []agent.Agent) error {
 	for _, a := range as {
-		if a.State == agent.Running {
+		if a.Alive {
 			// No match (the session already ended) is not an error.
 			_ = d.sbx.Exec(a.Sandbox, "pkill", "-TERM", "-f", `HQ_ID":"`+a.ID+`"`)
 		}
@@ -132,7 +132,7 @@ func endAgents(d deps, as []agent.Agent) error {
 func removeAgents(d deps, as []agent.Agent) error {
 	pending := map[string]bool{}
 	for _, a := range as {
-		if a.State == agent.Running {
+		if a.Alive {
 			pending[a.Window] = true
 		}
 	}

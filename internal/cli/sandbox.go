@@ -79,7 +79,7 @@ func resolveSandbox(d deps, repoArg string) (sbx.Sandbox, error) {
 func sandboxRm(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes bool) error {
 	var running []string
 	for _, a := range mine {
-		if a.State == agent.Running {
+		if a.Alive {
 			running = append(running, a.Name)
 		}
 	}

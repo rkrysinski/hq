@@ -14,6 +14,7 @@ import (
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/repo"
 	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 	"github.com/rkrysinski/hq/internal/update"
 	"golang.org/x/term"
@@ -61,6 +62,8 @@ type deps struct {
 	terminal tmux.Terminal
 	sleep    func(time.Duration)
 	canAsk   func(stdin io.Reader) bool // stdin is a terminal to confirm on
+	// readState reads an agent's state file (design §3.4).
+	readState func(root, id string) (state.Report, bool)
 
 	releases   Releases
 	asset      string // this platform's binary in a release
@@ -87,6 +90,8 @@ func defaultDeps() deps {
 		terminal: run,
 		sleep:    time.Sleep,
 		canAsk:   isTerminal,
+
+		readState: state.Read,
 
 		releases: update.Releases{Run: run, Bin: "gh"},
 		asset:    update.Asset(runtime.GOOS, runtime.GOARCH),

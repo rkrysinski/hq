@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
@@ -28,7 +29,7 @@ func TestFromWindowsSkipsNonAgentsAndMarksDeadPanesEnded(t *testing.T) {
 		{ID: "@0", Name: "hq", Options: map[string]string{}},
 		{ID: "@1", Name: "a", PaneDead: true, Options: map[string]string{"id": "x", "name": "a", "started": "100"}},
 	})
-	if len(as) != 1 || as[0].State != Ended || as[0].Started.Unix() != 100 {
+	if len(as) != 1 || as[0].State != state.Ended || as[0].Alive || as[0].Started.Unix() != 100 {
 		t.Fatalf("%+v", as)
 	}
 }
@@ -36,5 +37,29 @@ func TestFromWindowsSkipsNonAgentsAndMarksDeadPanesEnded(t *testing.T) {
 func TestNewIDIsFresh(t *testing.T) {
 	if a, b := NewID(), NewID(); a == b || len(a) != 12 {
 		t.Fatalf("%q %q", a, b)
+	}
+}
+
+func TestApplyTakesTheReportedStateWhileThePaneLives(t *testing.T) {
+	since := time.Unix(500, 0)
+	r := state.Report{State: state.Question, Since: since, Last: "Shall I?"}
+	a := FromWindows([]tmux.Window{{ID: "@1", Options: map[string]string{"id": "x", "started": "100"}}})[0]
+	if a.State != state.Starting || a.Since.Unix() != 100 {
+		t.Fatalf("before any report: %+v", a)
+	}
+	a.Apply(r, true)
+	if a.State != state.Question || a.Since != since || a.Last != "Shall I?" {
+		t.Fatalf("%+v", a)
+	}
+	dead := FromWindows([]tmux.Window{{ID: "@2", PaneDead: true, Options: map[string]string{"id": "y", "started": "100"}}})[0]
+	dead.Apply(r, true)
+	if dead.State != state.Ended || dead.Last != "Shall I?" || dead.Since != since {
+		t.Fatalf("dead pane: %+v", dead)
+	}
+	// A report older than the start (a reused state file) does not move it back.
+	old := FromWindows([]tmux.Window{{ID: "@3", PaneDead: true, Options: map[string]string{"id": "z", "started": "900"}}})[0]
+	old.Apply(r, true)
+	if old.Since.Unix() != 900 {
+		t.Fatalf("old report: %+v", old)
 	}
 }

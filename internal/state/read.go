@@ -1,0 +1,61 @@
+package state
+
+import (
+	"errors"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"syscall"
+)
+
+// maxFile caps what hq reads from a state file (design §7.3).
+const maxFile = 64 << 10
+
+var idRE = regexp.MustCompile(`^[0-9a-f]{1,64}$`)
+
+// Dir is where agents of the repository at root report their state.
+func Dir(root string) string { return filepath.Join(root, ".git", "hq", "agents") }
+
+// Read returns the report of agent id of the repository at root; ok is false
+// until the agent's first event.
+func Read(root, id string) (r Report, ok bool) {
+	if !idRE.MatchString(id) {
+		return Report{}, false
+	}
+	path := filepath.Join(Dir(root), id)
+	latest, info, err := readData(path)
+	if err != nil {
+		return Report{}, false
+	}
+	lastStop, _, _ := readData(path + ".stop")
+	r = Parse(latest, lastStop)
+	r.Since = info.ModTime()
+	return r, true
+}
+
+// readData reads a regular file of at most maxFile bytes, never following a
+// symbolic link, so a link planted in the repository cannot make hq read
+// and show another file.
+func readData(path string) ([]byte, os.FileInfo, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !info.Mode().IsRegular() || info.Size() > maxFile {
+		return nil, nil, errors.New("not a state file")
+	}
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer f.Close()
+	if info, err = f.Stat(); err != nil || !info.Mode().IsRegular() {
+		return nil, nil, errors.New("not a state file")
+	}
+	data, err := io.ReadAll(io.LimitReader(f, maxFile+1))
+	if err != nil || len(data) > maxFile {
+		return nil, nil, errors.New("not a state file")
+	}
+	return data, info, nil
+}

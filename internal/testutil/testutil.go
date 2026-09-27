@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"testing"
 )
@@ -54,6 +55,36 @@ func WSLStubs(t *testing.T) string {
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	return dir
+}
+
+var (
+	fakeClaudeOnce sync.Once
+	fakeClaudeBin  string
+	fakeClaudeErr  error
+)
+
+// FakeClaude builds the fake claude (once per test binary) and has the stub
+// sbx run it for this test's agents, so they fire the injected hooks.
+func FakeClaude(t *testing.T) {
+	t.Helper()
+	fakeClaudeOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "hq-fakeclaude-")
+		if err != nil {
+			fakeClaudeErr = err
+			return
+		}
+		_, file, _, _ := runtime.Caller(0)
+		fakeClaudeBin = filepath.Join(dir, "claude")
+		cmd := exec.Command("go", "build", "-o", fakeClaudeBin, "github.com/rkrysinski/hq/tools/fakeclaude")
+		cmd.Dir = filepath.Dir(file)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			fakeClaudeErr = fmt.Errorf("build fake claude: %v\n%s", err, out)
+		}
+	})
+	if fakeClaudeErr != nil {
+		t.Fatal(fakeClaudeErr)
+	}
+	t.Setenv("SBX_STUB_CLAUDE", fakeClaudeBin)
 }
 
 // GhStub returns the path of the stub gh and its release directory, set in
