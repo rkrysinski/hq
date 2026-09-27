@@ -98,10 +98,89 @@ func (c Client) style(win string) error {
 		[]string{"set-option", "-w", "-t", win, "pane-border-style", "fg=colour238"},
 		[]string{"set-option", "-w", "-t", win, "pane-active-border-style", "fg=colour238"},
 		[]string{"set-option", "-t", Session, "status-style", "bg=default,fg=colour245"},
-		[]string{"set-option", "-t", Session, "status-format[0]", "#{T:status-left}"},
+		[]string{"set-option", "-t", Session, "status-format[0]", footerFormat},
 		[]string{"set-option", "-t", Session, "set-titles", "on"},
 		[]string{"set-option", "-t", Session, "set-titles-string", "hq"},
 	)
+}
+
+// footerFormat is the status line: the chords' hints (@hq_chords) while the
+// keys are in the dashboard's slot, else the list's footer (design §3.7).
+const footerFormat = `#{?#{&&:#{@hq_dash},#{!=:#{@hq_role},list}},#{T:@hq_chords},#{T:status-left}}`
+
+// ChordKeys are the Alt chords and the argument each gives hq's chord
+// command; Alt+l is tmux's own pane switching (design §3.7).
+var ChordKeys = []struct{ Key, Arg string }{
+	{"M-j", "next"}, {"M-k", "previous"}, {"M-a", "attention"}, {"M-n", "new"}, {"M-l", ""},
+}
+
+// BindChords binds the Alt chords for hq's session alone (design §3.7):
+// each runs argv, hq's chord command, with its argument, and the chords'
+// hints are kept for the footer. Keys are bound in tmux's root table, so
+// the binding itself hands the key on in any other session: to the key's
+// earlier binding when there was one, else to the pane. The bindings name
+// the command through the session option @hq_chord, so they stay the same
+// when hq moves and are bound once per server.
+func (c Client) BindChords(argv []string, hints string) error {
+	env := "HQ_TMUX_SOCKET=" + shellQuote(c.Socket)
+	quoted := make([]string, len(argv))
+	for i, a := range argv {
+		quoted[i] = shellQuote(a)
+	}
+	if err := c.batch(
+		[]string{"set-option", "-t", Session, "@hq_chord", env + " " + strings.Join(quoted, " ")},
+		[]string{"set-option", "-t", Session, "@hq_chords", hints},
+	); err != nil {
+		return err
+	}
+	out, err := c.tmux("list-keys", "-T", "root")
+	if err != nil {
+		return err
+	}
+	var cmds [][]string
+	for _, k := range ChordKeys {
+		earlier, ours := rootBinding(string(out), k.Key)
+		if ours {
+			continue
+		}
+		if earlier == "" {
+			earlier = "send-keys " + k.Key
+		}
+		cmd := "run-shell -b '#{@hq_chord} " + k.Arg + "'"
+		if k.Arg == "" {
+			cmd = "select-pane -t :.+"
+		}
+		cmds = append(cmds, []string{"bind-key", "-n", k.Key, "if-shell", "-F", "#{==:#{session_name}," + Session + "}", cmd, earlier})
+	}
+	if len(cmds) == 0 {
+		return nil
+	}
+	return c.batch(cmds...)
+}
+
+// rootBinding finds key's command in list-keys output for the root table;
+// ours is true when it is hq's own chord.
+func rootBinding(listing, key string) (cmd string, ours bool) {
+	for _, l := range strings.Split(listing, "\n") {
+		f := strings.Fields(l)
+		for i := 0; i+2 < len(f); i++ {
+			if f[i] == "-T" && f[i+1] == "root" && f[i+2] == key {
+				_, cmd, _ = strings.Cut(l, " "+key+" ")
+				cmd = strings.TrimSpace(cmd)
+				return cmd, strings.Contains(cmd, "#{==:#{session_name},"+Session+"}")
+			}
+		}
+	}
+	return "", false
+}
+
+// shellQuote quotes s for sh.
+func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
+
+// Message shows text on the dashboard's status line for a few seconds.
+func (c Client) Message(text string) error {
+	_, err := c.tmux("display-message", "-d", "3000", "-t", Session+":", strings.ReplaceAll(text, "#", "##"))
+	return err
 }
 
 // batch runs tmux commands in one call.

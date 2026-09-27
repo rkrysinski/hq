@@ -47,6 +47,8 @@ type Tmux interface {
 	SetTitle(pane, title string) error
 	SetSessionValue(key, value string) error
 	Popup(pane, dir string, w, h int, argv []string) error
+	BindChords(argv []string, hints string) error
+	Message(text string) error
 }
 
 // Sandboxes is the seam to sbx (design §7.2).

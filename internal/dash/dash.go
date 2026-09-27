@@ -90,6 +90,66 @@ func filterRows(as []agent.Agent, view string) []agent.Agent {
 	return rows
 }
 
+// Arrange is the rows of a sort and view, as the list shows them; unknown
+// modes are the defaults.
+func Arrange(as []agent.Agent, sort, view string) []agent.Agent {
+	if view != ViewAll {
+		view = ViewAttention
+	}
+	rows := filterRows(as, view)
+	sortRows(rows, sort)
+	return rows
+}
+
+// Neighbour is the agent Alt+j (step 1) or Alt+k (step -1) docks: the row
+// after or before the docked one. While the docked agent is not shown, the
+// cursor stands where it left, so Alt+j docks the cursor row and Alt+k the
+// one above it (design §3.7).
+func Neighbour(rows []agent.Agent, docked, cursor string, step int) (string, bool) {
+	at := func(name string) int {
+		for i, a := range rows {
+			if a.Name == name {
+				return i
+			}
+		}
+		return -1
+	}
+	i := at(docked)
+	switch {
+	case i >= 0:
+		i += step
+	case at(cursor) >= 0:
+		i = at(cursor)
+		if step < 0 {
+			i--
+		}
+	case step < 0:
+		i = len(rows) - 1
+	default:
+		i = 0
+	}
+	if i < 0 || i >= len(rows) {
+		return "", false
+	}
+	return rows[i].Name, true
+}
+
+// FirstNeedingYou is the agent Alt+a docks: the first needing the user in
+// attention order, never the one docked now, whose answer may not be
+// reported yet (design §3.7).
+func FirstNeedingYou(as []agent.Agent, docked string) (string, bool) {
+	for _, a := range Arrange(as, SortAttention, ViewAttention) {
+		if a.NeedsYou() && a.Name != docked {
+			return a.Name, true
+		}
+	}
+	return "", false
+}
+
+// ChordHints name the Alt chords; the footer shows them while the keys are
+// in the session below (spec §6.5).
+var ChordHints = []Hint{{"alt+j/k", "dock next/previous"}, {"alt+a", "dock first needing you"}, {"alt+l", "list"}, {"alt+n", "new"}}
+
 // Hint is one key and what it does, as the footer shows it.
 type Hint struct{ Key, Label string }
 
@@ -147,6 +207,9 @@ type Model struct {
 	// seen are the new agents the list has welcomed and the agents it
 	// found at its start, by id; nil before the first refresh (S2).
 	seen map[string]bool
+	// docked is the agent docked at the last refresh: when another is
+	// docked, by a chord or hq go, the cursor goes to it (design §3.7).
+	docked string
 
 	sort, view string
 
@@ -200,8 +263,7 @@ func (m Model) visible() int { return max(1, m.height-4) }
 // arrange filters and sorts the agents into rows and puts the cursor back on
 // its agent.
 func (m *Model) arrange() {
-	m.rows = filterRows(m.agents, m.view)
-	sortRows(m.rows, m.sort)
+	m.rows = Arrange(m.agents, m.sort, m.view)
 	row := min(m.cursorRow, len(m.rows)-1)
 	for i, a := range m.rows {
 		if a.Name == m.cursor {
@@ -288,6 +350,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		m.err = msg.err
 		if msg.err == nil {
 			m.agents = msg.agents
+			m.followDock()
 			dock := m.welcome()
 			m.arrange()
 			return m, dock
@@ -465,6 +528,20 @@ func (m *Model) welcome() tea.Cmd {
 	}
 	dock := m.src.Dock
 	return func() tea.Msg { return actedMsg{dock(fresh)} }
+}
+
+// followDock moves the cursor to an agent docked since the last refresh.
+func (m *Model) followDock() {
+	docked := ""
+	for _, a := range m.agents {
+		if a.Docked {
+			docked = a.Name
+		}
+	}
+	if m.seen != nil && docked != "" && docked != m.docked {
+		m.cursor = docked
+	}
+	m.docked = docked
 }
 
 // modesChanged re-arranges the rows, keeps the modes for the next run and

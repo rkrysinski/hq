@@ -59,6 +59,9 @@ func dashboard(d deps) (w tmux.Dash, mode string, inList bool, err error) {
 	if w, err = d.tmux.Dashboard(dir, list); err != nil {
 		return w, "", false, tmuxErr(err)
 	}
+	if err := bindChords(d, exe); err != nil {
+		return w, "", false, tmuxErr(err)
+	}
 	socket, err := d.tmux.SocketPath()
 	if err != nil {
 		return w, "", false, tmuxErr(err)
