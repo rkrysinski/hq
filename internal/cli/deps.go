@@ -53,6 +53,7 @@ type Tmux interface {
 	BindChords(argv []string, hints string) error
 	Message(text string) error
 	FocusList() error
+	Leave(message string) error
 }
 
 // Sandboxes is the seam to sbx (design §7.2).

@@ -12,7 +12,7 @@ func TestAttachingInItermSwitchesTheTabToTheHqProfile(t *testing.T) {
 	for _, args := range [][]string{nil, {"dash"}, {"go", "a"}} {
 		f := goFakes()
 		f.env["TERM_PROGRAM"] = "iTerm.app"
-		if code, out, errOut := f.run(args...); code != ExitOK || out != setProfile+resetTitle || f.tmux.attached == "" {
+		if code, out, errOut := f.run(args...); code != ExitOK || out != setProfile+resetTitle+closedHint+"\n" || f.tmux.attached == "" {
 			t.Errorf("hq %v: exit %d out %q err %q attached %q", args, code, out, errOut, f.tmux.attached)
 		}
 	}

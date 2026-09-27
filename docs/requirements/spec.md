@@ -65,7 +65,7 @@ Requirements:
 
 - A state change is visible in the dashboard within 1 second.
 - Each state carries the time since it was entered (`3s`, `2m`, `1h`) and the agent's last message, one line, truncated.
-- Entering `question`, `needs input` or `done` triggers exactly one desktop notification per event, whether or not that agent is docked. Notifications name the kind and the branch (`Question: feat/42-...`, `Needs input: ...`, `Done: ...`). `working`, `starting` and `ended` never notify.
+- Entering `question`, `needs input` or `done` triggers exactly one desktop notification per event, whether or not that agent is docked, while the dashboard is open in a terminal (S8). Notifications name the kind and the branch (`Question: feat/42-...`, `Needs input: ...`, `Done: ...`). `working`, `starting` and `ended` never notify.
 - Two agents on the same branch are allowed; their states may then be indistinguishable. Documented limitation.
 - Every agent started by hq reports its state with no setup: nothing is installed, configured or committed in the repository, and nothing per machine beyond installing hq.
 
@@ -122,7 +122,7 @@ A click on a strip item fires that action at once (kill still asks).
 
 - `n`: New agent dialog.
 - `s`: cycle sort. `a`: toggle view. `r`: force refresh.
-- `q`: quit the dashboard; agents keep running, `hq` brings the dashboard back with the same docked session.
+- `q`: quit the dashboard and give the terminal back to the shell it had before `hq`, full height; agents keep running, `hq` brings the dashboard back with the same docked session.
 - From inside the docked session, without leaving it: dock previous/next row, and dock the first row needing attention (bound to modifier-key shortcuts that do not clash with Claude Code's own keys). Switching keyboard focus between list and session uses the terminal's / tmux's own pane switching.
 
 ### 6.6 Dialogs
@@ -164,7 +164,7 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 
 **S7. Agent ends by itself** (Claude exited, sandbox stopped, launch failed): the row turns grey `ended` with the last known message; its output stays readable when docked; `k` removes the row.
 
-**S8. Quit** - `q`: the list disappears, the docked session stays where it is and keeps working, a hint says how to bring the dashboard back. `hq` restores it.
+**S8. Quit** - `q`: the dashboard closes and the terminal is back at the shell it had before `hq`, full height and scrolling normally, with nothing of hq left on screen; a hint there says how to bring the dashboard back. The docked session stays where it is and keeps working. `hq` restores the dashboard with the list and the same docked session. While the dashboard is closed (after `q`, or with the terminal detached or closed), desktop notifications are not shown.
 
 **S9. Detach / close / sleep** - closing the terminal window or detaching leaves everything running; `hq` reattaches with the same layout. After laptop sleep, if agents fail with clock drift, `hq sandbox restart REPO` fixes it; affected rows go `ended` then `starting`.
 

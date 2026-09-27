@@ -626,3 +626,45 @@ func TestTheTitleIsHqForHqsSessionAlone(t *testing.T) {
 		t.Errorf("other session's set-titles %q", got)
 	}
 }
+
+func TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack(t *testing.T) {
+	c, socket := dashClient(t)
+	d, err := c.Dashboard(t.TempDir(), listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Leave("bye"); err != nil {
+		t.Fatalf("no client: %v", err)
+	}
+	// A plain terminal attached to hq's session, and a client of another
+	// session of this server that switched to hq's.
+	tm(t, socket, "new-session", "-d", "-s", "work")
+	plain, switched := testutil.TmuxSocket(t), testutil.TmuxSocket(t)
+	tm(t, plain, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "sh", "-c",
+		"tmux -L "+socket+" attach -t "+Session+"; echo back-in-the-shell; sleep 30")
+	tm(t, switched, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-L", socket, "attach", "-t", "work")
+	eventually(t, "both clients", func() bool {
+		return len(strings.Fields(tm(t, socket, "list-clients", "-F", "#{client_name}"))) == 2
+	})
+	for _, l := range strings.Split(tm(t, socket, "list-clients", "-F", "#{client_name} #{session_name}"), "\n") {
+		if name, s, _ := strings.Cut(l, " "); s == "work" {
+			tm(t, socket, "switch-client", "-c", name, "-t", Session)
+		}
+	}
+	eventually(t, "both clients on hq", func() bool {
+		return len(strings.Fields(tm(t, socket, "list-clients", "-t", Session, "-F", "#{client_name}"))) == 2
+	})
+	if err := c.Leave("hq closed"); err != nil {
+		t.Fatal(err)
+	}
+	if got := tm(t, socket, "list-clients", "-F", "#{session_name}"); got != "work" {
+		t.Fatalf("clients now on %q, want the switched one back on work", got)
+	}
+	eventually(t, "the plain terminal back in its shell", func() bool {
+		return strings.Contains(tm(t, plain, "capture-pane", "-p"), "back-in-the-shell")
+	})
+	// hq's session and its panes are untouched.
+	if got := tm(t, socket, "list-panes", "-t", d.Window, "-F", "#{pane_id}"); got != d.List+"\n"+d.Slot {
+		t.Fatalf("dashboard panes %q", got)
+	}
+}
