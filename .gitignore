@@ -1,2 +1,8 @@
-.claude/status/
+.DS_Store
+.env
 __pycache__/
+
+# Claude Code: status files, agent worktrees, personal settings
+.claude/status/
+.claude/worktrees/
+.claude/settings.local.json

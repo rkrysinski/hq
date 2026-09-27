@@ -1,0 +1,28 @@
+# Publishes the GitHub release for a tag. All the logic lives in
+# scripts/release.sh, so the workflow and a local run produce the same notes -
+# see docs/releasing.md.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write        # create and edit the release
+  issues: write          # milestones and the "Wydane w ..." comments
+  pull-requests: write   # the milestone on each pull request
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # release.sh walks the commits between this tag and the previous one.
+          fetch-depth: 0
+
+      - name: Publish release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/release.sh "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"

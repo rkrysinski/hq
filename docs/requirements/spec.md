@@ -1,6 +1,6 @@
 # hq - one console for many Claude Code agents
 
-This document is the requirements specification for the whole product, to be implemented from scratch in the milestones of section 12. It describes WHAT hq does, as observable behaviour, and the givens it must live with. It deliberately says nothing about HOW (languages, libraries, file formats, internal mechanics); that is the implementer's design. Design reference for the look: `docs/look-and-feel.pen` and its exports in `docs/` (section 13).
+This document is the requirements specification for the whole product, to be implemented from scratch in the milestones of section 12. It describes WHAT hq does, as observable behaviour, and the givens it must live with. It deliberately says nothing about HOW (languages, libraries, file formats, internal mechanics); that is the implementer's design. Design reference for the look: `docs/requirements/look-and-feel.pen` and its exports beside it (section 13).
 
 ## 1. Goal
 
@@ -222,7 +222,7 @@ Each milestone is usable on its own and is the acceptance boundary for that step
 
 ## 13. Design reference
 
-`docs/look-and-feel.pen` (Pencil), exported to:
+`docs/requirements/look-and-feel.pen` (Pencil), exported to:
 
 - `dash-s0-attention.png` - default attention view
 - `dash.png` - all view, action strip on the cursor row
