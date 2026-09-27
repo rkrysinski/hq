@@ -1,7 +1,9 @@
 #!/bin/sh
 # Cut a release: bump the version, commit, tag and push. Pushing the tag starts
 # .github/workflows/release.yml, which writes the release notes. Run on a
-# developer machine from a clean `main`; see docs/releasing.md.
+# developer machine from a clean `dev`; the push fast-forwards `main` to the
+# release, so `main` always holds the latest released version. See
+# docs/releasing.md.
 #
 # Usage: scripts/cut-release.sh <X.Y.Z> [--dry-run]
 #
@@ -19,7 +21,8 @@ REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 . "$SCRIPT_DIR/lib/release-notes.sh"
 
 RELEASE_NOTES_PROG=cut-release
-BRANCH=main
+BRANCH=dev
+RELEASE_BRANCH=main
 
 usage() {
     sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
@@ -68,6 +71,12 @@ ahead=$(git rev-list --count "origin/$BRANCH..$BRANCH")
 behind=$(git rev-list --count "$BRANCH..origin/$BRANCH")
 [ "$ahead" -eq 0 ] || die "$BRANCH is $ahead commit(s) ahead of origin/$BRANCH - push them first"
 [ "$behind" -eq 0 ] || die "$BRANCH is $behind commit(s) behind origin/$BRANCH - pull first"
+
+# main only ever moves by fast-forward to a release, so it must be contained in
+# the branch being released.
+git fetch -q origin "$RELEASE_BRANCH" || die "could not fetch origin/$RELEASE_BRANCH"
+git merge-base --is-ancestor "origin/$RELEASE_BRANCH" HEAD \
+    || die "origin/$RELEASE_BRANCH has commits that $BRANCH does not - merge them into $BRANCH first"
 
 # Checked before the order rule below: an existing tag would otherwise be
 # reported as "not higher than the newest", which is true but says nothing useful.
@@ -160,7 +169,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
     echo "would run : scripts/bump-version.sh $VERSION"
     echo "would run : git commit -am 'Release $VERSION'   (skipped if the files already read $VERSION)"
     echo "would run : git tag -a $TAG -F <the message above>"
-    echo "would run : git push --atomic origin $BRANCH $TAG"
+    echo "would run : git push --atomic origin $BRANCH $BRANCH:$RELEASE_BRANCH $TAG"
     echo
     echo "dry run: nothing was changed"
     exit 0
@@ -186,8 +195,8 @@ fi
 git tag -a "$TAG" -F "$TMP/tag-message" || { unwind; die "could not create tag $TAG"; }
 echo "tagged $TAG"
 
-echo "pushing $BRANCH and $TAG"
-if ! git push --atomic origin "$BRANCH" "$TAG"; then
+echo "pushing $BRANCH, $RELEASE_BRANCH and $TAG"
+if ! git push --atomic origin "$BRANCH" "$BRANCH:$RELEASE_BRANCH" "$TAG"; then
     unwind
     die "push failed - the release commit and tag have been rolled back, origin is untouched"
 fi

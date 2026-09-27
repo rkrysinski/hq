@@ -1,7 +1,14 @@
 # Releasing
 
-How a change that is already on `main` becomes a version: a git tag `vX.Y.Z`, a
+How a change that is already on `dev` becomes a version: a git tag `vX.Y.Z`, a
 GitHub release with notes, and a milestone recording what shipped in it.
+
+## Branches
+
+- `dev` is the default branch. Work lands on it through pull requests.
+- `main` holds the latest released version and nothing else. It moves only when
+  a release is cut, by fast-forward to the release; nobody commits or merges
+  into it by hand.
 
 Deploying a version is the project's own procedure. When the project has one,
 it is described in `docs/deployment.md`, and the release notes link to it.
@@ -9,17 +16,17 @@ it is described in `docs/deployment.md`, and the release notes link to it.
 ## 1. Cut a release (developer machine)
 
 ```bash
-git checkout main && git pull
+git checkout dev && git pull
 scripts/cut-release.sh 0.1.0 --dry-run   # prints every step, changes nothing
 scripts/cut-release.sh 0.1.0
 ```
 
-That is the whole procedure. It refuses to start unless you are on a clean `main`
-that is level with `origin/main`, the version is higher than every version
+That is the whole procedure. It refuses to start unless you are on a clean `dev`
+that is level with `origin/dev` and contains `origin/main`, the version is higher than every version
 already tagged, and that tag does not exist yet. Then it bumps the version files,
 commits `Release 0.1.0` (skipped when the files already carry that version),
 writes an annotated tag whose message lists the issues in the release, and pushes
-`main` and the tag together.
+`dev`, `main` (fast-forwarded to the release) and the tag together.
 
 Anything that fails unwinds: no release commit, no local tag, nothing pushed.
 
@@ -37,7 +44,7 @@ everything from the first commit on.
 scripts/bump-version.sh 0.1.0          # the version files, none yet
 git commit -am "Release 0.1.0"
 git tag -a v0.1.0 -m "Release v0.1.0: <one line per change>"
-git push --atomic origin main v0.1.0
+git push --atomic origin dev dev:main v0.1.0
 ```
 
 </details>
@@ -46,7 +53,7 @@ git push --atomic origin main v0.1.0
 itself back. Check `git log` and `git tag -l`. If a `Release X.Y.Z` commit or a
 `vX.Y.Z` tag is there but `git ls-remote origin refs/tags/vX.Y.Z` prints nothing,
 the cut never reached origin; undo it with `git tag -d vX.Y.Z` followed by
-`git reset --hard origin/main`. If origin does have the tag, the release stands -
+`git reset --hard origin/dev`. If origin does have the tag, the release stands -
 `git pull` and carry on.
 
 ### Version files

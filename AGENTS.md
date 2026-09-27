@@ -42,4 +42,4 @@ Not defined yet: it comes with the stack (`docs/agents/testing.md`, *When the st
 
 ### Releases
 
-Versions are git tags `vX.Y.Z` cut with `scripts/cut-release.sh`; the release notes, the version's milestone and the "released in" comments are written by `scripts/release.sh` from the merged pull requests and their issues' labels. Never set a milestone by hand. See `docs/releasing.md`.
+Work lands on `dev` (the default branch); `main` holds the latest release and is never committed to by hand. Versions are git tags `vX.Y.Z` cut from `dev` with `scripts/cut-release.sh`, which also fast-forwards `main`; the release notes, the version's milestone and the "released in" comments are written by `scripts/release.sh` from the merged pull requests and their issues' labels. Never set a milestone by hand. See `docs/releasing.md`.

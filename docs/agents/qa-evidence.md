@@ -12,7 +12,7 @@ Done when every acceptance criterion maps to a check and the planned tests are l
 
 ## 2. Capture the before state
 
-For each check whose outcome is visible and will change (dashboard look, command output, a file hq writes), capture the current state first: run hq in the issue worktree before changing code, or in a `main` worktree.
+For each check whose outcome is visible and will change (dashboard look, command output, a file hq writes), capture the current state first: run hq in the issue worktree before changing code, or in a `dev` worktree.
 
 ## 3. Run every check
 
@@ -26,7 +26,7 @@ Done when every check has an outcome and evidence. A check that fails or cannot 
 
 ## 4. Publish the evidence to `qa-artifacts`
 
-Evidence lives on the `qa-artifacts` branch, which never merges into `main`. Each issue owns the folder `issue-<n>/`; re-running QA after review replaces that folder's contents. (`scripts/setup-github.sh` creates the branch in a new repository.)
+Evidence lives on the `qa-artifacts` branch, which never merges into `dev` or `main`. Each issue owns the folder `issue-<n>/`; re-running QA after review replaces that folder's contents. (`scripts/setup-github.sh` creates the branch in a new repository.)
 
 ```bash
 qa=$(mktemp -d)

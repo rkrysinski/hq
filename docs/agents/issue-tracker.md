@@ -41,18 +41,18 @@ Most GitHub API calls below need an issue's numeric **database id**, not its `#n
 
 Several agents may work different issues at the same time, each in its own git worktree. Work lands through pull requests the user reviews:
 
-1. Branch `issue-<n>-<short-slug>` in a dedicated worktree at `.claude/worktrees/<branch>` inside the main checkout: `git worktree add -b <branch> .claude/worktrees/<branch> origin/main`.
+1. Branch `issue-<n>-<short-slug>` in a dedicated worktree at `.claude/worktrees/<branch>` inside the main checkout: `git worktree add -b <branch> .claude/worktrees/<branch> origin/dev`. Pull requests target `dev` (the default branch); `main` only receives releases (see `docs/releasing.md`).
 2. Plan QA checks from the acceptance criteria, implement, run every check against hq running from the worktree (see `AGENTS.md`, *Local run*), and publish the evidence - screenshots of every UI change, downloaded files, command output - to the `qa-artifacts` branch. Follow `docs/agents/qa-evidence.md`.
 3. Push the branch and open a PR: `gh pr create --title "..." --body "..."`. The PR body contains `Closes #<n>`, a summary, deviations from the issue, and a `## QA` section with every check's result and its evidence inline. When the change needs anything outside the code to go live - IT consents, a mailbox, environment variables, cron entries, a manual command - the body also has `## Przed wdrożeniem` and/or `## Po wdrożeniu` with those steps as a checklist, in Polish; `scripts/release.sh` copies them into the release notes (see `docs/releasing.md`, *Release notes*).
 4. Comment on the issue with a link to the PR.
 
-The issue closes when the user merges the PR. Commit straight to `main` only when the user explicitly asks; then put `Closes #<n>` in the commit message.
+The issue closes when the user merges the PR. Commit straight to `dev` only when the user explicitly asks; then put `Closes #<n>` in the commit message.
 
 ### Cleaning up after a PR closes
 
 Clean up a worktree once its PR is closed (`gh pr view <pr> --json state` is `MERGED` or `CLOSED`). The `qa-artifacts` evidence stays.
 
-- **Merged**: confirm the branch is contained in `origin/main` (`git fetch --prune origin && git merge-base --is-ancestor <branch> origin/main`) and the worktree has no uncommitted changes (`git -C .claude/worktrees/<branch> status --short` is empty). Then, from the main checkout: stop anything the worktree still runs, `git worktree remove --force .claude/worktrees/<branch>` (`--force` only discards ignored files), `git pull --ff-only` on `main`, then `git branch -d <branch>` (it refuses until local `main` contains the merge).
+- **Merged**: confirm the branch is contained in `origin/dev` (`git fetch --prune origin && git merge-base --is-ancestor <branch> origin/dev`) and the worktree has no uncommitted changes (`git -C .claude/worktrees/<branch> status --short` is empty). Then, from the main checkout: stop anything the worktree still runs, `git worktree remove --force .claude/worktrees/<branch>` (`--force` only discards ignored files), `git pull --ff-only` on `dev`, then `git branch -d <branch>` (it refuses until local `dev` contains the merge).
 - **Closed without merging**: ask the user before removing anything; the branch may hold the only copy of the work.
 
 A PRD closes when its last open sub-issue's PR merges (add `Closes #<prd>` to that PR only if every other sub-issue is already closed), or manually.

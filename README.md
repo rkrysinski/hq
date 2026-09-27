@@ -10,7 +10,7 @@ Not chosen yet; it is decided in `docs/design/` from the specification. The test
 
 ## Releases
 
-`scripts/cut-release.sh X.Y.Z` tags a version from `main`; the release notes are written from the merged pull requests. See [Releasing](docs/releasing.md).
+Work lands on `dev`, the default branch; `main` holds the latest release. `scripts/cut-release.sh X.Y.Z` tags a version from `dev` and fast-forwards `main` to it; the release notes are written from the merged pull requests. See [Releasing](docs/releasing.md).
 
 ## Documentation
 
