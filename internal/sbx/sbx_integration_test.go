@@ -4,8 +4,11 @@ package sbx
 
 import (
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/rkrysinski/hq/internal/platform"
+	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/testutil"
 )
@@ -13,7 +16,7 @@ import (
 // Contract against the stub, which mirrors the real sbx's JSON (sbx v0.45).
 func TestCreateThenListFindsSandboxByWorkspace(t *testing.T) {
 	bin, _ := testutil.SbxStub(t)
-	c := Client{Run: proc.Exec{}, Bin: bin}
+	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
 	if all, err := c.List(); err != nil || len(all) != 0 {
 		t.Fatalf("%v %v", all, err)
 	}
@@ -32,7 +35,7 @@ func TestCreateThenListFindsSandboxByWorkspace(t *testing.T) {
 
 func TestExecRunsTheCommandInTheSandbox(t *testing.T) {
 	bin, dir := testutil.SbxStub(t)
-	c := Client{Run: proc.Exec{}, Bin: bin}
+	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
 	if err := c.Exec("claude-app", "touch", dir+"/ran"); err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +49,7 @@ func TestExecRunsTheCommandInTheSandbox(t *testing.T) {
 
 func TestStopThenExecStartsAgainAndRemoveDeletes(t *testing.T) {
 	bin, _ := testutil.SbxStub(t)
-	c := Client{Run: proc.Exec{}, Bin: bin}
+	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
 	if err := c.Create("/w/app"); err != nil {
 		t.Fatal(err)
 	}
@@ -65,5 +68,22 @@ func TestStopThenExecStartsAgainAndRemoveDeletes(t *testing.T) {
 	}
 	if err := c.Remove("claude-app"); err != nil || status() != "gone" {
 		t.Fatalf("rm: %v, %s", err, status())
+	}
+}
+
+// On WSL, sbx.exe keeps Windows paths; hq sees them as Linux paths.
+func TestWSLCreateThenListThroughSbxExe(t *testing.T) {
+	dir := testutil.WSLStubs(t)
+	c := Client{Run: proc.Exec{}, Platform: platform.WSL{Run: proc.Exec{}}}
+	if err := c.Create("/home/dev/app"); err != nil {
+		t.Fatal(err)
+	}
+	state, err := os.ReadFile(dir + "/sandboxes/claude-app")
+	if err != nil || !strings.Contains(string(state), `\\wsl.localhost\Stub\home\dev\app`) {
+		t.Fatalf("sbx.exe got %q %v", state, err)
+	}
+	all, err := c.List()
+	if err != nil || len(all) != 1 || all[0].Name != "claude-app" || all[0].Workspaces[0] != "/home/dev/app" {
+		t.Fatalf("%+v %v", all, err)
 	}
 }

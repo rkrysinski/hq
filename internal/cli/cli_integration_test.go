@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/repo"
 	"github.com/rkrysinski/hq/internal/sbx"
@@ -34,7 +35,7 @@ func newRealHQ(t *testing.T) *realHQ {
 	h := &realHQ{t: t}
 	d := defaultDeps()
 	d.tmux = tmux.Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
-	d.sbx = sbx.Client{Run: proc.Exec{}, Bin: bin}
+	d.sbx = sbx.Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
 	d.getwd = func() (string, error) { return h.cwd, nil }
 	h.d = d
 	return h
@@ -54,6 +55,21 @@ func (h *realHQ) ls() []lsRow {
 		h.t.Fatalf("ls: exit %d %q %q", code, out, errOut)
 	}
 	return rows
+}
+
+// waitSessions waits until the stub sbx has recorded n sessions in sandbox,
+// which it does a moment after tmux shows them running; a stop before that
+// would miss them.
+func (h *realHQ) waitSessions(sandbox string, n int) {
+	h.t.Helper()
+	for i := 0; i < 50; i++ {
+		b, _ := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/pids-" + sandbox)
+		if strings.Count(string(b), "\n") >= n {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	h.t.Fatalf("%s: the stub has not recorded %d sessions", sandbox, n)
 }
 
 func (h *realHQ) waitState(name, state string) {
@@ -156,6 +172,7 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 		}
 		h.waitState(name, "running")
 	}
+	h.waitSessions("claude-app", 2)
 	ids := func() map[string]string {
 		ws, _ := h.d.tmux.Windows()
 		m := map[string]string{}

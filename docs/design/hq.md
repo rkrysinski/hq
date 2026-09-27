@@ -181,6 +181,7 @@ Satisfies: §4.1, §6.1-6.6, S2, S6; drivers 2, 3.
 | Raise the window titled `hq` (3.11) | `osascript` to iTerm2 | `powershell.exe`, activate the window by title |
 
 Everything else (tmux, registry, state files, keys, dialogs) is one code path.
+Paths cross at the sbx client's boundary: the workspaces sbx reports come back as hq's paths, and the workspace hq gives goes out as sbx's path, so the rest of hq only ever sees its own paths. One set of contract tests (an sbx command; every path survives the trip to sbx and back) runs against both adapters and the test fake, which gives sbx Windows-like paths so a test shows which paths went through the adapter.
 **Rationale:** these are the only points where the platforms really differ; a narrow interface keeps the rest free of platform branches and lets both sides share one set of contract tests with a fake.
 **Alternatives considered:** build-time selection (a WSL binary and a plain Linux binary would differ for no reason); platform checks at each call site (scattered, against spec §8).
 **Satisfies:** §2, §4.1 (`hq code`), §6.4 (`c`, `p`), §8 (identical behaviour, platform code isolated), S13; driver 4.
