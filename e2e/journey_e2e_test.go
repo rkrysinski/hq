@@ -160,11 +160,13 @@ func TestStartSeeEnterKill(t *testing.T) {
 func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	j := newJourney(t)
 	t.Setenv("SHELL", "/bin/sh") // the shells in the dashboard's panes
-	term := testutil.TmuxSocket(t)
+	var term string
 	// The terminal runs hq as a shell would, and stays to show what hq
-	// left when it returned.
+	// left when it returned. Each open is a new terminal on a server of its
+	// own: one just ended may still hold its socket.
 	open := func(args ...string) {
 		t.Helper()
+		term = testutil.TmuxSocket(t)
 		if out, err := exec.Command("tmux", append([]string{"-L", term, "new-session", "-d", "-x", "120", "-y", "30",
 			"-c", j.repo, "env", "-u", "TMUX", "sh", "-c", `"$@"; echo "[hq returned $?]"; exec sleep 600`, "sh", j.bin}, args...)...).CombinedOutput(); err != nil {
 			t.Fatalf("terminal: %v %s", err, out)
