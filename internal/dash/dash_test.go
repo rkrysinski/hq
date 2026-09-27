@@ -512,15 +512,18 @@ func TestCursorMovesAndFollowsItsAgent(t *testing.T) {
 	if m.cursor != "perm" {
 		t.Fatalf("cursor starts on %q", m.cursor)
 	}
-	m = key(key(key(m, "j"), "down"), "up")
+	if m = key(m, "j"); m.cursor != "perm" {
+		t.Fatalf("j is not a movement key (k is kill): %q", m.cursor)
+	}
+	m = key(key(key(m, "down"), "down"), "up")
 	if m.cursor != "ask" {
-		t.Fatalf("after j down up: %q", m.cursor)
+		t.Fatalf("after down down up: %q", m.cursor)
 	}
 	m = key(key(m, "up"), "up")
 	if m.cursor != "perm" || m.cursorRow != 0 {
 		t.Fatalf("above the top: %q %d", m.cursor, m.cursorRow)
 	}
-	m = key(key(key(key(key(key(m, "j"), "j"), "j"), "j"), "j"), "j")
+	m = key(key(key(key(key(key(m, "down"), "down"), "down"), "down"), "down"), "down")
 	if m.cursor != "end" {
 		t.Fatalf("below the bottom: %q", m.cursor)
 	}
@@ -547,7 +550,7 @@ func TestCursorMovesAndFollowsItsAgent(t *testing.T) {
 	if m.cursor != "ask" || m.cursorRow != -1 {
 		t.Fatalf("no rows: %q at %d, want no row and the name kept", m.cursor, m.cursorRow)
 	}
-	m = key(key(m, "j"), "up") // no rows: nothing to move to
+	m = key(key(m, "down"), "up") // no rows: nothing to move to
 	f.agents = team()
 	if m = key(m, "r"); m.cursorRow < 0 || m.rows[m.cursorRow].Name != "ask" {
 		t.Fatalf("agent back: %q at %d", m.cursor, m.cursorRow)
@@ -562,13 +565,13 @@ func TestCursorScrollsTheList(t *testing.T) {
 	f := &fakeSource{agents: as, view: ViewAll}
 	m := started(f, 100, 10)
 	for range 6 {
-		m = key(m, "j")
+		m = key(m, "down")
 	}
 	ls := lines(m)
 	if m.offset != 1 || !strings.HasSuffix(ls[9], "6 of 8  ▴ 1 more  ▾ 1 more") || !strings.Contains(ls[8], "a6") || !strings.Contains(ls[3], "a1") {
 		t.Fatalf("offset %d:\n%s", m.offset, strings.Join(ls, "\n"))
 	}
-	m = key(m, "j")
+	m = key(m, "down")
 	if ls = lines(m); !strings.HasSuffix(ls[9], "6 of 8  ▴ 2 more") {
 		t.Errorf("at the bottom: %q", ls[9])
 	}
@@ -579,7 +582,7 @@ func TestCursorScrollsTheList(t *testing.T) {
 		t.Errorf("back at the top: offset %d cursor %q", m.offset, m.cursor)
 	}
 	// A smaller window keeps the cursor in sight.
-	m = key(key(key(key(key(m, "j"), "j"), "j"), "j"), "j") // a5
+	m = key(key(key(key(key(m, "down"), "down"), "down"), "down"), "down") // a5
 	m, _ = update(m, tea.WindowSizeMsg{Width: 100, Height: 7})
 	if m.offset != 3 {
 		t.Errorf("3 rows with the cursor on a5: offset %d", m.offset)
@@ -590,7 +593,7 @@ func TestCursorRowHasABackground(t *testing.T) {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 	defer lipgloss.SetColorProfile(termenv.Ascii)
 	f := &fakeSource{agents: team(), view: ViewAll}
-	m := key(started(f, 120, 10), "j")
+	m := key(started(f, 120, 10), "down")
 	rows := strings.Split(m.View(), "\n")[3:5]
 	if strings.Contains(rows[0], "48;2;") || !strings.Contains(rows[1], "48;2;") {
 		t.Fatalf("background on the wrong row:\n%q\n%q", rows[0], rows[1])
@@ -604,7 +607,7 @@ func TestCursorIsKeptForTheNextListProgram(t *testing.T) {
 		t.Fatalf("cursor %q at %d, want done at 2", m.cursor, m.cursorRow)
 	}
 	sets := f.cursorSets
-	m = key(m, "j")
+	m = key(m, "down")
 	if f.cursor != "w1" || f.cursorSets != sets+1 {
 		t.Fatalf("kept %q after %d sets", f.cursor, f.cursorSets-sets)
 	}
@@ -626,7 +629,7 @@ func TestKeptCursorSurvivesTheSizeArrivingFirst(t *testing.T) {
 
 func TestEnterDocksTheCursorRowAndTheListMarksIt(t *testing.T) {
 	f := &fakeSource{agents: team(), view: ViewAll}
-	m := key(key(started(f, 120, 10), "j"), "enter") // perm ask done w1 end
+	m := key(key(started(f, 120, 10), "down"), "enter") // perm ask done w1 end
 	if len(f.docked) != 1 || f.docked[0] != "ask" {
 		t.Fatalf("docked %v, want ask", f.docked)
 	}
@@ -634,7 +637,7 @@ func TestEnterDocksTheCursorRowAndTheListMarksIt(t *testing.T) {
 		t.Fatalf("the list does not know ask is docked: %+v", m.rows[1])
 	}
 	// The cursor moves on; the docked row keeps its outline.
-	m = key(m, "j")
+	m = key(m, "down")
 	ls := lines(m)
 	if !strings.HasPrefix(ls[4], "│ ask") || !strings.HasSuffix(ls[4], " │") || strings.Contains(ls[5], "│") {
 		t.Fatalf("outline on the wrong row:\n%s\n%s", ls[4], ls[5])
@@ -669,7 +672,7 @@ func TestAFailedDockIsSaidUntilTheNextKey(t *testing.T) {
 
 func TestNOpensTheNewAgentDialogWithTheCursorRowsRepo(t *testing.T) {
 	f := &fakeSource{agents: team(), view: ViewAll}
-	key(key(started(f, 120, 10), "j"), "n") // perm ask done w1 end
+	key(key(started(f, 120, 10), "down"), "n") // perm ask done w1 end
 	if len(f.dialogs) != 1 || f.dialogs[0] != "/w/ask-repo" {
 		t.Fatalf("dialogs %q", f.dialogs)
 	}
@@ -791,14 +794,14 @@ func TestTheListTakesNoKeysWhileADialogIsOpen(t *testing.T) {
 		}
 	}
 	m = do(m, open) // the dialog closes
-	if m = key(m, "j"); m.cursorRow != 1 {
+	if m = key(m, "down"); m.cursorRow != 1 {
 		t.Fatal("keys still ignored after the dialog closed")
 	}
 }
 
 func TestKOpensTheKillDialogOnTheCursorRow(t *testing.T) {
 	f := &fakeSource{agents: team(), view: ViewAll}
-	m := key(started(f, 120, 10), "j") // perm ask done w1 end
+	m := key(started(f, 120, 10), "down") // perm ask done w1 end
 	// Yes: the agent is gone on the list's next refresh, the cursor takes
 	// the nearest row.
 	f.onKill = func() { f.agents = remove(f.agents, "ask") }
@@ -830,7 +833,7 @@ func remove(as []agent.Agent, name string) []agent.Agent {
 
 func TestCOpensTheEditorOnTheCursorRow(t *testing.T) {
 	f := &fakeSource{agents: team(), view: ViewAll}
-	m := key(key(started(f, 120, 10), "j"), "c") // perm ask done w1 end
+	m := key(key(started(f, 120, 10), "down"), "c") // perm ask done w1 end
 	if strings.Join(f.coded, " ") != "ask" {
 		t.Fatalf("opened %v", f.coded)
 	}

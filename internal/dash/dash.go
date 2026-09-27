@@ -578,7 +578,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, tea.Quit
 		case "r":
 			return m, tea.Batch(m.collect(), m.poll())
-		case "j", "down":
+		case "down":
 			if m.cursorRow+1 < len(m.rows) {
 				m.moveTo(m.cursorRow + 1)
 			}
