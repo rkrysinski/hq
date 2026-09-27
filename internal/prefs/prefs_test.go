@@ -26,7 +26,7 @@ func TestSaveLoadKeepsUnknownFields(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, []byte(`{"sort":"age","update_checked":5}`), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(`{"group":"repo","update_checked":5}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	p := Load(path)
@@ -36,10 +36,26 @@ func TestSaveLoadKeepsUnknownFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(path)
-	if !strings.Contains(string(data), `"sort": "age"`) {
+	if !strings.Contains(string(data), `"group": "repo"`) {
 		t.Fatalf("unknown field lost: %s", data)
 	}
 	if q := Load(path); q.UpdateChecked != 100 || q.LatestRelease != "v0.2.0" {
 		t.Fatalf("%+v", q)
+	}
+}
+
+func TestDashboardModesAreKept(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "preferences.json")
+	if err := Save(path, Prefs{Sort: "repo", View: "all", UpdateChecked: 7}); err != nil {
+		t.Fatal(err)
+	}
+	if p := Load(path); p.Sort != "repo" || p.View != "all" || p.UpdateChecked != 7 {
+		t.Fatalf("%+v", p)
+	}
+	if err := Save(path, Prefs{}); err != nil {
+		t.Fatal(err)
+	}
+	if data, _ := os.ReadFile(path); strings.TrimSpace(string(data)) != "{}" {
+		t.Fatalf("defaults written: %s", data)
 	}
 }

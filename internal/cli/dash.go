@@ -120,6 +120,20 @@ func listSource(d deps, pane string) dash.Source {
 			}
 		},
 		Footer: func(hs []dash.Hint) { _ = d.tmux.SetFooter(footer(hs)) },
+		Modes: func() (string, string) {
+			p := d.loadPrefs()
+			return p.Sort, p.View
+		},
+		Cursor: func() string {
+			v, _ := d.tmux.SessionValue("cursor")
+			return v
+		},
+		SetCursor: func(name string) { _ = d.tmux.SetSessionValue("cursor", name) },
+		SaveModes: func(sort, view string) {
+			p := d.loadPrefs()
+			p.Sort, p.View = sort, view
+			_ = d.savePrefs(p)
+		},
 	}
 }
 

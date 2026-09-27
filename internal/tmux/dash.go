@@ -262,3 +262,16 @@ func (c Client) MarkList(pane string, pid int) error {
 	_, err := c.tmux("set-option", "-p", "-t", pane, "@hq_list_pid", strconv.Itoa(pid))
 	return err
 }
+
+// SessionValue reads a user option hq keeps on its session (design §3.3:
+// the list's session state); unset is empty.
+func (c Client) SessionValue(key string) (string, error) {
+	out, err := c.tmux("show-options", "-v", "-q", "-t", Session, "@hq_"+key)
+	return strings.TrimSpace(string(out)), err
+}
+
+// SetSessionValue stores a user option on hq's session.
+func (c Client) SetSessionValue(key, value string) error {
+	_, err := c.tmux("set-option", "-t", Session, "@hq_"+key, value)
+	return err
+}

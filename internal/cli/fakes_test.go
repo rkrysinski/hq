@@ -41,6 +41,17 @@ type fakeTmux struct {
 	resized   []int     // heights given to the list pane, in order
 	footer    string
 	listPID   int // @hq_list_pid on the list pane
+	session   map[string]string
+}
+
+func (f *fakeTmux) SessionValue(key string) (string, error) { return f.session[key], nil }
+
+func (f *fakeTmux) SetSessionValue(key, value string) error {
+	if f.session == nil {
+		f.session = map[string]string{}
+	}
+	f.session[key] = value
+	return nil
 }
 
 func (f *fakeTmux) Dashboard(dir string, list []string) (tmux.Dash, error) {
