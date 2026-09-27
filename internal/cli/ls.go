@@ -88,9 +88,9 @@ func collect(d deps) ([]agent.Agent, error) {
 func settle(d deps, as []agent.Agent) []agent.Agent {
 	now := d.now()
 	var panes []string
-	for _, a := range as {
-		if a.Unsettled(now) {
-			panes = append(panes, a.Pane)
+	for i := range as {
+		if as[i].Unsettled(now) && !as[i].Recall() {
+			panes = append(panes, as[i].Pane)
 		}
 	}
 	if len(panes) == 0 {

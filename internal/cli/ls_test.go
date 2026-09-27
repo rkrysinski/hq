@@ -191,10 +191,15 @@ func TestLsShowsACancelledDialogDoneFromWhenItWasFirstSeen(t *testing.T) {
 	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done         7s   User declined") {
 		t.Fatalf("later:\n%s", out)
 	}
-	// Without the screens, the hooks' states stand.
+	// Without the screens, what hq saw stands, and the hooks' states for
+	// the rest; the next report replaces it.
 	f.tmux.screenErr = errors.New("tmux: no pane")
-	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       needs input  27s  Red or blue?") {
+	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done         7s   User declined") || !strings.Contains(out, "b     app   -       needs input  27s  Green or yellow?") {
 		t.Fatalf("no screens:\n%s", out)
+	}
+	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-2 * time.Second), Last: "earlier reply"}
+	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       working      2s   earlier reply") {
+		t.Fatalf("next report:\n%s", out)
 	}
 }
 
