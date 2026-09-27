@@ -44,6 +44,11 @@ func TestSandboxRestartRelaunchesItsAgentsUnderTheSameNames(t *testing.T) {
 		}
 		stop(sandbox)
 	}
+	// a reported with its Claude session and resumes it; b's state file
+	// cannot smuggle an option in, so b starts fresh.
+	const session = "06d5c99c-1079-47e5-ad5f-d92403ccb28d"
+	f.states["id-a"] = state.Report{State: state.Done, SessionID: session}
+	f.states["id-b"] = state.Report{State: state.Done, SessionID: "--dangerously-x"}
 	code, out, errOut := f.run("sandbox", "restart", "app")
 	if strings.Join(during, " ") != "a=ended b=ended c=done" {
 		t.Fatalf("during the stop: %v", during)
@@ -61,8 +66,13 @@ func TestSandboxRestartRelaunchesItsAgentsUnderTheSameNames(t *testing.T) {
 		if w.PaneDead || !f.tmux.started[w.ID] || w.Options["id"] == "id-"+w.Name || w.Options["sandbox"] != "claude-x" || w.Options["ending"] != "" {
 			t.Fatalf("relaunched window %+v", w)
 		}
-		if argv := strings.Join(f.tmux.argv[w.ID], " "); !strings.HasPrefix(argv, "sbx run --name claude-x -- --settings") {
+		argv := f.tmux.argv[w.ID]
+		if !strings.HasPrefix(strings.Join(argv, " "), "sbx run --name claude-x -- --settings") {
 			t.Fatalf("argv %q", argv)
+		}
+		rest := strings.Join(argv[7:], " ")
+		if w.Name == "a" && rest != "--resume "+session || w.Name == "b" && rest != "" {
+			t.Fatalf("%s resumes with %q", w.Name, rest)
 		}
 	}
 	if f.tmux.windows[1].PaneDead {
@@ -75,6 +85,10 @@ func TestSandboxRestartWithoutAgentsStopsAndStartsIt(t *testing.T) {
 	code, out, _ := f.run("sandbox", "restart", "/w/lib")
 	if code != 0 || out != "restarted the sandbox claude-lib; relaunched c\n" {
 		t.Fatalf("exit %d %q", code, out)
+	}
+	// c never reported: it starts fresh.
+	if argv := f.tmux.argv[f.tmux.windows[len(f.tmux.windows)-1].ID]; len(argv) != 7 {
+		t.Fatalf("argv %q", argv)
 	}
 	f = newFakes()
 	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "stopped", Workspaces: []string{"/w/app"}}}

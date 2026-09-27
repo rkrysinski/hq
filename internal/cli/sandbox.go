@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/rkrysinski/hq/internal/agent"
@@ -98,10 +99,22 @@ func sandboxRm(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes bool) er
 	return nil
 }
 
+// sessionID is the form of a Claude session id; anything else in a state
+// file, which the sandbox writes, is not passed to Claude as an argument.
+var sessionID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+
 // sandboxRestart stops and starts the sandbox, then relaunches each of its
-// agents under the same name with a new id (design §3.6). Without the agent
-// state of M2 there is no Claude session id to resume, so they start fresh.
+// agents under the same name with a new id, continuing its conversation
+// (design §3.6).
 func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent) error {
+	// Each agent continues its conversation: the Claude session of its latest
+	// report, read before the agents go. One that never reported starts fresh.
+	resume := map[string]string{}
+	for _, a := range mine {
+		if r, ok := d.readState(a.RepoPath, a.ID); ok && sessionID.MatchString(r.SessionID) {
+			resume[a.ID] = r.SessionID
+		}
+	}
 	// Stopping ends every session in the sandbox; their windows go next. The
 	// agents show ended from now on: sbx lists the sandbox as running until
 	// the stop is done, which takes seconds (S9).
@@ -122,7 +135,7 @@ func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent) error {
 	}
 	var names []string
 	for _, a := range mine {
-		if err := startAgent(d, a.Name, a.RepoPath, sb.Name, ""); err != nil {
+		if err := startAgent(d, a.Name, a.RepoPath, sb.Name, resume[a.ID], ""); err != nil {
 			return err
 		}
 		names = append(names, a.Name)

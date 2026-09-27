@@ -50,9 +50,13 @@ func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, erro
 
 // claudeArgs are the arguments hq gives Claude: settings carrying the agent's
 // identity and the hooks that report its state and notify with the terminal's
-// sequence notify, then the first prompt if any.
-func claudeArgs(name, id, notify, prompt string) []string {
+// sequence notify, the Claude session to resume if any, then the first prompt
+// if any.
+func claudeArgs(name, id, notify, resume, prompt string) []string {
 	args := []string{"--settings", state.Settings(name, id, notify)}
+	if resume != "" {
+		args = append(args, "--resume", resume)
+	}
 	if prompt != "" {
 		args = append(args, prompt)
 	}
@@ -88,7 +92,7 @@ func runNew(env Env, d deps, args []string) error {
 		return err
 	}
 
-	if err := startAgent(d, n.name, root, sandbox.Name, n.prompt); err != nil {
+	if err := startAgent(d, n.name, root, sandbox.Name, "", n.prompt); err != nil {
 		return err
 	}
 	fmt.Fprintf(env.Stdout, "started %s in %s (sandbox %s); enter it with: hq go %s\n", n.name, filepath.Base(root), sandbox.Name, n.name)
@@ -97,7 +101,9 @@ func runNew(env Env, d deps, args []string) error {
 
 // startAgent opens the agent's home window running a new Claude session in
 // the sandbox and releases it.
-func startAgent(d deps, name, root, sandbox, prompt string) error {
+// startAgent launches Claude as agent name, resuming the Claude session resume
+// when it is set.
+func startAgent(d deps, name, root, sandbox, resume, prompt string) error {
 	if err := d.tmux.EnsureSession(root); err != nil {
 		return tmuxErr(err)
 	}
@@ -106,7 +112,7 @@ func startAgent(d deps, name, root, sandbox, prompt string) error {
 		"id": id, "name": name, "repo": root, "sandbox": sandbox,
 		"started": strconv.FormatInt(d.now().Unix(), 10),
 	}
-	win, err := d.tmux.NewWindow(name, root, opts, d.sbx.RunArgv(sandbox, claudeArgs(name, id, d.notify, prompt)...))
+	win, err := d.tmux.NewWindow(name, root, opts, d.sbx.RunArgv(sandbox, claudeArgs(name, id, d.notify, resume, prompt)...))
 	if err != nil {
 		return tmuxErr(err)
 	}
