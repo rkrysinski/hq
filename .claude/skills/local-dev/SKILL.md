@@ -17,3 +17,4 @@ scripts/local-dev.sh --kill-server      # end this checkout's private tmux serve
 - It rebuilds on every run, so code changes are always live.
 - `sbx` is real: `hq new` starts Claude in the repository's real sandbox. Prefer this repository's own sandbox for QA, keep prompts short, and `kill` every agent you started before finishing.
 - End the private tmux server with `--kill-server` when done.
+- QA evidence needs terminal screenshots in every PR (`docs/agents/qa-evidence.md`): render a pane with `scripts/qa-screenshot.sh -L SOCKET TARGET OUT.png`.

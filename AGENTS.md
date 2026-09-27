@@ -22,7 +22,7 @@ One console for many Claude Code agents running in Docker Sandboxes (`sbx`) and 
 
 ### Issue tracker
 
-Issues and PRDs are tracked as GitHub issues (PRDs labelled `prd`, implementation issues as sub-issues); work on an issue lands as a PR with `Closes #<n>` and a `## QA` section of executed checks with evidence (screenshots of every dashboard change) for the user's review - see `docs/agents/qa-evidence.md`. External PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+Issues and PRDs are tracked as GitHub issues (PRDs labelled `prd`, implementation issues as sub-issues); work on an issue lands as a PR with `Closes #<n>` and a `## QA` section of executed checks with evidence for the user's review, including terminal screenshots of hq in every PR (`scripts/qa-screenshot.sh`) - see `docs/agents/qa-evidence.md`. External PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

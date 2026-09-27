@@ -18,11 +18,12 @@ For each check whose outcome is visible and will change (dashboard look, command
 
 Implement, then run each check against hq started from the issue worktree, driving it in a real terminal the way a person would (see `AGENTS.md`, *Local run*). Record the outcome (pass or fail) and its evidence:
 
-- **Dashboard change**: a screenshot of every screen and state the change touches (a terminal screenshot, or the captured screen text when colour does not matter), paired with the before screenshot where the look changed. Name files `<check>-<screen>-before.png` / `-after.png`.
+- **Screenshots, in every PR**: the reviewer sees how hq looks, not only what it prints. Every check whose result shows in a terminal (command output, prompts, errors, the dashboard) gets a terminal screenshot, embedded in the PR body. Run those checks in a tmux pane that serves as the terminal (for example an outer server, `tmux -L qa-<n>-term`, whose pane runs a shell) and render the pane with `scripts/qa-screenshot.sh [-L SOCKET] TARGET OUT.png`, colours included. A PR with nothing to show in a terminal (docs, CI only) says so instead.
+- **Dashboard change**: a screenshot of every screen and state the change touches, paired with the before screenshot where the look changed. Name files `<check>-<screen>-before.png` / `-after.png`.
 - **File** hq writes: the file itself.
-- **Non-visual behaviour** (commands, exit codes, what hq does to tmux or `sbx`): the command and its output, saved as a `.txt` file or quoted in the PR.
+- **Exact output and non-visual behaviour** (command output, exit codes, what hq does to tmux or `sbx`): the command and its output, saved as a `.txt` file or quoted in the PR, next to the screenshot where there is one.
 
-Done when every check has an outcome and evidence. A check that fails or cannot be run is recorded with that outcome and the reason.
+Done when every check has an outcome and evidence, and every check visible in a terminal has a screenshot. A check that fails or cannot be run is recorded with that outcome and the reason.
 
 ## 4. Publish the evidence to `qa-artifacts`
 
