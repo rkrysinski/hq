@@ -23,7 +23,11 @@ func Path(getenv func(string) string) string {
 type Prefs struct {
 	UpdateChecked int64  `json:"update_checked,omitempty"` // unix seconds
 	LatestRelease string `json:"latest_release,omitempty"`
-	other         map[string]json.RawMessage
+	// Sort and View are the dashboard's modes as the user left them (spec
+	// §6.2); empty is the default.
+	Sort  string `json:"sort,omitempty"`
+	View  string `json:"view,omitempty"`
+	other map[string]json.RawMessage
 }
 
 // Load reads the file; a missing or unreadable file gives empty preferences.
@@ -44,13 +48,11 @@ func Save(path string, p Prefs) error {
 	for k, v := range p.other {
 		all[k] = v
 	}
-	delete(all, "update_checked")
-	delete(all, "latest_release")
-	if p.UpdateChecked != 0 {
-		all["update_checked"] = p.UpdateChecked
-	}
-	if p.LatestRelease != "" {
-		all["latest_release"] = p.LatestRelease
+	for k, v := range map[string]any{"update_checked": p.UpdateChecked, "latest_release": p.LatestRelease, "sort": p.Sort, "view": p.View} {
+		delete(all, k)
+		if v != int64(0) && v != "" {
+			all[k] = v
+		}
 	}
 	data, err := json.MarshalIndent(all, "", "  ")
 	if err != nil {

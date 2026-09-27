@@ -194,3 +194,25 @@ func TestFooterShowsKeysBrightAndKeepsTextLiteral(t *testing.T) {
 		t.Fatalf("footer\n got %q\nwant %q", got, want)
 	}
 }
+
+func TestListSourceKeepsTheModesInThePreferences(t *testing.T) {
+	f := newFakes()
+	f.prefs.LatestRelease = "v1.0.0"
+	src := listSource(f.deps(), "%1")
+	if s, v := src.Modes(); s != "" || v != "" {
+		t.Fatalf("fresh modes %q %q", s, v)
+	}
+	src.SaveModes("repo", "all")
+	if s, v := src.Modes(); s != "repo" || v != "all" || f.prefs.LatestRelease != "v1.0.0" {
+		t.Fatalf("modes %q %q, prefs %+v", s, v, f.prefs)
+	}
+}
+
+func TestListSourceKeepsTheCursorOnTheSession(t *testing.T) {
+	f := newFakes()
+	src := listSource(f.deps(), "%1")
+	src.SetCursor("bok-17")
+	if got := src.Cursor(); got != "bok-17" || f.tmux.session["cursor"] != "bok-17" {
+		t.Fatalf("cursor %q", got)
+	}
+}

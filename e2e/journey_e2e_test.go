@@ -38,6 +38,8 @@ func newJourney(t *testing.T) *journey {
 	testutil.FakeClaude(t)
 	t.Setenv("FAKE_CLAUDE_DELAY", "1s")
 	t.Setenv("HQ_TMUX_SOCKET", j.socket)
+	// The dashboard keeps its modes in the preferences file: not the user's.
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	os.Unsetenv("TMUX")
 	j.repo = testutil.GitRepo(t, "app")
 	return j
@@ -188,10 +190,15 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	if code, out := j.hq("new", "a", "say hi"); code != 0 {
 		t.Fatalf("new: exit %d %q", code, out)
 	}
-	shows("a's row, done", "hq  1 agent · 1 done", "● done", "Done: say hi")
+	// S0: the attention view hides an agent that is done; a shows all.
+	shows("a done, hidden", "hq  1 agent · 1 done  view: attention", "nothing needs you - press a for all")
+	keys("a")
+	shows("a's row, done", "view: all", "● done", "Done: say hi", "a view: attention")
 	if s := screen(); strings.Contains(s, "1:a") {
 		t.Fatalf("tmux's window list shows:\n%s", s)
 	}
+	keys("s")
+	shows("the repo sort", "REPO ▾", "s sort: repo")
 	if code, out := j.hq("kill", "a", "-y"); code != 0 {
 		t.Fatalf("kill: exit %d %q", code, out)
 	}
@@ -204,7 +211,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 		t.Fatalf("list or footer left after q:\n%s", s)
 	}
 	keys(j.bin+" dash", "Enter")
-	shows("the list back", "hq  0 agents", "q quit")
+	shows("the list back, in the modes left", "hq  0 agents  view: all", "REPO ▾", "q quit")
 	before := listPane()
 
 	// S9: detach, then hq again: the same layout, the same list program.

@@ -40,6 +40,8 @@ type Tmux interface {
 	ResizeHeight(pane string, lines int) error
 	SetFooter(text string) error
 	MarkList(pane string, pid int) error
+	SessionValue(key string) (string, error)
+	SetSessionValue(key, value string) error
 }
 
 // Sandboxes is the seam to sbx (design §7.2).

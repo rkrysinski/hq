@@ -179,3 +179,19 @@ func TestListPaneRespawnFitAndFooter(t *testing.T) {
 		return strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", d.List), "again")
 	})
 }
+
+func TestSessionValuesSurviveTheListProgram(t *testing.T) {
+	c, _ := dashClient(t)
+	if _, err := c.Dashboard(t.TempDir(), listStub); err != nil {
+		t.Fatal(err)
+	}
+	if v, err := c.SessionValue("cursor"); err != nil || v != "" {
+		t.Fatalf("unset: %q %v", v, err)
+	}
+	if err := c.SetSessionValue("cursor", "bok-17"); err != nil {
+		t.Fatal(err)
+	}
+	if v, err := c.SessionValue("cursor"); err != nil || v != "bok-17" {
+		t.Fatalf("%q %v", v, err)
+	}
+}
