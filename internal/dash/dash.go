@@ -141,6 +141,9 @@ type Model struct {
 	// tmux shows the popup are not the list's either (spec §6.6).
 	dialog bool
 	hint   string // update hint
+	// search is the name typed after /, while searching is true (§6.3).
+	search    string
+	searching bool
 	// seen are the new agents the list has welcomed and the agents it
 	// found at its start, by id; nil before the first refresh (S2).
 	seen map[string]bool
@@ -176,14 +179,19 @@ func New(src Source) Model {
 	return m
 }
 
-// hints are the keys of this milestone's list, in footer order: the sort
-// shown is the current one, the view the one a switches to (mocks).
+// hints are the keys of the list, in footer order: the sort shown is the
+// current one, the view the one a switches to (mocks). While searching the
+// footer is the search: what is typed, its matches, Enter and Esc
+// (dash-s3b-search.png).
 func (m Model) hints() []Hint {
+	if m.searching {
+		return []Hint{{"/" + m.search, m.matchText()}, {"⏎", "open"}, {"esc", "cancel"}}
+	}
 	other := ViewAll
 	if m.view == ViewAll {
 		other = ViewAttention
 	}
-	return []Hint{{"↑↓", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"k", "kill"}, {"c", "code"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
+	return []Hint{{"↑↓ /name", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"k", "kill"}, {"c", "code"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
 }
 
 // visible is how many rows the pane shows.
@@ -308,7 +316,13 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, nil
 		}
 		m.actErr = nil
+		if m.searching {
+			return m.searchKey(msg)
+		}
 		switch msg.String() {
+		case "/":
+			m.searching, m.search = true, ""
+			m.src.Footer(m.hints())
 		case "enter":
 			if m.cursorRow >= 0 {
 				name, dock := m.cursor, m.src.Dock
@@ -358,6 +372,66 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// searchKey handles a key while searching: letters extend the name and
+// move the cursor to the first match, Enter docks it, Esc ends the search.
+func (m Model) searchKey(msg tea.KeyMsg) (Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg.Type {
+	case tea.KeyEsc, tea.KeyCtrlC:
+		m.searching = false
+	case tea.KeyEnter:
+		m.searching = false
+		if ms := m.matches(); len(ms) > 0 {
+			name, dock := ms[0], m.src.Dock
+			cmd = func() tea.Msg { return actedMsg{dock(name)} }
+		}
+	case tea.KeyBackspace:
+		if r := []rune(m.search); len(r) > 0 {
+			m.search = string(r[:len(r)-1])
+		}
+	case tea.KeyRunes, tea.KeySpace:
+		m.search += string(msg.Runes)
+		if ms := m.matches(); len(ms) > 0 {
+			for i, a := range m.rows {
+				if a.Name == ms[0] {
+					m.moveTo(i)
+				}
+			}
+		}
+	}
+	m.src.Footer(m.hints())
+	return m, cmd
+}
+
+// matches are the names of the rows shown that start with the search,
+// ignoring case, in row order.
+func (m Model) matches() []string {
+	if m.search == "" {
+		return nil
+	}
+	var out []string
+	for _, a := range m.rows {
+		if strings.HasPrefix(strings.ToLower(a.Name), strings.ToLower(m.search)) {
+			out = append(out, a.Name)
+		}
+	}
+	return out
+}
+
+// matchText tells the matches in the footer.
+func (m Model) matchText() string {
+	ms := m.matches()
+	switch {
+	case m.search == "":
+		return "type a name"
+	case len(ms) == 0:
+		return "no match"
+	case len(ms) == 1:
+		return "1 match: " + ms[0]
+	}
+	return fmt.Sprintf("%d matches: %s", len(ms), strings.Join(ms, " "))
 }
 
 // welcome gives the cursor to an agent started since the last refresh, from

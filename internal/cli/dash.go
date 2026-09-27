@@ -244,7 +244,7 @@ func footer(hs []dash.Hint) string {
 	b.WriteString(" ")
 	for i, h := range hs {
 		if i > 0 {
-			b.WriteString("   ")
+			b.WriteString("  ")
 		}
 		fmt.Fprintf(&b, "#[fg=colour255,bold]%s#[default] %s", escapeFormat(h.Key), escapeFormat(h.Label))
 	}
