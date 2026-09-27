@@ -83,7 +83,7 @@ flowchart LR
         C -- "lifecycle event + JSON payload" --> K
     end
     subgraph RP["mounted repository"]
-        F["repo/.git/hq/agents/ID<br/>latest raw event, replaced atomically<br/>ID.stop: latest Stop"]
+        F["repo/.git/hq/agents/ID<br/>branch line + latest raw event, replaced atomically<br/>ID.stop: latest Stop"]
     end
     K -- "write tmp, rename" --> F
     F -- "read on host" --> LP["hq list program / hq ls"]
@@ -91,7 +91,8 @@ flowchart LR
 
 - **Identity.** A fresh id per agent, generated at `hq new`, stored on the home window (3.3) and passed to Claude as `HQ_ID`. Stable across `/clear`; never confused with an earlier agent that reused the name.
 - **Events used.** Prompt submitted -> `working`; Stop -> `question` or `done`; Notification of kind permission prompt, agent needs input or elicitation dialog -> `needs input`; session end -> `ended` (also detected from tmux and sbx, section 5). Until the first event an agent is `starting`. Claude in an sbx sandbox runs with permissions bypassed, so tool calls raise no permission prompt; a question dialog (AskUserQuestion) still fires the permission-prompt Notification, which is what `needs input` sees in practice.
-- **Interpretation on the host.** The hook stores the raw payload; hq derives the state, the time it was entered, the one-line last message and the branch. `question` vs `done`: the last assistant message ends with `?`, the rule proven by `notify.sh` in support-chatbot.
+- **Branch.** Hooks run in Claude's current directory, which moves into the worktree Claude creates (`CLAUDE_PROJECT_DIR` stays at the repository). The hook asks git there for the checked-out branch and writes it as a header line (`branch NAME`) before the payload: git answers inside the sandbox, where the path is valid on both platforms, so the host never maps sandbox paths to find a branch. Empty before the first event and on a detached HEAD. The payload's `cwd` is kept as the worktree path (for `hq code`, M4).
+- **Interpretation on the host.** The hook stores the raw payload after the branch line; hq derives the state, the time it was entered, the one-line last message and takes the branch. `question` vs `done`: the last assistant message ends with `?`, the rule proven by `notify.sh` in support-chatbot.
 - **Last message.** `last_assistant_message` of Stop; while `needs input`, the Notification's own message ("Claude needs your permission"). The hook also keeps the latest Stop payload as `ID.stop`, so a `working` or `ended` agent still shows its previous reply. An agent whose pane died is `ended` with `AGE` counted from its last report, not from its start.
 - **Location.** The main repository's `.git/hq/`, found from any of Claude's worktrees through git's common directory. Never tracked, no ignore rule.
 
@@ -259,7 +260,7 @@ erDiagram
 | Entity | Lives in | Holds | Written by |
 |---|---|---|---|
 | Agent / home window | tmux window and its user options (3.3) | name, id, repository path, sandbox, start time, `new` marker | `hq new`, `hq kill`, `hq sandbox restart` |
-| State file | `repo/.git/hq/agents/ID` and `ID.stop` (3.4) | the latest raw hook payload and the latest Stop payload; state, since (host modification time, 7.1), last message, branch, worktree path and Claude session id are derived from it | the injected hook |
+| State file | `repo/.git/hq/agents/ID` and `ID.stop` (3.4) | the branch Claude works on, the latest raw hook payload and the latest Stop payload; state, since (host modification time, 7.1), last message, branch, worktree path and Claude session id are derived from it | the injected hook |
 | Session state | tmux session options (3.3) | the docked agent, the cursor | list program, chord commands |
 | Preferences | per-user file (3.3, 3.9) | sort, view, last update check and latest known version | list program |
 | Pull request map | list program memory (5.2) | branch -> number, state, URL | list program |
@@ -351,3 +352,4 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - 1.0 (draft): opening and raising the dashboard (3.11), sixth platform concern; open question closed.
 - 1.0 (draft): security (7.3); open question closed.
 - 1.0 (draft): state channel built (#19): `starting` before the first event, `ID.stop` for the last message, Notification message while `needs input`; verified with Claude 2.1 in sbx: `env` from `--settings` reaches hooks, the image has `sh`, `git`, `cat`, `mv`, `cp`, `mkdir`, `rm`, the host modification time follows the host clock.
+- 1.0 (draft): the branch comes from the hook, which runs in Claude's current directory (verified with Claude 2.1 in sbx), as a header line before the payload (3.4, #20).

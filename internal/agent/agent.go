@@ -27,6 +27,7 @@ type Agent struct {
 	State    string    `json:"state"`
 	Since    time.Time `json:"since"`
 	Branch   string    `json:"branch"`
+	Worktree string    `json:"worktree"` // where Claude works, as the sandbox sees it (for hq code, M4)
 	Last     string    `json:"last"`
 }
 
@@ -87,6 +88,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		a.Since = r.Since
 	}
 	a.Last = r.Last
+	a.Branch, a.Worktree = r.Branch, r.Cwd
 }
 
 // Find returns the agent named name.

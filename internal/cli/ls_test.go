@@ -47,11 +47,65 @@ func TestLsListsAgentsInAttentionOrder(t *testing.T) {
 	// AGE is the time in the state; a dead pane is ended with its last
 	// message, counted from its last report.
 	want := "NAME   REPO  BRANCH  STATE     AGE  LAST\n" +
-		"fresh  lib   -       starting  5s   -\n" +
 		"old    app   -       done      3m   PR #58 opened\n" +
+		"fresh  lib   -       starting  5s   -\n" +
 		"gone   lib   -       ended     10s  Tests pass\n"
 	if out != want {
 		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+}
+
+func TestLsPutsWhatNeedsTheUserFirstAndNewestFirstWithinAState(t *testing.T) {
+	f := newFakes()
+	start := f.now.Add(-time.Hour)
+	for i, name := range []string{"w", "d1", "n", "q", "d2", "s"} {
+		f.tmux.windows = append(f.tmux.windows, agentWindow("@"+strconv.Itoa(i), name, "/w/app", start, false))
+	}
+	f.tmux.windows = append(f.tmux.windows, agentWindow("@9", "e", "/w/app", start, true))
+	report := func(st string, ago time.Duration) state.Report {
+		return state.Report{State: st, Since: f.now.Add(-ago)}
+	}
+	f.states["id-w"] = report(state.Working, time.Second)
+	f.states["id-d1"] = report(state.Done, 5*time.Minute)
+	f.states["id-n"] = report(state.NeedsInput, time.Hour/2)
+	f.states["id-q"] = report(state.Question, 2*time.Minute)
+	f.states["id-d2"] = report(state.Done, time.Minute)
+	f.states["id-e"] = report(state.Working, 10*time.Second) // its pane died: ended
+	_, out, _ := f.run("ls")
+	var got []string
+	for _, l := range strings.Split(strings.TrimSpace(out), "\n")[1:] {
+		got = append(got, strings.Fields(l)[0])
+	}
+	if strings.Join(got, " ") != "n q d2 d1 w s e" {
+		t.Fatalf("order %v\n%s", got, out)
+	}
+	code, js, _ := f.run("ls", "--json")
+	var rows []lsRow
+	if code != 0 || json.Unmarshal([]byte(js), &rows) != nil || len(rows) != 7 || rows[0].Name != "n" || rows[6].Name != "e" {
+		t.Fatalf("json order: %s", js)
+	}
+}
+
+func TestLsNamesEachAgentsBranch(t *testing.T) {
+	f := newFakes()
+	f.tmux.windows = []tmux.Window{
+		agentWindow("@1", "a", "/w/app", f.now, false),
+		agentWindow("@2", "b", "/w/app", f.now, false),
+		agentWindow("@3", "c", "/w/app", f.now, false),
+	}
+	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Branch: "feat/42-x", Cwd: "/w/app/.claude/worktrees/feat-42-x"}
+	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-2 * time.Second), Branch: "fix/7-y"}
+	_, out, _ := f.run("ls")
+	want := "NAME  REPO  BRANCH     STATE     AGE  LAST\n" +
+		"a     app   feat/42-x  working   1s   -\n" +
+		"b     app   fix/7-y    working   2s   -\n" +
+		"c     app   -          starting  0s   -\n"
+	if out != want {
+		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+	_, js, _ := f.run("ls", "--json")
+	if !strings.Contains(js, `"branch": "feat/42-x"`) {
+		t.Fatalf("json: %s", js)
 	}
 }
 

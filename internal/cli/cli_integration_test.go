@@ -193,6 +193,32 @@ func TestStatesFollowTheSessionAndLeaveTheRepositoryClean(t *testing.T) {
 	}
 }
 
+func TestAgentsInOneRepositoryAreToldApartByBranch(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	for name, branch := range map[string]string{"a": "feat/42-x", "b": "fix/7-y"} {
+		if code, _, errOut := h.run("new", name, "worktree "+branch); code != 0 {
+			t.Fatalf("new %s: exit %d: %s", name, code, errOut)
+		}
+	}
+	h.waitState("a", "done")
+	h.waitState("b", "done")
+	got := map[string]string{}
+	for _, r := range h.ls() {
+		got[r.Name] = r.Branch
+	}
+	if got["a"] != "feat/42-x" || got["b"] != "fix/7-y" {
+		t.Fatalf("branches %v", got)
+	}
+	// A later turn in the worktree keeps its branch.
+	h.typeIn("a", "hello")
+	h.waitReport("a", "done", "Done: hello")
+	if r := h.waitState("a", "done"); r.Branch != "feat/42-x" {
+		t.Fatalf("a stays in its worktree: %+v", r)
+	}
+}
+
 func TestAgentWhoseSessionExitsIsEndedAndStaysListed(t *testing.T) {
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")

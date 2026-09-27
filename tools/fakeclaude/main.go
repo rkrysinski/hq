@@ -8,6 +8,8 @@
 //   - a prompt containing "question" gets a reply ending in "?";
 //   - a prompt containing "input" first fires a permission Notification and
 //     waits for a line (the answer);
+//   - a prompt "worktree BRANCH" makes a worktree on a new BRANCH under
+//     .claude/worktrees and moves into it, as Claude does;
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.
 //
 // FAKE_CLAUDE_DELAY (a Go duration, default 200ms) is how long it takes to
@@ -22,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -102,10 +105,18 @@ func main() {
 	}
 }
 
-func (c claude) turn(prompt string, in *bufio.Scanner) {
+func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	c.fire("UserPromptSubmit", map[string]any{"prompt": prompt})
 	fmt.Println("> " + prompt)
 	time.Sleep(c.delay)
+	if b, ok := strings.CutPrefix(prompt, "worktree "); ok {
+		dir := filepath.Join(c.cwd, ".claude", "worktrees", strings.ReplaceAll(b, "/", "-"))
+		if out, err := exec.Command("git", "-C", c.cwd, "worktree", "add", "-q", "-b", b, dir).CombinedOutput(); err != nil {
+			fmt.Printf("fake claude: worktree: %v %s\n", err, out)
+		} else {
+			c.cwd = dir
+		}
+	}
 	if strings.Contains(prompt, "input") {
 		c.fire("Notification", map[string]any{"message": "Claude needs your permission", "notification_type": "permission_prompt"})
 		fmt.Println("fake claude: waiting for your answer")
@@ -121,7 +132,7 @@ func (c claude) turn(prompt string, in *bufio.Scanner) {
 }
 
 // fire runs the hooks registered for event with a Claude-like payload.
-func (c claude) fire(event string, fields map[string]any) {
+func (c *claude) fire(event string, fields map[string]any) {
 	p := map[string]any{"session_id": c.session, "cwd": c.cwd, "permission_mode": "bypassPermissions", "hook_event_name": event}
 	for k, v := range fields {
 		p[k] = v
