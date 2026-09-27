@@ -40,8 +40,8 @@ All operations are available from any shell; the dashboard reflects them within 
 - `hq kill NAME` - end that agent's Claude session after confirmation (`-y` skips it). The sandbox stays.
 - `hq stop` - end all agents after confirmation (`-y` skips it). Sandboxes stay.
 - `hq sandbox rm REPO` / `hq sandbox restart REPO` - remove or restart a repository's sandbox (restart is the remedy after laptop sleep, S9). `rm` refuses while agents of that repo are running.
-- `hq init [DIR]` - make a repository report agent state: installs the hq hook set into the repo's `.claude/`, adds the ignore rule for hq's state, and prints the files to commit. Idempotent; re-running updates the hook set. Until a repo is initialised its agents show as `unknown` (section 5).
-- `hq help`, `hq --version`.
+- `hq update` - replace hq with the latest released version, printing the version before and after. Running agents are not affected.
+- `hq help`, `hq --version` (also says when a newer version is released).
 
 ### 4.2 Conventions
 
@@ -60,15 +60,14 @@ Observable definitions; the mechanism is the implementer's choice, within the gi
 - `needs input` - the agent is waiting for a permission or an input dialog.
 - `done` - the agent finished a turn without asking anything.
 - `ended` - the session is gone (exited, crashed, sandbox stopped).
-- `unknown` - the agent runs in a repository that has not been initialised (`hq init`), so nothing can be reported; shown grey with the hint `run hq init`.
 
 Requirements:
 
 - A state change is visible in the dashboard within 1 second.
 - Each state carries the time since it was entered (`3s`, `2m`, `1h`) and the agent's last message, one line, truncated.
-- Entering `question`, `needs input` or `done` triggers exactly one desktop notification per event, whether or not that agent is docked. Notifications name the kind and the branch (`Question: feat/42-...`, `Needs input: ...`, `Done: ...`). `working`, `starting`, `ended` and `unknown` never notify.
+- Entering `question`, `needs input` or `done` triggers exactly one desktop notification per event, whether or not that agent is docked. Notifications name the kind and the branch (`Question: feat/42-...`, `Needs input: ...`, `Done: ...`). `working`, `starting` and `ended` never notify.
 - Two agents on the same branch are allowed; their states may then be indistinguishable. Documented limitation.
-- Repositories opt in once with `hq init`; the result is committed so the whole team gets it. No per-machine setup beyond that.
+- Every agent started by hq reports its state with no setup: nothing is installed, configured or committed in the repository, and nothing per machine beyond installing hq.
 
 ## 6. Dashboard
 
@@ -81,7 +80,7 @@ One terminal window, split horizontally:
 
 Resizing the terminal window keeps the 6 list rows and gives the rest to the session. Below 24 rows the list shows 3 rows. Minimum width 80 columns; narrower terminals drop `LAST`, then `REPO`.
 
-Header: `hq` + summary `N agents · X need you · Y done · Z working` + current view mode + clock/refresh indicator. The summary always counts all agents, whatever the view.
+Header: `hq` + summary `N agents · X need you · Y done · Z working` + current view mode + clock/refresh indicator. The summary always counts all agents, whatever the view. When a newer version of hq is released, the header also shows a quiet hint, e.g. `v0.4.0 available - hq update`; hq looks for new releases at most once a day and only while the dashboard runs.
 
 Columns: `TAB` (name), `REPO`, `BRANCH`, `STATE` (colored dot + word), `AGE`, `LAST`. No row numbers: under attention sort rows reshuffle on every state change, so positional shortcuts would point at the wrong agent. Colors: attention amber, done green, working blue, ended grey, dark background; degrade gracefully on terminals with few colors.
 
@@ -91,7 +90,7 @@ The docked row is marked with an outline, the cursor row with a background. They
 
 Sort, cycled with `s`, current mode marked in the column header, remembered between runs:
 
-- `attention` (default): `needs input`, `question`, `done`, `working`, `starting`, `unknown`, `ended`; ties by age, newest first.
+- `attention` (default): `needs input`, `question`, `done`, `working`, `starting`, `ended`; ties by age, newest first.
 - `repo`: repo name, then attention order inside a repo.
 - `state`: attention order, stable by name inside a state (no reshuffling by age).
 
@@ -181,7 +180,7 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 
 - No background daemon: the dashboard alone observes and refreshes; nothing runs when it is closed except the agents themselves.
 - Dependencies limited to what the team can install with one command on macOS and in WSL.
-- Repositories carry only the hook set in `.claude/`; hq state written into a repo must be git-ignored by that repo.
+- Repositories need no hq files or configuration; any hq state kept inside a repository is never tracked by git and needs no ignore rule.
 - Everything platform-specific (macOS vs WSL) is isolated, not scattered; behaviour is identical.
 
 ## 9. Out of scope (v1)
@@ -208,15 +207,15 @@ Creating worktrees or branches, managing pull requests, PR status per branch (le
 ## 11. Setup
 
 - Prerequisites on the host: git, tmux, Docker Sandboxes (`sbx`), GitHub CLI (`gh`, authenticated), VS Code with `code` on PATH. macOS: iTerm2. Windows: Windows Terminal, WSL (Ubuntu) with the same tools; `sbx` is the Windows binary, reachable from WSL.
-- hq is installed once per machine and available on PATH as `hq`; there is no service to start.
-- Each repository is prepared once with `hq init` and the result committed.
+- hq is installed once per machine with one command and available on PATH as `hq`; there is no service to start. `hq update` brings it to the latest release.
+- Repositories need no preparation: any repository with a sandbox can host agents as it is.
 
 ## 12. Milestones
 
 Each milestone is usable on its own and is the acceptance boundary for that step.
 
-- **M1 - CLI**: `hq new`, `ls` (no state yet, only `running`/`ended`), `go`, `kill`, `stop`, `sandbox`, `help`, `--version`; conventions of 4.2; both platforms. Deliverable: agents can be started, listed, entered and ended from any shell.
-- **M2 - State and notifications**: `hq init`, the state model of section 5, `hq ls` with `STATE AGE LAST`, desktop notifications. Deliverable: `hq ls` tells which agents need the user, and the user is notified.
+- **M1 - CLI**: `hq new`, `ls` (no state yet, only `running`/`ended`), `go`, `kill`, `stop`, `sandbox`, `help`, `--version`, `update`; conventions of 4.2; both platforms. Deliverable: agents can be started, listed, entered and ended from any shell.
+- **M2 - State and notifications**: the state model of section 5, `hq ls` with `STATE AGE LAST`, desktop notifications. Deliverable: `hq ls` tells which agents need the user, and the user is notified.
 - **M3 - Dashboard core**: layout (6.1), sorting and views (6.2), selecting with keys (6.3 without mouse and name search), `open` and `kill` with dialogs (6.6), `n` New agent dialog, scenarios S0-S8, S10, S11. Deliverable: the consolidated view; S0-S8 pass.
 - **M4 - Dashboard extras**: row action strip with `code` and `pr` (6.4), mouse (6.3, 6.4, 6.6), `/name` search, in-session dock shortcuts (6.5), narrow layout (S12), WSL verification (S13), `hq code`. Deliverable: full acceptance of section 10.
 

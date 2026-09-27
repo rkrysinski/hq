@@ -1,0 +1,324 @@
+# hq - design
+
+Version 1.0 (draft, in progress)
+
+HOW hq is built. The WHAT is `docs/requirements/spec.md`; this document cites it by section (`§5`), scenario (`S4`) and acceptance (`§10`) and never restates it. Decisions that are hard to reverse live in `docs/adr/`.
+
+## 1. Overview & design drivers
+
+The architecturally significant requirements, in priority order. When two pull in different directions, the higher one wins.
+
+1. **The givens** (§2, ADR 0001). State leaves a sandbox only through the mounted repository; sessions are tmux entities. Non-negotiable.
+2. **The docked session is the real session** (§6.1, S3). The agent's own tmux pane is shown and used in the dashboard; nothing is mirrored or previewed. This makes the dashboard a composition of tmux panes rather than a single full-screen program that draws everything.
+3. **No daemon** (§8, ADR 0002). Every command works with no dashboard running; only the dashboard observes state and notifies.
+4. **Identical behaviour on both platforms** (§2, §8, S13): macOS with iTerm2, and WSL with Windows Terminal, both with plain tmux (ADR 0008). Platform-specific code sits behind one adapter.
+5. **Timeliness and exactness** (§5, §10): state visible within 1 s, `ended` within 2 s, exactly one notification per attention event.
+6. **Install footprint** (§8, §11): one command per platform, no service.
+7. **Phase 2 headroom** (spec, Phase 2): a flat row model, sorting and filtering kept separable.
+
+## 2. Constraints & assumptions
+
+Constraints are the spec's givens (§2) and constraints (§8); they are not repeated here. Assumptions below; if one proves false, the decisions that cite it are reopened.
+
+- **A1 - Builders.** hq is built mostly by Claude Code agents working the repository's issues, under the owner's review. Technology is chosen for being agent-friendly and reviewable, not for a team's existing language skills.
+- **A2 - Users.** The owner on macOS and a small team (2-6 people) on Windows/WSL. Each person runs their own hq; nothing is shared between machines.
+- **A3 - Scale.** Per machine, typically 3-10 concurrent agents, rarely above 15, across 1-5 repositories. At this scale, polling tmux and state files several times a second is negligible, so incremental or event-driven machinery is not justified by load.
+
+## 3. High-level architecture
+
+### 3.1 Dashboard composition
+
+The dashboard is one tmux window built from tmux's own parts ([ADR 0007](../adr/0007-dashboard-is-tmux-composition.md)):
+
+```mermaid
+flowchart TB
+    subgraph W["tmux window: dashboard"]
+        L["List pane (top)<br/>shell running the hq list program"]
+        S["Docking slot (bottom)<br/>the docked agent's real pane, or a placeholder shell<br/>framed, titled name · branch · sandbox"]
+        F["Status line (bottom edge)<br/>footer set by the list program"]
+        P["Popup (on demand)<br/>centered dialog over the whole window"]
+    end
+    H1["Agent 42 home window<br/>its pane when not docked"]
+    H2["Agent bok-17 home window"]
+    H1 <-- "swap-pane (dock / undock)" --> S
+    H2 <-. "swap-pane" .-> S
+```
+
+- **List pane.** A shell that runs the list program. The list program owns the list, the cursor, the keys of §6.2-6.5, and the footer text. On `q` it exits, printing the S8 hint; the shell stays, and `hq dash` there brings the list back.
+- **Docking slot.** Holds exactly one pane: the docked agent's own pane, or a placeholder shell with the hint of S1/S6. Docking swaps the agent's pane in from its home window; the pane it replaces goes back to its own home. The agent's process, scrollback and cursor are never interrupted.
+- **Frame and title.** tmux pane borders, the title set per pane: `name · branch · sandbox`, or `placeholder shell`.
+- **Footer.** tmux's status line, content set by the list program (key hints; the `/name` search while typing, §6.3). Cleared when the list program exits.
+- **Dialogs.** tmux popups centered over the whole window, each running an hq dialog (§6.6). The list keeps refreshing underneath; the popup holds all keys and clicks while open.
+- **Layout.** The list pane's height is re-applied on every resize: header + 6 rows + footer, 3 rows below 24 lines (§6.1, S12); the slot takes the rest.
+- **Agent home windows.** Every agent has a home window in the same tmux session, holding its pane while it is not docked. They are invisible to the user: the footer replaces tmux's window list, and the terminal shows only the dashboard window.
+
+Satisfies: §6.1, §6.4 (drawn by the list program), §6.6, S1, S3, S6, S8, S12; driver 2.
+
+### 3.2 Platforms
+
+Plain tmux on both platforms ([ADR 0008](../adr/0008-plain-tmux-on-both-platforms.md)). On macOS the dashboard is an ordinary `tmux attach` inside an iTerm2 window; on WSL, the same inside Windows Terminal. The terminal only hosts tmux; everything hq shows is drawn by tmux and the list program, so both platforms share one code path for the dashboard.
+
+Satisfies: §2, §8 (identical behaviour), S13; driver 4.
+
+### 3.3 Agent registry
+
+**Decision:** tmux is the registry. An agent exists exactly while its home window exists in the `hq` session; what hq knows at launch (name, repository path, sandbox, start time, the `new` marker) is stored on that window as tmux user options. Every command and the list program read agents from tmux; there is no registry file.
+**Rationale:** with no daemon (ADR 0002), the only always-current record of what runs is tmux itself; a separate file would duplicate it and go stale when a window dies outside hq.
+**Consequences:** an agent that ended keeps its window, its dead pane kept readable, until it is killed (S7); removing the window frees the name (§4.2). The docked agent and the list's session state are session options, so they survive `q` and detach as long as tmux runs (S1, S8, S9). Sort and view must survive a tmux restart (§6.2), so they live in a small per-user preferences file. Agent state does not live here; it comes from the hooks (section 3.4).
+**Alternatives considered:** a registry file in the user's home (duplicates tmux, goes stale).
+**Satisfies:** §4.1 (`ls`, `go`, `kill`, `stop`), §4.2 (name uniqueness and reuse), §6.2 (remembered sort and view), S1, S7, S8, S9; drivers 1, 3.
+
+### 3.4 State channel
+
+Hooks are injected when hq starts Claude and write the agent's state into the repository's `.git` ([ADR 0009](../adr/0009-hooks-injected-at-launch.md)); no repository setup.
+
+```mermaid
+flowchart LR
+    subgraph SB["sbx sandbox (one per repository)"]
+        C["Claude Code<br/>started with --settings:<br/>env HQ_AGENT, HQ_ID + hook set"]
+        K["inline hook<br/>sh, git, cat, mv"]
+        C -- "lifecycle event + JSON payload" --> K
+    end
+    subgraph RP["mounted repository"]
+        F["repo/.git/hq/agents/ID<br/>latest raw event, replaced atomically"]
+    end
+    K -- "write tmp, rename" --> F
+    F -- "read on host" --> LP["hq list program / hq ls"]
+```
+
+- **Identity.** A fresh id per agent, generated at `hq new`, stored on the home window (3.3) and passed to Claude as `HQ_ID`. Stable across `/clear`; never confused with an earlier agent that reused the name.
+- **Events used.** Prompt submitted -> `working`; Stop -> `question` or `done`; Notification of kind permission prompt, agent needs input or elicitation dialog -> `needs input`; session end -> `ended` (also detected from tmux and sbx, section 5).
+- **Interpretation on the host.** The hook stores the raw payload; hq derives the state, the time it was entered, the one-line last message (`last_assistant_message` of Stop) and the branch. `question` vs `done`: the last assistant message ends with `?`, the rule proven by `notify.sh` in support-chatbot.
+- **Location.** The main repository's `.git/hq/`, found from any of Claude's worktrees through git's common directory. Never tracked, no ignore rule.
+
+Satisfies: §5 (states, age, last message, no setup), §8 (no repository files), S2, S4, S5, S11; drivers 1, 3.
+
+### 3.5 Notifications
+
+The agent's injected hook sends the notification ([ADR 0010](../adr/0010-hooks-send-notifications.md)): on Stop it returns `Question: <branch>` or `Done: <branch>` (the `?` rule in `awk`), on the Notification event `Needs input: <branch>`, as a `terminalSequence` that Claude writes to its pane and tmux passes to the terminal. hq bakes the platform's notification sequence into the hook at launch. No hq process takes part, so exactly-once holds by construction and notifications continue after `q`.
+
+Satisfies: §5 (exactly one notification per attention or done event, docked or not, kind and branch), §10, S4, S5; drivers 3, 5.
+
+### 3.6 Sandboxes
+
+**Decision:** hq resolves DIR to the main repository root (through git, so a subdirectory or one of Claude's worktrees is the same repository) and finds that repository's sandbox by workspace path in `sbx ls --json`, not by name. With none, the first `hq new` creates it under sbx's default name; the one-time Claude login happens in the docked session (S2). An agent's home window runs `sbx run --name <sandbox> -- --settings '<env + hooks>' [prompt]`.
+**Rationale:** lookup by workspace path cannot collide on two repositories with the same folder name and adopts sandboxes the user created by hand.
+**Satisfies:** §2 (one sandbox per repository), §4.1 (`hq new`, `hq sandbox`), S2, S11.
+
+- **`hq sandbox restart REPO`** (S9): stop and start the sandbox, then relaunch each of the repository's agents in its own home window, same name, new id, with `--resume <last Claude session id>` taken from the agent's last state file, so each conversation continues. Rows go `ended`, then `starting`.
+- **`hq sandbox rm REPO`**: refused while agents of the repository run (§4.1), then `sbx rm`.
+
+### 3.7 Keys and mouse
+
+**Decision:** prefix-free Alt+letter chords, bound in tmux for the `hq` session only, work anywhere in the dashboard, including while typing to Claude in the docked session:
+
+| Chord | Action | Mirrors in the list |
+|---|---|---|
+| `Alt+j` / `Alt+k` | dock next / previous row | `j` / `k` |
+| `Alt+a` | dock the first agent needing attention, skipping the one docked now | view `a` |
+| `Alt+l` | toggle focus between list and session | - |
+| `Alt+n` | New agent dialog | `n` |
+
+Docking by chord moves the cursor to the newly docked row. Each chord runs an internal hq command that performs the swap, so it works whatever the list program is doing. Kill stays `k`, `y` (`Enter` means No, ADR 0004).
+**Rationale:** walked through the triage, kill, new-agent and name-jump flows: the triage loop is one chord per hop without leaving the keyboard. Alt+Enter (Claude Code's newline), Alt+arrows (word movement in Claude's input; Windows Terminal's pane focus) and Alt+Space (Windows system menu) collide; home-row letters mirroring the list keys do not. Skipping the docked agent in `Alt+a` avoids re-docking an agent whose answer has not yet been reported (up to one refresh tick).
+**Alternatives considered:** Alt+arrows and Alt+Enter (collisions above); the tmux prefix (two keystrokes, and tmux's default prefix Ctrl+B is a Claude Code key); function keys (off the home row, need Fn on Mac laptops).
+**Satisfies:** §6.3, §6.5 (in-session dock previous/next/first needing attention, focus switching), S3, S4; drivers 2, 4.
+
+- **Option as Alt on macOS.** iTerm2 sends Option as a special character by default; hq's installation adds an iTerm2 dynamic profile with Option as Esc+, and hq opens its window with that profile. No user setup (spec §5, §11).
+- **Mouse.** tmux mouse mode on for the `hq` session only. Clicks in the list go to the list program (row: cursor; strip item: action, §6.3, §6.4); clicks in the docked pane focus it and pass to Claude; an open popup takes all clicks (§6.6).
+
+### 3.8 Components of the hq binary
+
+One binary, four roles; they share the row model and never talk to each other directly: tmux and the state files are the only shared state.
+
+```mermaid
+flowchart LR
+    CLI["CLI<br/>hq new, ls, go, code, kill, stop, sandbox"]
+    LIST["List program<br/>list pane; footer via status line"]
+    DLG["Dialog<br/>one process per tmux popup"]
+    CH["Chord commands<br/>behind Alt+j/k/a/l/n"]
+    TM[("tmux: registry, panes, options")]
+    ST[("repo/.git/hq/agents")]
+    SBX["sbx"]
+    CLI --> TM & SBX
+    LIST --> TM & ST & SBX
+    DLG --> TM & SBX
+    CH --> TM
+```
+
+- **List program.** Bubble Tea and Lip Gloss: header, rows, action strip, scroll hint (§6.1-6.4), mouse from tmux, colours degrading on terminals with fewer colours. Sets the footer through the `hq` session's status line and clears it on exit.
+- **Dialog.** A short-lived hq process in a tmux popup, same library, styled as the mocks (§6.6). It performs its own action (kill, start); the list sees the result on its next tick. It stays open to show an error under a field (duplicate name). `Alt+n` opens the same New agent dialog anywhere.
+- **Row model.** One model for `hq ls` (plain columns, `--json`) and the list program (§4.1, §6.1).
+- **Platform adapter.** Every role reaches `sbx`, the editor, the browser and the notification sequence through it (3.10); nothing else knows the platform.
+
+Satisfies: §4.1, §6.1-6.6, S2, S6; drivers 2, 3.
+
+### 3.9 Distribution and updates
+
+**Decision:** on every `v*` tag the release workflow cross-compiles hq (macOS arm64/amd64, Linux amd64/arm64) and attaches the binaries to the GitHub release, beside the notes written by `scripts/release.sh`. First install is one command through the authenticated `gh` (the repository is private): `gh release download -R rkrysinski/hq -p install.sh -O - | sh`; `install.sh` puts the binary in `~/.local/bin/hq` and, on macOS, the iTerm2 profile of 3.7. `hq update` does the same from inside hq: latest release through `gh`, download, replace itself in one step. The dashboard checks the latest release tag in the background at start, at most once a day, cached in the per-user preferences file, and shows the header hint; `hq --version` shows it too.
+**Rationale:** one command on both platforms with no extra tooling beyond the prerequisites (§11); works on the private repository today and unchanged once it is public; no daemon (ADR 0002).
+**Alternatives considered:** a Homebrew tap (a private tap needs a token per machine; poor on WSL); `go install` (every machine needs the Go toolchain); a public download URL (the repository is private for now).
+**Satisfies:** §4.1 (`hq update`, `--version`), §6.1 (update hint), §8 (one-command install), §11; drivers 3, 6.
+
+- Once the repository is public, the first-install one-liner can become a plain HTTPS download without `gh`; `hq update` keeps working as is.
+- The installer and hq check the prerequisites (`tmux` with the minimum version, `sbx`, `gh`, `code`) and fail with exit code 3 and the remedy (§4.2).
+
+### 3.10 Platform adapter
+
+**Decision:** one component is the only code that knows the platform. hq detects it at startup, not at build time: the Linux binary is on WSL when `WSL_DISTRO_NAME` is set or `/proc/sys/kernel/osrelease` names Microsoft. The adapter covers exactly five concerns:
+
+| Concern | macOS | WSL |
+|---|---|---|
+| sbx command | `sbx` | `sbx.exe` through Windows interop |
+| Paths between hq and sbx | unchanged | `wslpath -w` towards sbx, `wslpath -u` back (workspace lookup in 3.6, worktree path for `c`) |
+| Editor (`c`, `hq code`) | `code PATH` | `code PATH`; the Remote-WSL shim takes Linux paths |
+| Browser (`p`) | `gh pr view --web` | the same, with `BROWSER` set to `wslview` or `explorer.exe` when unset |
+| Notification sequence baked into the hook (3.5) | OSC 9 | what Windows Terminal honours (§9); BEL at least, shown as a taskbar flash |
+
+Everything else (tmux, registry, state files, keys, dialogs) is one code path.
+**Rationale:** these are the only points where the platforms really differ; a narrow interface keeps the rest free of platform branches and lets both sides share one set of contract tests with a fake.
+**Alternatives considered:** build-time selection (a WSL binary and a plain Linux binary would differ for no reason); platform checks at each call site (scattered, against spec §8).
+**Satisfies:** §2, §4.1 (`hq code`), §6.4 (`c`, `p`), §8 (identical behaviour, platform code isolated), S13; driver 4.
+
+## 4. Technology choices
+
+| Slot | Choice | Driving requirements | Rationale (one line) | ADR |
+|---|---|---|---|---|
+| Session host | tmux, plain, both platforms | §2, §6.1, §8 | draws the whole dashboard identically on both platforms | 0007, 0008 |
+| Language and runtime | Go, one static binary | §8, §11; drivers 4, 5, 6 | one-command install, instant chords, cross-compiles for macOS and WSL | 0011 |
+| Terminal UI | Bubble Tea, Lip Gloss | §6 | the standard Go library for full-screen terminal apps, mouse included | - |
+| Distribution | GitHub releases, `gh`-based installer and `hq update` | §8, §11 | one command on both platforms, works while the repo is private | - |
+| Pull request lookup | `gh pr list` per repository, cached in memory | §6.4 | no network in the refresh loop; `gh` is a prerequisite already | - |
+| Agent registry | tmux windows and their options | §4, §8 | always current without a daemon | - |
+| State transport | inline hooks injected with `--settings`, files in `.git/hq/` | §2, §5, §8 | no repository setup, nothing tracked | 0009 |
+| Notifications | the hook's `terminalSequence` | §5 | exactly once by construction, no hq process | 0010 |
+
+## 5. Key algorithms & data structures
+
+### 5.1 Refresh loop
+
+Problem: state visible within 1 s (§5), CLI changes within 1 s (§4), an externally stopped sandbox `ended` within 2 s (§10), with no daemon.
+
+**Decision:** polling, no file watching. Every 250 ms the list program makes one tmux query (home windows, their options, pane liveness) and checks the modification time of each agent's state file, reading only the changed ones. Every 1 s it runs `sbx ls` once. `hq ls` runs the same collection once.
+**Rationale:** at A3's scale a tick is one tmux call and about 15 file checks; polling gives one code path on both platforms and bounded latency (250 ms for tmux and hooks, 1 s for sbx).
+**Alternatives considered:** OS file watching (FSEvents, inotify): platform-specific, and tmux and sbx would still need polling.
+**Satisfies:** §4 (dashboard reflects CLI within 1 s), §5 (1 s), §10 (2 s), S4, S7; drivers 3, 5.
+
+```
+every 250 ms:
+    windows <- tmux: home windows with options, pane dead?
+    for each agent: if mtime(state file) changed: parse payload -> state, since, last, branch
+    every 4th tick: running <- sbx ls
+    agent.state <- ended  if pane dead or session-end event or sandbox not in running
+    rows <- sort(filter(agents, view), mode)    # filter and sort kept separate (Phase 2)
+    redraw list and footer if anything changed
+```
+
+`ended` has three sources, first one wins: the pane's process died (Claude exited, launch failed, or `sbx run` returned because its sandbox stopped), the session-end hook, or `sbx ls` no longer listing the sandbox as running.
+
+### 5.2 Pull request lookup
+
+Problem: the strip shows `p pr` only when the branch has a pull request (§6.4), without the network in the 250 ms tick.
+
+**Decision:** the list program keeps an in-memory map branch -> pull request (number, state, URL) per repository shown, filled in the background by one `gh pr list --state all --json number,headRefName,state,url` per repository; with several pull requests on one branch the newest wins. It refreshes a repository at list start, every 60 s, and at once when one of its agents turns `done`. `p` opens the URL from the map through the platform adapter's browser (3.10); if the map was stale, the footer says `no pull request for BRANCH`. When `gh` is missing, logged out or offline, the strip leaves out `pr` and the list shows no error.
+**Rationale:** one call per repository per minute is far below GitHub's limits at A3's scale; refreshing on `done` catches the moment a pull request usually appears (S5).
+**Alternatives considered:** `gh pr view BRANCH` per agent per tick (network in the loop, one call per agent); lookup only when `p` is pressed (the strip could not know whether to show `pr`).
+**Satisfies:** §6.4 (`pr` shown only with a pull request, `p`), S5; drivers 5, 7 (the same map can feed the Phase 2 pull request status column, spec §9).
+
+## 6. Conceptual data model
+
+No database; each entity lives where its source of truth is.
+
+```mermaid
+erDiagram
+    REPOSITORY ||--o| SANDBOX : "found by workspace path"
+    REPOSITORY ||--o{ AGENT : hosts
+    AGENT ||--|| HOME_WINDOW : "exists while"
+    AGENT ||--o| STATE_FILE : "reported through"
+    REPOSITORY ||--o{ PULL_REQUEST : "looked up per branch"
+```
+
+| Entity | Lives in | Holds | Written by |
+|---|---|---|---|
+| Agent / home window | tmux window and its user options (3.3) | name, id, repository path, sandbox, start time, `new` marker | `hq new`, `hq kill`, `hq sandbox restart` |
+| State file | `repo/.git/hq/agents/ID` (3.4) | the latest raw hook payload; state, since (host modification time, 7.1), last message, branch, worktree path and Claude session id are derived from it | the injected hook |
+| Session state | tmux session options (3.3) | the docked agent, the cursor | list program, chord commands |
+| Preferences | per-user file (3.3, 3.9) | sort, view, last update check and latest known version | list program |
+| Pull request map | list program memory (5.2) | branch -> number, state, URL | list program |
+| Row | derived, never stored | one agent joined with its state and pull request; shared by `hq ls` and the list (3.8) | - |
+
+Satisfies: §4.1 (`ls`, `--json`), §5, §6.1, §6.2; drivers 3, 7.
+
+## 7. Cross-cutting concerns
+
+### 7.1 Failure handling
+
+The CLI follows spec §4.2 (exit codes 0-3, one `hq:` line naming the remedy). Underneath the dashboard and the hooks:
+
+- **Hooks never get in the way.** The injected hook always exits 0 and never blocks Claude. If it cannot write the state file, the agent keeps working and the row keeps its last state; the pane's death still gives `ended`.
+- **sbx down is not a missing sandbox.** A failed or timed-out `sbx ls` changes no row; sbx contributes `ended` only when `sbx ls` succeeds without listing the sandbox as running (5.1). While sbx is unreachable the header's refresh indicator shows `sbx ?`; `gh` failures only hide `pr` (5.2).
+- **A crashed list program leaves the window intact.** Its pane falls back to a shell as after `q` (S8), with one `hq:` line; the docked session is untouched and `hq` brings the list back. Diagnostics go to a small, size-capped per-user log in the XDG state directory, never into the list.
+- **Times are host times.** `AGE` and `since` come from the host's modification time of the state file, not from a timestamp written inside the sandbox, whose clock can lag after the host sleeps; after a sleep `AGE` shows real elapsed time, and `hq ls` agrees with the dashboard.
+- **Concurrent `hq new NAME`.** tmux has no atomic create-if-absent, so uniqueness (§4.2) is checked again after the home window is created; of two windows with one name, the later removes itself and exits `1`. No lock file.
+
+**Satisfies:** §4.2 (exit codes, errors, name uniqueness), §5 (states truthful), §10 (externally stopped sandbox `ended` within 2 s, without false `ended`), S7, S8, S9; drivers 3, 5.
+
+### 7.2 Testability
+
+**Decision:** six seams, each an interface with an in-memory fake: tmux, sbx, gh, the platform adapter (3.10), the clock and the state-file reader; nothing else touches a process or a file. The pyramid of `docs/agents/testing.md` maps to Go as:
+
+| Level | Selected by | Covers |
+|---|---|---|
+| Unit | plain `go test` | payload to state, attention order, views and sorting, row model and `hq ls` output, pull request map, version comparison, the list's rendering through Bubble Tea's `teatest` with golden output per mock scenario |
+| Integration | build tag `integration` | real tmux on a private socket per test (`tmux -L hq-test-N`); the injected hook run by `sh` on recorded Claude hook payloads, `?` rule included; a stub `sbx` on PATH; contract tests shared by fakes and real adapters |
+| End-to-end | build tag `e2e` | a few journeys (start, see, dock, kill, sandbox stopped) in real tmux, with the stub `sbx` running a fake `claude` that fires the hooks; driven by `send-keys`, read by `capture-pane`, which also yields the QA screenshots |
+
+CI runs a matrix of `ubuntu-latest` and `macos-latest` (both have tmux) plus the ported pyramid check counting test functions per tag. Real sbx and Claude are left to the manual test (spec §10); the WSL side of the adapter is unit-tested with a fake `wslpath` and verified by hand (S13), as hosted CI has no WSL.
+**Rationale:** sbx and Claude cannot run in CI, so a stub `sbx` with a fake `claude` firing real hook payloads is the widest seam that still exercises all of hq's own code; a private tmux socket keeps tmux tests real without touching the user's server.
+**Alternatives considered:** mocking tmux in integration tests (tests the fake, not the composition of ADR 0007); CI with real sbx (needs microVM support and a Claude login on the runner).
+**Satisfies:** §10 (acceptance, manual test), S13; `docs/agents/testing.md`; drivers 1, 4.
+
+## 8. Risks & open questions
+
+- **Spec §2 wording (raised with the owner).** §2 says the macOS user works in iTerm2 with its tmux integration; ADR 0008 uses iTerm2 only as the terminal for the dashboard. To be aligned in the spec (grill-to-spec), not from here.
+
+- **Minimum tmux version.** `allow-passthrough all` (ADR 0010) is believed to need tmux 3.4: Ubuntu 24.04 ships it, Ubuntu 22.04 ships 3.2a without passthrough. WSL then needs Ubuntu 24.04 or a newer tmux; to be stated in the prerequisites (spec §11) once verified.
+
+- **Repositories on the WSL file system.** Whether `sbx.exe` can mount a repository that lives in the WSL file system (`\\wsl.localhost\...`), and fast enough. If not, repositories on WSL must live under `/mnt/c`, which would need a line in spec §11. Verify first on the Windows machine during M1.
+
+- **Bringing the dashboard to the front (open question).** `hq go` from another shell must bring the dashboard's terminal window to the front (§4.1), and `hq` must open it with the iTerm2 profile of 3.7. This is window management, a sixth concern for the platform adapter (3.10) on each terminal; not yet designed.
+- **Security.** Not examined in depth: the state files are written by code running inside the sandbox, so an agent can misreport its own state; hq only reads them, parses defensively and never executes their content.
+
+## 9. Deferred implementation notes
+
+- Verify tmux passes the hook's notification sequence from panes in hidden windows with `allow-passthrough all`, and the minimum tmux version that has it, on both platforms.
+- Pick the notification sequence per terminal (iTerm2, Windows Terminal) and bake it into the hook at launch.
+- Verify the chords of 3.7 against Claude Code's default key bindings and Windows Terminal's default actions; verify that clicks outside an open tmux popup do nothing.
+- Build the iTerm2 dynamic profile (Option as Esc+) and open hq's window with it.
+- `hq update` replaces the binary while a list program may be running; the running list keeps the old version until it is restarted; say so in the update output.
+- Verify that `env` passed through `--settings` reaches hook processes; fallback: key by session id and re-link on the `SessionStart` event after `/clear`.
+- Verify that hooks passed through `--settings` run alongside a repository's own hooks rather than replacing them.
+- Verify that `sbx run --name` on a running sandbox starts an additional agent session rather than attaching to an existing one (spec §2 given; the removed bash prototype relied on it), and that `--resume` passes through `sbx run`.
+- Verify that the sbx claude image provides `sh`, `git`, `cat`, `mv`, `awk` on PATH for hooks.
+- Verify that the modification time the host sees on a file written through the sbx workspace mount follows the host clock.
+
+## 10. Version changes
+
+- 1.0 (draft): design drivers agreed.
+- 1.0 (draft): assumptions A1-A3 (builders, users, scale).
+- 1.0 (draft): dashboard composition (3.1, ADR 0007).
+- 1.0 (draft): plain tmux on both platforms (3.2, ADR 0008); risks section opened.
+- 1.0 (draft): tmux as the agent registry (3.3).
+- 1.0 (draft): state channel with hooks injected at launch (3.4, ADR 0009); spec change: `hq init` and `unknown` removed.
+- 1.0 (draft): notifications sent by the injected hook (3.5, ADR 0010).
+- 1.0 (draft): refresh loop by polling (5.1).
+- 1.0 (draft): sandbox lookup, creation and restart (3.6).
+- 1.0 (draft): keys and mouse, Alt+letter chords (3.7).
+- 1.0 (draft): Go as language and runtime; technology table (4, ADR 0011).
+- 1.0 (draft): components of the binary, dialogs as popup processes (3.8).
+- 1.0 (draft): distribution and `hq update` (3.9); spec change: `hq update` and the update hint added; tmux version risk.
+- 1.0 (draft): platform adapter (3.10); risk on repositories in the WSL file system.
+- 1.0 (draft): pull request lookup (5.2).
+- 1.0 (draft): failure handling (7.1).
+- 1.0 (draft): testability (7.2).
+- 1.0 (draft): conceptual data model (6); driver 4 aligned with ADR 0008; open question on bringing the dashboard to the front.
