@@ -10,7 +10,7 @@ import (
 
 func runCLI(args ...string) (code int, stdout, stderr string) {
 	var out, errOut bytes.Buffer
-	code = Main(args, Env{Stdin: strings.NewReader(""), Stdout: &out, Stderr: &errOut})
+	code = mainWith(args, Env{Stdin: strings.NewReader(""), Stdout: &out, Stderr: &errOut}, newFakes().deps())
 	return code, out.String(), errOut.String()
 }
 

@@ -20,7 +20,7 @@ const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
 	MinUnitShare = 0.50
 	// MinCoverage is the lowest allowed statement coverage of internal/, in percent.
-	MinCoverage = 88.0
+	MinCoverage = 88.5
 )
 
 func main() {
@@ -59,7 +59,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
 		}
-		fmt.Printf("coverage %.1f%% (minimum %.1f%%)\n", pct, MinCoverage)
+		fmt.Printf("coverage %.2f%% (minimum %.1f%%)\n", pct, MinCoverage)
 		if pct < MinCoverage {
 			problems = append(problems, fmt.Sprintf("coverage %.1f%% is below %.1f%%", pct, MinCoverage))
 		}
