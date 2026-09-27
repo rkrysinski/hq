@@ -181,7 +181,7 @@ func TestAReportFromBeforeTheStartGivesTheMessageButNotTheState(t *testing.T) {
 	}
 }
 
-func TestAnAgentNeedingInputIsUnsettledAfterAMoment(t *testing.T) {
+func TestAnAgentWorkingOrNeedingInputIsUnsettledAfterAMoment(t *testing.T) {
 	now := time.Unix(1000, 0)
 	report := func(s string, age time.Duration) state.Report { return state.Report{State: s, Since: now.Add(-age)} }
 	for _, tc := range []struct {
@@ -193,7 +193,10 @@ func TestAnAgentNeedingInputIsUnsettledAfterAMoment(t *testing.T) {
 	}{
 		{"needs input", tmux.Window{}, report(state.NeedsInput, time.Second), true, true},
 		{"just now", tmux.Window{}, report(state.NeedsInput, 100*time.Millisecond), true, false},
-		{"working", tmux.Window{}, report(state.Working, time.Second), true, false},
+		{"working", tmux.Window{}, report(state.Working, time.Second), true, true},
+		{"working just now", tmux.Window{}, report(state.Working, 100*time.Millisecond), true, false},
+		{"question", tmux.Window{}, report(state.Question, time.Second), true, false},
+		{"starting", tmux.Window{}, report(state.Starting, time.Second), true, false},
 		{"done", tmux.Window{}, report(state.Done, time.Second), true, false},
 		{"no report", tmux.Window{}, state.Report{}, false, false},
 		{"dead", tmux.Window{PaneDead: true}, report(state.NeedsInput, time.Second), true, false},

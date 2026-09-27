@@ -82,7 +82,7 @@ func collect(d deps) ([]agent.Agent, error) {
 	return settle(d, agent.Collect(ws, d.readState, running)), nil
 }
 
-// settle looks at the screens of agents whose turn may have ended with Esc,
+// settle looks at the screens of agents whose turn the user may have ended,
 // which no hook reports, and records when hq first saw it on their windows
 // (design §3.4). When tmux cannot show the screens, the hooks' states stand.
 func settle(d deps, as []agent.Agent) []agent.Agent {

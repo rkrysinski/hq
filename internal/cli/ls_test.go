@@ -198,6 +198,26 @@ func TestLsShowsACancelledDialogDoneFromWhenItWasFirstSeen(t *testing.T) {
 	}
 }
 
+func TestLsShowsAnInterruptedTurnDoneAndAWorkingOneWorking(t *testing.T) {
+	f := newLsFakes()
+	rule := strings.Repeat("─", 30)
+	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/app", f.now.Add(-time.Minute), false)}
+	f.tmux.windows[0].Pane, f.tmux.windows[1].Pane = "%1", "%2"
+	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply"}
+	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply"}
+	f.tmux.screens = map[string]string{
+		"%1": "  ⎿  Interrupted · What should Claude do instead?\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n",
+		"%2": "  ⎿  Interrupted · What should Claude do instead?\n❯ go on\n✻ Working…\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on · esc to interrupt\n",
+	}
+	_, out, _ := f.run("ls")
+	want := "NAME  REPO  BRANCH  STATE    AGE  LAST\n" +
+		"a     app   -       done     0s   Interrupted\n" +
+		"b     app   -       working  30s  earlier reply\n"
+	if out != want {
+		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+}
+
 func TestLsWithSbxFailingShowsTheStatesItHas(t *testing.T) {
 	f := newFakes()
 	f.sbx.err = sbxNotFound()

@@ -1,0 +1,30 @@
+  188
+  189
+  190
+  191
+  192
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ Run the shell command sleep 20 and then reply with the word slept. Do not edit any files.Think
+  briefly, then reply with the word again. Do not edit any files.
+
+  Ran 1 shell command
+
+● slept
+
+  again
+
+✻ Worked for 28s · done 7:41 PM
+
+❯ Run exactly this shell command once: curl -sI https://example.com | head -1 . Then reply with its
+  output. Do not edit any files.
+
+  Ran 1 shell command
+  ⎿  Interrupted · What should Claude do instead?
+
+✻ Worked for 3s · done 7:41 PM
+                                                                                  ● high · /effort
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

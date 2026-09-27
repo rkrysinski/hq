@@ -12,6 +12,9 @@
 //     "esc" (or a line with ESC in it) cancels the dialog, which ends the
 //     turn with no hook, as Claude Code 2.1.283 does; any other line answers
 //     it: PostToolUse, then the turn goes on;
+//   - a prompt containing "slow" works until a line comes: "esc" (or a line
+//     with ESC in it) interrupts the turn, which ends it with no hook, as
+//     Claude Code 2.1.283 does; any other line lets it finish;
 //   - a prompt "worktree BRANCH" makes a worktree on a new BRANCH under
 //     .claude/worktrees and moves into it, as Claude does;
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.
@@ -125,7 +128,7 @@ func main() {
 
 func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	c.fire("UserPromptSubmit", map[string]any{"prompt": prompt})
-	fmt.Println("> " + prompt)
+	fmt.Println("❯ " + prompt)
 	time.Sleep(c.delay)
 	if b, ok := strings.CutPrefix(prompt, "worktree "); ok {
 		dir := filepath.Join(c.cwd, ".claude", "worktrees", strings.ReplaceAll(b, "/", "-"))
@@ -145,11 +148,21 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 		in.Scan()
 		if answer := in.Text(); strings.TrimSpace(answer) == "esc" || strings.Contains(answer, "\x1b") {
 			fmt.Println("●\u00a0User declined to answer questions\n  ⎿  · " + question + " (Red / Blue)")
-			promptBox()
+			promptBox("")
 			return
 		}
 		c.fire("PostToolUse", map[string]any{"tool_name": "AskUserQuestion", "tool_input": ask, "tool_use_id": "toolu_fake"})
 		time.Sleep(c.delay)
+	}
+	if strings.Contains(prompt, "slow") {
+		fmt.Println("✻ Working…")
+		promptBox("esc to interrupt")
+		in.Scan()
+		if line := in.Text(); strings.TrimSpace(line) == "esc" || strings.Contains(line, "\x1b") {
+			fmt.Println("  ⎿  Interrupted · What should Claude do instead?")
+			promptBox("")
+			return
+		}
 	}
 	reply := "Done: " + prompt
 	if strings.Contains(prompt, "question") {
@@ -162,10 +175,16 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 // question is what the fake's question dialog asks.
 const question = "Which colour do you pick?"
 
-// promptBox draws Claude's prompt box, waiting for the user's next prompt.
-func promptBox() {
+// promptBox draws Claude's prompt box, where the user types the next
+// prompt; hint is what its footer offers besides, as "esc to interrupt"
+// while a turn is at work.
+func promptBox(hint string) {
 	rule := strings.Repeat("─", 40)
-	fmt.Println(rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)")
+	footer := "  ⏵⏵ bypass permissions on (shift+tab to cycle)"
+	if hint != "" {
+		footer += " · " + hint
+	}
+	fmt.Println(rule + "\n❯ \n" + rule + "\n" + footer)
 }
 
 // fire runs the hooks registered for event with a Claude-like payload.

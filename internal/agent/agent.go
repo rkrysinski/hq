@@ -165,10 +165,10 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 const settleDelay = 500 * time.Millisecond
 
 // Unsettled reports whether the agent's screen may show a turn that the
-// user ended with Esc, which no hook reports (design §3.4): the agent runs,
-// and its hooks said a moment ago that it needs input.
+// user ended, which no hook reports (design §3.4): the agent runs, and its
+// hooks said a moment ago that it works or needs input.
 func (a Agent) Unsettled(now time.Time) bool {
-	return a.Alive && !a.ending && a.reported && a.State == state.NeedsInput && now.Sub(a.Since) >= settleDelay
+	return a.Alive && !a.ending && a.reported && (a.State == state.Working || a.State == state.NeedsInput) && now.Sub(a.Since) >= settleDelay
 }
 
 // Settle applies the screen of an Unsettled agent: a turn the user ended
