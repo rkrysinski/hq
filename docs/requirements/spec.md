@@ -19,7 +19,7 @@ These are facts about the environment, not design choices. hq is designed with t
 
 ## 3. Concepts
 
-- **Agent**: one Claude Code session started through hq, identified by a short **name** (typically the issue number or a slug, e.g. `42`, `bok-17`). Names are unique among running agents.
+- **Agent**: one Claude Code session started through hq, identified by a short **name** (typically the issue number or a slug, e.g. `42`, `bok-17`). A name is taken while its agent exists, running or `ended`, until the agent is killed.
 - **Repo**: the repository the agent works in. **Worktree/branch**: where the agent actually works; the branch is the primary identifier in status output.
 - **State**: `starting`, `working`, `question`, `needs input`, `done`, `ended` (definitions in 5).
 - **Attention state**: `question` or `needs input` - the agent is waiting for the user.
@@ -33,7 +33,7 @@ All operations are available from any shell; the dashboard reflects them within 
 ### 4.1 Commands
 
 - `hq` / `hq dash` - open the dashboard (create it if needed, otherwise return to it, with the previously docked session).
-- `hq new NAME [DIR] [PROMPT]` - start an agent for the repository in DIR with an optional first prompt. The second argument is DIR when it is an existing directory, otherwise it is the PROMPT (so `hq new 42 "work on issue #42"` works from inside the repo). DIR defaults to the current directory and must be a git repository. The repository's sandbox is reused if it exists, created otherwise; a freshly created sandbox needs a one-time Claude login, which the user does in the docked session. Fails if NAME is already running.
+- `hq new NAME [DIR] [PROMPT]` - start an agent for the repository in DIR with an optional first prompt. The second argument is DIR when it is an existing directory, otherwise it is the PROMPT (so `hq new 42 "work on issue #42"` works from inside the repo). DIR defaults to the current directory and must be a git repository. The repository's sandbox is reused if it exists, created otherwise; a freshly created sandbox needs a one-time Claude login, which the user does in the docked session. Fails if an agent named NAME already exists (running or `ended`, until killed).
 - `hq ls` - list agents, one per line, columns `NAME REPO BRANCH STATE AGE LAST`, in attention order (see 6.2). `--json` gives the same as a machine-readable list.
 - `hq go NAME` - dock that agent's session and bring the dashboard to front, opening the dashboard if it is not open.
 - `hq code NAME` - open the editor (VS Code) on the agent's worktree, so the editor shows the agent's branch. Before the worktree is known, opens the repository. Works on macOS and from WSL. The agent keeps running; editor and agent see the same files.
@@ -45,7 +45,7 @@ All operations are available from any shell; the dashboard reflects them within 
 
 ### 4.2 Conventions
 
-- Names: short, unique among running agents; letters, digits, `-`, `_`. Reusable once the previous agent with that name is gone.
+- Names: letters, digits, `-`, `_`, at most 32 characters; unique among existing agents, running or `ended`. Reusable once the previous agent with that name is gone (killed). A name over the limit is refused with an error naming the limit.
 - Exit codes: `0` success, `1` usage or refused (duplicate name, `sandbox rm` with running agents), `2` not found (agent, repo, sandbox), `3` environment (tmux or sbx unavailable).
 - Errors are one line on stderr, prefixed `hq:`, and name the remedy where there is one (`hq: no agent 'x' (see hq ls)`).
 - Every command works the same from inside the dashboard's own terminal and from any other shell.
@@ -96,7 +96,7 @@ Sort, cycled with `s`, current mode marked in the column header, remembered betw
 
 View, toggled with `a`, remembered between runs:
 
-- **attention** (default): only agents in an attention state. Empty state reads "nothing needs you - press a for all". The calmest possible list.
+- **attention** (default): only agents in an attention state, plus the docked agent in any state, marked with its outline as in the all view, so the list always shows the agent whose session is on screen. Agents neither docked nor in an attention state stay hidden. Empty state, when no row qualifies, reads "nothing needs you - press a for all". The calmest possible list: at most one extra row, and it is the one on screen anyway.
 - **all**: every agent, all states.
 
 All row actions work on any visible row in either view; an agent needs no pending question to be docked.
@@ -146,7 +146,7 @@ The `/name` search is the one exception and stays in the footer, because it filt
 
 Trigger, what the user sees, what must be true afterwards. These are the acceptance narrative for the implementation and the manual test.
 
-**S0. Default view** - `hq` with agents running: the list shows only agents that need the user; the header still counts all; `a` shows everything.
+**S0. Default view** - `hq` with agents running: the list shows only agents that need the user, and the docked agent whatever its state (6.2); the header still counts all; `a` shows everything. With nothing docked and nothing needing the user, the list reads "nothing needs you - press a for all".
 
 **S1. Start of day** - `hq` with nothing running: the dashboard opens with an empty list ("no agents yet - press n to start one, or run: hq new NAME [DIR] [PROMPT]") and an empty session slot. With agents already running: the dashboard opens showing them, with the previously docked session still docked.
 

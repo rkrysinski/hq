@@ -86,11 +86,13 @@ func sortRows(rows []agent.Agent, mode string) {
 	}
 }
 
-// filterRows keeps the agents the view shows.
+// filterRows keeps the agents the view shows: in the attention view those
+// needing the user, the new ones and the docked one, whatever its state, so
+// the list always shows the agent on screen (spec §6.2, ADR 0006).
 func filterRows(as []agent.Agent, view string) []agent.Agent {
 	rows := make([]agent.Agent, 0, len(as))
 	for _, a := range as {
-		if view == ViewAll || a.NeedsYou() || a.New {
+		if view == ViewAll || a.NeedsYou() || a.New || a.Docked {
 			rows = append(rows, a)
 		}
 	}
@@ -109,9 +111,9 @@ func Arrange(as []agent.Agent, sort, view string) []agent.Agent {
 }
 
 // Neighbour is the agent Alt+j (step 1) or Alt+k (step -1) docks: the row
-// after or before the docked one. While the docked agent is not shown, the
-// cursor stands where it left, so Alt+j docks the cursor row and Alt+k the
-// one above it (design §3.7).
+// after or before the docked one. Every view shows the docked agent; while
+// none is shown (nothing is docked), the cursor stands where it left, so
+// Alt+j docks the cursor row and Alt+k the one above it (design §3.7).
 func Neighbour(rows []agent.Agent, docked, cursor string, step int) (string, bool) {
 	at := func(name string) int {
 		for i, a := range rows {

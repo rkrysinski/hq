@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
@@ -44,12 +45,34 @@ func TestKillAsksAndEndsTheSessionInItsSandbox(t *testing.T) {
 	}
 }
 
+func TestKillRemovesThatAgentsStateFilesOnly(t *testing.T) {
+	f := killFakes()
+	for _, id := range []string{"id-a", "id-b", "id-gone"} {
+		f.states[id] = state.Report{State: state.Done}
+	}
+	if code, _, _ := f.run("kill", "a", "-y"); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if got := strings.Join(f.removed, ", "); got != "/w/app id-a" {
+		t.Fatalf("removed %q", got)
+	}
+	// The others keep reporting.
+	if _, ok := f.states["id-b"]; !ok || len(f.states) != 2 {
+		t.Fatalf("states %v", f.states)
+	}
+	// A session that outlives the wait loses its files with its window.
+	f.sbx.onExec = nil
+	if code, _, _ := f.run("kill", "b", "-y"); code != 0 || strings.Join(f.removed, ", ") != "/w/app id-a, /w/lib id-b" {
+		t.Fatalf("exit %d removed %v", code, f.removed)
+	}
+}
+
 func TestKillDefaultsToNo(t *testing.T) {
 	for _, typed := range []string{"\n", "n\n", "", "later\n"} {
 		f := killFakes()
 		f.stdin = typed
-		if code, _, _ := f.run("kill", "a"); code != 0 || f.names() != "hq a b gone" || len(f.sbx.execs) != 0 {
-			t.Fatalf("%q: exit %d, windows %q, execs %v", typed, code, f.names(), f.sbx.execs)
+		if code, _, _ := f.run("kill", "a"); code != 0 || f.names() != "hq a b gone" || len(f.sbx.execs) != 0 || len(f.removed) != 0 {
+			t.Fatalf("%q: exit %d, windows %q, execs %v, removed %v", typed, code, f.names(), f.sbx.execs, f.removed)
 		}
 	}
 }
@@ -74,8 +97,8 @@ func TestKillWithoutTerminalIsRefused(t *testing.T) {
 
 func TestKillEndedAgentRemovesItsRowOnly(t *testing.T) {
 	f := killFakes()
-	if code, _, _ := f.run("kill", "gone", "-y"); code != 0 || len(f.sbx.execs) != 0 || f.names() != "hq a b" {
-		t.Fatalf("exit %d execs %v windows %q", code, f.sbx.execs, f.names())
+	if code, _, _ := f.run("kill", "gone", "-y"); code != 0 || len(f.sbx.execs) != 0 || f.names() != "hq a b" || strings.Join(f.removed, ", ") != "/w/lib id-gone" {
+		t.Fatalf("exit %d execs %v windows %q removed %v", code, f.sbx.execs, f.names(), f.removed)
 	}
 }
 
@@ -124,12 +147,15 @@ func TestStopAsksOnceWithTheCountAndEndsAll(t *testing.T) {
 	if len(f.sbx.execs) != 2 || f.names() != "hq" {
 		t.Fatalf("execs %v windows %q", f.sbx.execs, f.names())
 	}
+	if got := strings.Join(f.removed, ", "); got != "/w/app id-a, /w/lib id-b, /w/lib id-gone" {
+		t.Fatalf("removed %q", got)
+	}
 }
 
 func TestStopDeclinedOrWithYes(t *testing.T) {
 	f := killFakes()
-	if code, _, _ := f.run("stop"); code != 0 || f.names() != "hq a b gone" {
-		t.Fatalf("declined: exit %d windows %q", code, f.names())
+	if code, _, _ := f.run("stop"); code != 0 || f.names() != "hq a b gone" || len(f.removed) != 0 {
+		t.Fatalf("declined: exit %d windows %q removed %v", code, f.names(), f.removed)
 	}
 	f.tty = false
 	if code, out, _ := f.run("stop", "-y"); code != 0 || out != "ended 3 agents; sandboxes stay\n" || f.names() != "hq" {

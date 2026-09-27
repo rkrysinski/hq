@@ -44,10 +44,23 @@ func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, erro
 	if !filepath.IsAbs(n.dir) {
 		n.dir = filepath.Join(cwd, n.dir)
 	}
-	if !agent.ValidName(n.name) {
-		return newArgs{}, usageErr("invalid name '%s': use letters, digits, - and _", n.name)
+	if err := checkName(n.name); err != nil {
+		return newArgs{}, err
 	}
 	return n, nil
+}
+
+// checkName says what is wrong with an agent name, naming the remedy (spec
+// §4.2): characters come first, so a long name with a bad character learns
+// about the character.
+func checkName(name string) error {
+	switch {
+	case !agent.NameChars(name):
+		return usageErr("invalid name '%s': use letters, digits, - and _", name)
+	case len(name) > agent.MaxName:
+		return usageErr("name '%s' is too long: at most %d characters", name, agent.MaxName)
+	}
+	return nil
 }
 
 // claudeArgs are the arguments hq gives Claude: settings carrying the agent's
@@ -89,8 +102,8 @@ func runNew(env Env, d deps, args []string) error {
 // marked new for the list (S2). What is wrong with the name or the dir is a
 // dialog.FieldError, so the dialog shows it under that field.
 func createAgent(out io.Writer, d deps, n newArgs) (root, sandbox string, err error) {
-	if !agent.ValidName(n.name) {
-		return "", "", dialog.FieldError{Field: dialog.Name, Err: usageErr("invalid name '%s': use letters, digits, - and _", n.name)}
+	if err := checkName(n.name); err != nil {
+		return "", "", dialog.FieldError{Field: dialog.Name, Err: err}
 	}
 	root, ok := d.repoRoot(n.dir)
 	if !ok {

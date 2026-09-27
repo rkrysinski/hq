@@ -326,7 +326,8 @@ type fakes struct {
 	tty      bool   // stdin is a terminal
 	stdin    string // what the user types
 
-	states map[string]state.Report // agent id -> its state file
+	states  map[string]state.Report // agent id -> its state file
+	removed []string                // "repo id" of each agent whose state files were removed
 
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
@@ -423,6 +424,11 @@ func (f *fakes) deps() deps {
 		readState: func(_, id string) (state.Report, bool) {
 			r, ok := f.states[id]
 			return r, ok
+		},
+		removeState: func(root, id string) error {
+			f.removed = append(f.removed, root+" "+id)
+			delete(f.states, id)
+			return nil
 		},
 		pollSandboxes: f.sbx.List,
 

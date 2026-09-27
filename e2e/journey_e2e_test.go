@@ -245,8 +245,12 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	keys("Escape")
 	eventually(t, "the dialog to close", func() bool { return !strings.Contains(screen(), "New agent") })
 
-	// S0: the attention view hides an agent that is done; a shows all.
-	shows("a done, hidden", "hq  1 agent · 1 done  view: attention", "nothing needs you - press a for all")
+	// §6.2: the attention view keeps the docked agent, done, with its
+	// outline; a shows all.
+	shows("a done, docked, shown", "hq  1 agent · 1 done  view: attention", "│ a ", "● done")
+	if s := screen(); strings.Contains(s, "nothing needs you") {
+		t.Fatalf("the docked a is hidden:\n%s", s)
+	}
 	keys("a")
 	shows("a's row, done", "view: all", "● done", "Done: more please", "a view: attention")
 	if s := screen(); strings.Contains(s, "1:a") {

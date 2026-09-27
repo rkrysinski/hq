@@ -3,6 +3,7 @@ package state
 import (
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -32,6 +33,24 @@ func Read(root, id string) (r Report, ok bool) {
 	r = Parse(latest, lastStop)
 	r.Since = info.ModTime()
 	return r, true
+}
+
+// Remove deletes the state files of agent id of the repository at root, once
+// the agent is gone (design §3.4); files already gone are no error. Only that
+// agent's two files are touched, never another agent's: agents of other tmux
+// servers report to the same directory.
+func Remove(root, id string) error {
+	if !idRE.MatchString(id) {
+		return errors.New("not an agent id")
+	}
+	path := filepath.Join(Dir(root), id)
+	var errs []error
+	for _, p := range []string{path, path + ".stop"} {
+		if err := os.Remove(p); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // readData reads a regular file of at most maxFile bytes, never following a
