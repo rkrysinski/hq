@@ -57,10 +57,15 @@ func TestDashboardHasTheListOnTopAndThePlaceholderBelow(t *testing.T) {
 	if got := tm(t, socket, "display-message", "-p", "-t", d.List, "#{T:pane-border-format}"); strings.Contains(got, "▸") {
 		t.Errorf("list pane titled %q", got)
 	}
-	for opt, want := range map[string]string{"set-titles": "on", "set-titles-string": "hq"} {
+	for opt, want := range map[string]string{"set-titles": "on", "set-titles-string": "hq", "mouse": "on"} {
 		if got := tm(t, socket, "show-options", "-v", "-t", Session, opt); got != want {
 			t.Errorf("%s = %q, want %q", opt, got, want)
 		}
+	}
+	// Other sessions keep the server's mouse setting (text selection there
+	// is unchanged).
+	if got := tm(t, socket, "show-options", "-gv", "mouse"); got != "off" {
+		t.Errorf("global mouse %q, want off", got)
 	}
 }
 

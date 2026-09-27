@@ -120,6 +120,11 @@ func (m NewAgent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = msg.err.Error()
 			return m, nil
 		}
+	case tea.MouseMsg:
+		if m.busy || !leftPress(msg) {
+			return m, nil
+		}
+		return m.click(msg.X, msg.Y)
 	case tea.KeyMsg:
 		if m.busy {
 			return m, nil
@@ -146,6 +151,32 @@ func (m NewAgent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.inputs[m.focus], cmd = m.inputs[m.focus].Update(msg)
 		return m, cmd
+	}
+	return m, nil
+}
+
+// click is a left click at x, y (spec §6.6): × and Cancel close the
+// dialog, Start submits it, a field takes the focus; anywhere else does
+// nothing.
+func (m NewAgent) click(x, y int) (tea.Model, tea.Cmd) {
+	w := m.w()
+	lines, tops := m.layout()
+	switch {
+	case onClose(x, y, w):
+		return m, tea.Quit
+	case y == len(lines)-1:
+		switch buttonAt(x, w, "Start ⏎", "Cancel") {
+		case 0:
+			return m.submit()
+		case 1:
+			return m, tea.Quit
+		}
+		return m, nil
+	}
+	for i, top := range tops {
+		if y >= top && y < top+3 && x < w {
+			return m, m.setFocus(i)
+		}
 	}
 	return m, nil
 }
@@ -181,11 +212,22 @@ var (
 // labelWidth is the width of the field labels with the margin before them.
 const labelWidth = 9
 
+// w is the width the dialog draws in.
+func (m NewAgent) w() int { return max(m.width, 30) }
+
 func (m NewAgent) View() string {
-	w := max(m.width, 30)
+	lines, _ := m.layout()
+	return strings.Join(lines, "\n")
+}
+
+// layout is the dialog's lines and the line each field's box starts on.
+func (m NewAgent) layout() ([]string, []int) {
+	w := m.w()
 	boxW := w - labelWidth - 1
 	lines := append(titleLines("New agent", w), "")
+	var tops []int
 	for i, in := range m.inputs {
+		tops = append(tops, len(lines))
 		border := cLine
 		if i == m.focus {
 			border = cAccent
@@ -212,9 +254,37 @@ func (m NewAgent) View() string {
 	} else {
 		start = cDefault
 	}
-	buttons := start.Render("Start ⏎") + "   " + cancel.Render("Cancel")
-	lines = append(lines, "", centered(buttons, w))
-	return strings.Join(lines, "\n")
+	lines = append(lines, "", buttons(w, start.Render("Start ⏎"), cancel.Render("Cancel")))
+	return lines, tops
+}
+
+// buttonGap is the space between a dialog's two buttons.
+const buttonGap = "   "
+
+// buttons are a dialog's two buttons, centered on its last line.
+func buttons(w int, first, second string) string {
+	return centered(first+buttonGap+second, w)
+}
+
+// buttonAt is which of the two buttons labelled first and second (0 or 1)
+// column x of the buttons line falls on; -1 for neither.
+func buttonAt(x, w int, first, second string) int {
+	// Each button pads its label by two cells a side.
+	fw, sw := ansi.StringWidth(first)+4, ansi.StringWidth(second)+4
+	at := max(0, (w-fw-len(buttonGap)-sw)/2)
+	switch {
+	case x >= at && x < at+fw:
+		return 0
+	case x >= at+fw+len(buttonGap) && x < at+fw+len(buttonGap)+sw:
+		return 1
+	}
+	return -1
+}
+
+// leftPress is a click of the left button; other buttons, releases and
+// motion do nothing in a dialog.
+func leftPress(msg tea.MouseMsg) bool {
+	return msg.Action == tea.MouseActionPress && msg.Button == tea.MouseButtonLeft
 }
 
 // wrap renders an error over lines of width w, indented by indent.
@@ -226,8 +296,9 @@ func wrap(s string, indent, w int) []string {
 	return out
 }
 
-// Run runs a dialog on the terminal until it closes.
+// Run runs a dialog on the terminal until it closes; it takes the mouse
+// (spec §6.6).
 func Run(m tea.Model) error {
-	_, err := tea.NewProgram(m).Run()
+	_, err := tea.NewProgram(m, tea.WithMouseCellMotion()).Run()
 	return err
 }

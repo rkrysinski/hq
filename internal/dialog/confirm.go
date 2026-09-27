@@ -60,6 +60,11 @@ func (m Confirm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.Done = true
 		return m, tea.Quit
+	case tea.MouseMsg:
+		if m.busy || !leftPress(msg) {
+			return m, nil
+		}
+		return m.click(msg.X, msg.Y)
 	case tea.KeyMsg:
 		if m.busy {
 			return m, nil
@@ -81,6 +86,28 @@ func (m Confirm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// click is a left click at x, y: × and No close the dialog, Yes runs the
+// action; anywhere else does nothing.
+func (m Confirm) click(x, y int) (tea.Model, tea.Cmd) {
+	w := m.w()
+	if onClose(x, y, w) {
+		return m, tea.Quit
+	}
+	if y != strings.Count(m.View(), "\n") {
+		return m, nil
+	}
+	switch buttonAt(x, w, "No ⏎", "Yes") {
+	case 0:
+		return m, tea.Quit
+	case 1:
+		return m.run()
+	}
+	return m, nil
+}
+
+// w is the width the dialog draws in.
+func (m Confirm) w() int { return max(m.width, 30) }
+
 // run runs the action; the dialog waits for the outcome.
 func (m Confirm) run() (tea.Model, tea.Cmd) {
 	m.busy, m.err = true, ""
@@ -89,7 +116,7 @@ func (m Confirm) run() (tea.Model, tea.Cmd) {
 }
 
 func (m Confirm) View() string {
-	w := max(m.width, 30)
+	w := m.w()
 	lines := append(titleLines(m.title, w), "",
 		centered(cText.Render(ansi.Truncate(m.question, w-2, "…")), w), "")
 	// The line under the question: the note, what runs, or why it failed.
@@ -105,7 +132,7 @@ func (m Confirm) View() string {
 	if m.yes {
 		no, yes = cButton, cDefault
 	}
-	lines = append(lines, "", centered(no.Render("No ⏎")+"   "+yes.Render("Yes"), w))
+	lines = append(lines, "", buttons(w, no.Render("No ⏎"), yes.Render("Yes")))
 	return strings.Join(lines, "\n")
 }
 
@@ -117,6 +144,11 @@ func titleLines(title string, w int) []string {
 		strings.Repeat(" ", left) + cTitle.Render(title) + strings.Repeat(" ", max(1, w-left-ansi.StringWidth(title)-2)) + cDim.Render("×"),
 		" " + cDim.Render(strings.Repeat("─", w-2)),
 	}
+}
+
+// onClose is whether x, y is on the title line's ×, give or take a cell.
+func onClose(x, y, w int) bool {
+	return y == 0 && x >= w-3 && x <= w-1
 }
 
 // centered centers a rendered line in w cells.

@@ -325,6 +325,43 @@ func (m *Model) arrange() {
 	m.moveTo(row)
 }
 
+// rowsTop is the line of the first row: the header, a blank line and the
+// column names come before it.
+const rowsTop = 3
+
+// mouse handles a click (spec §6.3, §6.4): on a row it moves the cursor
+// there; on the cursor row it fires the strip item under it, as its key
+// does, and elsewhere does nothing. The wheel moves the cursor as the
+// arrows do.
+func (m Model) mouse(msg tea.MouseMsg) (Model, tea.Cmd) {
+	switch {
+	case msg.Button == tea.MouseButtonWheelUp && msg.Action == tea.MouseActionPress:
+		return m.update(tea.KeyMsg{Type: tea.KeyUp})
+	case msg.Button == tea.MouseButtonWheelDown && msg.Action == tea.MouseActionPress:
+		return m.update(tea.KeyMsg{Type: tea.KeyDown})
+	case msg.Button != tea.MouseButtonLeft || msg.Action != tea.MouseActionPress:
+		return m, nil
+	}
+	i := m.offset + msg.Y - rowsTop
+	if msg.Y < rowsTop || i >= min(len(m.rows), m.offset+m.visible()) {
+		return m, nil
+	}
+	m.actErr = nil
+	if i != m.cursorRow {
+		m.moveTo(i)
+		return m, nil
+	}
+	_, pr := m.pr(m.rows[i])
+	switch k := chipAt(pr, m.width >= wideFrom, msg.X, m.width); k {
+	case "":
+		return m, nil
+	case "enter":
+		return m.update(tea.KeyMsg{Type: tea.KeyEnter})
+	default:
+		return m.update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
+	}
+}
+
 // moveTo puts the cursor on row i and scrolls to keep it in sight. With no
 // rows the cursor keeps its agent's name, so it returns to that agent when
 // it shows again (as when the list starts before its first refresh).
@@ -486,6 +523,11 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	case closedMsg:
 		m.dialog, m.actErr = false, msg.err
 		return m, m.collect()
+	case tea.MouseMsg:
+		if m.dialog || m.searching {
+			return m, nil
+		}
+		return m.mouse(msg)
 	case tea.KeyMsg:
 		if m.dialog {
 			return m, nil
@@ -919,23 +961,53 @@ func (c columns) shown() []column {
 	return cs
 }
 
-// strip is the cursor row's actions, pr only with a pull request (spec
+// chip is one action of the strip: the key it stands for and how it is
+// drawn.
+type chip struct {
+	key, text string
+}
+
+// chips are the cursor row's actions, pr only with a pull request (spec
 // §6.4, mock dash.png); below wideFrom columns, glyphs alone
 // (dash-s12-narrow.png).
-func strip(pr, wide bool) string {
-	items := [][3]string{{"⏎", "open", "⏎"}, {"c", "code", "c"}, {"p", "pr", "p"}, {"k", "kill", "✕"}}
-	var chips []string
+func chips(pr, wide bool) []chip {
+	// key pressed, key shown, glyph when narrow, label
+	items := [][4]string{{"enter", "⏎", "⏎", "open"}, {"c", "c", "c", "code"}, {"p", "p", "p", "pr"}, {"k", "k", "✕", "kill"}}
+	var cs []chip
 	for _, it := range items {
 		if it[0] == "p" && !pr {
 			continue
 		}
 		if !wide {
-			chips = append(chips, cChipKey.Render(" "+it[2]+" "))
+			cs = append(cs, chip{it[0], cChipKey.Render(" " + it[2] + " ")})
 			continue
 		}
-		chips = append(chips, cChipKey.Render(" "+it[0])+cChip.Render(" "+it[1]+" "))
+		cs = append(cs, chip{it[0], cChipKey.Render(" "+it[1]) + cChip.Render(" "+it[3]+" ")})
 	}
-	return strings.Join(chips, cStripGap.Render(" "))
+	return cs
+}
+
+// strip draws the chips a space apart.
+func strip(pr, wide bool) string {
+	var ts []string
+	for _, c := range chips(pr, wide) {
+		ts = append(ts, c.text)
+	}
+	return strings.Join(ts, cStripGap.Render(" "))
+}
+
+// chipAt is the key of the chip at column x of the cursor row, whose strip
+// ends a margin from the right edge; "" between chips or off the strip.
+func chipAt(pr, wide bool, x, width int) string {
+	at := width - len(margin) - ansi.StringWidth(strip(pr, wide))
+	for _, c := range chips(pr, wide) {
+		w := ansi.StringWidth(c.text)
+		if x >= at && x < at+w {
+			return c.key
+		}
+		at += w + 1
+	}
+	return ""
 }
 
 // row is one agent; the cursor row has a background and the action strip
@@ -1025,6 +1097,6 @@ func orDash(s string) string {
 
 // Run runs the list program on the terminal until q.
 func Run(src Source) error {
-	_, err := tea.NewProgram(New(src), tea.WithAltScreen()).Run()
+	_, err := tea.NewProgram(New(src), tea.WithAltScreen(), tea.WithMouseCellMotion()).Run()
 	return err
 }
