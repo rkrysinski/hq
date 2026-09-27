@@ -11,9 +11,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"testing"
+	"time"
 )
 
 var sockets atomic.Int64
@@ -26,8 +30,26 @@ func TmuxSocket(t *testing.T) string {
 		t.Skip("tmux not installed")
 	}
 	name := fmt.Sprintf("hq-test-%d-%d", os.Getpid(), sockets.Add(1))
-	t.Cleanup(func() { _ = exec.Command("tmux", "-L", name, "kill-server").Run() })
+	t.Cleanup(func() { killServer(name) })
 	return name
+}
+
+// killServer ends a test's tmux server and waits for the programs in its
+// panes to exit: tmux returns before they do, and one still starting (the
+// stub sbx right after hq new) would write into a directory the test's
+// cleanup is removing.
+func killServer(socket string) {
+	out, _ := exec.Command("tmux", "-L", socket, "list-panes", "-a", "-F", "#{pane_pid}").Output()
+	_ = exec.Command("tmux", "-L", socket, "kill-server").Run()
+	for _, f := range strings.Fields(string(out)) {
+		pid, err := strconv.Atoi(f)
+		if err != nil {
+			continue
+		}
+		for i := 0; i < 50 && syscall.Kill(pid, 0) == nil; i++ {
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
 }
 
 // SbxStub returns the path of the stub sbx and its state directory, set in
