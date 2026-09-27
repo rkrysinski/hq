@@ -30,7 +30,7 @@ func commands() []command {
 	return []command{
 		{"new", "NAME [DIR] [PROMPT]", "start an agent for the repository in DIR, with an optional first prompt", runNew},
 		{"ls", "[--json]", "list agents", runLs},
-		{"go", "NAME", "enter that agent's session", notYet("go")},
+		{"go", "NAME", "enter that agent's session", runGo},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", notYet("kill")},
 		{"stop", "[-y]", "end all agents; sandboxes stay", notYet("stop")},
 		{"sandbox", "rm|restart REPO", "remove or restart a repository's sandbox", notYet("sandbox")},

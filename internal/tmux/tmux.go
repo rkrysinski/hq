@@ -172,3 +172,37 @@ func (c Client) KillWindow(id string) error {
 	_, err := c.tmux("kill-window", "-t", id)
 	return err
 }
+
+// SocketPath returns the path of the server's socket.
+func (c Client) SocketPath() (string, error) {
+	out, err := c.tmux("display-message", "-p", "#{socket_path}")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// Enter shows a window of hq's session to a client already inside this tmux
+// server: select the window, then switch the client to hq's session.
+func (c Client) Enter(id string) error {
+	_, err := c.tmux("select-window", "-t", id, ";", "switch-client", "-t", Session)
+	return err
+}
+
+// Attach selects a window and attaches this terminal to hq's session,
+// detaching any other client, until the user detaches (design §3.11).
+func (c Client) Attach(id string, t Terminal) error {
+	if _, err := c.tmux("select-window", "-t", id); err != nil {
+		return err
+	}
+	args := []string{"attach-session", "-d", "-t", Session}
+	if c.Socket != "" {
+		args = append([]string{"-L", c.Socket}, args...)
+	}
+	return t.Interactive("tmux", args...)
+}
+
+// Terminal runs a program attached to the user's terminal.
+type Terminal interface {
+	Interactive(name string, args ...string) error
+}

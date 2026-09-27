@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -46,3 +47,16 @@ type Error struct {
 }
 
 func (e *Error) Error() string { return fmt.Sprintf("%s: %s", e.Name, e.Msg) }
+
+// Interactive runs a program on hq's own terminal (stdin, stdout, stderr)
+// and waits for it, without a TMUX variable so tmux never refuses to attach.
+func (Exec) Interactive(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, "TMUX=") {
+			cmd.Env = append(cmd.Env, kv)
+		}
+	}
+	return cmd.Run()
+}

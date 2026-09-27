@@ -31,3 +31,10 @@ func TestRunSucceeds(t *testing.T) {
 		t.Fatalf("%q %v", out, err)
 	}
 }
+
+func TestInteractiveRunsWithoutTMUXVariable(t *testing.T) {
+	t.Setenv("TMUX", "/tmp/x,1,0")
+	if err := (Exec{}).Interactive("sh", "-c", `test -z "${TMUX:-}"`); err != nil {
+		t.Fatalf("TMUX leaked into the attached program: %v", err)
+	}
+}
