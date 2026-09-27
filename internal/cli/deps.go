@@ -70,6 +70,12 @@ type deps struct {
 	tmux     Tmux
 	sbx      Sandboxes
 	repoRoot func(dir string) (string, bool)
+	// worktreeTop is the top of the work tree dir is in (a worktree's own
+	// root); fromSbx turns a path the sandbox sees into hq's.
+	worktreeTop func(dir string) (string, bool)
+	fromSbx     func(path string) (string, error)
+	// editor opens VS Code on a directory (design §3.10).
+	editor   func(dir string) error
 	samePath func(a, b string) bool
 	isDir    func(path string) bool
 	getwd    func() (string, error)
@@ -108,10 +114,17 @@ func defaultDeps() deps {
 	run := proc.Exec{}
 	plat := platform.Detect(os.Getenv, os.ReadFile, run)
 	return deps{
-		tmux:     tmux.Client{Run: run, Socket: os.Getenv("HQ_TMUX_SOCKET")},
-		sbx:      sbx.Client{Run: run, Platform: plat},
-		repoRoot: func(dir string) (string, bool) { return repo.Root(run, dir) },
-		samePath: repo.Same,
+		tmux:        tmux.Client{Run: run, Socket: os.Getenv("HQ_TMUX_SOCKET")},
+		sbx:         sbx.Client{Run: run, Platform: plat},
+		repoRoot:    func(dir string) (string, bool) { return repo.Root(run, dir) },
+		samePath:    repo.Same,
+		worktreeTop: func(dir string) (string, bool) { return repo.Top(run, dir) },
+		fromSbx:     plat.FromSbx,
+		editor: func(dir string) error {
+			argv := plat.Editor(dir)
+			_, err := run.Run(argv[0], argv[1:]...)
+			return err
+		},
 		isDir: func(path string) bool {
 			fi, err := os.Stat(path)
 			return err == nil && fi.IsDir()

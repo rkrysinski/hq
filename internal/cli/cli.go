@@ -32,6 +32,7 @@ func commands() []command {
 		{"new", "NAME [DIR] [PROMPT]", "start an agent for the repository in DIR, with an optional first prompt", runNew},
 		{"ls", "[--json]", "list agents", runLs},
 		{"go", "NAME", "enter that agent's session", runGo},
+		{"code", "NAME", "open VS Code on that agent's worktree", runCode},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
 		{"sandbox", "rm|restart REPO [-y]", "remove or restart a repository's sandbox", runSandbox},

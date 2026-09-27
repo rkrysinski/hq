@@ -33,6 +33,8 @@ type fakeSource struct {
 	dockErr    error
 	dialogs    []string // dirs the New agent dialog opened with
 	onDialog   func()   // what the user does in the dialog
+	coded      []string // agents VS Code opened on
+	codeErr    error
 	killed     []string // agents the Kill dialog opened on
 	onKill     func()   // what the user answers in it
 
@@ -76,6 +78,10 @@ func (f *fakeSource) source() Source {
 				f.onDialog()
 			}
 			return nil
+		},
+		Code: func(name string) error {
+			f.coded = append(f.coded, name)
+			return f.codeErr
 		},
 		Kill: func(name string) error {
 			f.killed = append(f.killed, name)
@@ -323,7 +329,7 @@ func TestQAndCtrlCQuit(t *testing.T) {
 func TestStartShowsTheFooterAndEveryResizeReappliesTheLayout(t *testing.T) {
 	f := &fakeSource{}
 	m := started(f, 100, 10)
-	if got := fmt.Sprint(f.footer); got != "[{↑↓ select} {⏎ open session below} {n new} {k kill} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
+	if got := fmt.Sprint(f.footer); got != "[{↑↓ select} {⏎ open session below} {n new} {k kill} {c code} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
 		t.Errorf("footer %s", got)
 	}
 	update(m, tea.WindowSizeMsg{Width: 90, Height: 12})
@@ -402,7 +408,7 @@ func TestAttentionViewShowsOnlyWhoNeedsYouAndCountsAll(t *testing.T) {
 	if len(f.saved) != 1 || f.saved[0] != "attention/all" {
 		t.Errorf("kept %v", f.saved)
 	}
-	if got := f.footer[5]; got != (Hint{"a", "view: attention"}) {
+	if got := f.footer[6]; got != (Hint{"a", "view: attention"}) {
 		t.Errorf("footer after a: %v", got)
 	}
 	m = key(m, "a")
@@ -439,7 +445,7 @@ func TestSortCyclesAndIsMarkedInTheColumnHeader(t *testing.T) {
 		if got := strings.Join(strings.Fields(lines(m)[2]), " "); !strings.HasPrefix(got, tc.marked) {
 			t.Errorf("sort %s: column header %q, want %q", tc.sort, got, tc.marked)
 		}
-		if got := f.footer[4]; got != (Hint{"s", "sort: " + tc.sort}) {
+		if got := f.footer[5]; got != (Hint{"s", "sort: " + tc.sort}) {
 			t.Errorf("footer %v", got)
 		}
 		m = key(m, "s")
@@ -785,4 +791,20 @@ func remove(as []agent.Agent, name string) []agent.Agent {
 		}
 	}
 	return out
+}
+
+func TestCOpensTheEditorOnTheCursorRow(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := key(key(started(f, 120, 10), "j"), "c") // perm ask done w1 end
+	if strings.Join(f.coded, " ") != "ask" {
+		t.Fatalf("opened %v", f.coded)
+	}
+	f.codeErr = errors.New("VS Code's code command not found")
+	if ls := lines(key(m, "c")); ls[len(ls)-1] != "  hq: VS Code's code command not found" {
+		t.Fatalf("footer line %q", ls[len(ls)-1])
+	}
+	f = &fakeSource{}
+	if key(started(f, 120, 10), "c"); len(f.coded) != 0 {
+		t.Fatalf("with no rows: opened %v", f.coded)
+	}
 }

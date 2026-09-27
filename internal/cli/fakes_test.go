@@ -11,6 +11,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rkrysinski/hq/internal/dash"
+	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
@@ -285,12 +286,16 @@ type fakes struct {
 	tmux  *fakeTmux
 	sbx   *fakeSbx
 	repos map[string]string // dir -> repository root
-	dirs  map[string]bool
-	cwd   string
-	now   time.Time
-	env   map[string]string
-	tty   bool   // stdin is a terminal
-	stdin string // what the user types
+	tops  map[string]string // dir -> top of its work tree
+	// edited are the directories VS Code opened on; editorErr fails it.
+	edited    []string
+	editorErr error
+	dirs      map[string]bool
+	cwd       string
+	now       time.Time
+	env       map[string]string
+	tty       bool   // stdin is a terminal
+	stdin     string // what the user types
 
 	states map[string]state.Report // agent id -> its state file
 
@@ -309,10 +314,12 @@ func newFakes() *fakes {
 		env:   map[string]string{},
 		sbx:   &fakeSbx{},
 		repos: map[string]string{"/w/app": "/w/app", "/w/app/sub": "/w/app", "/w/app/.claude/worktrees/x": "/w/app", "/w/lib": "/w/lib"},
-		dirs:  map[string]bool{"/w/app": true, "/w/app/sub": true, "/w/lib": true, "/w/plain": true, "/w/app/.claude/worktrees/x": true},
-		cwd:   "/w/app",
-		now:   time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
-		tty:   true,
+		tops: map[string]string{"/w/app": "/w/app", "/w/app/sub": "/w/app", "/w/app/.claude/worktrees/x": "/w/app/.claude/worktrees/x",
+			"/w/app/.claude/worktrees/x/sub": "/w/app/.claude/worktrees/x", "/w/lib": "/w/lib"},
+		dirs: map[string]bool{"/w/app": true, "/w/app/sub": true, "/w/lib": true, "/w/plain": true, "/w/app/.claude/worktrees/x": true},
+		cwd:  "/w/app",
+		now:  time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
+		tty:  true,
 
 		states: map[string]state.Report{},
 
@@ -347,13 +354,25 @@ func (f *fakes) deps() deps {
 			return r, ok
 		},
 		samePath: func(a, b string) bool { return a == b },
-		isDir:    func(p string) bool { return f.dirs[p] || f.dirs["/w/app/"+p] },
-		getwd:    func() (string, error) { return f.cwd, nil },
-		now:      func() time.Time { return f.now },
-		getenv:   func(k string) string { return f.env[k] },
-		sleep:    func(d time.Duration) { f.now = f.now.Add(d) },
-		canAsk:   func(io.Reader) bool { return f.tty },
-		notify:   "[notify %s]",
+		worktreeTop: func(dir string) (string, bool) {
+			t, ok := f.tops[dir]
+			return t, ok
+		},
+		fromSbx: platformtest.Fake{}.FromSbx,
+		editor: func(dir string) error {
+			if f.editorErr != nil {
+				return f.editorErr
+			}
+			f.edited = append(f.edited, dir)
+			return nil
+		},
+		isDir:  func(p string) bool { return f.dirs[p] || f.dirs["/w/app/"+p] },
+		getwd:  func() (string, error) { return f.cwd, nil },
+		now:    func() time.Time { return f.now },
+		getenv: func(k string) string { return f.env[k] },
+		sleep:  func(d time.Duration) { f.now = f.now.Add(d) },
+		canAsk: func(io.Reader) bool { return f.tty },
+		notify: "[notify %s]",
 		readState: func(_, id string) (state.Report, bool) {
 			r, ok := f.states[id]
 			return r, ok

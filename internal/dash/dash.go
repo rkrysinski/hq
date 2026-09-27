@@ -43,6 +43,8 @@ type Source struct {
 	// Dock docks the agent named name below the list, keys in its session
 	// (spec §6.4 open).
 	Dock func(name string) error
+	// Code opens VS Code on the agent's worktree (spec §6.4 code).
+	Code func(name string) error
 	// NewAgent opens the New agent dialog over the dashboard, dir
 	// prefilled (empty: where hq was started), and returns when it closes
 	// (spec §6.6).
@@ -123,7 +125,7 @@ type (
 	}
 	hintMsg   struct{ text string }
 	hourMsg   struct{}
-	dockedMsg struct{ err error }
+	actedMsg  struct{ err error } // a row action (dock, code) finished
 	closedMsg struct{ err error } // a dialog closed
 )
 
@@ -134,7 +136,7 @@ type Model struct {
 	rows    []agent.Agent // the agents the view shows, in sort order
 	running map[string]bool
 	err     error
-	dockErr error // why the last Enter did not dock, until the next key
+	actErr  error // why the last row action failed, until the next key
 	// dialog is true from n or k until the dialog closes: the keys typed before
 	// tmux shows the popup are not the list's either (spec §6.6).
 	dialog bool
@@ -181,7 +183,7 @@ func (m Model) hints() []Hint {
 	if m.view == ViewAll {
 		other = ViewAttention
 	}
-	return []Hint{{"↑↓", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"k", "kill"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
+	return []Hint{{"↑↓", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"k", "kill"}, {"c", "code"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
 }
 
 // visible is how many rows the pane shows.
@@ -295,22 +297,27 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, tea.Tick(updateEvery, func(time.Time) tea.Msg { return hourMsg{} })
 	case hourMsg:
 		return m, m.checkUpdate()
-	case dockedMsg:
-		m.dockErr = msg.err
+	case actedMsg:
+		m.actErr = msg.err
 		return m, m.collect()
 	case closedMsg:
-		m.dialog, m.dockErr = false, msg.err
+		m.dialog, m.actErr = false, msg.err
 		return m, m.collect()
 	case tea.KeyMsg:
 		if m.dialog {
 			return m, nil
 		}
-		m.dockErr = nil
+		m.actErr = nil
 		switch msg.String() {
 		case "enter":
 			if m.cursorRow >= 0 {
 				name, dock := m.cursor, m.src.Dock
-				return m, func() tea.Msg { return dockedMsg{dock(name)} }
+				return m, func() tea.Msg { return actedMsg{dock(name)} }
+			}
+		case "c":
+			if m.cursorRow >= 0 {
+				name, code := m.cursor, m.src.Code
+				return m, func() tea.Msg { return actedMsg{code(name)} }
 			}
 		case "n":
 			dir, open := "", m.src.NewAgent
@@ -383,7 +390,7 @@ func (m *Model) welcome() tea.Cmd {
 		return nil
 	}
 	dock := m.src.Dock
-	return func() tea.Msg { return dockedMsg{dock(fresh)} }
+	return func() tea.Msg { return actedMsg{dock(fresh)} }
 }
 
 // modesChanged re-arranges the rows, keeps the modes for the next run and
@@ -489,7 +496,7 @@ func (m Model) header() string {
 // footerLine is the last line: an error from tmux, or the scroll hint when
 // more rows exist than fit.
 func (m Model) footerLine(v int) string {
-	for _, err := range []error{m.err, m.dockErr} {
+	for _, err := range []error{m.err, m.actErr} {
 		if err != nil {
 			return margin + cErr.Render(ansi.Truncate("hq: "+err.Error(), m.width-4, "…"))
 		}
