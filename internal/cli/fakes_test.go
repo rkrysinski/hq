@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -26,6 +27,7 @@ type fakeTmux struct {
 	socket       string
 	entered      string // window shown with Enter
 	attached     string // window shown with Attach
+	windowsErr   error
 }
 
 func (f *fakeTmux) SocketPath() (string, error) { return f.socket, nil }
@@ -42,6 +44,9 @@ func (f *fakeTmux) Version() (string, error) {
 }
 
 func (f *fakeTmux) Windows() ([]tmux.Window, error) {
+	if f.windowsErr != nil {
+		return nil, f.windowsErr
+	}
 	return append([]tmux.Window(nil), f.windows...), nil
 }
 
@@ -96,6 +101,16 @@ type fakeSbx struct {
 	created   []string
 	err       error
 	createErr error
+	execs     [][]string // sandbox, then the command
+	onExec    func(args []string)
+}
+
+func (f *fakeSbx) Exec(sandbox string, args ...string) error {
+	f.execs = append(f.execs, append([]string{sandbox}, args...))
+	if f.onExec != nil {
+		f.onExec(args)
+	}
+	return nil
 }
 
 func (f *fakeSbx) List() ([]sbx.Sandbox, error) { return f.sandboxes, f.err }
@@ -122,10 +137,12 @@ type fakes struct {
 	cwd   string
 	now   time.Time
 	env   map[string]string
+	tty   bool   // stdin is a terminal
+	stdin string // what the user types
 }
 
 func newFakes() *fakes {
-	return &fakes{
+	f := &fakes{
 		tmux:  &fakeTmux{version: "3.5a", argv: map[string][]string{}, started: map[string]bool{}, socket: "/tmp/tmux-501/default"},
 		env:   map[string]string{},
 		sbx:   &fakeSbx{},
@@ -133,7 +150,17 @@ func newFakes() *fakes {
 		dirs:  map[string]bool{"/w/app": true, "/w/app/sub": true, "/w/lib": true, "/w/plain": true, "/w/app/.claude/worktrees/x": true},
 		cwd:   "/w/app",
 		now:   time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
+		tty:   true,
 	}
+	// pkill -f 'HQ_ID":"<id>"' ends the session: its pane dies.
+	f.sbx.onExec = func(args []string) {
+		for i, w := range f.tmux.windows {
+			if strings.Contains(args[len(args)-1], `"`+w.Options["id"]+`"`) {
+				f.tmux.windows[i].PaneDead = true
+			}
+		}
+	}
+	return f
 }
 
 func (f *fakes) deps() deps {
@@ -149,5 +176,7 @@ func (f *fakes) deps() deps {
 		getwd:    func() (string, error) { return f.cwd, nil },
 		now:      func() time.Time { return f.now },
 		getenv:   func(k string) string { return f.env[k] },
+		sleep:    func(d time.Duration) { f.now = f.now.Add(d) },
+		canAsk:   func(io.Reader) bool { return f.tty },
 	}
 }

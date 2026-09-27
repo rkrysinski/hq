@@ -6,10 +6,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/repo"
 	"github.com/rkrysinski/hq/internal/sbx"
@@ -112,5 +114,32 @@ func TestAgentWhoseSessionExitsIsEndedAndStaysListed(t *testing.T) {
 	code, out, _ := h.run("ls")
 	if code != 0 || !strings.Contains(out, "ended") {
 		t.Fatalf("ls: %d %q", code, out)
+	}
+}
+
+func TestKillEndsTheSessionAndFreesTheName(t *testing.T) {
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitState("a", "running")
+	ws, _ := h.d.tmux.Windows()
+	a, _ := agent.Find(agent.FromWindows(ws), "a")
+	marker := `HQ_ID":"` + a.ID + `"`
+	if exec.Command("pgrep", "-f", marker).Run() != nil {
+		t.Fatal("the session is not running before the kill")
+	}
+	if code, out, errOut := h.run("kill", "a", "-y"); code != 0 || out != "killed a; the sandbox stays\n" {
+		t.Fatalf("kill: exit %d %q %q", code, out, errOut)
+	}
+	if exec.Command("pgrep", "-f", marker).Run() == nil {
+		t.Fatal("the session still runs after the kill")
+	}
+	if rows := h.ls(); len(rows) != 0 {
+		t.Fatalf("rows %+v", rows)
+	}
+	if code, _, errOut := h.run("new", "a"); code != 0 {
+		t.Fatalf("name not freed: exit %d %s", code, errOut)
 	}
 }

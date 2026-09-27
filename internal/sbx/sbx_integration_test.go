@@ -3,6 +3,7 @@
 package sbx
 
 import (
+	"os"
 	"testing"
 
 	"github.com/rkrysinski/hq/internal/proc"
@@ -26,5 +27,19 @@ func TestCreateThenListFindsSandboxByWorkspace(t *testing.T) {
 	s, ok := ByWorkspace(all, "/w/app", func(a, b string) bool { return a == b })
 	if !ok || s.Name != "claude-app" || s.Running() {
 		t.Fatalf("%+v %v", s, ok)
+	}
+}
+
+func TestExecRunsTheCommandInTheSandbox(t *testing.T) {
+	bin, dir := testutil.SbxStub(t)
+	c := Client{Run: proc.Exec{}, Bin: bin}
+	if err := c.Exec("claude-app", "touch", dir+"/ran"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(dir + "/ran"); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Exec("claude-app", "false"); err == nil {
+		t.Fatal("a failing command must report an error")
 	}
 }
