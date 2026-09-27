@@ -17,6 +17,7 @@ import (
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/repo"
 	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/testutil"
 	"github.com/rkrysinski/hq/internal/tmux"
 	"github.com/rkrysinski/hq/internal/update"
@@ -329,6 +330,55 @@ func TestKillEndsTheSessionAndFreesTheName(t *testing.T) {
 	}
 	if code, _, errOut := h.run("new", "a"); code != 0 {
 		t.Fatalf("name not freed: exit %d %s", code, errOut)
+	}
+}
+
+func TestKillAndStopRemoveTheirAgentsStateFiles(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	for _, name := range []string{"a", "b"} {
+		if code, _, errOut := h.run("new", name, "hello"); code != 0 {
+			t.Fatalf("new %s: exit %d %s", name, code, errOut)
+		}
+		h.waitReport(name, "done", "Done: hello")
+	}
+	ws, _ := h.d.tmux.Windows()
+	id := map[string]string{}
+	for _, a := range agent.FromWindows(ws) {
+		id[a.Name] = a.ID
+	}
+	dir := state.Dir(h.cwd)
+	// An agent of another tmux server reports to the same directory.
+	other := filepath.Join(dir, "0123456789ab")
+	os.WriteFile(other, []byte("branch x\n{}"), 0o644)
+	files := func() string {
+		es, _ := os.ReadDir(dir)
+		var names []string
+		for _, e := range es {
+			names = append(names, e.Name())
+		}
+		return strings.Join(names, " ")
+	}
+	if got := files(); !strings.Contains(got, id["a"]+".stop") || !strings.Contains(got, id["b"]+".stop") {
+		t.Fatalf("before: %q", got)
+	}
+
+	if code, _, errOut := h.run("kill", "a", "-y"); code != 0 {
+		t.Fatalf("kill: exit %d %s", code, errOut)
+	}
+	if got := files(); strings.Contains(got, id["a"]) || !strings.Contains(got, id["b"]) {
+		t.Fatalf("after kill a: %q", got)
+	}
+	// b keeps reporting.
+	h.typeIn("b", "more")
+	h.waitReport("b", "done", "Done: more")
+
+	if code, _, errOut := h.run("stop", "-y"); code != 0 {
+		t.Fatalf("stop: exit %d %s", code, errOut)
+	}
+	if got := files(); got != "0123456789ab" {
+		t.Fatalf("after stop: %q", got)
 	}
 }
 

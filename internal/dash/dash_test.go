@@ -460,6 +460,47 @@ func TestNothingNeedsYouSaysHowToSeeAll(t *testing.T) {
 	}
 }
 
+func TestAttentionViewKeepsTheDockedRowInAnyState(t *testing.T) {
+	for _, st := range []string{state.Working, state.Starting, state.Done, state.Ended, state.Question} {
+		as := append(team(), ag("dock", st, 30*time.Second, "On screen"))
+		as[len(as)-1].Docked = true
+		if got, want := names(Arrange(as, SortAttention, ViewAttention)), map[string]string{
+			state.Working: "perm ask dock", state.Starting: "perm ask dock", state.Done: "perm ask dock",
+			state.Ended: "perm ask dock", state.Question: "perm dock ask",
+		}[st]; got != want {
+			t.Errorf("docked %s: rows %q, want %q", st, got, want)
+		}
+	}
+	// Drawn with its outline; w1, done and end stay hidden.
+	as := team()
+	as[0].Docked = true // w1, working
+	m := started(&fakeSource{agents: as}, 120, 10)
+	if rowNames(m) != "perm ask w1" {
+		t.Fatalf("rows %q", rowNames(m))
+	}
+	ls := lines(m)
+	if !strings.HasPrefix(ls[5], "│ w1") || !strings.HasSuffix(ls[5], " │") {
+		t.Errorf("docked row %q, want the outline", ls[5])
+	}
+	if want := "  nothing else needs you · 2 more agents hidden · press a to show all"; ls[6] != want {
+		t.Errorf("line after the rows %q, want %q", ls[6], want)
+	}
+	// The chords go from the docked row as the list shows it.
+	if got, _ := Neighbour(Arrange(as, SortAttention, ViewAttention), "w1", "perm", -1); got != "ask" {
+		t.Errorf("Alt+k from the docked w1: %q, want ask", got)
+	}
+}
+
+func TestTheDockedAgentAloneIsShownNotNothingNeedsYou(t *testing.T) {
+	a := ag("x", state.Working, 0, "3")
+	a.Docked = true
+	ls := lines(started(&fakeSource{agents: []agent.Agent{a}}, 120, 10))
+	view := strings.Join(ls, "\n")
+	if !strings.HasPrefix(ls[3], "│ x") || strings.Contains(view, nothingText) || strings.Contains(view, "hidden") {
+		t.Fatalf("view:\n%s", view)
+	}
+}
+
 func TestSortCyclesAndIsMarkedInTheColumnHeader(t *testing.T) {
 	as := []agent.Agent{
 		{Name: "b", RepoPath: "/w/zeta", Branch: "feat/b", State: state.Working, Since: now.Add(-time.Hour)},

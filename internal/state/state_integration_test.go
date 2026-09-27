@@ -169,3 +169,46 @@ func TestReadRefusesAnythingButASmallRegularFile(t *testing.T) {
 		t.Fatalf("eee: %+v %v", r, ok)
 	}
 }
+
+func TestRemoveDeletesThatAgentsFilesOnly(t *testing.T) {
+	root := t.TempDir()
+	dir := Dir(root)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(dir, "..", "..", "keep")
+	for _, p := range []string{"abc", "abc.stop", "abcd", "abcd.stop", "def", "../../keep"} {
+		os.WriteFile(filepath.Join(dir, p), []byte("x"), 0o644)
+	}
+	if err := Remove(root, "abc"); err != nil {
+		t.Fatal(err)
+	}
+	// Removed again, or never reported: nothing to do.
+	if err := Remove(root, "abc"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Remove(t.TempDir(), "abc"); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"", "../../keep", "ABC", "abc/../def"} {
+		if Remove(root, id) == nil {
+			t.Errorf("removed for the invalid id %q", id)
+		}
+	}
+	entries, _ := os.ReadDir(dir)
+	var left []string
+	for _, e := range entries {
+		left = append(left, e.Name())
+	}
+	if got := strings.Join(left, " "); got != "abcd abcd.stop def" {
+		t.Fatalf("left %q", got)
+	}
+	if _, err := os.Stat(outside); err != nil {
+		t.Fatal(err)
+	}
+	// A file hq cannot remove is reported.
+	os.MkdirAll(filepath.Join(dir, "fed", "x"), 0o755)
+	if Remove(root, "fed") == nil {
+		t.Fatal("a directory in the way went unreported")
+	}
+}

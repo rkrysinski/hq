@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/version"
 )
 
@@ -99,7 +100,8 @@ func runHelp(env Env, _ deps, _ []string) error {
 		fmt.Fprintf(&b, "  %-32s %s\n", line, c.summary)
 	}
 	fmt.Fprintf(&b, "  %-32s %s\n", "hq --version", "print the version")
-	b.WriteString("\nExit codes: 0 success, 1 usage or refused, 2 not found, 3 environment.\n")
+	fmt.Fprintf(&b, "\nNAME: letters, digits, - and _, at most %d characters; taken until that agent is killed.\n", agent.MaxName)
+	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment.\n")
 	_, err := io.WriteString(env.Stdout, b.String())
 	return err
 }
