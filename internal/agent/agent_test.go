@@ -119,3 +119,29 @@ func TestAnAgentIsNewUntilItsFirstReport(t *testing.T) {
 		t.Fatalf("new: %v, want a (b reported, c ended, d's sandbox stopped, e relaunched)", got)
 	}
 }
+
+func TestCollectSaysSessionEndedForAnEndedAgentWithoutAMessage(t *testing.T) {
+	ws := []tmux.Window{
+		{ID: "@1", Name: "dead", PaneDead: true, Options: map[string]string{"id": "a", "sandbox": "claude-app"}},
+		{ID: "@2", Name: "stopped", Options: map[string]string{"id": "b", "sandbox": "claude-lib"}},
+		{ID: "@3", Name: "said", PaneDead: true, Options: map[string]string{"id": "c", "sandbox": "claude-app"}},
+		{ID: "@4", Name: "quiet", Options: map[string]string{"id": "d", "sandbox": "claude-app"}},
+		{ID: "@5", Name: "silent", PaneDead: true, Options: map[string]string{"id": "e", "sandbox": "claude-app"}},
+	}
+	read := func(_, id string) (state.Report, bool) {
+		switch id {
+		case "c":
+			return state.Report{State: state.Done, Last: "hi"}, true
+		case "e": // reported, but never a message
+			return state.Report{State: state.Working}, true
+		}
+		return state.Report{}, false
+	}
+	var got []string
+	for _, a := range Collect(ws, read, map[string]bool{"claude-app": true}) {
+		got = append(got, a.Name+"="+a.Last)
+	}
+	if want := "dead=[session ended] stopped=[session ended] said=hi quiet= silent=[session ended]"; strings.Join(got, " ") != want {
+		t.Fatalf("got  %s\nwant %s", strings.Join(got, " "), want)
+	}
+}

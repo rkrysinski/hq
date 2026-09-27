@@ -190,3 +190,16 @@ func TestLsRejectsUnknownArgument(t *testing.T) {
 		t.Fatalf("exit %d", code)
 	}
 }
+
+func TestLsSaysSessionEndedForAnAgentThatEndedWithoutAMessage(t *testing.T) {
+	f := newLsFakes()
+	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), true)}
+	_, out, _ := f.run("ls")
+	if want := "a     app   -       ended  1m   [session ended]\n"; !strings.HasSuffix(out, want) {
+		t.Fatalf("got\n%s\nwant a row\n%s", out, want)
+	}
+	_, js, _ := f.run("ls", "--json")
+	if !strings.Contains(js, `"last": "[session ended]"`) {
+		t.Fatalf("json: %s", js)
+	}
+}
