@@ -28,6 +28,7 @@ func runUpdate(env Env, d deps, args []string) error {
 	if len(args) != 0 {
 		return usageErr("usage: hq update")
 	}
+	addProfile(env, d)
 	latest, err := d.releases.Latest()
 	if err != nil {
 		return ghErr(err)

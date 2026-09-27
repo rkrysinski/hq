@@ -12,7 +12,9 @@ Prerequisites: git, tmux 3.4 or newer, Docker Sandboxes (`sbx`), GitHub CLI (`gh
 gh release download -R rkrysinski/hq -p install.sh -O - | sh
 ```
 
-This installs `hq` to `~/.local/bin` and checks the prerequisites. `hq update` moves to the latest release later; `hq --version` says when one is out.
+This installs `hq` to `~/.local/bin` and checks the prerequisites. On macOS with iTerm2 it also adds an iTerm2 profile named `hq` with Option as Esc+, which hq gives only to the tab the dashboard runs in, so the Alt chords work with no setup. `hq update` moves to the latest release later; `hq --version` says when one is out.
+
+To remove hq, delete `~/.local/bin/hq`, `~/.config/hq` and, on macOS, `~/Library/Application Support/iTerm2/DynamicProfiles/hq.json`.
 
 ## Stack
 

@@ -14,6 +14,7 @@ import (
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/gh"
+	"github.com/rkrysinski/hq/internal/iterm"
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -108,8 +109,11 @@ type deps struct {
 	releases   Releases
 	asset      string // this platform's binary in a release
 	executable func() (string, error)
-	loadPrefs  func() prefs.Prefs
-	savePrefs  func(prefs.Prefs) error
+	// itermProfile adds the iTerm2 profile hq when iTerm2 is present on
+	// macOS and reports whether it wrote it (design §3.7, §3.9).
+	itermProfile func() (bool, error)
+	loadPrefs    func() prefs.Prefs
+	savePrefs    func(prefs.Prefs) error
 }
 
 // ghTimeout bounds gh pr list, which goes to GitHub.
@@ -170,6 +174,10 @@ func defaultDeps() deps {
 				return "", err
 			}
 			return filepath.EvalSymlinks(exe)
+		},
+		itermProfile: func() (bool, error) {
+			home, _ := os.UserHomeDir()
+			return iterm.Install(runtime.GOOS, home, "/")
 		},
 		loadPrefs: func() prefs.Prefs { return prefs.Load(prefs.Path(os.Getenv)) },
 		savePrefs: func(p prefs.Prefs) error { return prefs.Save(prefs.Path(os.Getenv), p) },

@@ -29,7 +29,7 @@ func goMode(tmuxEnv, hqSocket string) string {
 
 // runGo docks the agent in the dashboard and shows the dashboard (spec
 // §4.1, design §3.11), opening it when it is not open.
-func runGo(_ Env, d deps, args []string) error {
+func runGo(env Env, d deps, args []string) error {
 	if len(args) != 1 || strings.HasPrefix(args[0], "-") {
 		return usageErr("usage: hq go NAME")
 	}
@@ -59,5 +59,5 @@ func runGo(_ Env, d deps, args []string) error {
 	if err := d.tmux.Dock(a.Window, frameTitle(a)); err != nil {
 		return tmuxErr(err)
 	}
-	return show(d, w, mode)
+	return show(env, d, w, mode)
 }

@@ -73,6 +73,8 @@ func run(env Env, d deps, args []string) error {
 		return runKillDialog(env, d, rest)
 	case chordCommand:
 		return runChord(env, d, rest)
+	case itermProfileCommand:
+		return runItermProfile(env, d, rest)
 	case "--version", "-V":
 		fmt.Fprintf(env.Stdout, "hq %s\n%s", version.Version, updateHint(d))
 		return nil
