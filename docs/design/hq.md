@@ -100,7 +100,7 @@ Satisfies: §5 (states, age, last message, no setup), §8 (no repository files),
 
 ### 3.5 Notifications
 
-The agent's injected hook sends the notification ([ADR 0010](../adr/0010-hooks-send-notifications.md)): on Stop it returns `Question: <branch>` or `Done: <branch>` (the `?` rule in `awk`), on the Notification event `Needs input: <branch>`, as a `terminalSequence` that Claude writes to its pane and tmux passes to the terminal. hq bakes the platform's notification sequence into the hook at launch. No hq process takes part, so exactly-once holds by construction and notifications continue after `q`.
+The agent's injected hook sends the notification ([ADR 0010](../adr/0010-hooks-send-notifications.md)): on Stop it returns `Question: <branch>` or `Done: <branch>` (the `?` rule in `awk`), on the Notification event `Needs input: <branch>`, as a `terminalSequence` that Claude writes to its pane and tmux passes to the terminal. hq bakes the platform's notification sequence into the hook at launch (3.10), and every agent window gets `allow-passthrough all` when it is made (3.2; it is a pane option, so it is set per window rather than on the session). tmux drops a bare OSC 9, and Claude accepts from a hook only OSC and BEL, not tmux's passthrough wrapper; Claude wraps the sequence itself when `TMUX` is set, which sbx does not pass into the sandbox, so the injected settings set it (verified with Claude 2.1.283). The branch is the one the hook reads for the state file, or the directory's name when HEAD is detached; it loses control characters, `\` and `"` so it cannot break the JSON or add a sequence of its own, and neither it nor the message is ever used as a format. Only Stop and the attention Notifications carry the sequence; the prompt and session-end hooks print nothing. No hq process takes part, so exactly-once holds by construction and notifications continue after `q`.
 
 Satisfies: §5 (exactly one notification per attention or done event, docked or not, kind and branch), §10, S4, S5; drivers 3, 5.
 
@@ -179,7 +179,7 @@ Satisfies: §4.1, §6.1-6.6, S2, S6; drivers 2, 3.
 | Paths between hq and sbx | unchanged | `wslpath -w` towards sbx, `wslpath -u` back (workspace lookup in 3.6, worktree path for `c`) |
 | Editor (`c`, `hq code`) | `code PATH` | `code PATH`; the Remote-WSL shim takes Linux paths |
 | Browser (`p`) | `gh pr view --web` | the same, with `BROWSER` set to `wslview` or `explorer.exe` when unset |
-| Notification sequence baked into the hook (3.5) | OSC 9 | what Windows Terminal honours (§9); BEL at least, shown as a taskbar flash |
+| Notification sequence baked into the hook (3.5) | OSC 9 (`ESC ] 9 ; text BEL`) | BEL, shown as a taskbar flash; it carries no text, and a real check is left to Windows (#9) |
 | Raise the window titled `hq` (3.11) | `osascript` to iTerm2 | `powershell.exe`, activate the window by title |
 
 Everything else (tmux, registry, state files, keys, dialogs) is one code path.
@@ -317,8 +317,7 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 
 ## 9. Deferred implementation notes
 
-- Verify tmux passes the hook's notification sequence from panes in hidden windows with `allow-passthrough all`, and confirm 3.4 as the floor, on both platforms.
-- Pick the notification sequence per terminal (iTerm2, Windows Terminal) and bake it into the hook at launch.
+- Verify on Windows that tmux passes BEL from a hidden window and that Windows Terminal flashes the taskbar (#9).
 - Verify the chords of 3.7 against Claude Code's default key bindings and Windows Terminal's default actions; verify that clicks outside an open tmux popup do nothing.
 - Build the iTerm2 dynamic profile (Option as Esc+); verify that `SetProfile=hq` on attach keeps the Option setting for that tab.
 - Verify that Windows lets a background `powershell.exe` activate the window titled `hq` (the foreground lock can refuse).
@@ -354,3 +353,4 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - 1.0 (draft): state channel built (#19): `starting` before the first event, `ID.stop` for the last message, Notification message while `needs input`; verified with Claude 2.1 in sbx: `env` from `--settings` reaches hooks, the image has `sh`, `git`, `cat`, `mv`, `cp`, `mkdir`, `rm`, the host modification time follows the host clock.
 - 1.0 (draft): the branch comes from the hook, which runs in Claude's current directory (verified with Claude 2.1 in sbx), as a header line before the payload (3.4, #20).
 - 1.0 (draft): `sbx ls` as the third source of `ended` in `hq ls`, bounded by a 5 s timeout, through the collection shared with the list program; the `ending` marker (3.3, 5.1, 7.1, #21).
+- 1.0 (draft): notifications built (#22): the hook's `terminalSequence` on Stop and the attention Notifications, the branch or the directory name, OSC 9 on macOS and BEL on WSL, `allow-passthrough all` per window, `TMUX` set for Claude so it wraps the sequence for tmux; verified with Claude 2.1 in sbx that the sequence from a hidden window reaches the terminal exactly once per event.

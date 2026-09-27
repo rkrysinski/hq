@@ -103,7 +103,7 @@ func TestCleanStripsEscapesAndControlCharacters(t *testing.T) {
 }
 
 func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
-	raw := Settings("a", "0123abcd")
+	raw := Settings("a", "0123abcd", `\u0007`)
 	if !strings.Contains(raw, `"HQ_ID":"0123abcd"`) {
 		t.Fatalf("hq kill finds the session by HQ_ID in its arguments: %s", raw)
 	}
@@ -114,16 +114,18 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	if err := json.Unmarshal([]byte(raw), &s); err != nil {
 		t.Fatal(err)
 	}
-	if s.Env["HQ_AGENT"] != "a" || s.Env["HQ_ID"] != "0123abcd" {
+	// TMUX set makes Claude wrap notifications so tmux passes them on.
+	if s.Env["HQ_AGENT"] != "a" || s.Env["HQ_ID"] != "0123abcd" || s.Env["TMUX"] == "" {
 		t.Fatalf("env %v", s.Env)
 	}
-	for event, kind := range map[string]string{"UserPromptSubmit": "prompt", "Stop": "stop", "Notification": "input", "SessionEnd": "end"} {
+	// Only Stop and the attention Notifications notify, with the sequence.
+	for event, args := range map[string]string{"UserPromptSubmit": "prompt", "Stop": "stop \\u0007", "Notification": "input \\u0007", "SessionEnd": "end"} {
 		m := s.Hooks[event]
 		if len(m) != 1 || len(m[0].Hooks) != 1 {
 			t.Fatalf("%s: %+v", event, m)
 		}
 		h := m[0].Hooks[0]
-		if h.Type != "command" || h.Command != "sh" || len(h.Args) != 4 || h.Args[0] != "-c" || h.Args[1] != hookScript || h.Args[3] != kind {
+		if h.Type != "command" || h.Command != "sh" || h.Args[0] != "-c" || h.Args[1] != hookScript || strings.Join(h.Args[3:], " ") != args {
 			t.Errorf("%s: %+v", event, h)
 		}
 	}

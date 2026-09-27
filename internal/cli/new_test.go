@@ -59,6 +59,9 @@ func TestNewStartsAgentInRepositorysSandbox(t *testing.T) {
 	if err := json.Unmarshal([]byte(argv[6]), &settings); err != nil || settings.Env["HQ_ID"] != w.Options["id"] || settings.Env["HQ_AGENT"] != "a" {
 		t.Fatalf("settings %q: %v", argv[6], err)
 	}
+	if !strings.Contains(argv[6], `"stop","[notify %s]"`) { // the platform's sequence (design §3.5)
+		t.Fatalf("no notification in settings %q", argv[6])
+	}
 	if !f.tmux.started[w.ID] {
 		t.Fatal("window not started")
 	}

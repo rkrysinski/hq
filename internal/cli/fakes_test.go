@@ -269,6 +269,7 @@ func (f *fakes) deps() deps {
 		getenv:   func(k string) string { return f.env[k] },
 		sleep:    func(d time.Duration) { f.now = f.now.Add(d) },
 		canAsk:   func(io.Reader) bool { return f.tty },
+		notify:   "[notify %s]",
 		readState: func(_, id string) (state.Report, bool) {
 			r, ok := f.states[id]
 			return r, ok
