@@ -14,13 +14,20 @@ import (
 
 func eventually(t *testing.T, what string, ok func() bool) {
 	t.Helper()
+	if !waitFor(ok) {
+		t.Fatalf("timed out waiting for %s", what)
+	}
+}
+
+// waitFor polls ok for up to 5 s.
+func waitFor(ok func() bool) bool {
 	for i := 0; i < 50; i++ {
 		if ok() {
-			return
+			return true
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	t.Fatalf("timed out waiting for %s", what)
+	return false
 }
 
 func TestNoServerIsNoWindows(t *testing.T) {

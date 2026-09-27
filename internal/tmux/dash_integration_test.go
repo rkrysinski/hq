@@ -445,9 +445,16 @@ func TestChordsWorkInHqsSessionAloneAndKeepOtherBindings(t *testing.T) {
 		b, _ := os.ReadFile(log)
 		return strings.TrimSpace(string(b))
 	}
-	tm(t, term, "send-keys", "M-j")
-	tm(t, term, "send-keys", "M-k")
-	eventually(t, "the chord commands", func() bool { return logged() == "new next "+socket+"\nnew previous "+socket })
+	// Chords run in the background, so each is awaited before the next;
+	// sent together they may log in either order.
+	want := ""
+	for _, c := range []struct{ key, action string }{{"M-j", "next"}, {"M-k", "previous"}} {
+		tm(t, term, "send-keys", c.key)
+		want = strings.TrimSpace(want + "\nnew " + c.action + " " + socket)
+		if !waitFor(func() bool { return logged() == want }) {
+			t.Fatalf("after %s the chord log is %q, want %q", c.key, logged(), want)
+		}
+	}
 
 	// Alt+l toggles the keys between list and slot; the footer follows.
 	status := func() string {
