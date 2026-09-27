@@ -329,7 +329,7 @@ func TestQAndCtrlCQuit(t *testing.T) {
 func TestStartShowsTheFooterAndEveryResizeReappliesTheLayout(t *testing.T) {
 	f := &fakeSource{}
 	m := started(f, 100, 10)
-	if got := fmt.Sprint(f.footer); got != "[{↑↓ select} {⏎ open session below} {n new} {k kill} {c code} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
+	if got := fmt.Sprint(f.footer); got != "[{↑↓ /name select} {⏎ open session below} {n new} {k kill} {c code} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
 		t.Errorf("footer %s", got)
 	}
 	update(m, tea.WindowSizeMsg{Width: 90, Height: 12})
@@ -364,6 +364,10 @@ func key(m Model, k string) Model {
 		msg = tea.KeyMsg{Type: tea.KeyUp}
 	case "enter":
 		msg = tea.KeyMsg{Type: tea.KeyEnter}
+	case "esc":
+		msg = tea.KeyMsg{Type: tea.KeyEsc}
+	case "backspace":
+		msg = tea.KeyMsg{Type: tea.KeyBackspace}
 	}
 	m, cmd := update(m, msg)
 	return do(m, cmd)
@@ -806,5 +810,58 @@ func TestCOpensTheEditorOnTheCursorRow(t *testing.T) {
 	f = &fakeSource{}
 	if key(started(f, 120, 10), "c"); len(f.coded) != 0 {
 		t.Fatalf("with no rows: opened %v", f.coded)
+	}
+}
+
+// typed feeds text to the list one key at a time, as a person types it.
+func typed(m Model, text string) Model {
+	for _, r := range text {
+		m = key(m, string(r))
+	}
+	return m
+}
+
+func TestSlashSelectsByName(t *testing.T) {
+	as := []agent.Agent{ag("bok-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, ""), ag("Bot", state.Working, 0, ""), ag("spike", state.Ended, 0, "")}
+	f := &fakeSource{agents: as, view: ViewAll} // 42 bok-17 Bot spike
+	m := key(started(f, 120, 10), "/")
+	if got := fmt.Sprint(f.footer); got != "[{/ type a name} {⏎ open} {esc cancel}]" {
+		t.Fatalf("footer %s", got)
+	}
+	// S3b: /bo matches two, case-insensitive; /bok one; the cursor follows.
+	m = typed(m, "bo")
+	if m.cursor != "bok-17" || fmt.Sprint(f.footer[0]) != "{/bo 2 matches: bok-17 Bot}" {
+		t.Fatalf("cursor %q footer %v", m.cursor, f.footer)
+	}
+	m = typed(m, "k")
+	if fmt.Sprint(f.footer[0]) != "{/bok 1 match: bok-17}" {
+		t.Fatalf("footer %v", f.footer)
+	}
+	// Letters are the search's: k, n, q type into it.
+	m = typed(m, "q")
+	if fmt.Sprint(f.footer[0]) != "{/bokq no match}" || m.cursor != "bok-17" || len(f.killed)+len(f.dialogs) != 0 {
+		t.Fatalf("footer %v cursor %q", f.footer, m.cursor)
+	}
+	m = key(m, "backspace")
+	m = key(m, "enter")
+	if strings.Join(f.docked, " ") != "bok-17" || m.searching || fmt.Sprint(f.footer[0]) != "{↑↓ /name select}" {
+		t.Fatalf("docked %v searching %v footer %v", f.docked, m.searching, f.footer)
+	}
+	// Esc clears; Enter with no match docks nothing.
+	m = key(typed(key(m, "/"), "sp"), "esc")
+	if m.searching || m.cursor != "spike" || fmt.Sprint(f.footer[0]) != "{↑↓ /name select}" {
+		t.Fatalf("after esc: searching %v cursor %q", m.searching, m.cursor)
+	}
+	key(typed(key(m, "/"), "zz"), "enter")
+	if len(f.docked) != 1 {
+		t.Fatalf("docked %v", f.docked)
+	}
+}
+
+func TestSearchLooksAtTheRowsShown(t *testing.T) {
+	f := &fakeSource{agents: team()} // attention view: perm ask
+	m := typed(key(started(f, 120, 10), "/"), "w")
+	if fmt.Sprint(f.footer[0]) != "{/w no match}" || m.cursor != "perm" {
+		t.Fatalf("footer %v cursor %q", f.footer, m.cursor)
 	}
 }

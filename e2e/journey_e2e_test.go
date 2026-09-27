@@ -195,7 +195,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	// S1: hq with nothing running.
 	open()
 	shows("the empty dashboard", "hq  0 agents", "no agents yet - press n to start one", "▸ placeholder shell",
-		"hq: nothing docked - select an agent above or press n", "r refresh   q quit")
+		"hq: nothing docked - select an agent above or press n", "r refresh  q quit")
 
 	// S2 from the New agent dialog: a gets the cursor with the new marker
 	// and, nothing being docked, the slot and the keys.
@@ -237,7 +237,11 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 		return got != "" && got == want
 	})
 
-	// S3: Enter on the docked row keeps it docked and puts the keys there.
+	// S3b: /a finds a in the footer; Enter keeps it docked and puts the
+	// keys there.
+	keys("/")
+	keys("a")
+	shows("the search", "/a 1 match: a", "esc cancel")
 	keys("Enter")
 	eventually(t, "the keys in a's session", func() bool {
 		out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_agent}").Output()

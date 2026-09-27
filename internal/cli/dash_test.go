@@ -189,7 +189,7 @@ func TestListSourceShowsTheUpdateHintOnce(t *testing.T) {
 
 func TestFooterShowsKeysBrightAndKeepsTextLiteral(t *testing.T) {
 	got := footer([]dash.Hint{{Key: "r", Label: "refresh"}, {Key: "#", Label: "50% #1"}})
-	want := " #[fg=colour255,bold]r#[default] refresh   #[fg=colour255,bold]###[default] 50% ##1"
+	want := " #[fg=colour255,bold]r#[default] refresh  #[fg=colour255,bold]###[default] 50% ##1"
 	if got != want {
 		t.Fatalf("footer\n got %q\nwant %q", got, want)
 	}
