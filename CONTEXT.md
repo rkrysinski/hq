@@ -13,7 +13,7 @@ _Avoid_: synonym, another synonym
 ## Language
 
 **Agent**:
-One Claude Code session started through hq, known by a short name unique among running agents.
+One Claude Code session started through hq, known by a short name unique among existing agents (running or `ended`) until it is killed.
 _Avoid_: tab, session, worker (until Phase 2)
 
 **Dashboard**:
