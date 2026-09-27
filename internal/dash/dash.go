@@ -6,6 +6,7 @@ package dash
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -52,6 +54,11 @@ type Source struct {
 	// Kill opens the Kill dialog on the agent named name, which ends it on
 	// Yes, and returns when it closes (spec §6.4 kill, §6.6).
 	Kill func(name string) error
+	// PullRequests asks GitHub for a repository's pull requests, the
+	// newest per branch; it may take seconds (design §5.2).
+	PullRequests func(repo string) (map[string]gh.PR, error)
+	// Browse opens a pull request in the browser (spec §6.4 pr).
+	Browse func(url string) error
 }
 
 // Sorts, cycled with s, and views, toggled with a (spec §6.2).
@@ -158,6 +165,7 @@ const (
 	tickEvery   = 250 * time.Millisecond
 	sbxEvery    = 4 // ticks
 	updateEvery = time.Hour
+	prEvery     = time.Minute
 )
 
 // Rows is how many agents the list shows: 6, or 3 in a window below 24
@@ -187,6 +195,12 @@ type (
 	hourMsg   struct{}
 	actedMsg  struct{ err error } // a row action (dock, code) finished
 	closedMsg struct{ err error } // a dialog closed
+	prTickMsg struct{}
+	prsMsg    struct {
+		repo string
+		prs  map[string]gh.PR
+		err  error
+	}
 )
 
 // Model is the list program's state.
@@ -212,6 +226,13 @@ type Model struct {
 	docked string
 
 	sort, view string
+
+	// prs are the pull requests of each repository shown, by branch; a
+	// repository is asked when it first shows, every minute, and when one
+	// of its agents turns done. states are the agents' states at the last
+	// refresh, by id, to see that (design §5.2).
+	prs    map[string]map[string]gh.PR
+	states map[string]string
 
 	// The cursor follows its agent through re-sorts; when the agent leaves
 	// the view, it stays at the same place, the nearest row (§6.3).
@@ -254,7 +275,24 @@ func (m Model) hints() []Hint {
 	if m.view == ViewAll {
 		other = ViewAttention
 	}
-	return []Hint{{"↑↓ /name", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"k", "kill"}, {"c", "code"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
+	hs := []Hint{{"↑↓ /name", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"k", "kill"}, {"c", "code"}, {"p", "pr"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
+	if HintsWidth(hs) > m.width {
+		hs[1].Label = "open" // so q quit still fits 120 columns
+	}
+	return hs
+}
+
+// HintsWidth is how many cells the footer takes: a space, then the hints
+// two spaces apart.
+func HintsWidth(hs []Hint) int {
+	w := 1
+	for i, h := range hs {
+		w += ansi.StringWidth(h.Key) + 1 + ansi.StringWidth(h.Label)
+		if i > 0 {
+			w += 2
+		}
+	}
+	return w
 }
 
 // visible is how many rows the pane shows.
@@ -296,7 +334,53 @@ func (m *Model) moveTo(i int) {
 
 func (m Model) Init() tea.Cmd {
 	m.src.Footer(m.hints())
-	return tea.Batch(m.collect(), m.poll(), m.checkUpdate(), tick())
+	return tea.Batch(m.collect(), m.poll(), m.checkUpdate(), tick(), prTick())
+}
+
+func prTick() tea.Cmd { return tea.Tick(prEvery, func(time.Time) tea.Msg { return prTickMsg{} }) }
+
+// askPRs asks for the pull requests of repos in the background.
+func (m Model) askPRs(repos []string) tea.Cmd {
+	var cmds []tea.Cmd
+	for _, r := range repos {
+		ask := m.src.PullRequests
+		cmds = append(cmds, func() tea.Msg {
+			prs, err := ask(r)
+			return prsMsg{r, prs, err}
+		})
+	}
+	return tea.Batch(cmds...)
+}
+
+// prsDue are the repositories to ask about after a refresh: those showing
+// for the first time and those with an agent that just turned done.
+func (m *Model) prsDue() []string {
+	if m.prs == nil {
+		m.prs, m.states = map[string]map[string]gh.PR{}, map[string]string{}
+	}
+	var due []string
+	add := func(r string) {
+		if !slices.Contains(due, r) {
+			due = append(due, r)
+		}
+	}
+	for _, a := range m.agents {
+		if _, ok := m.prs[a.RepoPath]; !ok {
+			m.prs[a.RepoPath] = nil // asked
+			add(a.RepoPath)
+		}
+		if was, ok := m.states[a.ID]; ok && was != state.Done && a.State == state.Done {
+			add(a.RepoPath)
+		}
+		m.states[a.ID] = a.State
+	}
+	return due
+}
+
+// pr is the pull request of a row's branch, when the map has one.
+func (m Model) pr(a agent.Agent) (gh.PR, bool) {
+	p, ok := m.prs[a.RepoPath][a.Branch]
+	return p, ok && a.Branch != ""
 }
 
 func tick() tea.Cmd { return tea.Tick(tickEvery, func(time.Time) tea.Msg { return tickMsg{} }) }
@@ -338,6 +422,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		m.src.Layout()
+		m.src.Footer(m.hints())
 		m.moveTo(m.cursorRow)
 	case tickMsg:
 		m.ticks++
@@ -353,7 +438,23 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			m.followDock()
 			dock := m.welcome()
 			m.arrange()
-			return m, dock
+			return m, tea.Batch(dock, m.askPRs(m.prsDue()))
+		}
+	case prTickMsg:
+		var repos []string
+		for _, a := range m.agents {
+			if !slices.Contains(repos, a.RepoPath) {
+				repos = append(repos, a.RepoPath)
+			}
+		}
+		return m, tea.Batch(m.askPRs(repos), prTick())
+	case prsMsg:
+		// gh missing, logged out or offline: no pr, and no error (§7.1).
+		if msg.err != nil {
+			msg.prs = nil
+		}
+		if m.prs != nil {
+			m.prs[msg.repo] = msg.prs
 		}
 	case runningMsg:
 		m.polling = false
@@ -395,6 +496,17 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			if m.cursorRow >= 0 {
 				name, code := m.cursor, m.src.Code
 				return m, func() tea.Msg { return actedMsg{code(name)} }
+			}
+		case "p":
+			if m.cursorRow >= 0 {
+				a := m.rows[m.cursorRow]
+				p, ok := m.pr(a)
+				if !ok {
+					m.actErr = fmt.Errorf("no pull request for %s", orDash(a.Branch))
+					return m, nil
+				}
+				browse := m.src.Browse
+				return m, func() tea.Msg { return actedMsg{browse(p.URL)} }
 			}
 		case "n":
 			dir, open := "", m.src.NewAgent
@@ -562,7 +674,12 @@ var (
 	cCursor  = lipgloss.Color("#2A2E37")                                 // the cursor row's background
 	cOutline = lipgloss.NewStyle().Foreground(lipgloss.Color("#A78BFA")) // the docked row's outline
 	cNew     = lipgloss.NewStyle().Foreground(lipgloss.Color("#A78BFA")) // the new marker
-	cByState = map[string]lipgloss.Style{
+	// The action strip's chips: the key in the accent, the label bright,
+	// on a background a step lighter than the cursor row's.
+	cChip     = lipgloss.NewStyle().Foreground(lipgloss.Color("#D1D5DB")).Background(lipgloss.Color("#3A3F4B"))
+	cChipKey  = cChip.Foreground(lipgloss.Color("#A78BFA")).Bold(true)
+	cStripGap = lipgloss.NewStyle().Background(cCursor)
+	cByState  = map[string]lipgloss.Style{
 		state.NeedsInput: lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
 		state.Question:   lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
 		state.Done:       lipgloss.NewStyle().Foreground(lipgloss.Color("#34D399")),
@@ -593,7 +710,13 @@ func (m Model) View() string {
 		now := m.src.Now()
 		end := min(m.offset+v, len(m.rows))
 		for i := m.offset; i < end; i++ {
-			lines = append(lines, cols.row(m.rows[i], now, i == m.cursorRow))
+			a := m.rows[i]
+			if i != m.cursorRow {
+				lines = append(lines, cols.row(a, now, false, ""))
+				continue
+			}
+			_, pr := m.pr(a)
+			lines = append(lines, cols.row(a, now, true, strip(pr)))
 		}
 		if hidden := len(m.agents) - len(m.rows); hidden > 0 && len(m.rows) <= v {
 			lines = append(lines, margin+cDim.Render(fmt.Sprintf("nothing else needs you · %s hidden · press a to show all", plural(hidden, "more agent"))))
@@ -708,9 +831,24 @@ func (c columns) header(sort string) string {
 	return margin + strings.Join([]string{cell("TAB", c.tab), cell("REPO", c.repo), cell("BRANCH", c.branch), cell("STATE", c.state), cell("AGE", c.age), cell("LAST", c.last)}, cDim.Render(gap))
 }
 
-// row is one agent; the cursor row has a background, the docked row an
-// outline, drawn as bars at both ends so it takes no extra lines (spec §6.1).
-func (c columns) row(a agent.Agent, now time.Time, cursor bool) string {
+// strip is the cursor row's actions, pr only with a pull request (spec
+// §6.4, mock dash.png).
+func strip(pr bool) string {
+	items := [][2]string{{"⏎", "open"}, {"c", "code"}, {"p", "pr"}, {"k", "kill"}}
+	var chips []string
+	for _, it := range items {
+		if it[0] == "p" && !pr {
+			continue
+		}
+		chips = append(chips, cChipKey.Render(" "+it[0])+cChip.Render(" "+it[1]+" "))
+	}
+	return strings.Join(chips, cStripGap.Render(" "))
+}
+
+// row is one agent; the cursor row has a background and the action strip
+// drawn over the tail of its content, the docked row an outline, drawn as
+// bars at both ends so it takes no extra lines (spec §6.1, §6.4).
+func (c columns) row(a agent.Agent, now time.Time, cursor bool, strip string) string {
 	paint := func(st lipgloss.Style, s string) string {
 		if cursor {
 			st = st.Background(cCursor)
@@ -747,7 +885,14 @@ func (c columns) row(a agent.Agent, now time.Time, cursor bool) string {
 	if a.Docked {
 		left, right = paint(cOutline, "│")+paint(plain, " "), paint(plain, " ")+paint(cOutline, "│")
 	}
-	return left + strings.Join(cells, paint(plain, gap)) + right
+	body := left + strings.Join(cells, paint(plain, gap))
+	if strip != "" {
+		// Columns stay put: the strip covers the tail, a space before it.
+		w := ansi.StringWidth(body) - ansi.StringWidth(strip) - 1
+		cut := ansi.Truncate(body, max(0, w), "")
+		body = cut + paint(plain, strings.Repeat(" ", max(0, w-ansi.StringWidth(cut))+1)) + strip
+	}
+	return body + right
 }
 
 // newMark follows the name of an agent new since its start (S2).

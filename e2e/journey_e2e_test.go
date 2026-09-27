@@ -16,11 +16,12 @@ import (
 )
 
 type journey struct {
-	t      *testing.T
-	bin    string // the built binary
-	socket string // hq's private tmux server
-	repo   string
-	edited string // the directories the stand-in for VS Code opened
+	t       *testing.T
+	bin     string // the built binary
+	socket  string // hq's private tmux server
+	repo    string
+	edited  string // the directories the stand-in for VS Code opened
+	browsed string // the pull requests the stand-in for gh opened
 }
 
 func newJourney(t *testing.T) *journey {
@@ -37,6 +38,18 @@ func newJourney(t *testing.T) *journey {
 	// A stand-in for VS Code's code, logging the directory it opens.
 	j.edited = filepath.Join(t.TempDir(), "edited")
 	if err := os.WriteFile(filepath.Join(bin, "code"), []byte("#!/bin/sh\necho \"$1\" >> "+j.edited+"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// A stand-in for gh: main has pull request 5; opening one logs its URL.
+	j.browsed = filepath.Join(t.TempDir(), "browsed")
+	ghStub := `#!/bin/sh
+case "$1 $2" in
+"pr list") echo '[{"number":5,"headRefName":"main","state":"OPEN","url":"https://github.test/o/app/pull/5"}]' ;;
+"pr view") echo "$4" >> ` + j.browsed + ` ;;
+*) exit 1 ;;
+esac
+`
+	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(ghStub), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -235,6 +248,14 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 		got, _ := filepath.EvalSymlinks(strings.TrimSpace(string(b)))
 		want, _ := filepath.EvalSymlinks(j.repo)
 		return got != "" && got == want
+	})
+	// §6.4: the cursor row's strip has pr, main having a pull request; p
+	// opens it.
+	shows("the strip with pr", "⏎ open   c code   p pr   k kill")
+	keys("p")
+	eventually(t, "the pull request opened", func() bool {
+		b, _ := os.ReadFile(j.browsed)
+		return strings.TrimSpace(string(b)) == "https://github.test/o/app/pull/5"
 	})
 
 	// S3b: /a finds a in the footer; Enter keeps it docked and puts the

@@ -22,6 +22,8 @@ type Runner interface {
 type Exec struct {
 	// Timeout, when set, ends a program that runs longer (Run only).
 	Timeout time.Duration
+	// Dir, when set, is the directory the program runs in (Run only).
+	Dir string
 }
 
 // Run runs name with args. A non-zero exit becomes an error carrying the
@@ -34,6 +36,7 @@ func (e Exec) Run(name string, args ...string) ([]byte, error) {
 		defer cancel()
 	}
 	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Dir = e.Dir
 	cmd.WaitDelay = time.Second
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr

@@ -11,6 +11,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rkrysinski/hq/internal/dash"
+	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -299,12 +300,15 @@ type fakes struct {
 	// edited are the directories VS Code opened on; editorErr fails it.
 	edited    []string
 	editorErr error
-	dirs      map[string]bool
-	cwd       string
-	now       time.Time
-	env       map[string]string
-	tty       bool   // stdin is a terminal
-	stdin     string // what the user types
+	// browsed are the URLs opened; prs is gh's answer by repository.
+	browsed []string
+	prs     map[string]map[string]gh.PR
+	dirs    map[string]bool
+	cwd     string
+	now     time.Time
+	env     map[string]string
+	tty     bool   // stdin is a terminal
+	stdin   string // what the user types
 
 	states map[string]state.Report // agent id -> its state file
 
@@ -368,6 +372,10 @@ func (f *fakes) deps() deps {
 			return t, ok
 		},
 		fromSbx: platformtest.Fake{}.FromSbx,
+		browse:  func(url string) error { f.browsed = append(f.browsed, url); return nil },
+		pullRequests: func(repo string) (map[string]gh.PR, error) {
+			return f.prs[repo], nil
+		},
 		editor: func(dir string) error {
 			if f.editorErr != nil {
 				return f.editorErr
