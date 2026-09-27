@@ -71,6 +71,8 @@ func run(env Env, d deps, args []string) error {
 		return runNewDialog(env, d, rest)
 	case killDialogCommand:
 		return runKillDialog(env, d, rest)
+	case slotCommand:
+		return runSlot(env, d, rest)
 	case chordCommand:
 		return runChord(env, d, rest)
 	case itermProfileCommand:
