@@ -89,6 +89,16 @@ func (f *fakeTmux) NewWindow(name, _ string, opts map[string]string, argv []stri
 
 func (f *fakeTmux) Start(id string) error { f.started[id] = true; return nil }
 
+func (f *fakeTmux) SetOption(id, key, value string) error {
+	for _, w := range f.windows {
+		if w.ID == id {
+			w.Options[key] = value
+			return nil
+		}
+	}
+	return errors.New("no window " + id)
+}
+
 func (f *fakeTmux) KillWindow(id string) error {
 	for i, w := range f.windows {
 		if w.ID == id {

@@ -24,6 +24,7 @@ type Agent struct {
 	Sandbox  string    `json:"sandbox"`
 	Started  time.Time `json:"started"`
 	Alive    bool      `json:"-"` // the home window's process runs
+	ending   bool      // hq is taking the agent down (its sandbox restarting)
 	State    string    `json:"state"`
 	Since    time.Time `json:"since"`
 	Branch   string    `json:"branch"`
@@ -57,7 +58,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if o["id"] == "" {
 			continue
 		}
-		a := Agent{Window: w.ID, ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, State: state.Starting}
+		a := Agent{Window: w.ID, ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, ending: o["ending"] != "", State: state.Starting}
 		if a.Name == "" {
 			a.Name = w.Name
 		}
@@ -65,7 +66,9 @@ func FromWindows(ws []tmux.Window) []Agent {
 			a.Started = time.Unix(s, 0)
 		}
 		a.Since = a.Started
-		if w.PaneDead {
+		// A window marked ending belongs to an agent hq is taking down (its
+		// sandbox restarting): ended already, though its pane still runs.
+		if w.PaneDead || a.ending {
 			a.State = state.Ended
 		}
 		as = append(as, a)
@@ -89,14 +92,14 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 }
 
 // Apply adds what the agent's state file reports (ok false: nothing yet).
-// A dead pane stays ended whatever the file says, counted from the agent's
-// last report (tmux does not say when the pane died); the file still gives
-// the last known message.
+// A dead pane, or one hq is taking down, stays ended whatever the file
+// says, counted from the agent's last report (tmux does not say when the
+// pane died); the file still gives the last known message.
 func (a *Agent) Apply(r state.Report, ok bool) {
 	if !ok {
 		return
 	}
-	if a.Alive {
+	if a.Alive && !a.ending {
 		a.State = r.State
 	}
 	if a.Alive || r.Since.After(a.Since) {

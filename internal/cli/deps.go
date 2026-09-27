@@ -27,6 +27,7 @@ type Tmux interface {
 	EnsureSession(dir string) error
 	NewWindow(name, dir string, options map[string]string, argv []string) (string, error)
 	Start(id string) error
+	SetOption(id, key, value string) error
 	KillWindow(id string) error
 	SocketPath() (string, error)
 	Enter(id string) error
