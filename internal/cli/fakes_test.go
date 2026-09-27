@@ -1,0 +1,141 @@
+package cli
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/rkrysinski/hq/internal/proc"
+	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/tmux"
+)
+
+// fakeTmux is an in-memory tmux server.
+type fakeTmux struct {
+	version  string
+	missing  bool
+	windows  []tmux.Window
+	argv     map[string][]string
+	started  map[string]bool
+	next     int
+	sessions int
+	// onNewWindow runs after a window is created, to simulate a racing hq new.
+	onNewWindow  func(f *fakeTmux)
+	newWindowErr error
+}
+
+func (f *fakeTmux) Version() (string, error) {
+	if f.missing {
+		return "", &proc.Error{Name: "tmux", Msg: "not found", NotFound: true}
+	}
+	return f.version, nil
+}
+
+func (f *fakeTmux) Windows() ([]tmux.Window, error) {
+	return append([]tmux.Window(nil), f.windows...), nil
+}
+
+func (f *fakeTmux) EnsureSession(string) error {
+	if f.sessions == 0 {
+		f.sessions = 1
+		f.add("hq", nil, nil)
+	}
+	return nil
+}
+
+func (f *fakeTmux) add(name string, opts map[string]string, argv []string) string {
+	id := fmt.Sprintf("@%d", f.next)
+	f.next++
+	o := map[string]string{}
+	for k, v := range opts {
+		o[k] = v
+	}
+	f.windows = append(f.windows, tmux.Window{ID: id, Name: name, Options: o})
+	f.argv[id] = argv
+	return id
+}
+
+func (f *fakeTmux) NewWindow(name, _ string, opts map[string]string, argv []string) (string, error) {
+	if f.newWindowErr != nil {
+		return "", f.newWindowErr
+	}
+	id := f.add(name, opts, argv)
+	if f.onNewWindow != nil {
+		hook := f.onNewWindow
+		f.onNewWindow = nil
+		hook(f)
+	}
+	return id, nil
+}
+
+func (f *fakeTmux) Start(id string) error { f.started[id] = true; return nil }
+
+func (f *fakeTmux) KillWindow(id string) error {
+	for i, w := range f.windows {
+		if w.ID == id {
+			f.windows = append(f.windows[:i], f.windows[i+1:]...)
+			return nil
+		}
+	}
+	return errors.New("no window " + id)
+}
+
+// fakeSbx holds sandboxes in memory.
+type fakeSbx struct {
+	sandboxes []sbx.Sandbox
+	created   []string
+	err       error
+	createErr error
+}
+
+func (f *fakeSbx) List() ([]sbx.Sandbox, error) { return f.sandboxes, f.err }
+
+func (f *fakeSbx) Create(ws string) error {
+	if f.createErr != nil {
+		return f.createErr
+	}
+	f.created = append(f.created, ws)
+	parts := strings.Split(ws, "/")
+	f.sandboxes = append(f.sandboxes, sbx.Sandbox{Name: "claude-" + parts[len(parts)-1], Agent: "claude", Status: "running", Workspaces: []string{ws}})
+	return nil
+}
+
+func (f *fakeSbx) RunArgv(sandbox string, args ...string) []string {
+	return append([]string{"sbx", "run", "--name", sandbox, "--"}, args...)
+}
+
+type fakes struct {
+	tmux  *fakeTmux
+	sbx   *fakeSbx
+	repos map[string]string // dir -> repository root
+	dirs  map[string]bool
+	cwd   string
+	now   time.Time
+}
+
+func newFakes() *fakes {
+	return &fakes{
+		tmux:  &fakeTmux{version: "3.5a", argv: map[string][]string{}, started: map[string]bool{}},
+		sbx:   &fakeSbx{},
+		repos: map[string]string{"/w/app": "/w/app", "/w/app/sub": "/w/app", "/w/app/.claude/worktrees/x": "/w/app", "/w/lib": "/w/lib"},
+		dirs:  map[string]bool{"/w/app": true, "/w/app/sub": true, "/w/lib": true, "/w/plain": true, "/w/app/.claude/worktrees/x": true},
+		cwd:   "/w/app",
+		now:   time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
+	}
+}
+
+func (f *fakes) deps() deps {
+	return deps{
+		tmux: f.tmux,
+		sbx:  f.sbx,
+		repoRoot: func(dir string) (string, bool) {
+			r, ok := f.repos[dir]
+			return r, ok
+		},
+		samePath: func(a, b string) bool { return a == b },
+		isDir:    func(p string) bool { return f.dirs[p] || f.dirs["/w/app/"+p] },
+		getwd:    func() (string, error) { return f.cwd, nil },
+		now:      func() time.Time { return f.now },
+	}
+}

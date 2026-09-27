@@ -23,13 +23,13 @@ type command struct {
 	name    string
 	usage   string // arguments, as shown by hq help
 	summary string
-	run     func(env Env, args []string) error
+	run     func(env Env, d deps, args []string) error
 }
 
 func commands() []command {
 	return []command{
-		{"new", "NAME [DIR] [PROMPT]", "start an agent for the repository in DIR, with an optional first prompt", notYet("new")},
-		{"ls", "[--json]", "list agents", notYet("ls")},
+		{"new", "NAME [DIR] [PROMPT]", "start an agent for the repository in DIR, with an optional first prompt", runNew},
+		{"ls", "[--json]", "list agents", runLs},
 		{"go", "NAME", "enter that agent's session", notYet("go")},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", notYet("kill")},
 		{"stop", "[-y]", "end all agents; sandboxes stay", notYet("stop")},
@@ -39,15 +39,19 @@ func commands() []command {
 	}
 }
 
-func notYet(name string) func(Env, []string) error {
-	return func(Env, []string) error {
+func notYet(name string) func(Env, deps, []string) error {
+	return func(Env, deps, []string) error {
 		return usageErr("'%s' is not available in this version (see hq help)", name)
 	}
 }
 
 // Main runs hq with args (without the program name) and returns the exit code.
 func Main(args []string, env Env) int {
-	err := run(env, args)
+	return mainWith(args, env, defaultDeps())
+}
+
+func mainWith(args []string, env Env, d deps) int {
+	err := run(env, d, args)
 	if err == nil {
 		return ExitOK
 	}
@@ -59,10 +63,10 @@ func Main(args []string, env Env) int {
 	return e.Code
 }
 
-func run(env Env, args []string) error {
+func run(env Env, d deps, args []string) error {
 	if len(args) == 0 {
 		// The dashboard arrives with milestone M3; until then, hq alone shows help.
-		return runHelp(env, nil)
+		return runHelp(env, d, nil)
 	}
 	name, rest := args[0], args[1:]
 	switch name {
@@ -70,17 +74,17 @@ func run(env Env, args []string) error {
 		fmt.Fprintf(env.Stdout, "hq %s\n", version.Version)
 		return nil
 	case "--help", "-h":
-		return runHelp(env, nil)
+		return runHelp(env, d, nil)
 	}
 	for _, c := range commands() {
 		if c.name == name {
-			return c.run(env, rest)
+			return c.run(env, d, rest)
 		}
 	}
 	return usageErr("unknown command '%s' (see hq help)", name)
 }
 
-func runHelp(env Env, _ []string) error {
+func runHelp(env Env, _ deps, _ []string) error {
 	var b strings.Builder
 	b.WriteString("hq - one console for many Claude Code agents\n\nUsage:\n")
 	for _, c := range commands() {

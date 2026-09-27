@@ -1,0 +1,58 @@
+#!/bin/sh
+# Stub of Docker Sandboxes' sbx for integration and end-to-end tests: sandboxes
+# are files in $SBX_STUB_DIR/sandboxes (line 1 status, line 2 workspace), and
+# `run` behaves like a Claude session that stays until it is terminated.
+set -eu
+d=${SBX_STUB_DIR:?SBX_STUB_DIR not set}
+mkdir -p "$d/sandboxes"
+cmd=$1
+shift
+case $cmd in
+ls)
+    printf '{"sandboxes":['
+    sep=
+    for f in "$d"/sandboxes/*; do
+        [ -e "$f" ] || continue
+        status=$(sed -n 1p "$f")
+        ws=$(sed -n 2p "$f")
+        printf '%s{"name":"%s","agent":"claude","status":"%s","workspaces":["%s"]}' "$sep" "$(basename "$f")" "$status" "$ws"
+        sep=,
+    done
+    printf ']}\n'
+    ;;
+create)
+    ws=
+    for a in "$@"; do
+        case $a in -q | --quiet | claude) ;; *) ws=$a ;; esac
+    done
+    printf 'stopped\n%s\n' "$ws" >"$d/sandboxes/claude-$(basename "$ws")"
+    ;;
+run)
+    [ "$1" = --name ] || { echo "stub: run needs --name" >&2; exit 1; }
+    name=$2
+    shift 3 # --name NAME --
+    [ -e "$d/sandboxes/$name" ] || { echo "stub: no sandbox $name" >&2; exit 1; }
+    ws=$(sed -n 2p "$d/sandboxes/$name")
+    printf 'running\n%s\n' "$ws" >"$d/sandboxes/$name"
+    printf '%s\n' "$*" >>"$d/runs.log"
+    echo "claude in $name: $*"
+    [ -z "${SBX_STUB_EXIT:-}" ] || exit "$SBX_STUB_EXIT"
+    trap 'echo "claude ended"; exit 0' TERM INT HUP
+    while :; do sleep 1; done
+    ;;
+stop)
+    ws=$(sed -n 2p "$d/sandboxes/$1")
+    printf 'stopped\n%s\n' "$ws" >"$d/sandboxes/$1"
+    ;;
+rm)
+    rm "$d/sandboxes/$1"
+    ;;
+exec)
+    shift # the sandbox: the stub runs the command on the host
+    exec "$@"
+    ;;
+*)
+    echo "stub: unknown command $cmd" >&2
+    exit 1
+    ;;
+esac
