@@ -7,6 +7,7 @@ import (
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/dialog"
+	"github.com/rkrysinski/hq/internal/iterm"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
@@ -40,7 +41,7 @@ func runDash(env Env, d deps, args []string) error {
 	if inList {
 		return runList(env, d, nil)
 	}
-	return show(d, w, mode)
+	return show(env, d, w, mode)
 }
 
 // dashboard finds or makes the dashboard window and starts its list program
@@ -79,8 +80,10 @@ func dashboard(d deps) (w tmux.Dash, mode string, inList bool, err error) {
 }
 
 // show puts the dashboard in front of the user: attached in a plain
-// terminal, switched to inside hq's server, refused inside another.
-func show(d deps, w tmux.Dash, mode string) error {
+// terminal, switched to inside hq's server, refused inside another. In
+// iTerm2 the tab takes the hq profile just before attaching, so Option
+// works as Alt there (design §3.7, §3.11).
+func show(env Env, d deps, w tmux.Dash, mode string) error {
 	var err error
 	switch mode {
 	case goSwitch:
@@ -88,6 +91,7 @@ func show(d deps, w tmux.Dash, mode string) error {
 	case goRefused:
 		return usageErr("this shell is inside another tmux server; run hq from a plain terminal or detach first")
 	default:
+		fmt.Fprint(env.Stdout, iterm.SetProfile(d.getenv))
 		err = d.tmux.Attach(w.Window, d.terminal)
 	}
 	if err != nil {

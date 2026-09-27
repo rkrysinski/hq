@@ -6,8 +6,8 @@
 #
 # It checks the prerequisites (spec §11), downloads the binary for this
 # platform, verifies it against the release's SHA256SUMS and puts it in
-# ~/.local/bin/hq. On macOS it also adds the iTerm2 profile `hq` (Option as
-# Esc+, design §3.7). HQ_VERSION=vX.Y.Z installs that release instead of the
+# ~/.local/bin/hq. On macOS with iTerm2 it also adds the iTerm2 profile `hq`
+# (Option as Esc+, design §3.7), changing no other profile. HQ_VERSION=vX.Y.Z installs that release instead of the
 # latest. Exit codes: 0 installed, 1 failed download or checksum, 3 missing
 # prerequisite.
 set -eu
@@ -73,24 +73,9 @@ chmod 755 "$BIN_DIR/.hq.new"
 mv -f "$BIN_DIR/.hq.new" "$BIN_DIR/hq"
 say "installed $("$BIN_DIR/hq" --version | head -n 1) to $(tilde "$BIN_DIR/hq")"
 
-if [ "$os" = darwin ]; then
-    profiles="$HOME/Library/Application Support/iTerm2/DynamicProfiles"
-    mkdir -p "$profiles"
-    cat >"$profiles/hq.json" <<'PROFILE'
-{
-  "Profiles": [
-    {
-      "Name": "hq",
-      "Guid": "hq-dashboard",
-      "Dynamic Profile Parent Name": "Default",
-      "Option Key Sends": 2,
-      "Right Option Key Sends": 2
-    }
-  ]
-}
-PROFILE
-    say "added the iTerm2 profile hq (Option as Esc+) for the dashboard"
-fi
+# On macOS with iTerm2, the profile hq (Option as Esc+, design §3.7); the
+# binary holds it, so install and hq update write the same file.
+"$BIN_DIR/hq" __iterm-profile | while IFS= read -r line; do say "$line"; done
 
 case ":$PATH:" in
     *":$BIN_DIR:"*) ;;

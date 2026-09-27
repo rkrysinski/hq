@@ -68,23 +68,38 @@ func TestInstallThenUpdate(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "")
 	hq := filepath.Join(home, ".local", "bin", "hq")
 
-	// First install, as the one-liner does: the release's install.sh piped to sh.
+	// iTerm2 in the user's Applications folder.
+	if err := os.MkdirAll(filepath.Join(home, "Applications", "iTerm.app"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	profiles := filepath.Join(home, "Library/Application Support/iTerm2/DynamicProfiles")
+
+	// First install, as the one-liner does: the release's install.sh piped to
+	// sh. Run twice, it leaves one profile and says so once.
 	release(t, ghDir, "v0.1.0")
 	script, err := os.ReadFile(filepath.Join(ghDir, "v0.1.0", "install.sh"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command("sh")
-	cmd.Stdin = strings.NewReader(string(script))
-	out, err := cmd.CombinedOutput()
-	if err != nil || !strings.Contains(string(out), "installed hq v0.1.0 to ~/.local/bin/hq") ||
-		!strings.Contains(string(out), "is not on PATH") {
-		t.Fatalf("install: %v\n%s", err, out)
+	for i := range 2 {
+		cmd := exec.Command("sh")
+		cmd.Stdin = strings.NewReader(string(script))
+		out, err := cmd.CombinedOutput()
+		if err != nil || !strings.Contains(string(out), "installed hq v0.1.0 to ~/.local/bin/hq") ||
+			!strings.Contains(string(out), "is not on PATH") {
+			t.Fatalf("install: %v\n%s", err, out)
+		}
+		said := strings.Contains(string(out), "added the iTerm2 profile hq")
+		if want := runtime.GOOS == "darwin" && i == 0; said != want {
+			t.Fatalf("install %d: profile said %v, want %v\n%s", i+1, said, want, out)
+		}
 	}
 	if runtime.GOOS == "darwin" {
-		if _, err := os.Stat(filepath.Join(home, "Library/Application Support/iTerm2/DynamicProfiles/hq.json")); err != nil {
-			t.Fatalf("iTerm2 profile: %v", err)
+		if es, err := os.ReadDir(profiles); err != nil || len(es) != 1 || es[0].Name() != "hq.json" {
+			t.Fatalf("iTerm2 profiles: %v %v", es, err)
 		}
+	} else if _, err := os.Stat(filepath.Join(home, "Library")); !os.IsNotExist(err) {
+		t.Fatalf("a profile off macOS: %v", err)
 	}
 	if code, out := run(t, hq, "--version"); code != 0 || out != "hq v0.1.0\n" {
 		t.Fatalf("--version: %d %q", code, out)
@@ -119,7 +134,7 @@ func TestInstallThenUpdate(t *testing.T) {
 	if _, out := run(t, hq, "--version"); !strings.HasPrefix(out, "hq v0.2.0\n") {
 		t.Fatalf("--version after a refused update: %q", out)
 	}
-	cmd = exec.Command("sh")
+	cmd := exec.Command("sh")
 	cmd.Stdin = strings.NewReader(string(script))
 	if out, err := cmd.CombinedOutput(); err == nil || !strings.Contains(string(out), "checksum mismatch") {
 		t.Fatalf("tampered install: %v\n%s", err, out)

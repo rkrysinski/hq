@@ -314,7 +314,12 @@ type fakes struct {
 
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
-	prefs    prefs.Prefs
+	// profiles counts the asks for the iTerm2 profile; profileWrote and
+	// profileErr are the answer.
+	profiles     int
+	profileWrote bool
+	profileErr   error
+	prefs        prefs.Prefs
 
 	alive   map[int]bool            // processes that exist
 	listRan func(dash.Source) error // the list program; returns at q
@@ -399,8 +404,12 @@ func (f *fakes) deps() deps {
 		releases:   f.releases,
 		asset:      "hq-testos-testarch",
 		executable: func() (string, error) { return f.exe, nil },
-		loadPrefs:  func() prefs.Prefs { return f.prefs },
-		savePrefs:  func(p prefs.Prefs) error { f.prefs = p; return nil },
+		itermProfile: func() (bool, error) {
+			f.profiles++
+			return f.profileWrote, f.profileErr
+		},
+		loadPrefs: func() prefs.Prefs { return f.prefs },
+		savePrefs: func(p prefs.Prefs) error { f.prefs = p; return nil },
 
 		runList: func(src dash.Source) error {
 			if f.listRan == nil {
