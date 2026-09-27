@@ -253,10 +253,31 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	if code, out := j.hq("kill", "b", "-y"); code != 0 {
 		t.Fatalf("kill: exit %d %q", code, out)
 	}
+	shows("b gone", "hq  1 agent")
+	// S6 from the list: No is the default; y kills the docked a, the slot
+	// gets the placeholder with its hint and the keys stay in the list.
+	keys("C-b", "Up")
+	keys("k")
+	shows("the Kill dialog", "Kill agent", "Kill a (", "Ends the Claude session; the sandbox stays.", "No ⏎", "Yes")
+	keys("Enter")
+	eventually(t, "the dialog to close", func() bool { return !strings.Contains(screen(), "Kill agent") })
+	shows("a kept", "hq  1 agent", "▸ a · ")
+	keys("k")
+	shows("the Kill dialog again", "Kill agent")
+	keys("y")
+	shows("the list empty again, the placeholder back", "hq  0 agents", "▸ placeholder shell", "hq: a killed - select an agent above or press n")
+	if out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_role}").Output(); strings.TrimSpace(string(out)) != "list" {
+		t.Fatalf("the keys are in the %q pane, not the list", out)
+	}
+	// The name is free at once.
+	if code, out := j.hq("new", "a"); code != 0 {
+		t.Fatalf("new a again: exit %d %q", code, out)
+	}
+	shows("a again", "a new")
 	if code, out := j.hq("kill", "a", "-y"); code != 0 {
 		t.Fatalf("kill: exit %d %q", code, out)
 	}
-	shows("the list empty again, the placeholder back", "hq  0 agents", "▸ placeholder shell", "hq: a killed - select an agent above or press n")
+	shows("the list empty again", "hq  0 agents", "▸ placeholder shell", "hq: a killed - select an agent above or press n")
 
 	// S8: q leaves the hint in the list pane; hq dash there brings the list back.
 	keys("q")

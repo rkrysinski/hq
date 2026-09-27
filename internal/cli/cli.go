@@ -68,6 +68,8 @@ func run(env Env, d deps, args []string) error {
 		return runList(env, d, rest)
 	case newDialogCommand:
 		return runNewDialog(env, d, rest)
+	case killDialogCommand:
+		return runKillDialog(env, d, rest)
 	case "--version", "-V":
 		fmt.Fprintf(env.Stdout, "hq %s\n%s", version.Version, updateHint(d))
 		return nil

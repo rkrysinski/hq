@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dialog"
 )
 
@@ -32,6 +33,35 @@ func dialogStart(d deps, cwd string) dialog.Start {
 		_, _, err := createAgent(io.Discard, d, newArgs{name: name, dir: expandDir(dir, d.getenv("HOME"), cwd), prompt: prompt})
 		return err
 	}
+}
+
+// killDialogCommand is the hidden command the Kill dialog's popup runs,
+// with the agent's name.
+const killDialogCommand = "__kill-dialog"
+
+// runKillDialog runs the Kill dialog: on Yes it ends the agent as hq kill
+// does and closes (spec §6.6, S6).
+func runKillDialog(_ Env, d deps, args []string) error {
+	if len(args) != 1 {
+		return usageErr("usage: hq %s NAME", killDialogCommand)
+	}
+	if err := checkTmux(d.tmux); err != nil {
+		return err
+	}
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return tmuxErr(err)
+	}
+	// With its state, for the branch.
+	a, ok := agent.Find(agent.Collect(ws, d.readState, nil), args[0])
+	if !ok {
+		return notFoundErr("no agent '%s' (see hq ls)", args[0])
+	}
+	branch := a.Branch
+	if branch == "" {
+		branch = a.Repo()
+	}
+	return d.runDialog(dialog.KillDialog(a.Name, branch, func() error { return endAgents(d, []agent.Agent{a}) }))
 }
 
 // tildeDir shows a directory under home as ~/..., as the mocks do.

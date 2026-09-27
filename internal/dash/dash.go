@@ -47,6 +47,9 @@ type Source struct {
 	// prefilled (empty: where hq was started), and returns when it closes
 	// (spec §6.6).
 	NewAgent func(dir string) error
+	// Kill opens the Kill dialog on the agent named name, which ends it on
+	// Yes, and returns when it closes (spec §6.4 kill, §6.6).
+	Kill func(name string) error
 }
 
 // Sorts, cycled with s, and views, toggled with a (spec §6.2).
@@ -132,7 +135,7 @@ type Model struct {
 	running map[string]bool
 	err     error
 	dockErr error // why the last Enter did not dock, until the next key
-	// dialog is true from n until the dialog closes: the keys typed before
+	// dialog is true from n or k until the dialog closes: the keys typed before
 	// tmux shows the popup are not the list's either (spec §6.6).
 	dialog bool
 	hint   string // update hint
@@ -178,7 +181,7 @@ func (m Model) hints() []Hint {
 	if m.view == ViewAll {
 		other = ViewAttention
 	}
-	return []Hint{{"↑↓", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
+	return []Hint{{"↑↓", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"k", "kill"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
 }
 
 // visible is how many rows the pane shows.
@@ -316,6 +319,12 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 			m.dialog = true
 			return m, func() tea.Msg { return closedMsg{open(dir)} }
+		case "k":
+			if m.cursorRow >= 0 {
+				name, kill := m.cursor, m.src.Kill
+				m.dialog = true
+				return m, func() tea.Msg { return closedMsg{kill(name)} }
+			}
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "r":
@@ -324,7 +333,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			if m.cursorRow+1 < len(m.rows) {
 				m.moveTo(m.cursorRow + 1)
 			}
-		case "k", "up":
+		case "up":
 			if m.cursorRow > 0 {
 				m.moveTo(m.cursorRow - 1)
 			}

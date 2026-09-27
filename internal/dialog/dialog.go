@@ -184,13 +184,7 @@ const labelWidth = 9
 func (m NewAgent) View() string {
 	w := max(m.width, 30)
 	boxW := w - labelWidth - 1
-	title := "New agent"
-	left := (w - len(title)) / 2
-	lines := []string{
-		strings.Repeat(" ", left) + cTitle.Render(title) + strings.Repeat(" ", max(1, w-left-len(title)-2)) + cDim.Render("×"),
-		" " + cDim.Render(strings.Repeat("─", w-2)),
-		"",
-	}
+	lines := append(titleLines("New agent", w), "")
 	for i, in := range m.inputs {
 		border := cLine
 		if i == m.focus {
@@ -219,7 +213,7 @@ func (m NewAgent) View() string {
 		start = cDefault
 	}
 	buttons := start.Render("Start ⏎") + "   " + cancel.Render("Cancel")
-	lines = append(lines, "", strings.Repeat(" ", max(0, (w-lipgloss.Width(buttons))/2))+buttons)
+	lines = append(lines, "", centered(buttons, w))
 	return strings.Join(lines, "\n")
 }
 

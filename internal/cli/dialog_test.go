@@ -5,9 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/rkrysinski/hq/internal/dialog"
+	"github.com/rkrysinski/hq/internal/state"
 )
 
 func TestNOpensTheNewAgentDialogInAPopup(t *testing.T) {
@@ -105,5 +107,53 @@ func TestExpandDir(t *testing.T) {
 	}
 	if tildeDir("/hx", "/h") != "/hx" || tildeDir("/h", "/h") != "~" {
 		t.Error("tildeDir")
+	}
+}
+
+func TestKOpensTheKillDialogInAPopup(t *testing.T) {
+	f := newFakes()
+	f.exe = "/opt/hq"
+	if err := listSource(f.deps(), "%1").Kill("a"); err != nil {
+		t.Fatal(err)
+	}
+	if want := "%1 /w/app 60x10 /opt/hq __kill-dialog a"; strings.Join(f.tmux.popups, "\n") != want {
+		t.Fatalf("popups %q", f.tmux.popups)
+	}
+}
+
+func TestTheKillDialogEndsTheAgentAsHqKillDoes(t *testing.T) {
+	f := killFakes()
+	if code, _, errOut := f.run("__kill-dialog", "a"); code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	m, ok := f.dialog.(dialog.Confirm)
+	// The branch is not known yet: the repository stands for it.
+	if !ok || !strings.Contains(ansi.Strip(m.View()), "Kill a (app)?") {
+		t.Fatalf("dialog %T:\n%s", f.dialog, ansi.Strip(m.View()))
+	}
+	f.states["id-a"] = state.Report{State: state.Working, Branch: "feat/1"}
+	f.run("__kill-dialog", "a")
+	if m = f.dialog.(dialog.Confirm); !strings.Contains(ansi.Strip(m.View()), "Kill a (feat/1)?") {
+		t.Fatalf("dialog:\n%s", ansi.Strip(m.View()))
+	}
+	if f.names() != "hq a b gone" {
+		t.Fatalf("killed before the answer: %q", f.names())
+	}
+	tm, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
+	if tm, _ = tm.Update(cmd()); !tm.(dialog.Confirm).Done {
+		t.Fatalf("not done:\n%s", ansi.Strip(tm.View()))
+	}
+	if got := strings.Join(f.sbx.execs[0], " "); got != `claude-x pkill -TERM -f HQ_ID":"id-a"` || f.names() != "hq b gone" {
+		t.Fatalf("exec %q, windows %q", got, f.names())
+	}
+}
+
+func TestTheKillDialogNeedsAnAgent(t *testing.T) {
+	f := killFakes()
+	if code, _, _ := f.run("__kill-dialog", "missing"); code != ExitNotFound || f.dialog != nil {
+		t.Fatalf("missing: exit %d, dialog %T", code, f.dialog)
+	}
+	if code, _, _ := f.run("__kill-dialog"); code != ExitUsage {
+		t.Fatalf("no name: exit %d", code)
 	}
 }

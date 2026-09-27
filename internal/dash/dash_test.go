@@ -33,6 +33,8 @@ type fakeSource struct {
 	dockErr    error
 	dialogs    []string // dirs the New agent dialog opened with
 	onDialog   func()   // what the user does in the dialog
+	killed     []string // agents the Kill dialog opened on
+	onKill     func()   // what the user answers in it
 
 	collects, polls, layouts int
 	seen                     []map[string]bool // running as given to Agents
@@ -72,6 +74,13 @@ func (f *fakeSource) source() Source {
 			f.dialogs = append(f.dialogs, dir)
 			if f.onDialog != nil {
 				f.onDialog()
+			}
+			return nil
+		},
+		Kill: func(name string) error {
+			f.killed = append(f.killed, name)
+			if f.onKill != nil {
+				f.onKill()
 			}
 			return nil
 		},
@@ -314,7 +323,7 @@ func TestQAndCtrlCQuit(t *testing.T) {
 func TestStartShowsTheFooterAndEveryResizeReappliesTheLayout(t *testing.T) {
 	f := &fakeSource{}
 	m := started(f, 100, 10)
-	if got := fmt.Sprint(f.footer); got != "[{↑↓ select} {⏎ open session below} {n new} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
+	if got := fmt.Sprint(f.footer); got != "[{↑↓ select} {⏎ open session below} {n new} {k kill} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
 		t.Errorf("footer %s", got)
 	}
 	update(m, tea.WindowSizeMsg{Width: 90, Height: 12})
@@ -393,7 +402,7 @@ func TestAttentionViewShowsOnlyWhoNeedsYouAndCountsAll(t *testing.T) {
 	if len(f.saved) != 1 || f.saved[0] != "attention/all" {
 		t.Errorf("kept %v", f.saved)
 	}
-	if got := f.footer[4]; got != (Hint{"a", "view: attention"}) {
+	if got := f.footer[5]; got != (Hint{"a", "view: attention"}) {
 		t.Errorf("footer after a: %v", got)
 	}
 	m = key(m, "a")
@@ -430,7 +439,7 @@ func TestSortCyclesAndIsMarkedInTheColumnHeader(t *testing.T) {
 		if got := strings.Join(strings.Fields(lines(m)[2]), " "); !strings.HasPrefix(got, tc.marked) {
 			t.Errorf("sort %s: column header %q, want %q", tc.sort, got, tc.marked)
 		}
-		if got := f.footer[3]; got != (Hint{"s", "sort: " + tc.sort}) {
+		if got := f.footer[4]; got != (Hint{"s", "sort: " + tc.sort}) {
 			t.Errorf("footer %v", got)
 		}
 		m = key(m, "s")
@@ -462,11 +471,11 @@ func TestCursorMovesAndFollowsItsAgent(t *testing.T) {
 	if m.cursor != "perm" {
 		t.Fatalf("cursor starts on %q", m.cursor)
 	}
-	m = key(key(key(m, "j"), "down"), "k")
+	m = key(key(key(m, "j"), "down"), "up")
 	if m.cursor != "ask" {
-		t.Fatalf("after j down k: %q", m.cursor)
+		t.Fatalf("after j down up: %q", m.cursor)
 	}
-	m = key(key(m, "up"), "k")
+	m = key(key(m, "up"), "up")
 	if m.cursor != "perm" || m.cursorRow != 0 {
 		t.Fatalf("above the top: %q %d", m.cursor, m.cursorRow)
 	}
@@ -476,7 +485,7 @@ func TestCursorMovesAndFollowsItsAgent(t *testing.T) {
 	}
 
 	// w1 asks a question: rows reshuffle, the cursor stays on its agent.
-	m = key(key(m, "k"), "k") // on done
+	m = key(key(m, "up"), "up") // on done
 	f.agents[0].State = state.Question
 	m = key(m, "r")
 	if rowNames(m) != "perm w1 ask done end" || m.cursor != "done" || m.cursorRow != 3 {
@@ -497,7 +506,7 @@ func TestCursorMovesAndFollowsItsAgent(t *testing.T) {
 	if m.cursor != "ask" || m.cursorRow != -1 {
 		t.Fatalf("no rows: %q at %d, want no row and the name kept", m.cursor, m.cursorRow)
 	}
-	m = key(key(m, "j"), "k") // no rows: nothing to move to
+	m = key(key(m, "j"), "up") // no rows: nothing to move to
 	f.agents = team()
 	if m = key(m, "r"); m.cursorRow < 0 || m.rows[m.cursorRow].Name != "ask" {
 		t.Fatalf("agent back: %q at %d", m.cursor, m.cursorRow)
@@ -523,7 +532,7 @@ func TestCursorScrollsTheList(t *testing.T) {
 		t.Errorf("at the bottom: %q", ls[9])
 	}
 	for range 7 {
-		m = key(m, "k")
+		m = key(m, "up")
 	}
 	if m.offset != 0 || m.cursor != "a0" {
 		t.Errorf("back at the top: offset %d cursor %q", m.offset, m.cursor)
@@ -744,4 +753,36 @@ func TestTheListTakesNoKeysWhileADialogIsOpen(t *testing.T) {
 	if m = key(m, "j"); m.cursorRow != 1 {
 		t.Fatal("keys still ignored after the dialog closed")
 	}
+}
+
+func TestKOpensTheKillDialogOnTheCursorRow(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := key(started(f, 120, 10), "j") // perm ask done w1 end
+	// Yes: the agent is gone on the list's next refresh, the cursor takes
+	// the nearest row.
+	f.onKill = func() { f.agents = remove(f.agents, "ask") }
+	m = key(m, "k")
+	if strings.Join(f.killed, " ") != "ask" || rowNames(m) != "perm done w1 end" || m.cursor != "done" {
+		t.Fatalf("killed %v, rows %q, cursor %q", f.killed, rowNames(m), m.cursor)
+	}
+	// No: nothing changes.
+	f.onKill = nil
+	if m = key(m, "k"); len(f.killed) != 2 || rowNames(m) != "perm done w1 end" {
+		t.Fatalf("killed %v, rows %q", f.killed, rowNames(m))
+	}
+	// With no rows there is nothing to kill.
+	f = &fakeSource{}
+	if key(started(f, 120, 10), "k"); len(f.killed) != 0 {
+		t.Fatalf("killed %v", f.killed)
+	}
+}
+
+func remove(as []agent.Agent, name string) []agent.Agent {
+	var out []agent.Agent
+	for _, a := range as {
+		if a.Name != name {
+			out = append(out, a)
+		}
+	}
+	return out
 }

@@ -133,6 +133,20 @@ func newDialog(d deps, pane, dir string) error {
 	return d.tmux.Popup(pane, cwd, dialog.Width, dialog.Height, []string{exe, newDialogCommand, dir})
 }
 
+// killDialog opens the Kill dialog on the agent named name over the
+// dashboard, until it closes.
+func killDialog(d deps, pane, name string) error {
+	exe, err := d.executable()
+	if err != nil {
+		return err
+	}
+	cwd, err := d.getwd()
+	if err != nil {
+		return err
+	}
+	return d.tmux.Popup(pane, cwd, dialog.ConfirmWidth, dialog.ConfirmHeight, []string{exe, killDialogCommand, name})
+}
+
 // keepTitles keeps the docked session's frame title current as its branch
 // changes.
 func keepTitles(d deps, ws []tmux.Window, as []agent.Agent) {
@@ -182,6 +196,7 @@ func listSource(d deps, pane string) dash.Source {
 		},
 		Dock:     func(name string) error { return dock(d, name) },
 		NewAgent: func(dir string) error { return newDialog(d, pane, dir) },
+		Kill:     func(name string) error { return killDialog(d, pane, name) },
 		Running: func() (map[string]bool, error) {
 			sbs, err := d.pollSandboxes()
 			if err != nil {
