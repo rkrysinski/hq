@@ -51,7 +51,7 @@ func TestDashboardHasTheListOnTopAndThePlaceholderBelow(t *testing.T) {
 	eventually(t, "placeholder hint", func() bool {
 		return strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", d.Slot), PlaceholderHint)
 	})
-	if got := tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{T:pane-border-format}"); !strings.Contains(got, "▸ placeholder shell") {
+	if got := tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{T:pane-border-format}"); !strings.Contains(got, "▸ placeholder") || strings.Contains(got, "shell") {
 		t.Errorf("slot frame %q", got)
 	}
 	if got := tm(t, socket, "display-message", "-p", "-t", d.List, "#{T:pane-border-format}"); strings.Contains(got, "▸") {
@@ -135,13 +135,102 @@ func TestDashboardIsFoundAgainAndRepairedWhenAPaneIsGone(t *testing.T) {
 	})
 }
 
-func TestSessionFromBeforeTheDashboardKeepsItsShellAsTheSlot(t *testing.T) {
+func TestSessionFromBeforeTheDashboardGetsItsPaneAsThePlaceholder(t *testing.T) {
 	c, socket := dashClient(t)
 	tm(t, socket, "new-session", "-d", "-s", Session, "-n", Session, "sh")
 	old := tm(t, socket, "display-message", "-p", "-t", Session+":", "#{pane_id}")
 	d, err := c.Dashboard(t.TempDir(), listStub)
 	if err != nil || d.Slot != old || !d.Started {
 		t.Fatalf("%+v %v, want the old pane %s as the slot", d, err, old)
+	}
+	eventually(t, "the placeholder in place of the shell", func() bool {
+		return strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", d.Slot), PlaceholderHint)
+	})
+}
+
+// slotStub stands in for hq's placeholder program: it says its hint and
+// where it runs, and waits.
+var slotStub = []string{"sh", "-c", `printf 'slot:%s %s\n' "$HQ_TMUX_SOCKET" "$1"; exec sleep 30`, "sh"}
+
+func TestThePlaceholderIsHqsProgramAndOutlivesItsEnd(t *testing.T) {
+	c, socket := dashClient(t)
+	c.Placeholder = slotStub
+	d, err := c.Dashboard(t.TempDir(), listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "the placeholder program with its hint", func() bool {
+		return strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", d.Slot), "slot:"+socket+" "+PlaceholderHint)
+	})
+	if got := tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{@hq_placeholder} #{remain-on-exit}"); got != "program on" {
+		t.Fatalf("placeholder options %q", got)
+	}
+	// A placeholder whose program ended stays, and is started again.
+	tm(t, socket, "respawn-pane", "-k", "-t", d.Slot, "true")
+	eventually(t, "the placeholder to end", func() bool {
+		return tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{pane_dead}") == "1"
+	})
+	again, err := c.Dashboard(t.TempDir(), listStub)
+	if err != nil || again.Slot != d.Slot {
+		t.Fatalf("%+v %v", again, err)
+	}
+	eventually(t, "the placeholder again", func() bool {
+		return tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{pane_dead}") == "0" &&
+			strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", d.Slot), "slot:")
+	})
+}
+
+func TestAnOlderHqsPlaceholderShellIsReplaced(t *testing.T) {
+	c, socket := dashClient(t)
+	dir := t.TempDir()
+	d, err := c.Dashboard(dir, listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// What an older hq left: a shell in the slot, framed "placeholder shell",
+	// waiting in the home window of the docked agent.
+	tm(t, socket, "respawn-pane", "-k", "-t", d.Slot, "sh")
+	tm(t, socket, "set-option", "-p", "-u", "-t", d.Slot, "@hq_placeholder")
+	tm(t, socket, "set-option", "-p", "-u", "-t", d.Slot, "remain-on-exit")
+	tm(t, socket, "set-option", "-p", "-t", d.Slot, "@hq_title", "placeholder shell")
+	w, _ := agentWindow(t, c, "a", dir, "sleep", "30")
+	if err := c.Dock(w, "a"); err != nil {
+		t.Fatal(err)
+	}
+	c.Placeholder = slotStub
+	if _, err := c.Dashboard(dir, listStub); err != nil {
+		t.Fatal(err)
+	}
+	if got := tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{window_id} #{@hq_placeholder} #{remain-on-exit} #{@hq_title}"); got != w+" program on placeholder" {
+		t.Fatalf("placeholder %q, want it in a's home window, hq's program", got)
+	}
+	eventually(t, "the placeholder program", func() bool {
+		return strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", d.Slot), "slot:"+socket+" "+PlaceholderHint)
+	})
+	if ws := mustWindows(t, c); !ws["a"].Docked {
+		t.Fatalf("a no longer docked: %+v", ws["a"])
+	}
+}
+
+func TestFocusListPutsTheKeysOnTheList(t *testing.T) {
+	c, socket := dashClient(t)
+	d, err := c.Dashboard(t.TempDir(), listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tm(t, socket, "select-pane", "-t", d.Slot)
+	if err := c.FocusList(); err != nil {
+		t.Fatal(err)
+	}
+	if got := tm(t, socket, "display-message", "-p", "-t", d.Window, "#{pane_id}"); got != d.List {
+		t.Fatalf("keys on %s, want the list %s", got, d.List)
+	}
+	tm(t, socket, "kill-window", "-t", d.Window)
+	if err := c.EnsureSession(t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.FocusList(); err != ErrNoDashboard {
+		t.Fatalf("without a list: %v", err)
 	}
 }
 

@@ -52,6 +52,7 @@ type Tmux interface {
 	Popup(pane, dir string, w, h int, argv []string) error
 	BindChords(argv []string, hints string) error
 	Message(text string) error
+	FocusList() error
 }
 
 // Sandboxes is the seam to sbx (design §7.2).
@@ -95,6 +96,10 @@ type deps struct {
 	terminal     tmux.Terminal
 	sleep        func(time.Duration)
 	canAsk       func(stdin io.Reader) bool // stdin is a terminal to confirm on
+	// rawTerminal puts stdin, when it is a terminal, in raw mode, so every
+	// key reaches hq as it is typed and none is echoed; the function it
+	// returns restores it.
+	rawTerminal func(stdin io.Reader) func()
 	// readState reads an agent's state file (design §3.4).
 	readState func(root, id string) (state.Report, bool)
 	// removeState deletes an agent's state files once it is gone (design §3.4).
@@ -132,8 +137,12 @@ const sbxPollTimeout = 5 * time.Second
 func defaultDeps() deps {
 	run := proc.Exec{}
 	plat := platform.Detect(os.Getenv, os.ReadFile, run)
+	var placeholder []string
+	if exe, err := executable(); err == nil {
+		placeholder = []string{exe, slotCommand}
+	}
 	return deps{
-		tmux:        tmux.Client{Run: run, Socket: os.Getenv("HQ_TMUX_SOCKET")},
+		tmux:        tmux.Client{Run: run, Socket: os.Getenv("HQ_TMUX_SOCKET"), Placeholder: placeholder},
 		sbx:         sbx.Client{Run: run, Platform: plat},
 		repoRoot:    func(dir string) (string, bool) { return repo.Root(run, dir) },
 		samePath:    repo.Same,
@@ -161,12 +170,13 @@ func defaultDeps() deps {
 			fi, err := os.Stat(path)
 			return err == nil && fi.IsDir()
 		},
-		getwd:    os.Getwd,
-		now:      time.Now,
-		getenv:   os.Getenv,
-		terminal: run,
-		sleep:    time.Sleep,
-		canAsk:   isTerminal,
+		getwd:       os.Getwd,
+		now:         time.Now,
+		getenv:      os.Getenv,
+		terminal:    run,
+		sleep:       time.Sleep,
+		canAsk:      isTerminal,
+		rawTerminal: rawTerminal,
 
 		readState:     state.Read,
 		removeState:   state.Remove,
@@ -178,15 +188,9 @@ func defaultDeps() deps {
 		pid:       os.Getpid(),
 		alive:     func(pid int) bool { return syscall.Kill(pid, 0) == nil },
 
-		releases: update.Releases{Run: run, Bin: "gh"},
-		asset:    update.Asset(runtime.GOOS, runtime.GOARCH),
-		executable: func() (string, error) {
-			exe, err := os.Executable()
-			if err != nil {
-				return "", err
-			}
-			return filepath.EvalSymlinks(exe)
-		},
+		releases:   update.Releases{Run: run, Bin: "gh"},
+		asset:      update.Asset(runtime.GOOS, runtime.GOARCH),
+		executable: executable,
 		itermProfile: func() (bool, error) {
 			home, _ := os.UserHomeDir()
 			return iterm.Install(runtime.GOOS, home, "/")
@@ -194,6 +198,29 @@ func defaultDeps() deps {
 		loadPrefs: func() prefs.Prefs { return prefs.Load(prefs.Path(os.Getenv)) },
 		savePrefs: func(p prefs.Prefs) error { return prefs.Save(prefs.Path(os.Getenv), p) },
 	}
+}
+
+// executable is the path of the running hq, links resolved.
+func executable() (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.EvalSymlinks(exe)
+}
+
+// rawTerminal puts r in raw mode when it is a terminal and returns what
+// restores it.
+func rawTerminal(r io.Reader) func() {
+	f, ok := r.(*os.File)
+	if !ok || !term.IsTerminal(int(f.Fd())) {
+		return func() {}
+	}
+	old, err := term.MakeRaw(int(f.Fd()))
+	if err != nil {
+		return func() {}
+	}
+	return func() { _ = term.Restore(int(f.Fd()), old) }
 }
 
 // isTerminal reports whether r is a terminal that a confirmation can be

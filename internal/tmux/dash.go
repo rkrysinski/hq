@@ -16,9 +16,13 @@ const (
 	roleSlot = "slot"
 
 	// PlaceholderTitle frames the slot while nothing is docked (S1).
-	PlaceholderTitle = "placeholder shell"
-	// PlaceholderHint is what the placeholder shell prints first (S1).
+	PlaceholderTitle = "placeholder"
+	// PlaceholderHint is what the placeholder shows (S1).
 	PlaceholderHint = "hq: nothing docked - select an agent above or press n"
+
+	// placeholderMark marks a pane running the placeholder program, as
+	// opposed to the shell older versions of hq left in the slot.
+	placeholderMark = "program"
 )
 
 // Dash is the dashboard window as hq found or made it.
@@ -30,11 +34,28 @@ type Dash struct {
 	Started bool   // the list pane was just made, its program is starting
 }
 
-// placeholder is the slot's shell: the hint, then the user's shell.
-func placeholder() []string { return placeholderWith(PlaceholderHint) }
+// placeholderArgv is the command of the pane that fills the slot while nothing
+// is docked (design §3.1): hq's placeholder program saying hint, which takes
+// no commands. Without one (a client made in a test), a stand-in that shows
+// the hint and ignores what is typed.
+func (c Client) placeholderArgv(hint string) []string {
+	if len(c.Placeholder) > 0 {
+		return append(append([]string{}, c.Placeholder...), hint)
+	}
+	return []string{"sh", "-c", `printf '%s\n' "$1"; stty -echo 2>/dev/null; exec cat >/dev/null`, "sh", hint}
+}
 
-func placeholderWith(hint string) []string {
-	return []string{"sh", "-c", `printf '%s\n\n' "$1"; exec "${SHELL:-/bin/sh}"`, "sh", hint}
+// placeholderPane marks pane as the placeholder running hq's placeholder
+// program: the slot's role and frame title, and kept when its program ends,
+// so a home window holding it never closes and takes its agent along
+// (design §3.3).
+func placeholderPane(pane string) [][]string {
+	return [][]string{
+		{"set-option", "-p", "-t", pane, "@hq_role", roleSlot},
+		{"set-option", "-p", "-t", pane, "@hq_title", PlaceholderTitle},
+		{"set-option", "-p", "-t", pane, "@hq_placeholder", placeholderMark},
+		{"set-option", "-p", "-t", pane, "remain-on-exit", "on"},
+	}
 }
 
 // KilledHint is what the placeholder says when the docked agent was killed
@@ -65,7 +86,8 @@ func (c Client) EnsureSession(dir string) error {
 	if _, err := c.tmux("has-session", "-t", "="+Session); err == nil {
 		return nil
 	}
-	args := append([]string{"new-session", "-d", "-P", "-F", "#{window_id} #{pane_id}", "-s", Session, "-n", Session, "-c", dir, "--"}, placeholder()...)
+	args := append(append([]string{"new-session", "-d", "-P", "-F", "#{window_id} #{pane_id}", "-s", Session, "-n", Session, "-c", dir}, c.env()...), "--")
+	args = append(args, c.placeholderArgv(PlaceholderHint)...)
 	out, err := c.tmux(args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate session") {
@@ -79,11 +101,7 @@ func (c Client) EnsureSession(dir string) error {
 
 // decorate makes a window the dashboard with pane as its slot.
 func (c Client) decorate(win, pane string) error {
-	return c.batch(
-		[]string{"set-option", "-w", "-t", win, "@hq_dash", "1"},
-		[]string{"set-option", "-p", "-t", pane, "@hq_role", roleSlot},
-		[]string{"set-option", "-p", "-t", pane, "@hq_title", PlaceholderTitle},
-	)
+	return c.batch(append([][]string{{"set-option", "-w", "-t", win, "@hq_dash", "1"}}, placeholderPane(pane)...)...)
 }
 
 // style gives the dashboard and hq's session the look of the mocks: framed,
@@ -204,13 +222,14 @@ func (c Client) batch(cmds ...[]string) error {
 type pane struct {
 	window, windowName, dash string
 	id, role, agent, title   string
+	placeholder              string // @hq_placeholder: placeholderMark on a placeholder hq started
 	dead                     bool
 	listPID                  int
 	options                  map[string]string // the window's OptionKeys
 }
 
 func (c Client) panes() ([]pane, error) {
-	fields := []string{"#{window_id}", "#{window_name}", "#{@hq_dash}", "#{pane_id}", "#{@hq_role}", "#{@hq_agent}", "#{@hq_title}", "#{pane_dead}", "#{@hq_list_pid}"}
+	fields := []string{"#{window_id}", "#{window_name}", "#{@hq_dash}", "#{pane_id}", "#{@hq_role}", "#{@hq_agent}", "#{@hq_title}", "#{pane_dead}", "#{@hq_list_pid}", "#{@hq_placeholder}"}
 	for _, k := range OptionKeys {
 		fields = append(fields, "#{@hq_"+k+"}")
 	}
@@ -228,9 +247,9 @@ func (c Client) panes() ([]pane, error) {
 			return nil, fmt.Errorf("tmux: unexpected list-panes line %q", line)
 		}
 		pid, _ := strconv.Atoi(f[8])
-		p := pane{window: f[0], windowName: f[1], dash: f[2], id: f[3], role: f[4], agent: f[5], title: f[6], dead: f[7] == "1", listPID: pid, options: map[string]string{}}
+		p := pane{window: f[0], windowName: f[1], dash: f[2], id: f[3], role: f[4], agent: f[5], title: f[6], dead: f[7] == "1", listPID: pid, placeholder: f[9], options: map[string]string{}}
 		for i, k := range OptionKeys {
-			if v := f[9+i]; v != "" {
+			if v := f[10+i]; v != "" {
 				p.options[k] = v
 			}
 		}
@@ -241,9 +260,11 @@ func (c Client) panes() ([]pane, error) {
 
 // Dashboard finds or makes the dashboard window, with the list pane running
 // list and the slot below it (design §3.1). A list pane it makes gets the
-// keys. A session made before the
-// dashboard existed gets its first "hq" window turned into it, keeping the
-// shell there as the slot.
+// keys. A session made before the dashboard existed gets its first "hq"
+// window turned into it, that window's pane becoming the slot. A
+// placeholder that is not running hq's placeholder program (a shell left by
+// an older hq, or a program that ended) is started afresh, wherever it
+// waits.
 func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 	if err := c.EnsureSession(dir); err != nil {
 		return Dash{}, err
@@ -266,14 +287,17 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 				if err := c.decorate(p.window, p.id); err != nil {
 					return Dash{}, err
 				}
+				if err := c.restartPlaceholder(p.id, PlaceholderHint); err != nil {
+					return Dash{}, err
+				}
 				d.Slot = p.id
 				break
 			}
 		}
 	}
 	if d.Window == "" {
-		args := append([]string{"new-window", "-d", "-P", "-F", "#{window_id} #{pane_id}", "-t", Session + ":", "-n", Session, "-c", dir, "--"}, placeholder()...)
-		out, err := c.tmux(args...)
+		args := append(append([]string{"new-window", "-d", "-P", "-F", "#{window_id} #{pane_id}", "-t", Session + ":", "-n", Session, "-c", dir}, c.env()...), "--")
+		out, err := c.tmux(append(args, c.placeholderArgv(PlaceholderHint)...)...)
 		if err != nil {
 			return Dash{}, err
 		}
@@ -287,6 +311,11 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 		return Dash{}, err
 	}
 	for _, p := range ps {
+		if p.role == roleSlot && (p.placeholder != placeholderMark || p.dead) {
+			if err := c.restartPlaceholder(p.id, PlaceholderHint); err != nil {
+				return Dash{}, err
+			}
+		}
 		if p.window != d.Window {
 			continue
 		}
@@ -298,13 +327,13 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 		}
 	}
 	if d.Slot == "" {
-		args := append([]string{"split-window", "-v", "-d", "-P", "-F", "#{pane_id}", "-t", d.List, "-c", dir, "--"}, placeholder()...)
-		out, err := c.tmux(args...)
+		args := append(append([]string{"split-window", "-v", "-d", "-P", "-F", "#{pane_id}", "-t", d.List, "-c", dir}, c.env()...), "--")
+		out, err := c.tmux(append(args, c.placeholderArgv(PlaceholderHint)...)...)
 		if err != nil {
 			return Dash{}, err
 		}
 		d.Slot = strings.TrimSpace(string(out))
-		if _, err := c.tmux("set-option", "-p", "-t", d.Slot, "@hq_role", roleSlot, ";", "set-option", "-p", "-t", d.Slot, "@hq_title", PlaceholderTitle); err != nil {
+		if err := c.batch(placeholderPane(d.Slot)...); err != nil {
 			return Dash{}, err
 		}
 	}
@@ -322,6 +351,35 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 		}
 	}
 	return d, nil
+}
+
+// restartPlaceholder starts the placeholder program afresh in pane, saying
+// hint.
+func (c Client) restartPlaceholder(pane, hint string) error {
+	return c.batch(append(placeholderPane(pane), c.respawnPlaceholder(pane, hint))...)
+}
+
+// respawnPlaceholder is the command that starts the placeholder program in
+// pane, ending what ran there.
+func (c Client) respawnPlaceholder(pane, hint string) []string {
+	args := append(append([]string{"respawn-pane", "-k", "-t", pane}, c.env()...), "--")
+	return append(args, c.placeholderArgv(hint)...)
+}
+
+// FocusList puts the keys on the dashboard's list pane; the placeholder
+// sends them there when it is given any (design §3.1).
+func (c Client) FocusList() error {
+	ps, err := c.panes()
+	if err != nil {
+		return err
+	}
+	for _, p := range ps {
+		if p.dash == "1" && p.role == roleList {
+			_, err := c.tmux("select-pane", "-t", p.id)
+			return err
+		}
+	}
+	return ErrNoDashboard
 }
 
 // RespawnList starts the list program again in the list pane, replacing the
@@ -461,7 +519,7 @@ func (c Client) undock(ps []pane, hint string) error {
 		if p.options["id"] == slot.agent && p.role == roleSlot {
 			cmds := []string{"swap-pane", "-d", "-s", slot.id, "-t", p.id}
 			if hint != "" {
-				cmds = append(append(cmds, ";", "respawn-pane", "-k", "-t", p.id, "--"), placeholderWith(hint)...)
+				cmds = append(append(cmds, ";"), c.respawnPlaceholder(p.id, hint)...)
 			}
 			if list != "" {
 				cmds = append(cmds, ";", "select-pane", "-t", list)

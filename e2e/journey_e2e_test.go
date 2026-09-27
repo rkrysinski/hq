@@ -207,8 +207,21 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 
 	// S1: hq with nothing running.
 	open()
-	shows("the empty dashboard", "hq  0 agents", "no agents yet - press n to start one", "▸ placeholder shell",
+	shows("the empty dashboard", "hq  0 agents", "no agents yet - press n to start one", "▸ placeholder",
 		"hq: nothing docked - select an agent above or press n", "r refresh  q quit")
+	role := func() string {
+		out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_role}").Output()
+		return strings.TrimSpace(string(out))
+	}
+	// The empty slot is not a shell: what is typed there runs nothing and
+	// the keys go back to the list.
+	keys("M-l")
+	eventually(t, "the keys in the empty slot", func() bool { return role() == "slot" })
+	keys("echo typed-in-the-slot")
+	eventually(t, "the keys back on the list", func() bool { return role() == "list" })
+	if s := screen(); strings.Contains(s, "typed-in-the-slot") || strings.Contains(s, "$ ") {
+		t.Fatalf("the slot took a command:\n%s", s)
+	}
 
 	// S2 from the New agent dialog: a gets the cursor with the new marker
 	// and, nothing being docked, the slot and the keys.
@@ -218,7 +231,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	shows("a new, starting", "a new", "● starting")
 	// The row itself may be hidden by now: done, in the attention view.
 	shows("a docked", "▸ a · ", "fake claude: ready", "> say hi")
-	if s := screen(); strings.Contains(s, "placeholder shell") || strings.Contains(s, "New agent") {
+	if s := screen(); strings.Contains(s, "▸ placeholder") || strings.Contains(s, "New agent") {
 		t.Fatalf("placeholder or dialog still shown:\n%s", s)
 	}
 	keys("more please", "Enter")
@@ -301,10 +314,6 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	shows("b docked by Alt+j", "▸ b · ")
 	keys("M-k")
 	shows("a docked by Alt+k", "▸ a · ")
-	role := func() string {
-		out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_role}").Output()
-		return strings.TrimSpace(string(out))
-	}
 	keys("M-l")
 	eventually(t, "the keys in the list", func() bool { return role() == "list" })
 	shows("the list's footer", "q quit")
@@ -325,7 +334,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	keys("k")
 	shows("the Kill dialog again", "Kill agent")
 	keys("y")
-	shows("the list empty again, the placeholder back", "hq  0 agents", "▸ placeholder shell", "hq: a killed - select an agent above or press n")
+	shows("the list empty again, the placeholder back", "hq  0 agents", "▸ placeholder", "hq: a killed - select an agent above or press n")
 	if out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_role}").Output(); strings.TrimSpace(string(out)) != "list" {
 		t.Fatalf("the keys are in the %q pane, not the list", out)
 	}
@@ -337,7 +346,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	if code, out := j.hq("kill", "a", "-y"); code != 0 {
 		t.Fatalf("kill: exit %d %q", code, out)
 	}
-	shows("the list empty again", "hq  0 agents", "▸ placeholder shell", "hq: a killed - select an agent above or press n")
+	shows("the list empty again", "hq  0 agents", "▸ placeholder", "hq: a killed - select an agent above or press n")
 
 	// S8: q leaves the hint in the list pane; hq dash there brings the list back.
 	keys("q")
@@ -352,7 +361,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	// S9: detach, then hq again: the same layout, the same list program.
 	detach()
 	open()
-	shows("the dashboard again", "hq  0 agents", "▸ placeholder shell", "q quit")
+	shows("the dashboard again", "hq  0 agents", "▸ placeholder", "q quit")
 	if after := listPane(); after != before || before == "" {
 		t.Fatalf("list pane %q before detach, %q after", before, after)
 	}

@@ -21,7 +21,7 @@ The hq tmux window: the list on top, the docking slot below, the footer along th
 _Avoid_: TUI, console window
 
 **Docking slot**:
-The bottom pane of the dashboard; it holds the docked agent's own pane or the placeholder shell.
+The bottom pane of the dashboard; it holds the docked agent's own pane or the placeholder.
 _Avoid_: preview, viewer
 
 **Docked session**:
@@ -32,9 +32,9 @@ _Avoid_: preview, attached agent
 The hidden tmux window that holds an agent's pane while it is not docked; its existence is the agent's existence.
 _Avoid_: tab, agent window
 
-**Placeholder shell**:
-The plain shell shown in the docking slot when no agent is docked.
-_Avoid_: empty pane, dummy
+**Placeholder**:
+What the docking slot shows when no agent is docked: a hint, not a shell; it takes no input and sends the keys back to the list.
+_Avoid_: placeholder shell, empty pane, dummy
 
 **Cursor row**:
 The selected row of the list; only it shows the action strip. May differ from the docked row.

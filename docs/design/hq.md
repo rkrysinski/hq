@@ -34,7 +34,7 @@ The dashboard is one tmux window built from tmux's own parts ([ADR 0007](../adr/
 flowchart TB
     subgraph W["tmux window: dashboard"]
         L["List pane (top)<br/>shell running the hq list program"]
-        S["Docking slot (bottom)<br/>the docked agent's real pane, or a placeholder shell<br/>framed, titled name · branch · sandbox"]
+        S["Docking slot (bottom)<br/>the docked agent's real pane, or the placeholder<br/>framed, titled name · branch · sandbox"]
         F["Status line (bottom edge)<br/>footer set by the list program"]
         P["Popup (on demand)<br/>centered dialog over the whole window"]
     end
@@ -45,8 +45,9 @@ flowchart TB
 ```
 
 - **List pane.** A shell that runs the list program. The list program owns the list, the cursor, the keys of §6.2-6.5, and the footer text. On `q` it exits, printing the S8 hint; the shell stays, and `hq dash` there brings the list back.
-- **Docking slot.** Holds exactly one pane: the docked agent's own pane, or a placeholder shell with the hint of S1/S6. Docking swaps the agent's pane in from its home window; the pane it replaces goes back to its own home. The agent's process, scrollback and cursor are never interrupted.
-- **Frame and title.** tmux pane borders, the title set per pane: `name · branch · sandbox`, or `placeholder shell`.
+- **Docking slot.** Holds exactly one pane: the docked agent's own pane, or the placeholder with the hint of S1/S6. Docking swaps the agent's pane in from its home window; the pane it replaces goes back to its own home. The agent's process, scrollback and cursor are never interrupted.
+- **Placeholder.** Not a shell: a hidden hq command that shows the hint, hides the cursor and takes no commands. Anything it is given (keys, a paste, a click, since it asks tmux for the mouse) is swallowed and puts the keys back on the list pane, so the list's keys keep working. Its pane is marked as hq's placeholder and kept when its program ends, so the home window it waits in never closes with its agent; `hq` starts it afresh when it is not running hq's program, which also replaces the shell an older hq left there, wherever it waits.
+- **Frame and title.** tmux pane borders, the title set per pane: `name · branch · sandbox`, or `placeholder`.
 - **Footer.** tmux's status line, content set by the list program (key hints; the `/name` search while typing, §6.3). Cleared when the list program exits.
 - **Dialogs.** tmux popups centered over the whole window, each running an hq dialog (§6.6). The list keeps refreshing underneath; the popup holds all keys and clicks while open.
 - **Layout.** The list pane's height is re-applied on every resize: header + 6 rows + footer, 3 rows below 24 lines (§6.1, S12); the slot takes the rest.
@@ -373,3 +374,4 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - 1.0 (draft): the docked agent shown in the attention view (spec §6.2, S0, ADR 0006, #65): the view's filter keeps an agent that needs the user, is new, or is docked, so a working agent docked below no longer leaves the list reading "nothing needs you"; the empty state shows only when no row qualifies. Filter and sort stay separate steps (5.1). Since every view now shows the docked agent, `Alt+j`/`Alt+k` go from the docked row in the attention view too; going from the cursor (#45) remains for when nothing is docked.
 - 1.0 (draft): names settled (spec §3, §4.1, §4.2, #68): a name has at most 32 characters, and a name over the limit gets its own error naming the limit (`hq: name '...' is too long: at most 32 characters`), in `hq new` and under the New agent dialog's name field; a bad character still gets the characters message, checked first. `hq help` states the rule. The spec now says what hq always did: a name is taken while its agent exists, `ended` included, until it is killed.
 - 1.0 (draft): state files removed with their agent (3.4, 6, #69): removing an agent's window (kill, stop, the Kill dialog, `k` on an ended row, the old ids at sandbox restart) also deletes its `ID` and `ID.stop`, so the directory no longer grows by two files per agent. Pruning files of agents hq does not see at `hq new` was left out: other tmux servers' agents report to the same directory, and any age limit would still risk an agent that has been quiet for a long time.
+- 1.0 (draft): the placeholder is not a shell (3.1, spec §6.1, #66): the empty slot showed a shell prompt that looked like part of hq and ran whatever was typed. It is now a hidden hq command that shows the hint and swallows keys, pastes and clicks, each putting the keys back on the list; its frame is titled `placeholder`. It needs the hq binary, so the tmux adapter is given hq's placeholder command. An older hq's placeholder shell is replaced by the next `hq`, and a placeholder whose program ended is started again, its pane kept so a home window never closes with it.

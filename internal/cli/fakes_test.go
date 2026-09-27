@@ -54,7 +54,10 @@ type fakeTmux struct {
 	popups    []string // popups opened: "pane dir WxH argv..."
 	chords    string   // what BindChords was given: "argv... | hints"
 	messages  []string // shown on the status line
+	focused   int      // times the keys were put on the list
 }
+
+func (f *fakeTmux) FocusList() error { f.focused++; return nil }
 
 func (f *fakeTmux) BindChords(argv []string, hints string) error {
 	f.chords = strings.Join(argv, " ") + " | " + hints
@@ -335,9 +338,10 @@ type fakes struct {
 	profileErr   error
 	prefs        prefs.Prefs
 
-	alive   map[int]bool            // processes that exist
-	listRan func(dash.Source) error // the list program; returns at q
-	dialog  tea.Model               // the dialog run last
+	rawOn, rawOff int                     // terminals put in raw mode, and restored
+	alive         map[int]bool            // processes that exist
+	listRan       func(dash.Source) error // the list program; returns at q
+	dialog        tea.Model               // the dialog run last
 }
 
 func newFakes() *fakes {
@@ -412,6 +416,10 @@ func (f *fakes) deps() deps {
 		getenv: func(k string) string { return f.env[k] },
 		sleep:  func(d time.Duration) { f.now = f.now.Add(d) },
 		canAsk: func(io.Reader) bool { return f.tty },
+		rawTerminal: func(io.Reader) func() {
+			f.rawOn++
+			return func() { f.rawOff++ }
+		},
 		notify: "[notify %s]",
 		readState: func(_, id string) (state.Report, bool) {
 			r, ok := f.states[id]

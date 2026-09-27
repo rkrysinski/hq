@@ -76,7 +76,7 @@ Requirements:
 One terminal window, split horizontally:
 
 - **List** (top, fixed height: header + 6 rows + footer; scrolls beyond 6 agents with a `6 of 8  ▾ 2 more` hint).
-- **Docked session** (bottom, the rest of the window): the live, fully interactive session of one agent. The user talks to Claude there directly. Nothing is copied or previewed; it is the real session.
+- **Docked session** (bottom, the rest of the window): the live, fully interactive session of one agent. The user talks to Claude there directly. Nothing is copied or previewed; it is the real session. With nothing docked, the area shows a hint only; it is not a terminal and takes no input, and keys typed there go back to the list.
 
 Resizing the terminal window keeps the 6 list rows and gives the rest to the session. Below 24 rows the list shows 3 rows. Minimum width 80 columns; narrower terminals drop `LAST`, then `REPO`.
 

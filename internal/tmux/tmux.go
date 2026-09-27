@@ -35,6 +35,9 @@ type Window struct {
 type Client struct {
 	Run    proc.Runner
 	Socket string // tmux -L socket name; empty is the default server
+	// Placeholder is hq's placeholder program, run with the hint to show in
+	// the docking slot while nothing is docked (design §3.1).
+	Placeholder []string
 }
 
 // OptionKeys are the user options hq stores on a home window: new marks an
