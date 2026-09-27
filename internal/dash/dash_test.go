@@ -1196,3 +1196,115 @@ func TestEveryKeyWorksNarrow(t *testing.T) {
 		t.Errorf("a at 80: view %s", m.view)
 	}
 }
+
+// click is a left click at column x of line y.
+func click(m Model, x, y int) Model {
+	m, cmd := update(m, tea.MouseMsg{X: x, Y: y, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft})
+	return do(m, cmd)
+}
+
+// at is the column where text starts on line y of the list as shown.
+func at(t *testing.T, m Model, y int, text string) int {
+	t.Helper()
+	l := lines(m)[y]
+	i := strings.Index(l, text)
+	if i < 0 {
+		t.Fatalf("%q not on line %d: %q", text, y, l)
+	}
+	return ansi.StringWidth(l[:i])
+}
+
+func TestAClickOnARowMovesTheCursorThere(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := started(f, 120, 10) // perm ask done w1 end, from line 3
+	if m = click(m, 10, 5); m.cursor != "done" {
+		t.Fatalf("cursor %q, want done", m.cursor)
+	}
+	// Again on the cursor row, off the strip: nothing happens.
+	if m = click(m, 10, 5); m.cursor != "done" || len(f.docked)+len(f.coded)+len(f.killed) != 0 {
+		t.Fatalf("cursor %q, docked %v, coded %v, killed %v", m.cursor, f.docked, f.coded, f.killed)
+	}
+	// The header, the column names and the lines below the rows do nothing.
+	for _, y := range []int{0, 1, 2, 8, 9} {
+		if m = click(m, 10, y); m.cursor != "done" {
+			t.Fatalf("a click on line %d moved the cursor to %q", y, m.cursor)
+		}
+	}
+	// Only a left press counts.
+	m, _ = update(m, tea.MouseMsg{X: 10, Y: 3, Action: tea.MouseActionPress, Button: tea.MouseButtonRight})
+	m, _ = update(m, tea.MouseMsg{X: 10, Y: 3, Action: tea.MouseActionRelease, Button: tea.MouseButtonLeft})
+	if m.cursor != "done" {
+		t.Fatalf("cursor %q", m.cursor)
+	}
+}
+
+func TestAClickOnARowScrolledIntoViewTakesThatRow(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := started(f, 120, 7) // three rows shown
+	m = key(key(key(m, "down"), "down"), "down")
+	if m.offset == 0 {
+		t.Fatal("the list did not scroll")
+	}
+	name := strings.Fields(lines(m)[3])[0]
+	if m = click(m, 4, 3); m.cursor != name {
+		t.Fatalf("cursor %q, want %q", m.cursor, name)
+	}
+}
+
+func TestAClickOnTheStripFiresItsItem(t *testing.T) {
+	for _, width := range []int{120, 80} {
+		f := narrowTeam() // perm has the cursor and a pull request
+		m := started(f, width, 10)
+		glyph := map[string]string{"open": "⏎", "code": " c ", "pr": " p ", "kill": "✕"}
+		if width >= wideFrom {
+			glyph = map[string]string{"open": "open", "code": "code", "pr": " pr", "kill": "kill"}
+		}
+		m = click(m, at(t, m, 3, glyph["code"])+1, 3)
+		m = click(m, at(t, m, 3, glyph["pr"])+1, 3)
+		m = click(m, at(t, m, 3, glyph["kill"]), 3)
+		m = click(m, at(t, m, 3, glyph["open"]), 3)
+		if strings.Join(f.coded, " ") != "perm" || len(f.browsed) != 1 || strings.Join(f.killed, " ") != "perm" || strings.Join(f.docked, " ") != "perm" {
+			t.Errorf("%d: coded %v, browsed %v, killed %v, docked %v", width, f.coded, f.browsed, f.killed, f.docked)
+		}
+	}
+}
+
+func TestTheStripsGapsDoNothing(t *testing.T) {
+	f := narrowTeam()
+	m := started(f, 120, 10)
+	l := lines(m)[3]
+	gap := ansi.StringWidth(l[:strings.Index(l, "open ")+len("open ")])
+	if chipAt(true, true, gap-1, 120) != "enter" || chipAt(true, true, gap, 120) != "" || chipAt(true, true, gap+1, 120) != "c" {
+		t.Fatalf("around the gap at %d: %q %q %q", gap, chipAt(true, true, gap-1, 120), chipAt(true, true, gap, 120), chipAt(true, true, gap+1, 120))
+	}
+	if chipAt(true, true, 118, 120) != "" {
+		t.Fatal("the margin is part of the strip")
+	}
+}
+
+func TestTheWheelMovesTheCursor(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := started(f, 120, 10)
+	m, _ = update(m, tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonWheelDown})
+	if m.cursor != "ask" {
+		t.Fatalf("wheel down: cursor %q", m.cursor)
+	}
+	m, _ = update(m, tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonWheelUp})
+	if m.cursor != "perm" {
+		t.Fatalf("wheel up: cursor %q", m.cursor)
+	}
+}
+
+func TestClicksAreIgnoredWhileADialogIsOpenOrANameIsTyped(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := started(f, 120, 10)
+	m.dialog = true
+	if m = click(m, 10, 5); m.cursor != "perm" {
+		t.Fatalf("dialog open: cursor %q", m.cursor)
+	}
+	m.dialog = false
+	m = key(m, "/")
+	if m = click(m, 10, 5); m.cursor != "perm" || !m.searching {
+		t.Fatalf("searching: cursor %q, searching %v", m.cursor, m.searching)
+	}
+}

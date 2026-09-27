@@ -89,7 +89,9 @@ func (c Client) decorate(win, pane string) error {
 // style gives the dashboard and hq's session the look of the mocks: framed,
 // titled panes; a status line that is only the footer, without tmux's window
 // list; the terminal titled hq (design §3.1, §3.11). Only hq's session and
-// its dashboard window are touched, never the server's global options.
+// its dashboard window are touched, never the server's global options. The
+// mouse is on for hq's session alone (design §3.7): clicks reach the list
+// program and the dialogs, and a click in the docked pane focuses it.
 func (c Client) style(win string) error {
 	border := `#{?#{==:#{@hq_role},list},,#[fg=colour243] ▸ #{?#{@hq_title},#{@hq_title},#{pane_title}} }`
 	return c.batch(
@@ -101,6 +103,7 @@ func (c Client) style(win string) error {
 		[]string{"set-option", "-t", Session, "status-format[0]", footerFormat},
 		[]string{"set-option", "-t", Session, "set-titles", "on"},
 		[]string{"set-option", "-t", Session, "set-titles-string", "hq"},
+		[]string{"set-option", "-t", Session, "mouse", "on"},
 	)
 }
 
