@@ -233,6 +233,39 @@ func (c Client) ShowAttached(id string) ([]string, error) {
 	return strings.Fields(string(out)), nil
 }
 
+// Leave takes every client off hq's session (design §3.11): a client that
+// switched to it from another session of this server goes back there and
+// is shown message on its status line; any other is detached, so its
+// terminal gets back the shell it had before hq, full height.
+func (c Client) Leave(message string) error {
+	out, err := c.tmux("list-clients", "-t", Session, "-F", "#{client_name}"+sep+"#{client_last_session}")
+	if err != nil {
+		if isNoServerOrSession(err) {
+			return nil
+		}
+		return err
+	}
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		name, last, ok := strings.Cut(line, sep)
+		if !ok || name == "" {
+			continue
+		}
+		if last != "" && last != Session {
+			if _, err := c.tmux("has-session", "-t", "="+last); err == nil {
+				if _, err := c.tmux("switch-client", "-c", name, "-t", "="+last, ";",
+					"display-message", "-c", name, "-d", "4000", strings.ReplaceAll(message, "#", "##")); err != nil {
+					return err
+				}
+				continue
+			}
+		}
+		if _, err := c.tmux("detach-client", "-t", name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Attach selects a window and attaches this terminal to hq's session,
 // detaching any other client, until the user detaches (design §3.11).
 func (c Client) Attach(id string, t Terminal) error {

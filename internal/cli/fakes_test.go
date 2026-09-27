@@ -55,9 +55,21 @@ type fakeTmux struct {
 	chords    string   // what BindChords was given: "argv... | hints"
 	messages  []string // shown on the status line
 	focused   int      // times the keys were put on the list
+	left      []string // Leave calls, by message
+	leaveErr  error
+	onLeave   func()
+	onAttach  func()
 }
 
 func (f *fakeTmux) FocusList() error { f.focused++; return nil }
+
+func (f *fakeTmux) Leave(message string) error {
+	if f.onLeave != nil {
+		f.onLeave()
+	}
+	f.left = append(f.left, message)
+	return f.leaveErr
+}
 
 func (f *fakeTmux) BindChords(argv []string, hints string) error {
 	f.chords = strings.Join(argv, " ") + " | " + hints
@@ -134,7 +146,13 @@ func (f *fakeTmux) SocketPath() (string, error) { return f.socket, nil }
 
 func (f *fakeTmux) Enter(id string) error { f.entered = id; return nil }
 
-func (f *fakeTmux) Attach(id string, _ tmux.Terminal) error { f.attached = id; return nil }
+func (f *fakeTmux) Attach(id string, _ tmux.Terminal) error {
+	f.attached = id
+	if f.onAttach != nil {
+		f.onAttach()
+	}
+	return nil
+}
 
 func (f *fakeTmux) ShowAttached(id string) ([]string, error) {
 	if len(f.clients) > 0 {

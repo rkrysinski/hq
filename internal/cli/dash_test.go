@@ -82,7 +82,7 @@ func TestDashTakesNoArguments(t *testing.T) {
 	}
 }
 
-func TestDashInTheListPaneRunsTheListThereAndLeavesTheHint(t *testing.T) {
+func TestDashInTheListPaneRunsTheListThereAndGivesTheTerminalBackAtQ(t *testing.T) {
 	f := newFakes()
 	f.run("dash")
 	f.env["TMUX"] = f.tmux.socket + ",1,0"
@@ -106,8 +106,38 @@ func TestDashInTheListPaneRunsTheListThereAndLeavesTheHint(t *testing.T) {
 	if f.tmux.footer != "" {
 		t.Errorf("footer left %q", f.tmux.footer)
 	}
-	if n := len(f.tmux.resized); n == 0 || f.tmux.resized[n-1] != quitHeight {
-		t.Errorf("list pane heights %v, want the last %d", f.tmux.resized, quitHeight)
+	if len(f.tmux.left) != 1 || f.tmux.left[0] != closedHint {
+		t.Errorf("clients left hq's session %q, want once with %q", f.tmux.left, closedHint)
+	}
+}
+
+func TestQuitUnmarksTheListBeforeTheTerminalLeaves(t *testing.T) {
+	f := newFakes()
+	f.env["TMUX_PANE"] = "%1"
+	f.tmux.leaveErr = errors.New("no such client")
+	pidAtLeave := -1
+	f.listRan = func(dash.Source) error { return nil }
+	f.tmux.onLeave = func() { pidAtLeave = f.tmux.listPID }
+	code, _, errOut := f.run("__list")
+	if pidAtLeave != 0 {
+		t.Errorf("list pid %d when the terminal left, want 0", pidAtLeave)
+	}
+	if code != ExitEnvironment || !strings.Contains(errOut, "no such client") {
+		t.Errorf("exit %d %q", code, errOut)
+	}
+}
+
+func TestAfterTheDashboardDetachesTheTerminalSaysHowToComeBack(t *testing.T) {
+	f := newFakes()
+	if code, out, _ := f.run("dash"); code != ExitOK || out != resetTitle+closedHint+"\n" {
+		t.Fatalf("exit %d out %q", code, out)
+	}
+	// With hq's session gone (tmux ended), nothing keeps running to come
+	// back to.
+	f = newFakes()
+	f.tmux.onAttach = func() { f.tmux.windows = nil }
+	if code, out, _ := f.run("dash"); code != ExitOK || out != resetTitle {
+		t.Fatalf("exit %d out %q", code, out)
 	}
 }
 
@@ -118,6 +148,9 @@ func TestListProgramFailureIsReportedAfterCleanup(t *testing.T) {
 	code, _, errOut := f.run("__list")
 	if code == ExitOK || !strings.Contains(errOut, "no terminal") || f.tmux.listPID != 0 {
 		t.Fatalf("exit %d %q pid %d", code, errOut, f.tmux.listPID)
+	}
+	if len(f.tmux.left) != 0 {
+		t.Fatalf("a failed list took the terminal away: %q", f.tmux.left)
 	}
 }
 

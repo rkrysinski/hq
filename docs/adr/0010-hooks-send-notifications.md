@@ -1,6 +1,6 @@
 # 0010 - the agent's hook sends the desktop notification
 
-Entering `question`, `needs input` or `done` must produce exactly one desktop notification, docked or not (spec §5, S4). The injected hook (ADR 0009) sends it: on Stop and on the Notification event it returns a `terminalSequence` with the notification escape, Claude writes it to its pane, and tmux passes it to the terminal (`allow-passthrough all`, which also covers panes in hidden home windows). Each hook runs once per event, so exactly-once needs no bookkeeping, and notifications keep working after the list program quits, as long as a terminal is attached to the `hq` session. The hook applies the same `?` rule as the host (in `awk`) to the same payload, so a notification and its row always agree. The approach is proven by `notify.sh` in support-chatbot.
+Entering `question`, `needs input` or `done` must produce exactly one desktop notification, docked or not (spec §5, S4). The injected hook (ADR 0009) sends it: on Stop and on the Notification event it returns a `terminalSequence` with the notification escape, Claude writes it to its pane, and tmux passes it to the terminal (`allow-passthrough all`, which also covers panes in hidden home windows). Each hook runs once per event, so exactly-once needs no bookkeeping, and notifications need no list program, only a terminal attached to the `hq` session. Since #67, `q` detaches the terminal (ADR 0007), so after `q` notifications stop until `hq` is run again. The hook applies the same `?` rule as the host (in `awk`) to the same payload, so a notification and its row always agree. The approach is proven by `notify.sh` in support-chatbot.
 
 ## Considered Options
 
@@ -9,5 +9,5 @@ Entering `question`, `needs input` or `done` must produce exactly one desktop no
 
 ## Consequences
 
-- ADR 0002 (no daemon) stands; its stated cost, "notifications for undocked agents exist only while the dashboard runs", no longer applies. Without any terminal attached to the `hq` session, nothing is shown.
+- ADR 0002 (no daemon) stands; its stated cost, "notifications for undocked agents exist only while the dashboard runs", no longer applies. Without any terminal attached to the `hq` session (after `q`, a detach, or a closed window), nothing is shown; the events are not replayed later.
 - hq knows the platform when it starts Claude, so it bakes the terminal's notification sequence into the injected hook.

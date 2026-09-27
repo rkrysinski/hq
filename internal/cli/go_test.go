@@ -145,7 +145,7 @@ func TestTheTitleIsClearedWhenTheAttachEnds(t *testing.T) {
 		_, out, _ := f.run("go", "a")
 		// Attached: the title hq is cleared once tmux gives the terminal
 		// back; switched: the terminal stays tmux's.
-		if want := f.tmux.attached != ""; strings.HasSuffix(out, resetTitle) != want {
+		if want := f.tmux.attached != ""; strings.Contains(out, resetTitle) != want {
 			t.Errorf("%v: out %q, want the reset %v", env, out, want)
 		}
 	}

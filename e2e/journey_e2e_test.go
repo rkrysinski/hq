@@ -161,10 +161,12 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	j := newJourney(t)
 	t.Setenv("SHELL", "/bin/sh") // the shells in the dashboard's panes
 	term := testutil.TmuxSocket(t)
+	// The terminal runs hq as a shell would, and stays to show what hq
+	// left when it returned.
 	open := func(args ...string) {
 		t.Helper()
 		if out, err := exec.Command("tmux", append([]string{"-L", term, "new-session", "-d", "-x", "120", "-y", "30",
-			"-c", j.repo, "env", "-u", "TMUX", j.bin}, args...)...).CombinedOutput(); err != nil {
+			"-c", j.repo, "env", "-u", "TMUX", "sh", "-c", `"$@"; echo "[hq returned $?]"; exec sleep 600`, "sh", j.bin}, args...)...).CombinedOutput(); err != nil {
 			t.Fatalf("terminal: %v %s", err, out)
 		}
 	}
@@ -288,9 +290,8 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 		if out, err := exec.Command("tmux", "-L", j.socket, "detach-client", "-s", "hq").CombinedOutput(); err != nil {
 			t.Fatalf("detach: %v %s", err, out)
 		}
-		eventually(t, "the terminal to end", func() bool {
-			return exec.Command("tmux", "-L", term, "has-session").Run() != nil
-		})
+		eventually(t, "hq to return", func() bool { return strings.Contains(screen(), "[hq returned 0]") })
+		_ = exec.Command("tmux", "-L", term, "kill-server").Run()
 	}
 	// hq go from a plain terminal: the dashboard with a docked, its
 	// scrollback intact.
@@ -344,14 +345,39 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	}
 	shows("the list empty again", "hq  0 agents", "▸ placeholder", "hq: a killed - select an agent above or press n")
 
-	// S8: q leaves the hint in the list pane; hq dash there brings the list back.
-	keys("q")
-	shows("the quit hint", "hq dash stopped - agents keep running.")
-	if s := screen(); strings.Contains(s, "q quit") || strings.Contains(s, "TAB") {
-		t.Fatalf("list or footer left after q:\n%s", s)
+	// S8 with c docked: q gives the terminal back, full height, with the
+	// hint; c keeps running in the slot; hq brings back the list, in the
+	// modes left, and the same docked session.
+	if code, out := j.hq("new", "c"); code != 0 {
+		t.Fatalf("new c: exit %d %q", code, out)
 	}
-	keys(j.bin+" dash", "Enter")
-	shows("the list back, in the modes left", "hq  0 agents  view: all", "REPO ▾", "q quit")
+	shows("c docked", "▸ c · ", "fake claude: ready")
+	cPane := func() string {
+		out, _ := exec.Command("tmux", "-L", j.socket, "list-panes", "-t", "hq:", "-F", "#{@hq_agent}#{pane_id}").Output()
+		return strings.TrimSpace(string(out))
+	}
+	docked := cPane()
+	keys("M-l")
+	eventually(t, "the keys in the list", func() bool { return role() == "list" })
+	keys("q")
+	shows("the terminal given back", "hq closed - agents keep running; run hq to bring it back.", "[hq returned 0]")
+	if s := screen(); strings.Contains(s, "q quit") || strings.Contains(s, "TAB") || strings.Contains(s, "▸") {
+		t.Fatalf("hq left on the terminal after q:\n%s", s)
+	}
+	if out, _ := exec.Command("tmux", "-L", j.socket, "list-clients").Output(); len(out) != 0 {
+		t.Fatalf("clients still on hq's session: %s", out)
+	}
+	eventually(t, "the list program to end", func() bool { return len(strings.Fields(listPane())) == 2 }) // role and pane, no pid
+	_ = exec.Command("tmux", "-L", term, "kill-server").Run()
+	open()
+	shows("the list back, in the modes left, c still docked", "hq  1 agent", "view: all", "REPO ▾", "q quit", "▸ c · ", "fake claude: ready")
+	if after := cPane(); after != docked {
+		t.Fatalf("docked pane %q before q, %q after", docked, after)
+	}
+	if code, out := j.hq("kill", "c", "-y"); code != 0 {
+		t.Fatalf("kill c: exit %d %q", code, out)
+	}
+	shows("c gone", "hq  0 agents", "▸ placeholder")
 	before := listPane()
 
 	// S9: detach, then hq again: the same layout, the same list program.
