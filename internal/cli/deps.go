@@ -20,6 +20,9 @@ type Tmux interface {
 	NewWindow(name, dir string, options map[string]string, argv []string) (string, error)
 	Start(id string) error
 	KillWindow(id string) error
+	SocketPath() (string, error)
+	Enter(id string) error
+	Attach(id string, t tmux.Terminal) error
 }
 
 // Sandboxes is the seam to sbx (design §7.2).
@@ -38,6 +41,8 @@ type deps struct {
 	isDir    func(path string) bool
 	getwd    func() (string, error)
 	now      func() time.Time
+	getenv   func(key string) string
+	terminal tmux.Terminal
 }
 
 func defaultDeps() deps {
@@ -51,8 +56,10 @@ func defaultDeps() deps {
 			fi, err := os.Stat(path)
 			return err == nil && fi.IsDir()
 		},
-		getwd: os.Getwd,
-		now:   time.Now,
+		getwd:    os.Getwd,
+		now:      time.Now,
+		getenv:   os.Getenv,
+		terminal: run,
 	}
 }
 

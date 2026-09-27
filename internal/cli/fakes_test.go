@@ -23,7 +23,16 @@ type fakeTmux struct {
 	// onNewWindow runs after a window is created, to simulate a racing hq new.
 	onNewWindow  func(f *fakeTmux)
 	newWindowErr error
+	socket       string
+	entered      string // window shown with Enter
+	attached     string // window shown with Attach
 }
+
+func (f *fakeTmux) SocketPath() (string, error) { return f.socket, nil }
+
+func (f *fakeTmux) Enter(id string) error { f.entered = id; return nil }
+
+func (f *fakeTmux) Attach(id string, _ tmux.Terminal) error { f.attached = id; return nil }
 
 func (f *fakeTmux) Version() (string, error) {
 	if f.missing {
@@ -112,11 +121,13 @@ type fakes struct {
 	dirs  map[string]bool
 	cwd   string
 	now   time.Time
+	env   map[string]string
 }
 
 func newFakes() *fakes {
 	return &fakes{
-		tmux:  &fakeTmux{version: "3.5a", argv: map[string][]string{}, started: map[string]bool{}},
+		tmux:  &fakeTmux{version: "3.5a", argv: map[string][]string{}, started: map[string]bool{}, socket: "/tmp/tmux-501/default"},
+		env:   map[string]string{},
 		sbx:   &fakeSbx{},
 		repos: map[string]string{"/w/app": "/w/app", "/w/app/sub": "/w/app", "/w/app/.claude/worktrees/x": "/w/app", "/w/lib": "/w/lib"},
 		dirs:  map[string]bool{"/w/app": true, "/w/app/sub": true, "/w/lib": true, "/w/plain": true, "/w/app/.claude/worktrees/x": true},
@@ -137,5 +148,6 @@ func (f *fakes) deps() deps {
 		isDir:    func(p string) bool { return f.dirs[p] || f.dirs["/w/app/"+p] },
 		getwd:    func() (string, error) { return f.cwd, nil },
 		now:      func() time.Time { return f.now },
+		getenv:   func(k string) string { return f.env[k] },
 	}
 }

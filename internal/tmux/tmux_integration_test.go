@@ -75,3 +75,55 @@ func TestVersionOfInstalledTmuxIsParsed(t *testing.T) {
 		t.Fatalf("%q %v", v, err)
 	}
 }
+
+func TestSocketPathAndEnterWithoutClient(t *testing.T) {
+	socket := testutil.TmuxSocket(t)
+	c := Client{Run: proc.Exec{}, Socket: socket}
+	if err := c.EnsureSession(t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	p, err := c.SocketPath()
+	if err != nil || !strings.HasSuffix(p, "/"+socket) {
+		t.Fatalf("%q %v", p, err)
+	}
+	id, err := c.NewWindow("a", t.TempDir(), map[string]string{"id": "x"}, []string{"sleep", "30"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// With no client attached, the window is still selected before switch-client fails.
+	_ = c.Enter(id)
+	out, _ := exec.Command("tmux", "-L", socket, "display-message", "-p", "-t", Session+":", "#{window_id}").Output()
+	if strings.TrimSpace(string(out)) != id {
+		t.Fatalf("active window %q, want %s", out, id)
+	}
+}
+
+type recordTerminal struct{ args []string }
+
+func (r *recordTerminal) Interactive(name string, args ...string) error {
+	r.args = append([]string{name}, args...)
+	return nil
+}
+
+func TestAttachSelectsWindowThenAttachesToHqSessionDetachingOthers(t *testing.T) {
+	socket := testutil.TmuxSocket(t)
+	c := Client{Run: proc.Exec{}, Socket: socket}
+	if err := c.EnsureSession(t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	id, err := c.NewWindow("a", t.TempDir(), map[string]string{"id": "x"}, []string{"sleep", "30"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	term := &recordTerminal{}
+	if err := c.Attach(id, term); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(term.args, " "); got != "tmux -L "+socket+" attach-session -d -t hq" {
+		t.Fatalf("attach command %q", got)
+	}
+	out, _ := exec.Command("tmux", "-L", socket, "display-message", "-p", "-t", Session+":", "#{window_id}").Output()
+	if strings.TrimSpace(string(out)) != id {
+		t.Fatalf("active window %q, want %s", out, id)
+	}
+}
