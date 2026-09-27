@@ -169,6 +169,14 @@ func (c Client) Start(id string) error {
 	return err
 }
 
+// Respawn runs argv afresh in an agent's own pane, in dir, ending what runs
+// there; the pane stays where it is (its home window or the docking slot)
+// and keeps its options, so it stays the agent's own (design §3.6).
+func (c Client) Respawn(pane, dir string, argv []string) error {
+	_, err := c.tmux(append([]string{"respawn-pane", "-k", "-t", pane, "-c", dir, "--"}, argv...)...)
+	return err
+}
+
 // agentPane marks target, an agent's pane, as the agent's own: its id, so it
 // is found when docked, and what must travel with it when it moves between
 // windows. It stays readable after its process ends (S7): the pane is kept,

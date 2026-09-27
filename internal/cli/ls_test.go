@@ -96,8 +96,8 @@ func TestLsPutsWhatNeedsTheUserFirstAndNewestFirstWithinAState(t *testing.T) {
 func TestLsNamesEachAgentsBranch(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{
-		agentWindow("@1", "a", "/w/app", f.now, false),
-		agentWindow("@2", "b", "/w/app", f.now, false),
+		agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false),
+		agentWindow("@2", "b", "/w/app", f.now.Add(-time.Minute), false),
 		agentWindow("@3", "c", "/w/app", f.now, false),
 	}
 	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Branch: "feat/42-x", Cwd: "/w/app/.claude/worktrees/feat-42-x"}

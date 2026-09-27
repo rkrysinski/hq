@@ -428,6 +428,46 @@ func TestDockedAgentThatEndsStaysReadable(t *testing.T) {
 	}
 }
 
+func TestRespawnRelaunchesAnEndedDockedAgentInPlace(t *testing.T) {
+	c, socket := dashClient(t)
+	dir := t.TempDir()
+	d, err := c.Dashboard(dir, listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, p := agentWindow(t, c, "r", dir, "sh", "-c", "read _; echo first-session")
+	if err := c.Dock(w, "r · feat · claude-x"); err != nil {
+		t.Fatal(err)
+	}
+	tm(t, socket, "send-keys", "-t", p, "Enter")
+	eventually(t, "the first session to end", func() bool { return mustWindows(t, c)["r"].PaneDead })
+
+	other := t.TempDir()
+	if err := c.Respawn(p, other, []string{"sh", "-c", `echo second-session; sleep 30`}); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "the second session", func() bool {
+		return strings.Contains(tm(t, socket, "capture-pane", "-p", "-S", "-", "-t", p), "second-session")
+	})
+	// The same pane, still docked, framed as before, and still the agent's
+	// own: it stays readable when it ends again.
+	r := mustWindows(t, c)["r"]
+	if !r.Docked || r.Pane != p || r.PaneDead || r.Title != "r · feat · claude-x" {
+		t.Fatalf("after respawn %+v", r)
+	}
+	if got := tm(t, socket, "display-message", "-p", "-t", p, "#{window_id}"); got != d.Window {
+		t.Fatalf("the pane moved to %s", got)
+	}
+	for opt, want := range map[string]string{"remain-on-exit": "on", "alternate-screen": "off", "@hq_agent": mustWindows(t, c)["r"].Options["id"]} {
+		if got := tm(t, socket, "show-options", "-p", "-v", "-t", p, opt); got != want {
+			t.Errorf("%s = %q, want %q", opt, got, want)
+		}
+	}
+	if err := c.Respawn("%999", dir, []string{"true"}); err == nil {
+		t.Error("respawning a pane that is gone succeeded")
+	}
+}
+
 func TestDockWithoutADashboardIsAnError(t *testing.T) {
 	c, _ := dashClient(t)
 	dir := t.TempDir()

@@ -39,7 +39,7 @@ All operations are available from any shell; the dashboard reflects them within 
 - `hq code NAME` - open the editor (VS Code) on the agent's worktree, so the editor shows the agent's branch. Before the worktree is known, opens the repository. Works on macOS and from WSL. The agent keeps running; editor and agent see the same files.
 - `hq kill NAME` - end that agent's Claude session after confirmation (`-y` skips it). The sandbox stays.
 - `hq stop` - end all agents after confirmation (`-y` skips it). Sandboxes stay.
-- `hq sandbox rm REPO` / `hq sandbox restart REPO` - remove or restart a repository's sandbox (restart is the remedy after laptop sleep, S9). `rm` refuses while agents of that repo are running.
+- `hq sandbox rm REPO` / `hq sandbox restart REPO` - remove or restart a repository's sandbox after confirmation (`-y` skips it; restart is the remedy after laptop sleep, S9). `rm` refuses while agents of that repo are running; `restart` ends every session in the sandbox and relaunches each agent, continuing its conversation.
 - `hq update` - replace hq with the latest released version, printing the version before and after. Running agents are not affected.
 - `hq help`, `hq --version` (also says when a newer version is released).
 
@@ -166,7 +166,7 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 
 **S8. Quit** - `q`: the dashboard closes and the terminal is back at the shell it had before `hq`, full height and scrolling normally, with nothing of hq left on screen; a hint there says how to bring the dashboard back. The docked session stays where it is and keeps working. `hq` restores the dashboard with the list and the same docked session. While the dashboard is closed (after `q`, or with the terminal detached or closed), desktop notifications are not shown.
 
-**S9. Detach / close / sleep** - closing the terminal window or detaching leaves everything running; `hq` reattaches with the same layout. After laptop sleep, if agents fail with clock drift, `hq sandbox restart REPO` fixes it; affected rows go `ended` then `starting`.
+**S9. Detach / close / sleep** - closing the terminal window or detaching leaves everything running; `hq` reattaches with the same layout. After laptop sleep, if agents fail with clock drift, `hq sandbox restart REPO` fixes it; affected rows go `ended` then `starting` and stay listed throughout (their names stay taken), a docked agent stays docked, and each keeps its branch and last message (`[session ended]` while ended when it had none, S7) until it reports again.
 
 **S10. Stop everything** - `hq stop`: one confirmation, then every agent ends; sandboxes stay.
 

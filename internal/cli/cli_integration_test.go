@@ -409,21 +409,30 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 	if !ok || session.SessionID == "" {
 		t.Fatalf("a's session: %+v", session)
 	}
+	pidsFile := os.Getenv("SBX_STUB_DIR") + "/pids-claude-app"
+	oldPids, _ := os.ReadFile(pidsFile)
 
-	if code, out, errOut := h.run("sandbox", "restart", "app"); code != 0 || out != "restarted the sandbox claude-app; relaunched a, b\n" {
+	if code, out, errOut := h.run("sandbox", "restart", "app"); code != ExitUsage || !strings.Contains(errOut, "add -y") {
+		t.Fatalf("restart without a terminal: exit %d %q %q", code, out, errOut)
+	}
+	if code, out, errOut := h.run("sandbox", "restart", "app", "-y"); code != 0 || out != "restarted the sandbox claude-app; relaunched a, b\n" {
 		t.Fatalf("restart: exit %d %q %q", code, out, errOut)
 	}
-	h.waitState("a", "starting")
+	// Relaunched under the same ids, each in a new session; a keeps what it
+	// last said until it reports anew.
+	if r := h.waitState("a", "starting"); r.Last != "Done: hello" {
+		t.Fatalf("a after the restart: %+v", r)
+	}
 	h.waitState("b", "starting")
-	after := ids()
-	for name, id := range before {
-		if after[name] == "" || after[name] == id {
-			t.Fatalf("%s: id before %s, after %s", name, id, after[name])
-		}
-		if exec.Command("pgrep", "-f", `HQ_ID":"`+id+`"`).Run() == nil {
-			t.Fatalf("%s's old session still runs", name)
+	if after := ids(); after["a"] != before["a"] || after["b"] != before["b"] {
+		t.Fatalf("ids before %v, after %v", before, after)
+	}
+	for _, pid := range strings.Fields(string(oldPids)) {
+		if exec.Command("kill", "-0", pid).Run() == nil {
+			t.Fatalf("an old session (pid %s) still runs", pid)
 		}
 	}
+	h.waitSessions("claude-app", 2)
 	h.waitPane("a", "fake claude: resumed "+session.SessionID)
 	if out := h.pane("b"); strings.Contains(out, "resumed") {
 		t.Fatalf("b resumed:\n%s", out)
