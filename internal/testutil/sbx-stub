@@ -4,9 +4,20 @@
 # `run` behaves like a Claude session that stays until it is terminated, or
 # runs the fake claude (SBX_STUB_CLAUDE) that fires hq's injected hooks.
 # Workspaces may be Windows paths, as sbx.exe sees them from WSL.
+# With SBX_STUB_BOOT set to a path, `run` starts a sandbox that is not
+# running only once that file exists, as sbx takes a while to start one
+# before the session begins.
 set -eu
 d=${SBX_STUB_DIR:?SBX_STUB_DIR not set}
 mkdir -p "$d/sandboxes"
+
+# put NAME STATUS WORKSPACE writes a sandbox's file whole: written aside,
+# then renamed over it, so an `ls` running at the same time reads the old
+# file or the new one, never a half-written one (#94).
+put() {
+    printf '%s\n%s\n' "$2" "$3" >"$d/.put.$$"
+    mv -f "$d/.put.$$" "$d/sandboxes/$1"
+}
 cmd=$1
 shift
 case $cmd in
@@ -27,7 +38,7 @@ create)
     for a in "$@"; do
         case $a in -q | --quiet | claude) ;; *) ws=$a ;; esac
     done
-    printf 'stopped\n%s\n' "$ws" >"$d/sandboxes/claude-$(basename "$(printf %s "$ws" | tr '\\' /)")"
+    put "claude-$(basename "$(printf %s "$ws" | tr '\\' /)")" stopped "$ws"
     ;;
 run)
     [ "$1" = --name ] || { echo "stub: run needs --name" >&2; exit 1; }
@@ -35,7 +46,10 @@ run)
     shift 3 # --name NAME --
     [ -e "$d/sandboxes/$name" ] || { echo "stub: no sandbox $name" >&2; exit 1; }
     ws=$(sed -n 2p "$d/sandboxes/$name")
-    printf 'running\n%s\n' "$ws" >"$d/sandboxes/$name"
+    if [ "$(sed -n 1p "$d/sandboxes/$name")" != running ]; then
+        while [ -n "${SBX_STUB_BOOT:-}" ] && [ ! -e "$SBX_STUB_BOOT" ]; do sleep 0.1; done
+        put "$name" running "$ws"
+    fi
     printf '%s\n' "$*" >>"$d/runs.log"
     echo $$ >>"$d/pids-$name"
     last=
@@ -48,8 +62,7 @@ run)
     while :; do sleep 1; done
     ;;
 stop)
-    ws=$(sed -n 2p "$d/sandboxes/$1")
-    printf 'stopped\n%s\n' "$ws" >"$d/sandboxes/$1"
+    put "$1" stopped "$(sed -n 2p "$d/sandboxes/$1")"
     # Stopping ends every session in the sandbox.
     [ ! -e "$d/pids-$1" ] || xargs kill -TERM <"$d/pids-$1" 2>/dev/null || true
     rm -f "$d/pids-$1"
@@ -60,10 +73,7 @@ rm)
     ;;
 exec)
     # Like sbx, exec starts a stopped sandbox; the command runs on the host.
-    if [ -e "$d/sandboxes/$1" ]; then
-        ws=$(sed -n 2p "$d/sandboxes/$1")
-        printf 'running\n%s\n' "$ws" >"$d/sandboxes/$1"
-    fi
+    [ ! -e "$d/sandboxes/$1" ] || put "$1" running "$(sed -n 2p "$d/sandboxes/$1")"
     shift
     exec "$@"
     ;;

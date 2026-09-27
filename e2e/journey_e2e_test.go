@@ -78,6 +78,22 @@ func (j *journey) hq(args ...string) (int, string) {
 	return 0, string(out)
 }
 
+// id is the id hq gave the agent named name, from its home window.
+func (j *journey) id(name string) string {
+	j.t.Helper()
+	out, err := exec.Command("tmux", "-L", j.socket, "list-windows", "-t", "hq", "-F", "#{window_name} #{@hq_id}").Output()
+	if err != nil {
+		j.t.Fatalf("list-windows: %v", err)
+	}
+	for _, l := range strings.Split(string(out), "\n") {
+		if n, id, ok := strings.Cut(l, " "); ok && n == name && id != "" {
+			return id
+		}
+	}
+	j.t.Fatalf("no agent %s in %q", name, out)
+	return ""
+}
+
 // eventually retries check for up to 5 seconds.
 func eventually(t *testing.T, what string, check func() bool) {
 	t.Helper()
@@ -139,14 +155,19 @@ func TestStartSeeEnterKill(t *testing.T) {
 		return strings.HasPrefix(row(), "a app main question ") && strings.HasSuffix(row(), " Shall I go on?")
 	})
 
-	// Kill.
+	// Kill. a's session is found by its id: other tests and the user's own
+	// hq may run agents named a on this machine at the same time (#94).
+	session := `HQ_ID":"` + j.id("a") + `"`
+	if exec.Command("pgrep", "-f", session).Run() != nil {
+		t.Fatal("a's session is not running before the kill")
+	}
 	if code, out := j.hq("kill", "a", "-y"); code != 0 || !strings.Contains(out, "killed a") {
 		t.Fatalf("kill: exit %d %q", code, out)
 	}
 	if _, out := j.hq("ls"); out != "" {
 		t.Fatalf("ls after kill: %q", out)
 	}
-	if exec.Command("pgrep", "-f", `HQ_AGENT":"a"`).Run() == nil {
+	if exec.Command("pgrep", "-f", session).Run() == nil {
 		t.Fatal("a's session still runs after the kill")
 	}
 	if out, _ := exec.Command("sbx", "ls", "--json").Output(); !strings.Contains(string(out), "claude-app") {

@@ -754,8 +754,7 @@ func (m Model) matchText() string {
 // the dialog or hq new in any shell, and docks it when nothing is docked, so
 // a fresh sandbox's login happens in front of the user (S2). Agents running
 // when the list starts are not new to it. An agent is welcomed once, when
-// first seen new: before that it may look ended for a moment, while the
-// list's last answer from sbx predates its sandbox.
+// first seen new.
 func (m *Model) welcome() tea.Cmd {
 	first := m.seen == nil
 	if first {
