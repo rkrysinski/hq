@@ -138,15 +138,15 @@ func TestTheKillDialogEndsTheAgentAsHqKillDoes(t *testing.T) {
 	if m = f.dialog.(dialog.Confirm); !strings.Contains(ansi.Strip(m.View()), "Kill a (feat/1)?") {
 		t.Fatalf("dialog:\n%s", ansi.Strip(m.View()))
 	}
-	if f.names() != "hq a b gone" {
-		t.Fatalf("killed before the answer: %q", f.names())
+	if f.names() != "hq a b gone" || len(f.removed) != 0 {
+		t.Fatalf("killed before the answer: %q, removed %v", f.names(), f.removed)
 	}
 	tm, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
 	if tm, _ = tm.Update(cmd()); !tm.(dialog.Confirm).Done {
 		t.Fatalf("not done:\n%s", ansi.Strip(tm.View()))
 	}
-	if got := strings.Join(f.sbx.execs[0], " "); got != `claude-x pkill -TERM -f HQ_ID":"id-a"` || f.names() != "hq b gone" {
-		t.Fatalf("exec %q, windows %q", got, f.names())
+	if got := strings.Join(f.sbx.execs[0], " "); got != `claude-x pkill -TERM -f HQ_ID":"id-a"` || f.names() != "hq b gone" || strings.Join(f.removed, ", ") != "/w/app id-a" {
+		t.Fatalf("exec %q, windows %q, removed %v", got, f.names(), f.removed)
 	}
 }
 

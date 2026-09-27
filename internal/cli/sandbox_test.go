@@ -62,6 +62,10 @@ func TestSandboxRestartRelaunchesItsAgentsUnderTheSameNames(t *testing.T) {
 	if f.names() != "hq c a b" {
 		t.Fatalf("windows %q", f.names())
 	}
+	// The old ids' files go; c, of another sandbox, keeps its own.
+	if got := strings.Join(f.removed, ", "); got != "/w/app id-a, /w/app id-b" {
+		t.Fatalf("removed %q", got)
+	}
 	for _, w := range f.tmux.windows[2:] {
 		if w.PaneDead || !f.tmux.started[w.ID] || w.Options["id"] == "id-"+w.Name || w.Options["sandbox"] != "claude-x" || w.Options["ending"] != "" || w.Options["new"] != "" {
 			t.Fatalf("relaunched window %+v", w)

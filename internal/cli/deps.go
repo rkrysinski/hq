@@ -97,6 +97,8 @@ type deps struct {
 	canAsk       func(stdin io.Reader) bool // stdin is a terminal to confirm on
 	// readState reads an agent's state file (design §3.4).
 	readState func(root, id string) (state.Report, bool)
+	// removeState deletes an agent's state files once it is gone (design §3.4).
+	removeState func(root, id string) error
 	// pollSandboxes is sbx ls within a time limit, for the state of agents
 	// (design §5.1, §7.1); a slow sbx must not hold up hq ls.
 	pollSandboxes func() ([]sbx.Sandbox, error)
@@ -167,6 +169,7 @@ func defaultDeps() deps {
 		canAsk:   isTerminal,
 
 		readState:     state.Read,
+		removeState:   state.Remove,
 		pollSandboxes: sbx.Client{Run: proc.Exec{Timeout: sbxPollTimeout}, Platform: plat}.List,
 		notify:        plat.NotifySequence(),
 
