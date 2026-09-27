@@ -9,8 +9,7 @@ import (
 	"github.com/rkrysinski/hq/internal/proc"
 )
 
-// Platform is what differs between the platforms. A later issue adds
-// raising the window.
+// Platform is what differs between the platforms.
 type Platform interface {
 	// SbxCommand is the command that runs sbx.
 	SbxCommand() string
@@ -27,6 +26,11 @@ type Platform interface {
 	// Browser is the command that opens a pull request's URL in the
 	// browser (spec §6.4 pr).
 	Browser(url string) []string
+	// Raise is the command that brings the terminal window showing the
+	// dashboard to the front (design §3.11); tty is the attached tmux
+	// client's terminal, which a platform may use to find the window. It
+	// fails when no window shows the dashboard or the system refuses.
+	Raise(tty string) []string
 }
 
 // Detect chooses the platform at startup: WSL when WSL_DISTRO_NAME is set or
@@ -56,6 +60,34 @@ func (Native) Editor(dir string) []string { return []string{"code", dir} }
 
 // Browser is gh opening the pull request, in the browser it is set up for.
 func (Native) Browser(url string) []string { return ghView(url) }
+
+// Raise is osascript selecting the iTerm2 window, tab and session on the
+// client's terminal and bringing iTerm2 to the front. The terminal finds
+// the window exactly, where a title can carry iTerm2's decorations; iTerm2
+// is never started when it is not running.
+func (Native) Raise(tty string) []string { return []string{"osascript", "-e", raiseITerm, tty} }
+
+// raiseITerm is the AppleScript of Raise; its argument is the tty.
+const raiseITerm = `on run argv
+	set t to item 1 of argv
+	if application id "com.googlecode.iterm2" is not running then error "iTerm2 is not running"
+	tell application id "com.googlecode.iterm2"
+		repeat with w in windows
+			repeat with b in tabs of w
+				repeat with s in sessions of b
+					if tty of s is t then
+						select b
+						select s
+						set index of w to 1
+						activate
+						return
+					end if
+				end repeat
+			end repeat
+		end repeat
+	end tell
+	error "no iTerm2 window shows the dashboard"
+end run`
 
 func ghView(url string) []string { return []string{"gh", "pr", "view", "--web", url} }
 
@@ -87,6 +119,17 @@ func (w WSL) Browser(url string) []string {
 	}
 	return append([]string{"env", "BROWSER=explorer.exe"}, ghView(url)...)
 }
+
+// Raise is PowerShell activating the window titled hq, which tmux sets
+// while the dashboard is attached; the client's terminal means nothing to
+// Windows. Windows can refuse to change the foreground window, which fails
+// the command.
+func (WSL) Raise(string) []string {
+	return []string{"powershell.exe", "-NoProfile", "-NonInteractive", "-Command", raiseTitle}
+}
+
+// raiseTitle is the PowerShell of WSL's Raise.
+const raiseTitle = `if (-not (New-Object -ComObject WScript.Shell).AppActivate('hq')) { [Console]::Error.WriteLine('no window titled hq, or Windows refused to bring it to the front'); exit 1 }`
 
 func (w WSL) wslpath(flag, path string) (string, error) {
 	out, err := w.Run.Run("wslpath", flag, path)

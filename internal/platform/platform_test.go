@@ -155,3 +155,22 @@ func TestBrowserIsGhOpeningThePullRequest(t *testing.T) {
 		t.Error("BROWSER not seen")
 	}
 }
+
+func TestRaiseFindsTheWindowPerPlatform(t *testing.T) {
+	// macOS: iTerm2's session on the client's terminal, never starting
+	// iTerm2.
+	r := platform.Native{}.Raise("/dev/ttys004")
+	if len(r) != 4 || r[0] != "osascript" || r[1] != "-e" || r[3] != "/dev/ttys004" {
+		t.Fatalf("native %q", r)
+	}
+	for _, want := range []string{"is not running then error", "tty of s is t", "activate"} {
+		if !strings.Contains(r[2], want) {
+			t.Errorf("the script has no %q:\n%s", want, r[2])
+		}
+	}
+	// WSL: the window titled hq; a refusal is an error.
+	w := platform.WSL{}.Raise("/dev/pts/3")
+	if w[0] != "powershell.exe" || !strings.Contains(w[len(w)-1], "AppActivate('hq')") || !strings.Contains(w[len(w)-1], "exit 1") {
+		t.Fatalf("wsl %q", w)
+	}
+}

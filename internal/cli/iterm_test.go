@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -11,7 +12,7 @@ func TestAttachingInItermSwitchesTheTabToTheHqProfile(t *testing.T) {
 	for _, args := range [][]string{nil, {"dash"}, {"go", "a"}} {
 		f := goFakes()
 		f.env["TERM_PROGRAM"] = "iTerm.app"
-		if code, out, errOut := f.run(args...); code != ExitOK || out != setProfile || f.tmux.attached == "" {
+		if code, out, errOut := f.run(args...); code != ExitOK || out != setProfile+resetTitle || f.tmux.attached == "" {
 			t.Errorf("hq %v: exit %d out %q err %q attached %q", args, code, out, errOut, f.tmux.attached)
 		}
 	}
@@ -27,7 +28,7 @@ func TestOtherTerminalsAndSwitchingGetNoProfile(t *testing.T) {
 		for k, v := range env {
 			f.env[k] = v
 		}
-		if code, out, _ := f.run("dash"); code != ExitOK || out != "" {
+		if code, out, _ := f.run("dash"); code != ExitOK || strings.Contains(out, setProfile) {
 			t.Errorf("%v: exit %d out %q", env, code, out)
 		}
 	}

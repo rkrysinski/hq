@@ -20,6 +20,11 @@ const quitHint = "hq dash stopped - agents keep running. Run `hq dash` here to b
 // clearScreen moves the cursor home and clears the terminal.
 const clearScreen = "\x1b[H\x1b[2J"
 
+// resetTitle is an empty terminal title, which terminals take as "back to
+// the default": tmux leaves the title hq on the terminal when it detaches,
+// and a stale hq would be a second window to raise (design §3.11).
+const resetTitle = "\x1b]2;\a"
+
 // quitHeight is the list pane's height after q: the hint and a prompt.
 const quitHeight = 3
 
@@ -93,6 +98,7 @@ func show(env Env, d deps, w tmux.Dash, mode string) error {
 	default:
 		fmt.Fprint(env.Stdout, iterm.SetProfile(d.getenv))
 		err = d.tmux.Attach(w.Window, d.terminal)
+		fmt.Fprint(env.Stdout, resetTitle)
 	}
 	if err != nil {
 		return tmuxErr(err)

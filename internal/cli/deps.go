@@ -38,6 +38,7 @@ type Tmux interface {
 	SocketPath() (string, error)
 	Enter(id string) error
 	Attach(id string, t tmux.Terminal) error
+	ShowAttached(id string) ([]string, error)
 	Dashboard(dir string, list []string) (tmux.Dash, error)
 	RespawnList(pane string, list []string) error
 	WindowHeight(pane string) (int, error)
@@ -81,6 +82,9 @@ type deps struct {
 	// editor opens VS Code on a directory, browse a URL (design §3.10).
 	editor func(dir string) error
 	browse func(url string) error
+	// raise brings the terminal window of the client on tty to the front
+	// (design §3.11).
+	raise func(tty string) error
 	// pullRequests asks gh for a repository's pull requests (design §5.2).
 	pullRequests func(repo string) (map[string]gh.PR, error)
 	samePath     func(a, b string) bool
@@ -140,6 +144,11 @@ func defaultDeps() deps {
 		},
 		browse: func(url string) error {
 			argv := plat.Browser(url)
+			_, err := run.Run(argv[0], argv[1:]...)
+			return err
+		},
+		raise: func(tty string) error {
+			argv := plat.Raise(tty)
 			_, err := run.Run(argv[0], argv[1:]...)
 			return err
 		},
