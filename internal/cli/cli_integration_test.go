@@ -24,17 +24,18 @@ import (
 )
 
 type realHQ struct {
-	t   *testing.T
-	d   deps
-	cwd string
+	t      *testing.T
+	d      deps
+	cwd    string
+	socket string // the private tmux server
 }
 
 // newRealHQ wires hq to a private tmux server and the stub sbx.
 func newRealHQ(t *testing.T) *realHQ {
 	bin, _ := testutil.SbxStub(t)
-	h := &realHQ{t: t}
+	h := &realHQ{t: t, socket: testutil.TmuxSocket(t)}
 	d := defaultDeps()
-	d.tmux = tmux.Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
+	d.tmux = tmux.Client{Run: proc.Exec{}, Socket: h.socket}
 	d.sbx = sbx.Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
 	d.getwd = func() (string, error) { return h.cwd, nil }
 	h.d = d
@@ -72,17 +73,43 @@ func (h *realHQ) waitSessions(sandbox string, n int) {
 	h.t.Fatalf("%s: the stub has not recorded %d sessions", sandbox, n)
 }
 
-func (h *realHQ) waitState(name, state string) {
+func (h *realHQ) waitState(name, state string) lsRow {
 	h.t.Helper()
 	for i := 0; i < 50; i++ {
 		for _, r := range h.ls() {
 			if r.Name == name && r.State == state {
-				return
+				return r
 			}
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
 	h.t.Fatalf("%s never became %s: %+v", name, state, h.ls())
+	return lsRow{}
+}
+
+// waitReport waits until name shows state with last as its last message.
+func (h *realHQ) waitReport(name, state, last string) {
+	h.t.Helper()
+	for i := 0; i < 50; i++ {
+		if r := h.waitState(name, state); r.Last == last {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	h.t.Fatalf("%s never showed %s with %q: %+v", name, state, last, h.ls())
+}
+
+// typeIn types a line into the agent's session, as a person in hq go does.
+func (h *realHQ) typeIn(name, line string) {
+	h.t.Helper()
+	ws, _ := h.d.tmux.Windows()
+	a, ok := agent.Find(agent.FromWindows(ws), name)
+	if !ok {
+		h.t.Fatalf("no agent %s", name)
+	}
+	if out, err := exec.Command("tmux", "-L", h.socket, "send-keys", "-t", a.Window, line, "Enter").CombinedOutput(); err != nil {
+		h.t.Fatalf("send-keys: %v %s", err, out)
+	}
 }
 
 func TestNewStartsSessionInSandboxAndLsListsIt(t *testing.T) {
@@ -96,7 +123,7 @@ func TestNewStartsSessionInSandboxAndLsListsIt(t *testing.T) {
 	if !strings.Contains(out, "creating a sandbox for app") || !strings.Contains(out, "started a in app (sandbox claude-app)") {
 		t.Fatalf("stdout %q", out)
 	}
-	h.waitState("a", "running")
+	h.waitState("a", "starting")
 	// The window runs as soon as it is released; the stub logs its args a moment later.
 	var log []byte
 	for i := 0; i < 50 && !strings.Contains(string(log), "say hi"); i++ {
@@ -122,6 +149,50 @@ func TestNewStartsSessionInSandboxAndLsListsIt(t *testing.T) {
 	}
 }
 
+func TestStatesFollowTheSessionAndLeaveTheRepositoryClean(t *testing.T) {
+	testutil.FakeClaude(t)
+	t.Setenv("FAKE_CLAUDE_DELAY", "600ms")
+	h := newRealHQ(t)
+	r := testutil.GitRepo(t, "app")
+	h.cwd = r
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitState("a", "starting")
+	h.waitState("a", "working")
+	h.waitReport("a", "done", "Done: hello")
+
+	h.typeIn("a", "a question")
+	h.waitReport("a", "working", "Done: hello")
+	h.waitReport("a", "question", "Shall I go on?")
+
+	h.typeIn("a", "needs input")
+	h.waitReport("a", "needs input", "Claude needs your permission")
+	h.typeIn("a", "yes")
+	h.waitReport("a", "done", "Done: needs input")
+
+	// An agent in a worktree reports to the repository, like its siblings.
+	wt := filepath.Join(t.TempDir(), "x")
+	testutil.Git(t, r, "worktree", "add", "-q", "-b", "x", wt)
+	h.cwd = wt
+	if code, _, errOut := h.run("new", "b", "hi"); code != 0 {
+		t.Fatalf("new b: exit %d: %s", code, errOut)
+	}
+	h.waitReport("b", "done", "Done: hi")
+
+	// A session that ends keeps its last message.
+	h.typeIn("a", "/exit")
+	h.waitReport("a", "ended", "Done: needs input")
+
+	for _, dir := range []string{r, wt} {
+		cmd := exec.Command("git", "status", "--porcelain")
+		cmd.Dir = dir
+		if out, err := cmd.Output(); err != nil || len(out) != 0 {
+			t.Fatalf("%s is not clean: %q", dir, out)
+		}
+	}
+}
+
 func TestAgentWhoseSessionExitsIsEndedAndStaysListed(t *testing.T) {
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")
@@ -142,7 +213,7 @@ func TestKillEndsTheSessionAndFreesTheName(t *testing.T) {
 	if code, _, errOut := h.run("new", "a"); code != 0 {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
-	h.waitState("a", "running")
+	h.waitState("a", "starting")
 	ws, _ := h.d.tmux.Windows()
 	a, _ := agent.Find(agent.FromWindows(ws), "a")
 	marker := `HQ_ID":"` + a.ID + `"`
@@ -170,7 +241,7 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 		if code, _, errOut := h.run("new", name); code != 0 {
 			t.Fatalf("new %s: exit %d %s", name, code, errOut)
 		}
-		h.waitState(name, "running")
+		h.waitState(name, "starting")
 	}
 	h.waitSessions("claude-app", 2)
 	ids := func() map[string]string {
@@ -186,8 +257,8 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 	if code, out, errOut := h.run("sandbox", "restart", "app"); code != 0 || out != "restarted the sandbox claude-app; relaunched a, b\n" {
 		t.Fatalf("restart: exit %d %q %q", code, out, errOut)
 	}
-	h.waitState("a", "running")
-	h.waitState("b", "running")
+	h.waitState("a", "starting")
+	h.waitState("b", "starting")
 	after := ids()
 	for name, id := range before {
 		if after[name] == "" || after[name] == id {

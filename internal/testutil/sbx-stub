@@ -1,7 +1,8 @@
 #!/bin/sh
 # Stub of Docker Sandboxes' sbx for integration and end-to-end tests: sandboxes
 # are files in $SBX_STUB_DIR/sandboxes (line 1 status, line 2 workspace), and
-# `run` behaves like a Claude session that stays until it is terminated.
+# `run` behaves like a Claude session that stays until it is terminated, or
+# runs the fake claude (SBX_STUB_CLAUDE) that fires hq's injected hooks.
 # Workspaces may be Windows paths, as sbx.exe sees them from WSL.
 set -eu
 d=${SBX_STUB_DIR:?SBX_STUB_DIR not set}
@@ -37,8 +38,12 @@ run)
     printf 'running\n%s\n' "$ws" >"$d/sandboxes/$name"
     printf '%s\n' "$*" >>"$d/runs.log"
     echo $$ >>"$d/pids-$name"
-    echo "claude in $name: $*"
+    last=
+    for last; do :; done # the prompt, if any; the settings stay in runs.log
+    echo "claude in $name: $last"
     [ -z "${SBX_STUB_EXIT:-}" ] || exit "$SBX_STUB_EXIT"
+    # With SBX_STUB_CLAUDE, the session is the fake claude firing the hooks.
+    [ -z "${SBX_STUB_CLAUDE:-}" ] || exec "$SBX_STUB_CLAUDE" "$@"
     trap 'echo "claude ended"; exit 0' TERM INT HUP
     while :; do sleep 1; done
     ;;

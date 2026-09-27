@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/state"
 )
 
 // newArgs is hq new's arguments after parsing.
@@ -49,10 +49,9 @@ func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, erro
 }
 
 // claudeArgs are the arguments hq gives Claude: settings carrying the agent's
-// identity (the hooks of M2 join them), then the first prompt if any.
+// identity and the hooks that report its state, then the first prompt if any.
 func claudeArgs(name, id, prompt string) []string {
-	settings, _ := json.Marshal(map[string]any{"env": map[string]string{"HQ_AGENT": name, "HQ_ID": id}})
-	args := []string{"--settings", string(settings)}
+	args := []string{"--settings", state.Settings(name, id)}
 	if prompt != "" {
 		args = append(args, prompt)
 	}

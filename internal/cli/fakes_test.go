@@ -12,6 +12,7 @@ import (
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
@@ -201,6 +202,8 @@ type fakes struct {
 	tty   bool   // stdin is a terminal
 	stdin string // what the user types
 
+	states map[string]state.Report // agent id -> its state file
+
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
 	prefs    prefs.Prefs
@@ -216,6 +219,8 @@ func newFakes() *fakes {
 		cwd:   "/w/app",
 		now:   time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
 		tty:   true,
+
+		states: map[string]state.Report{},
 
 		releases: &fakeReleases{files: map[string]map[string][]byte{}},
 		exe:      "/nonexistent/hq",
@@ -254,6 +259,10 @@ func (f *fakes) deps() deps {
 		getenv:   func(k string) string { return f.env[k] },
 		sleep:    func(d time.Duration) { f.now = f.now.Add(d) },
 		canAsk:   func(io.Reader) bool { return f.tty },
+		readState: func(_, id string) (state.Report, bool) {
+			r, ok := f.states[id]
+			return r, ok
+		},
 
 		releases:   f.releases,
 		asset:      "hq-testos-testarch",

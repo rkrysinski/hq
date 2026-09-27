@@ -1,0 +1,138 @@
+// Package state is the agent's side of hq's state channel (design §3.4): the
+// hook injected into Claude at launch, and the reading of what it writes.
+package state
+
+import (
+	"encoding/json"
+	"strings"
+	"time"
+	"unicode"
+	"unicode/utf8"
+)
+
+// The states of spec §5.
+const (
+	Starting   = "starting"
+	Working    = "working"
+	Question   = "question"
+	NeedsInput = "needs input"
+	Done       = "done"
+	Ended      = "ended"
+)
+
+// Report is what an agent's state file says.
+type Report struct {
+	State     string
+	Since     time.Time // host modification time of the file (design §7.1)
+	Last      string    // the agent's last message, one line, stripped
+	SessionID string    // Claude's session id
+	Cwd       string    // where Claude works (a worktree or the repository)
+}
+
+// payload is the part of a Claude hook event hq reads.
+type payload struct {
+	Event            string `json:"hook_event_name"`
+	SessionID        string `json:"session_id"`
+	Cwd              string `json:"cwd"`
+	AssistantMessage string `json:"last_assistant_message"`
+	Message          string `json:"message"`
+}
+
+// Parse derives the report from the latest event and the latest Stop event
+// (empty when there is none), which keeps the last message across events.
+func Parse(latest, lastStop []byte) Report {
+	var p payload
+	if json.Unmarshal(latest, &p) != nil {
+		return Report{State: Starting}
+	}
+	r := Report{SessionID: Clean(p.SessionID), Cwd: p.Cwd}
+	var stop payload
+	if json.Unmarshal(lastStop, &stop) == nil {
+		r.Last = Clean(stop.AssistantMessage)
+	}
+	switch p.Event {
+	case "UserPromptSubmit":
+		r.State = Working
+	case "Stop":
+		r.Last = Clean(p.AssistantMessage)
+		r.State = Done
+		if IsQuestion(p.AssistantMessage) {
+			r.State = Question
+		}
+	case "Notification":
+		r.State = NeedsInput
+		if m := Clean(p.Message); m != "" {
+			r.Last = m
+		}
+	case "SessionEnd":
+		r.State = Ended
+	default:
+		r.State = Starting
+	}
+	return r
+}
+
+// IsQuestion is the rule that tells question from done: the last assistant
+// message ends with a question mark (the hook's awk applies the same rule).
+func IsQuestion(message string) bool {
+	return strings.HasSuffix(strings.TrimRightFunc(message, unicode.IsSpace), "?")
+}
+
+// maxLast caps the message kept from a state file.
+const maxLast = 500
+
+// Clean makes text from a state file safe to show on one line: escape
+// sequences and control characters go, whitespace runs become one space
+// (design §7.3).
+func Clean(s string) string {
+	var b strings.Builder
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		switch {
+		case r == 0x1b:
+			i += escapeLen(s[i:])
+			continue
+		case r == '\n' || r == '\r' || r == '\t':
+			b.WriteByte(' ')
+		case r == utf8.RuneError && size == 1, unicode.IsControl(r), r == 0x2028, r == 0x2029:
+		default:
+			b.WriteRune(r)
+		}
+		i += size
+	}
+	out := strings.Join(strings.Fields(b.String()), " ")
+	if utf8.RuneCountInString(out) > maxLast {
+		out = string([]rune(out)[:maxLast])
+	}
+	return out
+}
+
+// escapeLen is the length of the escape sequence at the start of s: CSI up
+// to its final byte, OSC, DCS, SOS, PM and APC up to BEL or ST, otherwise
+// ESC and the one character after it.
+func escapeLen(s string) int {
+	if len(s) < 2 {
+		return len(s)
+	}
+	switch s[1] {
+	case '[':
+		for i := 2; i < len(s); i++ {
+			if s[i] >= 0x40 && s[i] <= 0x7e {
+				return i + 1
+			}
+		}
+		return len(s)
+	case ']', 'P', 'X', '^', '_':
+		for i := 2; i < len(s); i++ {
+			if s[i] == 0x07 {
+				return i + 1
+			}
+			if s[i] == 0x1b && i+1 < len(s) && s[i+1] == '\\' {
+				return i + 2
+			}
+		}
+		return len(s)
+	}
+	_, size := utf8.DecodeRuneInString(s[1:])
+	return 1 + size
+}

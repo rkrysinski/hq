@@ -11,13 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
-)
-
-// States of an agent in M1 (spec §5 adds the rest in M2).
-const (
-	Running = "running"
-	Ended   = "ended"
 )
 
 // Agent is one agent: its home window and what hq stored on it.
@@ -28,7 +23,9 @@ type Agent struct {
 	RepoPath string    `json:"repo_path"`
 	Sandbox  string    `json:"sandbox"`
 	Started  time.Time `json:"started"`
+	Alive    bool      `json:"-"` // the home window's process runs
 	State    string    `json:"state"`
+	Since    time.Time `json:"since"`
 	Branch   string    `json:"branch"`
 	Last     string    `json:"last"`
 }
@@ -59,19 +56,37 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if o["id"] == "" {
 			continue
 		}
-		a := Agent{Window: w.ID, ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], State: Running}
+		a := Agent{Window: w.ID, ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, State: state.Starting}
 		if a.Name == "" {
 			a.Name = w.Name
 		}
 		if s, err := strconv.ParseInt(o["started"], 10, 64); err == nil {
 			a.Started = time.Unix(s, 0)
 		}
+		a.Since = a.Started
 		if w.PaneDead {
-			a.State = Ended
+			a.State = state.Ended
 		}
 		as = append(as, a)
 	}
 	return as
+}
+
+// Apply adds what the agent's state file reports (ok false: nothing yet).
+// A dead pane stays ended whatever the file says, counted from the agent's
+// last report (tmux does not say when the pane died); the file still gives
+// the last known message.
+func (a *Agent) Apply(r state.Report, ok bool) {
+	if !ok {
+		return
+	}
+	if a.Alive {
+		a.State = r.State
+	}
+	if a.Alive || r.Since.After(a.Since) {
+		a.Since = r.Since
+	}
+	a.Last = r.Last
 }
 
 // Find returns the agent named name.

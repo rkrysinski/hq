@@ -34,6 +34,9 @@ func newJourney(t *testing.T) *journey {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	// Behind the stub runs the fake claude, which fires hq's hooks.
+	testutil.FakeClaude(t)
+	t.Setenv("FAKE_CLAUDE_DELAY", "1s")
 	t.Setenv("HQ_TMUX_SOCKET", j.socket)
 	os.Unsetenv("TMUX")
 	j.repo = testutil.GitRepo(t, "app")
@@ -74,10 +77,21 @@ func TestStartSeeEnterKill(t *testing.T) {
 		t.Fatalf("new: exit %d %q", code, out)
 	}
 
-	// See.
-	eventually(t, "a listed as running", func() bool {
+	// See: the reply lands as the agent's state and last message.
+	row := func() string {
 		_, out := j.hq("ls")
-		return strings.Contains(out, "a     app   -       running")
+		for _, l := range strings.Split(out, "\n") {
+			if strings.HasPrefix(l, "a ") {
+				return strings.Join(strings.Fields(l), " ")
+			}
+		}
+		return ""
+	}
+	for _, state := range []string{"starting", "working"} {
+		eventually(t, "a listed as "+state, func() bool { return strings.HasPrefix(row(), "a app - "+state+" ") })
+	}
+	eventually(t, "a listed as done", func() bool {
+		return strings.HasPrefix(row(), "a app - done ") && strings.HasSuffix(row(), " Done: say hi")
 	})
 
 	// Enter, from a plain terminal: an outer tmux server serves as the terminal.
@@ -91,7 +105,15 @@ func TestStartSeeEnterKill(t *testing.T) {
 		return string(out)
 	}
 	eventually(t, "the terminal shows a's session", func() bool {
-		return strings.Contains(screen(), "claude in claude-app:") && strings.Contains(screen(), "say hi")
+		return strings.Contains(screen(), "claude in claude-app:") && strings.Contains(screen(), "Done: say hi")
+	})
+
+	// Reply in the session: the agent works, then asks.
+	if out, err := exec.Command("tmux", "-L", term, "send-keys", "a question please", "Enter").CombinedOutput(); err != nil {
+		t.Fatalf("send-keys: %v %s", err, out)
+	}
+	eventually(t, "a listed as asking a question", func() bool {
+		return strings.HasPrefix(row(), "a app - question ") && strings.HasSuffix(row(), " Shall I go on?")
 	})
 
 	// Kill.

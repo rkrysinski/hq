@@ -79,19 +79,20 @@ Hooks are injected when hq starts Claude and write the agent's state into the re
 flowchart LR
     subgraph SB["sbx sandbox (one per repository)"]
         C["Claude Code<br/>started with --settings:<br/>env HQ_AGENT, HQ_ID + hook set"]
-        K["inline hook<br/>sh, git, cat, mv"]
+        K["inline hook<br/>sh, git, cat, mv, cp, mkdir, rm"]
         C -- "lifecycle event + JSON payload" --> K
     end
     subgraph RP["mounted repository"]
-        F["repo/.git/hq/agents/ID<br/>latest raw event, replaced atomically"]
+        F["repo/.git/hq/agents/ID<br/>latest raw event, replaced atomically<br/>ID.stop: latest Stop"]
     end
     K -- "write tmp, rename" --> F
     F -- "read on host" --> LP["hq list program / hq ls"]
 ```
 
 - **Identity.** A fresh id per agent, generated at `hq new`, stored on the home window (3.3) and passed to Claude as `HQ_ID`. Stable across `/clear`; never confused with an earlier agent that reused the name.
-- **Events used.** Prompt submitted -> `working`; Stop -> `question` or `done`; Notification of kind permission prompt, agent needs input or elicitation dialog -> `needs input`; session end -> `ended` (also detected from tmux and sbx, section 5).
-- **Interpretation on the host.** The hook stores the raw payload; hq derives the state, the time it was entered, the one-line last message (`last_assistant_message` of Stop) and the branch. `question` vs `done`: the last assistant message ends with `?`, the rule proven by `notify.sh` in support-chatbot.
+- **Events used.** Prompt submitted -> `working`; Stop -> `question` or `done`; Notification of kind permission prompt, agent needs input or elicitation dialog -> `needs input`; session end -> `ended` (also detected from tmux and sbx, section 5). Until the first event an agent is `starting`. Claude in an sbx sandbox runs with permissions bypassed, so tool calls raise no permission prompt; a question dialog (AskUserQuestion) still fires the permission-prompt Notification, which is what `needs input` sees in practice.
+- **Interpretation on the host.** The hook stores the raw payload; hq derives the state, the time it was entered, the one-line last message and the branch. `question` vs `done`: the last assistant message ends with `?`, the rule proven by `notify.sh` in support-chatbot.
+- **Last message.** `last_assistant_message` of Stop; while `needs input`, the Notification's own message ("Claude needs your permission"). The hook also keeps the latest Stop payload as `ID.stop`, so a `working` or `ended` agent still shows its previous reply. An agent whose pane died is `ended` with `AGE` counted from its last report, not from its start.
 - **Location.** The main repository's `.git/hq/`, found from any of Claude's worktrees through git's common directory. Never tracked, no ignore rule.
 
 Satisfies: §5 (states, age, last message, no setup), §8 (no repository files), S2, S4, S5, S11; drivers 1, 3.
@@ -258,7 +259,7 @@ erDiagram
 | Entity | Lives in | Holds | Written by |
 |---|---|---|---|
 | Agent / home window | tmux window and its user options (3.3) | name, id, repository path, sandbox, start time, `new` marker | `hq new`, `hq kill`, `hq sandbox restart` |
-| State file | `repo/.git/hq/agents/ID` (3.4) | the latest raw hook payload; state, since (host modification time, 7.1), last message, branch, worktree path and Claude session id are derived from it | the injected hook |
+| State file | `repo/.git/hq/agents/ID` and `ID.stop` (3.4) | the latest raw hook payload and the latest Stop payload; state, since (host modification time, 7.1), last message, branch, worktree path and Claude session id are derived from it | the injected hook |
 | Session state | tmux session options (3.3) | the docked agent, the cursor | list program, chord commands |
 | Preferences | per-user file (3.3, 3.9) | sort, view, last update check and latest known version | list program |
 | Pull request map | list program memory (5.2) | branch -> number, state, URL | list program |
@@ -321,11 +322,8 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - Build the iTerm2 dynamic profile (Option as Esc+); verify that `SetProfile=hq` on attach keeps the Option setting for that tab.
 - Verify that Windows lets a background `powershell.exe` activate the window titled `hq` (the foreground lock can refuse).
 - `hq update` replaces the binary while a list program may be running; the running list keeps the old version until it is restarted; say so in the update output.
-- Verify that `env` passed through `--settings` reaches hook processes; fallback: key by session id and re-link on the `SessionStart` event after `/clear`.
 - Verify that hooks passed through `--settings` run alongside a repository's own hooks rather than replacing them.
 - Verify that `sbx run --name` on a running sandbox starts an additional agent session rather than attaching to an existing one (spec §2 given; the removed bash prototype relied on it), and that `--resume` passes through `sbx run`.
-- Verify that the sbx claude image provides `sh`, `git`, `cat`, `mv`, `awk` on PATH for hooks.
-- Verify that the modification time the host sees on a file written through the sbx workspace mount follows the host clock.
 
 ## 10. Version changes
 
@@ -352,3 +350,4 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - 1.0 (draft): decision rule for repositories on the WSL file system (8), pending the team's test.
 - 1.0 (draft): opening and raising the dashboard (3.11), sixth platform concern; open question closed.
 - 1.0 (draft): security (7.3); open question closed.
+- 1.0 (draft): state channel built (#19): `starting` before the first event, `ID.stop` for the last message, Notification message while `needs input`; verified with Claude 2.1 in sbx: `env` from `--settings` reaches hooks, the image has `sh`, `git`, `cat`, `mv`, `cp`, `mkdir`, `rm`, the host modification time follows the host clock.
