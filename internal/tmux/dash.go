@@ -391,13 +391,39 @@ func (c Client) RespawnList(pane string, list []string) error {
 	return err
 }
 
-// WindowHeight is the height of the window holding pane.
-func (c Client) WindowHeight(pane string) (int, error) {
-	out, err := c.tmux("display-message", "-p", "-t", pane, "#{window_height}")
+// TerminalHeight is the height of the terminal showing the window holding
+// pane: the window and its session's status lines, which tmux takes from
+// the terminal's rows.
+func (c Client) TerminalHeight(pane string) (int, error) {
+	out, err := c.tmux("display-message", "-p", "-t", pane, "#{window_height} #{status}")
 	if err != nil {
 		return 0, err
 	}
-	return strconv.Atoi(strings.TrimSpace(string(out)))
+	return terminalHeight(string(out))
+}
+
+// terminalHeight adds up tmux's answer to "#{window_height} #{status}": the
+// status option is off, on (one line) or a number of lines.
+func terminalHeight(out string) (int, error) {
+	f := strings.Fields(out)
+	if len(f) != 2 {
+		return 0, fmt.Errorf("unexpected window height %q", strings.TrimSpace(out))
+	}
+	h, err := strconv.Atoi(f[0])
+	if err != nil {
+		return 0, err
+	}
+	switch f[1] {
+	case "off":
+		return h, nil
+	case "on":
+		return h + 1, nil
+	}
+	n, err := strconv.Atoi(f[1])
+	if err != nil {
+		return 0, fmt.Errorf("unexpected status %q", f[1])
+	}
+	return h + n, nil
 }
 
 // ResizeHeight sets the height of pane; the other pane of its window takes

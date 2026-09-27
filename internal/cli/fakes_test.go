@@ -42,7 +42,7 @@ type fakeTmux struct {
 	dash      tmux.Dash // the dashboard window, once made
 	dashList  []string  // the list pane's program
 	respawned int       // times the list program was started again
-	height    int       // the dashboard window's height
+	height    int       // the height of the terminal showing the dashboard
 	resized   []int     // heights given to the list pane, in order
 	footer    string
 	listPID   int // @hq_list_pid on the list pane
@@ -131,7 +131,7 @@ func (f *fakeTmux) RespawnList(pane string, list []string) error {
 	return nil
 }
 
-func (f *fakeTmux) WindowHeight(string) (int, error) { return f.height, nil }
+func (f *fakeTmux) TerminalHeight(string) (int, error) { return f.height, nil }
 
 func (f *fakeTmux) ResizeHeight(_ string, lines int) error {
 	f.resized = append(f.resized, lines)

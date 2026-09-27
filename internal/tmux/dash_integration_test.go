@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -253,8 +254,10 @@ func TestListPaneRespawnFitAndFooter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h, err := c.WindowHeight(d.List); err != nil || h < 20 {
-		t.Fatalf("window height %d %v", h, err)
+	// The terminal's height counts hq's status line on top of the window.
+	win, _ := strconv.Atoi(tm(t, socket, "display-message", "-p", "-t", d.List, "#{window_height}"))
+	if h, err := c.TerminalHeight(d.List); err != nil || win < 20 || h != win+1 {
+		t.Fatalf("terminal height %d %v, window %d", h, err, win)
 	}
 	if err := c.ResizeHeight(d.List, 7); err != nil {
 		t.Fatal(err)

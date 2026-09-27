@@ -243,7 +243,7 @@ func listSource(d deps, pane string) dash.Source {
 		Now:        d.now,
 		UpdateHint: func() string { return strings.TrimSpace(updateHint(d)) },
 		Layout: func() {
-			if h, err := d.tmux.WindowHeight(pane); err == nil {
+			if h, err := d.tmux.TerminalHeight(pane); err == nil {
 				_ = d.tmux.ResizeHeight(pane, dash.Height(h))
 			}
 		},
