@@ -3,18 +3,25 @@
 package platformtest
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/rkrysinski/hq/internal/platform"
 )
 
-// Contract checks what hq relies on from any platform: an sbx command, and
-// paths that survive the trip to sbx and back.
+// Contract checks what hq relies on from any platform: an sbx command,
+// paths that survive the trip to sbx and back, and a notification sequence
+// that is the content of a JSON string with at most one %s.
 func Contract(t *testing.T, p platform.Platform) {
 	t.Helper()
 	if p.SbxCommand() == "" {
 		t.Error("no sbx command")
+	}
+	seq := p.NotifySequence()
+	var s string
+	if seq == "" || json.Unmarshal([]byte(`"`+seq+`"`), &s) != nil || strings.Count(seq, "%s") > 1 {
+		t.Errorf("notification sequence %q", seq)
 	}
 	for _, path := range []string{"/home/dev/app", "/Users/dev/work/hq", "/w/repo with space"} {
 		s, err := p.ToSbx(path)
@@ -47,5 +54,8 @@ func (Fake) ToSbx(path string) (string, error) {
 func (Fake) FromSbx(path string) (string, error) {
 	return strings.ReplaceAll(strings.TrimPrefix(path, "F:"), `\`, "/"), nil
 }
+
+// NotifySequence is plain text, readable in a test's output.
+func (Fake) NotifySequence() string { return "[notify %s]" }
 
 var _ platform.Platform = Fake{}

@@ -4,6 +4,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,18 +16,80 @@ import (
 	"github.com/rkrysinski/hq/internal/testutil"
 )
 
-// fire runs the injected hook as Claude does: sh with the event's kind, the
-// payload on stdin, the agent's environment, in dir.
-// fire runs the hook as Claude does: in Claude's current directory cwd, with
-// the project directory the session started in.
-func fire(t *testing.T, cwd, project, id, kind string, payload []byte) {
+// run runs a hook as Claude does: sh with the payload on stdin and the
+// agent's environment, in Claude's current directory cwd, with the project
+// directory the session started in. It returns what the hook printed.
+func run(t *testing.T, cwd, project, id string, h hookCommand, payload []byte) string {
 	t.Helper()
-	cmd := exec.Command("sh", hook(kind).Args...)
+	cmd := exec.Command(h.Command, h.Args...)
 	cmd.Dir = cwd
 	cmd.Env = append(os.Environ(), "HQ_ID="+id, "CLAUDE_PROJECT_DIR="+project)
 	cmd.Stdin = bytes.NewReader(payload)
-	if out, err := cmd.CombinedOutput(); err != nil || len(out) != 0 {
-		t.Fatalf("hook %s: %v %q", kind, err, out)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil || stderr.Len() != 0 {
+		t.Fatalf("hook %v: %v %q", h.Args[3:], err, stderr.String())
+	}
+	return string(out)
+}
+
+// fire runs the hook of kind without notifications: it prints nothing.
+func fire(t *testing.T, cwd, project, id, kind string, payload []byte) {
+	t.Helper()
+	if out := run(t, cwd, project, id, hook(kind, ""), payload); out != "" {
+		t.Fatalf("hook %s printed %q", kind, out)
+	}
+}
+
+func TestHookNotifiesOnStopAndInputNamingTheBranch(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	wt := filepath.Join(filepath.Dir(root), "feat-42")
+	testutil.Git(t, root, "worktree", "add", "-q", "-b", "feat/42-x", wt)
+	const id = "0a1b2c3d4e5f"
+	for _, tc := range []struct{ kind, payload, want string }{
+		{"stop", "stop-done", `{"terminalSequence":"[notify Done: feat/42-x]"}` + "\n"},
+		{"stop", "stop-question", `{"terminalSequence":"[notify Question: feat/42-x]"}` + "\n"},
+		{"input", "notification", `{"terminalSequence":"[notify Needs input: feat/42-x]"}` + "\n"},
+		{"prompt", "prompt", ""},
+		{"end", "session-end", ""},
+	} {
+		if got := run(t, wt, root, id, hook(tc.kind, "[notify %s]"), fixture(t, tc.payload)); got != tc.want {
+			t.Errorf("%s: %q, want %q", tc.payload, got, tc.want)
+		}
+	}
+
+	// The real sequence reaches Claude as JSON it decodes to OSC 9; a detached
+	// HEAD is named by its directory.
+	testutil.Git(t, wt, "checkout", "-q", "--detach")
+	out := run(t, wt, root, id, hook("stop", `\u001b]9;%s\u0007`), fixture(t, "stop-done"))
+	var v struct{ TerminalSequence string }
+	if err := json.Unmarshal([]byte(out), &v); err != nil || v.TerminalSequence != "\x1b]9;Done: feat-42\a" {
+		t.Fatalf("%q: %+v %v", out, v, err)
+	}
+	// A sequence without text (BEL) is sent as it is.
+	if out := run(t, wt, root, id, hook("input", `\u0007`), fixture(t, "notification")); out != `{"terminalSequence":"\u0007"}`+"\n" {
+		t.Fatalf("BEL: %q", out)
+	}
+}
+
+func TestHookAndHostAgreeOnQuestions(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	testutil.Git(t, root, "checkout", "-q", "-b", `a"b`) // quotes never break the JSON
+	for _, m := range []string{
+		"Shall I?", "Shall I? ", "Shall I?\n\n", "Shall I?\t\r\n", "Done.", "Is it \"ok?\"", `C:\?\`,
+		"Why?\nBecause.", "", "?", "multi\nline\nending?", "ünïcödé?", "tab\t?",
+	} {
+		payload, _ := json.Marshal(map[string]string{"hook_event_name": "Stop", "last_assistant_message": m})
+		out := run(t, root, root, "abc", hook("stop", "%s"), payload)
+		want := "Done: ab"
+		if IsQuestion(m) {
+			want = "Question: ab"
+		}
+		var v struct{ TerminalSequence string }
+		if err := json.Unmarshal([]byte(out), &v); err != nil || v.TerminalSequence != want {
+			t.Errorf("%q: hook %q, host %q (%v)", m, out, want, err)
+		}
 	}
 }
 

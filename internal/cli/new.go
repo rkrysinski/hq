@@ -49,9 +49,10 @@ func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, erro
 }
 
 // claudeArgs are the arguments hq gives Claude: settings carrying the agent's
-// identity and the hooks that report its state, then the first prompt if any.
-func claudeArgs(name, id, prompt string) []string {
-	args := []string{"--settings", state.Settings(name, id)}
+// identity and the hooks that report its state and notify with the terminal's
+// sequence notify, then the first prompt if any.
+func claudeArgs(name, id, notify, prompt string) []string {
+	args := []string{"--settings", state.Settings(name, id, notify)}
 	if prompt != "" {
 		args = append(args, prompt)
 	}
@@ -105,7 +106,7 @@ func startAgent(d deps, name, root, sandbox, prompt string) error {
 		"id": id, "name": name, "repo": root, "sandbox": sandbox,
 		"started": strconv.FormatInt(d.now().Unix(), 10),
 	}
-	win, err := d.tmux.NewWindow(name, root, opts, d.sbx.RunArgv(sandbox, claudeArgs(name, id, prompt)...))
+	win, err := d.tmux.NewWindow(name, root, opts, d.sbx.RunArgv(sandbox, claudeArgs(name, id, d.notify, prompt)...))
 	if err != nil {
 		return tmuxErr(err)
 	}

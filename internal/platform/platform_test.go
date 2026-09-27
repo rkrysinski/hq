@@ -1,6 +1,7 @@
 package platform_test
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"reflect"
@@ -48,6 +49,15 @@ func TestNativeKeepsTheContract(t *testing.T) { platformtest.Contract(t, platfor
 
 func TestWSLKeepsTheContract(t *testing.T) {
 	platformtest.Contract(t, platform.WSL{Run: &fakeWslpath{}})
+}
+
+func TestNotificationSequencePerPlatform(t *testing.T) {
+	for p, want := range map[platform.Platform]string{platform.Native{}: "\x1b]9;%s\a", platform.WSL{}: "\a"} {
+		var got string
+		if err := json.Unmarshal([]byte(`"`+p.NotifySequence()+`"`), &got); err != nil || got != want {
+			t.Errorf("%T: %q %v, want %q", p, got, err, want)
+		}
+	}
 }
 
 func TestFakeKeepsTheContract(t *testing.T) { platformtest.Contract(t, platformtest.Fake{}) }

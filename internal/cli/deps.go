@@ -68,6 +68,8 @@ type deps struct {
 	// pollSandboxes is sbx ls within a time limit, for the state of agents
 	// (design §5.1, §7.1); a slow sbx must not hold up hq ls.
 	pollSandboxes func() ([]sbx.Sandbox, error)
+	// notify is the terminal's desktop notification sequence (design §3.5).
+	notify string
 
 	releases   Releases
 	asset      string // this platform's binary in a release
@@ -101,6 +103,7 @@ func defaultDeps() deps {
 
 		readState:     state.Read,
 		pollSandboxes: sbx.Client{Run: proc.Exec{Timeout: sbxPollTimeout}, Platform: plat}.List,
+		notify:        plat.NotifySequence(),
 
 		releases: update.Releases{Run: run, Bin: "gh"},
 		asset:    update.Asset(runtime.GOOS, runtime.GOARCH),

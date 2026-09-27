@@ -50,6 +50,10 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 	if len(ws) != 2 || ws[1].ID != id || ws[1].Name != "a" || ws[1].Options["repo"] != "/r e/p" || ws[1].PaneDead {
 		t.Fatalf("before start: %+v", ws)
 	}
+	// Notifications pass from the hidden window to the terminal.
+	if out, _ := exec.Command("tmux", "-L", socket, "show-options", "-wv", "-t", id, "allow-passthrough").Output(); strings.TrimSpace(string(out)) != "all" {
+		t.Fatalf("allow-passthrough: %q", out)
+	}
 	if err := c.Start(id); err != nil {
 		t.Fatal(err)
 	}

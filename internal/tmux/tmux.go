@@ -148,7 +148,10 @@ func (c Client) NewWindow(name, dir string, options map[string]string, argv []st
 		return "", err
 	}
 	id := strings.TrimSpace(string(out))
-	set := []string{"set-option", "-w", "-t", id, "remain-on-exit", "on"}
+	// Passthrough lets the agent's notifications (design §3.5) out of a
+	// window nobody looks at.
+	set := []string{"set-option", "-w", "-t", id, "remain-on-exit", "on",
+		";", "set-option", "-w", "-t", id, "allow-passthrough", "all"}
 	for _, k := range OptionKeys {
 		if v, ok := options[k]; ok {
 			set = append(set, ";", "set-option", "-w", "-t", id, "@hq_"+k, v)
