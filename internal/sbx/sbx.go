@@ -46,6 +46,19 @@ func (c Client) Create(workspace string) error {
 	return err
 }
 
+// Stop stops a sandbox, ending every session in it; its state is kept.
+func (c Client) Stop(sandbox string) error {
+	_, err := c.Run.Run(c.Bin, "stop", sandbox)
+	return err
+}
+
+// Remove deletes a sandbox and its state without sbx asking again (hq has
+// asked).
+func (c Client) Remove(sandbox string) error {
+	_, err := c.Run.Run(c.Bin, "rm", "--force", sandbox)
+	return err
+}
+
 // Exec runs a command inside a running sandbox.
 func (c Client) Exec(sandbox string, args ...string) error {
 	_, err := c.Run.Run(c.Bin, append([]string{"exec", sandbox}, args...)...)

@@ -103,10 +103,42 @@ type fakeSbx struct {
 	createErr error
 	execs     [][]string // sandbox, then the command
 	onExec    func(args []string)
+	calls     []string // stop, rm and exec, in order
+	onStop    func(sandbox string)
+}
+
+func (f *fakeSbx) setStatus(name, status string) {
+	for i := range f.sandboxes {
+		if f.sandboxes[i].Name == name {
+			f.sandboxes[i].Status = status
+		}
+	}
+}
+
+func (f *fakeSbx) Stop(sandbox string) error {
+	f.calls = append(f.calls, "stop "+sandbox)
+	f.setStatus(sandbox, "stopped")
+	if f.onStop != nil {
+		f.onStop(sandbox)
+	}
+	return f.err
+}
+
+func (f *fakeSbx) Remove(sandbox string) error {
+	f.calls = append(f.calls, "rm "+sandbox)
+	for i, s := range f.sandboxes {
+		if s.Name == sandbox {
+			f.sandboxes = append(f.sandboxes[:i], f.sandboxes[i+1:]...)
+			break
+		}
+	}
+	return f.err
 }
 
 func (f *fakeSbx) Exec(sandbox string, args ...string) error {
 	f.execs = append(f.execs, append([]string{sandbox}, args...))
+	f.calls = append(f.calls, "exec "+sandbox+" "+strings.Join(args, " "))
+	f.setStatus(sandbox, "running")
 	if f.onExec != nil {
 		f.onExec(args)
 	}
@@ -156,6 +188,14 @@ func newFakes() *fakes {
 	f.sbx.onExec = func(args []string) {
 		for i, w := range f.tmux.windows {
 			if strings.Contains(args[len(args)-1], `"`+w.Options["id"]+`"`) {
+				f.tmux.windows[i].PaneDead = true
+			}
+		}
+	}
+	// Stopping a sandbox ends every session in it.
+	f.sbx.onStop = func(sandbox string) {
+		for i, w := range f.tmux.windows {
+			if w.Options["sandbox"] == sandbox {
 				f.tmux.windows[i].PaneDead = true
 			}
 		}

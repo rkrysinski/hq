@@ -108,8 +108,8 @@ Satisfies: §5 (exactly one notification per attention or done event, docked or 
 **Rationale:** lookup by workspace path cannot collide on two repositories with the same folder name and adopts sandboxes the user created by hand.
 **Satisfies:** §2 (one sandbox per repository), §4.1 (`hq new`, `hq sandbox`), S2, S11.
 
-- **`hq sandbox restart REPO`** (S9): stop and start the sandbox, then relaunch each of the repository's agents in its own home window, same name, new id, with `--resume <last Claude session id>` taken from the agent's last state file, so each conversation continues. Rows go `ended`, then `starting`.
-- **`hq sandbox rm REPO`**: refused while agents of the repository run (§4.1), then `sbx rm`.
+- **`hq sandbox restart REPO`** (S9): stop and start the sandbox, then relaunch each of the repository's agents in its own home window, same name, new id, with `--resume <last Claude session id>` taken from the agent's last state file, so each conversation continues. Rows go `ended`, then `starting`. sbx has no start command: running anything in a stopped sandbox (`sbx exec`) starts it, which also restarts a sandbox without agents. Until the agent state of M2 exists, agents relaunch without `--resume`.
+- **`hq sandbox rm REPO`**: refused while agents of the repository run (§4.1), then hq asks and runs `sbx rm --force` (sbx would otherwise ask a second time). REPO is a directory in the repository or its name as `hq ls` shows it, matched against the base name of each sandbox's workspace.
 
 ### 3.7 Keys and mouse
 

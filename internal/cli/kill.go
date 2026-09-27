@@ -116,14 +116,23 @@ func plural(n int, word string) string {
 // endAgents ends the agents' Claude sessions and removes their home windows,
 // which frees their names (design §3.3). Closing a window alone would leave
 // Claude running inside the sandbox, so each running session first gets
-// SIGTERM there, found by the HQ_ID in its settings argument, and hq waits
-// for it to exit.
+// SIGTERM there, found by the HQ_ID in its settings argument.
 func endAgents(d deps, as []agent.Agent) error {
-	pending := map[string]bool{}
 	for _, a := range as {
 		if a.State == agent.Running {
 			// No match (the session already ended) is not an error.
 			_ = d.sbx.Exec(a.Sandbox, "pkill", "-TERM", "-f", `HQ_ID":"`+a.ID+`"`)
+		}
+	}
+	return removeAgents(d, as)
+}
+
+// removeAgents waits up to endWait for the agents' sessions to exit, then
+// removes their home windows.
+func removeAgents(d deps, as []agent.Agent) error {
+	pending := map[string]bool{}
+	for _, a := range as {
+		if a.State == agent.Running {
 			pending[a.Window] = true
 		}
 	}

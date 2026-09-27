@@ -35,6 +35,7 @@ run)
     ws=$(sed -n 2p "$d/sandboxes/$name")
     printf 'running\n%s\n' "$ws" >"$d/sandboxes/$name"
     printf '%s\n' "$*" >>"$d/runs.log"
+    echo $$ >>"$d/pids-$name"
     echo "claude in $name: $*"
     [ -z "${SBX_STUB_EXIT:-}" ] || exit "$SBX_STUB_EXIT"
     trap 'echo "claude ended"; exit 0' TERM INT HUP
@@ -43,12 +44,21 @@ run)
 stop)
     ws=$(sed -n 2p "$d/sandboxes/$1")
     printf 'stopped\n%s\n' "$ws" >"$d/sandboxes/$1"
+    # Stopping ends every session in the sandbox.
+    [ ! -e "$d/pids-$1" ] || xargs kill -TERM <"$d/pids-$1" 2>/dev/null || true
+    rm -f "$d/pids-$1"
     ;;
 rm)
+    [ "$1" != --force ] || shift
     rm "$d/sandboxes/$1"
     ;;
 exec)
-    shift # the sandbox: the stub runs the command on the host
+    # Like sbx, exec starts a stopped sandbox; the command runs on the host.
+    if [ -e "$d/sandboxes/$1" ]; then
+        ws=$(sed -n 2p "$d/sandboxes/$1")
+        printf 'running\n%s\n' "$ws" >"$d/sandboxes/$1"
+    fi
+    shift
     exec "$@"
     ;;
 *)
