@@ -11,7 +11,8 @@ const (
 )
 
 // Error is a failure reported to the user as one line on stderr, prefixed
-// "hq:", naming the remedy where there is one, with its exit code.
+// "hq:", naming the remedy where there is one, with its exit code. Without a
+// message it is only the exit code.
 type Error struct {
 	Code int
 	Msg  string

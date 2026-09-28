@@ -56,7 +56,9 @@ func mainWith(args []string, env Env, d deps) int {
 	if !errors.As(err, &e) {
 		e = &Error{Code: ExitUsage, Msg: err.Error()}
 	}
-	fmt.Fprintf(env.Stderr, "hq: %s\n", e.Msg)
+	if e.Msg != "" {
+		fmt.Fprintf(env.Stderr, "hq: %s\n", e.Msg)
+	}
 	return e.Code
 }
 
@@ -74,6 +76,8 @@ func run(env Env, d deps, args []string) error {
 		return runKillDialog(env, d, rest)
 	case slotCommand:
 		return runSlot(env, d, rest)
+	case sessionCommand:
+		return runSession(env, d, rest)
 	case chordCommand:
 		return runChord(env, d, rest)
 	case itermProfileCommand:

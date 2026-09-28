@@ -36,6 +36,7 @@ type Tmux interface {
 	Respawn(pane, dir string, argv []string) error
 	SetOption(id, key, value string) error
 	Screens(panes []string) (map[string]string, error)
+	LastScreen(pane string) (string, error)
 	KillWindow(id string) error
 	SocketPath() (string, error)
 	Enter(id string) error
@@ -104,6 +105,9 @@ type deps struct {
 	// key reaches hq as it is typed and none is echoed; the function it
 	// returns restores it.
 	rawTerminal func(stdin io.Reader) func()
+	// foreground runs a program on this terminal until it ends and returns
+	// its exit status; err only when it could not start.
+	foreground func(argv []string) (int, error)
 	// readState reads an agent's state file (design §3.4).
 	readState func(root, id string) (state.Report, bool)
 	// removeState deletes an agent's state files once it is gone (design §3.4).
@@ -141,12 +145,12 @@ const sbxPollTimeout = 5 * time.Second
 func defaultDeps() deps {
 	run := proc.Exec{}
 	plat := platform.Detect(os.Getenv, os.ReadFile, run)
-	var placeholder []string
+	var placeholder, session []string
 	if exe, err := executable(); err == nil {
-		placeholder = []string{exe, slotCommand}
+		placeholder, session = []string{exe, slotCommand}, []string{exe, sessionCommand}
 	}
 	return deps{
-		tmux:        tmux.Client{Run: run, Socket: os.Getenv("HQ_TMUX_SOCKET"), Placeholder: placeholder},
+		tmux:        tmux.Client{Run: run, Socket: os.Getenv("HQ_TMUX_SOCKET"), Placeholder: placeholder, Session: session},
 		sbx:         sbx.Client{Run: run, Platform: plat},
 		repoRoot:    func(dir string) (string, bool) { return repo.Root(run, dir) },
 		samePath:    repo.Same,
@@ -181,6 +185,7 @@ func defaultDeps() deps {
 		sleep:       time.Sleep,
 		canAsk:      isTerminal,
 		rawTerminal: rawTerminal,
+		foreground:  func(argv []string) (int, error) { return run.Foreground(argv[0], argv[1:]...) },
 
 		readState:     state.Read,
 		removeState:   state.Remove,
