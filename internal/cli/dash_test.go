@@ -201,6 +201,10 @@ func TestListSourceFitsTheListToTheTerminal(t *testing.T) {
 			t.Errorf("terminal %d: list %d lines, want %d", tc.terminal, got, tc.want)
 		}
 	}
+	// A change of width reaches the margins beside the slot too.
+	if f.tmux.margins != 3 {
+		t.Errorf("margins set back %d times, want 3", f.tmux.margins)
+	}
 }
 
 func TestListSourceShowsTheUpdateHintOnce(t *testing.T) {

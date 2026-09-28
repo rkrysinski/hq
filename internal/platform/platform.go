@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/rkrysinski/hq/internal/proc"
+	"github.com/rkrysinski/hq/internal/tmux"
 )
 
 // Platform is what differs between the platforms.
@@ -120,7 +121,7 @@ func (w WSL) Browser(url string) []string {
 	return append([]string{"env", "BROWSER=explorer.exe"}, ghView(url)...)
 }
 
-// Raise is PowerShell activating the window titled hq, which tmux sets
+// Raise is PowerShell activating the window titled hq - agents, which tmux sets
 // while the dashboard is attached; the client's terminal means nothing to
 // Windows. Windows can refuse to change the foreground window, which fails
 // the command.
@@ -129,7 +130,7 @@ func (WSL) Raise(string) []string {
 }
 
 // raiseTitle is the PowerShell of WSL's Raise.
-const raiseTitle = `if (-not (New-Object -ComObject WScript.Shell).AppActivate('hq')) { [Console]::Error.WriteLine('no window titled hq, or Windows refused to bring it to the front'); exit 1 }`
+const raiseTitle = `if (-not (New-Object -ComObject WScript.Shell).AppActivate('` + tmux.TerminalTitle + `')) { [Console]::Error.WriteLine('no window titled ` + tmux.TerminalTitle + `, or Windows refused to bring it to the front'); exit 1 }`
 
 func (w WSL) wslpath(flag, path string) (string, error) {
 	out, err := w.Run.Run("wslpath", flag, path)

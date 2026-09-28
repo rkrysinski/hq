@@ -44,6 +44,7 @@ type Tmux interface {
 	RespawnList(pane string, list []string) error
 	TerminalHeight(pane string) (int, error)
 	ResizeHeight(pane string, lines int) error
+	KeepMargins(pane string) error
 	SetFooter(text string) error
 	MarkList(pane string, pid int) error
 	SessionValue(key string) (string, error)
