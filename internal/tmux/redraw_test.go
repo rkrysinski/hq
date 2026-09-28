@@ -32,9 +32,9 @@ func TestLatestLinesAfterSbxResetTheTerminal(t *testing.T) {
 	// bottom), and sbx then printed its error on the cleared screen.
 	lines := screen(20, 10, map[int]string{-20: "Claude Code", -10: "● Bye", -9: "✻ Brewed", -3: "─", -2: "❯ ", -1: "─", 0: `error: sandbox "claude-hq" was stopped`})
 	got := latestLines(lines, 20, 10)
-	// The screen but for its bottom line, 9 lines: the session's last ones
-	// and the error, each run of blank rows as one: the whole session.
-	want := []int{0, 9, 10, 11, 16, 17, 18, 19, 20}
+	// The screen but for its bottom two lines, 8 lines: the session's last
+	// ones and the error, each run of blank rows as one.
+	want := []int{9, 10, 11, 16, 17, 18, 19, 20}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
 	}
@@ -51,7 +51,7 @@ func TestLatestLinesFoldTheBlankRowsAboveClaudesPromptBox(t *testing.T) {
 
 func TestLatestLinesOnAScreenThatShowsThemAlready(t *testing.T) {
 	full := map[int]string{}
-	for i := -3; i < 10; i++ {
+	for i := -3; i < 9; i++ {
 		full[i] = fmt.Sprintf("line %d", i)
 	}
 	for name, c := range map[string]struct {
@@ -59,7 +59,7 @@ func TestLatestLinesOnAScreenThatShowsThemAlready(t *testing.T) {
 		hist, height int
 	}{
 		"full screen":     {screen(3, 10, full), 3, 10},
-		"at the bottom":   {screen(0, 10, map[int]string{8: "Starting claude agent", 9: "error: no sandbox"}), 0, 10},
+		"at the bottom":   {screen(0, 10, map[int]string{7: "Starting claude agent", 8: "error: no sandbox"}), 0, 10},
 		"nothing printed": {screen(5, 10, nil), 5, 10},
 	} {
 		if got := latestLines(c.lines, c.hist, c.height); got != nil {
@@ -84,9 +84,9 @@ func TestLatestLinesTakeWhatTheHistoryHoldsWhenItIsShort(t *testing.T) {
 	}
 }
 
-func TestRedrawBlanksEachLineThenDrawsAtTheBottom(t *testing.T) {
-	got := redraw([]string{"\x1b[31mred\x1b[39m", "plain"}, 3)
-	want := "\x1b[0m" + "\x1b[1;1H\x1b[2K\x1b[2;1H\x1b[2K\x1b[3;1H\x1b[2K" + "\x1b[2;1H" + "\x1b[31mred\x1b[39m\r\nplain" + "\x1b[0m"
+func TestRedrawBlanksEachLineThenDrawsAboveTheBottomLine(t *testing.T) {
+	got := redraw([]string{"\x1b[31mred\x1b[39m", "plain"}, 4)
+	want := "\x1b[0m" + "\x1b[1;1H\x1b[2K\x1b[2;1H\x1b[2K\x1b[3;1H\x1b[2K\x1b[4;1H\x1b[2K" + "\x1b[2;1H" + "\x1b[31mred\x1b[39m\r\nplain" + "\x1b[0m"
 	if got != want {
 		t.Fatalf("got %q\nwant %q", got, want)
 	}
@@ -111,9 +111,9 @@ func (r runner) Run(name string, args ...string) ([]byte, error) {
 }
 
 func TestLastScreenCapturesTheLatestLinesWithTheirColours(t *testing.T) {
-	plain := strings.Join(screen(4, 4, map[int]string{-4: "one", -3: "two", 0: "error"}), "\n") + "\n"
+	plain := strings.Join(screen(4, 5, map[int]string{-4: "one", -3: "two", 0: "error"}), "\n") + "\n"
 	c := Client{Run: runner{
-		"-L s display-message -p -t %1 #{history_size} #{pane_height} ; capture-pane -p -t %1 -S - -E -": "4 4\n" + plain,
+		"-L s display-message -p -t %1 #{history_size} #{pane_height} ; capture-pane -p -t %1 -S - -E -": "4 5\n" + plain,
 		"-L s capture-pane -p -e -t %1 -S -3 -E 0":                                                       "two\n\n\n\x1b[31merror\x1b[39m\n",
 	}, Socket: "s"}
 	got, err := c.LastScreen("%1")
@@ -121,14 +121,14 @@ func TestLastScreenCapturesTheLatestLinesWithTheirColours(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The two blank lines between are drawn as one.
-	if want := redraw([]string{"two", "", "\x1b[31merror\x1b[39m"}, 4); got != want {
+	if want := redraw([]string{"two", "", "\x1b[31merror\x1b[39m"}, 5); got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
 
 func TestLastScreenIsEmptyWhenTheScreenShowsTheLatestLines(t *testing.T) {
 	c := Client{Run: runner{
-		"display-message -p -t %1 #{history_size} #{pane_height} ; capture-pane -p -t %1 -S - -E -": "0 3\n\nbye\nPane is dead\n",
+		"display-message -p -t %1 #{history_size} #{pane_height} ; capture-pane -p -t %1 -S - -E -": "0 3\n\nbye\n\n",
 	}}
 	if got, err := c.LastScreen("%1"); err != nil || got != "" {
 		t.Fatalf("got %q %v", got, err)
