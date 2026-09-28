@@ -1,0 +1,30 @@
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Fable 5.1 · Claude Max
+ ▝▝   ▝▝   /Users/romankrysinski/work/repositories/hq
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Write a 200-word poem about the sea, no tools.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)

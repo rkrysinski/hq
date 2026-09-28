@@ -1,6 +1,7 @@
 package state
 
 import (
+	"regexp"
 	"strings"
 	"unicode/utf8"
 )
@@ -25,6 +26,91 @@ const working = "esc to interrupt"
 // Anything else, a dialog or a turn at work (its footer offers Esc to
 // interrupt) included, is false.
 func EndedByUser(screen string) (last string, ok bool) {
+	b, ok := promptBox(screen)
+	if !ok {
+		return "", false
+	}
+	for i := b.upper - 1; i >= 0 && !strings.HasPrefix(b.lines[i], prompt) && !isRule(b.lines[i]); i-- {
+		for _, e := range userEnds {
+			if strings.HasPrefix(b.lines[i], e.prefix) {
+				return e.last, true
+			}
+		}
+	}
+	return "", false
+}
+
+// AtRest reports whether the screen of an agent's pane looks like Claude
+// waiting at its prompt box, as after a turn the user rewound with an early
+// Esc (design §3.4): the box at the bottom, a footer that does not offer
+// Esc to interrupt, no spinner above the box, and in the box nothing, or
+// the prompt the hooks last reported (reported, whitespace aside), which
+// the rewind puts back: restored says it is there. A turn at work can look
+// the same for a moment (the footer drops Esc to interrupt in a narrow
+// pane and while the user types, and Claude shows no spinner while its
+// reply streams), so a screen at rest is a turn end only when it stays the
+// same for a while; the caller sees to that. Text the user typed during a
+// turn, or a menu it opened, is neither nothing nor the prompt.
+func AtRest(screen, reported string) (ok, restored bool) {
+	b, ok := promptBox(screen)
+	if !ok {
+		return false, false
+	}
+	for i := b.upper - 1; i >= 0 && !strings.HasPrefix(b.lines[i], prompt); i-- {
+		if spinner.MatchString(b.lines[i]) {
+			return false, false
+		}
+	}
+	var input []string
+	for _, l := range b.lines[b.upper+1 : b.lower] {
+		input = append(input, strings.TrimPrefix(l, prompt))
+	}
+	typed := strings.Join(strings.Fields(strings.Join(input, " ")), " ")
+	if typed == "" {
+		return true, false
+	}
+	restored = typed == strings.Join(strings.Fields(reported), " ")
+	return restored, restored
+}
+
+// PutBack reports whether the screen shows the reported prompt put back in
+// the box by a rewind: the box holds it (AtRest's restored), and the last
+// prompt the screen shows sent is another one. A line of userEnds above the
+// box is then an earlier turn's (#99), not this one's. An Esc that
+// interrupts a turn may put its prompt back in the box too, but the prompt
+// also stays sent above it; when no sent prompt shows, it cannot tell and
+// is false.
+func PutBack(screen, reported string) bool {
+	if _, restored := AtRest(screen, reported); !restored {
+		return false
+	}
+	b, _ := promptBox(screen)
+	for i := b.upper - 1; i >= 0; i-- {
+		if sent, ok := strings.CutPrefix(b.lines[i], prompt); ok {
+			// Only its first line: a long prompt wraps.
+			return !strings.HasPrefix(strings.Join(strings.Fields(reported), " "), strings.TrimSpace(sent))
+		}
+	}
+	return false
+}
+
+// spinner is the line Claude Code 2.1.283 animates above its prompt box
+// while a turn is at work, e.g. "✶ Brewing… (14s · ↓ 129 tokens)"; the
+// line a finished turn leaves there has no ellipsis ("✻ Baked for 2s").
+var spinner = regexp.MustCompile(`^[·✢✳✶✻✽*] \S+…`)
+
+// box is Claude's prompt box found at the bottom of a screen: the screen's
+// lines, spaces collapsed, and the lines of its upper and lower rules.
+type box struct {
+	lines        []string
+	upper, lower int
+}
+
+// promptBox finds Claude's prompt box at the bottom of a screen with a
+// footer that does not offer Esc to interrupt: a rule, the input line
+// starting with ❯ (and its continuation lines), a rule, then only the
+// footer.
+func promptBox(screen string) (box, bool) {
 	// Claude puts a no-break space after its bullets; its indents vary.
 	lines := strings.Split(strings.ReplaceAll(screen, "\u00a0", " "), "\n")
 	for i := range lines {
@@ -43,7 +129,7 @@ func EndedByUser(screen string) (last string, ok bool) {
 	}
 	for _, l := range lines[max(lower, 0):] {
 		if strings.Contains(l, working) {
-			return "", false
+			return box{}, false
 		}
 	}
 	upper := -1
@@ -54,16 +140,9 @@ func EndedByUser(screen string) (last string, ok bool) {
 		}
 	}
 	if upper < 0 || !strings.HasPrefix(lines[upper+1], prompt) {
-		return "", false
+		return box{}, false
 	}
-	for i := upper - 1; i >= 0 && !strings.HasPrefix(lines[i], prompt) && !isRule(lines[i]); i-- {
-		for _, e := range userEnds {
-			if strings.HasPrefix(lines[i], e.prefix) {
-				return e.last, true
-			}
-		}
-	}
-	return "", false
+	return box{lines, upper, lower}, true
 }
 
 // prompt starts Claude's input line and every prompt the user sent.

@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"hash/fnv"
 	"math"
 	"path/filepath"
 	"regexp"
@@ -32,6 +33,9 @@ type Agent struct {
 	ending   bool      // hq is taking the agent down (its sandbox restarting)
 	reported bool      // its session has reported, so its sandbox has run
 	turnEnd  string    // a turn the user ended, as hq first saw it (see Settle)
+	restSeen string    // when hq first saw its screen at rest, as it looked (see Settle)
+	resting  bool      // its screen is at rest, not yet for long enough (see Settle)
+	prompt   string    // the prompt it works on, as its hooks reported it
 	deadAt   time.Time // when its pane died, as tmux says; zero when unknown
 	endedAt  time.Time // when its session reported its end
 	started  string    // the start as stored, which keys endSeen
@@ -89,7 +93,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if o["id"] == "" {
 			continue
 		}
-		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting,
+		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], restSeen: o["restseen"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting,
 			deadAt: w.DeadAt, started: o["started"], endSeen: o["endseen"]}
 		if a.Name == "" {
 			a.Name = w.Name
@@ -198,7 +202,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		return
 	}
 	a.Last = r.Last
-	a.Branch, a.Worktree = r.Branch, r.Cwd
+	a.Branch, a.Worktree, a.prompt = r.Branch, r.Cwd, r.Prompt
 	if r.Since.Before(a.Started) {
 		return
 	}
@@ -243,24 +247,90 @@ func (a *Agent) Recall() bool {
 	return true
 }
 
+// RestDelay is how long the screen of a working agent must stay at rest,
+// unchanged, before hq takes the turn for one the user rewound (design
+// §3.4). Claude at work redraws its spinner or its streaming reply several
+// times a second; seen with Claude Code 2.1.283, its screen never stayed the
+// same for more than about half a second.
+const RestDelay = 2 * time.Second
+
+// Rewound is the last message of a turn the user rewound: an early Esc
+// that put the prompt back in the box, which Claude reports nowhere.
+const Rewound = "Interrupted"
+
 // Settle applies the screen of an Unsettled agent: a turn the user ended
-// is done, with the last message Claude printed for it, since hq first saw
-// it. That moment is kept on the agent's window, keyed by the report it
-// overrules, so hq ls and the list agree (see Recall); record is the value
-// to store there as the turnend option, empty when there is nothing new to
+// is done, since hq first saw it. Claude prints a line for most such turns
+// (state.EndedByUser), whose last message it shows. An early Esc may
+// rewind the turn instead, with no line and no hook: the working agent's
+// screen is then at rest (state.AtRest), and once it has stayed so,
+// unchanged, for RestDelay, the turn is done with Rewound as its last
+// message, since hq first saw it at rest. Both moments are kept on the
+// agent's window, keyed by the report they overrule, so hq ls and the list
+// agree (see Recall): turnEnd and restSeen are the values to store there as
+// the turnend and restseen options, empty when there is nothing new to
 // store.
-func (a *Agent) Settle(screen string, now time.Time) (record string) {
+func (a *Agent) Settle(screen string, now time.Time) (turnEnd, restSeen string) {
+	a.resting = false
 	if a.Recall() {
-		return ""
+		return "", ""
 	}
-	last, ok := state.EndedByUser(screen)
+	// A rewind right after a turn the user ended leaves that turn's line
+	// above the box: the rewind below tells that turn's end.
+	rewound := a.State == state.Working && state.PutBack(screen, a.prompt)
+	if last, ok := state.EndedByUser(screen); ok && !rewound {
+		turnEnd = a.key() + " " + nanos(now) + " " + last
+		a.State, a.Since, a.Last = state.Done, now, last
+		return turnEnd, ""
+	}
+	if a.State != state.Working {
+		return "", ""
+	}
+	rest, restored := state.AtRest(screen, a.prompt)
+	if !rest {
+		return "", ""
+	}
+	look := fingerprint(screen)
+	at, ok := a.restedSince(look)
 	if !ok {
-		return ""
+		a.resting = restored
+		return "", a.key() + " " + look + " " + nanos(now)
 	}
-	record = a.key() + " " + strconv.FormatInt(now.UnixNano(), 10) + " " + last
-	a.State, a.Since, a.Last = state.Done, now, last
-	return record
+	if now.Sub(at) < RestDelay {
+		a.resting = restored
+		return "", ""
+	}
+	turnEnd = a.key() + " " + nanos(at) + " " + Rewound
+	a.State, a.Since, a.Last = state.Done, at, Rewound
+	return turnEnd, ""
 }
+
+// Resting reports whether Settle saw the agent's screen at rest with its
+// prompt put back in the box, the look of a turn the user rewound, but not
+// yet for long enough to take it for one.
+func (a Agent) Resting() bool { return a.resting }
+
+// restedSince is when hq first saw the agent's screen at rest looking as it
+// looks now (look), during its current report.
+func (a Agent) restedSince(look string) (time.Time, bool) {
+	f := strings.Fields(a.restSeen)
+	if len(f) != 3 || f[0] != a.key() || f[1] != look {
+		return time.Time{}, false
+	}
+	n, err := strconv.ParseInt(f[2], 10, 64)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return time.Unix(0, n), true
+}
+
+// fingerprint tells screens apart without keeping them.
+func fingerprint(screen string) string {
+	h := fnv.New64a()
+	h.Write([]byte(screen))
+	return strconv.FormatUint(h.Sum64(), 16)
+}
+
+func nanos(t time.Time) string { return strconv.FormatInt(t.UnixNano(), 10) }
 
 // key names the agent's current report in its turnend record.
 func (a Agent) key() string { return strconv.FormatInt(a.Since.UnixNano(), 10) }

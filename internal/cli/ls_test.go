@@ -269,3 +269,47 @@ func TestLsSaysSessionEndedForAnAgentThatEndedWithoutAMessage(t *testing.T) {
 		t.Fatalf("json: %s", js)
 	}
 }
+
+func TestLsShowsARewoundTurnDoneOnceItsScreenStaysAtRest(t *testing.T) {
+	f := newLsFakes()
+	rule := strings.Repeat("─", 30)
+	sent := "Write a poem about the sea."
+	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/app", f.now.Add(-time.Minute), false)}
+	f.tmux.windows[0].Pane, f.tmux.windows[1].Pane = "%1", "%2"
+	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply", Prompt: sent}
+	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply", Prompt: sent}
+	// a was rewound: the prompt is back in its box. b streams its reply in
+	// a narrow pane: at rest by the look of one screen, but it moves on.
+	streamed := 0
+	f.tmux.screens = map[string]string{
+		"%1": "✻ Baked for 2s · done\n" + rule + "\n❯ " + sent + "\n" + rule + "\n  ⏵⏵ bypass permissions on\n",
+	}
+	f.tmux.onScreens = func() {
+		streamed++
+		f.tmux.screens["%2"] = "● The sea" + strings.Repeat("\nline", streamed) + "\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n"
+	}
+	f.tmux.onScreens()
+	_, out, _ := f.run("ls")
+	// hq ls looked again after agent.RestDelay; a is done since it first
+	// saw its screen at rest.
+	want := "NAME  REPO  BRANCH  STATE    AGE  LAST\n" +
+		"a     app   -       done     2s   Interrupted\n" +
+		"b     app   -       working  32s  earlier reply\n"
+	if out != want {
+		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+	if f.tmux.windows[0].Options["turnend"] == "" || f.tmux.windows[1].Options["turnend"] != "" {
+		t.Fatalf("recorded %v", f.tmux.windows)
+	}
+	// It holds, from the same moment, whatever the screen shows next,
+	// until the next report.
+	f.now = f.now.Add(5 * time.Second)
+	f.tmux.screens["%1"] = "anything"
+	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done     7s   Interrupted") {
+		t.Fatalf("later:\n%s", out)
+	}
+	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Last: "earlier reply", Prompt: "next"}
+	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       working  1s   earlier reply") {
+		t.Fatalf("next report:\n%s", out)
+	}
+}

@@ -158,9 +158,17 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 		fmt.Println("✻ Working…")
 		promptBox("esc to interrupt")
 		in.Scan()
-		if line := in.Text(); strings.TrimSpace(line) == "esc" || strings.Contains(line, "\x1b") {
+		line := in.Text()
+		if strings.TrimSpace(line) == "esc" || strings.Contains(line, "\x1b") {
 			fmt.Println("  ⎿  Interrupted · What should Claude do instead?")
 			promptBox("")
+			return
+		}
+		if strings.TrimSpace(line) == "rewind" {
+			// An early Esc that rewinds the turn: no line, no hook, the
+			// prompt back in the box (Claude Code 2.1.283, #99).
+			fmt.Print(clearScreen)
+			promptBox("", prompt)
 			return
 		}
 	}
@@ -176,15 +184,15 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 const question = "Which colour do you pick?"
 
 // promptBox draws Claude's prompt box, where the user types the next
-// prompt; hint is what its footer offers besides, as "esc to interrupt"
-// while a turn is at work.
-func promptBox(hint string) {
+// prompt, holding input when given; hint is what its footer offers besides,
+// as "esc to interrupt" while a turn is at work.
+func promptBox(hint string, input ...string) {
 	rule := strings.Repeat("─", 40)
 	footer := "  ⏵⏵ bypass permissions on (shift+tab to cycle)"
 	if hint != "" {
 		footer += " · " + hint
 	}
-	fmt.Println(rule + "\n❯ \n" + rule + "\n" + footer)
+	fmt.Println(rule + "\n❯ " + strings.Join(input, " ") + "\n" + rule + "\n" + footer)
 }
 
 // fire runs the hooks registered for event with a Claude-like payload.

@@ -1,0 +1,30 @@
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Fable 5.1 · Claude Max
+ ▝▝   ▝▝   /Users/romankrysinski/work/repositories/hq
+
+
+❯ Write a 60-word poem about rain, no tools.
+
+● Rain begins as a rumor on the roof,
+  a soft arithmetic of falling things.
+  Gutters learn their old songs again;
+  streets turn to mirrors, holding borrowed light.
+  The garden drinks without asking why.
+  I stand at the window, counting nothing,
+  letting the grey sky do my thinking,
+  until the last drop leaves the leaf
+  and silence arrives, rinsed and clean.
+
+✻ Worked for 12s · done 4:44 AM
+
+
+  /copy                                   Copy Claude's last response to clipboard (or /copy N for
+                                          the Nth-latest)
+  /color                                  Set the prompt bar color for this session
+  /config                                 Open settings
+  /compact                                Free up context by summarizing the conversation so far
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ /co
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on

@@ -1,0 +1,30 @@
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Fable 5.1 · Claude Max
+ ▝▝   ▝▝   /Users/romankrysinski/work/repositories/hq
+
+
+❯ Write a 120-word poem about the sea, no tools.
+
+● The Sea
+
+  The sea keeps no calendar, only tides,
+  slow grey breathing under moon and wind.
+  It carries ships and secrets on its back,
+  and folds the evening light into its skin.
+
+  At dawn the gulls rehearse their ragged hymns,
+  the harbour stirs, the ropes and rigging creak.
+  A fisherman reads weather in the swell
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · esc to interrupt · ← for agents
