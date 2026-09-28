@@ -53,7 +53,7 @@ func TestSandboxRestartRelaunchesItsAgentsInTheirOwnPanes(t *testing.T) {
 	}
 	stop, exec := f.sbx.onStop, f.sbx.onExec
 	f.sbx.onStop = func(sandbox string) { collect(); stop(sandbox); collect() }
-	f.sbx.onExec = func(args []string) { exec(args); collect() }
+	f.sbx.onExec = func(args []string) error { err := exec(args); collect(); return err }
 	// a reported with its Claude session and resumes it; b's state file
 	// cannot smuggle an option in, so b starts fresh.
 	const session = "06d5c99c-1079-47e5-ad5f-d92403ccb28d"

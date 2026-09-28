@@ -7,12 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
+// killFakes has three agents in the running sandbox claude-x: a and b, and
+// gone, whose pane died.
 func killFakes() *fakes {
 	f := newFakes()
+	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "running"}}
 	f.tmux.windows = []tmux.Window{
 		{ID: "@0", Name: "hq", Options: map[string]string{}},
 		agentWindow("@4", "a", "/w/app", f.now, false),
@@ -97,8 +101,93 @@ func TestKillWithoutTerminalIsRefused(t *testing.T) {
 
 func TestKillEndedAgentRemovesItsRowOnly(t *testing.T) {
 	f := killFakes()
-	if code, _, _ := f.run("kill", "gone", "-y"); code != 0 || len(f.sbx.execs) != 0 || f.names() != "hq a b" || strings.Join(f.removed, ", ") != "/w/lib id-gone" {
-		t.Fatalf("exit %d execs %v windows %q removed %v", code, f.sbx.execs, f.names(), f.removed)
+	// Its session ended with its pane: pkill finds nothing to end.
+	if code, _, _ := f.run("kill", "gone", "-y"); code != 0 || f.names() != "hq a b" || strings.Join(f.removed, ", ") != "/w/lib id-gone" {
+		t.Fatalf("exit %d windows %q removed %v", code, f.names(), f.removed)
+	}
+	if got := f.execs(); got != `claude-x pkill -TERM -f HQ_ID":"id-gone"` {
+		t.Fatalf("execs %q", got)
+	}
+}
+
+func (f *fakes) execs() string {
+	var es []string
+	for _, e := range f.sbx.execs {
+		es = append(es, strings.Join(e, " "))
+	}
+	return strings.Join(es, "; ")
+}
+
+func TestKillEndsTheSessionOfAPaneThatDied(t *testing.T) {
+	f := killFakes()
+	// gone's sbx run ended, its Claude did not (#101). On SIGTERM it takes
+	// two looks to exit and writes its state file on the way out.
+	f.sbx.orphans = map[string]bool{"id-gone": true}
+	exiting, looks := false, 0
+	fake := f.sbx.onExec
+	f.sbx.onExec = func(args []string) error {
+		switch {
+		case args[0] == "pkill" && f.sbx.orphans["id-gone"]:
+			exiting = true
+			return nil
+		case args[0] == "pgrep" && exiting:
+			if looks++; looks < 2 {
+				return nil
+			}
+			f.states["id-gone"] = state.Report{State: state.Ended}
+			delete(f.sbx.orphans, "id-gone")
+		}
+		return fake(args)
+	}
+	start := f.now
+	if code, out, _ := f.run("kill", "gone", "-y"); code != 0 || out != "killed gone; the sandbox stays\n" || f.names() != "hq a b" {
+		t.Fatalf("exit %d %q windows %q", code, out, f.names())
+	}
+	want := `claude-x pkill -TERM -f HQ_ID":"id-gone"; claude-x pgrep -f HQ_ID":"id-gone"; claude-x pgrep -f HQ_ID":"id-gone"`
+	if got := f.execs(); got != want {
+		t.Fatalf("execs\n%s\nwant\n%s", got, want)
+	}
+	// Its files go after its last write, so none is left behind.
+	if _, ok := f.states["id-gone"]; ok || strings.Join(f.removed, ", ") != "/w/lib id-gone" {
+		t.Fatalf("states %v removed %v", f.states, f.removed)
+	}
+	if waited := f.now.Sub(start); waited >= time.Second {
+		t.Fatalf("waited %v", waited)
+	}
+}
+
+func TestKillGivesUpOnAnOrphanThatDoesNotEnd(t *testing.T) {
+	f := killFakes()
+	f.sbx.orphans = map[string]bool{"id-gone": true}
+	f.sbx.onExec = nil // Claude ignores SIGTERM: pgrep always finds it
+	start := f.now
+	if code, _, _ := f.run("kill", "gone", "-y"); code != 0 || f.names() != "hq a b" || strings.Join(f.removed, ", ") != "/w/lib id-gone" {
+		t.Fatalf("exit %d windows %q removed %v", code, f.names(), f.removed)
+	}
+	if waited := f.now.Sub(start); waited < endWait || waited > endWait+time.Second {
+		t.Fatalf("waited %v", waited)
+	}
+}
+
+func TestKillLeavesAStoppedSandboxAlone(t *testing.T) {
+	// Nothing runs in a stopped or removed sandbox, and sbx exec would
+	// start it again: the ended agent's row just goes.
+	for _, sandboxes := range [][]sbx.Sandbox{{{Name: "claude-x", Status: "stopped"}}, nil} {
+		f := killFakes()
+		f.sbx.sandboxes = sandboxes
+		if code, _, _ := f.run("kill", "gone", "-y"); code != 0 || f.execs() != "" || f.names() != "hq a b" || strings.Join(f.removed, ", ") != "/w/lib id-gone" {
+			t.Fatalf("%v: exit %d execs %q windows %q removed %v", sandboxes, code, f.execs(), f.names(), f.removed)
+		}
+		if len(sandboxes) > 0 && f.sbx.sandboxes[0].Status != "stopped" {
+			t.Fatalf("the sandbox was started: %v", f.sbx.sandboxes)
+		}
+	}
+	// When sbx cannot tell, the session may run: hq ends it.
+	f := killFakes()
+	f.sbx.err = errors.New("sbx: daemon not responding")
+	f.sbx.orphans = map[string]bool{"id-gone": true}
+	if code, _, _ := f.run("kill", "gone", "-y"); code != 0 || len(f.sbx.orphans) != 0 || f.names() != "hq a b" {
+		t.Fatalf("sbx ls failed: exit %d orphans %v windows %q", code, f.sbx.orphans, f.names())
 	}
 }
 
@@ -139,13 +228,15 @@ func TestKillErrors(t *testing.T) {
 
 func TestStopAsksOnceWithTheCountAndEndsAll(t *testing.T) {
 	f := killFakes()
+	f.sbx.orphans = map[string]bool{"id-gone": true}
 	f.stdin = "y\n"
 	code, out, _ := f.run("stop")
 	if code != 0 || out != "End all 3 agents? [y/N] ended 3 agents; sandboxes stay\n" {
 		t.Fatalf("exit %d %q", code, out)
 	}
-	if len(f.sbx.execs) != 2 || f.names() != "hq" {
-		t.Fatalf("execs %v windows %q", f.sbx.execs, f.names())
+	// Every session is ended, gone's too, which runs on without its pane.
+	if len(f.sbx.orphans) != 0 || f.names() != "hq" {
+		t.Fatalf("orphans %v windows %q", f.sbx.orphans, f.names())
 	}
 	if got := strings.Join(f.removed, ", "); got != "/w/app id-a, /w/lib id-b, /w/lib id-gone" {
 		t.Fatalf("removed %q", got)

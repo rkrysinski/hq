@@ -387,6 +387,51 @@ func TestKillEndsTheSessionAndFreesTheName(t *testing.T) {
 	}
 }
 
+func TestKillEndsASessionThatOutlivedItsPane(t *testing.T) {
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitState("a", "starting")
+	ws, _ := h.d.tmux.Windows()
+	a, _ := agent.Find(agent.FromWindows(ws), "a")
+	// Claude runs on in the sandbox after its host-side sbx run ended
+	// (#101): a process with the agent's id in its arguments, which on
+	// SIGTERM writes its state file on the way out, as SessionEnd does.
+	file := filepath.Join(state.Dir(h.cwd), a.ID)
+	claude := exec.Command("sh", "-c", `trap 'echo "branch main" >"$0"; exit 0' TERM; while :; do sleep 0.1; done`, file, `HQ_ID":"`+a.ID+`"`)
+	if err := claude.Start(); err != nil {
+		t.Fatal(err)
+	}
+	exited := make(chan error, 1)
+	go func() { exited <- claude.Wait() }()
+	t.Cleanup(func() { _ = claude.Process.Kill() })
+	pid, err := exec.Command("tmux", "-L", h.socket, "display-message", "-p", "-t", a.Window, "#{pane_pid}").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("kill", "-KILL", strings.TrimSpace(string(pid))).CombinedOutput(); err != nil {
+		t.Fatalf("kill: %v %s", err, out)
+	}
+	h.waitState("a", "ended")
+
+	if code, out, errOut := h.run("kill", "a", "-y"); code != 0 || out != "killed a; the sandbox stays\n" {
+		t.Fatalf("kill: exit %d %q %q", code, out, errOut)
+	}
+	select {
+	case <-exited:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the session still runs after the kill")
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("state file left behind: %v", err)
+	}
+	if rows := h.ls(); len(rows) != 0 {
+		t.Fatalf("rows %+v", rows)
+	}
+}
+
 func TestKillAndStopRemoveTheirAgentsStateFiles(t *testing.T) {
 	testutil.FakeClaude(t)
 	h := newRealHQ(t)
@@ -548,4 +593,24 @@ func TestAStoppedSandboxLeavesTheSessionReadable(t *testing.T) {
 	if out := h.history("a"); !strings.Contains(out, "● Done: hello") {
 		t.Fatalf("a's history after the sandbox stopped:\n%s", out)
 	}
+	// Killing the ended agent does not start the sandbox again (#101).
+	if code, _, errOut := h.run("kill", "a", "-y"); code != 0 {
+		t.Fatalf("kill: exit %d %s", code, errOut)
+	}
+	if s, ok := findSandbox(h, "claude-app"); !ok || s.Running() || len(h.ls()) != 0 {
+		t.Fatalf("after the kill: sandbox %+v, rows %+v", s, h.ls())
+	}
+}
+
+func findSandbox(h *realHQ, name string) (sbx.Sandbox, bool) {
+	all, err := h.d.sbx.List()
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	for _, s := range all {
+		if s.Name == name {
+			return s, true
+		}
+	}
+	return sbx.Sandbox{}, false
 }
