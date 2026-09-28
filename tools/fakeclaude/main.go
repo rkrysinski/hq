@@ -8,6 +8,7 @@
 //   - the first prompt (the last argument) and every line typed are turns:
 //     UserPromptSubmit, then Stop with the reply;
 //   - a prompt containing "question" gets a reply ending in "?";
+//   - a prompt containing "lines" gets a reply of two paragraphs;
 //   - a prompt containing "input" first opens a question dialog, as
 //     AskUserQuestion does: PermissionRequest at once, Claude's late
 //     permission Notification after the delay, then it waits for a line.
@@ -226,6 +227,9 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	reply := "Done: " + prompt
 	if strings.Contains(prompt, "question") {
 		reply = "Shall I go on?"
+	}
+	if strings.Contains(prompt, "lines") {
+		reply = "Done on several lines.\n\n" + reply
 	}
 	for _, n := range noted {
 		reply += " | " + n

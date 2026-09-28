@@ -256,6 +256,37 @@ func TestStatesFollowTheSessionAndLeaveTheRepositoryClean(t *testing.T) {
 	}
 }
 
+func TestReadShowsWhatTheAgentAsksAndItsWholeReply(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "input lines question"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	// A question dialog is open: hq read has every question with its options.
+	h.waitState("a", "needs input")
+	code, out, _ := h.run("read", "a")
+	if code != 0 || !strings.Contains(out, "\nasks\n  Colour: Which colour do you pick?\n    1. Red - Pick red.\n    2. Blue - Pick blue.\n") {
+		t.Fatalf("dialog:\n%s", out)
+	}
+	// Answered, the turn ends with a question: the reply in full, its lines
+	// kept, and the question it ends with.
+	h.typeIn("a", "red")
+	h.waitState("a", "question")
+	code, out, _ = h.run("read", "a")
+	if code != 0 || !strings.HasSuffix(out, "\nasks\n  Shall I go on?\n\nreply\n  Done on several lines.\n\n  Shall I go on?\n") {
+		t.Fatalf("question:\n%s", out)
+	}
+	code, out, _ = h.run("read", "a", "--json")
+	var v readView
+	if code != 0 || json.Unmarshal([]byte(out), &v) != nil || v.Reply != "Done on several lines.\n\nShall I go on?" || v.State != "question" || v.Asks == nil || v.Asks.Message != "Shall I go on?" {
+		t.Fatalf("json: exit %d\n%s", code, out)
+	}
+	if code, _, errOut := h.run("read", "b"); code != ExitNotFound || errOut != "hq: no agent 'b' (see hq ls)\n" {
+		t.Fatalf("unknown: exit %d %q", code, errOut)
+	}
+}
+
 func TestAgentsInOneRepositoryAreToldApartByBranch(t *testing.T) {
 	testutil.FakeClaude(t)
 	h := newRealHQ(t)

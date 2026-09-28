@@ -441,7 +441,8 @@ type fakes struct {
 	tty      bool   // stdin is a terminal
 	stdin    string // what the user types
 
-	states map[string]state.Report // agent id -> its state file
+	states  map[string]state.Report // agent id -> its state file
+	details map[string]state.Detail // agent id -> what its state files hold in full
 	// inbox is what waits for each agent id: the text, with " (now)" when
 	// sent with --now; postErr and takeErr fail posting and taking.
 	inbox   map[string][]string
@@ -483,8 +484,9 @@ func newFakes() *fakes {
 		now:  time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
 		tty:  true,
 
-		states: map[string]state.Report{},
-		inbox:  map[string][]string{},
+		states:  map[string]state.Report{},
+		inbox:   map[string][]string{},
+		details: map[string]state.Detail{},
 
 		releases: &fakeReleases{files: map[string]map[string][]byte{}},
 		exe:      "/nonexistent/hq",
@@ -575,7 +577,8 @@ func (f *fakes) deps() deps {
 			f.rawOn++
 			return func() { f.rawOff++ }
 		},
-		notify: "[notify %s]",
+		notify:     "[notify %s]",
+		readDetail: func(_, id string) state.Detail { return f.details[id] },
 		readState: func(_, id string) (state.Report, bool) {
 			r, ok := f.states[id]
 			return r, ok
