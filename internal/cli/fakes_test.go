@@ -58,6 +58,7 @@ type fakeTmux struct {
 	screens    map[string]string    // what panes show, by pane id
 	onScreens  func()               // called after each Screens, e.g. to move the screens on
 	onKeep     func(id, key string) // called as KeepFirst starts, e.g. to have another process store first
+	onSet      func(id, key string) // called after SetOption stored, e.g. to look as another process
 	screenErr  error
 	focused    int      // times the keys were put on the list
 	left       []string // Leave calls, by message
@@ -277,6 +278,9 @@ func (f *fakeTmux) SetOption(id, key, value string) error {
 	for _, w := range f.windows {
 		if w.ID == id {
 			w.Options[key] = value
+			if f.onSet != nil {
+				f.onSet(id, key)
+			}
 			return nil
 		}
 	}

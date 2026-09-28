@@ -182,19 +182,20 @@ func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes boo
 // wherever the pane is, under the agent's id, resuming the Claude session
 // resume when it is set. Its start moves to now: what its state file says
 // until the new session reports is the previous session's, which gives the
-// branch and the last message but not the state (design §3.6).
+// branch and the last message but not the state (design §3.6). The window
+// stops being ending before it gets its new start: a refresh in between
+// would otherwise see the new session ended as it starts, and record that
+// (#104).
 func relaunchAgent(d deps, a agent.Agent, pane, resume string) error {
-	for _, o := range [][2]string{{"started", agent.Stamp(d.now())}, {"new", ""}} {
-		if err := d.tmux.SetOption(a.Window, o[0], o[1]); err != nil {
-			return tmuxErr(err)
-		}
-	}
+	started := agent.Stamp(d.now())
 	argv := d.sbx.RunArgv(a.Sandbox, claudeArgs(a.Name, a.ID, d.notify, resume, "")...)
 	if err := d.tmux.Respawn(pane, a.RepoPath, argv); err != nil {
 		return tmuxErr(err)
 	}
-	if err := d.tmux.SetOption(a.Window, "ending", ""); err != nil {
-		return tmuxErr(err)
+	for _, o := range [][2]string{{"ending", ""}, {"started", started}, {"new", ""}} {
+		if err := d.tmux.SetOption(a.Window, o[0], o[1]); err != nil {
+			return tmuxErr(err)
+		}
 	}
 	return nil
 }

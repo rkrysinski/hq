@@ -39,6 +39,7 @@ type Agent struct {
 	deadAt   time.Time // when its pane died, as tmux says; zero when unknown
 	endedAt  time.Time // when its session reported its end
 	started  string    // the start as stored, which keys endSeen
+	reportAt time.Time // the time of its session's last report; zero before its first
 	endSeen  string    // when hq first saw it ended (see SeeEnd)
 	State    string    `json:"state"`
 	Since    time.Time `json:"since"`
@@ -147,8 +148,8 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 
 // endTime makes an ended agent's time the moment it ended (spec §5): its
 // session's end when it reported one (/exit), else when hq first saw it
-// ended, else when its pane died, as tmux says (a crash, a kill, its
-// sandbox stopped), never before its last report. When none is known it
+// ended after its last report, else when its pane died, as tmux says (a
+// crash, a kill, its sandbox stopped), never before its last report. When none is known it
 // stays at the last report until SeeEnd records the moment.
 func (a *Agent) endTime() {
 	switch {
@@ -160,10 +161,11 @@ func (a *Agent) endTime() {
 	}
 }
 
-// seen applies the moment SeeEnd recorded for this session, if any.
+// seen applies the moment SeeEnd recorded for this session since its last
+// report, if any: a record from before the report is not its end (#104).
 func (a *Agent) seen() bool {
-	k, at, ok := strings.Cut(a.endSeen, " ")
-	if !ok || k != a.started {
+	at, ok := strings.CutPrefix(a.endSeen, a.endKey())
+	if !ok {
 		return false
 	}
 	n, err := strconv.ParseInt(at, 10, 64)
@@ -177,17 +179,29 @@ func (a *Agent) seen() bool {
 // SeeEnd records, for an ended agent whose end nothing dates (its sandbox
 // stopped or restarting while its pane still runs, a docked pane gone),
 // that hq sees it ended now: the record to store as the endseen option,
-// keyed by the agent's start so a relaunch starts afresh, with no Value
+// keyed by the agent's start and its last report, so that neither a
+// relaunch nor a report after the record carries it over, with no Value
 // when there is nothing to store.
 func (a *Agent) SeeEnd(now time.Time) Record {
 	if a.State != state.Ended || !a.endedAt.IsZero() || !a.deadAt.IsZero() {
 		return Record{}
 	}
-	if k, _, ok := strings.Cut(a.endSeen, " "); ok && k == a.started {
+	key := a.endKey()
+	if strings.HasPrefix(a.endSeen, key) {
 		return Record{}
 	}
 	a.Since = now
-	return Record{"endseen", a.started + " ", a.started + " " + nanos(now)}
+	return Record{"endseen", key, key + nanos(now)}
+}
+
+// endKey names the agent's session and its last report in its endseen
+// record: "STARTED REPORT ", REPORT 0 before its first report.
+func (a Agent) endKey() string {
+	report := "0"
+	if !a.reportAt.IsZero() {
+		report = nanos(a.reportAt)
+	}
+	return a.started + " " + report + " "
 }
 
 // A Record is a moment hq saw, to keep on the agent's window as the user
@@ -231,7 +245,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	if r.Since.Before(a.Started) {
 		return
 	}
-	a.New, a.reported = false, true
+	a.New, a.reported, a.reportAt = false, true, r.Since
 	if r.State == state.Ended {
 		a.endedAt = r.Since
 	}

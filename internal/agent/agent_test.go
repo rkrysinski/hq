@@ -521,8 +521,40 @@ func TestKeepShowsTheRecordAnotherProcessStoredFirst(t *testing.T) {
 	c := FromWindows([]tmux.Window{{ID: "@3", Options: map[string]string{"id": "z", "started": "900"}}})[0]
 	c.State = state.Ended
 	r = c.SeeEnd(now)
-	c.Keep(r, "900 "+nanos(earlier))
+	c.Keep(r, r.Key+nanos(earlier))
 	if !c.Since.Equal(earlier) {
 		t.Fatalf("endseen: %+v", c)
+	}
+}
+
+func TestAnEndedAgentsEndSeenBeforeItsLastReportDoesNotCount(t *testing.T) {
+	// Relaunched by hq sandbox restart at 1150, it reported at 1200, and its
+	// pane died at 1300 as its sandbox stopped (#104).
+	at := func(s float64) time.Time { return time.UnixMilli(int64(s * 1000)) }
+	read := func(_, _ string) (state.Report, bool) {
+		return state.Report{State: state.Working, Since: at(1200)}, true
+	}
+	since := func(endSeen string) time.Time {
+		w := tmux.Window{ID: "@1", PaneDead: true, DeadAt: at(1300), Options: map[string]string{"id": "x", "sandbox": "claude-app", "started": "1150", "endseen": endSeen}}
+		return Collect([]tmux.Window{w}, read, nil)[0].Since
+	}
+	for name, tc := range map[string]struct {
+		endSeen string
+		want    time.Time
+	}{
+		"seen during the relaunch, before a report": {"1150 0 " + nanos(at(1150.046)), at(1300)},
+		"an older hq's record of the relaunch":      {"1150 " + nanos(at(1150.046)), at(1300)},
+		"seen after its last report":                {"1150 " + nanos(at(1200)) + " " + nanos(at(1250)), at(1250)},
+		"none":                                      {"", at(1300)},
+	} {
+		if got := since(tc.endSeen); !got.Equal(tc.want) {
+			t.Errorf("%s: since %v, want %v", name, got, tc.want)
+		}
+	}
+	// Ended again after a report, it is seen ended afresh.
+	w := tmux.Window{ID: "@1", Options: map[string]string{"id": "x", "sandbox": "claude-app", "started": "1150", "ending": "1", "endseen": "1150 0 " + nanos(at(1150.046))}}
+	a := Collect([]tmux.Window{w}, read, nil)[0]
+	if r := a.SeeEnd(at(1400)); r.Value != "1150 "+nanos(at(1200))+" "+nanos(at(1400)) || !a.Since.Equal(at(1400)) {
+		t.Errorf("seen afresh: %+v %v", r, a.Since)
 	}
 }
