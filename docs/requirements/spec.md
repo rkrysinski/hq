@@ -228,7 +228,8 @@ Each milestone is usable on its own and is the acceptance boundary for that step
 `docs/requirements/look-and-feel.pen` (Pencil), exported to:
 
 - `dash-s0-attention.png` - default attention view
-- `dash.png` - all view, action strip on the cursor row
+- `dash.png` - all view, action strip on the cursor row, keys on the list
+- `dash-s3-work.png` - keys in the docked session (S3): the session on the terminal's background, its title in the accent, the list on the surround
 - `dash-s1-empty.png`, `dash-s2-new.png` (New agent dialog), `dash-s3-cursor.png` (docked vs cursor row), `dash-s3b-search.png`, `dash-s6-kill.png` (Kill dialog), `dash-s6b-docked-killed.png`, `dash-s8-quit.png`, `dash-s12-narrow.png`
 
 ## Phase 2 (not now): supervisor layer
