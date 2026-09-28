@@ -224,6 +224,14 @@ func TestStatesFollowTheSessionAndLeaveTheRepositoryClean(t *testing.T) {
 		t.Fatalf("new b: exit %d: %s", code, errOut)
 	}
 	h.waitReport("b", "done", "Done: hi")
+	// A turn the user interrupts ends with no hook too, which hq sees on
+	// the agent's screen (#72); a turn at work stays working meanwhile.
+	h.typeIn("b", "slow work")
+	h.waitReport("b", "working", "Done: hi")
+	time.Sleep(time.Second)
+	h.waitReport("b", "working", "Done: hi")
+	h.typeIn("b", "esc")
+	h.waitReport("b", "done", "Interrupted")
 
 	// A session that ends keeps its last message, and its screen stays
 	// readable though Claude drew it in the alternate screen (S7, #38).

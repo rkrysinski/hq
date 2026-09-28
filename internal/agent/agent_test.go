@@ -181,7 +181,7 @@ func TestAReportFromBeforeTheStartGivesTheMessageButNotTheState(t *testing.T) {
 	}
 }
 
-func TestAnAgentNeedingInputIsUnsettledAfterAMoment(t *testing.T) {
+func TestAnAgentWorkingOrNeedingInputIsUnsettledAfterAMoment(t *testing.T) {
 	now := time.Unix(1000, 0)
 	report := func(s string, age time.Duration) state.Report { return state.Report{State: s, Since: now.Add(-age)} }
 	for _, tc := range []struct {
@@ -193,7 +193,10 @@ func TestAnAgentNeedingInputIsUnsettledAfterAMoment(t *testing.T) {
 	}{
 		{"needs input", tmux.Window{}, report(state.NeedsInput, time.Second), true, true},
 		{"just now", tmux.Window{}, report(state.NeedsInput, 100*time.Millisecond), true, false},
-		{"working", tmux.Window{}, report(state.Working, time.Second), true, false},
+		{"working", tmux.Window{}, report(state.Working, time.Second), true, true},
+		{"working just now", tmux.Window{}, report(state.Working, 100*time.Millisecond), true, false},
+		{"question", tmux.Window{}, report(state.Question, time.Second), true, false},
+		{"starting", tmux.Window{}, report(state.Starting, time.Second), true, false},
 		{"done", tmux.Window{}, report(state.Done, time.Second), true, false},
 		{"no report", tmux.Window{}, state.Report{}, false, false},
 		{"dead", tmux.Window{PaneDead: true}, report(state.NeedsInput, time.Second), true, false},
@@ -240,6 +243,27 @@ func TestSettleMakesATurnTheUserEndedDoneFromWhenHqFirstSawIt(t *testing.T) {
 	if rec := b.Settle(declined, seen.Add(time.Minute)); rec != "" || !b.Since.Equal(seen) {
 		t.Fatalf("again: %q %+v", rec, b)
 	}
+	// It stays done though the screen moved on (the next prompt sent, its
+	// hook not yet reported), and needs no screen at all.
+	b = FromWindows([]tmux.Window{w})[0]
+	b.Apply(r, true)
+	if rec := b.Settle("❯ next prompt\n", seen.Add(time.Minute)); rec != "" || b.State != state.Done || b.Last != "User declined to answer questions" || !b.Since.Equal(seen) {
+		t.Fatalf("screen moved on: %q %+v", rec, b)
+	}
+	b = FromWindows([]tmux.Window{w})[0]
+	b.Apply(r, true)
+	if !b.Recall() || b.State != state.Done || !b.Since.Equal(seen) {
+		t.Fatalf("recall: %+v", b)
+	}
+	for _, bad := range []string{"", "x", rec[:strings.IndexByte(rec, ' ')] + " nan last"} {
+		w.Options["turnend"] = bad
+		b = FromWindows([]tmux.Window{w})[0]
+		b.Apply(r, true)
+		if b.Recall() || b.State != state.NeedsInput {
+			t.Errorf("record %q recalled: %+v", bad, b)
+		}
+	}
+	w.Options["turnend"] = rec
 	// A record for an earlier report does not count for a newer one.
 	r.Since = asked.Add(time.Hour)
 	c := FromWindows([]tmux.Window{w})[0]

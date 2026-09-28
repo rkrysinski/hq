@@ -165,33 +165,50 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 const settleDelay = 500 * time.Millisecond
 
 // Unsettled reports whether the agent's screen may show a turn that the
-// user ended with Esc, which no hook reports (design §3.4): the agent runs,
-// and its hooks said a moment ago that it needs input.
+// user ended, which no hook reports (design §3.4): the agent runs, and its
+// hooks said a moment ago that it works or needs input.
 func (a Agent) Unsettled(now time.Time) bool {
-	return a.Alive && !a.ending && a.reported && a.State == state.NeedsInput && now.Sub(a.Since) >= settleDelay
+	return a.Alive && !a.ending && a.reported && (a.State == state.Working || a.State == state.NeedsInput) && now.Sub(a.Since) >= settleDelay
+}
+
+// Recall applies a turn end hq saw earlier on an Unsettled agent: done,
+// with its last message, since hq first saw it, as long as no hook has
+// reported since. The screen is then not needed; it may have moved on, as
+// when the user sends the next prompt a moment before its hook reports.
+func (a *Agent) Recall() bool {
+	f := strings.SplitN(a.turnEnd, " ", 3)
+	if len(f) != 3 || f[0] != a.key() {
+		return false
+	}
+	n, err := strconv.ParseInt(f[1], 10, 64)
+	if err != nil {
+		return false
+	}
+	a.State, a.Since, a.Last = state.Done, time.Unix(0, n), f[2]
+	return true
 }
 
 // Settle applies the screen of an Unsettled agent: a turn the user ended
 // is done, with the last message Claude printed for it, since hq first saw
 // it. That moment is kept on the agent's window, keyed by the report it
-// overrules, so hq ls and the list agree; record is the value to store
-// there as the turnend option, empty when there is nothing new to store.
+// overrules, so hq ls and the list agree (see Recall); record is the value
+// to store there as the turnend option, empty when there is nothing new to
+// store.
 func (a *Agent) Settle(screen string, now time.Time) (record string) {
+	if a.Recall() {
+		return ""
+	}
 	last, ok := state.EndedByUser(screen)
 	if !ok {
 		return ""
 	}
-	a.State, a.Last = state.Done, last
-	key := strconv.FormatInt(a.Since.UnixNano(), 10)
-	if k, at, ok := strings.Cut(a.turnEnd, " "); ok && k == key {
-		if n, err := strconv.ParseInt(at, 10, 64); err == nil {
-			a.Since = time.Unix(0, n)
-			return ""
-		}
-	}
-	a.Since = now
-	return key + " " + strconv.FormatInt(now.UnixNano(), 10)
+	record = a.key() + " " + strconv.FormatInt(now.UnixNano(), 10) + " " + last
+	a.State, a.Since, a.Last = state.Done, now, last
+	return record
 }
+
+// key names the agent's current report in its turnend record.
+func (a Agent) key() string { return strconv.FormatInt(a.Since.UnixNano(), 10) }
 
 // Find returns the agent named name.
 func Find(as []Agent, name string) (Agent, bool) {

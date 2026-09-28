@@ -255,12 +255,12 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	keys("a", "Tab", "Tab", "say hi", "Enter")
 	shows("a new, starting", "a new", "● starting")
 	// The row itself may be hidden by now: done, in the attention view.
-	shows("a docked", "▸ a · ", "fake claude: ready", "> say hi")
+	shows("a docked", "▸ a · ", "fake claude: ready", "❯ say hi")
 	if s := screen(); strings.Contains(s, "▸ placeholder") || strings.Contains(s, "New agent") {
 		t.Fatalf("placeholder or dialog still shown:\n%s", s)
 	}
 	keys("more please", "Enter")
-	shows("keys reach Claude", "> more please")
+	shows("keys reach Claude", "❯ more please")
 
 	// A duplicate name keeps the dialog open with the error; Esc closes it.
 	keys("C-b", "Up", "n")
@@ -311,7 +311,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 		return strings.TrimSpace(string(out)) != ""
 	})
 	keys("once more", "Enter")
-	shows("keys reach Claude again", "> once more", "│ a ")
+	shows("keys reach Claude again", "❯ once more", "│ a ")
 	detach := func() {
 		t.Helper()
 		if out, err := exec.Command("tmux", "-L", j.socket, "detach-client", "-s", "hq").CombinedOutput(); err != nil {
@@ -324,7 +324,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	// scrollback intact.
 	detach()
 	open("go", "a")
-	shows("hq go a", "▸ a · ", "> say hi", "> more please", "│ a ", "alt+l list")
+	shows("hq go a", "▸ a · ", "❯ say hi", "❯ more please", "│ a ", "alt+l list")
 	// S2 from another shell, a docked: b gets the marker, a keeps the slot.
 	if code, out := j.hq("new", "b"); code != 0 {
 		t.Fatalf("new: exit %d %q", code, out)
