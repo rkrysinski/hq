@@ -66,6 +66,11 @@ func dashboard(d deps) (w tmux.Dash, mode string, inList bool, err error) {
 	if w, err = d.tmux.Dashboard(dir, list); err != nil {
 		return w, "", false, tmuxErr(err)
 	}
+	// The dashboard outlives this run, so it is told where hq was started
+	// from: the New agent dialog's directory when no row gives one.
+	if err := d.tmux.SetSessionValue(startedValue, dir); err != nil {
+		return w, "", false, tmuxErr(err)
+	}
 	if err := bindChords(d, exe); err != nil {
 		return w, "", false, tmuxErr(err)
 	}
@@ -135,21 +140,28 @@ func dock(d deps, name string) error {
 	return d.tmux.Dock(a.Window, frameTitle(a))
 }
 
+// startedValue is the session value holding the directory the latest hq
+// showing the dashboard was started from.
+const startedValue = "started"
+
 // newDialog opens the New agent dialog over the dashboard, dir prefilled
-// (the directory hq was started from when empty), until it closes.
+// (the directory hq was started from when empty), until it closes. The
+// dialog runs there too, so a relative directory typed in it is under it.
 func newDialog(d deps, pane, dir string) error {
 	exe, err := d.executable()
 	if err != nil {
 		return err
 	}
-	cwd, err := d.getwd()
-	if err != nil {
-		return err
+	started, _ := d.tmux.SessionValue(startedValue)
+	if started == "" || !d.isDir(started) {
+		if started, err = d.getwd(); err != nil {
+			return err
+		}
 	}
 	if dir == "" {
-		dir = cwd
+		dir = started
 	}
-	return d.tmux.Popup(pane, cwd, dialog.Width, dialog.Height, []string{exe, newDialogCommand, dir})
+	return d.tmux.Popup(pane, started, dialog.Width, dialog.Height, []string{exe, newDialogCommand, dir})
 }
 
 // killDialog opens the Kill dialog on the agent named name over the
