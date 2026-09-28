@@ -189,6 +189,32 @@ func TestCollectKeepsTheTurnEndHqSawAsAnEndedAgentsMessage(t *testing.T) {
 	}
 }
 
+func TestAnAgentStartedWithoutAPromptIsDoneOnceClaudeWaitsAtItsPrompt(t *testing.T) {
+	ws := []tmux.Window{{ID: "@1", Name: "a", Options: map[string]string{"id": "a", "new": "1", "started": "100"}}}
+	var file string
+	read := func(_, _ string) (state.Report, bool) {
+		if file == "" {
+			return state.Report{}, false
+		}
+		r := state.Parse([]byte(file), nil, nil)
+		r.Since = time.Unix(102, 0)
+		return r, true
+	}
+	if a := Collect(ws, read, nil)[0]; a.State != state.Starting || !a.New {
+		t.Fatalf("launched: %+v", a)
+	}
+	// Claude's session started (SessionStart, before any prompt).
+	file = "branch main\n" + `{"session_id":"s","cwd":"/w/app","hook_event_name":"SessionStart","source":"startup"}`
+	if a := Collect(ws, read, nil)[0]; a.State != state.Done || a.New || a.Last != "" || a.Branch != "main" || a.Since.Unix() != 102 {
+		t.Fatalf("session started: %+v", a)
+	}
+	// The user's first prompt makes it work as usual.
+	file = "branch main\n" + `{"session_id":"s","cwd":"/w/app","hook_event_name":"UserPromptSubmit","prompt":"go"}`
+	if a := Collect(ws, read, nil)[0]; a.State != state.Working || a.New {
+		t.Fatalf("prompted: %+v", a)
+	}
+}
+
 func TestAReportFromBeforeTheStartGivesTheMessageButNotTheState(t *testing.T) {
 	// Relaunched at 900 (hq sandbox restart); the file is the previous
 	// session's, written at 500.

@@ -55,6 +55,8 @@ func TestHookNotifiesOnStopAndInputNamingTheBranch(t *testing.T) {
 		{"answer", "answer-ask", ""},
 		{"prompt", "prompt", ""},
 		{"end", "session-end", ""},
+		{"start", "session-start", ""},
+		{"resume", "session-start-resume", ""},
 	} {
 		if got := run(t, wt, root, id, hook(tc.kind, "[notify %s]"), fixture(t, tc.payload)); got != tc.want {
 			t.Errorf("%s: %q, want %q", tc.payload, got, tc.want)
@@ -206,6 +208,46 @@ func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) 
 	}
 }
 
+func TestAResumedSessionKeepsItsBranchWorktreeAndLastMessage(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	wt := filepath.Join(filepath.Dir(root), "feat-42")
+	testutil.Git(t, root, "worktree", "add", "-q", "-b", "feat-42", wt)
+	const id = "0a1b2c3d4e5f"
+	worktree := func(name string) []byte { // the payload, as Claude sends it in wt
+		return bytes.Replace(fixture(t, name), []byte("/w/app/.claude/worktrees/feat-42"), []byte(wt), 1)
+	}
+
+	// A new agent: waiting at its prompt at once, with nothing to say yet.
+	fire(t, root, root, id, "start", fixture(t, "session-start"))
+	if r, _ := Read(root, id); r.State != Done || r.Branch != "main" || r.Last != "" {
+		t.Fatalf("started: %+v", r)
+	}
+	// It works in a worktree, then its sandbox restarts under it.
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	fire(t, wt, root, id, "stop", worktree("stop-done"))
+	fire(t, wt, root, id, "end", worktree("session-end"))
+	// Resumed, Claude starts in the repository; restarted again before any
+	// prompt, it still keeps what the session before the first restart gave.
+	for i := 0; i < 2; i++ {
+		fire(t, root, root, id, "resume", fixture(t, "session-start-resume"))
+		r, _ := Read(root, id)
+		if r.State != Done || r.Branch != "feat-42" || r.Cwd != wt || r.Last != "Hi. The tests pass and PR #58 is open." {
+			t.Fatalf("resumed %d: %+v", i+1, r)
+		}
+	}
+	// Its next report is where it is now.
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	if r, _ := Read(root, id); r.State != Working || r.Branch != "main" {
+		t.Fatalf("prompted: %+v", r)
+	}
+	if err := Remove(root, id); err != nil {
+		t.Fatal(err)
+	}
+	if entries, _ := os.ReadDir(Dir(root)); len(entries) != 0 {
+		t.Fatalf("left files behind: %v", entries)
+	}
+}
+
 func TestHookNeverFailsAndWritesNothingWithoutAnAgentOrARepository(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	for _, id := range []string{"", "../x", "ABC", "a b"} {
@@ -250,7 +292,7 @@ func TestRemoveDeletesThatAgentsFilesOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	outside := filepath.Join(dir, "..", "..", "keep")
-	for _, p := range []string{"abc", "abc.stop", "abcd", "abcd.stop", "def", "../../keep"} {
+	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abcd", "abcd.stop", "def", "../../keep"} {
 		os.WriteFile(filepath.Join(dir, p), []byte("x"), 0o644)
 	}
 	if err := Remove(root, "abc"); err != nil {

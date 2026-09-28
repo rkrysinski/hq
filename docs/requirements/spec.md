@@ -54,18 +54,18 @@ All operations are available from any shell; the dashboard reflects them within 
 
 Observable definitions; the mechanism is the implementer's choice, within the givens.
 
-- `starting` - agent launched, nothing reported yet.
+- `starting` - agent launched, its session not started yet (Claude still starting in the sandbox).
 - `working` - the agent is processing a prompt.
 - `question` - the agent finished a turn with a direct question to the user.
 - `needs input` - the agent is waiting for a permission or an input dialog.
-- `done` - the agent finished a turn without asking anything, or the user ended its turn at the agent: interrupted it (Esc), cancelled its dialog or refused a permission. The last message then says so (`Interrupted`, `User declined to answer questions`).
+- `done` - the agent finished a turn without asking anything, or the user ended its turn at the agent: interrupted it (Esc), cancelled its dialog or refused a permission. The last message then says so (`Interrupted`, `User declined to answer questions`). Also a session that has started and waits at its prompt for the user's first prompt: an agent started without a PROMPT (last message `-`), a session resumed or started over (`/clear`), which keep their last message.
 - `ended` - the session is gone (exited, crashed, sandbox stopped).
 
 Requirements:
 
 - A state change is visible in the dashboard within 1 second.
 - Each state carries the time since it was entered (`3s`, `2m`, `1h`) and the agent's last message, one line, truncated.
-- Entering `question`, `needs input` or `done` triggers exactly one desktop notification per event, whether or not that agent is docked, while the dashboard is open in a terminal (S8). Notifications name the kind and the branch (`Question: feat/42-...`, `Needs input: ...`, `Done: ...`). `working`, `starting` and `ended` never notify, and neither does a turn the user ended at the agent (interrupted, a dialog cancelled or a permission refused): the user is already there.
+- Entering `question`, `needs input` or `done` triggers exactly one desktop notification per event, whether or not that agent is docked, while the dashboard is open in a terminal (S8). Notifications name the kind and the branch (`Question: feat/42-...`, `Needs input: ...`, `Done: ...`). `working`, `starting` and `ended` never notify, and neither does a turn the user ended at the agent (interrupted, a dialog cancelled or a permission refused) or a session that has just started: the user is already there, or has just started it.
 - Two agents on the same branch are allowed; their states may then be indistinguishable. Documented limitation.
 - Every agent started by hq reports its state with no setup: nothing is installed, configured or committed in the repository, and nothing per machine beyond installing hq.
 
@@ -152,7 +152,7 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 
 **S1. Start of day** - `hq` with nothing running: the dashboard opens with an empty list ("no agents yet - press n to start one, or run: hq new NAME [DIR] [PROMPT]") and an empty session slot. With agents already running: the dashboard opens showing them, with the previously docked session still docked. When nothing is docked (e.g. the docked agent was killed before the user left, S6), the dashboard opens with the cursor row (6.3) docked and focus in the list; an empty list, or a view showing no rows, keeps the empty slot. This happens only on entering hq (`hq`, `hq dash`, including coming back to a running dashboard): moving the cursor never docks.
 
-**S2. New agent** - `n` in the dashboard or `hq new NAME [DIR] [PROMPT]` from any shell: the row appears at once as `starting` and becomes `working` when the agent reports. A new agent gets the cursor and a `new` marker until its first report; in attention view it is shown for those seconds regardless of state. If nothing is docked, the new agent is docked and focus moves to it (so a fresh sandbox can be logged in). Duplicate name: error, nothing created.
+**S2. New agent** - `n` in the dashboard or `hq new NAME [DIR] [PROMPT]` from any shell: the row appears at once as `starting` and becomes `working` when the agent reports; without a PROMPT it becomes `done` (last message `-`, no notification) once Claude waits at its prompt, within seconds. A new agent gets the cursor and a `new` marker until its first report; in attention view it is shown for those seconds regardless of state. If nothing is docked, the new agent is docked and focus moves to it (so a fresh sandbox can be logged in). Duplicate name: error, nothing created.
 
 **S3. Select and work** - `↑↓` or `/name`, then `Enter`: the agent's live session is docked below, keyboard focus is in it, the list marks it as docked. The user types to Claude directly; the list only updates that row's state and last message. Previous/next/first-needing-attention can be docked from inside the session without leaving it.
 
@@ -168,7 +168,7 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 
 **S8. Quit** - `q`: the dashboard closes and the terminal is back at the shell it had before `hq`, full height and scrolling normally, with nothing of hq left on screen; a hint there says how to bring the dashboard back. The docked session stays where it is and keeps working. `hq` restores the dashboard with the list and the same docked session. While the dashboard is closed (after `q`, or with the terminal detached or closed), desktop notifications are not shown.
 
-**S9. Detach / close / sleep** - closing the terminal window or detaching leaves everything running; `hq` reattaches with the same layout. After laptop sleep, if agents fail with clock drift, `hq sandbox restart REPO` fixes it; affected rows go `ended` then `starting` and stay listed throughout (their names stay taken), a docked agent stays docked, and each keeps its branch and last message (`[session ended]` while ended when it had none, S7) until it reports again.
+**S9. Detach / close / sleep** - closing the terminal window or detaching leaves everything running; `hq` reattaches with the same layout. After laptop sleep, if agents fail with clock drift, `hq sandbox restart REPO` fixes it; affected rows go `ended` then `starting` and stay listed throughout (their names stay taken), a docked agent stays docked, and each keeps its branch and last message (`[session ended]` while ended when it had none, S7) until its next prompt; once its session is resumed and waits at its prompt it is `done`, without a notification.
 
 **S10. Stop everything** - `hq stop`: one confirmation, then every agent ends; sandboxes stay.
 

@@ -15,7 +15,10 @@ import (
 // open dialog (the latest event is a PermissionRequest) decides two kinds:
 // answer (a tool ran) is written only when it closes that dialog, the same
 // tool having run, and input (Claude's Notification) only when no dialog is
-// open, so a dialog is reported once, when it opens (design §3.4). On stop,
+// open, so a dialog is reported once, when it opens (design §3.4). A resumed
+// session (resume) first keeps the event before it (.prev) for the branch,
+// worktree and last message, unless that event is itself a resumed start,
+// which keeps the one it kept. On stop,
 // dialog and input it then prints the desktop notification for Claude to
 // write to its terminal (design §3.5). It needs only sh, git, cat, mv, cp,
 // mkdir, rm, grep and awk, never blocks Claude and always exits 0 (design
@@ -34,6 +37,7 @@ tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print s
 case $1 in
 answer) grep -q '` + dialogEvent + `' "$f" 2>/dev/null && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
 input) grep -q '` + dialogEvent + `' "$f" 2>/dev/null && { rm -f "$t"; exit 0; } ;;
+resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } 2>/dev/null || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; } 2>/dev/null; rm -f "$t.p" ;;
 esac
 if mv -f "$t" "$f" 2>/dev/null && [ "$1" = stop ]; then
     cp -f "$f" "$t" 2>/dev/null && mv -f "$t" "$f.stop" 2>/dev/null
@@ -45,6 +49,13 @@ exit 0`
 // dialogEvent is what the hook's grep finds in a state file whose latest
 // event opened a dialog: a PermissionRequest, with or without spaces.
 const dialogEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"PermissionRequest"`
+
+// startEvent and resumed are what the hook's grep finds in a state file
+// whose latest event started a resumed session.
+const (
+	startEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"SessionStart"`
+	resumed    = `"source"[[:blank:]]*:[[:blank:]]*"` + resumeSource + `"`
+)
 
 // notifyAwk prints the notification for the event in the state file: on
 // dialog and input "Needs input: <branch>", on stop "Question: <branch>"
@@ -93,6 +104,12 @@ const branchHeader = "branch"
 // dialog appears; a dialog that fired PermissionRequest is reported by then.
 const attentionNotifications = "permission_prompt|agent_needs_input|elicitation_dialog"
 
+// newSessions are the SessionStart sources after which Claude waits at its
+// prompt for the user: a new session and one started over by /clear. A
+// compaction (compact), which may come in the middle of a turn, is left out;
+// a resumed session (resumeSource) has a hook of its own (design §3.4).
+const newSessions = "startup|clear"
+
 type hookCommand struct {
 	Type    string   `json:"type"`
 	Command string   `json:"command"`
@@ -140,7 +157,11 @@ func Settings(name, id, notify string) string {
 			"PostToolUseFailure": {{Hooks: []hookCommand{hook("answer", "")}}},
 			"Stop":               {{Hooks: []hookCommand{hook("stop", notify)}}},
 			"Notification":       {{Matcher: attentionNotifications, Hooks: []hookCommand{hook("input", notify)}}},
-			"SessionEnd":         {{Hooks: []hookCommand{hook("end", "")}}},
+			"SessionStart": {
+				{Matcher: newSessions, Hooks: []hookCommand{hook("start", "")}},
+				{Matcher: resumeSource, Hooks: []hookCommand{hook("resume", "")}},
+			},
+			"SessionEnd": {{Hooks: []hookCommand{hook("end", "")}}},
 		},
 	})
 	return strings.TrimSpace(b.String())
