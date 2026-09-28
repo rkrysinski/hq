@@ -47,7 +47,35 @@ func runDash(env Env, d deps, args []string) error {
 	if inList {
 		return runList(env, d, nil)
 	}
+	if mode != goRefused {
+		dockOnEntry(d)
+	}
 	return show(env, d, w, mode)
+}
+
+// dockOnEntry docks the cursor row as the dashboard is entered, when
+// nothing is docked, leaving the keys on the list (spec S1). Entering is
+// the only time the cursor row is docked by itself: moving the cursor never
+// docks, and a kill leaves the placeholder (§6.1, S6). The list's cursor
+// follows the agent docked. A failure leaves the placeholder.
+func dockOnEntry(d deps) {
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return
+	}
+	as := seeEnds(d, settle(d, agent.Collect(ws, d.readState, nil)))
+	cursor, _ := d.tmux.SessionValue("cursor")
+	p := d.loadPrefs()
+	name, ok := dash.EntryDock(as, p.Sort, p.View, cursor)
+	if !ok {
+		return
+	}
+	a, _ := agent.Find(as, name)
+	if d.tmux.Dock(a.Window, frameTitle(a)) != nil {
+		return
+	}
+	_ = d.tmux.SetSessionValue("cursor", name)
+	_ = d.tmux.FocusList()
 }
 
 // dashboard finds or makes the dashboard window and starts its list program

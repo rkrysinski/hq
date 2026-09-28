@@ -51,6 +51,60 @@ func TestDashRestartsTheListAfterQuitOrCrash(t *testing.T) {
 	}
 }
 
+func TestEnteringWithNothingDockedDocksTheCursorRowKeysOnTheList(t *testing.T) {
+	for _, env := range []map[string]string{{}, {"TMUX": "/tmp/tmux-501/default,1,0"}} { // attach; switch
+		f := chordFakes()
+		f.env = env
+		f.tmux.session["cursor"] = "c"
+		var docked string
+		var focused int
+		f.tmux.onAttach = func() { docked, focused = f.tmux.docked, f.tmux.focused }
+		if code, _, errOut := f.run(); code != ExitOK {
+			t.Fatalf("exit %d %q", code, errOut)
+		}
+		if env["TMUX"] != "" {
+			docked, focused = f.tmux.docked, f.tmux.focused
+		}
+		if docked != "@6" || !strings.HasPrefix(f.tmux.dockTitle, "c · ") || focused != 1 {
+			t.Errorf("TMUX %q: docked %q title %q, keys put on the list %d times, want @6 and once", env["TMUX"], docked, f.tmux.dockTitle, focused)
+		}
+	}
+	// The cursor's agent gone: the first row, which the cursor then shows.
+	f := chordFakes()
+	f.tmux.session["cursor"] = "gone"
+	f.run("dash")
+	if f.tmux.docked != "@5" || f.tmux.session["cursor"] != "b" {
+		t.Errorf("docked %q cursor %q, want @5 (b, the first row by repo) and b", f.tmux.docked, f.tmux.session["cursor"])
+	}
+}
+
+func TestEnteringLeavesWhatIsDockedAndTheEmptySlot(t *testing.T) {
+	f := chordFakes()
+	f.tmux.Dock("@4", "a")
+	f.tmux.docked, f.tmux.session["cursor"] = "", "c"
+	f.run()
+	if f.tmux.docked != "" || f.tmux.focused != 0 {
+		t.Errorf("something docked: docked %q, keys put on the list %d times", f.tmux.docked, f.tmux.focused)
+	}
+	// The attention view showing no rows: the placeholder stays.
+	f = chordFakes()
+	f.states["id-b"] = state.Report{State: state.Working, Since: f.now}
+	f.prefs.View = "attention"
+	f.run()
+	if f.tmux.docked != "" {
+		t.Errorf("no rows: docked %q", f.tmux.docked)
+	}
+	// Refused in another tmux server, and hq ls: nothing docked.
+	f = chordFakes()
+	f.env["TMUX"] = "/tmp/other,1,0"
+	f.run()
+	f.env = map[string]string{}
+	f.run("ls")
+	if f.tmux.docked != "" {
+		t.Errorf("refused or ls: docked %q", f.tmux.docked)
+	}
+}
+
 func TestDashInsideHqServerSwitches(t *testing.T) {
 	f := newFakes()
 	f.env["TMUX"] = f.tmux.socket + ",1,0"
