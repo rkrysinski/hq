@@ -231,12 +231,12 @@ func TestLastScreenDrawsTheLatestOutputAgainAfterAReset(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, "the pane to die", func() bool { return tm(t, socket, "display-message", "-p", "-t", pane, "#{pane_dead}") == "1" })
-	// The dead pane shows the latest lines, down to sbx's last word, above
-	// tmux's own line; the history still holds all of them.
+	// The dead pane shows the latest lines, down to sbx's last word, right
+	// above tmux's own line; the history still holds all of them.
 	lines := strings.Split(shown(), "\n")
 	height, _ := strconv.Atoi(tm(t, socket, "display-message", "-p", "-t", pane, "#{pane_height}"))
-	if len(lines) != height || !strings.HasPrefix(lines[height-1], "Pane is dead") || lines[height-2] != "" ||
-		lines[height-3] != "error: sandbox stopped" || lines[height-4] != "line 60" || lines[0] != fmt.Sprintf("line %d", 60-(height-4)) {
+	if len(lines) != height || !strings.HasPrefix(lines[height-1], "Pane is dead") ||
+		lines[height-2] != "error: sandbox stopped" || lines[height-3] != "line 60" || lines[0] != fmt.Sprintf("line %d", 60-(height-3)) {
 		t.Fatalf("dead pane shows:\n%s", shown())
 	}
 	if all := tm(t, socket, "capture-pane", "-p", "-S", "-", "-t", pane); !strings.Contains(all, "line 1\n") {

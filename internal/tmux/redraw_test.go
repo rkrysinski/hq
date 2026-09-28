@@ -58,14 +58,17 @@ func TestLatestLinesOnAScreenThatShowsThemAlready(t *testing.T) {
 		lines        []string
 		hist, height int
 	}{
-		"full screen": {screen(3, 10, full), 3, 10},
-		// A launch that failed at once: its few lines are all there is.
-		"short output":    {screen(0, 10, map[int]string{0: "Starting claude agent", 1: "error: no sandbox"}), 0, 10},
+		"full screen":     {screen(3, 10, full), 3, 10},
+		"at the bottom":   {screen(0, 10, map[int]string{8: "Starting claude agent", 9: "error: no sandbox"}), 0, 10},
 		"nothing printed": {screen(5, 10, nil), 5, 10},
 	} {
 		if got := latestLines(c.lines, c.hist, c.height); got != nil {
 			t.Errorf("%s: redraws %v", name, got)
 		}
+	}
+	// A launch that failed at once shows its few lines at the bottom too.
+	if got, want := latestLines(screen(0, 10, map[int]string{0: "Starting claude agent", 1: "error: no sandbox"}), 0, 10), span(0, 1); !reflect.DeepEqual(got, want) {
+		t.Errorf("short output: got %v, want %v", got, want)
 	}
 }
 
@@ -81,9 +84,9 @@ func TestLatestLinesTakeWhatTheHistoryHoldsWhenItIsShort(t *testing.T) {
 	}
 }
 
-func TestRedrawBlanksEachLineThenDrawsFromTheTop(t *testing.T) {
+func TestRedrawBlanksEachLineThenDrawsAtTheBottom(t *testing.T) {
 	got := redraw([]string{"\x1b[31mred\x1b[39m", "plain"}, 3)
-	want := "\x1b[0m" + "\x1b[1;1H\x1b[2K\x1b[2;1H\x1b[2K\x1b[3;1H\x1b[2K" + "\x1b[H" + "\x1b[31mred\x1b[39m\r\nplain" + "\x1b[0m"
+	want := "\x1b[0m" + "\x1b[1;1H\x1b[2K\x1b[2;1H\x1b[2K\x1b[3;1H\x1b[2K" + "\x1b[2;1H" + "\x1b[31mred\x1b[39m\r\nplain" + "\x1b[0m"
 	if got != want {
 		t.Fatalf("got %q\nwant %q", got, want)
 	}
@@ -125,7 +128,7 @@ func TestLastScreenCapturesTheLatestLinesWithTheirColours(t *testing.T) {
 
 func TestLastScreenIsEmptyWhenTheScreenShowsTheLatestLines(t *testing.T) {
 	c := Client{Run: runner{
-		"display-message -p -t %1 #{history_size} #{pane_height} ; capture-pane -p -t %1 -S - -E -": "0 3\nbye\n\n\n",
+		"display-message -p -t %1 #{history_size} #{pane_height} ; capture-pane -p -t %1 -S - -E -": "0 3\n\nbye\nPane is dead\n",
 	}}
 	if got, err := c.LastScreen("%1"); err != nil || got != "" {
 		t.Fatalf("got %q %v", got, err)

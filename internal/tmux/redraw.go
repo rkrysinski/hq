@@ -13,10 +13,11 @@ import (
 // serves is cut off (the sandbox stopped, or sbx run itself was ended), and
 // tmux then clears the screen, pushing the session into the pane's history:
 // the pane would stay blank. And Claude keeps its prompt box at the bottom
-// of the screen, the rows above it blank, which leaves little of the
-// conversation on screen once the pane is made smaller, as docking does. Run
-// in the pane itself, after the session and before the pane dies, the
-// result draws the latest lines again, each run of blank lines as one.
+// of the screen, the rows above it blank, and leaves its conversation at the
+// top when it exits; a dead pane made smaller, as docking does, keeps its
+// bottom lines. Run in the pane itself, after the session and before the
+// pane dies, the result draws the latest lines again at the bottom of the
+// screen, each run of blank lines as one.
 func (c Client) LastScreen(pane string) (string, error) {
 	out, err := c.tmux("display-message", "-p", "-t", pane, "#{history_size} #{pane_height}",
 		";", "capture-pane", "-p", "-t", pane, "-S", "-", "-E", "-")
@@ -51,8 +52,8 @@ func (c Client) LastScreen(pane string) (string, error) {
 
 // latestLines picks, from a pane's lines (its history, then its screen, as
 // capture-pane prints them), the latest ones that fill its screen but for
-// the bottom line, which tmux takes for its "Pane is dead" line, each run of
-// blank lines taken as one. It returns their indexes in lines, or nil when
+// one line, which tmux takes for its "Pane is dead" line, each run of blank
+// lines taken as one. It returns their indexes in lines, or nil when
 // there is nothing to draw: the pane printed nothing, or the screen shows
 // just those lines already.
 func latestLines(lines []string, hist, height int) []int {
@@ -72,25 +73,26 @@ func latestLines(lines []string, hist, height int) []int {
 		return nil
 	}
 	slices.Reverse(keep)
-	// The screen shows them already when they are all on it, with no blank
-	// run between them.
-	if keep[0] >= hist && keep[len(keep)-1]-keep[0] == len(keep)-1 {
+	// The screen shows them already when they are all on it down to its
+	// bottom line, with no blank run between them.
+	if keep[0] >= hist && keep[len(keep)-1] == hist+height-1 && keep[len(keep)-1]-keep[0] == len(keep)-1 {
 		return nil
 	}
 	return keep
 }
 
-// redraw is what draws lines (captured with their colours) from the top of
-// a screen of height lines, blanking the screen first. Each line is erased
-// on its own, never the screen as a whole, which tmux would push into the
-// history again (scroll-on-clear).
+// redraw is what draws lines (captured with their colours) at the bottom
+// of a screen of height lines, blanking the screen first. Each line is
+// erased on its own, never the screen as a whole, which tmux would push into
+// the history again (scroll-on-clear). tmux then scrolls the screen up one
+// line for its "Pane is dead" line, which leaves the lines right above it.
 func redraw(lines []string, height int) string {
 	var b strings.Builder
 	b.WriteString("\x1b[0m")
 	for y := 1; y <= height; y++ {
 		fmt.Fprintf(&b, "\x1b[%d;1H\x1b[2K", y)
 	}
-	b.WriteString("\x1b[H")
+	fmt.Fprintf(&b, "\x1b[%d;1H", max(height-len(lines)+1, 1))
 	b.WriteString(strings.Join(lines, "\r\n"))
 	b.WriteString("\x1b[0m")
 	return b.String()
