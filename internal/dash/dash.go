@@ -171,6 +171,12 @@ const (
 	// errFor is how long a row action's error shows, unless a key clears it
 	// first; then the scroll hint is back.
 	errFor = 5 * time.Second
+	// sbxStale is how old sbx's last answer may be before the header says
+	// `sbx ?` (design §7.1). A poll starts at most 1 s after the last answer
+	// and sbx ls may take up to its 5 s timeout, so an sbx that answers,
+	// however slowly, leaves at most 6 s between answers; 8 s means at
+	// least one poll failed or timed out.
+	sbxStale = 8 * time.Second
 )
 
 // Rows is how many agents the list shows: 6, or 3 in a terminal below 24
@@ -258,12 +264,13 @@ type Model struct {
 	ticks         int
 	polling       bool      // an sbx poll is under way
 	polled        time.Time // when sbx last answered
+	began         time.Time // when the list program started
 }
 
 // New is the list program before its first refresh, in the modes the user
 // left.
 func New(src Source) Model {
-	m := Model{src: src, width: 80, height: Height(24), sort: SortAttention, view: ViewAttention, cursorRow: -1, place: -1}
+	m := Model{src: src, width: 80, height: Height(24), sort: SortAttention, view: ViewAttention, cursorRow: -1, place: -1, began: src.Now()}
 	sort, view := src.Modes()
 	for _, s := range sorts {
 		if sort == s {
@@ -874,8 +881,8 @@ func (m Model) View() string {
 }
 
 // header is `hq  N agents · X need you · Y done · Z working` on the left, the
-// update hint after it, and the clock with the age of sbx's answer on the
-// right (§6.1).
+// update hint after it, and the clock on the right, with `sbx ?` after it
+// while sbx does not answer (§6.1, design §7.1).
 func (m Model) header() string {
 	var need, done, working int
 	for _, a := range m.agents {
@@ -899,11 +906,11 @@ func (m Model) header() string {
 	}
 	now := m.src.Now()
 	right := now.Format("Mon 15:04")
-	if !m.polled.IsZero() {
-		right += "  ⟳ " + agent.Age(now.Sub(m.polled).Round(time.Second))
+	if m.sbxDown(now) {
+		right += "  sbx ?"
 	}
 	right = cDim.Render(right)
-	// The clock and refresh stay; the left keeps what fits, giving up the
+	// The clock and sbx ? stay; the left keeps what fits, giving up the
 	// update hint, the view, then the counts from the last (S12).
 	hint, view := m.hint, "view: "+m.view
 	room := m.width - 2*len(margin) - lipgloss.Width(right) - 1
@@ -925,6 +932,16 @@ func (m Model) header() string {
 	l := left()
 	pad := m.width - len(margin) - lipgloss.Width(l) - lipgloss.Width(right) - len(margin)
 	return margin + l + strings.Repeat(" ", max(1, pad)) + right
+}
+
+// sbxDown is whether sbx's last answer, or the start when it has not
+// answered yet, is older than sbxStale.
+func (m Model) sbxDown(now time.Time) bool {
+	last := m.polled
+	if last.IsZero() {
+		last = m.began
+	}
+	return now.Sub(last) > sbxStale
 }
 
 // footerLine is the last line: an error from tmux, or the scroll hint when
