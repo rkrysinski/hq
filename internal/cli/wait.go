@@ -161,7 +161,7 @@ func runWait(env Env, d deps, args []string) error {
 		hits = append(hits, gone(seen, watched, d.now())...)
 		if len(hits) > 0 || (w.timeout > 0 && !d.now().Before(start.Add(w.timeout))) {
 			agent.SortAttention(hits)
-			return printWait(env.Stdout, w, lsRows(hits, d.now()), next)
+			return printWait(env.Stdout, w, lsRows(d, hits), next)
 		}
 		seen = map[string]agent.Agent{}
 		for _, a := range watched {
