@@ -39,14 +39,14 @@ All operations are available from any shell; the dashboard reflects them within 
 - `hq code NAME` - open the editor (VS Code) on the agent's worktree, so the editor shows the agent's branch. Before the worktree is known, opens the repository. Works on macOS and from WSL. The agent keeps running; editor and agent see the same files.
 - `hq kill NAME` - end that agent's Claude session after confirmation (`-y` skips it). The sandbox stays.
 - `hq stop` - end all agents after confirmation (`-y` skips it). Sandboxes stay.
-- `hq sandbox rm REPO` / `hq sandbox restart REPO` - remove or restart a repository's sandbox after confirmation (`-y` skips it; restart is the remedy after laptop sleep, S9). `rm` refuses while agents of that repo are running; `restart` ends every session in the sandbox and relaunches each agent, continuing its conversation.
+- `hq sandbox rm REPO` / `hq sandbox restart REPO` - remove or restart a repository's sandbox after confirmation (`-y` skips it; REPO may also be the sandbox's own name as `sbx ls` shows it; restart is the remedy after laptop sleep, S9). `rm` refuses while agents of that repo are running; `restart` ends every session in the sandbox and relaunches each agent, continuing its conversation.
 - `hq update` - replace hq with the latest released version, printing the version before and after. Running agents are not affected.
 - `hq help`, `hq --version` (also says when a newer version is released).
 
 ### 4.2 Conventions
 
 - Names: letters, digits, `-`, `_`, at most 32 characters; unique among existing agents, running or `ended`. Reusable once the previous agent with that name is gone (killed). A name over the limit is refused with an error naming the limit.
-- Exit codes: `0` success, `1` usage or refused (duplicate name, `sandbox rm` with running agents), `2` not found (agent, repo, sandbox), `3` environment (tmux or sbx unavailable).
+- Exit codes: `0` success, `1` usage or refused (duplicate name, `sandbox rm` with running agents), `2` not found (agent, repo, sandbox), `3` environment (tmux or sbx unavailable). Declining a confirmation is not an error: nothing changes and the exit code is `0`; with no terminal to confirm on and no `-y`, the command is refused (`1`).
 - Errors are one line on stderr, prefixed `hq:`, and name the remedy where there is one (`hq: no agent 'x' (see hq ls)`).
 - Every command works the same from inside the dashboard's own terminal and from any other shell.
 

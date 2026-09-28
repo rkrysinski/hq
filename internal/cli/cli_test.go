@@ -35,7 +35,7 @@ func TestHelpListsEveryCommand(t *testing.T) {
 	if code != ExitOK {
 		t.Fatalf("exit %d", code)
 	}
-	for _, want := range []string{"hq dash", "hq new NAME [DIR] [PROMPT]", "hq ls [--json]", "hq go NAME", "hq kill NAME [-y]", "hq stop [-y]", "hq sandbox rm|restart REPO", "hq update", "hq help", "hq --version", "NAME: letters, digits, - and _, at most 32 characters"} {
+	for _, want := range []string{"hq dash", "hq new NAME [DIR] [PROMPT]", "hq ls [--json]", "hq go NAME", "hq kill NAME [-y]", "hq stop [-y]", "hq sandbox rm|restart REPO|SANDBOX", "hq update", "hq help", "hq --version", "NAME: letters, digits, - and _, at most 32 characters"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("help lacks %q", want)
 		}

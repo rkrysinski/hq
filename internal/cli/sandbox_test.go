@@ -203,6 +203,30 @@ func TestSandboxRmAsksThenRemoves(t *testing.T) {
 	}
 }
 
+func TestSandboxTakesTheSandboxsName(t *testing.T) {
+	f := sandboxFakes()
+	// app names two repositories; each sandbox's name tells them apart.
+	f.sbx.sandboxes = append(f.sbx.sandboxes, sbx.Sandbox{Name: "claude-app-2", Status: "running", Workspaces: []string{"/v/app"}})
+	if code, out, errOut := f.run("sandbox", "restart", "claude-x", "-y"); code != 0 || out != "restarted the sandbox claude-x; relaunched a, b\n" {
+		t.Fatalf("restart: exit %d %q %q", code, out, errOut)
+	}
+	f.tmux.windows = f.tmux.windows[:1]
+	if code, out, errOut := f.run("sandbox", "rm", "claude-app-2", "-y"); code != 0 || out != "removed the sandbox claude-app-2\n" || len(f.sbx.sandboxes) != 2 {
+		t.Fatalf("rm: exit %d %q %q %+v", code, out, errOut, f.sbx.sandboxes)
+	}
+}
+
+func TestDecliningAConfirmationChangesNothingAndSucceeds(t *testing.T) {
+	for _, args := range [][]string{{"kill", "a"}, {"stop"}, {"sandbox", "restart", "app"}, {"sandbox", "rm", "lib"}} {
+		f := sandboxFakes()
+		f.tmux.windows[3].PaneDead = true // c ended, so rm lib is not refused
+		f.stdin = "n\n"
+		if code, _, errOut := f.run(args...); code != 0 || errOut != "" || len(f.sbx.calls) != 0 || len(f.sbx.sandboxes) != 2 || len(f.tmux.windows) != 4 {
+			t.Errorf("%v declined: exit %d %q calls %v", args, code, errOut, f.sbx.calls)
+		}
+	}
+}
+
 func TestSandboxRmWithOnlyEndedAgents(t *testing.T) {
 	f := sandboxFakes()
 	f.tmux.windows = f.tmux.windows[:3]
@@ -226,7 +250,7 @@ func TestSandboxErrors(t *testing.T) {
 		{[]string{"sandbox", "rm", "app", "-f"}, ExitUsage, sandboxUsage},
 		{[]string{"sandbox", "restart", "nope"}, ExitNotFound, "no sandbox for 'nope' (see hq ls)"},
 		{[]string{"sandbox", "restart", "/w/plain"}, ExitNotFound, "/w/plain is not in a git repository"},
-		{[]string{"sandbox", "restart", "app"}, ExitUsage, "'app' names 2 repositories; give the repository's directory"},
+		{[]string{"sandbox", "restart", "app"}, ExitUsage, "'app' names 2 repositories; give the repository's directory or its sandbox's name"},
 	} {
 		if code, _, errOut := f.run(tc.args...); code != tc.code || errOut != "hq: "+tc.msg+"\n" {
 			t.Errorf("%v: exit %d %q", tc.args, code, errOut)
