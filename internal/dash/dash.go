@@ -326,7 +326,7 @@ func (m Model) hints() []Hint {
 	if HintsWidth(hs) <= m.width {
 		return hs
 	}
-	// Narrow (dash-s12-narrow.png): the strip's actions, then new, the
+	// Narrow (mock frame S12): the strip's actions, then new, the
 	// search and quit; the other keys still work. Narrower still, hints go
 	// from before q quit until the rest fits.
 	hs = []Hint{{"⏎", "open"}, {"c", "code"}, {"p", "pr"}, {"k", "kill"}, {"n", "new"}, {"/", "name"}, {"q", "quit"}}
@@ -1094,8 +1094,8 @@ type chip struct {
 }
 
 // chips are the cursor row's actions, pr only with a pull request (spec
-// §6.4, mock dash.png); below wideFrom columns, glyphs alone
-// (dash-s12-narrow.png).
+// §6.4, the mock's all view); below wideFrom columns, glyphs alone
+// (mock frame S12).
 func chips(pr, wide bool) []chip {
 	// key pressed, key shown, glyph when narrow, label
 	items := [][4]string{{"enter", "⏎", "⏎", "open"}, {"c", "c", "c", "code"}, {"p", "p", "p", "pr"}, {"k", "k", "✕", "kill"}}

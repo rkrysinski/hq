@@ -1395,7 +1395,7 @@ func TestTheCursorFollowsAnAgentDockedElsewhere(t *testing.T) {
 }
 
 // narrowTeam is team with one long repository and branch, as in
-// dash-s12-narrow.png, and a pull request for the cursor row.
+// the mock's narrow frame (S12), and a pull request for the cursor row.
 func narrowTeam() *fakeSource {
 	as := team()
 	as[3].RepoPath, as[3].Branch = "/w/shop-portal", "feat/42-partner-login-with-entra"

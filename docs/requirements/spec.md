@@ -1,6 +1,6 @@
 # hq - one console for many Claude Code agents
 
-This document is the requirements specification for the whole product, to be implemented from scratch in the milestones of section 12. It describes WHAT hq does, as observable behaviour, and the givens it must live with. It deliberately says nothing about HOW (languages, libraries, file formats, internal mechanics); that is the implementer's design. Design reference for the look: `docs/requirements/look-and-feel.pen` and its exports beside it (section 13).
+This document is the requirements specification for the whole product, to be implemented from scratch in the milestones of section 12. It describes WHAT hq does, as observable behaviour, and the givens it must live with. It deliberately says nothing about HOW (languages, libraries, file formats, internal mechanics); that is the implementer's design. Design reference for the look: `docs/requirements/look-and-feel.pen`, one frame per scenario (section 13).
 
 ## 1. Goal
 
@@ -225,12 +225,12 @@ Each milestone is usable on its own and is the acceptance boundary for that step
 
 ## 13. Design reference
 
-`docs/requirements/look-and-feel.pen` (Pencil), exported to:
+`docs/requirements/look-and-feel.pen` (Pencil). It is the only design reference: there are no exported images, so it cannot fall behind a copy. Its frames:
 
-- `dash-s0-attention.png` - default attention view
-- `dash.png` - all view, action strip on the cursor row, keys on the list
-- `dash-s3-work.png` - keys in the docked session (S3): the session on the terminal's background, its title in the accent, the list on the surround
-- `dash-s1-empty.png`, `dash-s2-new.png` (New agent dialog), `dash-s3-cursor.png` (docked vs cursor row), `dash-s3b-search.png`, `dash-s6-kill.png` (Kill dialog), `dash-s6b-docked-killed.png`, `dash-s8-quit.png`, `dash-s12-narrow.png`
+- `S0 - attention view (default)` - default attention view
+- `hq dash - terminal window` - all view, action strip on the cursor row, keys on the list
+- `S3 - keys in the session: typing to 42` - keys in the docked session: the session on the terminal's background, its title in the accent, the list on the surround
+- `S1 - empty state (first hq)`, `S2 - new agent input (n)` (New agent dialog), `S3 - docked 42, cursor on idm-9` (docked vs cursor row), `S3b - name search (/bo)`, `S6 - kill confirmation (k)` (Kill dialog), `S6b - docked agent killed: placeholder below`, `S8 - after quit (q): list gone, session stays`, `S12 - narrow (80 cols): LAST dropped`
 
 ## Phase 2 (not now): supervisor layer
 

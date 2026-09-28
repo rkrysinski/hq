@@ -31,7 +31,7 @@ Work lands on `dev`, the default branch; `main` holds the latest release. `scrip
 | [AGENTS.md](AGENTS.md) | How agents work in this repository (`CLAUDE.md` is a symlink to it) |
 | [CONTEXT.md](CONTEXT.md) | The glossary: the domain's terms and the words to avoid |
 | [docs/requirements/spec.md](docs/requirements/spec.md) | What hq does; milestones in section 12 |
-| [docs/requirements/](docs/requirements/) | The dashboard design, `look-and-feel.pen`, and its exports `dash*.png` |
+| [docs/requirements/](docs/requirements/) | The dashboard design, `look-and-feel.pen` (Pencil), one frame per scenario |
 | [docs/adr/](docs/adr/) | Decisions that are hard to reverse, and why they were made |
 | [docs/design/](docs/design/) | How hq is built |
 | [docs/agents/](docs/agents/) | Issue tracker, triage labels, testing, QA evidence |
