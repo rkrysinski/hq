@@ -40,6 +40,7 @@ func commands() []command {
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
 		{"sandbox", "rm|restart REPO|SANDBOX [-y]", "remove or restart a repository's sandbox", runSandbox},
+		{"mcp", "[install]", "serve these commands to Claude Desktop as tools; install adds hq to it", runMCP},
 		{"update", "", "replace hq with the latest release", runUpdate},
 		{"help", "", "show this help", runHelp},
 	}
@@ -55,14 +56,21 @@ func mainWith(args []string, env Env, d deps) int {
 	if err == nil {
 		return ExitOK
 	}
-	var e *Error
-	if !errors.As(err, &e) {
-		e = &Error{Code: ExitUsage, Msg: err.Error()}
-	}
+	e := asError(err)
 	if e.Msg != "" {
 		fmt.Fprintf(env.Stderr, "hq: %s\n", e.Msg)
 	}
 	return e.Code
+}
+
+// asError is err as hq reports it: an error that is not an *Error is a
+// usage error with its text.
+func asError(err error) *Error {
+	var e *Error
+	if !errors.As(err, &e) {
+		e = &Error{Code: ExitUsage, Msg: err.Error()}
+	}
+	return e
 }
 
 func run(env Env, d deps, args []string) error {

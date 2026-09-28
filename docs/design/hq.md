@@ -14,7 +14,7 @@ The architecturally significant requirements, in priority order. When two pull i
 4. **Identical behaviour on both platforms** (§2, §8, S13): macOS with iTerm2, and WSL with Windows Terminal, both with plain tmux (ADR 0008). Platform-specific code sits behind one adapter.
 5. **Timeliness and exactness** (§5, §10): state visible within 1 s, `ended` within 2 s, exactly one notification per attention event.
 6. **Install footprint** (§8, §11): one command per platform, no service.
-7. **Phase 2 headroom** (spec, Phase 2): a flat row model, sorting and filtering kept separable.
+7. **Phase 2 headroom** (spec, Phase 2): the supervisor drives hq through the CLI's own commands (3.12); a flat row model, sorting and filtering kept separable.
 
 ## 2. Constraints & assumptions
 
@@ -149,7 +149,7 @@ Docking by chord moves the cursor to the newly docked row. Esc is deliberately n
 
 ### 3.8 Components of the hq binary
 
-One binary, four roles; they share the row model and never talk to each other directly: tmux and the state files are the only shared state.
+One binary, five roles; they share the row model and never talk to each other directly: tmux and the state files are the only shared state.
 
 ```mermaid
 flowchart LR
@@ -157,6 +157,7 @@ flowchart LR
     LIST["List program<br/>list pane; footer via status line"]
     DLG["Dialog<br/>one process per tmux popup"]
     CH["Chord commands<br/>behind Alt+j/k/a/l/n"]
+    MCP["MCP server<br/>hq mcp: tools new, list, read, wait, send, go, kill"]
     TM[("tmux: registry, panes, options")]
     ST[("repo/.git/hq/agents")]
     SBX["sbx"]
@@ -164,14 +165,16 @@ flowchart LR
     LIST --> TM & ST & SBX
     DLG --> TM & SBX
     CH --> TM
+    MCP -- "calls in process" --> CLI
 ```
 
 - **List program.** Bubble Tea and Lip Gloss: header, rows, action strip, scroll hint (§6.1-6.4), mouse from tmux, colours degrading on terminals with fewer colours. Sets the footer through the `hq` session's status line and clears it on exit.
 - **Dialog.** A short-lived hq process in a tmux popup, same library, styled as the mocks (§6.6). It performs its own action (kill, start); the list sees the result on its next tick. It stays open to show an error under a field (duplicate name). `Alt+n` opens the same New agent dialog anywhere. The popup runs a hidden hq command; tmux draws its frame and holds the client's keys, and the list, which opened it, refreshes on while it waits for it to close.
 - **Row model.** One model for `hq ls` (plain columns, `--json`), `hq wait` (the rows it returns, as `hq ls` gives them) and the list program (§4.1, §6.1). `hq read` shows the same row, pending messages included, with the agent's detail, read from its state files: the last Stop's reply with its lines kept (stripped as in 7.3), and what the open dialog asks in full.
-- **Platform adapter.** Every role reaches `sbx`, the editor, the browser and the notification sequence through it (3.10); nothing else knows the platform.
+- **MCP server.** `hq mcp`, started by Claude Desktop over its standard input and output; each tool calls the CLI command of the same name inside the process, with its output as the tool's result (3.12).
+- **Platform adapter.** Every role reaches `sbx`, the editor, the browser, the notification sequence and Claude Desktop's configuration through it (3.10); nothing else knows the platform.
 
-Satisfies: §4.1, §6.1-6.6, S2, S6; drivers 2, 3.
+Satisfies: §4.1, §6.1-6.6, S2, S6, Phase 2; drivers 2, 3, 7.
 
 ### 3.9 Distribution and updates
 
@@ -186,7 +189,7 @@ Satisfies: §4.1, §6.1-6.6, S2, S6; drivers 2, 3.
 
 ### 3.10 Platform adapter
 
-**Decision:** one component is the only code that knows the platform. hq detects it at startup, not at build time: the Linux binary is on WSL when `WSL_DISTRO_NAME` is set or `/proc/sys/kernel/osrelease` names Microsoft. The adapter covers exactly six concerns:
+**Decision:** one component is the only code that knows the platform. hq detects it at startup, not at build time: the Linux binary is on WSL when `WSL_DISTRO_NAME` is set or `/proc/sys/kernel/osrelease` names Microsoft. The adapter covers exactly seven concerns:
 
 | Concern | macOS | WSL |
 |---|---|---|
@@ -196,12 +199,13 @@ Satisfies: §4.1, §6.1-6.6, S2, S6; drivers 2, 3.
 | Browser (`p`) | `gh pr view --web` | the same, with `BROWSER` set to `wslview` or `explorer.exe` when unset |
 | Notification sequence baked into the hook (3.5) | OSC 9 (`ESC ] 9 ; text BEL`) | BEL, shown as a taskbar flash; it carries no text, and a real check is left to Windows (#9) |
 | Raise the window titled `hq - agents` (3.11) | `osascript` to iTerm2, selecting the session on the attached client's terminal | `powershell.exe`, activate the window by title |
+| Claude Desktop's configuration and how it starts hq (3.12) | `~/Library/Application Support/Claude/claude_desktop_config.json` (`~/.config/Claude/...` on a plain Linux); command: hq's path, `mcp`, the environment in `env` | the Windows user's `%APPDATA%\Claude\claude_desktop_config.json`, found with `cmd.exe /d /c echo %APPDATA%` and `wslpath -u`; command: `wsl.exe -d DISTRO --exec /usr/bin/env K=V... HQ mcp` |
 
 Everything else (tmux, registry, state files, keys, dialogs) is one code path.
 Paths cross at the sbx client's boundary: the workspaces sbx reports come back as hq's paths, and the workspace hq gives goes out as sbx's path, so the rest of hq only ever sees its own paths. One set of contract tests (an sbx command; every path survives the trip to sbx and back) runs against both adapters and the test fake, which gives sbx Windows-like paths so a test shows which paths went through the adapter.
 **Rationale:** these are the only points where the platforms really differ; a narrow interface keeps the rest free of platform branches and lets both sides share one set of contract tests with a fake.
 **Alternatives considered:** build-time selection (a WSL binary and a plain Linux binary would differ for no reason); platform checks at each call site (scattered, against spec §8).
-**Satisfies:** §2, §4.1 (`hq code`), §6.4 (`c`, `p`), §8 (identical behaviour, platform code isolated), S13; driver 4.
+**Satisfies:** §2, §4.1 (`hq code`, `hq mcp install`), §6.4 (`c`, `p`), §8 (identical behaviour, platform code isolated), §11, S13; driver 4.
 
 ### 3.11 Opening and raising the dashboard
 
@@ -209,11 +213,40 @@ Paths cross at the sbx client's boundary: the workspaces sbx reports come back a
 - `hq` / `hq dash` first docks the cursor row when nothing is docked (S1), from what the list would show: the cursor's agent (the `@hq_cursor` session option) when the view shows it, else the first row, then puts the keys back on the list. It is done by the command, not the list program, since coming back to a running dashboard starts no list program. Outside tmux it attaches there with `attach -d`, detaching any other client, so there is one dashboard at a time. Inside the `hq` session it selects the dashboard window; inside another tmux session it switches the client rather than nesting.
 - On iTerm2, just before attaching, hq sends iTerm2's `SetProfile=hq` sequence, so that tab alone takes the installed profile with Option as Esc+ (3.7). Windows Terminal needs nothing.
 - `q` (S8) takes the terminal off the `hq` session once the list program has ended: a client whose last session is another session of the same server is switched back there and shown the S8 hint on its status line; any other client is detached, so tmux restores the terminal (normal screen, full scroll region, mouse off) and `hq` returns, printing the S8 hint. The list pane is left without a list program, so the next `hq` starts it and attaches to the same layout and docked session.
-- While attached, tmux sets the terminal's title to `hq - agents` (`set-titles`, the `hq` session only). `hq go NAME` from another shell docks the agent; if a dashboard client is attached it asks the platform adapter to raise the window titled `hq - agents` (3.10); if none is, it attaches in the current terminal as `hq` does.
+- While attached, tmux sets the terminal's title to `hq - agents` (`set-titles`, the `hq` session only). `hq go NAME` from another shell docks the agent; if a dashboard client is attached it asks the platform adapter to raise the window titled `hq - agents` (3.10); if none is, it attaches in the current terminal as `hq` does. With no terminal to attach in (standard input not a terminal, as under `hq mcp`) it only docks the agent and says to run `hq` in a terminal: it never attaches tmux to a pipe, and never opens a window.
 
 **Rationale:** attaching in place avoids driving terminal windows, which differs per terminal; what remains is one narrow action, "raise the window titled hq - agents", with the same shape on both platforms.
 **Alternatives considered:** opening a new terminal window per `hq` (iTerm2 AppleScript and `wt.exe` differ in every detail, and the user loses the terminal they chose); several attached dashboards (tmux clients fight over the window size).
 **Satisfies:** §4.1 (`hq`, `hq dash`, `hq go`), §4.2 (same from any shell), §6.5 (Alt chords need Option as Esc+), S1, S8, S9; drivers 2, 4.
+
+### 3.12 MCP server for Claude Desktop
+
+**Decision:** `hq mcp` is an MCP server over standard input and output, in the hq binary itself, built on the official Go SDK (`github.com/modelcontextprotocol/go-sdk`, v1.8.0). Claude Desktop starts it as a child process and ends it; it opens no port and leaves nothing running (ADR 0002), and `hq update` keeps it in step with the CLI. Each tool is a thin layer over the CLI command of the same name, called inside the process with an empty standard input, its standard output and error as the tool's text and a failure as an error result ("hq: ..." as on stderr):
+
+| Tool | Command | Annotation |
+|---|---|---|
+| `new(name, dir, prompt?)` | `hq new NAME DIR [PROMPT]`; DIR must be absolute (or `~/...`) and exist, since the server's working directory means nothing | not destructive |
+| `list()` | `hq ls --json` | read-only |
+| `read(name)` | `hq read NAME --json` | read-only |
+| `wait(names?, since?, timeout?)` | `hq wait NAMES --json --timeout T [--since S]`, T at most 50 s | read-only |
+| `send(name, text, now?)` | `hq send NAME TEXT [--now]` | not destructive |
+| `go(name)` | `hq go NAME` (3.11: docks; raises the dashboard when a client is attached, else says to run `hq`) | not destructive, idempotent |
+| `kill(name)` | `hq kill NAME -y` | destructive, so the client asks the user first |
+
+`hq stop` and `hq sandbox` are not offered (PRD #132). The server's instructions and each tool's description teach the protocol of spec Phase 2: status from `list` and `read`, never by asking an agent; ask with `send` and `read` the answer at the stop; watch with `wait` in a loop, each call's `next_since` as the next call's `since`; never answer an agent's dialog, tell the user. Typed at a terminal, `hq mcp` refuses with the remedy (`hq mcp install`) instead of waiting for JSON.
+
+**`wait` and Claude Desktop's limit.** Verified in the Claude Desktop 2.9939.2 app bundle (its bundled MCP TypeScript SDK): a `tools/call` to a local server the user added times out after 60 s (the SDK's `DEFAULT_REQUEST_TIMEOUT_MSEC`), with no progress token sent and `resetTimeoutOnProgress` off, so progress notifications would not extend a call. The only setting is `mcpToolTimeoutSec` (60-3600 s) of an enterprise-managed configuration; neither `MCP_TOOL_TIMEOUT` nor a per-server `timeout` key is read. So `wait`'s default and maximum are 50 s (`DefaultWaitTimeout`), 10 s of margin for starting the call and reading the answer, and hq sends no progress notifications and relies on none. Not verified: the limit in the Windows app (reports in anthropics/claude-code, #44032, #65643, speak of about 4 minutes there, which 50 s is below anyway), and the timing observed from a live Claude Desktop conversation, left to the owner's acceptance.
+
+**`hq mcp install`.** The platform adapter (3.10) says where the configuration is and how Claude Desktop starts hq; `internal/desktop` edits the file:
+- it adds or updates only `mcpServers.hq`, keeping every other key and server with its value, order and formatting of numbers and strings (members are copied as raw JSON), and writes nothing when the entry is already as it would write it, so a second run changes nothing;
+- it refuses a file that is not a JSON object, gives a key twice, or has an `mcpServers` that is not an object; it follows a link to the real file, keeps its mode (0600 when it creates it), writes a copy of the old file next to it (`claude_desktop_config.json.hq-backup-TIME`) and then the new file under a temporary name renamed over it, so the file is never half written;
+- when the file cannot be found or edited safely, it changes nothing, prints the entry (`{"mcpServers": {"hq": ...}}`) to stdout and exits 3 naming the file; it never prints the file itself, which holds other servers' secrets.
+
+The entry records hq's resolved path and the environment hq needs, because Claude Desktop, a GUI app, starts servers with a minimal PATH: `PATH` always (tmux, sbx, git, gh), and `HQ_TMUX_SOCKET`, `TMUX_TMPDIR` and `XDG_CONFIG_HOME` when set, so the supervisor sees the tmux server and preferences of the shell that ran the install. On WSL the Windows app cannot run a Linux path, so the entry is `wsl.exe -d DISTRO --exec /usr/bin/env K=V... HQ mcp` (the distribution from `WSL_DISTRO_NAME`), since `env` of the Windows side does not reach the Linux process.
+
+**Rationale:** the official SDK follows the protocol as it moves, infers each tool's input schema from a Go struct and has an in-memory transport for tests; calling the commands in process rather than as a subprocess keeps one code path, one set of results and errors, and nothing to find on PATH.
+**Alternatives considered:** `mark3labs/mcp-go` (the older community SDK, now overtaken by the official one); a hand-written JSON-RPC loop (the protocol's handshake and schema rules for no gain); running `hq` as a subprocess per tool (a second process, and output parsing, per call); an HTTP server (a port and a daemon, against ADR 0002); progress notifications to hold `wait` open longer (Claude Desktop does not reset its timer on them).
+**Satisfies:** §4.1 (`hq mcp`, `hq mcp install`), §11, Phase 2; drivers 3, 4, 7.
 
 ## 4. Technology choices
 
@@ -227,6 +260,7 @@ Paths cross at the sbx client's boundary: the workspaces sbx reports come back a
 | Agent registry | tmux windows and their options | §4, §8 | always current without a daemon | - |
 | State transport | inline hooks injected with `--settings`, files in `.git/hq/` | §2, §5, §8 | no repository setup, nothing tracked | 0009 |
 | Notifications | the hook's `terminalSequence` | §5 | exactly once by construction, no hq process | 0010 |
+| MCP server | the official Go SDK `modelcontextprotocol/go-sdk` v1.8.0, stdio | Phase 2, §4.1 | the protocol's own SDK, schemas from Go structs, in-memory transport for tests (3.12) | - |
 
 ## 5. Key algorithms & data structures
 
@@ -304,12 +338,12 @@ The CLI follows spec §4.2 (exit codes 0-3, one `hq:` line naming the remedy). U
 
 ### 7.2 Testability
 
-**Decision:** six seams, each an interface with an in-memory fake: tmux, sbx, gh, the platform adapter (3.10), the clock and the state-file reader; nothing else touches a process or a file. The pyramid of `docs/agents/testing.md` maps to Go as:
+**Decision:** six seams, each an interface with an in-memory fake: tmux, sbx, gh, the platform adapter (3.10), the clock and the state-file reader; nothing else touches a process or a file, but for Claude Desktop's configuration file, edited by `internal/desktop` (3.12) and tested on temporary directories. The pyramid of `docs/agents/testing.md` maps to Go as:
 
 | Level | Selected by | Covers |
 |---|---|---|
-| Unit | plain `go test` | payload to state, attention order, views and sorting, row model and `hq ls` output, pull request map, version comparison, the list's rendering through Bubble Tea's `teatest` with golden output per mock scenario |
-| Integration | build tag `integration` | real tmux on a private socket per test (`tmux -L hq-test-N`); the injected hook run by `sh` on recorded Claude hook payloads, `?` rule included; a stub `sbx` on PATH; contract tests shared by fakes and real adapters |
+| Unit | plain `go test` | payload to state, attention order, views and sorting, row model and `hq ls` output, pull request map, version comparison, the list's rendering through Bubble Tea's `teatest` with golden output per mock scenario; the MCP tools through an SDK client on the in-memory transport against the fakes; merging Claude Desktop's configuration |
+| Integration | build tag `integration` | real tmux on a private socket per test (`tmux -L hq-test-N`); the injected hook run by `sh` on recorded Claude hook payloads, `?` rule included; a stub `sbx` on PATH; contract tests shared by fakes and real adapters; the built binary's `hq mcp` driven over stdio by the SDK's client, and `hq mcp install` on a temporary home (WSL through stub `wslpath` and `cmd.exe`) |
 | End-to-end | build tag `e2e` | a few journeys (start, see, dock, kill, sandbox stopped) in real tmux, with the stub `sbx` running a fake `claude` that fires the hooks; driven by `send-keys`, read by `capture-pane`, which also yields the QA screenshots |
 
 CI runs a matrix of `ubuntu-latest` and `macos-latest` (both have tmux) plus the ported pyramid check counting test functions per tag. Real sbx and Claude are left to the manual test (spec §10); the WSL side of the adapter is unit-tested with a fake `wslpath` and verified by hand (S13), as hosted CI has no WSL.
@@ -324,6 +358,7 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - **Output is stripped.** `last_assistant_message` and every other field from a state file lose control characters and escape sequences before they reach the list, `hq ls` or `hq read` (which keeps a reply's lines, tabs as spaces), so a message cannot retitle the terminal, redraw the screen or fake a notification.
 - **State files are data only.** hq reads only `agents/ID` for ids it issued; it checks with `lstat` and opens without following links, rejecting anything but a regular file, so a symlink planted in the repository cannot make the host read `~/.ssh/...` and show it in `LAST`; it caps the size at 64 KiB and parses defensively.
 - **No shell in between.** hq starts processes as argument lists, tmux's `new-window` in its multi-argument form that executes directly; names are restricted by §4.2; prompts and paths are always one argument, never pasted into a command string. The injected hook never uses the branch or the message as a `printf` format or in `eval`.
+- **The supervisor gets what a shell gets, less.** `hq mcp` listens on nothing: it is a child of Claude Desktop, spoken to over a pipe. Its tools are the CLI's own commands, without `stop` and `sandbox`, and a message it sends goes through `hq send`'s stripping and caps. `hq mcp install` never prints Claude Desktop's configuration, which holds other servers' secrets, and its copy of the file keeps the file's mode.
 - **Updates are verified.** Every release publishes `SHA256SUMS`; `install.sh` and `hq update` check the downloaded binary against it before replacing anything (3.9).
 - **Nothing new crosses the sandbox boundary, but messages.** The hook writes only into `.git/hq/` of the already mounted repository; hq passes nothing into the sandbox beyond what `sbx run` receives at launch, with one exception ([ADR 0012](../adr/0012-hq-send-messages-cross-into-the-sandbox.md)): the text the user gives `hq send`, which reaches Claude as a prompt the user could have typed into the session. hq strips it of escape sequences and control characters but newlines and tabs, caps it at 8 KiB and encodes it as JSON on the host; the hook only moves and copies it, never evaluates it or uses it as a format; typed in, it is one bracketed paste, so no key in it acts. hq reads an inbox's files as it reads state files (no links, capped size), and drops one that is not a message.
 
@@ -341,6 +376,8 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - Verify the chords of 3.7 against Claude Code's default key bindings and Windows Terminal's default actions; clicks outside an open tmux popup do nothing (verified on macOS with #48; on Windows with the WSL checks).
 - Verify in a real iTerm2 that `SetProfile=hq` on attach gives that tab Option as Esc+ and leaves the other tabs alone (#46).
 - Verify that Windows lets a background `powershell.exe` activate the window titled `hq - agents` (the foreground lock can refuse).
+- Verify `hq mcp install` and the supervisor on Windows 11 with Claude Desktop: `%APPDATA%` as `cmd.exe` gives it is where the installer from claude.ai keeps the configuration; a Microsoft Store (MSIX) install may keep it under `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude` instead, which the adapter would then have to look for; the tool-call limit there (reported about 4 minutes).
+- On macOS, `go` from Claude Desktop raises iTerm2 through `osascript`, which may make macOS ask once whether Claude may control iTerm2 (Automation); verify, and say so in the README if it does.
 - `hq update` replaces the binary while a list program may be running; the running list keeps the old version until it is restarted; say so in the update output.
 
 ## 10. Version changes
@@ -419,3 +456,4 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - 1.0 (draft): `hq wait` built (3.4, 3.8, 5.1, spec §4.1, #134, PRD #132): a blocking call that returns as soon as an agent it waits on enters `done`, `question`, `needs input` or `ended`, so a supervisor reacts within a second instead of polling. It runs the collection shared with `hq ls` and the list every 250 ms, so the three agree. Whether an agent entered its state after `--since` is decided by the moment any look could first see it (`Agent.Entered`, "Entered after a moment" in 3.4), from the state file and the window records alone, so every process and every call agrees: the state file's time, the first-seen turn end, a rewind 2 s after its screen was first at rest, and for an end the earliest of its report, its first-seen record and its pane's death plus a second. A look returns what entered up to 250 ms before it began and prints that moment as the next `--since`, so what a look could not see yet (a state file dated before its rename, a record dated before it is stored) is the next call's, and a change between two calls is returned exactly once. An agent killed while waited on returns as `ended`. The default `--timeout`, 50 s, is below the 60 s MCP clients commonly allow a tool call; `hq mcp` (#136) tunes it.
 - 1.0 (draft): `hq send NAME TEXT [--now]` (3.4, 3.5, 3.8, 6, 7.1, 7.3, spec §4.1, §5.1, ADR 0012, #135): feedback an agent takes into account when it is ready, never pulling it away from its work. The host leaves the message, JSON-encoded, in the agent's inbox `.git/hq/inbox/ID`; the injected hook delivers it by blocking Claude's stop with it, with the next prompt, or with `--now` after the next tool call, and `hq send` types it in as the next prompt when the agent waits at its empty prompt box (Claude's faint placeholder there aside). Two exceptions to 7: the Stop hook may hold an agent back while a message is unread, and the user's text crosses into the sandbox. A blocked stop is not reported and notifies nobody. `hq ls --json` shows how many messages wait (`pending`); `hq kill` removes them. Agents launched before carry hooks that ignore the inbox; hq marks the new ones (`@hq_inbox`) and `hq send` refuses the others with the remedy. Verified with Claude Code 2.1.283 in sbx; the payloads and the screen of a blocked stop are test fixtures, and the fake Claude now answers what the hooks print.
 - 1.0 (draft): `hq read` (3.4, 3.8, spec §4.1, #133): an agent in full, its whole last reply, what it asks and how many messages wait for it, from the state files as they are. The task list was left out: Claude Code 2.1.283 offers its task tools only to older models by default, and hq does not change Claude's defaults (3.4).
+- 1.0 (draft): `hq mcp` and `hq mcp install` (3.8, 3.10, 3.11, 3.12, 4, 7.2, 7.3, spec §4.1, §11, Phase 2, #136, PRD #132): the supervisor is Claude Desktop, an MCP client, not a `sup-<project>` agent. `hq mcp` is a stdio MCP server in the hq binary on the official Go SDK v1.8.0, its tools `new`, `list`, `read`, `wait`, `send`, `go`, `kill` calling the CLI commands in process; `kill` is destructive, `stop` and `sandbox` are not offered. Claude Desktop 2.9939.2 ends a local server's tool call after 60 s and does not reset that on progress, so `wait` waits 50 s at most and hq sends no progress notifications. `hq mcp install` edits Claude Desktop's configuration in place, keeping everything else, with a copy of the old file, and prints the entry when it cannot; on WSL the entry starts hq through `wsl.exe`. `hq go` with no terminal docks the agent and says to run `hq`, instead of attaching tmux to a pipe. Seventh platform concern.

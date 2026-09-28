@@ -69,6 +69,12 @@ func runGo(env Env, d deps, args []string) error {
 			raise(env, d, name, ttys[0])
 			return nil
 		}
+		// No terminal to attach in (an MCP client, a script): the agent
+		// waits docked for the next hq.
+		if !d.canAsk(env.Stdin) {
+			fmt.Fprintf(env.Stdout, "docked %s; no terminal shows the dashboard: run hq in a terminal to see it\n", name)
+			return nil
+		}
 	}
 	return show(env, d, w, mode)
 }
