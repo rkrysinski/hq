@@ -82,7 +82,7 @@ The terminal window is titled `hq - agents`.
 
 Resizing the terminal window keeps the 6 list rows and gives the rest to the session. Below 24 rows the list shows 3 rows. Minimum width 80 columns; narrower terminals drop `LAST`, then `REPO`.
 
-Header: `hq` + summary `N agents · X need you · Y done · Z working` + current view mode + clock/refresh indicator. The summary always counts all agents, whatever the view. When a newer version of hq is released, the header also shows a quiet hint, e.g. `v0.4.0 available - hq update`; hq looks for new releases at most once a day and only while the dashboard runs.
+Header: `hq` + summary `N agents · X need you · Y done · Z working` + current view mode + clock; while `sbx` has not answered for a few seconds, a quiet `sbx ?` beside the clock says that `ended` states may be stale, and it goes as soon as `sbx` answers again. The summary always counts all agents, whatever the view. When a newer version of hq is released, the header also shows a quiet hint, e.g. `v0.4.0 available - hq update`; hq looks for new releases at most once a day and only while the dashboard runs.
 
 Columns: `TAB` (name), `REPO`, `BRANCH`, `STATE` (colored dot + word), `AGE`, `LAST`. No row numbers: under attention sort rows reshuffle on every state change, so positional shortcuts would point at the wrong agent. Colors: attention amber, done green, working blue, ended grey, dark background; degrade gracefully on terminals with few colors.
 
