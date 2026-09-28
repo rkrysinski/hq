@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/state"
@@ -19,6 +20,7 @@ import (
 // Agent is one agent: its home window and what hq stored on it.
 type Agent struct {
 	Window   string    `json:"-"`
+	Pane     string    `json:"-"` // the agent's own pane
 	ID       string    `json:"id"`
 	Name     string    `json:"name"`
 	RepoPath string    `json:"repo_path"`
@@ -29,6 +31,7 @@ type Agent struct {
 	New      bool      `json:"-"` // started with hq new, not yet reported (S2)
 	ending   bool      // hq is taking the agent down (its sandbox restarting)
 	reported bool      // its session has reported, so its sandbox has run
+	turnEnd  string    // a turn the user ended, as hq first saw it (see Settle)
 	State    string    `json:"state"`
 	Since    time.Time `json:"since"`
 	Branch   string    `json:"branch"`
@@ -82,7 +85,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if o["id"] == "" {
 			continue
 		}
-		a := Agent{Window: w.ID, ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting}
+		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting}
 		if a.Name == "" {
 			a.Name = w.Name
 		}
@@ -154,6 +157,40 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	if a.Alive || r.Since.After(a.Since) {
 		a.Since = r.Since
 	}
+}
+
+// settleDelay is how old the hooks' report must be before the agent's
+// screen can overrule it: Claude draws and runs its hooks independently, so
+// for a moment the screen may lag behind the report.
+const settleDelay = 500 * time.Millisecond
+
+// Unsettled reports whether the agent's screen may show a turn that the
+// user ended with Esc, which no hook reports (design §3.4): the agent runs,
+// and its hooks said a moment ago that it needs input.
+func (a Agent) Unsettled(now time.Time) bool {
+	return a.Alive && !a.ending && a.reported && a.State == state.NeedsInput && now.Sub(a.Since) >= settleDelay
+}
+
+// Settle applies the screen of an Unsettled agent: a turn the user ended
+// is done, with the last message Claude printed for it, since hq first saw
+// it. That moment is kept on the agent's window, keyed by the report it
+// overrules, so hq ls and the list agree; record is the value to store
+// there as the turnend option, empty when there is nothing new to store.
+func (a *Agent) Settle(screen string, now time.Time) (record string) {
+	last, ok := state.EndedByUser(screen)
+	if !ok {
+		return ""
+	}
+	a.State, a.Last = state.Done, last
+	key := strconv.FormatInt(a.Since.UnixNano(), 10)
+	if k, at, ok := strings.Cut(a.turnEnd, " "); ok && k == key {
+		if n, err := strconv.ParseInt(at, 10, 64); err == nil {
+			a.Since = time.Unix(0, n)
+			return ""
+		}
+	}
+	a.Since = now
+	return key + " " + strconv.FormatInt(now.UnixNano(), 10)
 }
 
 // Find returns the agent named name.

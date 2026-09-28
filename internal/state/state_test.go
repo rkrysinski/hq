@@ -27,6 +27,9 @@ func TestParseDerivesTheStateFromTheLatestEvent(t *testing.T) {
 		{"stop-done", "stop-done", Done, "Hi. The tests pass and PR #58 is open."},
 		{"stop-question", "stop-question", Question, "Should I also update the README?"},
 		{"notification", "stop-done", NeedsInput, "Claude needs your permission"},
+		{"dialog-ask", "stop-done", NeedsInput, "Which colour do you pick: red or blue?"},
+		{"dialog-bash", "stop-done", NeedsInput, "Bash: Create empty probe file in /tmp"},
+		{"answer-ask", "stop-done", Working, "Hi. The tests pass and PR #58 is open."},
 		{"session-end", "stop-done", Ended, "Hi. The tests pass and PR #58 is open."},
 	} {
 		var lastStop []byte
@@ -42,6 +45,21 @@ func TestParseDerivesTheStateFromTheLatestEvent(t *testing.T) {
 		}
 		if r.SessionID != "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0" || r.Cwd != "/w/app/.claude/worktrees/feat-42" {
 			t.Errorf("%s: session %q cwd %q", tc.latest, r.SessionID, r.Cwd)
+		}
+	}
+}
+
+func TestADialogShowsWhatItAsksOrTheToolItAllows(t *testing.T) {
+	for _, tc := range []struct{ payload, want string }{
+		{`{"hook_event_name":"PermissionRequest","tool_name":"AskUserQuestion","tool_input":{"questions":[{"question":"Red\nor blue?"},{"question":"Why?"}]}}`, "Red or blue?"},
+		{`{"hook_event_name":"PermissionRequest","tool_name":"AskUserQuestion","tool_input":{"questions":[]}}`, "AskUserQuestion"},
+		{`{"hook_event_name":"PermissionRequest","tool_name":"Bash","tool_input":{"command":"rm -rf build"}}`, "Bash: rm -rf build"},
+		{`{"hook_event_name":"PermissionRequest","tool_name":"Edit","tool_input":{"file_path":"/w/app/x.go"}}`, "Edit: /w/app/x.go"},
+		{`{"hook_event_name":"PermissionRequest","tool_name":"WebFetch","tool_input":{"url":"https://example.com"}}`, "WebFetch: https://example.com"},
+		{`{"hook_event_name":"PermissionRequest","tool_name":"ExitPlanMode","tool_input":{}}`, "ExitPlanMode"},
+	} {
+		if r := Parse([]byte(tc.payload), fixture(t, "stop-done")); r.State != NeedsInput || r.Last != tc.want {
+			t.Errorf("%s: %q %q, want %q", tc.payload, r.State, r.Last, tc.want)
 		}
 	}
 }
@@ -115,21 +133,39 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 	// TMUX set makes Claude wrap notifications so tmux passes them on.
-	if s.Env["HQ_AGENT"] != "a" || s.Env["HQ_ID"] != "0123abcd" || s.Env["TMUX"] == "" {
+	if s.Env["HQ_AGENT"] != "a" || s.Env["HQ_ID"] != "0123abcd" || s.Env["TMUX"] == "" || s.Env["HQ_HOOK"] != hookScript {
 		t.Fatalf("env %v", s.Env)
 	}
-	// Only Stop and the attention Notifications notify, with the sequence.
-	for event, args := range map[string]string{"UserPromptSubmit": "prompt", "Stop": "stop \\u0007", "Notification": "input \\u0007", "SessionEnd": "end"} {
+	// Only Stop, a dialog and the attention Notifications notify, with the
+	// sequence; the end of any tool may close a dialog.
+	events := map[string]string{
+		"UserPromptSubmit": "prompt", "PermissionRequest": "dialog \\u0007", "PostToolUse": "answer", "PostToolUseFailure": "answer",
+		"Stop": "stop \\u0007", "Notification": "input \\u0007", "SessionEnd": "end",
+	}
+	if len(s.Hooks) != len(events) {
+		t.Errorf("hooks for %d events, want %d", len(s.Hooks), len(events))
+	}
+	for event, args := range events {
 		m := s.Hooks[event]
 		if len(m) != 1 || len(m[0].Hooks) != 1 {
 			t.Fatalf("%s: %+v", event, m)
 		}
 		h := m[0].Hooks[0]
-		if h.Type != "command" || h.Command != "sh" || h.Args[0] != "-c" || h.Args[1] != hookScript || strings.Join(h.Args[3:], " ") != args {
+		if h.Type != "command" || h.Command != "sh" || h.Args[0] != "-c" || h.Args[1] != `eval "$HQ_HOOK"` || strings.Join(h.Args[3:], " ") != args {
 			t.Errorf("%s: %+v", event, h)
 		}
 	}
 	if s.Hooks["Notification"][0].Matcher != "permission_prompt|agent_needs_input|elicitation_dialog" {
 		t.Errorf("matcher %q", s.Hooks["Notification"][0].Matcher)
+	}
+	// tmux refuses a command much longer than 16 KiB; the settings are one
+	// argument of the agent's window.
+	if len(raw) > 6<<10 {
+		t.Errorf("settings of %d bytes", len(raw))
+	}
+	for _, event := range []string{"PermissionRequest", "PostToolUse", "PostToolUseFailure"} {
+		if m := s.Hooks[event][0].Matcher; m != "" {
+			t.Errorf("%s: every tool, not %q", event, m)
+		}
 	}
 }

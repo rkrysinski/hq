@@ -23,7 +23,7 @@ func run(t *testing.T, cwd, project, id string, h hookCommand, payload []byte) s
 	t.Helper()
 	cmd := exec.Command(h.Command, h.Args...)
 	cmd.Dir = cwd
-	cmd.Env = append(os.Environ(), "HQ_ID="+id, "CLAUDE_PROJECT_DIR="+project)
+	cmd.Env = append(os.Environ(), "HQ_ID="+id, "CLAUDE_PROJECT_DIR="+project, hookEnv+"="+hookScript)
 	cmd.Stdin = bytes.NewReader(payload)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -51,6 +51,8 @@ func TestHookNotifiesOnStopAndInputNamingTheBranch(t *testing.T) {
 		{"stop", "stop-done", `{"terminalSequence":"[notify Done: feat/42-x]"}` + "\n"},
 		{"stop", "stop-question", `{"terminalSequence":"[notify Question: feat/42-x]"}` + "\n"},
 		{"input", "notification", `{"terminalSequence":"[notify Needs input: feat/42-x]"}` + "\n"},
+		{"dialog", "dialog-ask", `{"terminalSequence":"[notify Needs input: feat/42-x]"}` + "\n"},
+		{"answer", "answer-ask", ""},
 		{"prompt", "prompt", ""},
 		{"end", "session-end", ""},
 	} {
@@ -130,6 +132,77 @@ func TestHookReportsToTheMainRepositoryFromAWorktree(t *testing.T) {
 	out, _ := exec.Command("git", "-C", root, "status", "--porcelain").Output()
 	if len(out) != 0 {
 		t.Fatalf("the repository is not clean: %s", out)
+	}
+}
+
+func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	notify := func(kind, payload string) string {
+		return run(t, root, root, id, hook(kind, "[%s]"), fixture(t, payload))
+	}
+	state := func() (Report, string) {
+		t.Helper()
+		r, ok := Read(root, id)
+		if !ok {
+			t.Fatal("no report")
+		}
+		b, _ := os.ReadFile(filepath.Join(Dir(root), id))
+		return r, string(b)
+	}
+
+	// A tool ending with no dialog open is not reported: working keeps its age.
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	_, before := state()
+	if out := notify("answer", "answer-bash"); out != "" {
+		t.Fatalf("answer printed %q", out)
+	}
+	if _, now := state(); now != before {
+		t.Fatal("a tool's end with no dialog open was written")
+	}
+
+	// The question dialog opens: needs input at once, one notification.
+	if out := notify("dialog", "dialog-ask"); out != `{"terminalSequence":"[Needs input: main]"}`+"\n" {
+		t.Fatalf("dialog printed %q", out)
+	}
+	r, opened := state()
+	if r.State != NeedsInput || r.Last != "Which colour do you pick: red or blue?" {
+		t.Fatalf("dialog: %+v", r)
+	}
+	// Claude's own Notification for it, seconds later, changes nothing and
+	// notifies nobody.
+	if out := notify("input", "notification"); out != "" {
+		t.Fatalf("the late Notification printed %q", out)
+	}
+	// Another tool (a background agent's) ending does not close it.
+	if out := notify("answer", "answer-bash"); out != "" {
+		t.Fatalf("answer printed %q", out)
+	}
+	if _, now := state(); now != opened {
+		t.Fatal("the dialog's report changed before it was answered")
+	}
+	// Answered: working again.
+	fire(t, root, root, id, "answer", fixture(t, "answer-ask"))
+	if r, _ := state(); r.State != Working {
+		t.Fatalf("answered: %+v", r)
+	}
+	// With no dialog open, a Notification is the attention event itself.
+	if out := notify("input", "notification"); out != `{"terminalSequence":"[Needs input: main]"}`+"\n" {
+		t.Fatalf("notification printed %q", out)
+	}
+	if r, _ := state(); r.State != NeedsInput || r.Last != "Claude needs your permission" {
+		t.Fatalf("notification: %+v", r)
+	}
+	// A permission prompt closes when its tool has run, successfully or not.
+	notify("dialog", "dialog-bash")
+	failed := fixture(t, "answer-bash")
+	failed = bytes.Replace(failed, []byte(`"PostToolUse"`), []byte(`"PostToolUseFailure"`), 1)
+	fire(t, root, root, id, "answer", failed)
+	if r, _ := state(); r.State != Working {
+		t.Fatalf("permission granted, tool failed: %+v", r)
+	}
+	if entries, _ := os.ReadDir(Dir(root)); len(entries) != 1 {
+		t.Fatalf("left files behind: %v", entries)
 	}
 }
 

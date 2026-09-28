@@ -38,6 +38,33 @@ type payload struct {
 	Cwd              string `json:"cwd"`
 	AssistantMessage string `json:"last_assistant_message"`
 	Message          string `json:"message"`
+	ToolName         string `json:"tool_name"`
+	ToolInput        struct {
+		Questions   []struct{ Question string } `json:"questions"`
+		Description string                      `json:"description"`
+		Command     string                      `json:"command"`
+		FilePath    string                      `json:"file_path"`
+		URL         string                      `json:"url"`
+	} `json:"tool_input"`
+}
+
+// askTool is Claude's tool that asks the user questions in a dialog.
+const askTool = "AskUserQuestion"
+
+// dialogText is what an open dialog shows as the last message: the first
+// question Claude asks, or for a permission prompt the tool and what it is
+// about to do.
+func (p payload) dialogText() string {
+	in := p.ToolInput
+	if p.ToolName == askTool && len(in.Questions) > 0 {
+		return Clean(in.Questions[0].Question)
+	}
+	for _, s := range []string{in.Description, in.Command, in.FilePath, in.URL} {
+		if s = Clean(s); s != "" {
+			return Clean(p.ToolName) + ": " + s
+		}
+	}
+	return Clean(p.ToolName)
 }
 
 // Parse derives the report from the latest event and the latest Stop event
@@ -54,8 +81,15 @@ func Parse(latest, lastStop []byte) Report {
 		r.Last = Clean(stop.AssistantMessage)
 	}
 	switch p.Event {
-	case "UserPromptSubmit":
+	case "UserPromptSubmit", "PostToolUse", "PostToolUseFailure":
+		// The hook keeps a tool's end only when it closes a dialog: the
+		// user answered and Claude works on.
 		r.State = Working
+	case "PermissionRequest":
+		r.State = NeedsInput
+		if m := p.dialogText(); m != "" {
+			r.Last = m
+		}
 	case "Stop":
 		r.Last = Clean(p.AssistantMessage)
 		r.State = Done

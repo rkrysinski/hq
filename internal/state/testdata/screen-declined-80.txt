@@ -1,0 +1,10 @@
+ ▝▝   ▝▝   /Users/romankrysinski/work/repositories/hq
+❯ Use your AskUserQuestion tool to ask me to pick one of two colours, green or
+  yellow. Do nothing else; do not edit any files.
+● User declined to answer questions
+  ⎿  · Which colour do you pick? (Green / Yellow)
+✻ Sautéed for 3s · done 6:24 PM
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents

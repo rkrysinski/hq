@@ -204,10 +204,17 @@ func TestStatesFollowTheSessionAndLeaveTheRepositoryClean(t *testing.T) {
 	h.waitReport("a", "working", "Done: hello")
 	h.waitReport("a", "question", "Shall I go on?")
 
+	// A question dialog needs input, with its question, until it is answered
+	// (S4) or cancelled; a cancelled one ends the turn with no hook, which hq
+	// sees on the agent's screen (#71).
 	h.typeIn("a", "needs input")
-	h.waitReport("a", "needs input", "Claude needs your permission")
+	h.waitReport("a", "needs input", "Which colour do you pick?")
 	h.typeIn("a", "yes")
 	h.waitReport("a", "done", "Done: needs input")
+	h.typeIn("a", "more input")
+	h.waitReport("a", "needs input", "Which colour do you pick?")
+	h.typeIn("a", "esc")
+	h.waitReport("a", "done", "User declined to answer questions")
 
 	// An agent in a worktree reports to the repository, like its siblings.
 	wt := filepath.Join(t.TempDir(), "x")

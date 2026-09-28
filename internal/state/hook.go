@@ -8,13 +8,18 @@ import (
 
 // hookScript runs inside the sandbox on each lifecycle event, in Claude's
 // current directory, with the event payload on stdin, the event's kind in $1
-// and, on stop and input, the notification sequence in $2. It writes the
-// branch checked out there as a header line, then the payload, to the main
-// repository's .git/hq/agents/$HQ_ID, replacing it in one step, and keeps
-// the latest Stop event beside it (.stop) for the last message. On stop and
-// input it then prints the desktop notification for Claude to write to its
-// terminal (design §3.5). It needs only sh, git, cat, mv, cp, mkdir, rm and
-// awk, never blocks Claude and always exits 0 (design §3.4, §7.1).
+// and, on stop, dialog and input, the notification sequence in $2. It writes
+// the branch checked out there as a header line, then the payload, to the
+// main repository's .git/hq/agents/$HQ_ID, replacing it in one step, and
+// keeps the latest Stop event beside it (.stop) for the last message. An
+// open dialog (the latest event is a PermissionRequest) decides two kinds:
+// answer (a tool ran) is written only when it closes that dialog, the same
+// tool having run, and input (Claude's Notification) only when no dialog is
+// open, so a dialog is reported once, when it opens (design §3.4). On stop,
+// dialog and input it then prints the desktop notification for Claude to
+// write to its terminal (design §3.5). It needs only sh, git, cat, mv, cp,
+// mkdir, rm, grep and awk, never blocks Claude and always exits 0 (design
+// §3.4, §7.1).
 const hookScript = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
 b=$(git branch --show-current 2>/dev/null)
 l=${b:-${PWD##*/}}
@@ -23,17 +28,28 @@ d=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
 d=$d/hq/agents
 mkdir -p "$d" 2>/dev/null || exit 0
 f=$d/$HQ_ID
-if { printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$f.$$" 2>/dev/null && mv -f "$f.$$" "$f" 2>/dev/null && [ "$1" = stop ]; then
-    cp -f "$f" "$f.$$" 2>/dev/null && mv -f "$f.$$" "$f.stop" 2>/dev/null
+t=$f.$$
+{ printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" 2>/dev/null || { rm -f "$t"; exit 0; }
+tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1" 2>/dev/null; }
+case $1 in
+answer) grep -q '` + dialogEvent + `' "$f" 2>/dev/null && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
+input) grep -q '` + dialogEvent + `' "$f" 2>/dev/null && { rm -f "$t"; exit 0; } ;;
+esac
+if mv -f "$t" "$f" 2>/dev/null && [ "$1" = stop ]; then
+    cp -f "$f" "$t" 2>/dev/null && mv -f "$t" "$f.stop" 2>/dev/null
 fi
-rm -f "$f.$$" 2>/dev/null
-case $1 in stop | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk '` + notifyAwk + `' "$f" 2>/dev/null ;; esac
+rm -f "$t" 2>/dev/null
+case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk '` + notifyAwk + `' "$f" 2>/dev/null ;; esac
 exit 0`
 
+// dialogEvent is what the hook's grep finds in a state file whose latest
+// event opened a dialog: a PermissionRequest, with or without spaces.
+const dialogEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"PermissionRequest"`
+
 // notifyAwk prints the notification for the event in the state file: on
-// input "Needs input: <branch>", on stop "Question: <branch>" when the last
-// assistant message ends with "?" (the rule of IsQuestion), else "Done:
-// <branch>", placed at the %s of the sequence T, as Claude's hook output
+// dialog and input "Needs input: <branch>", on stop "Question: <branch>"
+// when the last assistant message ends with "?" (the rule of IsQuestion),
+// else "Done: <branch>", placed at the %s of the sequence T, as Claude's hook output
 // {"terminalSequence": ...}. It reads the file as one record and walks the
 // message's JSON string to its end; the branch is only ever data.
 const notifyAwk = `function question(s,    i, n, c, m) {
@@ -59,7 +75,7 @@ const notifyAwk = `function question(s,    i, n, c, m) {
 BEGIN { RS = "\001" }
 NR == 1 {
     k = "Done"
-    if (ENVIRON["K"] == "input") k = "Needs input"
+    if (ENVIRON["K"] != "stop") k = "Needs input"
     else if (question($0)) k = "Question"
     l = ENVIRON["L"]
     gsub(/[[:cntrl:]\\"]/, "", l)
@@ -73,7 +89,8 @@ NR == 1 {
 const branchHeader = "branch"
 
 // attentionNotifications are the Notification kinds that mean the agent
-// waits for the user (design §3.4).
+// waits for the user (design §3.4). Claude sends them seconds after the
+// dialog appears; a dialog that fired PermissionRequest is reported by then.
 const attentionNotifications = "permission_prompt|agent_needs_input|elicitation_dialog"
 
 type hookCommand struct {
@@ -87,10 +104,15 @@ type hookMatcher struct {
 	Hooks   []hookCommand `json:"hooks"`
 }
 
+// hookEnv is the environment variable that carries the script: every hook
+// runs the one copy of it, which keeps the settings, an argument of the
+// agent's tmux window, within what tmux accepts for a command.
+const hookEnv = "HQ_HOOK"
+
 // hook runs the script for an event of kind; notify, when set, is the
 // notification sequence the event sends.
 func hook(kind, notify string) hookCommand {
-	args := []string{"-c", hookScript, "hq-hook", kind}
+	args := []string{"-c", `eval "$` + hookEnv + `"`, "hq-hook", kind}
 	if notify != "" {
 		args = append(args, notify)
 	}
@@ -102,20 +124,23 @@ func hook(kind, notify string) hookCommand {
 // tmux passthrough; tmux drops the sequence unwrapped (design §3.5).
 const inTmux = "hq"
 
-// Settings is the --settings hq gives Claude: the agent's identity as
-// environment, and the hook set that reports its state (ADR 0009) and sends
-// notifications with the platform's sequence (ADR 0010).
+// Settings is the --settings hq gives Claude: the agent's identity and the
+// hook script as environment, and the hook set that reports its state (ADR
+// 0009) and sends notifications with the platform's sequence (ADR 0010).
 func Settings(name, id, notify string) string {
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
 	enc.SetEscapeHTML(false) // the script's redirections stay readable
 	_ = enc.Encode(map[string]any{
-		"env": map[string]string{"HQ_AGENT": name, "HQ_ID": id, "TMUX": inTmux},
+		"env": map[string]string{"HQ_AGENT": name, "HQ_ID": id, "TMUX": inTmux, hookEnv: hookScript},
 		"hooks": map[string][]hookMatcher{
-			"UserPromptSubmit": {{Hooks: []hookCommand{hook("prompt", "")}}},
-			"Stop":             {{Hooks: []hookCommand{hook("stop", notify)}}},
-			"Notification":     {{Matcher: attentionNotifications, Hooks: []hookCommand{hook("input", notify)}}},
-			"SessionEnd":       {{Hooks: []hookCommand{hook("end", "")}}},
+			"UserPromptSubmit":   {{Hooks: []hookCommand{hook("prompt", "")}}},
+			"PermissionRequest":  {{Hooks: []hookCommand{hook("dialog", notify)}}},
+			"PostToolUse":        {{Hooks: []hookCommand{hook("answer", "")}}},
+			"PostToolUseFailure": {{Hooks: []hookCommand{hook("answer", "")}}},
+			"Stop":               {{Hooks: []hookCommand{hook("stop", notify)}}},
+			"Notification":       {{Matcher: attentionNotifications, Hooks: []hookCommand{hook("input", notify)}}},
+			"SessionEnd":         {{Hooks: []hookCommand{hook("end", "")}}},
 		},
 	})
 	return strings.TrimSpace(b.String())
