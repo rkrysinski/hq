@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"text/tabwriter"
 	"time"
 
@@ -49,7 +50,15 @@ func runLs(env Env, d deps, args []string) error {
 		}
 	}
 	agent.SortAttention(as)
-	now := d.now()
+	rows := lsRows(as, d.now())
+	if asJSON {
+		return writeJSON(env.Stdout, rows)
+	}
+	return writeTable(env.Stdout, rows)
+}
+
+// lsRows are the agents as hq ls shows them at now, in the order given.
+func lsRows(as []agent.Agent, now time.Time) []lsRow {
 	rows := make([]lsRow, 0, len(as))
 	for _, a := range as {
 		rows = append(rows, lsRow{
@@ -57,15 +66,22 @@ func runLs(env Env, d deps, args []string) error {
 			Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
 		})
 	}
-	if asJSON {
-		enc := json.NewEncoder(env.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(rows)
-	}
+	return rows
+}
+
+// writeJSON prints v as indented JSON.
+func writeJSON(w io.Writer, v any) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(v)
+}
+
+// writeTable prints rows as hq ls's columns; nothing when there are none.
+func writeTable(w io.Writer, rows []lsRow) error {
 	if len(rows) == 0 {
 		return nil
 	}
-	tw := tabwriter.NewWriter(env.Stdout, 0, 0, 2, ' ', 0)
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "NAME\tREPO\tBRANCH\tSTATE\tAGE\tLAST")
 	for _, r := range rows {
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, agent.Age(time.Duration(r.AgeSeconds)*time.Second), orDash(truncate(r.Last, lastWidth)))
@@ -77,18 +93,31 @@ func runLs(env Env, d deps, args []string) error {
 // sbx (design §5.1). When sbx fails or does not answer in time, the states
 // come from tmux and the hooks alone.
 func collect(d deps) ([]agent.Agent, error) {
+	return collectWith(d, runningSandboxes(d))
+}
+
+// collectWith is collect with sbx's answer given: which sandboxes run, nil
+// when sbx could not say.
+func collectWith(d deps, running map[string]bool) ([]agent.Agent, error) {
 	ws, err := d.tmux.Windows()
 	if err != nil {
 		return nil, tmuxErr(err)
 	}
-	var running map[string]bool
-	if sbs, err := d.pollSandboxes(); err == nil {
-		running = map[string]bool{}
-		for _, s := range sbs {
-			running[s.Name] = s.Running()
-		}
-	}
 	return seeEnds(d, settle(d, agent.Collect(ws, d.readState, running))), nil
+}
+
+// runningSandboxes asks sbx which sandboxes run; nil when it fails or does
+// not answer in time.
+func runningSandboxes(d deps) map[string]bool {
+	sbs, err := d.pollSandboxes()
+	if err != nil {
+		return nil
+	}
+	running := map[string]bool{}
+	for _, s := range sbs {
+		running[s.Name] = s.Running()
+	}
+	return running
 }
 
 // settle looks at the screens of agents whose turn the user may have ended,

@@ -35,6 +35,7 @@ type Agent struct {
 	turnEnd  string    // a turn the user ended, as hq first saw it (see Settle)
 	restSeen string    // when hq first saw its screen at rest, as it looked (see Settle)
 	resting  bool      // its screen is at rest, not yet for long enough (see Settle)
+	rewound  bool      // its turn end is a rewind, decided RestDelay after its moment (see Entered)
 	prompt   string    // the prompt it works on, as its hooks reported it
 	deadAt   time.Time // when its pane died, as tmux says; zero when unknown
 	endedAt  time.Time // when its session reported its end
@@ -176,16 +177,61 @@ func (a *Agent) endTime() {
 // seen applies the moment SeeEnd recorded for this session since its last
 // report, if any: a record from before the report is not its end (#104).
 func (a *Agent) seen() bool {
+	t, ok := a.seenAt()
+	if ok {
+		a.Since = t
+	}
+	return ok
+}
+
+// seenAt is the moment SeeEnd recorded for this session since its last
+// report.
+func (a Agent) seenAt() (time.Time, bool) {
 	at, ok := strings.CutPrefix(a.endSeen, a.endKey())
 	if !ok {
-		return false
+		return time.Time{}, false
 	}
 	n, err := strconv.ParseInt(at, 10, 64)
 	if err != nil {
-		return false
+		return time.Time{}, false
 	}
-	a.Since = time.Unix(0, n)
-	return true
+	return time.Unix(0, n), true
+}
+
+// Entered is the moment from which any hq process can see the agent in its
+// state (design §3.4, "Entered after a moment"), which hq wait compares with
+// its --since. It is Since, the moment AGE counts from, except where that
+// is dated before the state can be seen: a turn the user rewound is decided
+// only RestDelay after its screen was first seen at rest, and an ended
+// agent is ended from the first of its session's end report, the moment hq
+// first saw it ended, and its pane's death, which tmux dates to the whole
+// second, so a second after that. Every process derives it from the same
+// state file and window records, so all agree on it.
+func (a Agent) Entered() time.Time {
+	switch {
+	case a.State == state.Ended:
+		var first time.Time
+		earlier := func(t time.Time) {
+			if first.IsZero() || t.Before(first) {
+				first = t
+			}
+		}
+		if !a.endedAt.IsZero() {
+			earlier(a.endedAt)
+		}
+		if !a.deadAt.IsZero() {
+			earlier(a.deadAt.Add(time.Second))
+		}
+		if t, ok := a.seenAt(); ok {
+			earlier(t)
+		}
+		if !first.IsZero() {
+			return first
+		}
+	case a.State == state.Done && a.rewound:
+		return a.Since.Add(RestDelay)
+	}
+	return a.Since
 }
 
 // SeeEnd records, for an ended agent whose end nothing dates (its sandbox
@@ -298,6 +344,10 @@ func (a *Agent) recall(key string) bool {
 		return false
 	}
 	a.State, a.Since, a.Last = state.Done, time.Unix(0, n), f[2]
+	// A rewind's turn end carries the moment its screen was first seen at
+	// rest, which the restseen record of the same report holds too.
+	r := strings.Fields(a.restSeen)
+	a.rewound = f[2] == Rewound && len(r) == 3 && r[0] == key && r[2] == f[1]
 	return true
 }
 
@@ -352,7 +402,7 @@ func (a *Agent) Settle(screen string, now time.Time) Record {
 		a.resting = restored
 		return Record{}
 	}
-	a.State, a.Since, a.Last = state.Done, at, Rewound
+	a.State, a.Since, a.Last, a.rewound = state.Done, at, Rewound, true
 	return Record{"turnend", key, key + nanos(at) + " " + Rewound}
 }
 

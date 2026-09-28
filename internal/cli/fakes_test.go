@@ -411,6 +411,7 @@ type fakes struct {
 	dirs     map[string]bool
 	cwd      string
 	now      time.Time
+	onSleep  func() // called after each sleep, e.g. to move the agents on
 	env      map[string]string
 	tty      bool   // stdin is a terminal
 	stdin    string // what the user types
@@ -532,7 +533,12 @@ func (f *fakes) deps() deps {
 			f.ran = append(f.ran, argv)
 			return f.ranCode, f.ranErr
 		},
-		sleep:  func(d time.Duration) { f.now = f.now.Add(d) },
+		sleep: func(d time.Duration) {
+			f.now = f.now.Add(d)
+			if f.onSleep != nil {
+				f.onSleep()
+			}
+		},
 		canAsk: func(io.Reader) bool { return f.tty },
 		rawTerminal: func(io.Reader) func() {
 			f.rawOn++
