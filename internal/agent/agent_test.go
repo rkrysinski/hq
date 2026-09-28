@@ -167,6 +167,28 @@ func TestCollectSaysSessionEndedForAnEndedAgentWithoutAMessage(t *testing.T) {
 	}
 }
 
+func TestCollectKeepsTheTurnEndHqSawAsAnEndedAgentsMessage(t *testing.T) {
+	at := time.Unix(1790000000, 0)
+	key := strconv.FormatInt(at.UnixNano(), 10)
+	seen := strconv.FormatInt(at.Add(3*time.Second).UnixNano(), 10)
+	ws := []tmux.Window{
+		// An early Esc rewound its turn, then its sandbox stopped (#111).
+		{ID: "@1", Name: "rewound", PaneDead: true, Options: map[string]string{"id": "a", "sandbox": "claude-app", "turnend": key + " " + seen + " " + Rewound}},
+		// The record is for an earlier report: it does not count.
+		{ID: "@2", Name: "stale", PaneDead: true, Options: map[string]string{"id": "b", "sandbox": "claude-app", "turnend": "1 " + seen + " " + Rewound}},
+	}
+	read := func(_, id string) (state.Report, bool) {
+		return state.Report{State: state.Working, Since: at}, true
+	}
+	var got []string
+	for _, a := range Collect(ws, read, map[string]bool{"claude-app": true}) {
+		got = append(got, a.Name+"="+string(a.State)+"="+a.Last)
+	}
+	if want := "rewound=ended=" + Rewound + " stale=ended=" + EndedLast; strings.Join(got, " ") != want {
+		t.Fatalf("got  %s\nwant %s", strings.Join(got, " "), want)
+	}
+}
+
 func TestAReportFromBeforeTheStartGivesTheMessageButNotTheState(t *testing.T) {
 	// Relaunched at 900 (hq sandbox restart); the file is the previous
 	// session's, written at 500.
