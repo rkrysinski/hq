@@ -29,6 +29,26 @@ func TestNOpensTheNewAgentDialogInAPopup(t *testing.T) {
 	}
 }
 
+func TestTheNewAgentDialogStartsWhereTheLatestHqWasStarted(t *testing.T) {
+	f := newFakes()
+	f.exe = "/opt/hq"
+	f.run("dash")
+	f.cwd = "/w/lib"
+	f.run("dash")
+	f.cwd = "/w/app" // the list program's own directory, from the first run
+	if err := listSource(f.deps(), "%1").NewAgent(""); err != nil {
+		t.Fatal(err)
+	}
+	f.tmux.session[startedValue] = "/w/gone"
+	if err := listSource(f.deps(), "%1").NewAgent(""); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"%1 /w/lib 76x20 /opt/hq __new-dialog /w/lib", "%1 /w/app 76x20 /opt/hq __new-dialog /w/app"}
+	if strings.Join(f.tmux.popups, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("popups %q", f.tmux.popups)
+	}
+}
+
 func TestTheDialogCommandShowsTheDirUnderHomeWithATilde(t *testing.T) {
 	f := newFakes()
 	f.env["HOME"] = "/w"
