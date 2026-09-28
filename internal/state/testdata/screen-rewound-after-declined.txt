@@ -1,0 +1,17 @@
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Fable 5.1 · Claude Max
+ ▝▝   ▝▝   /Users/romankrysinski/work/repositories/hq
+
+
+❯ Use the AskUserQuestion tool to ask me whether I prefer red or blue. Nothing else.
+
+● User declined to answer questions
+  ⎿  · Do you prefer red or blue? (Red / Blue)
+
+✻ Worked for 3s · done 5:23 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Write a 300-word poem about the sea.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)

@@ -128,3 +128,28 @@ func TestAtRestCannotTellANarrowStreamingTurnFromOneScreen(t *testing.T) {
 		t.Errorf("narrow, streaming: at rest %v, restored %v", ok, restored)
 	}
 }
+
+func TestPutBackTellsARewindAfterAnEndedTurnFromAnInterruptedTurn(t *testing.T) {
+	// A rewind right after a cancelled dialog (#99): the declined line
+	// above the box is the dialog's turn's.
+	if !PutBack(screen(t, "rewound-after-declined"), "Write a 300-word poem about the sea.") {
+		t.Error("rewound after declined")
+	}
+	// Interrupted before its tool started: the prompt is back in the box,
+	// its sent copy scrolled off; the prompt box holds something else; a
+	// rewind after a turn that ended normally, which no line ends.
+	for name, reported := range map[string]string{
+		"interrupted-prompt-restored": "Run the shell command sleep 20 and then reply with the word slept. Do not edit any files.",
+		"declined":                    "Pick a colour",
+		"rewound-after-declined":      "Something else",
+	} {
+		if PutBack(screen(t, name), reported) {
+			t.Errorf("%s", name)
+		}
+	}
+	rule := strings.Repeat("─", 40)
+	sent := "❯ Write a long prompt that\n  wraps\n  ⎿  Interrupted · What should Claude do instead?\n" + rule + "\n❯ Write a long prompt that wraps\n" + rule + "\n  footer\n"
+	if PutBack(sent, "Write a long prompt that wraps") {
+		t.Error("an interrupted turn whose prompt shows sent above the box")
+	}
+}

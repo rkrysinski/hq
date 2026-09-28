@@ -451,3 +451,26 @@ func TestSettleTakesARewoundTurnForDoneOnceItsScreenStaysAtRest(t *testing.T) {
 		}
 	}
 }
+
+func TestSettleTakesARewindRightAfterACancelledDialogForARewind(t *testing.T) {
+	rule := strings.Repeat("─", 20)
+	sent := "Write a poem about the sea."
+	screen := "❯ Ask me red or blue\n● User declined to answer questions\n  ⎿  · Red or blue?\n✻ Worked for 3s · done\n" +
+		rule + "\n❯ " + sent + "\n" + rule + "\n  ⏵⏵ bypass permissions on\n"
+	asked := time.Unix(1000, 0)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	r := state.Report{State: state.Working, Since: asked, Prompt: sent}
+	a := FromWindows([]tmux.Window{w})[0]
+	a.Apply(r, true)
+	first := asked.Add(3 * time.Second)
+	end, rest := a.Settle(screen, first)
+	if end != "" || rest == "" || a.State != state.Working {
+		t.Fatalf("first look: %q %q %+v", end, rest, a)
+	}
+	w.Options["restseen"] = rest
+	a = FromWindows([]tmux.Window{w})[0]
+	a.Apply(r, true)
+	if end, _ := a.Settle(screen, first.Add(RestDelay)); end == "" || a.State != state.Done || a.Last != Rewound || !a.Since.Equal(first) {
+		t.Fatalf("at rest: %q %+v", end, a)
+	}
+}

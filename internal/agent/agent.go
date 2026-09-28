@@ -274,7 +274,10 @@ func (a *Agent) Settle(screen string, now time.Time) (turnEnd, restSeen string) 
 	if a.Recall() {
 		return "", ""
 	}
-	if last, ok := state.EndedByUser(screen); ok {
+	// A rewind right after a turn the user ended leaves that turn's line
+	// above the box: the rewind below tells that turn's end.
+	rewound := a.State == state.Working && state.PutBack(screen, a.prompt)
+	if last, ok := state.EndedByUser(screen); ok && !rewound {
 		turnEnd = a.key() + " " + nanos(now) + " " + last
 		a.State, a.Since, a.Last = state.Done, now, last
 		return turnEnd, ""

@@ -73,6 +73,27 @@ func AtRest(screen, reported string) (ok, restored bool) {
 	return restored, restored
 }
 
+// PutBack reports whether the screen shows the reported prompt put back in
+// the box by a rewind: the box holds it (AtRest's restored), and the last
+// prompt the screen shows sent is another one. A line of userEnds above the
+// box is then an earlier turn's (#99), not this one's. An Esc that
+// interrupts a turn may put its prompt back in the box too, but the prompt
+// also stays sent above it; when no sent prompt shows, it cannot tell and
+// is false.
+func PutBack(screen, reported string) bool {
+	if _, restored := AtRest(screen, reported); !restored {
+		return false
+	}
+	b, _ := promptBox(screen)
+	for i := b.upper - 1; i >= 0; i-- {
+		if sent, ok := strings.CutPrefix(b.lines[i], prompt); ok {
+			// Only its first line: a long prompt wraps.
+			return !strings.HasPrefix(strings.Join(strings.Fields(reported), " "), strings.TrimSpace(sent))
+		}
+	}
+	return false
+}
+
 // spinner is the line Claude Code 2.1.283 animates above its prompt box
 // while a turn is at work, e.g. "✶ Brewing… (14s · ↓ 129 tokens)"; the
 // line a finished turn leaves there has no ellipsis ("✻ Baked for 2s").
