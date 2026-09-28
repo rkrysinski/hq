@@ -83,21 +83,21 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	for name, want := range map[string]string{
 		"list": "never ask an agent for its status",
 		"read": "what it asks",
-		"wait": "passing each result's next_since as the next call's since",
-		"send": "Never use it to answer an agent's dialog",
+		"wait": "since is required: the next_since of the most recent list, read, send or wait result",
+		"send": "wait for the agent with that next_since as since",
 		"kill": "Only when the user wants it",
 	} {
 		if !strings.Contains(tools[name].Description, want) {
 			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
 		}
 	}
-	for _, want := range []string{"Status comes from hq, never from asking an agent", "wait for the agent, then read it", "next_since as since", "Never try to answer it"} {
+	for _, want := range []string{"Status comes from hq, never from asking an agent", "wait for the agent with send's next_since as since, then read it", "Always pass the next_since of the most recent of them as wait's since", "call list first", "Never try to answer it"} {
 		if !strings.Contains(cs.InitializeResult().Instructions, want) {
 			t.Errorf("instructions have no %q", want)
 		}
 	}
 	// What each tool must be given.
-	for name, want := range map[string][]string{"new": {"name", "dir"}, "send": {"name", "text"}, "read": {"name"}, "go": {"name"}, "kill": {"name"}, "wait": nil, "list": nil} {
+	for name, want := range map[string][]string{"new": {"name", "dir"}, "send": {"name", "text"}, "read": {"name"}, "go": {"name"}, "kill": {"name"}, "wait": {"since"}, "list": nil} {
 		b, _ := json.Marshal(tools[name].InputSchema)
 		var schema struct{ Required []string }
 		_ = json.Unmarshal(b, &schema)
@@ -134,8 +134,13 @@ func TestMCPListAndReadGiveWhatHqLsAndHqReadPrint(t *testing.T) {
 func TestMCPWaitInALoopWithSinceReturnsEachChangeOnce(t *testing.T) {
 	f := newWaitFakes()
 	cs := mcpSession(t, f)
+	out, _ := call(t, cs, "list", nil)
+	var ls waitOutput
+	if err := json.Unmarshal([]byte(out), &ls); err != nil || len(ls.Agents) != 2 {
+		t.Fatalf("list %v: %s", err, out)
+	}
 	start := f.now
-	out, isErr := call(t, cs, "wait", nil)
+	out, isErr := call(t, cs, "wait", map[string]any{"since": ls.NextSince.Format(time.RFC3339Nano)})
 	first := waitJSON(t, out)
 	if isErr || len(first.Agents) != 0 || f.now.Sub(start) < DefaultWaitTimeout || f.now.Sub(start) > DefaultWaitTimeout+time.Second {
 		t.Fatalf("first call after %v: %s", f.now.Sub(start), out)
@@ -155,11 +160,17 @@ func TestMCPWaitInALoopWithSinceReturnsEachChangeOnce(t *testing.T) {
 	if third := waitJSON(t, out); len(third.Agents) != 0 || f.now.Sub(start) < 3*time.Second || f.now.Sub(start) > 4*time.Second {
 		t.Fatalf("third call after %v: %s", f.now.Sub(start), out)
 	}
-	if out, isErr := call(t, cs, "wait", map[string]any{"names": []string{"nobody"}}); !isErr || out != "hq: no agent 'nobody' (see hq ls)\n" {
+	if out, isErr := call(t, cs, "wait", map[string]any{"since": "0s", "names": []string{"nobody"}}); !isErr || out != "hq: no agent 'nobody' (see hq ls)\n" {
 		t.Fatalf("unknown agent %v %q", isErr, out)
 	}
 	if out, isErr := call(t, cs, "wait", map[string]any{"since": "yesterday"}); !isErr || !strings.HasPrefix(out, "hq: --since 'yesterday'") {
 		t.Fatalf("bad since %v %q", isErr, out)
+	}
+	if out, isErr := call(t, cs, "wait", map[string]any{"since": ""}); !isErr || !strings.HasPrefix(out, "hq: since is required") {
+		t.Fatalf("no since %v %q", isErr, out)
+	}
+	if r, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "wait", Arguments: map[string]any{}}); err == nil && !r.IsError {
+		t.Fatal("wait without since")
 	}
 }
 
@@ -168,7 +179,7 @@ func TestMCPWaitNeverOutlastsClaudeDesktopsToolCall(t *testing.T) {
 		f := newWaitFakes()
 		cs := mcpSession(t, f)
 		start := f.now
-		args := map[string]any{}
+		args := map[string]any{"since": "0s"}
 		if timeout != 0 {
 			args["timeout"] = timeout
 		}
@@ -187,10 +198,10 @@ func TestMCPWaitNeverOutlastsClaudeDesktopsToolCall(t *testing.T) {
 func TestMCPSendLeavesTheMessageAsHqSendDoes(t *testing.T) {
 	f := sendFakes(state.Working)
 	cs := mcpSession(t, f)
-	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "Any blockers? Answer briefly when you finish."}); isErr || out != "queued: a is working, delivered when it stops\n" {
+	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "Any blockers? Answer briefly when you finish."}); isErr || out != "{\n  \"delivery\": \"queued: a is working, delivered when it stops\",\n  \"next_since\": \"2026-09-27T11:59:59.75Z\"\n}\n" {
 		t.Fatalf("%v %q", isErr, out)
 	}
-	if out, _ := call(t, cs, "send", map[string]any{"name": "a", "text": "use the v2 API", "now": true}); out != "queued: a is working, delivered after its next tool call, or when it stops\n" {
+	if out, _ := call(t, cs, "send", map[string]any{"name": "a", "text": "use the v2 API", "now": true}); !strings.Contains(out, `"delivery": "queued: a is working, delivered after its next tool call, or when it stops"`) {
 		t.Fatalf("now: %q", out)
 	}
 	if got := strings.Join(f.inbox["id-a"], "|"); got != "Any blockers? Answer briefly when you finish.|use the v2 API (now)" {
@@ -198,6 +209,35 @@ func TestMCPSendLeavesTheMessageAsHqSendDoes(t *testing.T) {
 	}
 	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": " "}); !isErr || !strings.HasPrefix(out, "hq: empty message") {
 		t.Fatalf("empty %v %q", isErr, out)
+	}
+}
+
+// The owner's case: an agent waiting at its prompt gets the message typed in
+// and answers at once, before the supervisor calls wait. wait from send's
+// next_since returns the answer at once; from the moment wait is called it
+// would never come.
+func TestMCPWaitFromSendsNextSinceReturnsAnAnswerGivenBeforeWaitWasCalled(t *testing.T) {
+	f := sendFakes(state.Question)
+	cs := mcpSession(t, f)
+	out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "No"})
+	var sent sendOutput
+	if err := json.Unmarshal([]byte(out), &sent); isErr || err != nil || sent.Delivery != "delivered: typed into a as its next prompt" || !sent.NextSince.Before(f.now) {
+		t.Fatalf("send %v %v: %s", isErr, err, out)
+	}
+	// a answers within two seconds; the supervisor calls wait a minute later.
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(2 * time.Second), Last: "Understood, I will not."}
+	f.now = f.now.Add(time.Minute)
+	start := f.now
+	out, _ = call(t, cs, "wait", map[string]any{"since": sent.NextSince.Format(time.RFC3339Nano), "names": []string{"a"}})
+	got := waitJSON(t, out)
+	if len(got.Agents) != 1 || got.Agents[0].State != state.Done || got.Agents[0].Last != "Understood, I will not." || f.now.Sub(start) > time.Second {
+		t.Fatalf("wait after %v: %s", f.now.Sub(start), out)
+	}
+	// From the moment of the call (0s back), as hq wait without --since, the
+	// answer is lost: the call times out empty.
+	out, _ = call(t, cs, "wait", map[string]any{"since": "0s", "names": []string{"a"}, "timeout": 3})
+	if len(waitJSON(t, out).Agents) != 0 {
+		t.Fatalf("from now: %s", out)
 	}
 }
 

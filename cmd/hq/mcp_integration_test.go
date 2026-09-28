@@ -119,6 +119,19 @@ func (s *supervisor) until(since, name, st string) (row, string) {
 	return row{}, ""
 }
 
+// send sends a message and returns how it goes and send's next_since.
+func (s *supervisor) send(args map[string]any) (string, string) {
+	s.t.Helper()
+	var out struct {
+		Delivery  string `json:"delivery"`
+		NextSince string `json:"next_since"`
+	}
+	if res := s.ok("send", args); json.Unmarshal([]byte(res), &out) != nil || out.NextSince == "" {
+		s.t.Fatalf("send: %s", res)
+	}
+	return out.Delivery, out.NextSince
+}
+
 func (s *supervisor) read(name string) row {
 	s.t.Helper()
 	var r row
@@ -174,14 +187,18 @@ func TestMCPServerSupervisesAgentsOverStdio(t *testing.T) {
 	s.readUntil("b", "working")
 
 	// Ask b, which is at work: the message waits for its stop.
-	if out := s.ok("send", map[string]any{"name": "b", "text": "check the logs"}); out != "queued: b is working, delivered when it stops\n" {
-		t.Fatalf("send: %q", out)
+	how, sent := s.send(map[string]any{"name": "b", "text": "check the logs"})
+	if how != "queued: b is working, delivered when it stops" {
+		t.Fatalf("send: %q", how)
 	}
 	if r := s.read("b"); r.State != "working" || r.Pending != 1 {
 		t.Fatalf("b %+v", r)
 	}
+	// b answers before wait is called: wait from send's next_since still
+	// returns the answer.
 	s.typeIn("b", "go on")
-	r, since = s.until(since, "b", "done")
+	s.readUntil("b", "done")
+	r, since = s.until(sent, "b", "done")
 	if r.Last != "Answered: "+state.MessageLabel+"check the logs" || r.Pending != 0 {
 		t.Fatalf("b answered %+v", r)
 	}
@@ -192,8 +209,8 @@ func TestMCPServerSupervisesAgentsOverStdio(t *testing.T) {
 	// A course correction within the turn: after its next tool call.
 	s.typeIn("b", "slow tool job")
 	s.readUntil("b", "working")
-	if out := s.ok("send", map[string]any{"name": "b", "text": "use the staging db", "now": true}); !strings.HasPrefix(out, "queued: b is working, delivered after its next tool call") {
-		t.Fatalf("send now: %q", out)
+	if how, _ := s.send(map[string]any{"name": "b", "text": "use the staging db", "now": true}); !strings.HasPrefix(how, "queued: b is working, delivered after its next tool call") {
+		t.Fatalf("send now: %q", how)
 	}
 	s.typeIn("b", "go on")
 	if r, _ = s.until(since, "b", "done"); r.Last != "Done: slow tool job | "+state.MessageLabel+"use the staging db" {
@@ -207,8 +224,8 @@ func TestMCPServerSupervisesAgentsOverStdio(t *testing.T) {
 	if out := s.ok("kill", map[string]any{"name": "a"}); out != "killed a; the sandbox stays\n" {
 		t.Fatalf("kill: %q", out)
 	}
-	var rows []row
-	if out := s.ok("list", nil); json.Unmarshal([]byte(out), &rows) != nil || len(rows) != 1 || rows[0].Name != "b" {
+	var ls waited
+	if out := s.ok("list", nil); json.Unmarshal([]byte(out), &ls) != nil || len(ls.Agents) != 1 || ls.Agents[0].Name != "b" || ls.NextSince == "" {
 		t.Fatalf("list: %s", out)
 	}
 	if out, isErr := s.call("read", map[string]any{"name": "a"}); !isErr || out != "hq: no agent 'a' (see hq ls)\n" {

@@ -208,11 +208,11 @@ func TestSendUsage(t *testing.T) {
 		code int
 		err  string
 	}{
-		{[]string{"send"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now]; quote the text\n"},
-		{[]string{"send", "a"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now]; quote the text\n"},
-		{[]string{"send", "a", "run", "tests"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now]; quote the text\n"},
-		{[]string{"send", "a", "hi", "-f"}, ExitUsage, "hq: unknown option '-f' (usage: hq send NAME TEXT [--now])\n"},
-		{[]string{"send", "a", " \x1b[31m \n"}, ExitUsage, "hq: empty message (usage: hq send NAME TEXT [--now])\n"},
+		{[]string{"send"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--json]; quote the text\n"},
+		{[]string{"send", "a"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--json]; quote the text\n"},
+		{[]string{"send", "a", "run", "tests"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--json]; quote the text\n"},
+		{[]string{"send", "a", "hi", "-f"}, ExitUsage, "hq: unknown option '-f' (usage: hq send NAME TEXT [--now] [--json])\n"},
+		{[]string{"send", "a", " \x1b[31m \n"}, ExitUsage, "hq: empty message (usage: hq send NAME TEXT [--now] [--json])\n"},
 		{[]string{"send", "a", strings.Repeat("x", state.MaxMessage+1)}, ExitUsage, "hq: message too long: at most 8192 bytes\n"},
 		{[]string{"send", "nobody", "hi"}, ExitNotFound, "hq: no agent 'nobody' (see hq ls)\n"},
 	} {

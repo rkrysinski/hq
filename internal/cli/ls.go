@@ -34,6 +34,7 @@ func runLs(env Env, d deps, args []string) error {
 			return usageErr("unexpected argument '%s' (usage: hq ls [--json])", a)
 		}
 	}
+	at := d.now()
 	as, err := look(d)
 	if err != nil {
 		return err
@@ -41,9 +42,18 @@ func runLs(env Env, d deps, args []string) error {
 	agent.SortAttention(as)
 	rows := lsRows(d, as)
 	if asJSON {
-		return writeJSON(env.Stdout, rows)
+		return writeJSON(env.Stdout, waitOutput{Agents: rows, NextSince: lookedAt(at)})
 	}
 	return writeTable(env.Stdout, rows)
+}
+
+// lookedAt is the moment a look that began at at gives as next_since, for
+// hq wait's --since (design §3.4, "Entered after a moment"): as far back as
+// hq wait's own looks, so a state the look may not have seen yet is
+// returned by the next hq wait, never lost; one it did see may be returned
+// once more.
+func lookedAt(at time.Time) time.Time {
+	return at.Add(-waitSettle).UTC()
 }
 
 // lsRows are the agents as hq ls shows them now, in the order given, with
