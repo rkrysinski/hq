@@ -1,0 +1,26 @@
+{
+  "session_id": "efe6d727-0c78-4d68-9c3c-73b4bd9f0556",
+  "transcript_path": "/home/agent/.claude/projects/-w-app/efe6d727-0c78-4d68-9c3c-73b4bd9f0556.jsonl",
+  "cwd": "/w/app",
+  "scratchpad_dir": "/tmp/claude-1000/-w-app/efe6d727-0c78-4d68-9c3c-73b4bd9f0556/scratchpad",
+  "prompt_id": "19cfea4e-8f52-470d-b558-b6d12f3a718c",
+  "permission_mode": "bypassPermissions",
+  "effort": {
+    "level": "high"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "sleep 2; echo one",
+    "description": "Wait two seconds, then print \"one\""
+  },
+  "tool_response": {
+    "stdout": "one",
+    "stderr": "",
+    "interrupted": false,
+    "isImage": false,
+    "noOutputExpected": false
+  },
+  "tool_use_id": "toolu_01TB5FWzRQNjs5tpdEwDTCrY",
+  "duration_ms": 2057
+}

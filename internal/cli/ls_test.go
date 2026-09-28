@@ -123,6 +123,7 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-5*time.Minute), false)}
 	long := strings.Repeat("word ", 30) + "end?"
 	f.states["id-a"] = state.Report{State: state.Question, Since: f.now.Add(-90 * time.Second), Last: long}
+	f.inbox["id-a"] = []string{"one", "two"}
 	code, out, _ := f.run("ls", "--json")
 	var rows []map[string]any
 	if code != 0 || json.Unmarshal([]byte(out), &rows) != nil || len(rows) != 1 {
@@ -130,7 +131,7 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 	}
 	r := rows[0]
 	if r["name"] != "a" || r["repo"] != "app" || r["state"] != "question" || r["age_seconds"] != 90.0 || r["branch"] != "" || r["last"] != long ||
-		r["since"] != "2026-09-27T11:58:30Z" {
+		r["since"] != "2026-09-27T11:58:30Z" || r["pending"] != 2.0 {
 		t.Fatalf("row %v", r)
 	}
 }

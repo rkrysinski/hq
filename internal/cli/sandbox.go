@@ -193,7 +193,7 @@ func relaunchAgent(d deps, a agent.Agent, pane, resume string) error {
 	if err := d.tmux.Respawn(pane, a.RepoPath, argv); err != nil {
 		return tmuxErr(err)
 	}
-	for _, o := range [][2]string{{"ending", ""}, {"started", started}, {"new", ""}} {
+	for _, o := range [][2]string{{"ending", ""}, {"started", started}, {"new", ""}, {"inbox", inboxHooks}} {
 		if err := d.tmux.SetOption(a.Window, o[0], o[1]); err != nil {
 			return tmuxErr(err)
 		}

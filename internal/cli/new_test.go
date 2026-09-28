@@ -89,6 +89,9 @@ func TestNewStartsAgentInRepositorysSandbox(t *testing.T) {
 	if !f.tmux.started[w.ID] {
 		t.Fatal("window not started")
 	}
+	if w.Options["inbox"] != "1" {
+		t.Fatalf("hooks that deliver messages not marked: %v", w.Options)
+	}
 	if w.Options["new"] == "" {
 		t.Fatal("not marked new (S2)")
 	}

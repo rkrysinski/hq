@@ -153,3 +153,15 @@ func TestPutBackTellsARewindAfterAnEndedTurnFromAnInterruptedTurn(t *testing.T) 
 		t.Error("an interrupted turn whose prompt shows sent above the box")
 	}
 }
+
+func TestAStopBlockedByAMessageLeavesTheBoxEmptyAndTheTurnNotEndedByTheUser(t *testing.T) {
+	// A Stop hook that delivered messages (ADR 0012), then the turn ended
+	// (Claude Code 2.1.283): hq send may type the next message in.
+	s := screen(t, "stop-blocked")
+	if ok, restored := AtRest(s, ""); !ok || restored {
+		t.Errorf("at rest %v, restored %v", ok, restored)
+	}
+	if last, ok := EndedByUser(s); ok {
+		t.Errorf("ended by the user: %q", last)
+	}
+}

@@ -20,22 +20,49 @@ import (
 // worktree and last message, unless that event is itself a resumed start,
 // which keeps the one it kept. On stop,
 // dialog and input it then prints the desktop notification for Claude to
-// write to its terminal (design §3.5). It needs only sh, git, cat, mv, cp,
-// mkdir, rm, grep and awk, never blocks Claude and always exits 0 (design
-// §3.4, §7.1).
+// write to its terminal (design §3.5).
+//
+// It also delivers the messages hq send left in the agent's inbox (ADR
+// 0012): it takes them out of the inbox by renaming them, so each is
+// delivered once, and prints them, oldest first, as Claude's hook output.
+// On stop it blocks the stop with them as the reason, so Claude goes on
+// and stops again; the blocked stop is not reported and notifies nobody,
+// and the agent stays working. On prompt they ride along with the prompt;
+// on the end of a tool (PostToolUse only, and not a subagent's) they come
+// with its result, but only once one of them asks for that (--now). With
+// no message waiting it prints what it printed before. It needs only sh,
+// git, cat, mv, cp, mkdir, rm, grep and awk and always exits 0; it holds
+// Claude back only while a message is unread (design §3.4, §7.1).
 const hookScript = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
 b=$(git branch --show-current 2>/dev/null)
 l=${b:-${PWD##*/}}
 cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null
-d=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
-d=$d/hq/agents
+g=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
+d=$g/hq/agents
+i=$g/hq/inbox/$HQ_ID
 mkdir -p "$d" 2>/dev/null || exit 0
 f=$d/$HQ_ID
 t=$f.$$
 { printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" 2>/dev/null || { rm -f "$t"; exit 0; }
 tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1" 2>/dev/null; }
+soon() { for m in "$i"/[0-9]*` + nowSuffix + `; do [ -f "$m" ] && return 0; done; return 1; }
+take() {
+    c=$i/.taken.$$
+    [ -d "$i" ] && rm -rf "$c" 2>/dev/null && mkdir "$c" 2>/dev/null || return 1
+    for m in "$i"/[0-9]*; do [ -f "$m" ] && mv "$m" "$c/" 2>/dev/null; done
+    for m in "$c"/*; do [ -f "$m" ] && return 0; done
+    rm -rf "$c" 2>/dev/null; return 1
+}
+say() {
+    printf '%s' "$1"; s=
+    for m in "$c"/*; do [ -f "$m" ] && printf '%s%s' "$s" '` + MessageLabel + `' && cat "$m" 2>/dev/null && s='\n\n'; done
+    rm -rf "$c" 2>/dev/null; printf '%s\n' "$2"
+}
 case $1 in
-answer) grep -q '` + dialogEvent + `' "$f" 2>/dev/null && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
+stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; } ;;
+prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}' ;;
+answer) grep -q '` + toolEndEvent + `' "$t" 2>/dev/null && ! grep -q '"agent_id"' "$t" 2>/dev/null && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
+    grep -q '` + dialogEvent + `' "$f" 2>/dev/null && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
 input) grep -q '` + dialogEvent + `' "$f" 2>/dev/null && { rm -f "$t"; exit 0; } ;;
 resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } 2>/dev/null || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; } 2>/dev/null; rm -f "$t.p" ;;
 esac
@@ -49,6 +76,10 @@ exit 0`
 // dialogEvent is what the hook's grep finds in a state file whose latest
 // event opened a dialog: a PermissionRequest, with or without spaces.
 const dialogEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"PermissionRequest"`
+
+// toolEndEvent is what the hook's grep finds in the payload of a tool that
+// ended successfully, whose result can carry messages (PostToolUse).
+const toolEndEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"PostToolUse"`
 
 // startEvent and resumed are what the hook's grep finds in a state file
 // whose latest event started a resumed session.

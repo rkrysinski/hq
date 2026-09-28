@@ -21,6 +21,7 @@ type lsRow struct {
 	AgeSeconds int64     `json:"age_seconds"`
 	Last       string    `json:"last"`
 	Sandbox    string    `json:"sandbox"`
+	Pending    int       `json:"pending"` // messages waiting for it (hq send)
 }
 
 func runLs(env Env, d deps, args []string) error {
@@ -64,6 +65,7 @@ func lsRows(as []agent.Agent, now time.Time) []lsRow {
 		rows = append(rows, lsRow{
 			Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
 			Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
+			Pending: d.pending(a.RepoPath, a.ID),
 		})
 	}
 	return rows

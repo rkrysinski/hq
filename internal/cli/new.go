@@ -78,6 +78,10 @@ func claudeArgs(name, id, notify, resume, prompt string) []string {
 	return args
 }
 
+// inboxHooks is the inbox option of an agent whose hooks deliver messages:
+// every agent hq starts or relaunches from now on (ADR 0012).
+const inboxHooks = "1"
+
 func runNew(env Env, d deps, args []string) error {
 	cwd, err := d.getwd()
 	if err != nil {
@@ -140,7 +144,7 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string, fresh bool) 
 	id := agent.NewID()
 	opts := map[string]string{
 		"id": id, "name": name, "repo": root, "sandbox": sandbox,
-		"started": agent.Stamp(d.now()),
+		"started": agent.Stamp(d.now()), "inbox": inboxHooks,
 	}
 	if fresh {
 		opts["new"] = "1"
