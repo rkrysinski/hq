@@ -144,7 +144,7 @@ func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes boo
 	// A relaunched agent keeps its id, so its old session must be done
 	// writing its state file before the new one starts; sbx stop usually
 	// returns after that.
-	if err := waitEnded(d, mine); err != nil {
+	if err := waitEnded(d, mine, nil); err != nil {
 		return err
 	}
 	// sbx has no start command; running anything in a sandbox starts it.

@@ -273,9 +273,13 @@ type fakeSbx struct {
 	err       error
 	createErr error
 	execs     [][]string // sandbox, then the command
-	onExec    func(args []string)
-	calls     []string // stop, rm and exec, in order
-	onStop    func(sandbox string)
+	// onExec is what the command does; its error is the command's.
+	onExec func(args []string) error
+	// orphans are the Claude sessions that run in a sandbox although their
+	// pane died (its host-side sbx run ended), by agent id.
+	orphans map[string]bool
+	calls   []string // stop, rm and exec, in order
+	onStop  func(sandbox string)
 }
 
 func (f *fakeSbx) setStatus(name, status string) {
@@ -311,7 +315,7 @@ func (f *fakeSbx) Exec(sandbox string, args ...string) error {
 	f.calls = append(f.calls, "exec "+sandbox+" "+strings.Join(args, " "))
 	f.setStatus(sandbox, "running")
 	if f.onExec != nil {
-		f.onExec(args)
+		return f.onExec(args)
 	}
 	return nil
 }
@@ -416,13 +420,32 @@ func newFakes() *fakes {
 		releases: &fakeReleases{files: map[string]map[string][]byte{}},
 		exe:      "/nonexistent/hq",
 	}
-	// pkill -f 'HQ_ID":"<id>"' ends the session: its pane dies.
-	f.sbx.onExec = func(args []string) {
+	// pkill -f 'HQ_ID":"<id>"' ends the session: its pane dies, or the
+	// orphan goes. pgrep -f finds it while it runs. Either fails when
+	// nothing matches.
+	f.sbx.onExec = func(args []string) error {
+		if args[0] != "pkill" && args[0] != "pgrep" {
+			return nil
+		}
+		kill, found := args[0] == "pkill", false
 		for i, w := range f.tmux.windows {
-			if strings.Contains(args[len(args)-1], `"`+w.Options["id"]+`"`) {
-				f.tmux.windows[i].PaneDead = true
+			if !w.PaneDead && strings.Contains(args[len(args)-1], `"`+w.Options["id"]+`"`) {
+				found = true
+				f.tmux.windows[i].PaneDead = kill
 			}
 		}
+		for id := range f.sbx.orphans {
+			if strings.Contains(args[len(args)-1], `"`+id+`"`) {
+				found = true
+				if kill {
+					delete(f.sbx.orphans, id)
+				}
+			}
+		}
+		if !found {
+			return errors.New("exit status 1")
+		}
+		return nil
 	}
 	// Stopping a sandbox ends every session in it.
 	f.sbx.onStop = func(sandbox string) {

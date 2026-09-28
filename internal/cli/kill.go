@@ -115,24 +115,58 @@ func plural(n int, word string) string {
 
 // endAgents ends the agents' Claude sessions and removes their home windows,
 // which frees their names (design §3.3). Closing a window alone would leave
-// Claude running inside the sandbox, so each running session first gets
-// SIGTERM there, found by the HQ_ID in its settings argument.
+// Claude running inside the sandbox, so each session first gets SIGTERM
+// there, found by the HQ_ID in its settings argument, whatever its pane's
+// state: a pane can die (its host-side sbx run ended) while Claude lives on
+// in the sandbox. Only a sandbox that sbx lists as not running is left
+// alone: nothing runs in it, and sbx exec would start it again.
 func endAgents(d deps, as []agent.Agent) error {
+	var stopped func(sandbox string) bool
+	var orphans []agent.Agent // signalled sessions without a live pane
 	for _, a := range as {
-		if a.Alive {
-			// No match (the session already ended) is not an error.
-			_ = d.sbx.Exec(a.Sandbox, "pkill", "-TERM", "-f", `HQ_ID":"`+a.ID+`"`)
+		if !a.Alive {
+			if stopped == nil {
+				stopped = stoppedSandboxes(d)
+			}
+			if stopped(a.Sandbox) {
+				continue
+			}
+		}
+		// No match (the session already ended) fails, and is not an error.
+		err := d.sbx.Exec(a.Sandbox, "pkill", "-TERM", "-f", sessionPattern(a.ID))
+		if !a.Alive && err == nil {
+			orphans = append(orphans, a)
 		}
 	}
-	return removeAgents(d, as)
+	return removeAgents(d, as, orphans)
 }
 
-// removeAgents waits up to endWait for the agents' sessions to exit, then
-// removes their home windows and their state files (design §3.4): nothing
-// reads those once the window is gone. Only these agents' files go; a file
-// that cannot be removed does not stop the removal.
-func removeAgents(d deps, as []agent.Agent) error {
-	if err := waitEnded(d, as); err != nil {
+// sessionPattern finds an agent's Claude session among the sandbox's
+// processes (pkill and pgrep -f): the HQ_ID in its settings argument.
+func sessionPattern(id string) string { return `HQ_ID":"` + id + `"` }
+
+// stoppedSandboxes asks sbx once which sandboxes run and reports those known
+// not to: listed as not running, or not listed at all. When sbx cannot tell,
+// no sandbox is known to be stopped.
+func stoppedSandboxes(d deps) func(sandbox string) bool {
+	all, err := d.pollSandboxes()
+	if err != nil {
+		return func(string) bool { return false }
+	}
+	running := map[string]bool{}
+	for _, s := range all {
+		running[s.Name] = s.Running()
+	}
+	return func(sandbox string) bool { return !running[sandbox] }
+}
+
+// removeAgents waits up to endWait for the agents' sessions to exit, orphans
+// (sessions whose pane died) included, then removes their home windows and
+// their state files (design §3.4): nothing reads those once the window is
+// gone, and an ended session's last hook has written. Only these agents'
+// files go; a file that cannot be removed does not stop the removal.
+func removeAgents(d deps, as, orphans []agent.Agent) error {
+	if err := waitEnded(d, as, orphans); err != nil {
 		return err
 	}
 	ws, err := d.tmux.Windows()
@@ -158,29 +192,54 @@ func removeAgents(d deps, as []agent.Agent) error {
 }
 
 // waitEnded waits up to endWait for the sessions of the agents that were
-// alive to exit, their last hooks included: their panes die.
-func waitEnded(d deps, as []agent.Agent) error {
+// alive to exit, their last hooks included: their panes die. An orphan has no
+// pane to watch, so hq asks the sandbox until its process is gone.
+func waitEnded(d deps, as, orphans []agent.Agent) error {
 	pending := map[string]bool{}
 	for _, a := range as {
 		if a.Alive {
 			pending[a.Window] = true
 		}
 	}
-	for deadline := d.now().Add(endWait); len(pending) > 0 && d.now().Before(deadline); {
+	for deadline := d.now().Add(endWait); (len(pending) > 0 || len(orphans) > 0) && d.now().Before(deadline); {
 		d.sleep(100 * time.Millisecond)
-		ws, err := d.tmux.Windows()
-		if err != nil {
-			return tmuxErr(err)
-		}
-		live := map[string]bool{}
-		for _, w := range ws {
-			live[w.ID] = !w.PaneDead
-		}
-		for id := range pending {
-			if !live[id] {
-				delete(pending, id)
-			}
+		orphans = running(d, orphans)
+		if err := dropDeadPanes(d, pending); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+// dropDeadPanes removes from pending the windows whose pane has died.
+func dropDeadPanes(d deps, pending map[string]bool) error {
+	if len(pending) == 0 {
+		return nil
+	}
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return tmuxErr(err)
+	}
+	live := map[string]bool{}
+	for _, w := range ws {
+		live[w.ID] = !w.PaneDead
+	}
+	for id := range pending {
+		if !live[id] {
+			delete(pending, id)
+		}
+	}
+	return nil
+}
+
+// running returns the orphans whose session still runs in their sandbox;
+// pgrep matching nothing, or failing, counts as ended.
+func running(d deps, orphans []agent.Agent) []agent.Agent {
+	var left []agent.Agent
+	for _, a := range orphans {
+		if d.sbx.Exec(a.Sandbox, "pgrep", "-f", sessionPattern(a.ID)) == nil {
+			left = append(left, a)
+		}
+	}
+	return left
 }
