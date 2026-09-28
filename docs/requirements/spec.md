@@ -76,7 +76,9 @@ Requirements:
 One terminal window, split horizontally:
 
 - **List** (top, fixed height: header + 6 rows + footer; scrolls beyond 6 agents with a `6 of 8  ▾ 2 more` hint).
-- **Docked session** (bottom, the rest of the window): the live, fully interactive session of one agent. The user talks to Claude there directly. Nothing is copied or previewed; it is the real session. With nothing docked, the area shows a hint only; it is not a terminal and takes no input, and keys typed there go back to the list. The session sits in a slightly darker area, framed on all four sides by the lighter surround of the list, the margins and the footer; its title `▸ name · branch · sandbox` (or `▸ placeholder`) is at the frame's top-left.
+- **Docked session** (bottom, the rest of the window): the live, fully interactive session of one agent. The user talks to Claude there directly. Nothing is copied or previewed; it is the real session. With nothing docked, the area shows a hint only; it is not a terminal and takes no input, and keys typed there go back to the list. The session is framed on all four sides by the surround (`#16181D`): the margins beside and below it and the footer; its title `▸ name · branch · sandbox` (or `▸ placeholder`) is at the frame's top-left.
+
+The dashboard shows where the keys are. The side that has them, the list or the docked session, sits on the terminal's own background; the other side takes the surround's colour, and an unfocused session's text is also dimmed a little, so it reads as greyed out (cells Claude draws with its own background, such as its input box or a diff, may keep it). The session's title is in the accent (lavender) while the session has the keys and dim otherwise. The look flips whenever the keys move: `Alt+l`, a click, `⏎` docking into the session, a new agent taking the keys, returning from a dialog. The placeholder never holds the keys (they go back to the list), so it always shows as the unfocused side. Esc does not move the keys: Claude uses it to interrupt, cancel dialogs and rewind.
 
 The terminal window is titled `hq - agents`.
 

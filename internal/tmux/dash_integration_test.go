@@ -765,19 +765,34 @@ func TestTheSlotSitsInADarkerAreaFramedByTheSurround(t *testing.T) {
 	if got := tm(t, socket, "show-options", "-wv", "-t", d.Window, "pane-border-status"); got != "bottom" {
 		t.Errorf("pane-border-status %q", got)
 	}
-	// The slot's colour is the window's, whatever pane is docked; the
-	// list and the margins have the surround's; borders are invisible.
-	for opt, want := range map[string]string{"window-style": "bg=terminal", "window-active-style": "bg=terminal",
+	// The slot's look is the window's, whatever pane is docked, and
+	// follows the keys (#128); the list's own follows them too, the
+	// margins keep the surround and the placeholder looks unfocused;
+	// borders are invisible. What an older hq set is brought up to date.
+	tm(t, socket, "set-option", "-w", "-t", d.Window, "window-style", "bg=terminal")
+	tm(t, socket, "set-option", "-w", "-t", d.Window, "window-active-style", "bg=terminal")
+	tm(t, socket, "set-option", "-p", "-t", d.List, "window-active-style", "bg=#16181D")
+	tm(t, socket, "set-option", "-pu", "-t", d.Slot, "window-style")
+	tm(t, socket, "set-option", "-pu", "-t", d.Slot, "window-active-style")
+	if _, err := c.Dashboard(dir, listStub); err != nil {
+		t.Fatal(err)
+	}
+	for opt, want := range map[string]string{"window-style": "bg=#16181d,fg=#9ca3af", "window-active-style": "bg=terminal",
 		"pane-border-style": "fg=#16181d,bg=#16181d", "pane-active-border-style": "fg=#16181d,bg=#16181d"} {
 		if got := tm(t, socket, "show-options", "-wv", "-t", d.Window, opt); !strings.EqualFold(got, want) {
 			t.Errorf("%s = %q, want %q", opt, got, want)
 		}
 	}
+	looks := map[string]string{
+		roleList:   "bg=#16181d bg=terminal",
+		roleSpacer: "bg=#16181d bg=#16181d",
+		roleSlot:   "bg=#16181d,fg=#9ca3af bg=#16181d,fg=#9ca3af",
+	}
 	for _, l := range strings.Split(tm(t, socket, "list-panes", "-t", d.Window, "-F", "#{pane_id} #{@hq_role}"), "\n") {
 		id, role, _ := strings.Cut(l, " ")
-		got := tm(t, socket, "show-options", "-pv", "-t", id, "window-style")
-		if want := "bg=#16181d"; role == "slot" && got != "" || role != "slot" && !strings.EqualFold(got, want) {
-			t.Errorf("%s pane's window-style %q", role, got)
+		got := tm(t, socket, "show-options", "-pv", "-t", id, "window-style") + " " + tm(t, socket, "show-options", "-pv", "-t", id, "window-active-style")
+		if !strings.EqualFold(got, looks[role]) {
+			t.Errorf("%s pane's styles %q, want %q", role, got, looks[role])
 		}
 	}
 	if got := tm(t, socket, "show-options", "-v", "-t", Session, "status-style"); !strings.Contains(strings.ToLower(got), "bg=#16181d") {
@@ -909,10 +924,20 @@ func lineBackgrounds(line string, bg *string) []string {
 	return bgs
 }
 
-func TestTheSlotAndItsTitleRowMakeOneDarkerAreaOnScreen(t *testing.T) {
+// The side with the keys sits on the terminal's own background, the other
+// on the surround, and they flip as the keys move (#128): Alt+l both ways,
+// docking. The slot's title row goes with the slot, its title in the accent
+// while the session has the keys; the unfocused session's text is dimmed.
+// The placeholder never holds the keys. Seen on screen, through a client
+// attached from an outer tmux that serves as the terminal.
+func TestTheSideWithTheKeysLooksFocusedOnScreen(t *testing.T) {
 	c, socket := dashClient(t)
-	d, err := c.Dashboard(t.TempDir(), listStub)
+	dir := t.TempDir()
+	d, err := c.Dashboard(dir, listStub)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.BindChords([]string{"true"}, "hints"); err != nil {
 		t.Fatal(err)
 	}
 	term := testutil.TmuxSocket(t)
@@ -920,26 +945,78 @@ func TestTheSlotAndItsTitleRowMakeOneDarkerAreaOnScreen(t *testing.T) {
 	eventually(t, "the client to attach", func() bool {
 		return strings.Contains(tm(t, term, "capture-pane", "-p"), "▸ placeholder")
 	})
-	capture := tm(t, term, "capture-pane", "-p", "-e", "-N")
-	rows := backgrounds(capture)
 	top, _ := strconv.Atoi(tm(t, socket, "display-message", "-p", "-t", d.Slot, "#{pane_top}"))
-	list, title, slot := rows[0], rows[top-1], rows[top]
-	if len(title) < 60 || len(slot) < 60 {
-		t.Fatalf("rows of %d and %d cells:\n%s", len(title), len(slot), capture)
-	}
-	surround, dark := list[0], slot[2]
-	if surround == dark {
-		t.Fatalf("the slot has the list's background %q", dark)
-	}
-	// Two columns of surround each side; between them, the title row and
-	// the slot's rows alike.
-	for x := 0; x < 60; x++ {
-		want := dark
-		if x < 2 || x >= 58 {
-			want = surround
+	const (
+		terminal = ""              // the terminal's own background
+		surround = "48;2;22;24;29" // #16181D
+		accent   = "38;2;167;139;250"
+		dimTitle = "38;2;92;98;108"
+		dimText  = "38;2;156;163;175"
+	)
+	// screen waits until the terminal shows want (the list's background,
+	// the slot's, the title's colour) and returns its lines.
+	screen := func(what, list, slot, title string) []string {
+		t.Helper()
+		var capture string
+		var rows [][]string
+		ok := waitFor(func() bool {
+			capture = tm(t, term, "capture-pane", "-p", "-e", "-N")
+			rows = backgrounds(capture)
+			lines := strings.Split(capture, "\n")
+			if len(rows) <= top || len(rows[top]) < 60 || len(rows[top-1]) < 60 {
+				return false
+			}
+			for x := 0; x < 60; x++ {
+				want := slot
+				if x < 2 || x >= 58 {
+					want = surround
+				}
+				if rows[top-1][x] != want || rows[top][x] != want {
+					return false
+				}
+			}
+			return rows[0][0] == list && strings.Contains(lines[top-1], title)
+		})
+		if !ok {
+			t.Fatalf("%s: want the list on %q, the slot and its title row on %q, the title in %q; the screen:\n%q", what, list, slot, title, capture)
 		}
-		if title[x] != want || slot[x] != want {
-			t.Errorf("column %d: title row %q, slot %q, want %q", x, title[x], slot[x], want)
+		return strings.Split(capture, "\n")
+	}
+
+	screen("the placeholder, the keys on the list", terminal, surround, dimTitle)
+	// A click on the placeholder cannot make it look focused: it has
+	// the unfocused look even while it has the keys.
+	tm(t, socket, "select-pane", "-t", d.Slot)
+	screen("the placeholder given the keys", surround, surround, dimTitle)
+	tm(t, socket, "select-pane", "-t", d.List)
+
+	aw, ap := agentWindow(t, c, "a", dir, "sh", "-c", "echo hello from a; exec sleep 30")
+	if err := c.Dock(aw, "a"); err != nil {
+		t.Fatal(err)
+	}
+	screen("docked, the keys in the session", surround, terminal, accent)
+	tm(t, term, "send-keys", "M-l")
+	lines := screen("Alt+l, the keys on the list", terminal, surround, dimTitle)
+	for _, l := range lines {
+		if strings.Contains(l, "hello from a") && !strings.Contains(l, dimText+"mhello from a") {
+			t.Errorf("the unfocused session's text is not dimmed: %q", l)
+		}
+	}
+	tm(t, term, "send-keys", "M-l")
+	screen("Alt+l back, the keys in the session", surround, terminal, accent)
+
+	// The agent's own pane takes the slot's look from the dashboard
+	// window and carries none of it home.
+	bw, _ := agentWindow(t, c, "b", dir, "sleep", "30")
+	if err := c.Dock(bw, "b"); err != nil {
+		t.Fatal(err)
+	}
+	for _, opt := range []string{"window-style", "window-active-style"} {
+		if got := tm(t, socket, "show-options", "-pqv", "-t", ap, opt); got != "" {
+			t.Errorf("the agent's pane carries %s %q", opt, got)
+		}
+		if got := tm(t, socket, "show-options", "-wqv", "-t", aw, opt); got != "" {
+			t.Errorf("its home window has %s %q", opt, got)
 		}
 	}
 }
