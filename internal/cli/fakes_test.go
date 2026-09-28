@@ -65,6 +65,13 @@ type fakeTmux struct {
 	onAttach   func()
 	respawns   []string // agent panes given a new program, in order
 	respawnErr error
+	// lastScreens is what shows each pane's latest output again, by pane.
+	lastScreens   map[string]string
+	lastScreenErr error
+}
+
+func (f *fakeTmux) LastScreen(pane string) (string, error) {
+	return f.lastScreens[pane], f.lastScreenErr
 }
 
 func (f *fakeTmux) FocusList() error { f.focused++; return nil }
@@ -404,6 +411,12 @@ type fakes struct {
 	alive         map[int]bool            // processes that exist
 	listRan       func(dash.Source) error // the list program; returns at q
 	dialog        tea.Model               // the dialog run last
+
+	// ran are the programs run on the terminal (foreground); ranCode and
+	// ranErr are how they end.
+	ran     [][]string
+	ranCode int
+	ranErr  error
 }
 
 func newFakes() *fakes {
@@ -495,6 +508,10 @@ func (f *fakes) deps() deps {
 		getwd:  func() (string, error) { return f.cwd, nil },
 		now:    func() time.Time { return f.now },
 		getenv: func(k string) string { return f.env[k] },
+		foreground: func(argv []string) (int, error) {
+			f.ran = append(f.ran, argv)
+			return f.ranCode, f.ranErr
+		},
 		sleep:  func(d time.Duration) { f.now = f.now.Add(d) },
 		canAsk: func(io.Reader) bool { return f.tty },
 		rawTerminal: func(io.Reader) func() {

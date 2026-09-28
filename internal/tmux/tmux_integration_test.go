@@ -3,7 +3,11 @@
 package tmux
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -186,4 +190,85 @@ func TestScreensShowWhatEachPaneShows(t *testing.T) {
 	if _, err := c.Screens([]string{"%999"}); err == nil {
 		t.Fatal("a pane that is gone is an error")
 	}
+}
+
+// An agent's session that resets the terminal as it ends, as sbx run does
+// when its sandbox stops, has its latest output drawn again, so its dead
+// pane shows it rather than a blank screen (S7, #105).
+func TestLastScreenDrawsTheLatestOutputAgainAfterAReset(t *testing.T) {
+	socket := testutil.TmuxSocket(t)
+	c := Client{Run: proc.Exec{}, Socket: socket}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	redrawn := filepath.Join(dir, "redrawn")
+	// The session: 60 lines of output, the reset and sbx's last word; then
+	// it draws what LastScreen gives, as hq's session command does.
+	id, err := c.NewWindow("a", dir, map[string]string{"id": "x1", "name": "a"}, []string{"sh", "-c",
+		`i=1; while [ $i -le 60 ]; do echo "line $i"; i=$((i+1)); done; printf '\033c'; echo 'error: sandbox stopped'
+		while [ ! -e "$1" ]; do sleep 0.05; done; cat "$1"; exit 1`, "sh", redrawn})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Start(id); err != nil {
+		t.Fatal(err)
+	}
+	pane := tm(t, socket, "display-message", "-p", "-t", id, "#{pane_id}")
+	shown := func() string { return tm(t, socket, "capture-pane", "-p", "-t", pane) }
+	eventually(t, "the reset", func() bool { return strings.HasPrefix(shown(), "error: sandbox stopped") })
+	if strings.Contains(shown(), "line 60") {
+		t.Fatalf("the reset left the output on the screen:\n%s", shown())
+	}
+	s, err := c.LastScreen(pane)
+	if err != nil || s == "" {
+		t.Fatalf("%q %v", s, err)
+	}
+	if err := os.WriteFile(redrawn+".tmp", []byte(s), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(redrawn+".tmp", redrawn); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "the pane to die", func() bool { return tm(t, socket, "display-message", "-p", "-t", pane, "#{pane_dead}") == "1" })
+	// The dead pane shows the latest lines, down to sbx's last word, above
+	// tmux's own line; the history still holds all of them.
+	lines := strings.Split(shown(), "\n")
+	height, _ := strconv.Atoi(tm(t, socket, "display-message", "-p", "-t", pane, "#{pane_height}"))
+	if len(lines) != height || !strings.HasPrefix(lines[height-1], "Pane is dead") || lines[height-2] != "" ||
+		lines[height-3] != "error: sandbox stopped" || lines[height-4] != "line 60" || lines[0] != fmt.Sprintf("line %d", 60-(height-4)) {
+		t.Fatalf("dead pane shows:\n%s", shown())
+	}
+	if all := tm(t, socket, "capture-pane", "-p", "-S", "-", "-t", pane); !strings.Contains(all, "line 1\n") {
+		t.Fatalf("history lost the output:\n%s", all)
+	}
+	// Once drawn again, the screen shows the latest output: nothing more.
+	if s, err := c.LastScreen(pane); err != nil || s != "" {
+		t.Fatalf("again: %q %v", s, err)
+	}
+}
+
+// An agent's pane runs its session through hq's session program, when there
+// is one, both when it starts and when it is relaunched.
+func TestAgentPanesRunTheSessionThroughHqsSessionProgram(t *testing.T) {
+	socket := testutil.TmuxSocket(t)
+	c := Client{Run: proc.Exec{}, Socket: socket, Session: []string{"sh", "-c", `printf 'session:'; exec "$@"`, "sh"}}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	id, err := c.NewWindow("a", dir, map[string]string{"id": "x1", "name": "a"}, []string{"echo", "first", "run"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Start(id); err != nil {
+		t.Fatal(err)
+	}
+	pane := tm(t, socket, "display-message", "-p", "-t", id, "#{pane_id}")
+	shown := func() string { return tm(t, socket, "capture-pane", "-p", "-S", "-", "-t", pane) }
+	eventually(t, "the session", func() bool { return strings.Contains(shown(), "session:first run") })
+	if err := c.Respawn(pane, dir, []string{"echo", "relaunched"}); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "the relaunched session", func() bool { return strings.Contains(shown(), "session:relaunched") })
 }

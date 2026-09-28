@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -77,4 +79,46 @@ func (Exec) Interactive(name string, args ...string) error {
 		}
 	}
 	return cmd.Run()
+}
+
+// Foreground runs a program on hq's own terminal (stdin, stdout, stderr) and
+// waits for it, the way a shell runs a command: keys that interrupt or quit
+// reach the program from the terminal and leave hq be, and a request to
+// terminate hq is passed on to the program. It returns the program's exit
+// status, 128 plus the signal's number when a signal ended it; err is set
+// only when the program could not start.
+func (Exec) Foreground(name string, args ...string) (int, error) {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	defer signal.Stop(sigs)
+	cmd := exec.Command(name, args...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		for {
+			select {
+			case s := <-sigs:
+				if s == syscall.SIGTERM {
+					_ = cmd.Process.Signal(s)
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+	_ = cmd.Wait()
+	return ExitStatus(cmd.ProcessState), nil
+}
+
+// ExitStatus is a finished program's exit status as a shell reports it:
+// 128 plus the signal's number when a signal ended it.
+func ExitStatus(ps *os.ProcessState) int {
+	if ws, ok := ps.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
+		return 128 + int(ws.Signal())
+	}
+	return ps.ExitCode()
 }

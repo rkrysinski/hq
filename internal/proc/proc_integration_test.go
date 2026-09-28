@@ -4,8 +4,10 @@ package proc
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -57,5 +59,34 @@ func TestRunRunsInDir(t *testing.T) {
 	want, _ := filepath.EvalSymlinks(dir)
 	if err != nil || strings.TrimSpace(string(out)) != want {
 		t.Fatalf("%q %v, want %q", out, err, want)
+	}
+}
+
+func TestForegroundReturnsTheProgramsStatusAsAShellDoes(t *testing.T) {
+	for script, want := range map[string]int{"exit 0": 0, "exit 3": 3, "kill -KILL $$": 128 + 9} {
+		if code, err := (Exec{}).Foreground("sh", "-c", script); err != nil || code != want {
+			t.Errorf("%s: %d %v, want %d", script, code, err, want)
+		}
+	}
+	if _, err := (Exec{}).Foreground("hq-no-such-program"); err == nil {
+		t.Error("a program that cannot start is no error")
+	}
+}
+
+func TestForegroundPassesATerminationRequestOnToTheProgram(t *testing.T) {
+	ready := filepath.Join(t.TempDir(), "ready")
+	go func() {
+		for i := 0; i < 100; i++ {
+			if _, err := os.Stat(ready); err == nil {
+				_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
+				return
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}()
+	// hq itself goes on: the program decides how it ends.
+	code, err := (Exec{}).Foreground("sh", "-c", `trap 'exit 7' TERM; touch "$1"; while :; do sleep 0.1; done`, "sh", ready)
+	if err != nil || code != 7 {
+		t.Fatalf("%d %v, want 7", code, err)
 	}
 }

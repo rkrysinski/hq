@@ -40,6 +40,11 @@ type Client struct {
 	// Placeholder is hq's placeholder program, run with the hint to show in
 	// the docking slot while nothing is docked (design §3.1).
 	Placeholder []string
+	// Session is hq's program that runs an agent's session in its pane,
+	// given the session's command line: it shows the session's last screen
+	// again when the session reset the terminal as it ended (S7, design
+	// §3.3). Empty runs the command line alone.
+	Session []string
 }
 
 // OptionKeys are the user options hq stores on a home window: new marks an
@@ -142,7 +147,7 @@ func (c Client) Windows() ([]Window, error) {
 func (c Client) NewWindow(name, dir string, options map[string]string, argv []string) (string, error) {
 	// sh waits for one line on its terminal, then execs argv unchanged ("$@"):
 	// no shell parsing of any argument.
-	gate := append([]string{"sh", "-c", `read _ ; exec "$@"`, "sh"}, argv...)
+	gate := append([]string{"sh", "-c", `read _ ; exec "$@"`, "sh"}, c.session(argv)...)
 	args := append([]string{"new-window", "-d", "-P", "-F", "#{window_id}", "-t", Session + ":", "-n", name, "-c", dir, "--"}, gate...)
 	out, err := c.tmux(args...)
 	if err != nil {
@@ -218,8 +223,17 @@ func (c Client) Start(id string) error {
 // there; the pane stays where it is (its home window or the docking slot)
 // and keeps its options, so it stays the agent's own (design §3.6).
 func (c Client) Respawn(pane, dir string, argv []string) error {
-	_, err := c.tmux(append([]string{"respawn-pane", "-k", "-t", pane, "-c", dir, "--"}, argv...)...)
+	_, err := c.tmux(append([]string{"respawn-pane", "-k", "-t", pane, "-c", dir, "--"}, c.session(argv)...)...)
 	return err
+}
+
+// session is the command line of an agent's pane that runs argv, its
+// session.
+func (c Client) session(argv []string) []string {
+	if len(c.Session) == 0 {
+		return argv
+	}
+	return append(append([]string{}, c.Session...), argv...)
 }
 
 // agentPane marks target, an agent's pane, as the agent's own: its id, so it
