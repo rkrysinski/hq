@@ -337,7 +337,7 @@ func TestLsShowsWhatAnotherHqStoredFirst(t *testing.T) {
 		case "turnend":
 			w.Options[key] = ns(since) + " " + ns(f.now.Add(-5*time.Second)) + " User declined to answer questions"
 		case "endseen":
-			w.Options[key] = w.Options["started"] + " " + ns(f.now.Add(-9*time.Second))
+			w.Options[key] = w.Options["started"] + " " + ns(f.states["id-b"].Since) + " " + ns(f.now.Add(-9*time.Second))
 		}
 	}
 	_, out, _ := f.run("ls")

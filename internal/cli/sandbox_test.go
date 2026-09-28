@@ -241,3 +241,39 @@ func TestSandboxErrors(t *testing.T) {
 		t.Fatalf("sbx missing: exit %d", code)
 	}
 }
+
+func TestARelaunchedAgentsEndCountsFromItsPanesDeathNotFromTheRestart(t *testing.T) {
+	f := sandboxFakes()
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "hi"}
+	// The list refreshes all through the restart, and dates the ends it
+	// sees (#104).
+	f.tmux.onSet = func(string, string) {
+		read := func(_, id string) (state.Report, bool) { r, ok := f.states[id]; return r, ok }
+		as := agent.Collect(f.tmux.windows, read, nil)
+		for i := range as {
+			keep(f.deps(), &as[i], as[i].SeeEnd(f.now))
+		}
+	}
+	if code, _, errOut := f.run("sandbox", "restart", "app", "-y"); code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	f.tmux.onSet = nil
+	restart := agent.Stamp(f.now)
+	for _, w := range f.tmux.windows[1:3] {
+		if strings.HasPrefix(w.Options["endseen"], restart+" ") {
+			t.Fatalf("%s seen ended as its new session started: %q", w.Name, w.Options["endseen"])
+		}
+	}
+	// b never reports again; a does. Both panes die as the sandbox stops.
+	f.now = f.now.Add(time.Minute)
+	f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Last: "hi"}
+	f.now = f.now.Add(time.Minute)
+	for i := 1; i < 3; i++ {
+		f.tmux.windows[i].PaneDead, f.tmux.windows[i].DeadAt = true, f.now
+	}
+	f.now = f.now.Add(5 * time.Second)
+	_, out, _ := f.run("ls")
+	if !strings.Contains(out, "a     app   -       ended     5s ") || !strings.Contains(out, "b     app   -       ended     5s ") {
+		t.Fatalf("ended:\n%s", out)
+	}
+}
