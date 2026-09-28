@@ -28,12 +28,12 @@ const (
 )
 
 // The dashboard's colours (design §3.1, from the design's tokens): the
-// docked session and the empty slot sit in a darker area, framed on every
-// side by a slightly lighter surround: the list, the margins beside and
-// below the slot, the footer.
+// docked session and the empty slot sit on the terminal's own background
+// (#117), framed on every side by a lighter surround: the list, the
+// margins beside and below the slot, the footer.
 const (
 	surroundColour = "#16181D" // the list, the margins, the footer
-	slotColour     = "#111317" // the slot and its title row
+	slotColour     = "terminal" // the slot and its title row: the terminal's own background
 	titleColour    = "#5C626C" // the slot's title
 )
 

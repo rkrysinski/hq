@@ -767,7 +767,7 @@ func TestTheSlotSitsInADarkerAreaFramedByTheSurround(t *testing.T) {
 	}
 	// The slot's colour is the window's, whatever pane is docked; the
 	// list and the margins have the surround's; borders are invisible.
-	for opt, want := range map[string]string{"window-style": "bg=#111317", "window-active-style": "bg=#111317",
+	for opt, want := range map[string]string{"window-style": "bg=terminal", "window-active-style": "bg=terminal",
 		"pane-border-style": "fg=#16181d,bg=#16181d", "pane-active-border-style": "fg=#16181d,bg=#16181d"} {
 		if got := tm(t, socket, "show-options", "-wv", "-t", d.Window, opt); !strings.EqualFold(got, want) {
 			t.Errorf("%s = %q, want %q", opt, got, want)
