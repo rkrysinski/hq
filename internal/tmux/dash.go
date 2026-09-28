@@ -27,14 +27,26 @@ const (
 	placeholderMark = "program"
 )
 
-// The dashboard's colours (design §3.1, from the design's tokens): the
-// docked session and the empty slot sit on the terminal's own background
-// (#117), framed on every side by a lighter surround: the list, the
-// margins beside and below the slot, the footer.
+// The dashboard's colours (design §3.1, from the design's tokens): the side
+// that has the keys, the list or the docked session, sits on the terminal's
+// own background (#117), the other on the surround, which also frames the
+// slot on every side: the margins beside and below it, the footer (#128).
 const (
-	surroundColour = "#16181D" // the list, the margins, the footer
-	slotColour     = "terminal" // the slot and its title row: the terminal's own background
-	titleColour    = "#5C626C" // the slot's title
+	surroundColour = "#16181D"  // the unfocused side, the margins, the footer
+	focusColour    = "terminal" // the focused side: the terminal's own background
+	titleColour    = "#5C626C"  // the slot's title while the list has the keys
+	accentColour   = "#A78BFA"  // the slot's title while the session has them
+	dimColour      = "#9CA3AF"  // the unfocused session's text
+)
+
+// The styles of the two sides (#128). tmux draws a window's active pane in
+// window-active-style and the others in window-style, and flips them on
+// every change of the active pane, whatever made it (Alt+l, a click,
+// docking), so the look follows the keys with no hq process involved.
+const (
+	focusedStyle   = "bg=" + focusColour
+	unfocusedStyle = "bg=" + surroundColour + ",fg=" + dimColour // the slot's: its text dimmed
+	surroundStyle  = "bg=" + surroundColour                      // the list's: it keeps its colours
 )
 
 // TerminalTitle is the terminal's title while the dashboard is attached
@@ -62,16 +74,16 @@ func (c Client) placeholderArgv(hint string) []string {
 }
 
 // placeholderPane marks pane as the placeholder running hq's placeholder
-// program: the slot's role and frame title, and kept when its program ends,
-// so a home window holding it never closes and takes its agent along
-// (design §3.3).
+// program: the slot's role, frame title and unfocused look, and kept when
+// its program ends, so a home window holding it never closes and takes its
+// agent along (design §3.3).
 func placeholderPane(pane string) [][]string {
-	return [][]string{
+	return append([][]string{
 		{"set-option", "-p", "-t", pane, "@hq_role", roleSlot},
 		{"set-option", "-p", "-t", pane, "@hq_title", PlaceholderTitle},
 		{"set-option", "-p", "-t", pane, "@hq_placeholder", placeholderMark},
 		{"set-option", "-p", "-t", pane, "remain-on-exit", "on"},
-	}
+	}, placeholderStyle(pane)...)
 }
 
 // KilledHint is what the placeholder says when the docked agent was killed
@@ -121,11 +133,13 @@ func (c Client) decorate(win, pane string) error {
 }
 
 // style gives the dashboard and hq's session the look of the mocks (design
-// §3.1): the slot's window area darker than the surround, which the list
-// pane, the margin panes (spacers), the invisible pane borders and the
-// status line share; the slot's title on the row above it, drawn as the
-// list pane's bottom status in the slot's colour so the title row and the
-// slot make one area; a status line that is only the footer, without
+// §3.1): the slot's window area in the focused colour while its pane has
+// the keys and the surround's, its text dimmed, while it has not; the
+// window's styles, so a docked agent's own pane takes them in the slot and
+// carries nothing to its home window. The margin panes (spacers), the
+// invisible pane borders and the status line have the surround; the slot's
+// title on the row above it, drawn as the list pane's bottom status in the
+// slot's colour so the title row and the slot make one area; a status line that is only the footer, without
 // tmux's window list; the terminal titled hq - agents (design §3.11). Only
 // hq's session and its dashboard window are touched, never the server's
 // global options. The mouse is on for hq's session alone (design §3.7):
@@ -142,8 +156,8 @@ func (c Client) style(win string) error {
 		[]string{"set-option", "-w", "-t", win, "pane-border-lines", "single"},
 		[]string{"set-option", "-w", "-t", win, "pane-border-style", "fg=" + surroundColour + ",bg=" + surroundColour},
 		[]string{"set-option", "-w", "-t", win, "pane-active-border-style", "fg=" + surroundColour + ",bg=" + surroundColour},
-		[]string{"set-option", "-w", "-t", win, "window-style", "bg=" + slotColour},
-		[]string{"set-option", "-w", "-t", win, "window-active-style", "bg=" + slotColour},
+		[]string{"set-option", "-w", "-t", win, "window-style", unfocusedStyle},
+		[]string{"set-option", "-w", "-t", win, "window-active-style", focusedStyle},
 		[]string{"set-option", "-t", Session, "status-style", "bg=" + surroundColour + ",fg=colour245"},
 		[]string{"set-option", "-t", Session, "status-format[0]", footerFormat},
 		[]string{"set-option", "-t", Session, "set-titles", "on"},
@@ -152,12 +166,27 @@ func (c Client) style(win string) error {
 	)
 }
 
-// surroundPane gives pane the surround's colour instead of the slot's.
-func surroundPane(pane string) [][]string {
+// paneStyles gives pane its own styles instead of the window's: inactive
+// while another pane has the keys, active while it has them.
+func paneStyles(pane, inactive, active string) [][]string {
 	return [][]string{
-		{"set-option", "-p", "-t", pane, "window-style", "bg=" + surroundColour},
-		{"set-option", "-p", "-t", pane, "window-active-style", "bg=" + surroundColour},
+		{"set-option", "-p", "-t", pane, "window-style", inactive},
+		{"set-option", "-p", "-t", pane, "window-active-style", active},
 	}
+}
+
+// surroundPane gives a margin the surround's colour, keys or not.
+func surroundPane(pane string) [][]string { return paneStyles(pane, surroundStyle, surroundStyle) }
+
+// listPane gives the list the focused colour while it has the keys and the
+// surround's while the session has them.
+func listPane(pane string) [][]string { return paneStyles(pane, surroundStyle, focusedStyle) }
+
+// placeholderStyle shows the placeholder as the unfocused side even in the
+// moment between a click on it and its handing the keys back to the list
+// (design §3.1): it never holds them.
+func placeholderStyle(pane string) [][]string {
+	return paneStyles(pane, unfocusedStyle, unfocusedStyle)
 }
 
 // borderFormat titles the slot: the list pane's bottom status, the row
@@ -172,12 +201,24 @@ func borderFormat(version string) string {
 	if AtLeast(version, "3.6") {
 		end = `#[align=right bg=` + surroundColour + `]  `
 	}
-	return `#{?#{==:#{@hq_role},list},#[fill=` + slotColour + ` bg=` + slotColour + ` fg=` + titleColour + `] ▸ ` + slotTitle + end + `,}`
+	return `#{?#{==:#{@hq_role},list},` + slotTitleStyle + ` ▸ ` + slotTitle + end + `,}`
 }
+
+// inSlot is true, as a format of a pane of the dashboard window, for the
+// pane in the slot: neither the list nor a margin.
+const inSlot = `#{!=:#{||:#{==:#{@hq_role},list},#{==:#{@hq_role},spacer}},1}`
 
 // slotTitle is the frame title of the pane in the slot, as a format of the
 // dashboard window.
-const slotTitle = `#{P:#{?#{||:#{==:#{@hq_role},list},#{==:#{@hq_role},spacer}},,#{?#{@hq_title},#{@hq_title},#{pane_title}}}}`
+const slotTitle = `#{P:#{?` + inSlot + `,#{?#{@hq_title},#{@hq_title},#{pane_title}},}}`
+
+// slotTitleStyle colours the title row as the slot below it (#128): the
+// focused colour and the accent while the docked session has the keys (the
+// active pane, not the placeholder, which never holds them); the surround
+// and a dim title otherwise.
+const slotTitleStyle = `#{P:#{?` + inSlot + `,#{?#{&&:#{pane_active},#{!=:#{@hq_role},` + roleSlot + `}},` +
+	`#[fill=` + focusColour + ` bg=` + focusColour + ` fg=` + accentColour + `],` +
+	`#[fill=` + surroundColour + ` bg=` + surroundColour + ` fg=` + titleColour + `]},}}`
 
 // footerFormat is the status line: the chords' hints (@hq_chords) while the
 // keys are in the dashboard's slot, else the list's footer (design §3.7).
@@ -395,6 +436,12 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 			if err := c.restartPlaceholder(p.id, PlaceholderHint); err != nil {
 				return Dash{}, err
 			}
+		} else if p.role == roleSlot {
+			// A placeholder an older hq started, wherever it waits,
+			// takes the look it has today.
+			if err := c.batch(placeholderStyle(p.id)...); err != nil {
+				return Dash{}, err
+			}
 		}
 		if p.window != d.Window {
 			continue
@@ -442,7 +489,7 @@ func (c Client) Dashboard(dir string, list []string) (Dash, error) {
 			return Dash{}, err
 		}
 	}
-	if err := c.batch(surroundPane(d.List)...); err != nil {
+	if err := c.batch(listPane(d.List)...); err != nil {
 		return Dash{}, err
 	}
 	if len(spacers) == 0 {
