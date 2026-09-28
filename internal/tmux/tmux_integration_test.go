@@ -454,3 +454,28 @@ func TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter(t *testing.T) {
 		t.Fatalf("buffers left after a failure: %q", out)
 	}
 }
+
+func TestStyledScreenKeepsTheStyles(t *testing.T) {
+	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	id, err := c.NewWindow("w", dir, nil, []string{"sh", "-c", `printf '❯ \033[2mTry this\033[0m\n'; exec cat`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Start(id); err != nil {
+		t.Fatal(err)
+	}
+	ws, _ := c.Windows()
+	pane := ws[len(ws)-1].Pane
+	var s string
+	eventually(t, "the faint text", func() bool { s, _ = c.StyledScreen(pane); return strings.Contains(s, "Try this") })
+	if !strings.Contains(s, "\x1b[2mTry this") {
+		t.Fatalf("%q", s)
+	}
+	if _, err := c.StyledScreen("%999"); err == nil {
+		t.Fatal("a pane that is gone is an error")
+	}
+}

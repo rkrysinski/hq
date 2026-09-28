@@ -261,6 +261,13 @@ func (f *fakeTmux) Respawn(pane, _ string, argv []string) error {
 	return errors.New("no pane " + pane)
 }
 
+func (f *fakeTmux) StyledScreen(pane string) (string, error) {
+	if f.screenErr != nil {
+		return "", f.screenErr
+	}
+	return f.screens[pane], nil
+}
+
 func (f *fakeTmux) Screens(panes []string) (map[string]string, error) {
 	if f.screenErr != nil {
 		return nil, f.screenErr

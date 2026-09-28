@@ -257,3 +257,12 @@ func TestQueuedSaysWhenAnEndedAgentsMessagesGo(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestSendTypesIntoABoxShowingOnlyClaudesFaintHint(t *testing.T) {
+	// A session just started shows a placeholder in its empty box.
+	f := sendFakes(state.Done)
+	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "\x1b[39m❯ \x1b[2mTry \"fix lint errors\"\x1b[0m\n", 1)
+	if code, out, _ := f.run("send", "a", "hi"); code != 0 || out != "delivered: typed into a as its next prompt\n" || len(f.tmux.pasted) != 1 {
+		t.Fatalf("exit %d %q", code, out)
+	}
+}

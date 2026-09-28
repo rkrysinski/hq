@@ -134,12 +134,12 @@ func queued(a agent.Agent, now bool) string {
 
 // typeIn types every message waiting for an agent that waits at its prompt
 // into the prompt box as its next prompt, oldest first, when the box is
-// empty; with anything in the box (the user typing), or a screen that does
+// empty (Claude's faint hints there aside); with anything in the box (the user typing), or a screen that does
 // not show the box, the messages wait and ride along with the next prompt
 // sent there. They leave the inbox first, so no hook delivers them too.
 func typeIn(d deps, a agent.Agent) (string, error) {
-	screens, err := d.tmux.Screens([]string{a.Pane})
-	if empty, _ := state.AtRest(screens[a.Pane], ""); err != nil || !empty {
+	screen, err := d.tmux.StyledScreen(a.Pane)
+	if empty, _ := state.AtRest(state.WithoutHints(screen), ""); err != nil || !empty {
 		return fmt.Sprintf("queued: %s has something in its prompt box, delivered with its next prompt", a.Name), nil
 	}
 	texts, err := d.takeMessages(a.RepoPath, a.ID)

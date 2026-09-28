@@ -280,6 +280,14 @@ func chunks(s string, n int) []string {
 	return append(parts, s)
 }
 
+// StyledScreen is what a pane shows, with the escape sequences of its
+// styles (capture-pane -e): hq send tells Claude's faint hints in its
+// prompt box from what the user typed there (state.WithoutHints).
+func (c Client) StyledScreen(pane string) (string, error) {
+	out, err := c.tmux("capture-pane", "-p", "-e", "-t", pane)
+	return string(out), err
+}
+
 // Submit presses Enter in a pane.
 func (c Client) Submit(pane string) error {
 	_, err := c.tmux("send-keys", "-t", pane, "Enter")

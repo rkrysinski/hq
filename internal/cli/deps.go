@@ -37,6 +37,7 @@ type Tmux interface {
 	SetOption(id, key, value string) error
 	KeepFirst(id, key, prefix, value string) (string, error)
 	Screens(panes []string) (map[string]string, error)
+	StyledScreen(pane string) (string, error)
 	Paste(pane, text string) error
 	Submit(pane string) error
 	LastScreen(pane string) (string, error)
