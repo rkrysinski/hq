@@ -17,7 +17,8 @@ import (
 // top when it exits; a dead pane made smaller, as docking does, keeps its
 // bottom lines. Run in the pane itself, after the session and before the
 // pane dies, the result draws the latest lines again at the bottom of the
-// screen, each run of blank lines as one.
+// screen, each run of blank lines as one, taken from Claude's last screen
+// only, never from the earlier screens its redraws pushed into the history.
 func (c Client) LastScreen(pane string) (string, error) {
 	out, err := c.tmux("display-message", "-p", "-t", pane, "#{history_size} #{pane_height}",
 		";", "capture-pane", "-p", "-t", pane, "-S", "-", "-E", "-")
@@ -53,16 +54,23 @@ func (c Client) LastScreen(pane string) (string, error) {
 // latestLines picks, from a pane's lines (its history, then its screen, as
 // capture-pane prints them), the latest ones that fill its screen but for
 // its bottom line and the one above, each run of blank lines taken as one.
-// It returns their indexes in lines, or nil when there is nothing to draw:
-// the pane printed nothing, or the screen shows just those lines already.
+// They come from the last screenful only, the height lines up to the last
+// one printed: Claude redraws its whole screen on every resize, after
+// clearing it, and tmux pushes each screen it clears into the history
+// (scroll-on-clear), so the lines above the last screenful are Claude's
+// earlier screens, one per resize, each starting with the same
+// conversation. It returns their indexes in lines, or nil when there is
+// nothing to draw: the pane printed nothing, or the screen shows just those
+// lines already.
 func latestLines(lines []string, hist, height int) []int {
 	blank := func(i int) bool { return strings.TrimSpace(lines[i]) == "" }
 	n := len(lines)
 	for n > 0 && blank(n-1) {
 		n--
 	}
+	from := max(n-height, 0)
 	var keep []int
-	for i := n - 1; i >= 0 && len(keep) < max(height-2, 1); i-- {
+	for i := n - 1; i >= from && len(keep) < max(height-2, 1); i-- {
 		if blank(i) && i+1 < n && blank(i+1) {
 			continue
 		}
