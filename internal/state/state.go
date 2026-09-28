@@ -40,6 +40,7 @@ type payload struct {
 	AssistantMessage string `json:"last_assistant_message"`
 	Message          string `json:"message"`
 	Prompt           string `json:"prompt"`
+	Source           string `json:"source"`
 	ToolName         string `json:"tool_name"`
 	ToolInput        struct {
 		Questions   []struct{ Question string } `json:"questions"`
@@ -49,6 +50,10 @@ type payload struct {
 		URL         string                      `json:"url"`
 	} `json:"tool_input"`
 }
+
+// resumeSource is the SessionStart source of a session started with
+// --resume.
+const resumeSource = "resume"
 
 // askTool is Claude's tool that asks the user questions in a dialog.
 const askTool = "AskUserQuestion"
@@ -70,8 +75,9 @@ func (p payload) dialogText() string {
 }
 
 // Parse derives the report from the latest event and the latest Stop event
-// (empty when there is none), which keeps the last message across events.
-func Parse(latest, lastStop []byte) Report {
+// (empty when there is none), which keeps the last message across events,
+// and the event before a resumed session started (empty when there is none).
+func Parse(latest, lastStop, prev []byte) Report {
 	branch, latest := splitHeader(latest)
 	var p payload
 	if json.Unmarshal(latest, &p) != nil {
@@ -103,6 +109,18 @@ func Parse(latest, lastStop []byte) Report {
 		r.State = NeedsInput
 		if m := Clean(p.Message); m != "" {
 			r.Last = m
+		}
+	case "SessionStart":
+		// Claude has started, or started over after /clear, and waits at
+		// its prompt for the user. A resumed session starts in the
+		// repository, not in the worktree its conversation left: until it
+		// reports again it keeps the branch, worktree and last message the
+		// event before it gave (design §3.4).
+		r.State = Done
+		if p.Source == resumeSource {
+			if before := Parse(prev, lastStop, nil); before.State != Starting {
+				r.Branch, r.Cwd, r.Last = before.Branch, before.Cwd, before.Last
+			}
 		}
 	case "SessionEnd":
 		r.State = Ended

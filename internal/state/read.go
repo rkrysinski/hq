@@ -30,14 +30,15 @@ func Read(root, id string) (r Report, ok bool) {
 		return Report{}, false
 	}
 	lastStop, _, _ := readData(path + ".stop")
-	r = Parse(latest, lastStop)
+	prev, _, _ := readData(path + ".prev")
+	r = Parse(latest, lastStop, prev)
 	r.Since = info.ModTime()
 	return r, true
 }
 
 // Remove deletes the state files of agent id of the repository at root, once
 // the agent is gone (design §3.4); files already gone are no error. Only that
-// agent's two files are touched, never another agent's: agents of other tmux
+// agent's files are touched, never another agent's: agents of other tmux
 // servers report to the same directory.
 func Remove(root, id string) error {
 	if !idRE.MatchString(id) {
@@ -45,7 +46,7 @@ func Remove(root, id string) error {
 	}
 	path := filepath.Join(Dir(root), id)
 	var errs []error
-	for _, p := range []string{path, path + ".stop"} {
+	for _, p := range []string{path, path + ".stop", path + ".prev"} {
 		if err := os.Remove(p); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			errs = append(errs, err)
 		}

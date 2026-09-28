@@ -1,0 +1,9 @@
+{
+  "session_id": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+  "transcript_path": "/home/agent/.claude/projects/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0.jsonl",
+  "cwd": "/w/app/.claude/worktrees/feat-42",
+  "scratchpad_dir": "/tmp/claude-1000/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0/scratchpad",
+  "hook_event_name": "SessionStart",
+  "source": "startup",
+  "model": "claude-fable-5-1"
+}

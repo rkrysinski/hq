@@ -3,6 +3,8 @@
 // hq passes, and fires the injected hooks with payloads shaped like Claude's
 // own on each turn:
 //
+//   - once started it fires SessionStart (source startup, or resume with
+//     --resume), before any prompt, as Claude Code 2.1.283 does;
 //   - the first prompt (the last argument) and every line typed are turns:
 //     UserPromptSubmit, then Stop with the reply;
 //   - a prompt containing "question" gets a reply ending in "?";
@@ -75,6 +77,7 @@ func main() {
 		c.delay = d
 	}
 	var prompt string
+	source := "startup"
 	args := os.Args[1:]
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
@@ -86,6 +89,7 @@ func main() {
 		case "--resume":
 			i++
 			c.session = args[i]
+			source = "resume"
 			fmt.Println("fake claude: resumed", c.session)
 		default:
 			prompt = args[i]
@@ -106,6 +110,7 @@ func main() {
 	}()
 
 	time.Sleep(c.delay)
+	c.fire("SessionStart", map[string]any{"source": source})
 	fmt.Print(enterAltScreen)
 	fmt.Println("fake claude: ready")
 	in := bufio.NewScanner(os.Stdin)
@@ -203,6 +208,9 @@ func (c *claude) fire(event string, fields map[string]any) {
 	}
 	payload, _ := json.Marshal(p)
 	kind, _ := fields["notification_type"].(string)
+	if source, ok := fields["source"].(string); ok {
+		kind = source
+	}
 	for _, m := range c.s.Hooks[event] {
 		if m.Matcher != "" {
 			if ok, _ := regexp.MatchString("^("+m.Matcher+")$", kind); !ok {

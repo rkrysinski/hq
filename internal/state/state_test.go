@@ -31,6 +31,8 @@ func TestParseDerivesTheStateFromTheLatestEvent(t *testing.T) {
 		{"dialog-bash", "stop-done", NeedsInput, "Bash: Create empty probe file in /tmp"},
 		{"answer-ask", "stop-done", Working, "Hi. The tests pass and PR #58 is open."},
 		{"session-end", "stop-done", Ended, "Hi. The tests pass and PR #58 is open."},
+		{"session-start", "", Done, ""},                                                // a new session waits at its prompt
+		{"session-start", "stop-done", Done, "Hi. The tests pass and PR #58 is open."}, // after /clear
 	} {
 		var lastStop []byte
 		if tc.lastStop != "" {
@@ -39,13 +41,39 @@ func TestParseDerivesTheStateFromTheLatestEvent(t *testing.T) {
 				lastStop = fixture(t, tc.lastStop)
 			}
 		}
-		r := Parse(fixture(t, tc.latest), lastStop)
+		r := Parse(fixture(t, tc.latest), lastStop, nil)
 		if r.State != tc.state || r.Last != tc.last {
 			t.Errorf("%s after %s: got %q %q, want %q %q", tc.latest, tc.lastStop, r.State, r.Last, tc.state, tc.last)
 		}
 		if r.SessionID != "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0" || r.Cwd != "/w/app/.claude/worktrees/feat-42" {
 			t.Errorf("%s: session %q cwd %q", tc.latest, r.SessionID, r.Cwd)
 		}
+	}
+}
+
+func TestAResumedSessionKeepsWhatTheEventBeforeItGave(t *testing.T) {
+	resume, stop := fixture(t, "session-start-resume"), fixture(t, "stop-done")
+	// Relaunched with --resume, Claude starts in the repository, not in the
+	// worktree its conversation left, where the event before it was a dialog.
+	before := append([]byte("branch feat-42\n"), fixture(t, "dialog-bash")...)
+	r := Parse(append([]byte("branch main\n"), resume...), stop, before)
+	if r.State != Done || r.Branch != "feat-42" || r.Cwd != "/w/app/.claude/worktrees/feat-42" || r.Last != "Bash: Create empty probe file in /tmp" || r.Prompt != "" {
+		t.Fatalf("resumed: %+v", r)
+	}
+	if r.SessionID != "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0" {
+		t.Fatalf("session %q", r.SessionID)
+	}
+	// With nothing before it (an agent that never reported, or a broken
+	// file), it reports where it is.
+	for _, prev := range [][]byte{nil, []byte("branch feat-42\nnot json")} {
+		r := Parse(append([]byte("branch main\n"), resume...), stop, prev)
+		if r.State != Done || r.Branch != "main" || r.Cwd != "/w/app" || r.Last != "Hi. The tests pass and PR #58 is open." {
+			t.Errorf("%q: %+v", prev, r)
+		}
+	}
+	// Only a resumed session looks at the event before it.
+	if r := Parse(append([]byte("branch main\n"), fixture(t, "session-start")...), stop, before); r.Branch != "main" || r.Last != "Hi. The tests pass and PR #58 is open." {
+		t.Errorf("startup: %+v", r)
 	}
 }
 
@@ -58,7 +86,7 @@ func TestADialogShowsWhatItAsksOrTheToolItAllows(t *testing.T) {
 		{`{"hook_event_name":"PermissionRequest","tool_name":"WebFetch","tool_input":{"url":"https://example.com"}}`, "WebFetch: https://example.com"},
 		{`{"hook_event_name":"PermissionRequest","tool_name":"ExitPlanMode","tool_input":{}}`, "ExitPlanMode"},
 	} {
-		if r := Parse([]byte(tc.payload), fixture(t, "stop-done")); r.State != NeedsInput || r.Last != tc.want {
+		if r := Parse([]byte(tc.payload), fixture(t, "stop-done"), nil); r.State != NeedsInput || r.Last != tc.want {
 			t.Errorf("%s: %q %q, want %q", tc.payload, r.State, r.Last, tc.want)
 		}
 	}
@@ -72,7 +100,7 @@ func TestParseTakesTheBranchFromTheHookHeader(t *testing.T) {
 		{"branch feat/\x1b[31mred\n", "feat/red"}, // stripped like any field
 		{"", ""}, // an older hook, no header
 	} {
-		r := Parse(append([]byte(tc.header), fixture(t, "prompt")...), stop)
+		r := Parse(append([]byte(tc.header), fixture(t, "prompt")...), stop, nil)
 		if r.State != Working || r.Branch != tc.branch || r.Last != "Hi. The tests pass and PR #58 is open." {
 			t.Errorf("%q: %+v", tc.header, r)
 		}
@@ -81,7 +109,7 @@ func TestParseTakesTheBranchFromTheHookHeader(t *testing.T) {
 
 func TestParseTreatsUnknownOrBrokenEventsAsStarting(t *testing.T) {
 	for _, latest := range []string{`not json`, `{"hook_event_name":"PreCompact"}`, ``} {
-		if r := Parse([]byte(latest), nil); r.State != Starting {
+		if r := Parse([]byte(latest), nil, nil); r.State != Starting {
 			t.Errorf("%q: %q", latest, r.State)
 		}
 	}
@@ -142,8 +170,20 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 		"UserPromptSubmit": "prompt", "PermissionRequest": "dialog \\u0007", "PostToolUse": "answer", "PostToolUseFailure": "answer",
 		"Stop": "stop \\u0007", "Notification": "input \\u0007", "SessionEnd": "end",
 	}
-	if len(s.Hooks) != len(events) {
-		t.Errorf("hooks for %d events, want %d", len(s.Hooks), len(events))
+	// SessionStart: a new session or /clear starts, a resumed one resumes;
+	// never a compaction, which may come in the middle of a turn. Neither
+	// notifies: the user has just started the agent.
+	start := s.Hooks["SessionStart"]
+	if len(start) != 2 || start[0].Matcher != "startup|clear" || start[1].Matcher != "resume" {
+		t.Fatalf("SessionStart: %+v", start)
+	}
+	for i, kind := range []string{"start", "resume"} {
+		if h := start[i].Hooks; len(h) != 1 || h[0].Command != "sh" || h[0].Args[1] != `eval "$HQ_HOOK"` || strings.Join(h[0].Args[3:], " ") != kind {
+			t.Errorf("SessionStart %s: %+v", start[i].Matcher, h)
+		}
+	}
+	if len(s.Hooks) != len(events)+1 {
+		t.Errorf("hooks for %d events, want %d", len(s.Hooks), len(events)+1)
 	}
 	for event, args := range events {
 		m := s.Hooks[event]
@@ -171,11 +211,11 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 }
 
 func TestParseKeepsThePromptOfAWorkingTurn(t *testing.T) {
-	if r := Parse(fixture(t, "prompt"), nil); r.Prompt != "say hi" {
+	if r := Parse(fixture(t, "prompt"), nil, nil); r.Prompt != "say hi" {
 		t.Errorf("prompt: %q", r.Prompt)
 	}
 	for _, name := range []string{"answer-ask", "stop-done", "dialog-bash"} {
-		if r := Parse(fixture(t, name), nil); r.Prompt != "" {
+		if r := Parse(fixture(t, name), nil, nil); r.Prompt != "" {
 			t.Errorf("%s: %q", name, r.Prompt)
 		}
 	}
