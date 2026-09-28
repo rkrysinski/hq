@@ -126,7 +126,8 @@ const EndedLast = "[session ended]"
 // have started yet (sbx run starts a stopped one, which takes seconds), so
 // a sandbox not running is no sign that the session ended; the agent is
 // starting (S2), and ended when its pane dies, as sbx run returns when its
-// sandbox stops. An ended agent without a last message has EndedLast, so
+// sandbox stops. An ended agent keeps the last turn end hq saw on its
+// screen, and one without a last message has EndedLast, so
 // hq ls and the list show the same (design §6).
 func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), running map[string]bool) []Agent {
 	as := FromWindows(ws)
@@ -137,6 +138,7 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 			as[i].New = false
 		}
 		if as[i].State == state.Ended {
+			as[i].keepTurnEnd()
 			as[i].endTime()
 			if as[i].Last == "" {
 				as[i].Last = EndedLast
@@ -144,6 +146,16 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 		}
 	}
 	return as
+}
+
+// keepTurnEnd gives an ended agent the message of the last turn the user
+// ended at it, as hq saw it on its screen (Settle), when no hook has
+// reported since: its last known message (spec S7, #111). Its time stays
+// the moment it ended.
+func (a *Agent) keepTurnEnd() {
+	if f := strings.SplitN(a.turnEnd, " ", 3); len(f) == 3 && f[0] == a.key() {
+		a.Last = f[2]
+	}
 }
 
 // endTime makes an ended agent's time the moment it ended (spec §5): its
