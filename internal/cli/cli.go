@@ -32,6 +32,7 @@ func commands() []command {
 		{"dash", "", "open the dashboard (also: hq alone)", runDash},
 		{"new", "NAME [DIR] [PROMPT]", "start an agent for the repository in DIR, with an optional first prompt", runNew},
 		{"ls", "[--json]", "list agents", runLs},
+		{"wait", "[NAME...] [--json]", "wait until an agent is done, asks, needs input or ends", runWait},
 		{"go", "NAME", "enter that agent's session", runGo},
 		{"code", "NAME", "open VS Code on that agent's worktree", runCode},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
@@ -105,6 +106,7 @@ func runHelp(env Env, _ deps, _ []string) error {
 	}
 	fmt.Fprintf(&b, "  %-32s %s\n", "hq --version", "print the version")
 	fmt.Fprintf(&b, "\nNAME: letters, digits, - and _, at most %d characters; taken until that agent is killed.\n", agent.MaxName)
+	fmt.Fprintf(&b, "hq wait also takes --since TIME (the moment it printed last, or 10m back) and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
 	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment.\n")
 	_, err := io.WriteString(env.Stdout, b.String())
 	return err

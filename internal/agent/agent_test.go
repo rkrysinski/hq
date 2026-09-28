@@ -606,3 +606,91 @@ func TestAnEndedAgentsEndSeenBeforeItsLastReportDoesNotCount(t *testing.T) {
 		t.Errorf("seen afresh: %+v %v", r, a.Since)
 	}
 }
+
+func TestEnteredIsWhenTheReportedStateCanBeSeen(t *testing.T) {
+	// A state the hooks report is seen from the state file's time, as AGE
+	// counts it; so is a turn end hq saw on the screen, from the record.
+	asked := time.Unix(1000, 0)
+	a := FromWindows([]tmux.Window{{ID: "@1", Options: map[string]string{"id": "x", "started": "900"}}})[0]
+	a.Apply(state.Report{State: state.Question, Since: asked}, true)
+	if !a.Entered().Equal(asked) {
+		t.Fatalf("question: %v", a.Entered())
+	}
+	declined := "● User declined to answer questions\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer\n"
+	b := FromWindows([]tmux.Window{{ID: "@2", Options: map[string]string{"id": "y"}}})[0]
+	b.Apply(state.Report{State: state.NeedsInput, Since: asked}, true)
+	seen := asked.Add(5 * time.Second)
+	b.Settle(declined, seen)
+	if !b.Entered().Equal(seen) {
+		t.Fatalf("cancelled dialog: %v", b.Entered())
+	}
+}
+
+func TestARewoundTurnIsEnteredWhenItIsDecided(t *testing.T) {
+	// A rewind counts from when its screen was first seen at rest (AGE), but
+	// only RestDelay later is it done for anyone to see: in its own look,
+	// and in every process that recalls the records.
+	rule := strings.Repeat("─", 20)
+	box := "✻ Baked for 2s · done\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n"
+	asked := time.Unix(1000, 0)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	r := state.Report{State: state.Working, Since: asked}
+	look := func() Agent {
+		a := FromWindows([]tmux.Window{w})[0]
+		a.Apply(r, true)
+		return a
+	}
+	first := asked.Add(3 * time.Second)
+	a := look()
+	_, rest := split(a.Settle(box, first))
+	w.Options["restseen"] = rest
+	a = look()
+	end, _ := split(a.Settle(box, first.Add(RestDelay)))
+	if a.State != state.Done || !a.Since.Equal(first) || !a.Entered().Equal(first.Add(RestDelay)) {
+		t.Fatalf("decided: %+v entered %v", a, a.Entered())
+	}
+	w.Options["turnend"] = end
+	a = look()
+	if !a.Recall() || !a.Entered().Equal(first.Add(RestDelay)) {
+		t.Fatalf("recalled: %+v entered %v", a, a.Entered())
+	}
+	// An Esc that printed Interrupted is no rewind, whatever the rest
+	// record of the same report says.
+	w.Options["turnend"] = strings.Replace(end, nanos(first), nanos(first.Add(time.Second)), 1)
+	a = look()
+	if !a.Recall() || a.Last != Rewound || !a.Entered().Equal(first.Add(time.Second)) {
+		t.Fatalf("interrupted: %+v entered %v", a, a.Entered())
+	}
+}
+
+func TestAnEndedAgentIsEnteredFromTheFirstSignOfItsEnd(t *testing.T) {
+	at := func(s float64) time.Time { return time.UnixMilli(int64(s * 1000)) }
+	entered := func(dead bool, deadAt float64, report state.Report, endSeen string) time.Time {
+		w := tmux.Window{ID: "@1", PaneDead: dead, Options: map[string]string{"id": "x", "sandbox": "claude-app", "started": "900", "endseen": endSeen}}
+		if deadAt > 0 {
+			w.DeadAt = at(deadAt)
+		}
+		as := Collect([]tmux.Window{w}, func(_, _ string) (state.Report, bool) { return report, true }, nil)
+		if as[0].State != state.Ended {
+			t.Fatalf("not ended: %+v", as[0])
+		}
+		return as[0].Entered()
+	}
+	working := state.Report{State: state.Working, Since: at(1000)}
+	exited := state.Report{State: state.Ended, Since: at(1000.4)}
+	for name, tc := range map[string]struct {
+		got, want time.Time
+	}{
+		// tmux dates a pane's death to the whole second: it died by a
+		// second later, though AGE counts from the date.
+		"its pane died":        {entered(true, 1001, working, ""), at(1002)},
+		"its session reported": {entered(true, 1001, exited, ""), at(1000.4)},
+		"hq first saw it":      {entered(true, 0, working, "900 "+nanos(at(1000))+" "+nanos(at(1003.5))), at(1003.5)},
+		"seen, then it died":   {entered(true, 1005, working, "900 "+nanos(at(1000))+" "+nanos(at(1003.5))), at(1003.5)},
+		"no date yet":          {entered(true, 0, working, ""), at(1000)},
+	} {
+		if !tc.got.Equal(tc.want) {
+			t.Errorf("%s: entered %v, want %v", name, tc.got, tc.want)
+		}
+	}
+}
