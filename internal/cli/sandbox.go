@@ -10,7 +10,7 @@ import (
 	"github.com/rkrysinski/hq/internal/sbx"
 )
 
-const sandboxUsage = "usage: hq sandbox rm|restart REPO [-y]"
+const sandboxUsage = "usage: hq sandbox rm|restart REPO|SANDBOX [-y]"
 
 func runSandbox(env Env, d deps, args []string) error {
 	rest, yes, err := parseYes(args)
@@ -38,7 +38,8 @@ func runSandbox(env Env, d deps, args []string) error {
 }
 
 // resolveSandbox finds the sandbox of REPO: a directory in the repository
-// (resolved as in hq new) or the repository's name as hq ls shows it.
+// (resolved as in hq new), the repository's name as hq ls shows it, or the
+// sandbox's own name as sbx ls shows it (#113).
 func resolveSandbox(d deps, repoArg string) (sbx.Sandbox, error) {
 	all, err := d.sbx.List()
 	if err != nil {
@@ -64,7 +65,7 @@ func resolveSandbox(d deps, repoArg string) (sbx.Sandbox, error) {
 	}
 	var found []sbx.Sandbox
 	for _, s := range all {
-		if len(s.Workspaces) > 0 && filepath.Base(s.Workspaces[0]) == repoArg {
+		if s.Name == repoArg || len(s.Workspaces) > 0 && filepath.Base(s.Workspaces[0]) == repoArg {
 			found = append(found, s)
 		}
 	}
@@ -74,7 +75,7 @@ func resolveSandbox(d deps, repoArg string) (sbx.Sandbox, error) {
 	case 1:
 		return found[0], nil
 	}
-	return sbx.Sandbox{}, usageErr("'%s' names %d repositories; give the repository's directory", repoArg, len(found))
+	return sbx.Sandbox{}, usageErr("'%s' names %d repositories; give the repository's directory or its sandbox's name", repoArg, len(found))
 }
 
 func sandboxRm(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes bool) error {

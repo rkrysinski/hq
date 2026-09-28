@@ -36,7 +36,7 @@ func commands() []command {
 		{"code", "NAME", "open VS Code on that agent's worktree", runCode},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
-		{"sandbox", "rm|restart REPO [-y]", "remove or restart a repository's sandbox", runSandbox},
+		{"sandbox", "rm|restart REPO|SANDBOX [-y]", "remove or restart a repository's sandbox", runSandbox},
 		{"update", "", "replace hq with the latest release", runUpdate},
 		{"help", "", "show this help", runHelp},
 	}
