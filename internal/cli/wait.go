@@ -12,11 +12,10 @@ import (
 	"github.com/rkrysinski/hq/internal/state"
 )
 
-// DefaultWaitTimeout is how long hq wait waits when --timeout is not given:
-// a little below the 60 s an MCP client commonly allows a tool call (the MCP
-// SDKs' default request timeout), so hq wait called as a tool returns
-// "nothing yet" before its caller gives up on it. The hq mcp issue (#136)
-// sets it from Claude Desktop's measured limit.
+// DefaultWaitTimeout is how long hq wait waits when --timeout is not given,
+// and the most the MCP wait tool waits: below the 60 s Claude Desktop allows
+// a tool call of a local server (design §3.12), so hq wait called as a tool
+// returns "nothing yet" before its caller gives up on it.
 const DefaultWaitTimeout = 50 * time.Second
 
 // How hq wait looks (design §3.4 "Entered after a moment", §5.1).

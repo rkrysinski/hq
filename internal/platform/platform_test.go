@@ -18,12 +18,17 @@ type fakeWslpath struct {
 	calls [][]string
 	err   error
 	out   string // when set, the answer to every call
+	// appdata is what cmd.exe answers.
+	appdata string
 }
 
 func (f *fakeWslpath) Run(name string, args ...string) ([]byte, error) {
 	f.calls = append(f.calls, append([]string{name}, args...))
 	if f.err != nil {
 		return nil, f.err
+	}
+	if name == "cmd.exe" {
+		return []byte(f.appdata), nil
 	}
 	if f.out != "" || len(args) != 2 {
 		return []byte(f.out), nil
@@ -48,7 +53,7 @@ func (f *fakeWslpath) Run(name string, args ...string) ([]byte, error) {
 func TestNativeKeepsTheContract(t *testing.T) { platformtest.Contract(t, platform.Native{}) }
 
 func TestWSLKeepsTheContract(t *testing.T) {
-	platformtest.Contract(t, platform.WSL{Run: &fakeWslpath{}})
+	platformtest.Contract(t, platform.WSL{Run: &fakeWslpath{appdata: "C:\\Users\\dev\\AppData\\Roaming\r\n"}})
 }
 
 func TestNotificationSequencePerPlatform(t *testing.T) {
@@ -153,6 +158,9 @@ func TestBrowserIsGhOpeningThePullRequest(t *testing.T) {
 	wsl := platform.Detect(func(k string) string { return map[string]string{"WSL_DISTRO_NAME": "U", "BROWSER": "wslview"}[k] }, nil, nil)
 	if !wsl.(platform.WSL).BrowserSet {
 		t.Error("BROWSER not seen")
+	}
+	if wsl.(platform.WSL).Distro != "U" {
+		t.Error("the distribution's name not kept")
 	}
 }
 

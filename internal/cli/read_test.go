@@ -138,11 +138,17 @@ func TestReadJSONHasWhatLsHasAndTheAgentInFull(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, lsOut, _ := f.run("ls", "--json")
-	var ls []map[string]any
-	if err := json.Unmarshal([]byte(lsOut), &ls); err != nil || len(ls) != 1 {
+	var ls struct {
+		Agents    []map[string]any `json:"agents"`
+		NextSince string           `json:"next_since"`
+	}
+	if err := json.Unmarshal([]byte(lsOut), &ls); err != nil || len(ls.Agents) != 1 {
 		t.Fatal(err)
 	}
-	for k, want := range ls[0] {
+	if v["next_since"] != ls.NextSince {
+		t.Errorf("next_since %v, hq ls has %s", v["next_since"], ls.NextSince)
+	}
+	for k, want := range ls.Agents[0] {
 		if got, _ := json.Marshal(v[k]); string(got) != mustJSON(want) {
 			t.Errorf("%s: %s, hq ls has %s", k, got, mustJSON(want))
 		}

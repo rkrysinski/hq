@@ -89,8 +89,8 @@ func TestLsPutsWhatNeedsTheUserFirstAndNewestFirstWithinAState(t *testing.T) {
 		t.Fatalf("order %v\n%s", got, out)
 	}
 	code, js, _ := f.run("ls", "--json")
-	var rows []lsRow
-	if code != 0 || json.Unmarshal([]byte(js), &rows) != nil || len(rows) != 7 || rows[0].Name != "n" || rows[6].Name != "e" {
+	var l waitOutput
+	if code != 0 || json.Unmarshal([]byte(js), &l) != nil || len(l.Agents) != 7 || l.Agents[0].Name != "n" || l.Agents[6].Name != "e" {
 		t.Fatalf("json order: %s", js)
 	}
 }
@@ -125,11 +125,18 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 	f.states["id-a"] = state.Report{State: state.Question, Since: f.now.Add(-90 * time.Second), Last: long}
 	f.inbox["id-a"] = []string{"one", "two"}
 	code, out, _ := f.run("ls", "--json")
-	var rows []map[string]any
-	if code != 0 || json.Unmarshal([]byte(out), &rows) != nil || len(rows) != 1 {
+	var l struct {
+		Agents    []map[string]any `json:"agents"`
+		NextSince string           `json:"next_since"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &l) != nil || len(l.Agents) != 1 {
 		t.Fatalf("exit %d, %q", code, out)
 	}
-	r := rows[0]
+	// The moment of the look, as far back as hq wait's own (design §3.4).
+	if l.NextSince != "2026-09-27T11:59:59.75Z" {
+		t.Fatalf("next_since %q", l.NextSince)
+	}
+	r := l.Agents[0]
 	if r["name"] != "a" || r["repo"] != "app" || r["state"] != "question" || r["age_seconds"] != 90.0 || r["branch"] != "" || r["last"] != long ||
 		r["since"] != "2026-09-27T11:58:30Z" || r["pending"] != 2.0 {
 		t.Fatalf("row %v", r)
@@ -246,7 +253,7 @@ func TestLsWithNoAgentsPrintsNothing(t *testing.T) {
 	if code, out, _ := f.run("ls"); code != 0 || out != "" {
 		t.Fatalf("exit %d %q", code, out)
 	}
-	if code, out, _ := f.run("ls", "--json"); code != 0 || out != "[]\n" {
+	if code, out, _ := f.run("ls", "--json"); code != 0 || out != "{\n  \"agents\": [],\n  \"next_since\": \"2026-09-27T11:59:59.75Z\"\n}\n" {
 		t.Fatalf("json: exit %d %q", code, out)
 	}
 }

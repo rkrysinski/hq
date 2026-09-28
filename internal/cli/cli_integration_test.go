@@ -53,11 +53,13 @@ func (h *realHQ) run(args ...string) (int, string, string) {
 func (h *realHQ) ls() []lsRow {
 	h.t.Helper()
 	code, out, errOut := h.run("ls", "--json")
-	var rows []lsRow
-	if code != 0 || json.Unmarshal([]byte(out), &rows) != nil {
+	var ls struct {
+		Agents []lsRow `json:"agents"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &ls) != nil {
 		h.t.Fatalf("ls: exit %d %q %q", code, out, errOut)
 	}
-	return rows
+	return ls.Agents
 }
 
 // waitSessions waits until the stub sbx has recorded n sessions in sandbox,

@@ -10,7 +10,9 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rkrysinski/hq/internal/dash"
+	"github.com/rkrysinski/hq/internal/desktop"
 	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/prefs"
@@ -469,6 +471,18 @@ type fakes struct {
 	ran     [][]string
 	ranCode int
 	ranErr  error
+
+	// desktop is Claude Desktop's configuration file (desktopErr: it
+	// cannot be found); installed are the servers set up in it, and
+	// installResult and installErr the answer; served is the MCP server
+	// run over stdio, serveErr how it ends.
+	desktop       string
+	desktopErr    error
+	installed     []desktop.Server
+	installResult desktop.Result
+	installErr    error
+	served        *mcp.Server
+	serveErr      error
 }
 
 func newFakes() *fakes {
@@ -632,5 +646,17 @@ func (f *fakes) deps() deps {
 		},
 		pid:   4242,
 		alive: func(pid int) bool { return f.alive[pid] },
+
+		home:          func() (string, error) { return "/home/dev", nil },
+		desktopConfig: func() (string, error) { return f.desktop, f.desktopErr },
+		desktopServer: func(hq string, env []string) desktop.Server {
+			cmd, args, e := platformtest.Fake{}.DesktopServer(hq, env)
+			return desktop.Server{Command: cmd, Args: args, Env: e}
+		},
+		installDesktop: func(path string, s desktop.Server) (desktop.Result, error) {
+			f.installed = append(f.installed, s)
+			return f.installResult, f.installErr
+		},
+		serveMCP: func(s *mcp.Server) error { f.served = s; return f.serveErr },
 	}
 }

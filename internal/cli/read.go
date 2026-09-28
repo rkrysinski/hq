@@ -18,6 +18,9 @@ type readView struct {
 	Worktree string     `json:"worktree"`
 	Reply    string     `json:"reply"` // the last reply in full; LAST is one line of it
 	Asks     *state.Ask `json:"asks"`  // what the agent asks while question or needs input, else null
+	// NextSince is the moment of the look, for hq wait --since: what
+	// changes after it is returned by hq wait.
+	NextSince time.Time `json:"next_since"`
 }
 
 func runRead(env Env, d deps, args []string) error {
@@ -35,6 +38,7 @@ func runRead(env Env, d deps, args []string) error {
 	if name == "" {
 		return usageErr("usage: hq read NAME [--json]")
 	}
+	at := d.now()
 	as, err := look(d)
 	if err != nil {
 		return err
@@ -45,6 +49,7 @@ func runRead(env Env, d deps, args []string) error {
 	}
 	v := newReadView(newLsRow(d, a, d.now()), d.readDetail(a.RepoPath, a.ID), worktree(d, a))
 	if asJSON {
+		v.NextSince = lookedAt(at)
 		return writeJSON(env.Stdout, v)
 	}
 	return v.write(env.Stdout)

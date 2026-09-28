@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,7 +12,9 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rkrysinski/hq/internal/dash"
+	"github.com/rkrysinski/hq/internal/desktop"
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/iterm"
@@ -146,6 +149,18 @@ type deps struct {
 	itermProfile func() (bool, error)
 	loadPrefs    func() prefs.Prefs
 	savePrefs    func(prefs.Prefs) error
+
+	// home is the user's home directory.
+	home func() (string, error)
+	// desktopConfig is Claude Desktop's configuration file, desktopServer
+	// how Claude Desktop starts the hq at a path with an environment, and
+	// installDesktop sets it up in the file (hq mcp install, design §3.12).
+	desktopConfig  func() (string, error)
+	desktopServer  func(hq string, env []string) desktop.Server
+	installDesktop func(path string, s desktop.Server) (desktop.Result, error)
+	// serveMCP runs an MCP server over stdin and stdout until the client
+	// closes them.
+	serveMCP func(*mcp.Server) error
 }
 
 // ghTimeout bounds gh pr list, which goes to GitHub.
@@ -225,6 +240,23 @@ func defaultDeps() deps {
 		},
 		loadPrefs: func() prefs.Prefs { return prefs.Load(prefs.Path(os.Getenv)) },
 		savePrefs: func(p prefs.Prefs) error { return prefs.Save(prefs.Path(os.Getenv), p) },
+
+		home: os.UserHomeDir,
+		desktopConfig: func() (string, error) {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return "", err
+			}
+			return plat.DesktopConfig(home)
+		},
+		desktopServer: func(hq string, env []string) desktop.Server {
+			cmd, args, e := plat.DesktopServer(hq, env)
+			return desktop.Server{Command: cmd, Args: args, Env: e}
+		},
+		installDesktop: func(path string, s desktop.Server) (desktop.Result, error) {
+			return desktop.Install(path, s, time.Now())
+		},
+		serveMCP: func(s *mcp.Server) error { return s.Run(context.Background(), &mcp.StdioTransport{}) },
 	}
 }
 

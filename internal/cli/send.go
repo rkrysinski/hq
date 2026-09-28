@@ -21,18 +21,20 @@ const pollEvery = 250 * time.Millisecond
 // message before it presses Enter, so the Enter is not part of the paste.
 const pasteSettle = 300 * time.Millisecond
 
-const sendUsage = "usage: hq send NAME TEXT [--now]"
+const sendUsage = "usage: hq send NAME TEXT [--now] [--json]"
 
 // runSend leaves a message for an agent, delivered when the agent is ready
 // (spec §4.1, §5, ADR 0012): its hooks deliver it while it works, and an
 // agent that waits at its empty prompt gets it typed in as its next prompt.
 func runSend(env Env, d deps, args []string) error {
 	var rest []string
-	now := false
+	now, asJSON := false, false
 	for _, a := range args {
 		switch {
 		case a == "--now":
 			now = true
+		case a == "--json":
+			asJSON = true
 		case len(a) > 1 && strings.HasPrefix(a, "-") && !strings.ContainsAny(a, " \t\n"):
 			return usageErr("unknown option '%s' (%s)", a, sendUsage)
 		default:
@@ -63,6 +65,9 @@ func runSend(env Env, d deps, args []string) error {
 	case !a.Inbox:
 		return usageErr("%s was started by an older hq and cannot receive messages; %s", a.Name, relaunch)
 	}
+	// The moment before the message is left: the reply it brings is a
+	// change after it, for hq wait --since.
+	sent := lookedAt(d.now())
 	if err := d.postMessage(a.RepoPath, a.ID, text, now); err != nil {
 		return envErr("cannot leave the message for %s: %v", a.Name, err)
 	}
@@ -78,8 +83,19 @@ func runSend(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
+	if asJSON {
+		return writeJSON(env.Stdout, sendOutput{Delivery: how, NextSince: sent})
+	}
 	fmt.Fprintln(env.Stdout, how)
 	return nil
+}
+
+// sendOutput is what hq send --json prints: how the message goes, and the
+// moment before it was left, for hq wait --since, so the agent's reply to
+// it is returned however late hq wait is called.
+type sendOutput struct {
+	Delivery  string    `json:"delivery"`
+	NextSince time.Time `json:"next_since"`
 }
 
 // findAgent collects the agents as hq ls does, turns the user ended

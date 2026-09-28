@@ -32,13 +32,20 @@ type Platform interface {
 	// client's terminal, which a platform may use to find the window. It
 	// fails when no window shows the dashboard or the system refuses.
 	Raise(tty string) []string
+	// DesktopConfig is Claude Desktop's configuration file as hq sees it,
+	// home being the user's home directory (design §3.12).
+	DesktopConfig(home string) (string, error)
+	// DesktopServer is how Claude Desktop starts the MCP server that runs
+	// the hq at path hq with the environment env ("KEY=value"): the
+	// command, its arguments, and the environment Claude Desktop gives it.
+	DesktopServer(hq string, env []string) (command string, args []string, environment map[string]string)
 }
 
 // Detect chooses the platform at startup: WSL when WSL_DISTRO_NAME is set or
 // the kernel release names Microsoft, otherwise Native.
 func Detect(getenv func(string) string, readFile func(string) ([]byte, error), run proc.Runner) Platform {
-	if getenv("WSL_DISTRO_NAME") != "" {
-		return WSL{Run: run, BrowserSet: getenv("BROWSER") != ""}
+	if d := getenv("WSL_DISTRO_NAME"); d != "" {
+		return WSL{Run: run, BrowserSet: getenv("BROWSER") != "", Distro: d}
 	}
 	if b, err := readFile("/proc/sys/kernel/osrelease"); err == nil && strings.Contains(strings.ToLower(string(b)), "microsoft") {
 		return WSL{Run: run, BrowserSet: getenv("BROWSER") != ""}
@@ -96,7 +103,8 @@ func ghView(url string) []string { return []string{"gh", "pr", "view", "--web", 
 // interop, and paths cross between Linux and Windows with wslpath.
 type WSL struct {
 	Run        proc.Runner
-	BrowserSet bool // the user set BROWSER
+	BrowserSet bool   // the user set BROWSER
+	Distro     string // the WSL distribution hq runs in, when known
 }
 
 func (WSL) SbxCommand() string                    { return "sbx.exe" }

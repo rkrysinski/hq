@@ -14,7 +14,7 @@ _Avoid_: synonym, another synonym
 
 **Agent**:
 One Claude Code session started through hq, known by a short name unique among existing agents (running or `ended`) until it is killed.
-_Avoid_: tab, session, worker (until Phase 2)
+_Avoid_: tab, session, worker
 
 **Dashboard**:
 The hq tmux window: the list on top, the docking slot below, the footer along the bottom.
@@ -47,3 +47,7 @@ _Avoid_: alert, blocked
 **Message**:
 Text the user leaves for an agent with `hq send`, delivered to it when it is ready; it waits in the agent's inbox until then.
 _Avoid_: feedback, note, mail
+
+**Supervisor**:
+A Claude Desktop conversation that starts, watches and messages agents through hq's MCP tools (`hq mcp`); an MCP client, not an agent, with no row of its own.
+_Avoid_: sup agent, orchestrator, manager
