@@ -325,7 +325,10 @@ func TestMCPServesOnlyAClient(t *testing.T) {
 	if code, _, errOut := f.run("mcp"); code != ExitEnvironment || errOut != "hq: mcp: broken pipe\n" {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
-	if code, _, errOut := f.run("mcp", "serve"); code != ExitUsage || errOut != "hq: usage: hq mcp [install]\n" {
+	if code, _, errOut := f.run("mcp", "install", "now"); code != ExitUsage || errOut != "hq: unexpected argument 'now' (usage: hq mcp [install])\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if code, _, errOut := f.run("mcp", "serve"); code != ExitUsage || errOut != "hq: unexpected argument 'serve' (usage: hq mcp [install])\n" {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 }

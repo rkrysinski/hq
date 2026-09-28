@@ -30,7 +30,11 @@ func runMCP(env Env, d deps, args []string) error {
 	case len(args) == 1 && args[0] == "install":
 		return runMCPInstall(env, d)
 	case len(args) != 0:
-		return usageErr("usage: hq mcp [install]")
+		extra := args[0]
+		if extra == "install" {
+			extra = args[1]
+		}
+		return usageErr("unexpected argument '%s' (usage: hq mcp [install])", extra)
 	case d.canAsk(env.Stdin):
 		return usageErr("hq mcp is started by Claude Desktop, not typed; add it there with: hq mcp install")
 	}
