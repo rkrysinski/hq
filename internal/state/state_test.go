@@ -31,8 +31,8 @@ func TestParseDerivesTheStateFromTheLatestEvent(t *testing.T) {
 		{"dialog-bash", "stop-done", NeedsInput, "Bash: Create empty probe file in /tmp"},
 		{"answer-ask", "stop-done", Working, "Hi. The tests pass and PR #58 is open."},
 		{"session-end", "stop-done", Ended, "Hi. The tests pass and PR #58 is open."},
-		{"session-start", "", Done, ""},                                                // a new session waits at its prompt
-		{"session-start", "stop-done", Done, "Hi. The tests pass and PR #58 is open."}, // after /clear
+		{"session-start", "", Done, ""}, // a new session waits at its prompt
+		{"session-start-clear", "stop-done", Done, "Hi. The tests pass and PR #58 is open."},
 	} {
 		var lastStop []byte
 		if tc.lastStop != "" {
@@ -45,7 +45,12 @@ func TestParseDerivesTheStateFromTheLatestEvent(t *testing.T) {
 		if r.State != tc.state || r.Last != tc.last {
 			t.Errorf("%s after %s: got %q %q, want %q %q", tc.latest, tc.lastStop, r.State, r.Last, tc.state, tc.last)
 		}
-		if r.SessionID != "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0" || r.Cwd != "/w/app/.claude/worktrees/feat-42" {
+		// A new session has no conversation to resume yet.
+		session := "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+		if tc.latest == "session-start" {
+			session = ""
+		}
+		if r.SessionID != session || r.Cwd != "/w/app/.claude/worktrees/feat-42" {
 			t.Errorf("%s: session %q cwd %q", tc.latest, r.SessionID, r.Cwd)
 		}
 	}

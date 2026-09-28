@@ -51,9 +51,12 @@ type payload struct {
 	} `json:"tool_input"`
 }
 
-// resumeSource is the SessionStart source of a session started with
+// The SessionStart sources of a new session and of one started with
 // --resume.
-const resumeSource = "resume"
+const (
+	newSource    = "startup"
+	resumeSource = "resume"
+)
 
 // askTool is Claude's tool that asks the user questions in a dialog.
 const askTool = "AskUserQuestion"
@@ -117,6 +120,12 @@ func Parse(latest, lastStop, prev []byte) Report {
 		// reports again it keeps the branch, worktree and last message the
 		// event before it gave (design §3.4).
 		r.State = Done
+		if p.Source == newSource {
+			// Nothing to resume yet: Claude keeps no conversation for a
+			// session that never had a prompt, and --resume with its id
+			// fails (design §3.6).
+			r.SessionID = ""
+		}
 		if p.Source == resumeSource {
 			if before := Parse(prev, lastStop, nil); before.State != Starting {
 				r.Branch, r.Cwd, r.Last = before.Branch, before.Cwd, before.Last
