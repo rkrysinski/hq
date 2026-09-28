@@ -279,11 +279,11 @@ func New(src Source) Model {
 
 // hints are the keys of the list, in footer order: the sort shown is the
 // current one, the view the one a switches to (mocks). While searching the
-// footer is the search: what is typed, its matches, Enter and Esc
-// (dash-s3b-search.png).
+// footer is the search: what is typed, then ` · ` and its matches, Enter and
+// Esc (spec §6.3: `/bo · 1 match: bok-17`).
 func (m Model) hints() []Hint {
 	if m.searching {
-		return []Hint{{"/" + m.search, m.matchText()}, {"⏎", "open"}, {"esc", "cancel"}}
+		return []Hint{{"/" + m.search, "· " + m.matchText()}, {"⏎", "open"}, {"esc", "cancel"}}
 	}
 	other := ViewAll
 	if m.view == ViewAll {
@@ -1099,7 +1099,8 @@ func chipAt(pr, wide bool, x, width int) string {
 
 // row is one agent; the cursor row has a background and the action strip
 // drawn over the tail of its content, the docked row an outline, drawn as
-// bars at both ends so it takes no extra lines (spec §6.1, §6.4).
+// bars at both ends so it takes no extra lines (spec §6.1, §6.4); design
+// 3.1 says why the design's full box is not drawn.
 func (c columns) row(a agent.Agent, now time.Time, cursor bool, strip string) string {
 	paint := func(st lipgloss.Style, s string) string {
 		if cursor {

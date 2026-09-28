@@ -304,7 +304,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	// keys there.
 	keys("/")
 	keys("a")
-	shows("the search", "/a 1 match: a", "esc cancel")
+	shows("the search", "/a · 1 match: a", "esc cancel")
 	keys("Enter")
 	eventually(t, "the keys in a's session", func() bool {
 		out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_agent}").Output()
