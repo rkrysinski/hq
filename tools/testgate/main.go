@@ -20,7 +20,7 @@ const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
 	MinUnitShare = 0.50
 	// MinCoverage is the lowest allowed statement coverage of internal/, in percent.
-	MinCoverage = 93.3
+	MinCoverage = 93.5
 )
 
 func main() {
