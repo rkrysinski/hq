@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/rkrysinski/hq/internal/proc"
 )
@@ -51,8 +52,10 @@ type Client struct {
 // agent started with hq new (not relaunched), for the list's S2; turnend
 // when hq first saw a turn the user ended; restseen when hq first saw a
 // working agent's screen at rest; endseen when hq first saw the agent
-// ended, where tmux cannot tell (design §3.4).
-var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "turnend", "restseen", "endseen"}
+// ended, where tmux cannot tell (design §3.4); inbox marks an agent whose
+// hooks deliver the messages hq send leaves (ADR 0012), which agents
+// started by an older hq lack.
+var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "turnend", "restseen", "endseen", "inbox"}
 
 func (c Client) tmux(args ...string) ([]byte, error) {
 	if c.Socket != "" {
@@ -233,6 +236,62 @@ func (c Client) Screens(panes []string) (map[string]string, error) {
 	}
 	flush()
 	return screens, nil
+}
+
+// pasteChunk bounds the text one tmux command carries, well within what
+// tmux accepts for a command.
+const pasteChunk = 4 << 10
+
+// Paste pastes text into a pane as a terminal pastes it, bracketed when
+// the program there asks for that, as Claude Code does, so its lines stay
+// one prompt and no key in it acts (hq send, design §3.4). The text goes
+// through a buffer of the pane's own, in parts small enough for a tmux
+// command, which the paste deletes.
+func (c Client) Paste(pane, text string) error {
+	buf := "hq-send-" + strings.TrimPrefix(pane, "%")
+	for i, part := range chunks(text, pasteChunk) {
+		args := []string{"set-buffer", "-b", buf, "--", part}
+		if i > 0 {
+			args = []string{"set-buffer", "-a", "-b", buf, "--", part}
+		}
+		if _, err := c.tmux(args...); err != nil {
+			_, _ = c.tmux("delete-buffer", "-b", buf)
+			return err
+		}
+	}
+	if _, err := c.tmux("paste-buffer", "-p", "-d", "-b", buf, "-t", pane); err != nil {
+		_, _ = c.tmux("delete-buffer", "-b", buf)
+		return err
+	}
+	return nil
+}
+
+// chunks cuts s into parts of at most n bytes, never inside a character.
+func chunks(s string, n int) []string {
+	var parts []string
+	for len(s) > n {
+		cut := n
+		for cut > 1 && !utf8.RuneStart(s[cut]) {
+			cut--
+		}
+		parts = append(parts, s[:cut])
+		s = s[cut:]
+	}
+	return append(parts, s)
+}
+
+// StyledScreen is what a pane shows, with the escape sequences of its
+// styles (capture-pane -e): hq send tells Claude's faint hints in its
+// prompt box from what the user typed there (state.WithoutHints).
+func (c Client) StyledScreen(pane string) (string, error) {
+	out, err := c.tmux("capture-pane", "-p", "-e", "-t", pane)
+	return string(out), err
+}
+
+// Submit presses Enter in a pane.
+func (c Client) Submit(pane string) error {
+	_, err := c.tmux("send-keys", "-t", pane, "Enter")
+	return err
 }
 
 // Start releases the program of a window made by NewWindow.

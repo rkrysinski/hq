@@ -21,6 +21,7 @@ type lsRow struct {
 	AgeSeconds int64     `json:"age_seconds"`
 	Last       string    `json:"last"`
 	Sandbox    string    `json:"sandbox"`
+	Pending    int       `json:"pending"` // messages waiting for it (hq send)
 }
 
 func runLs(env Env, d deps, args []string) error {
@@ -50,20 +51,23 @@ func runLs(env Env, d deps, args []string) error {
 		}
 	}
 	agent.SortAttention(as)
-	rows := lsRows(as, d.now())
+	rows := lsRows(d, as)
 	if asJSON {
 		return writeJSON(env.Stdout, rows)
 	}
 	return writeTable(env.Stdout, rows)
 }
 
-// lsRows are the agents as hq ls shows them at now, in the order given.
-func lsRows(as []agent.Agent, now time.Time) []lsRow {
+// lsRows are the agents as hq ls shows them now, in the order given, with
+// how many messages wait for each.
+func lsRows(d deps, as []agent.Agent) []lsRow {
+	now := d.now()
 	rows := make([]lsRow, 0, len(as))
 	for _, a := range as {
 		rows = append(rows, lsRow{
 			Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
 			Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
+			Pending: d.pending(a.RepoPath, a.ID),
 		})
 	}
 	return rows

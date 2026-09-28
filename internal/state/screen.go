@@ -156,3 +156,76 @@ const maxFooter = 3
 func isRule(line string) bool {
 	return utf8.RuneCountInString(line) >= 8 && strings.Trim(line, "─") == ""
 }
+
+// WithoutHints is a screen captured with its styles (tmux capture-pane -e)
+// as it reads without them, less the hints Claude Code draws faint in its
+// empty prompt box: a placeholder such as `Try "create a util..."` in a
+// session that has just started, or a suggested next prompt (Claude Code
+// 2.1.283, #135). Only lines starting with ❯ lose their faint text, so
+// nothing else on the screen changes; what the user types is never faint.
+func WithoutHints(styled string) string {
+	var out, line, solid strings.Builder
+	faint := false
+	flush := func() {
+		l := line.String()
+		if strings.HasPrefix(strings.TrimSpace(l), prompt) {
+			l = solid.String()
+			if !strings.HasPrefix(strings.TrimSpace(l), prompt) {
+				l = prompt + " " + l
+			}
+		}
+		out.WriteString(l)
+		line.Reset()
+		solid.Reset()
+	}
+	for i := 0; i < len(styled); {
+		switch c := styled[i]; {
+		case c == 0x1b:
+			n := escapeLen(styled[i:])
+			if seq := styled[i:min(i+n, len(styled))]; strings.HasPrefix(seq, "\x1b[") && strings.HasSuffix(seq, "m") {
+				faint = sgrFaint(seq[2:len(seq)-1], faint)
+			}
+			i += n
+		case c == '\n':
+			flush()
+			out.WriteByte('\n')
+			i++
+		default:
+			_, size := utf8.DecodeRuneInString(styled[i:])
+			line.WriteString(styled[i : i+size])
+			if !faint {
+				solid.WriteString(styled[i : i+size])
+			}
+			i += size
+		}
+	}
+	flush()
+	return out.String()
+}
+
+// sgrFaint is whether text is faint after the SGR parameters params, when
+// it was before: 2 sets it, 0 (or none) and 22 clear it. Colours carry
+// numbers of their own (38;5;N, 38;2;R;G;B), which are skipped.
+func sgrFaint(params string, faint bool) bool {
+	ps := strings.FieldsFunc(params, func(r rune) bool { return r == ';' || r == ':' })
+	if len(ps) == 0 {
+		return false
+	}
+	for i := 0; i < len(ps); i++ {
+		switch ps[i] {
+		case "0", "00":
+			faint = false
+		case "2":
+			faint = true
+		case "22":
+			faint = false
+		case "38", "48", "58":
+			if i+1 < len(ps) && ps[i+1] == "5" {
+				i += 2
+			} else if i+1 < len(ps) && ps[i+1] == "2" {
+				i += 4
+			}
+		}
+	}
+	return faint
+}

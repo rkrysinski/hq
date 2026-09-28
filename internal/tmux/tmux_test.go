@@ -3,6 +3,7 @@ package tmux
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestAtLeast(t *testing.T) {
@@ -123,5 +124,23 @@ func TestEachPaneOfTheDashboardTakesItsLook(t *testing.T) {
 		if got["-p window-style"] != tc.inactive || got["-p window-active-style"] != tc.active {
 			t.Errorf("%s: %v, want %q without the keys and %q with them", name, got, tc.inactive, tc.active)
 		}
+	}
+}
+
+func TestChunksNeverCutACharacter(t *testing.T) {
+	s := strings.Repeat("ab", 3) + "żółw" // ż, ó and ł are two bytes each
+	for n := 2; n <= len(s); n++ {
+		parts := chunks(s, n)
+		if strings.Join(parts, "") != s {
+			t.Fatalf("n=%d: %q", n, parts)
+		}
+		for _, p := range parts {
+			if len(p) > n || !utf8.ValidString(p) {
+				t.Fatalf("n=%d: part %q", n, p)
+			}
+		}
+	}
+	if got := chunks("", 4); len(got) != 1 || got[0] != "" {
+		t.Fatalf("%q", got)
 	}
 }

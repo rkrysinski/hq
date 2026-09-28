@@ -399,3 +399,83 @@ func TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters(t *testing.T) {
 		t.Fatal("a glob prefix was taken")
 	}
 }
+
+// hq send types a message into Claude's prompt box as a paste: bracketed,
+// since Claude asks for that, its lines kept, then Enter; no buffer stays.
+func TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter(t *testing.T) {
+	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	got := filepath.Join(dir, "got")
+	// A program that asks for bracketed paste, as Claude does, and records
+	// what reaches it, a line at a time.
+	id, err := c.NewWindow("w", dir, nil, []string{"sh", "-c", `stty -echo; printf '\033[?2004h'; echo ready; while IFS= read -r l; do printf '%s\n' "$l" >>"$0"; done`, got})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Start(id); err != nil {
+		t.Fatal(err)
+	}
+	ws, _ := c.Windows()
+	pane := ws[len(ws)-1].Pane
+	eventually(t, "the program", func() bool {
+		s, _ := c.Screens([]string{pane})
+		return strings.Contains(s[pane], "ready")
+	})
+	// Longer than one tmux command carries, lines well within a terminal's.
+	var lines []string
+	for i := 0; len(strings.Join(lines, "\n")) < 3*pasteChunk; i++ {
+		lines = append(lines, fmt.Sprintf("line %03d żółw %s", i, strings.Repeat("-", 80)))
+	}
+	text := strings.Join(lines, "\n")
+	if err := c.Paste(pane, text); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Submit(pane); err != nil {
+		t.Fatal(err)
+	}
+	want := "\x1b[200~" + text + "\x1b[201~\n"
+	var b []byte
+	if !waitFor(func() bool { b, _ = os.ReadFile(got); return len(b) >= len(want) }) {
+		t.Fatalf("got %d bytes of %d", len(b), len(want))
+	}
+	if string(b) != want {
+		t.Fatalf("got %q", b)
+	}
+	if out, _ := c.tmux("list-buffers", "-F", "#{buffer_name}"); strings.Contains(string(out), "hq-send") {
+		t.Fatalf("buffers left: %q", out)
+	}
+	if err := c.Paste("%999", "x"); err == nil {
+		t.Fatal("a pane that is gone is an error")
+	}
+	if out, _ := c.tmux("list-buffers", "-F", "#{buffer_name}"); strings.Contains(string(out), "hq-send") {
+		t.Fatalf("buffers left after a failure: %q", out)
+	}
+}
+
+func TestStyledScreenKeepsTheStyles(t *testing.T) {
+	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	id, err := c.NewWindow("w", dir, nil, []string{"sh", "-c", `printf '❯ \033[2mTry this\033[0m\n'; exec cat`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Start(id); err != nil {
+		t.Fatal(err)
+	}
+	ws, _ := c.Windows()
+	pane := ws[len(ws)-1].Pane
+	var s string
+	eventually(t, "the faint text", func() bool { s, _ = c.StyledScreen(pane); return strings.Contains(s, "Try this") })
+	if !strings.Contains(s, "\x1b[2mTry this") {
+		t.Fatalf("%q", s)
+	}
+	if _, err := c.StyledScreen("%999"); err == nil {
+		t.Fatal("a pane that is gone is an error")
+	}
+}

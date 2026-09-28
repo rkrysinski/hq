@@ -30,6 +30,7 @@ type Agent struct {
 	Alive    bool      `json:"-"` // the agent's pane's process runs
 	Docked   bool      `json:"-"` // its pane is in the dashboard's slot
 	New      bool      `json:"-"` // started with hq new, not yet reported (S2)
+	Inbox    bool      `json:"-"` // its hooks deliver messages (hq send, ADR 0012)
 	ending   bool      // hq is taking the agent down (its sandbox restarting)
 	reported bool      // its session has reported, so its sandbox has run
 	turnEnd  string    // a turn the user ended, as hq first saw it (see Settle)
@@ -110,6 +111,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 			a.State = state.Ended
 		}
 		a.New = o["new"] != "" && a.State == state.Starting
+		a.Inbox = o["inbox"] != ""
 		as = append(as, a)
 	}
 	return as

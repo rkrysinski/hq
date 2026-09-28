@@ -19,11 +19,21 @@
 //     Claude Code 2.1.283 does; any other line lets it finish;
 //   - a prompt "worktree BRANCH" makes a worktree on a new BRANCH under
 //     .claude/worktrees and moves into it, as Claude does;
+//   - a prompt containing "tool" runs a tool: PostToolUse after the delay;
+//   - the line "draft" is no prompt: it draws the box holding "a draft", as
+//     when the user has typed that and not sent it yet;
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.
+//
+// It reads the hooks' output as Claude Code 2.1.283 does (ADR 0012):
+// additionalContext of UserPromptSubmit or PostToolUse is noted in the
+// turn's reply, and a Stop hook that blocks the stop gets its reason
+// answered in a further reply, then Stop again with stop_hook_active.
+// A finished turn draws the empty prompt box.
 //
 // Like Claude Code 2.1.283 it draws in the terminal's alternate screen: it
 // leaves it on /exit, and clears it first when it is terminated, as when
-// its sandbox stops (#38).
+// its sandbox stops (#38). It turns on bracketed paste, and takes a pasted
+// text of several lines, ended with Enter, as one prompt.
 //
 // FAKE_CLAUDE_DELAY (a Go duration, default 200ms) is how long it takes to
 // start and how long a turn works.
@@ -49,7 +59,25 @@ const (
 	enterAltScreen = "\x1b[?1049h"
 	leaveAltScreen = "\x1b[?1049l"
 	clearScreen    = "\x1b[H\x1b[2J"
+	bracketedPaste = "\x1b[?2004h"
+	pasteStart     = "\x1b[200~"
+	pasteEnd       = "\x1b[201~"
 )
+
+// pasted is the line just scanned, or, when a bracketed paste starts in it,
+// the pasted text up to the line the paste ends in, its lines kept.
+func pasted(in *bufio.Scanner) string {
+	line := in.Text()
+	if !strings.Contains(line, pasteStart) {
+		return line
+	}
+	lines := []string{line}
+	for !strings.Contains(line, pasteEnd) && in.Scan() {
+		line = in.Text()
+		lines = append(lines, line)
+	}
+	return strings.NewReplacer(pasteStart, "", pasteEnd, "").Replace(strings.Join(lines, "\n"))
+}
 
 type settings struct {
 	Env   map[string]string
@@ -111,16 +139,20 @@ func main() {
 
 	time.Sleep(c.delay)
 	c.fire("SessionStart", map[string]any{"source": source})
-	fmt.Print(enterAltScreen)
+	fmt.Print(enterAltScreen + bracketedPaste)
 	fmt.Println("fake claude: ready")
 	in := bufio.NewScanner(os.Stdin)
 	if prompt != "" {
 		c.turn(prompt, in)
 	}
 	for in.Scan() {
-		line := strings.TrimSpace(in.Text())
+		line := strings.TrimSpace(pasted(in))
 		switch line {
 		case "":
+		case "draft":
+			// The user has typed something in the box and not sent it:
+			// Claude draws the box holding it; no hook fires.
+			promptBox("", "a draft")
 		case "/exit":
 			c.fire("SessionEnd", map[string]any{"reason": "prompt_input_exit"})
 			fmt.Print(leaveAltScreen)
@@ -132,8 +164,11 @@ func main() {
 }
 
 func (c *claude) turn(prompt string, in *bufio.Scanner) {
-	c.fire("UserPromptSubmit", map[string]any{"prompt": prompt})
-	fmt.Println("❯ " + prompt)
+	var noted []string
+	if ctx := c.fire("UserPromptSubmit", map[string]any{"prompt": prompt}).context(); ctx != "" {
+		noted = append(noted, ctx)
+	}
+	fmt.Println("❯ " + strings.ReplaceAll(prompt, "\n", "\n  "))
 	time.Sleep(c.delay)
 	if b, ok := strings.CutPrefix(prompt, "worktree "); ok {
 		dir := filepath.Join(c.cwd, ".claude", "worktrees", strings.ReplaceAll(b, "/", "-"))
@@ -156,7 +191,9 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 			promptBox("")
 			return
 		}
-		c.fire("PostToolUse", map[string]any{"tool_name": "AskUserQuestion", "tool_input": ask, "tool_use_id": "toolu_fake"})
+		if ctx := c.fire("PostToolUse", map[string]any{"tool_name": "AskUserQuestion", "tool_input": ask, "tool_use_id": "toolu_fake"}).context(); ctx != "" {
+			noted = append(noted, ctx)
+		}
 		time.Sleep(c.delay)
 	}
 	if strings.Contains(prompt, "slow") {
@@ -177,12 +214,33 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 			return
 		}
 	}
+	if strings.Contains(prompt, "tool") {
+		fmt.Println("● Bash(echo tool)")
+		tool := map[string]any{"command": "echo tool"}
+		if ctx := c.fire("PostToolUse", map[string]any{"tool_name": "Bash", "tool_input": tool, "tool_use_id": "toolu_fake"}).context(); ctx != "" {
+			fmt.Println("  ⎿  " + ctx)
+			noted = append(noted, ctx)
+		}
+		time.Sleep(c.delay)
+	}
 	reply := "Done: " + prompt
 	if strings.Contains(prompt, "question") {
 		reply = "Shall I go on?"
 	}
-	fmt.Println("● " + reply)
-	c.fire("Stop", map[string]any{"stop_hook_active": false, "last_assistant_message": reply})
+	for _, n := range noted {
+		reply += " | " + n
+	}
+	for active := false; ; active = true {
+		fmt.Println("● " + reply)
+		out := c.fire("Stop", map[string]any{"stop_hook_active": active, "last_assistant_message": reply})
+		if out.Decision != "block" {
+			break
+		}
+		fmt.Println("● Ran 1 stop hook\n  ⎿  Stop hook error: " + out.Reason)
+		time.Sleep(c.delay)
+		reply = "Answered: " + out.Reason
+	}
+	promptBox("")
 }
 
 // question is what the fake's question dialog asks.
@@ -200,8 +258,19 @@ func promptBox(hint string, input ...string) {
 	fmt.Println(rule + "\n❯ " + strings.Join(input, " ") + "\n" + rule + "\n" + footer)
 }
 
-// fire runs the hooks registered for event with a Claude-like payload.
-func (c *claude) fire(event string, fields map[string]any) {
+// output is what the hooks of an event told Claude, as far as the fake
+// heeds it.
+type output struct {
+	Decision           string
+	Reason             string
+	HookSpecificOutput struct{ AdditionalContext string }
+}
+
+func (o output) context() string { return o.HookSpecificOutput.AdditionalContext }
+
+// fire runs the hooks registered for event with a Claude-like payload, and
+// returns what they told Claude on their standard output.
+func (c *claude) fire(event string, fields map[string]any) (o output) {
 	p := map[string]any{"session_id": c.session, "cwd": c.cwd, "permission_mode": "bypassPermissions", "hook_event_name": event}
 	for k, v := range fields {
 		p[k] = v
@@ -220,7 +289,17 @@ func (c *claude) fire(event string, fields map[string]any) {
 		for _, h := range m.Hooks {
 			cmd := exec.Command(h.Command, h.Args...)
 			cmd.Env, cmd.Dir, cmd.Stdin = c.env, c.cwd, bytes.NewReader(payload)
-			_ = cmd.Run()
+			out, _ := cmd.Output()
+			var got output
+			if json.Unmarshal(out, &got) == nil {
+				if got.Decision != "" {
+					o.Decision, o.Reason = got.Decision, got.Reason
+				}
+				if got.context() != "" {
+					o.HookSpecificOutput = got.HookSpecificOutput
+				}
+			}
 		}
 	}
+	return o
 }

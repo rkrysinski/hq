@@ -70,6 +70,11 @@ type fakeTmux struct {
 	// lastScreens is what shows each pane's latest output again, by pane.
 	lastScreens   map[string]string
 	lastScreenErr error
+	// pasted is what was pasted into panes ("pane text"), submitted the
+	// panes Enter was pressed in; pasteErr fails the paste.
+	pasted    []string
+	submitted []string
+	pasteErr  error
 }
 
 func (f *fakeTmux) LastScreen(pane string) (string, error) {
@@ -77,6 +82,19 @@ func (f *fakeTmux) LastScreen(pane string) (string, error) {
 }
 
 func (f *fakeTmux) FocusList() error { f.focused++; return nil }
+
+func (f *fakeTmux) Paste(pane, text string) error {
+	if f.pasteErr != nil {
+		return f.pasteErr
+	}
+	f.pasted = append(f.pasted, pane+" "+text)
+	return nil
+}
+
+func (f *fakeTmux) Submit(pane string) error {
+	f.submitted = append(f.submitted, pane)
+	return nil
+}
 
 func (f *fakeTmux) Leave(message string) error {
 	if f.onLeave != nil {
@@ -241,6 +259,13 @@ func (f *fakeTmux) Respawn(pane, _ string, argv []string) error {
 		}
 	}
 	return errors.New("no pane " + pane)
+}
+
+func (f *fakeTmux) StyledScreen(pane string) (string, error) {
+	if f.screenErr != nil {
+		return "", f.screenErr
+	}
+	return f.screens[pane], nil
 }
 
 func (f *fakeTmux) Screens(panes []string) (map[string]string, error) {
@@ -416,8 +441,13 @@ type fakes struct {
 	tty      bool   // stdin is a terminal
 	stdin    string // what the user types
 
-	states  map[string]state.Report // agent id -> its state file
-	removed []string                // "repo id" of each agent whose state files were removed
+	states map[string]state.Report // agent id -> its state file
+	// inbox is what waits for each agent id: the text, with " (now)" when
+	// sent with --now; postErr and takeErr fail posting and taking.
+	inbox   map[string][]string
+	postErr error
+	takeErr error
+	removed []string // "repo id" of each agent whose state files were removed
 
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
@@ -454,6 +484,7 @@ func newFakes() *fakes {
 		tty:  true,
 
 		states: map[string]state.Report{},
+		inbox:  map[string][]string{},
 
 		releases: &fakeReleases{files: map[string]map[string][]byte{}},
 		exe:      "/nonexistent/hq",
@@ -552,9 +583,29 @@ func (f *fakes) deps() deps {
 		removeState: func(root, id string) error {
 			f.removed = append(f.removed, root+" "+id)
 			delete(f.states, id)
+			delete(f.inbox, id)
 			return nil
 		},
 		pollSandboxes: f.sbx.List,
+		postMessage: func(_, id, text string, now bool) error {
+			if f.postErr != nil {
+				return f.postErr
+			}
+			if now {
+				text += " (now)"
+			}
+			f.inbox[id] = append(f.inbox[id], text)
+			return nil
+		},
+		takeMessages: func(_, id string) ([]string, error) {
+			if f.takeErr != nil {
+				return nil, f.takeErr
+			}
+			texts := f.inbox[id]
+			delete(f.inbox, id)
+			return texts, nil
+		},
+		pending: func(_, id string) int { return len(f.inbox[id]) },
 
 		releases:   f.releases,
 		asset:      "hq-testos-testarch",

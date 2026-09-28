@@ -37,6 +37,9 @@ type Tmux interface {
 	SetOption(id, key, value string) error
 	KeepFirst(id, key, prefix, value string) (string, error)
 	Screens(panes []string) (map[string]string, error)
+	StyledScreen(pane string) (string, error)
+	Paste(pane, text string) error
+	Submit(pane string) error
 	LastScreen(pane string) (string, error)
 	KillWindow(id string) error
 	SocketPath() (string, error)
@@ -113,6 +116,12 @@ type deps struct {
 	readState func(root, id string) (state.Report, bool)
 	// removeState deletes an agent's state files once it is gone (design §3.4).
 	removeState func(root, id string) error
+	// postMessage leaves a message in an agent's inbox, takeMessages takes
+	// what waits there for hq to type it in, and pending counts it (hq
+	// send, ADR 0012).
+	postMessage  func(root, id, text string, now bool) error
+	takeMessages func(root, id string) ([]string, error)
+	pending      func(root, id string) int
 	// pollSandboxes is sbx ls within a time limit, for the state of agents
 	// (design §5.1, §7.1); a slow sbx must not hold up hq ls.
 	pollSandboxes func() ([]sbx.Sandbox, error)
@@ -188,8 +197,13 @@ func defaultDeps() deps {
 		rawTerminal: rawTerminal,
 		foreground:  func(argv []string) (int, error) { return run.Foreground(argv[0], argv[1:]...) },
 
-		readState:     state.Read,
-		removeState:   state.Remove,
+		readState:   state.Read,
+		removeState: state.Remove,
+		postMessage: func(root, id, text string, now bool) error {
+			return state.Post(root, id, text, now, time.Now())
+		},
+		takeMessages:  state.Take,
+		pending:       state.Pending,
 		pollSandboxes: sbx.Client{Run: proc.Exec{Timeout: sbxPollTimeout}, Platform: plat}.List,
 		notify:        plat.NotifySequence(),
 

@@ -1,0 +1,10 @@
+{
+  "session_id": "efe6d727-0c78-4d68-9c3c-73b4bd9f0556",
+  "transcript_path": "/home/agent/.claude/projects/-w-app/efe6d727-0c78-4d68-9c3c-73b4bd9f0556.jsonl",
+  "cwd": "/w/app",
+  "scratchpad_dir": "/tmp/claude-1000/-w-app/efe6d727-0c78-4d68-9c3c-73b4bd9f0556/scratchpad",
+  "prompt_id": "d4d611e6-5c52-4bb2-a6ca-3f74c0a747c6",
+  "permission_mode": "bypassPermissions",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "Say hi in one word.\nThen say bye in one word."
+}

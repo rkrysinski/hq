@@ -35,6 +35,7 @@ func commands() []command {
 		{"wait", "[NAME...] [--json]", "wait until an agent is done, asks, needs input or ends", runWait},
 		{"go", "NAME", "enter that agent's session", runGo},
 		{"code", "NAME", "open VS Code on that agent's worktree", runCode},
+		{"send", "NAME TEXT [--now]", "leave a message for that agent, delivered when it is ready", runSend},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
 		{"sandbox", "rm|restart REPO|SANDBOX [-y]", "remove or restart a repository's sandbox", runSandbox},

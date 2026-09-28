@@ -43,3 +43,7 @@ _Avoid_: selection, highlighted row
 **Attention state**:
 `question` or `needs input`: the agent is waiting for the user.
 _Avoid_: alert, blocked
+
+**Message**:
+Text the user leaves for an agent with `hq send`, delivered to it when it is ready; it waits in the agent's inbox until then.
+_Avoid_: feedback, note, mail

@@ -2,6 +2,7 @@ package state
 
 import (
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -151,5 +152,62 @@ func TestPutBackTellsARewindAfterAnEndedTurnFromAnInterruptedTurn(t *testing.T) 
 	sent := "❯ Write a long prompt that\n  wraps\n  ⎿  Interrupted · What should Claude do instead?\n" + rule + "\n❯ Write a long prompt that wraps\n" + rule + "\n  footer\n"
 	if PutBack(sent, "Write a long prompt that wraps") {
 		t.Error("an interrupted turn whose prompt shows sent above the box")
+	}
+}
+
+func TestAStopBlockedByAMessageLeavesTheBoxEmptyAndTheTurnNotEndedByTheUser(t *testing.T) {
+	// A Stop hook that delivered messages (ADR 0012), then the turn ended
+	// (Claude Code 2.1.283): hq send may type the next message in.
+	s := screen(t, "stop-blocked")
+	if ok, restored := AtRest(s, ""); !ok || restored {
+		t.Errorf("at rest %v, restored %v", ok, restored)
+	}
+	if last, ok := EndedByUser(s); ok {
+		t.Errorf("ended by the user: %q", last)
+	}
+}
+
+func TestWithoutHintsReadsTheBoxAsEmptyUnderClaudesFaintHints(t *testing.T) {
+	// A session just started shows a faint placeholder in its empty box
+	// (Claude Code 2.1.283): hq send may type into it.
+	start := screen(t, "styled-start-placeholder")
+	if ok, _ := AtRest(regexp.MustCompile("\x1b\\[[0-9;]*m").ReplaceAllString(start, ""), ""); ok {
+		t.Fatal("the placeholder read as typed text is the reason for WithoutHints")
+	}
+	for _, name := range []string{"styled-start-placeholder", "styled-done"} {
+		s := WithoutHints(screen(t, name))
+		if strings.Contains(s, "\x1b") {
+			t.Fatalf("%s: escapes left", name)
+		}
+		if ok, _ := AtRest(s, ""); !ok {
+			t.Errorf("%s: not at rest:\n%s", name, s)
+		}
+	}
+	// A turn at work stays at work: its footer and spinner are kept.
+	if ok, _ := AtRest(WithoutHints(screen(t, "styled-working")), ""); ok {
+		t.Error("a working screen at rest")
+	}
+	if !strings.Contains(WithoutHints(screen(t, "styled-working")), "esc to interrupt") {
+		t.Error("lost the footer")
+	}
+}
+
+func TestWithoutHintsKeepsWhatTheUserTyped(t *testing.T) {
+	rule := strings.Repeat("─", 30)
+	for styled, want := range map[string]string{
+		"\x1b[39m❯ \x1b[2mTry this\x1b[0m\n":              "❯ \n",
+		"❯ half \x1b[2mghost\x1b[22m typed\n":             "❯ half  typed\n",
+		"\x1b[38;5;2m❯ typed in colour 2\x1b[39m\n":       "❯ typed in colour 2\n",
+		"\x1b[38;2;2;2;2m❯ rgb\x1b[0m\n":                  "❯ rgb\n",
+		"\x1b[2m❯ all faint\x1b[m\n":                      "❯ \n",
+		"\x1b[2mfaint, not a prompt line\x1b[0m\n❯ x\n":   "faint, not a prompt line\n❯ x\n",
+		"\x1b[1;2m❯ \x1b[0;1mbold after faint\n":          "❯ bold after faint\n",
+		rule + "\n\x1b[2m  footer\x1b[0m\n":               rule + "\n  footer\n",
+		"\x1b]8;;http://x\x1b\\❯ link\x1b]8;;\x1b\\\n":    "❯ link\n",
+		"no newline at the end \x1b[2m❯ not at the start": "no newline at the end ❯ not at the start",
+	} {
+		if got := WithoutHints(styled); got != want {
+			t.Errorf("%q: %q, want %q", styled, got, want)
+		}
 	}
 }

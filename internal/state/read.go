@@ -36,8 +36,9 @@ func Read(root, id string) (r Report, ok bool) {
 	return r, true
 }
 
-// Remove deletes the state files of agent id of the repository at root, once
-// the agent is gone (design §3.4); files already gone are no error. Only that
+// Remove deletes the state files and the inbox of agent id of the repository
+// at root, once the agent is gone (design §3.4); files already gone are no
+// error. Only that
 // agent's files are touched, never another agent's: agents of other tmux
 // servers report to the same directory.
 func Remove(root, id string) error {
@@ -50,6 +51,10 @@ func Remove(root, id string) error {
 		if err := os.Remove(p); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			errs = append(errs, err)
 		}
+	}
+	// Messages still waiting go with the agent (#135).
+	if err := removeInbox(root, id); err != nil {
+		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
 }

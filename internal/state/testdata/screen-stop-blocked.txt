@@ -1,0 +1,20 @@
+❯ Say ok.
+
+● ok
+
+● Ran 1 stop hook
+  ⎿  Stop hook error: Message 1 for you: before you stop, reply with the word APPLE.
+
+● APPLE
+
+● Ran 1 stop hook
+  ⎿  Stop hook error: Message 2 for you: now also reply with the word CHERRY.
+
+● CHERRY
+
+✻ Cogitated for 6s · done 1:26 PM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents

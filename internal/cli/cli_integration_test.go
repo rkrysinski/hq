@@ -620,3 +620,111 @@ func findSandbox(h *realHQ, name string) (sbx.Sandbox, bool) {
 	}
 	return sbx.Sandbox{}, false
 }
+
+// waitAtRest waits until the agent's screen shows its empty prompt box: a
+// turn's end is reported a moment before the box is drawn again.
+func (h *realHQ) waitAtRest(name string) {
+	h.t.Helper()
+	for i := 0; i < 50; i++ {
+		if ok, _ := state.AtRest(h.pane(name), ""); ok {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	h.t.Fatalf("%s never waited at its empty prompt box:\n%s", name, h.pane(name))
+}
+
+// send runs hq send and wants its word on how the message goes.
+func (h *realHQ) send(want string, args ...string) {
+	h.t.Helper()
+	if code, out, errOut := h.run(append([]string{"send"}, args...)...); code != 0 || out != want+"\n" {
+		h.t.Fatalf("send %q: exit %d %q %q, want %q", args, code, out, errOut, want)
+	}
+}
+
+func TestSendDeliversEachMessageWhenTheAgentIsReady(t *testing.T) {
+	testutil.FakeClaude(t)
+	t.Setenv("FAKE_CLAUDE_DELAY", "600ms")
+	h := newRealHQ(t)
+	r := testutil.GitRepo(t, "app")
+	h.cwd = r
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	const label = state.MessageLabel
+
+	// At its empty prompt: typed in as its next prompt, lines and all.
+	h.waitAtRest("a")
+	h.send("delivered: typed into a as its next prompt", "a", "first note\nsecond line")
+	h.waitReport("a", "done", "Done: first note second line") // one line in hq ls
+
+	// At work: Claude's stop is blocked with it, so the turn goes on; the
+	// agent stays working meanwhile, and waits for no one.
+	h.typeIn("a", "slow job")
+	h.waitState("a", "working")
+	h.send("queued: a is working, delivered when it stops", "a", "check the logs")
+	if rows := h.ls(); rows[0].Pending != 1 {
+		t.Fatalf("pending %+v", rows)
+	}
+	h.typeIn("a", "go on")
+	h.waitReport("a", "done", "Answered: "+label+"check the logs")
+	if rows := h.ls(); rows[0].Pending != 0 {
+		t.Fatalf("pending %+v", rows)
+	}
+
+	// --now: with the result of its next tool call.
+	h.typeIn("a", "slow tool job")
+	h.waitState("a", "working")
+	h.send("queued: a is working, delivered after its next tool call, or when it stops", "a", "--now", "use the staging db")
+	h.typeIn("a", "go on")
+	h.waitReport("a", "done", "Done: slow tool job | "+label+"use the staging db")
+
+	// In a dialog: nothing touches it; the message goes once it is closed.
+	h.typeIn("a", "needs input")
+	h.waitState("a", "needs input")
+	h.send("queued: a needs input, delivered once its dialog is closed, when it stops", "a", "then commit")
+	time.Sleep(time.Second)
+	h.waitState("a", "needs input")
+	h.typeIn("a", "1")
+	h.waitReport("a", "done", "Answered: "+label+"then commit")
+
+	// The user typing in the box: it rides along with the prompt they send.
+	h.typeIn("a", "draft")
+	h.waitPane("a", "❯ a draft")
+	h.send("queued: a has something in its prompt box, delivered with its next prompt", "a", "ride along")
+	h.typeIn("a", "sent")
+	h.waitReport("a", "done", "Done: sent | "+label+"ride along")
+
+	// Killed with a message still waiting: the message goes with it.
+	ws, _ := h.d.tmux.Windows()
+	a, _ := agent.Find(agent.FromWindows(ws), "a")
+	h.typeIn("a", "slow end")
+	h.waitState("a", "working")
+	h.send("queued: a is working, delivered when it stops", "a", "never read")
+	if code, _, errOut := h.run("kill", "a", "-y"); code != 0 {
+		t.Fatalf("kill: exit %d %s", code, errOut)
+	}
+	if _, err := os.Stat(state.InboxDir(r, a.ID)); !os.IsNotExist(err) {
+		t.Fatalf("inbox left after the kill: %v", err)
+	}
+	if code, _, _ := h.run("send", "a", "hi"); code != ExitNotFound {
+		t.Fatalf("send to a killed agent: exit %d", code)
+	}
+}
+
+func TestSendRefusesAnEndedAgent(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	h.typeIn("a", "/exit")
+	h.waitState("a", "ended")
+	code, _, errOut := h.run("send", "a", "hi")
+	if code != ExitUsage || !strings.Contains(errOut, "a has ended and cannot receive messages; relaunch it with hq sandbox restart app") {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+}

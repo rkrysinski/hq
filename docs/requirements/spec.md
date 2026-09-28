@@ -34,10 +34,11 @@ All operations are available from any shell; the dashboard reflects them within 
 
 - `hq` / `hq dash` - open the dashboard (create it if needed, otherwise return to it, with the previously docked session).
 - `hq new NAME [DIR] [PROMPT]` - start an agent for the repository in DIR with an optional first prompt. The second argument is DIR when it is an existing directory, otherwise it is the PROMPT (so `hq new 42 "work on issue #42"` works from inside the repo). DIR defaults to the current directory and must be a git repository. The repository's sandbox is reused if it exists, created otherwise; a freshly created sandbox needs a one-time Claude login, which the user does in the docked session. Fails if an agent named NAME already exists (running or `ended`, until killed).
-- `hq ls` - list agents, one per line, columns `NAME REPO BRANCH STATE AGE LAST`, in attention order (see 6.2). `--json` gives the same as a machine-readable list.
+- `hq ls` - list agents, one per line, columns `NAME REPO BRANCH STATE AGE LAST`, in attention order (see 6.2). `--json` gives the same as a machine-readable list, with how many messages wait for each agent (`hq send`).
 - `hq wait [NAME...] [--since TIME] [--timeout DURATION] [--json]` - wait until one of the named agents (every agent when none is named) enters `done`, `question`, `needs input` or `ended` after TIME, then return each such agent's row as `hq ls` shows it; while agents only work, it keeps waiting. It returns within a second of the change (an agent whose session was cut off, as when its sandbox stopped, within 2 s as in 10). TIME defaults to the moment the call starts, so an agent already in such a state then is not returned. The output carries the moment to pass as the next call's `--since`: a change that happened between two calls is returned by the next call, and none is returned twice. TIME is such a moment, or a duration back from now (`10m`). After DURATION (default 50 s, suited to MCP clients; `0` waits with no limit) it returns "nothing yet" (an empty list with `--json`), which is not an error. A NAME that does not exist fails as `hq go` does; an agent killed while waited on is returned as `ended`. It agrees with `hq ls` and the dashboard, however many hq processes look at once, and leaves nothing running when it returns or is interrupted (Ctrl-C).
 - `hq go NAME` - dock that agent's session and bring the dashboard to front, opening the dashboard if it is not open.
 - `hq code NAME` - open the editor (VS Code) on the agent's worktree, so the editor shows the agent's branch. Before the worktree is known, opens the repository. Works on macOS and from WSL. The agent keeps running; editor and agent see the same files.
+- `hq send NAME TEXT [--now]` - leave a message for that agent (TEXT one argument, at most 8 KiB), delivered when the agent is ready, never pulling it away from its work (5.1); `--now` asks for it within the running turn. Prints how the message goes (`queued: 42 is working, delivered when it stops`, `delivered: typed into 42 as its next prompt`). Refused for an `ended` agent, and for an agent started by an older hq that cannot receive messages, naming the remedy (relaunching it).
 - `hq kill NAME` - end that agent's Claude session after confirmation (`-y` skips it). The sandbox stays.
 - `hq stop` - end all agents after confirmation (`-y` skips it). Sandboxes stay.
 - `hq sandbox rm REPO` / `hq sandbox restart REPO` - remove or restart a repository's sandbox after confirmation (`-y` skips it; REPO may also be the sandbox's own name as `sbx ls` shows it; restart is the remedy after laptop sleep, S9). `rm` refuses while agents of that repo are running; `restart` ends every session in the sandbox and relaunches each agent, continuing its conversation.
@@ -69,6 +70,18 @@ Requirements:
 - Entering `question`, `needs input` or `done` triggers exactly one desktop notification per event, whether or not that agent is docked, while the dashboard is open in a terminal (S8). Notifications name the kind and the branch (`Question: feat/42-...`, `Needs input: ...`, `Done: ...`). `working`, `starting` and `ended` never notify, and neither does a turn the user ended at the agent (interrupted, a dialog cancelled or a permission refused) or a session that has just started: the user is already there, or has just started it.
 - Two agents on the same branch are allowed; their states may then be indistinguishable. Documented limitation.
 - Every agent started by hq reports its state with no setup: nothing is installed, configured or committed in the repository, and nothing per machine beyond installing hq.
+
+### 5.1 Messages
+
+A message left with `hq send` reaches the agent when it is ready, depending on its state:
+
+- `working`: when the agent would finish its turn, it goes on with the message instead, and finishes after that. It stays `working` meanwhile; only the turn's final end notifies (once). With `--now`, the message comes after the agent's next tool call, within the running turn, and the agent may change course; when no tool call comes, it goes when the agent would finish, as without.
+- `done` or `question`, nothing typed in its prompt box: it is entered as the agent's next prompt. With something typed there (the user writing), it waits and goes along with the next prompt sent from there.
+- `needs input`: it waits until the dialog is closed, then goes as above. A message never answers a dialog.
+- `starting`: it waits for the session to start, then goes as above.
+- `ended`: refused.
+
+Several messages waiting are delivered together, oldest first, and each exactly once. Messages still waiting when the agent is killed go with it; a relaunched agent (`hq sandbox restart`) still receives them. The user docked on the agent sees a message delivered when the agent would finish, or entered as its prompt, in the session.
 
 ## 6. Dashboard
 
