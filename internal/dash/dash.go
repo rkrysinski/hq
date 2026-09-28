@@ -143,6 +143,28 @@ func Neighbour(rows []agent.Agent, docked, cursor string, step int) (string, boo
 	return rows[i].Name, true
 }
 
+// EntryDock is the agent docked as the dashboard is entered (spec S1): with
+// nothing docked, the cursor row the list comes back with, the cursor's
+// agent when the view shows it, else the first row (§6.3). Something
+// docked stays docked, and with no row shown the placeholder stays.
+func EntryDock(as []agent.Agent, sort, view, cursor string) (string, bool) {
+	for _, a := range as {
+		if a.Docked {
+			return "", false
+		}
+	}
+	rows := Arrange(as, sort, view)
+	if len(rows) == 0 {
+		return "", false
+	}
+	for _, a := range rows {
+		if a.Name == cursor {
+			return cursor, true
+		}
+	}
+	return rows[0].Name, true
+}
+
 // FirstNeedingYou is the agent Alt+a docks: the first needing the user in
 // attention order, never the one docked now, whose answer may not be
 // reported yet (design §3.7).

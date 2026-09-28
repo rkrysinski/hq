@@ -1318,6 +1318,43 @@ func TestChordsDockTheRowsAsTheListShowsThem(t *testing.T) {
 	}
 }
 
+func TestEnteringWithNothingDockedDocksTheCursorRow(t *testing.T) {
+	for _, tc := range []struct{ view, cursor, want string }{
+		{ViewAll, "done", "done"},     // the cursor's agent
+		{ViewAll, "gone", "perm"},     // gone: the first row
+		{ViewAll, "", "perm"},         // no cursor kept
+		{ViewAttention, "ask", "ask"}, // shown in the view
+		{ViewAttention, "w1", "perm"}, // hidden by the view: the first row
+	} {
+		got, ok := EntryDock(team(), SortAttention, tc.view, tc.cursor)
+		if !ok || got != tc.want {
+			t.Errorf("view %s cursor %q: %q %v, want %q", tc.view, tc.cursor, got, ok, tc.want)
+		}
+		// The row the list comes back with (§6.3).
+		f := &fakeSource{agents: team(), view: tc.view, cursor: tc.cursor}
+		if m := started(f, 120, 10); m.cursor != tc.want {
+			t.Errorf("view %s cursor %q: the list comes back on %q, not %q", tc.view, tc.cursor, m.cursor, tc.want)
+		}
+	}
+}
+
+func TestEnteringKeepsWhatIsDockedAndThePlaceholderWithNoRows(t *testing.T) {
+	as := team()
+	as[0].Docked = true // w1
+	if got, ok := EntryDock(as, SortAttention, ViewAll, "done"); ok {
+		t.Errorf("something docked: docks %q", got)
+	}
+	calm := []agent.Agent{ag("w1", state.Working, 0, ""), ag("done", state.Done, 0, "")}
+	for _, tc := range []struct {
+		name string
+		as   []agent.Agent
+	}{{"no agents", nil}, {"attention view showing no rows", calm}} {
+		if got, ok := EntryDock(tc.as, SortAttention, ViewAttention, "w1"); ok {
+			t.Errorf("%s: docks %q", tc.name, got)
+		}
+	}
+}
+
 func TestAltADocksTheFirstNeedingYouButNotTheDockedOne(t *testing.T) {
 	for _, tc := range []struct{ docked, want string }{{"", "perm"}, {"w1", "perm"}, {"perm", "ask"}} {
 		if got, _ := FirstNeedingYou(team(), tc.docked); got != tc.want {
