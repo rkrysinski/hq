@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -273,4 +274,61 @@ func TestAgentPanesRunTheSessionThroughHqsSessionProgram(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, "the relaunched session", func() bool { return strings.Contains(shown(), "session:relaunched") })
+}
+
+func TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters(t *testing.T) {
+	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	id, err := c.NewWindow("a", dir, map[string]string{"id": "x1"}, []string{"sleep", "60"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Writers in separate tmux processes, as hq ls and the list are, each
+	// with the moment it saw, all for the same report (#100). Every one
+	// gets back the record that won, and it stays.
+	for round := range 5 {
+		key := strconv.Itoa(1000 + round)
+		const writers = 8
+		got := make([]string, writers)
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		for i := range writers {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-start
+				got[i], _ = c.KeepFirst(id, "turnend", key+" ", fmt.Sprintf("%s %d User declined to answer questions", key, 100+i))
+			}()
+		}
+		close(start)
+		wg.Wait()
+		ws, _ := c.Windows()
+		stored := ws[len(ws)-1].Options["turnend"]
+		if !strings.HasPrefix(stored, key+" 1") || !strings.HasSuffix(stored, " User declined to answer questions") {
+			t.Fatalf("round %d: stored %q", round, stored)
+		}
+		for i, g := range got {
+			if g != stored {
+				t.Fatalf("round %d: writer %d got %q, stored %q", round, i, g, stored)
+			}
+		}
+		// A later writer for the same report keeps it too.
+		if g, err := c.KeepFirst(id, "turnend", key+" ", key+" 999 Interrupted"); err != nil || g != stored {
+			t.Fatalf("round %d: later writer %q %v", round, g, err)
+		}
+	}
+	// A record for another report (another prefix) is replaced; quotes and
+	// spaces survive; a prefix that is not plain is refused.
+	if g, err := c.KeepFirst(id, "endseen", "1.5 ", `1.5 "a b" $x`); err != nil || g != `1.5 "a b" $x` {
+		t.Fatalf("new: %q %v", g, err)
+	}
+	if g, err := c.KeepFirst(id, "endseen", "2.5 ", "2.5 7"); err != nil || g != "2.5 7" {
+		t.Fatalf("replaced: %q %v", g, err)
+	}
+	if _, err := c.KeepFirst(id, "endseen", "2* ", "2 7"); err == nil {
+		t.Fatal("a glob prefix was taken")
+	}
 }

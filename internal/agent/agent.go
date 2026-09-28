@@ -176,18 +176,43 @@ func (a *Agent) seen() bool {
 
 // SeeEnd records, for an ended agent whose end nothing dates (its sandbox
 // stopped or restarting while its pane still runs, a docked pane gone),
-// that hq sees it ended now: record is the value to store as the endseen
-// option, keyed by the agent's start so a relaunch starts afresh, empty
+// that hq sees it ended now: the record to store as the endseen option,
+// keyed by the agent's start so a relaunch starts afresh, with no Value
 // when there is nothing to store.
-func (a *Agent) SeeEnd(now time.Time) (record string) {
+func (a *Agent) SeeEnd(now time.Time) Record {
 	if a.State != state.Ended || !a.endedAt.IsZero() || !a.deadAt.IsZero() {
-		return ""
+		return Record{}
 	}
 	if k, _, ok := strings.Cut(a.endSeen, " "); ok && k == a.started {
-		return ""
+		return Record{}
 	}
 	a.Since = now
-	return a.started + " " + strconv.FormatInt(now.UnixNano(), 10)
+	return Record{"endseen", a.started + " ", a.started + " " + nanos(now)}
+}
+
+// A Record is a moment hq saw, to keep on the agent's window as the user
+// option Option (one of tmux.OptionKeys): Value, unless the option already
+// holds a value starting with Key, a record of the same thing that another
+// hq process stored first. The first record wins, so every process shows
+// the same moment (design §3.4); see Keep.
+type Record struct{ Option, Key, Value string }
+
+// Keep applies what the window holds after r was offered to it: stored,
+// which is r.Value, or the record another hq process stored first.
+func (a *Agent) Keep(r Record, stored string) {
+	if stored == r.Value {
+		return
+	}
+	switch r.Option {
+	case "turnend":
+		a.turnEnd = stored
+		a.recall(strings.TrimSuffix(r.Key, " "))
+	case "restseen":
+		a.restSeen = stored
+	case "endseen":
+		a.endSeen = stored
+		a.seen()
+	}
 }
 
 // Apply adds what the agent's state file reports (ok false: nothing yet).
@@ -234,9 +259,12 @@ func (a Agent) Unsettled(now time.Time) bool {
 // with its last message, since hq first saw it, as long as no hook has
 // reported since. The screen is then not needed; it may have moved on, as
 // when the user sends the next prompt a moment before its hook reports.
-func (a *Agent) Recall() bool {
+func (a *Agent) Recall() bool { return a.recall(a.key()) }
+
+// recall applies the turn end recorded for the report named key.
+func (a *Agent) recall(key string) bool {
 	f := strings.SplitN(a.turnEnd, " ", 3)
-	if len(f) != 3 || f[0] != a.key() {
+	if len(f) != 3 || f[0] != key {
 		return false
 	}
 	n, err := strconv.ParseInt(f[1], 10, 64)
@@ -266,42 +294,40 @@ const Rewound = "Interrupted"
 // unchanged, for RestDelay, the turn is done with Rewound as its last
 // message, since hq first saw it at rest. Both moments are kept on the
 // agent's window, keyed by the report they overrule, so hq ls and the list
-// agree (see Recall): turnEnd and restSeen are the values to store there as
-// the turnend and restseen options, empty when there is nothing new to
-// store.
-func (a *Agent) Settle(screen string, now time.Time) (turnEnd, restSeen string) {
+// agree (see Recall): the record to store there, as the turnend or the
+// restseen option, with no Value when there is nothing new to store.
+func (a *Agent) Settle(screen string, now time.Time) Record {
 	a.resting = false
 	if a.Recall() {
-		return "", ""
+		return Record{}
 	}
+	key := a.key() + " "
 	// A rewind right after a turn the user ended leaves that turn's line
 	// above the box: the rewind below tells that turn's end.
 	rewound := a.State == state.Working && state.PutBack(screen, a.prompt)
 	if last, ok := state.EndedByUser(screen); ok && !rewound {
-		turnEnd = a.key() + " " + nanos(now) + " " + last
 		a.State, a.Since, a.Last = state.Done, now, last
-		return turnEnd, ""
+		return Record{"turnend", key, key + nanos(now) + " " + last}
 	}
 	if a.State != state.Working {
-		return "", ""
+		return Record{}
 	}
 	rest, restored := state.AtRest(screen, a.prompt)
 	if !rest {
-		return "", ""
+		return Record{}
 	}
 	look := fingerprint(screen)
 	at, ok := a.restedSince(look)
 	if !ok {
 		a.resting = restored
-		return "", a.key() + " " + look + " " + nanos(now)
+		return Record{"restseen", key + look + " ", key + look + " " + nanos(now)}
 	}
 	if now.Sub(at) < RestDelay {
 		a.resting = restored
-		return "", ""
+		return Record{}
 	}
-	turnEnd = a.key() + " " + nanos(at) + " " + Rewound
 	a.State, a.Since, a.Last = state.Done, at, Rewound
-	return turnEnd, ""
+	return Record{"turnend", key, key + nanos(at) + " " + Rewound}
 }
 
 // Resting reports whether Settle saw the agent's screen at rest with its
