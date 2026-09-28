@@ -279,11 +279,11 @@ func New(src Source) Model {
 
 // hints are the keys of the list, in footer order: the sort shown is the
 // current one, the view the one a switches to (mocks). While searching the
-// footer is the search: what is typed, its matches, Enter and Esc
-// (dash-s3b-search.png).
+// footer is the search: what is typed, then ` · ` and its matches, Enter and
+// Esc (spec §6.3: `/bo · 1 match: bok-17`).
 func (m Model) hints() []Hint {
 	if m.searching {
-		return []Hint{{"/" + m.search, m.matchText()}, {"⏎", "open"}, {"esc", "cancel"}}
+		return []Hint{{"/" + m.search, "· " + m.matchText()}, {"⏎", "open"}, {"esc", "cancel"}}
 	}
 	other := ViewAll
 	if m.view == ViewAll {

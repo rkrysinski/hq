@@ -1042,21 +1042,21 @@ func TestSlashSelectsByName(t *testing.T) {
 	as := []agent.Agent{ag("bok-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, ""), ag("Bot", state.Working, 0, ""), ag("spike", state.Ended, 0, "")}
 	f := &fakeSource{agents: as, view: ViewAll} // 42 bok-17 Bot spike
 	m := key(started(f, 120, 10), "/")
-	if got := fmt.Sprint(f.footer); got != "[{/ type a name} {⏎ open} {esc cancel}]" {
+	if got := fmt.Sprint(f.footer); got != "[{/ · type a name} {⏎ open} {esc cancel}]" {
 		t.Fatalf("footer %s", got)
 	}
 	// S3b: /bo matches two, case-insensitive; /bok one; the cursor follows.
 	m = typed(m, "bo")
-	if m.cursor != "bok-17" || fmt.Sprint(f.footer[0]) != "{/bo 2 matches: bok-17 Bot}" {
+	if m.cursor != "bok-17" || fmt.Sprint(f.footer[0]) != "{/bo · 2 matches: bok-17 Bot}" {
 		t.Fatalf("cursor %q footer %v", m.cursor, f.footer)
 	}
 	m = typed(m, "k")
-	if fmt.Sprint(f.footer[0]) != "{/bok 1 match: bok-17}" {
+	if fmt.Sprint(f.footer[0]) != "{/bok · 1 match: bok-17}" {
 		t.Fatalf("footer %v", f.footer)
 	}
 	// Letters are the search's: k, n, q type into it.
 	m = typed(m, "q")
-	if fmt.Sprint(f.footer[0]) != "{/bokq no match}" || m.cursor != "bok-17" || len(f.killed)+len(f.dialogs) != 0 {
+	if fmt.Sprint(f.footer[0]) != "{/bokq · no match}" || m.cursor != "bok-17" || len(f.killed)+len(f.dialogs) != 0 {
 		t.Fatalf("footer %v cursor %q", f.footer, m.cursor)
 	}
 	m = key(m, "backspace")
@@ -1075,10 +1075,19 @@ func TestSlashSelectsByName(t *testing.T) {
 	}
 }
 
+// The footer reads as spec §6.3 shows it: what is typed, ` · `, the matches.
+func TestSearchFooterReadsAsTheSpec(t *testing.T) {
+	f := &fakeSource{agents: []agent.Agent{ag("bok-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, "")}, view: ViewAll}
+	typed(key(started(f, 120, 10), "/"), "bo")
+	if h := f.footer[0]; h.Key+" "+h.Label != "/bo · 1 match: bok-17" {
+		t.Fatalf("footer %v", f.footer)
+	}
+}
+
 func TestSearchLooksAtTheRowsShown(t *testing.T) {
 	f := &fakeSource{agents: team()} // attention view: perm ask
 	m := typed(key(started(f, 120, 10), "/"), "w")
-	if fmt.Sprint(f.footer[0]) != "{/w no match}" || m.cursor != "perm" {
+	if fmt.Sprint(f.footer[0]) != "{/w · no match}" || m.cursor != "perm" {
 		t.Fatalf("footer %v cursor %q", f.footer, m.cursor)
 	}
 }
@@ -1093,13 +1102,13 @@ func TestKeysArrivingTogetherAreTheSameKeysOneAfterAnother(t *testing.T) {
 	as := []agent.Agent{ag("x80", state.Question, 0, ""), ag("c-1", state.Working, time.Minute, ""), ag("c-2", state.Working, 2*time.Minute, "")}
 	f := &fakeSource{agents: as, view: ViewAll} // x80 c-1 c-2
 	m := do(burst(started(f, 120, 10), "/c-", false))
-	if !m.searching || m.search != "c-" || m.cursor != "c-1" || fmt.Sprint(f.footer[0]) != "{/c- 2 matches: c-1 c-2}" {
+	if !m.searching || m.search != "c-" || m.cursor != "c-1" || fmt.Sprint(f.footer[0]) != "{/c- · 2 matches: c-1 c-2}" {
 		t.Fatalf("searching %v %q cursor %q footer %v", m.searching, m.search, m.cursor, f.footer)
 	}
 	// / then a pasted name selects it; Enter docks it.
 	m = key(key(m, "esc"), "/")
 	m = do(burst(m, "c-2", true))
-	if m.cursor != "c-2" || fmt.Sprint(f.footer[0]) != "{/c-2 1 match: c-2}" {
+	if m.cursor != "c-2" || fmt.Sprint(f.footer[0]) != "{/c-2 · 1 match: c-2}" {
 		t.Fatalf("pasted: cursor %q footer %v", m.cursor, f.footer)
 	}
 	if m = key(m, "enter"); strings.Join(f.docked, " ") != "c-2" {
