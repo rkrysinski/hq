@@ -24,7 +24,7 @@ These are facts about the environment, not design choices. hq is designed with t
 - **State**: `starting`, `working`, `question`, `needs input`, `done`, `ended` (definitions in 5).
 - **Attention state**: `question` or `needs input` - the agent is waiting for the user.
 - **Dashboard**: the hq window with the agent list and the docked session.
-- **Docked session**: the one agent session currently shown live and interactive below the list. **Cursor row**: the row currently selected in the list. They may differ.
+- **Docked session**: the one agent session currently shown live and interactive below the list. **Cursor row**: the row currently selected in the list. They are the same row: the session slot follows the cursor (6.3).
 
 ## 4. Command line
 
@@ -105,7 +105,7 @@ Header: `hq` + summary `N agents · X need you · Y done · Z working` + current
 
 Columns: `TAB` (name), `REPO`, `BRANCH`, `STATE` (colored dot + word), `AGE`, `LAST`. No row numbers: under attention sort rows reshuffle on every state change, so positional shortcuts would point at the wrong agent. Colors: attention amber, done green, working blue, ended grey, dark background; degrade gracefully on terminals with few colors.
 
-The docked row is marked with an outline, the cursor row with a background. They can be different rows.
+The docked row is marked with an outline, the cursor row with a background. Both marks are on the same row, except while the slot shows the placeholder (S6), when only the cursor row is marked.
 
 ### 6.2 Sorting and views
 
@@ -126,13 +126,17 @@ All row actions work on any visible row in either view; an agent needs no pendin
 
 - `↑/↓` move the cursor.
 - `/` then a name selects by prefix match, case-insensitive, shown in the footer as `/bo · 1 match: bok-17`; `Enter` docks the match, `Esc` clears. The `/` prefix keeps names from colliding with single-letter keys. Same names as `hq go NAME`, so the shortcut is stable across re-sorts.
-- Mouse: a click on a row moves the cursor there. A click on the row that is already the cursor row does nothing (docking is `Enter` or `open`).
+- Mouse: a click on a row moves the cursor there. A click on the row that is already the cursor row does nothing.
+
+The session slot follows the cursor: the row the cursor stops on is docked, and the keys stay in the list, so the user can look through the sessions row by row; `Enter` or `open` then moves the keys into the docked session. Holding `↓` docks only the row where the cursor stops, not every row it passes.
+
+The cursor row is always the docked row, and only the user's own moves change them: `↑/↓`, a click on a row, `/name`, `Enter`/`open`, the dock shortcuts from inside the session (6.5), `hq go NAME`, and `n` in the dashboard (S2). Nothing else moves either: a re-sort, a refresh or a state change moves the row, and the cursor stays on it; an agent started from outside the dashboard (`hq new` from a shell, or another tool) takes neither the slot nor the cursor while an agent is docked (S2). When the docked agent goes (killed, S6), the slot shows the placeholder and the cursor moves to a neighbouring row without docking it; the user's next move docks again.
 
 ### 6.4 Row actions
 
 The cursor row, and only the cursor row, shows a right-aligned action strip drawn over the tail of its content: `⏎ open`, `c code`, `p pr`, `k kill`. `pr` appears only when the branch has a pull request. Below 100 columns the strip shrinks to glyphs `⏎ c p ✕` and covers the tail of `AGE`/`STATE`; the footer keeps the labels. Columns never move to make room for the strip. Nothing appears on hover; the strip follows the cursor.
 
-- `open` / `Enter`: dock this agent's session below the list and move keyboard focus into it.
+- `open` / `Enter`: dock this agent's session below the list, if the cursor has not docked it already, and move keyboard focus into it.
 - `code` / `c`: open the editor on this agent's worktree (as `hq code`).
 - `pr` / `p`: open this branch's pull request in the browser.
 - `kill` / `k`: end this agent, always after the Kill dialog.
@@ -169,19 +173,19 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 
 **S0. Default view** - `hq` with agents running: the list shows only agents that need the user, and the docked agent whatever its state (6.2); the header still counts all; `a` shows everything. With nothing docked and nothing needing the user, the list reads "nothing needs you - press a for all".
 
-**S1. Start of day** - `hq` with nothing running: the dashboard opens with an empty list ("no agents yet - press n to start one, or run: hq new NAME [DIR] [PROMPT]") and an empty session slot. With agents already running: the dashboard opens showing them, with the previously docked session still docked. When nothing is docked (e.g. the docked agent was killed before the user left, S6), the dashboard opens with the cursor row (6.3) docked and focus in the list; an empty list, or a view showing no rows, keeps the empty slot. This happens only on entering hq (`hq`, `hq dash`, including coming back to a running dashboard): moving the cursor never docks.
+**S1. Start of day** - `hq` with nothing running: the dashboard opens with an empty list ("no agents yet - press n to start one, or run: hq new NAME [DIR] [PROMPT]") and an empty session slot. With agents already running: the dashboard opens showing them, with the previously docked session still docked. When nothing is docked (e.g. the docked agent was killed before the user left, S6), the dashboard opens with the cursor row (6.3) docked and focus in the list; an empty list, or a view showing no rows, keeps the empty slot. This happens only on entering hq (`hq`, `hq dash`, including coming back to a running dashboard); after that, the placeholder stays until the user moves the cursor (6.3).
 
-**S2. New agent** - `n` in the dashboard or `hq new NAME [DIR] [PROMPT]` from any shell: the row appears at once as `starting` and becomes `working` when the agent reports; without a PROMPT it becomes `done` (last message `-`, no notification) once Claude waits at its prompt, within seconds. A new agent gets the cursor and a `new` marker until its first report; in attention view it is shown for those seconds regardless of state. If nothing is docked, the new agent is docked and focus moves to it (so a fresh sandbox can be logged in). Duplicate name: error, nothing created.
+**S2. New agent** - `n` in the dashboard or `hq new NAME [DIR] [PROMPT]` from any shell: the row appears at once as `starting` and becomes `working` when the agent reports; without a PROMPT it becomes `done` (last message `-`, no notification) once Claude waits at its prompt, within seconds. A new agent gets a `new` marker until its first report; in attention view it is shown for those seconds regardless of state. The cursor is always the docked agent, and only the user's own moves change them (6.3): an agent started with `n` in the dashboard is docked, gets the cursor, and focus moves to it (so a fresh sandbox can be logged in). An agent started from outside the dashboard (`hq new` from a shell, or another tool) takes neither the slot nor the cursor while an agent is docked; if nothing is docked, it is docked, gets the cursor and focus moves to it, as with `n`. Duplicate name: error, nothing created.
 
-**S3. Select and work** - `↑↓` or `/name`, then `Enter`: the agent's live session is docked below, keyboard focus is in it, the list marks it as docked. The user types to Claude directly; the list only updates that row's state and last message. Previous/next/first-needing-attention can be docked from inside the session without leaving it.
+**S3. Select and work** - `↑↓`, a click or `/name`: the live session of the row the cursor stops on is docked below, the keys staying in the list, so the user can look from session to session. `Enter`: keyboard focus moves into the docked session. The user types to Claude directly; the list only updates that row's state and last message. Previous/next/first-needing-attention can be docked from inside the session without leaving it.
 
-**S3b. Name search** - `/bo` shows the matches in the footer and moves the cursor to the first match; `Enter` docks it.
+**S3b. Name search** - `/bo` shows the matches in the footer and moves the cursor to the first match, which the slot follows; `Enter` moves the keys into it.
 
 **S4. Agent needs the user** - within 1s the row turns amber and moves up (attention sort), and one desktop notification fires whether the agent is docked or not. The user docks it, answers, the state returns to `working`.
 
 **S5. Agent done** - the row turns green `done` with the last message (e.g. "PR #58 opened"). Review happens on GitHub; the row stays until killed.
 
-**S6. Kill** - `k`, strip `kill`, or `hq kill NAME`: Kill dialog, `No` default. On `Yes` the Claude session ends cleanly, the sandbox stays. If the killed agent was docked, the session slot becomes an empty placeholder with a hint, focus stays in the list. The same name may be reused afterwards.
+**S6. Kill** - `k`, strip `kill`, or `hq kill NAME`: Kill dialog, `No` default. On `Yes` the Claude session ends cleanly, the sandbox stays. If the killed agent was docked, the session slot becomes an empty placeholder with a hint, focus stays in the list, and the cursor moves to a neighbouring row without docking it (6.3). The same name may be reused afterwards.
 
 **S7. Agent ends by itself** (Claude exited, sandbox stopped, launch failed): the row turns grey `ended` with the last known message, `[session ended]` when it had none, in the list and in `hq ls` alike; its output stays readable when docked; `k` removes the row.
 
@@ -248,7 +252,7 @@ Each milestone is usable on its own and is the acceptance boundary for that step
 - `S0 - attention view (default)` - default attention view
 - `hq dash - terminal window` - all view, action strip on the cursor row, keys on the list
 - `S3 - keys in the session: typing to 42` - keys in the docked session: the session on the terminal's background, its title in the accent, the list on the surround
-- `S1 - empty state (first hq)`, `S2 - new agent input (n)` (New agent dialog), `S3 - docked 42, cursor on idm-9` (docked vs cursor row), `S3b - name search (/bo)`, `S6 - kill confirmation (k)` (Kill dialog), `S6b - docked agent killed: placeholder below`, `S8 - after quit (q): list gone, session stays`, `S12 - narrow (80 cols): LAST dropped`
+- `S1 - empty state (first hq)`, `S2 - new agent input (n)` (New agent dialog), `S3 - 42 docked by the cursor` (the docked row is the cursor row, keys on the list), `S3b - name search (/bo)` (the match docked), `S6 - kill confirmation (k)` (Kill dialog), `S6b - docked agent killed: placeholder below`, `S8 - after quit (q): list gone, session stays`, `S12 - narrow (80 cols): LAST dropped`
 
 ## Phase 2: supervisor over MCP
 

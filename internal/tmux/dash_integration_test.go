@@ -1020,3 +1020,148 @@ func TestTheSideWithTheKeysLooksFocusedOnScreen(t *testing.T) {
 		}
 	}
 }
+
+// resizes counts the SIGWINCHes a pane running winchCounter got.
+func resizes(t *testing.T, file string) int {
+	t.Helper()
+	b, err := os.ReadFile(file)
+	if os.IsNotExist(err) {
+		return 0
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return strings.Count(string(b), "winch")
+}
+
+// winchCounter is an agent's program that notes every resize of its pane in
+// file, as Claude redraws its screen on each (#130).
+func winchCounter(file string) []string {
+	return []string{"sh", "-c", `trap 'echo winch >>"$1"' WINCH; echo ready; while :; do sleep 0.05; done`, "sh", file}
+}
+
+func TestDockingMovesAgentsWithoutResizingThem(t *testing.T) {
+	c, socket := dashClient(t)
+	dir := t.TempDir()
+	d, err := c.Dashboard(dir, listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	size := func(p string) string {
+		return tm(t, socket, "display-message", "-p", "-t", p, "#{pane_width}x#{pane_height}")
+	}
+	slot := size(d.Slot)
+	// a is made with the dashboard there: its home takes the slot's size.
+	aFile, bFile := filepath.Join(dir, "a"), filepath.Join(dir, "b")
+	aw, ap := agentWindow(t, c, "a", dir, winchCounter(aFile)...)
+	bw, bp := agentWindow(t, c, "b", dir, winchCounter(bFile)...)
+	if size(ap) != slot {
+		t.Fatalf("a's home %s, slot %s", size(ap), slot)
+	}
+	// b's home is another size, as an older hq left it: its first dock
+	// fits it, once.
+	tm(t, socket, "resize-window", "-t", bw, "-x", "70", "-y", "20")
+	eventually(t, "the programs ready", func() bool {
+		return strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", ap), "ready") &&
+			strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", bp), "ready") && resizes(t, bFile) == 1
+	})
+	before := resizes(t, aFile)
+	for _, step := range []struct {
+		w    string
+		show bool
+	}{{aw, true}, {bw, true}, {aw, false}, {bw, true}, {aw, true}} {
+		dock := c.Dock
+		if step.show {
+			dock = c.Show
+		}
+		if err := dock(step.w, "x"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The signals of a resize would have reached the programs by now.
+	tm(t, socket, "run-shell", "sleep 0.3")
+	if got := resizes(t, aFile) - before; got != 0 {
+		t.Errorf("a resized %d times in five docks", got)
+	}
+	if got := resizes(t, bFile); got != 2 {
+		t.Errorf("b resized %d times, want 2: to 70x20, then fitted once", got)
+	}
+	if size(ap) != slot || size(bp) != slot {
+		t.Errorf("a %s, b %s, slot %s", size(ap), size(bp), slot)
+	}
+}
+
+func TestShowDocksWithTheKeysOnTheList(t *testing.T) {
+	c, socket := dashClient(t)
+	dir := t.TempDir()
+	d, err := c.Dashboard(dir, listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	aw, ap := agentWindow(t, c, "a", dir, "sh", "-c", "sleep 30")
+	bw, bp := agentWindow(t, c, "b", dir, "sh", "-c", "sleep 30")
+	active := func() string { return tm(t, socket, "display-message", "-p", "-t", d.Window, "#{pane_id}") }
+	inWindow := func(p string) string { return tm(t, socket, "display-message", "-p", "-t", p, "#{window_id}") }
+	if err := c.Show(aw, "a"); err != nil {
+		t.Fatal(err)
+	}
+	if inWindow(ap) != d.Window || active() != d.List {
+		t.Fatalf("a in %s, keys on %s, want the list %s", inWindow(ap), active(), d.List)
+	}
+	// From the session with the keys (Alt+l, then a click on a row), b
+	// takes the slot and the keys go back to the list.
+	tm(t, socket, "select-pane", "-t", ap)
+	if err := c.Show(bw, "b · feat"); err != nil {
+		t.Fatal(err)
+	}
+	if inWindow(bp) != d.Window || inWindow(ap) != aw || inWindow(d.Slot) != bw || active() != d.List {
+		t.Fatalf("b in %s, a in %s, placeholder in %s, keys on %s", inWindow(bp), inWindow(ap), inWindow(d.Slot), active())
+	}
+	if got := shownTitle(t, socket, d.List); got != "▸ b · feat" {
+		t.Errorf("slot title %q", got)
+	}
+	// Showing the docked agent again leaves the keys where they are; open
+	// (Dock) moves them into its session.
+	tm(t, socket, "select-pane", "-t", bp)
+	if err := c.Show(bw, "b · feat"); err != nil || active() != bp {
+		t.Fatalf("%v: keys on %s, want b's session %s", err, active(), bp)
+	}
+	tm(t, socket, "select-pane", "-t", d.List)
+	if err := c.Dock(bw, "b · feat"); err != nil || active() != bp {
+		t.Fatalf("%v: keys on %s, want b's session %s", err, active(), bp)
+	}
+}
+
+func TestHomeWindowsFollowTheSlotsSize(t *testing.T) {
+	c, socket := dashClient(t)
+	dir := t.TempDir()
+	d, err := c.Dashboard(dir, listStub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ap := agentWindow(t, c, "a", dir, "sh", "-c", "sleep 30")
+	bw, bp := agentWindow(t, c, "b", dir, "sh", "-c", "sleep 30")
+	if err := c.Dock(bw, "b"); err != nil {
+		t.Fatal(err)
+	}
+	size := func(p string) string {
+		return tm(t, socket, "display-message", "-p", "-t", p, "#{pane_width}x#{pane_height}")
+	}
+	// A new layout (the terminal resized): the list pane grows, the slot
+	// shrinks, and every home window, the placeholder's too, follows.
+	if err := c.ResizeHeight(d.List, 12); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.FitHomes(); err != nil {
+		t.Fatal(err)
+	}
+	slot := size(bp)
+	if size(ap) != slot || size(d.Slot) != slot {
+		t.Fatalf("a %s, placeholder %s, slot %s", size(ap), size(d.Slot), slot)
+	}
+	// With no dashboard there is no slot to follow.
+	tm(t, socket, "kill-window", "-t", d.Window)
+	if err := c.FitHomes(); err != nil {
+		t.Fatal(err)
+	}
+}

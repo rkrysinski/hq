@@ -58,6 +58,8 @@ type Tmux interface {
 	MarkList(pane string, pid int) error
 	SessionValue(key string) (string, error)
 	Dock(window, title string) error
+	Show(window, title string) error
+	FitHomes() error
 	SetTitle(pane, title string) error
 	SetSessionValue(key, value string) error
 	Popup(pane, dir string, w, h int, argv []string) error

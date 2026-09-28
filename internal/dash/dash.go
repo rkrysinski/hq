@@ -45,6 +45,9 @@ type Source struct {
 	// Dock docks the agent named name below the list, keys in its session
 	// (spec §6.4 open).
 	Dock func(name string) error
+	// Show docks the agent named name below the list, keys staying on the
+	// list: the slot follows the cursor (spec §6.3).
+	Show func(name string) error
 	// Code opens VS Code on the agent's worktree (spec §6.4 code).
 	Code func(name string) error
 	// NewAgent opens the New agent dialog over the dashboard, dir
@@ -193,6 +196,12 @@ const (
 	// errFor is how long a row action's error shows, unless a key clears it
 	// first; then the scroll hint is back.
 	errFor = 5 * time.Second
+	// restFor is how long the cursor rests on a row, moved by the user,
+	// before its agent is docked (spec §6.3): long enough that holding an
+	// arrow key, which repeats every 30-90 ms on macOS and Windows by
+	// default, docks only the row it stops on; short enough to read as at
+	// once (design §3.1).
+	restFor = 150 * time.Millisecond
 	// sbxStale is how old sbx's last answer may be before the header says
 	// `sbx ?` (design §7.1). A poll starts at most 1 s after the last answer
 	// and sbx ls may take up to its 5 s timeout, so an sbx that answers,
@@ -220,7 +229,10 @@ type (
 	agentsMsg struct {
 		agents []agent.Agent
 		err    error
+		seq    int // the collection's number, counted as they are asked for
 	}
+	restMsg    struct{ seq int }   // the cursor moved by the user rested for restFor
+	dockedMsg  struct{ err error } // the list's own dock finished
 	runningMsg struct {
 		running map[string]bool
 		err     error
@@ -257,9 +269,21 @@ type Model struct {
 	// seen are the new agents the list has welcomed and the agents it
 	// found at its start, by id; nil before the first refresh (S2).
 	seen map[string]bool
-	// docked is the agent docked at the last refresh: when another is
-	// docked, by a chord or hq go, the cursor goes to it (design §3.7).
+	// docked is the agent docked at the last refresh, or the one the list
+	// itself docks: when another is docked, by a chord, hq go or the New
+	// agent dialog, the cursor goes to it, so the two stay the same row
+	// (design §3.7, spec §6.3).
 	docked string
+	// rests counts the user's cursor moves: the one a restMsg carries docks
+	// only when no move came after it.
+	rests int
+	// collects counts the collections asked for. While the list's own
+	// docks run (owning counts them), and until a collection asked after
+	// the last finished (ownFrom) answers, the refreshes may still show the
+	// agent docked before, and are not taken for a dock made elsewhere.
+	collects int
+	owning   int
+	ownFrom  int
 
 	sort, view string
 
@@ -371,6 +395,9 @@ func (m *Model) arrange() {
 	if row < 0 && len(m.rows) > 0 {
 		row = 0
 	}
+	// Not the user's move: a dock waiting for the cursor to rest on the
+	// agent that went is off (S6: a kill leaves the placeholder).
+	m.rests++
 	m.moveTo(row)
 }
 
@@ -424,7 +451,7 @@ func (m Model) mouse(msg tea.MouseMsg) (Model, tea.Cmd) {
 	m.actErr = nil
 	if i != m.cursorRow {
 		m.moveTo(i)
-		return m, nil
+		return m, m.rest()
 	}
 	_, pr := m.pr(m.rows[i])
 	switch k := chipAt(pr, m.width >= wideFrom, msg.X, m.width); k {
@@ -516,12 +543,30 @@ func (m Model) pr(a agent.Agent) (gh.PR, bool) {
 
 func tick() tea.Cmd { return tea.Tick(tickEvery, func(time.Time) tea.Msg { return tickMsg{} }) }
 
-func (m Model) collect() tea.Cmd {
+func (m *Model) collect() tea.Cmd {
 	running := m.running
+	m.collects++
+	seq, agents := m.collects, m.src.Agents
 	return func() tea.Msg {
-		as, err := m.src.Agents(running)
-		return agentsMsg{as, err}
+		as, err := agents(running)
+		return agentsMsg{as, err, seq}
 	}
+}
+
+// rest notes that the user moved the cursor, and asks to be told once it
+// has rested there for restFor; each move starts the wait again.
+func (m *Model) rest() tea.Cmd {
+	m.rests++
+	seq := m.rests
+	return tea.Tick(restFor, func(time.Time) tea.Msg { return restMsg{seq} })
+}
+
+// ownDock docks name through dock, noting it as the list's own, so the
+// cursor stays where the user put it while refreshes catch up.
+func (m *Model) ownDock(name string, dock func(string) error) tea.Cmd {
+	m.docked, m.ownFrom = name, 0
+	m.owning++
+	return func() tea.Msg { return dockedMsg{dock(name)} }
 }
 
 func (m *Model) poll() tea.Cmd {
@@ -567,7 +612,9 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		if msg.err == nil {
 			m.agents = msg.agents
 			m.seeLive()
-			m.followDock()
+			if m.owning == 0 && msg.seq >= m.ownFrom {
+				m.followDock()
+			}
 			dock := m.welcome()
 			m.arrange()
 			return m, tea.Batch(dock, m.askPRs(m.prsDue()))
@@ -604,6 +651,19 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	case actedMsg:
 		gone := m.failed(msg.err)
 		return m, tea.Batch(gone, m.collect())
+	case dockedMsg:
+		gone := m.failed(msg.err)
+		refresh := m.collect()
+		if m.owning--; m.owning == 0 {
+			m.ownFrom = m.collects
+		}
+		return m, tea.Batch(gone, refresh)
+	case restMsg:
+		// The cursor rests where the user moved it: its agent takes the
+		// slot, the keys staying on the list (spec §6.3).
+		if msg.seq == m.rests && m.cursorRow >= 0 && m.cursor != m.docked {
+			return m, m.ownDock(m.cursor, m.src.Show)
+		}
 	case closedMsg:
 		m.dialog = false
 		gone := m.failed(msg.err)
@@ -644,8 +704,8 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			m.src.Footer(m.hints())
 		case "enter":
 			if m.cursorRow >= 0 {
-				name, dock := m.cursor, m.src.Dock
-				return m, func() tea.Msg { return actedMsg{dock(name)} }
+				m.rests++ // docked now, keys and all: no dock at rest
+				return m, m.ownDock(m.cursor, m.src.Dock)
 			}
 		case "c":
 			if m.cursorRow >= 0 {
@@ -686,10 +746,12 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		case "down":
 			if m.cursorRow+1 < len(m.rows) {
 				m.moveTo(m.cursorRow + 1)
+				return m, m.rest()
 			}
 		case "up":
 			if m.cursorRow > 0 {
 				m.moveTo(m.cursorRow - 1)
+				return m, m.rest()
 			}
 		case "s":
 			for i, s := range sorts {
@@ -729,8 +791,8 @@ func (m Model) searchKey(msg tea.KeyMsg) (Model, tea.Cmd) {
 	case tea.KeyEnter:
 		m.searching = false
 		if ms := m.matches(); len(ms) > 0 {
-			name, dock := ms[0], m.src.Dock
-			cmd = func() tea.Msg { return actedMsg{dock(name)} }
+			m.rests++ // docked now, keys and all: no dock at rest
+			cmd = m.ownDock(ms[0], m.src.Dock)
 		}
 	case tea.KeyBackspace:
 		if r := []rune(m.search); len(r) > 0 {
@@ -738,10 +800,11 @@ func (m Model) searchKey(msg tea.KeyMsg) (Model, tea.Cmd) {
 		}
 	case tea.KeyRunes, tea.KeySpace:
 		m.search += string(msg.Runes)
-		if ms := m.matches(); len(ms) > 0 {
+		if ms := m.matches(); len(ms) > 0 && ms[0] != m.cursor {
 			for i, a := range m.rows {
 				if a.Name == ms[0] {
 					m.moveTo(i)
+					cmd = m.rest()
 				}
 			}
 		}
@@ -779,11 +842,13 @@ func (m Model) matchText() string {
 	return fmt.Sprintf("%d matches: %s", len(ms), strings.Join(ms, " "))
 }
 
-// welcome gives the cursor to an agent started since the last refresh, from
-// the dialog or hq new in any shell, and docks it when nothing is docked, so
-// a fresh sandbox's login happens in front of the user (S2). Agents running
-// when the list starts are not new to it. An agent is welcomed once, when
-// first seen new.
+// welcome docks an agent started since the last refresh, from the dialog or
+// hq new in any shell, when nothing is docked, and gives it the cursor, so a
+// fresh sandbox's login happens in front of the user (S2). With an agent
+// docked, one started elsewhere takes neither the slot nor the cursor: they
+// move only as the user moves them (spec §6.3); the New agent dialog docks
+// its own agent. Agents running when the list starts are not new to it. An
+// agent is welcomed once, when first seen new.
 func (m *Model) welcome() tea.Cmd {
 	first := m.seen == nil
 	if first {
@@ -800,18 +865,15 @@ func (m *Model) welcome() tea.Cmd {
 			m.seen[a.ID] = true
 		}
 	}
-	if fresh == "" {
+	if fresh == "" || docked || m.owning > 0 {
 		return nil
 	}
 	m.cursor = fresh
-	if docked {
-		return nil
-	}
-	dock := m.src.Dock
-	return func() tea.Msg { return actedMsg{dock(fresh)} }
+	return m.ownDock(fresh, m.src.Dock)
 }
 
-// followDock moves the cursor to an agent docked since the last refresh.
+// followDock moves the cursor to an agent docked since the last refresh, or
+// docked as the list starts, so cursor and slot are the same row.
 func (m *Model) followDock() {
 	docked := ""
 	for _, a := range m.agents {
@@ -819,7 +881,7 @@ func (m *Model) followDock() {
 			docked = a.Name
 		}
 	}
-	if m.seen != nil && docked != "" && docked != m.docked {
+	if docked != "" && (docked != m.docked || m.seen == nil) {
 		m.cursor = docked
 	}
 	m.docked = docked

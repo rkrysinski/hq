@@ -65,7 +65,7 @@ func TestEnteringWithNothingDockedDocksTheCursorRowKeysOnTheList(t *testing.T) {
 		if env["TMUX"] != "" {
 			docked, focused = f.tmux.docked, f.tmux.focused
 		}
-		if docked != "@6" || !strings.HasPrefix(f.tmux.dockTitle, "c · ") || focused != 1 {
+		if docked != "@6" || !strings.HasPrefix(f.tmux.dockTitle, "c · ") || focused != 1 || f.tmux.dockKeys {
 			t.Errorf("TMUX %q: docked %q title %q, keys put on the list %d times, want @6 and once", env["TMUX"], docked, f.tmux.dockTitle, focused)
 		}
 	}
@@ -255,9 +255,10 @@ func TestListSourceFitsTheListToTheTerminal(t *testing.T) {
 			t.Errorf("terminal %d: list %d lines, want %d", tc.terminal, got, tc.want)
 		}
 	}
-	// A change of width reaches the margins beside the slot too.
-	if f.tmux.margins != 3 {
-		t.Errorf("margins set back %d times, want 3", f.tmux.margins)
+	// A change of width reaches the margins beside the slot too, and the
+	// agents' home windows take the slot's new size (#141).
+	if f.tmux.margins != 3 || f.tmux.fits != 3 {
+		t.Errorf("margins set back %d times, homes fitted %d, want 3", f.tmux.margins, f.tmux.fits)
 	}
 }
 
@@ -316,8 +317,19 @@ func TestListSourceDocksByNameWithTheFrameTitle(t *testing.T) {
 	if err := src.Dock("a"); err != nil || f.tmux.docked != "@4" || f.tmux.dockTitle != "a · feat/1 · claude-x" {
 		t.Fatalf("%v docked %q %q", err, f.tmux.docked, f.tmux.dockTitle)
 	}
+	if !f.tmux.dockKeys {
+		t.Error("open left the keys on the list")
+	}
+	// The slot following the cursor: the keys stay on the list (§6.3).
+	f.tmux.docked = ""
+	if err := src.Show("a"); err != nil || f.tmux.docked != "@4" || f.tmux.dockTitle != "a · feat/1 · claude-x" || f.tmux.dockKeys {
+		t.Fatalf("%v shown %q %q keys %v", err, f.tmux.docked, f.tmux.dockTitle, f.tmux.dockKeys)
+	}
 	if err := src.Dock("gone"); err == nil {
 		t.Error("docked an agent that is not there")
+	}
+	if err := src.Show("gone"); err == nil {
+		t.Error("showed an agent that is not there")
 	}
 	f.tmux.windowsErr = errors.New("tmux gone")
 	if err := src.Dock("a"); err == nil {

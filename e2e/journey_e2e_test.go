@@ -343,6 +343,26 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	shows("the list's footer", "q quit")
 	keys("M-l")
 	eventually(t, "the keys in a's session", func() bool { return role() != "list" })
+	// §6.3: in the list, moving the cursor to b docks b, the keys staying
+	// in the list; moving it back docks a again. The rows' order follows
+	// their states, so the key is picked from the screen once both are
+	// done.
+	keys("M-l")
+	eventually(t, "the keys in the list", func() bool { return role() == "list" })
+	shows("both done", "2 agents · 2 done")
+	toB, toA := "Down", "Up"
+	if s := screen(); strings.Index(s, "  b ") < strings.Index(s, "│ a ") {
+		toB, toA = "Up", "Down"
+	}
+	keys(toB)
+	shows("b docked by the cursor", "▸ b · ")
+	if r := role(); r != "list" {
+		t.Fatalf("the keys went to the %q pane", r)
+	}
+	keys(toA)
+	shows("a docked by the cursor", "▸ a · ")
+	keys("Enter")
+	eventually(t, "the keys in a's session", func() bool { return role() != "list" })
 	if code, out := j.hq("kill", "b", "-y"); code != 0 {
 		t.Fatalf("kill: exit %d %q", code, out)
 	}

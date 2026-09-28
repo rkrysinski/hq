@@ -33,7 +33,8 @@ type fakeSource struct {
 	saved      []string // modes kept, "sort/view"
 	cursor     string   // the cursor kept on the session
 	cursorSets int
-	docked     []string // agents docked, in order
+	docked     []string // agents docked with the keys (Dock), in order
+	shown      []string // agents docked with the keys left on the list (Show)
 	dockErr    error
 	dialogs    []string // dirs the New agent dialog opened with
 	onDialog   func()   // what the user does in the dialog
@@ -76,9 +77,15 @@ func (f *fakeSource) source() Source {
 				return f.dockErr
 			}
 			f.docked = append(f.docked, name)
-			for i := range f.agents {
-				f.agents[i].Docked = f.agents[i].Name == name
+			f.dock(name)
+			return nil
+		},
+		Show: func(name string) error {
+			if f.dockErr != nil {
+				return f.dockErr
 			}
+			f.shown = append(f.shown, name)
+			f.dock(name)
 			return nil
 		},
 		NewAgent: func(dir string) error {
@@ -106,6 +113,13 @@ func (f *fakeSource) source() Source {
 			return f.prs[repo], f.prErr
 		},
 		Browse: func(url string) error { f.browsed = append(f.browsed, url); return nil },
+	}
+}
+
+// dock marks name as the docked agent, and no other.
+func (f *fakeSource) dock(name string) {
+	for i := range f.agents {
+		f.agents[i].Docked = f.agents[i].Name == name
 	}
 }
 
@@ -720,7 +734,7 @@ func TestKeptCursorSurvivesTheSizeArrivingFirst(t *testing.T) {
 	f := &fakeSource{agents: team(), view: ViewAll, cursor: "done"}
 	var m tea.Model = New(f.source())
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 120, Height: 10})
-	m, _ = m.Update(agentsMsg{f.agents, nil})
+	m, _ = m.Update(agentsMsg{agents: f.agents})
 	if got := m.(Model); got.cursor != "done" || got.cursorRow != 2 || f.cursor != "done" {
 		t.Fatalf("cursor %q at %d, kept %q", got.cursor, got.cursorRow, f.cursor)
 	}
@@ -868,16 +882,13 @@ func TestANewAgentGetsTheCursorAndIsDockedWhenNothingIs(t *testing.T) {
 		t.Fatalf("row %q", row)
 	}
 
-	// Another one, from hq new in another shell: the cursor, not the dock.
+	// Another one, from hq new in another shell (or Claude Desktop through
+	// hq mcp) while n1 is docked: neither the slot nor the cursor moves
+	// (§6.3).
 	f.agents = append(f.agents, fresh("n2"))
 	m = key(m, "r")
-	if m.cursor != "n2" || len(f.docked) != 1 {
-		t.Fatalf("cursor %q, docked %v", m.cursor, f.docked)
-	}
-	// The cursor stays free to move: the agent is welcomed once.
-	m = key(key(m, "up"), "r")
-	if m.cursor == "n2" {
-		t.Fatal("the cursor went back to n2")
+	if m.cursor != "n1" || len(f.docked) != 1 || len(f.shown) != 0 {
+		t.Fatalf("cursor %q, docked %v, shown %v", m.cursor, f.docked, f.shown)
 	}
 
 	// Its first report ends the marker, and the attention view lets it go.
@@ -1371,8 +1382,8 @@ func TestTheCursorFollowsAnAgentDockedElsewhere(t *testing.T) {
 	as[2].Docked = true // done
 	f := &fakeSource{agents: as, view: ViewAll, cursor: "w1"}
 	m := started(f, 120, 10)
-	if m.cursor != "w1" {
-		t.Fatalf("the docked agent took the cursor at start: %q", m.cursor)
+	if m.cursor != "done" {
+		t.Fatalf("the list started with the cursor on %q, not on the docked agent", m.cursor)
 	}
 	// A chord or hq go docks ask.
 	as[2].Docked, as[1].Docked = false, true
@@ -1633,5 +1644,190 @@ func TestClicksAreIgnoredWhileADialogIsOpenOrANameIsTyped(t *testing.T) {
 	m = key(m, "/")
 	if m = click(m, 10, 5); m.cursor != "perm" || !m.searching {
 		t.Fatalf("searching: cursor %q, searching %v", m.cursor, m.searching)
+	}
+}
+
+// rested is m once the cursor has rested where the user last moved it.
+func rested(m Model) Model {
+	m, cmd := update(m, restMsg{m.rests})
+	return do(m, cmd)
+}
+
+// docked is the agent the fake source has docked.
+func (f *fakeSource) dockedNow() string {
+	for _, a := range f.agents {
+		if a.Docked {
+			return a.Name
+		}
+	}
+	return ""
+}
+
+func TestTheSlotFollowsTheCursorOnceItRestsKeysStayingOnTheList(t *testing.T) {
+	as := team()
+	as[0].Docked = true                         // w1
+	f := &fakeSource{agents: as, view: ViewAll} // perm ask done w1 end
+	m := started(f, 120, 10)
+	if m.cursor != "w1" {
+		t.Fatalf("cursor %q, want the docked w1", m.cursor)
+	}
+	m = key(m, "down")
+	if m.cursor != "end" || len(f.shown) != 0 {
+		t.Fatalf("cursor %q, shown %v before the cursor rested", m.cursor, f.shown)
+	}
+	m = rested(m)
+	if strings.Join(f.shown, " ") != "end" || len(f.docked) != 0 || f.dockedNow() != "end" {
+		t.Fatalf("shown %v, docked with keys %v", f.shown, f.docked)
+	}
+	// The next refresh shows it docked: the outline and the cursor on one row.
+	m = key(m, "r")
+	if m.cursor != "end" || !m.rows[m.cursorRow].Docked {
+		t.Fatalf("cursor %q docked %v", m.cursor, m.rows[m.cursorRow].Docked)
+	}
+	// Up again, to the row docked: at rest nothing more is docked.
+	m = rested(key(key(m, "up"), "down"))
+	if len(f.shown) != 1 {
+		t.Fatalf("shown %v: the docked row docked again", f.shown)
+	}
+}
+
+func TestHoldingDownDocksOnlyWhereTheCursorStops(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll} // perm ask done w1 end
+	m := started(f, 120, 10)
+	var stale []int
+	for range 4 {
+		m = key(m, "down")
+		stale = append(stale, m.rests)
+	}
+	// The waits of the rows passed end after the cursor went on.
+	for _, seq := range stale[:3] {
+		m = do(update(m, restMsg{seq}))
+	}
+	if len(f.shown) != 0 {
+		t.Fatalf("shown %v for rows passed", f.shown)
+	}
+	m = rested(m)
+	if strings.Join(f.shown, " ") != "end" || m.cursor != "end" {
+		t.Fatalf("shown %v, cursor %q", f.shown, m.cursor)
+	}
+}
+
+func TestAClickOnARowDocksItAtRest(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll} // perm ask done w1 end
+	m := started(f, 120, 10)
+	m, cmd := update(m, tea.MouseMsg{X: 10, Y: rowsTop + 2, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft})
+	m = do(m, cmd)
+	if m.cursor != "done" || len(f.shown) != 0 {
+		t.Fatalf("cursor %q shown %v", m.cursor, f.shown)
+	}
+	rested(m)
+	if strings.Join(f.shown, " ") != "done" {
+		t.Fatalf("shown %v", f.shown)
+	}
+}
+
+func TestSearchDocksTheMatchAtRestAndEnterMovesTheKeysThere(t *testing.T) {
+	as := []agent.Agent{ag("bok-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, ""), ag("Bot", state.Working, 0, "")}
+	f := &fakeSource{agents: as, view: ViewAll} // 42 bok-17 Bot
+	m := rested(typed(key(started(f, 120, 10), "/"), "bo"))
+	if strings.Join(f.shown, " ") != "bok-17" || !m.searching {
+		t.Fatalf("shown %v searching %v", f.shown, m.searching)
+	}
+	// Enter before the cursor rests: docked with the keys, once.
+	m = typed(m, "t")
+	m = key(key(m, "backspace"), "backspace")
+	m = typed(m, "ot")
+	m = rested(key(m, "enter"))
+	if strings.Join(f.docked, " ") != "Bot" || strings.Join(f.shown, " ") != "bok-17" {
+		t.Fatalf("docked %v shown %v", f.docked, f.shown)
+	}
+}
+
+func TestEnterBeforeTheCursorRestsDocksOnceWithTheKeys(t *testing.T) {
+	f := &fakeSource{agents: team(), view: ViewAll}
+	m := key(key(started(f, 120, 10), "down"), "enter")
+	rested(m)
+	if strings.Join(f.docked, " ") != "ask" || len(f.shown) != 0 {
+		t.Fatalf("docked %v shown %v", f.docked, f.shown)
+	}
+}
+
+func TestResortsRefreshesAndViewsNeverMoveTheSlot(t *testing.T) {
+	as := team()
+	as[3].Docked = true // perm
+	f := &fakeSource{agents: as, view: ViewAll}
+	m := started(f, 120, 10)
+	for _, k := range []string{"s", "r", "s", "a", "a", "s"} {
+		m = key(m, k)
+		if m.cursor != "perm" {
+			t.Fatalf("after %s the cursor is on %q", k, m.cursor)
+		}
+	}
+	// A state change re-sorts: the cursor keeps its agent.
+	f.agents[3].State = state.Working
+	m = rested(key(m, "r"))
+	if m.cursor != "perm" || len(f.shown)+len(f.docked) != 0 || f.dockedNow() != "perm" {
+		t.Fatalf("cursor %q, shown %v, docked %v", m.cursor, f.shown, f.docked)
+	}
+}
+
+func TestAKilledDockedAgentLeavesThePlaceholderWhereTheCursorGoesOn(t *testing.T) {
+	f := &fakeSource{agents: four(), view: ViewAll}
+	m := rested(onRow(started(f, 120, 10), "w1"))
+	if f.dockedNow() != "w1" {
+		t.Fatalf("docked %q", f.dockedNow())
+	}
+	// k before the cursor rested on w1 again: its wait ends after the kill.
+	m = key(key(m, "down"), "up")
+	seq := m.rests
+	f.onKill = func() { f.agents = remove(f.agents, "w1") }
+	m = do(update(key(m, "k"), restMsg{seq}))
+	if m.cursor != "w2" || f.dockedNow() != "" || strings.Join(f.shown, " ") != "w1" {
+		t.Fatalf("cursor %q, docked %q, shown %v", m.cursor, f.dockedNow(), f.shown)
+	}
+}
+
+func TestTheCursorStaysWhereTheUserMovedItWhileTheListsOwnDockCatchesUp(t *testing.T) {
+	as := team()
+	as[0].Docked = true                         // w1
+	f := &fakeSource{agents: as, view: ViewAll} // perm ask done w1 end
+	m := started(f, 120, 10)
+	before := append([]agent.Agent(nil), f.agents...) // w1 still docked
+	m = key(m, "up")                                  // done
+	m, cmd := update(m, restMsg{m.rests})
+	// A refresh asked before the dock finished still shows w1 docked.
+	m, _ = update(m, agentsMsg{agents: before, seq: m.collects})
+	if m.cursor != "done" {
+		t.Fatalf("a refresh from before the dock took the cursor to %q", m.cursor)
+	}
+	m = do(m, cmd)   // the dock finishes, the list refreshes
+	m = key(m, "up") // ask, before the refresh after the dock
+	m, _ = update(m, agentsMsg{agents: f.agents, seq: m.collects})
+	if m.cursor != "ask" {
+		t.Fatalf("the list's own dock took the cursor back to %q", m.cursor)
+	}
+	// A dock made elsewhere still takes it.
+	f.dock("end")
+	m = key(m, "r")
+	if m.cursor != "end" {
+		t.Fatalf("cursor %q, want end docked by a chord", m.cursor)
+	}
+}
+
+func TestTheNewAgentDialogsAgentTakesTheCursorWithTheSlot(t *testing.T) {
+	as := team()
+	for i := range as {
+		as[i].ID = as[i].Name + "-id"
+	}
+	as[0].Docked = true // w1
+	f := &fakeSource{agents: as, view: ViewAll}
+	m := started(f, 120, 10)
+	// The dialog starts n1 and docks it (cli): the list follows.
+	f.onDialog = func() {
+		f.agents = append(f.agents, fresh("n1"))
+		f.dock("n1")
+	}
+	if m = key(m, "n"); m.cursor != "n1" || f.dockedNow() != "n1" {
+		t.Fatalf("cursor %q docked %q", m.cursor, f.dockedNow())
 	}
 }
