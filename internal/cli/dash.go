@@ -54,10 +54,10 @@ func runDash(env Env, d deps, args []string) error {
 }
 
 // dockOnEntry docks the cursor row as the dashboard is entered, when
-// nothing is docked, leaving the keys on the list (spec S1). Entering is
-// the only time the cursor row is docked by itself: moving the cursor never
-// docks, and a kill leaves the placeholder (§6.1, S6). The list's cursor
-// follows the agent docked. A failure leaves the placeholder.
+// nothing is docked, leaving the keys on the list (spec S1): after a kill
+// left the placeholder (S6), the cursor and the slot are the same row again
+// (§6.3). The list's cursor follows the agent docked. A failure leaves the
+// placeholder.
 func dockOnEntry(d deps) {
 	ws, err := d.tmux.Windows()
 	if err != nil {
@@ -71,7 +71,7 @@ func dockOnEntry(d deps) {
 		return
 	}
 	a, _ := agent.Find(as, name)
-	if d.tmux.Dock(a.Window, frameTitle(a)) != nil {
+	if d.tmux.Show(a.Window, frameTitle(a)) != nil {
 		return
 	}
 	_ = d.tmux.SetSessionValue("cursor", name)
@@ -155,8 +155,15 @@ func frameTitle(a agent.Agent) string {
 	return strings.Join(append(parts, a.Sandbox), " · ")
 }
 
-// dock docks the agent named name, framed with its title.
-func dock(d deps, name string) error {
+// dock docks the agent named name, framed with its title, the keys in its
+// session.
+func dock(d deps, name string) error { return dockAs(d, name, d.tmux.Dock) }
+
+// showAgent docks the agent named name, framed with its title, the keys
+// staying on the list: the slot following the cursor (spec §6.3).
+func showAgent(d deps, name string) error { return dockAs(d, name, d.tmux.Show) }
+
+func dockAs(d deps, name string, how func(window, title string) error) error {
 	ws, err := d.tmux.Windows()
 	if err != nil {
 		return err
@@ -165,7 +172,7 @@ func dock(d deps, name string) error {
 	if !ok {
 		return fmt.Errorf("no agent '%s'", name)
 	}
-	return d.tmux.Dock(a.Window, frameTitle(a))
+	return how(a.Window, frameTitle(a))
 }
 
 // startedValue is the session value holding the directory the latest hq
@@ -261,6 +268,7 @@ func listSource(d deps, pane string) dash.Source {
 			return as, nil
 		},
 		Dock:     func(name string) error { return dock(d, name) },
+		Show:     func(name string) error { return showAgent(d, name) },
 		NewAgent: func(dir string) error { return newDialog(d, pane, dir) },
 		Kill:     func(name string) error { return killDialog(d, pane, name) },
 		Code: func(name string) error {
@@ -287,6 +295,7 @@ func listSource(d deps, pane string) dash.Source {
 				_ = d.tmux.ResizeHeight(pane, dash.Height(h))
 			}
 			_ = d.tmux.KeepMargins(pane)
+			_ = d.tmux.FitHomes()
 		},
 		Footer: func(hs []dash.Hint) { _ = d.tmux.SetFooter(footer(hs)) },
 		Modes: func() (string, string) {

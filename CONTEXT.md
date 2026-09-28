@@ -37,7 +37,7 @@ What the docking slot shows when no agent is docked: a hint, not a shell; it tak
 _Avoid_: placeholder shell, empty pane, dummy
 
 **Cursor row**:
-The selected row of the list; only it shows the action strip. May differ from the docked row.
+The selected row of the list; only it shows the action strip. It is the docked row: the docking slot follows it, and only the user's own moves change it.
 _Avoid_: selection, highlighted row
 
 **Attention state**:

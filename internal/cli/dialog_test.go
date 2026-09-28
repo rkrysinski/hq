@@ -84,6 +84,16 @@ func TestTheDialogStartsAgentsAsHqNewDoes(t *testing.T) {
 		if argv := f.tmux.argv[w.ID]; argv[len(argv)-1] != "say hi" {
 			t.Fatalf("argv %q", argv)
 		}
+		// The user's own new agent takes the slot, keys in its session
+		// (spec S2, §6.3).
+		if f.tmux.docked != w.ID || !f.tmux.dockKeys {
+			t.Fatalf("%s: docked %q keys %v", dir, f.tmux.docked, f.tmux.dockKeys)
+		}
+	}
+	// A failure to dock leaves the agent started, the dialog closing.
+	f.tmux.dockErr = errors.New("tmux gone")
+	if err := start("b1", "/w/app", ""); err != nil {
+		t.Fatalf("a failed dock failed the start: %v", err)
 	}
 }
 

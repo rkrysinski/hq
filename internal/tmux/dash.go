@@ -343,10 +343,12 @@ type pane struct {
 	deadAt                   time.Time // #{pane_dead_time}, zero while it runs
 	listPID                  int
 	options                  map[string]string // the window's OptionKeys
+	width, height            int               // the pane's size
+	windowSize               string            // the window's, "WxH"
 }
 
 func (c Client) panes() ([]pane, error) {
-	fields := []string{"#{window_id}", "#{window_name}", "#{@hq_dash}", "#{pane_id}", "#{@hq_role}", "#{@hq_agent}", "#{@hq_title}", "#{pane_dead}", "#{@hq_list_pid}", "#{@hq_placeholder}", "#{pane_dead_time}"}
+	fields := []string{"#{window_id}", "#{window_name}", "#{@hq_dash}", "#{pane_id}", "#{@hq_role}", "#{@hq_agent}", "#{@hq_title}", "#{pane_dead}", "#{@hq_list_pid}", "#{@hq_placeholder}", "#{pane_dead_time}", "#{pane_width}", "#{pane_height}", "#{window_width}x#{window_height}"}
 	for _, k := range OptionKeys {
 		fields = append(fields, "#{@hq_"+k+"}")
 	}
@@ -368,8 +370,11 @@ func (c Client) panes() ([]pane, error) {
 		if t, err := strconv.ParseInt(f[10], 10, 64); err == nil && t > 0 {
 			p.deadAt = time.Unix(t, 0)
 		}
+		p.width, _ = strconv.Atoi(f[11])
+		p.height, _ = strconv.Atoi(f[12])
+		p.windowSize = f[13]
 		for i, k := range OptionKeys {
-			if v := f[11+i]; v != "" {
+			if v := f[14+i]; v != "" {
 				p.options[k] = v
 			}
 		}
@@ -652,7 +657,21 @@ var ErrNoDashboard = errors.New("tmux: no dashboard window")
 // back to its home: another agent to its home window, the placeholder to
 // the home window of the agent now docked, where it waits. Panes are only
 // swapped, so no process, scrollback or cursor is interrupted.
-func (c Client) Dock(window, title string) error {
+func (c Client) Dock(window, title string) error { return c.dock(window, title, true) }
+
+// Show docks an agent as Dock does but leaves the keys on the list: the
+// slot follows the list's cursor while the user moves it (spec §6.3).
+func (c Client) Show(window, title string) error { return c.dock(window, title, false) }
+
+// dock docks the agent of window, putting the keys in its session when keys
+// is true and on the list otherwise; an agent docked already keeps them
+// where they are unless keys is true. It is one tmux call, so the slot never
+// shows the placeholder between the agent going home and the next one
+// coming in. The home windows taking part are first made the slot's size,
+// so that swapping moves the panes without resizing them: Claude redraws
+// its whole screen on every resize, and each redraw leaves a copy of it in
+// the pane's history (#130, #141).
+func (c Client) dock(window, title string, keys bool) error {
 	ps, err := c.panes()
 	if err != nil {
 		return err
@@ -667,10 +686,20 @@ func (c Client) Dock(window, title string) error {
 		return fmt.Errorf("tmux: no agent window %s", window)
 	}
 	id := home.options["id"]
-	if home.role == roleSlot { // already docked
+	var list string
+	for _, p := range ps {
+		if p.dash == "1" && p.role == roleList {
+			list = p.id
+		}
+	}
+	if home.role == roleSlot { // already docked: the keys stay unless asked
 		for _, p := range ps {
 			if p.agent == id {
-				return c.batch([]string{"set-option", "-p", "-t", p.id, "@hq_title", title}, []string{"select-pane", "-t", p.id})
+				cmds := [][]string{{"set-option", "-p", "-t", p.id, "@hq_title", title}}
+				if keys {
+					cmds = append(cmds, []string{"select-pane", "-t", p.id})
+				}
+				return c.batch(cmds...)
 			}
 		}
 	}
@@ -678,23 +707,90 @@ func (c Client) Dock(window, title string) error {
 	if !ok {
 		return ErrNoDashboard
 	}
-	if slot.agent != "" {
-		if err := c.undock(ps, ""); err != nil {
-			return err
-		}
-		if ps, err = c.panes(); err != nil {
-			return err
-		}
-		if slot, ok = dashSlot(ps); !ok {
-			return ErrNoDashboard
+	var cmds [][]string
+	// The list has the keys while the panes move: the swaps leave them
+	// where they are, so the placeholder, which hands any it gets back to
+	// the list, never holds them on its way through the slot.
+	if list != "" {
+		cmds = append(cmds, []string{"select-pane", "-t", list})
+	}
+	fit := func(p pane) {
+		if size := fmt.Sprintf("%dx%d", slot.width, slot.height); p.windowSize != size && slot.width > 0 && slot.height > 0 {
+			cmds = append(cmds, []string{"resize-window", "-t", p.window, "-x", strconv.Itoa(slot.width), "-y", strconv.Itoa(slot.height)})
 		}
 	}
-	cmds := agentPane(home.id, id)
-	cmds = append(cmds, ";", "set-option", "-p", "-t", home.id, "@hq_title", title,
-		";", "swap-pane", "-d", "-s", home.id, "-t", slot.id,
-		";", "select-pane", "-t", home.id)
-	_, err = c.tmux(cmds...)
-	return err
+	fit(home)
+	target := slot.id
+	if slot.agent != "" {
+		// The docked agent goes home, the placeholder waiting there
+		// coming into the slot for the next agent to take its place.
+		for _, p := range ps {
+			if p.options["id"] == slot.agent && p.role == roleSlot {
+				fit(p)
+				cmds = append(cmds, []string{"swap-pane", "-d", "-s", slot.id, "-t", p.id})
+				target = p.id
+			}
+		}
+	}
+	cmds = append(cmds, splitCmds(agentPane(home.id, id))...)
+	cmds = append(cmds,
+		[]string{"set-option", "-p", "-t", home.id, "@hq_title", title},
+		[]string{"swap-pane", "-d", "-s", home.id, "-t", target})
+	if keys {
+		cmds = append(cmds, []string{"select-pane", "-t", home.id})
+	}
+	return c.batch(cmds...)
+}
+
+// splitCmds splits tmux commands joined by ";" into one slice each.
+func splitCmds(args []string) [][]string {
+	var cmds [][]string
+	cmd := []string{}
+	for _, a := range args {
+		if a == ";" {
+			cmds = append(cmds, cmd)
+			cmd = []string{}
+			continue
+		}
+		cmd = append(cmd, a)
+	}
+	return append(cmds, cmd)
+}
+
+// FitHomes makes every agent's home window the size of the docking slot, so
+// docking and undocking never resize an agent's pane (#141). It runs when
+// the dashboard's layout changes, so a terminal resize resizes every agent
+// once, and when an agent's window is made. Without a dashboard it does
+// nothing.
+func (c Client) FitHomes() error {
+	ps, err := c.panes()
+	if err != nil {
+		return err
+	}
+	slot, ok := dashSlot(ps)
+	if !ok || slot.width <= 0 || slot.height <= 0 {
+		return nil
+	}
+	return c.fitHomes(ps, slot.width, slot.height)
+}
+
+// fitHomes resizes each home window that is not w by h, placeholders'
+// included, to w by h.
+func (c Client) fitHomes(ps []pane, w, h int) error {
+	size := fmt.Sprintf("%dx%d", w, h)
+	var cmds [][]string
+	done := map[string]bool{}
+	for _, p := range ps {
+		if p.dash == "1" || p.options["id"] == "" || p.windowSize == size || done[p.window] {
+			continue
+		}
+		done[p.window] = true
+		cmds = append(cmds, []string{"resize-window", "-t", p.window, "-x", strconv.Itoa(w), "-y", strconv.Itoa(h)})
+	}
+	if len(cmds) == 0 {
+		return nil
+	}
+	return c.batch(cmds...)
 }
 
 // dashSlot is the pane in the docking slot: the dashboard's pane that is

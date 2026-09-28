@@ -52,6 +52,8 @@ type fakeTmux struct {
 	session    map[string]string
 	docked     string // window docked last, with its frame title
 	dockTitle  string
+	dockKeys   bool     // the last dock put the keys in the session (Dock, not Show)
+	fits       int      // FitHomes calls
 	titles     []string // frame titles set with SetTitle, "pane=title"
 	dockErr    error
 	popups     []string             // popups opened: "pane dir WxH argv..."
@@ -118,11 +120,17 @@ func (f *fakeTmux) Popup(pane, dir string, w, h int, argv []string) error {
 	return nil
 }
 
-func (f *fakeTmux) Dock(window, title string) error {
+func (f *fakeTmux) Dock(window, title string) error { return f.dock(window, title, true) }
+
+func (f *fakeTmux) Show(window, title string) error { return f.dock(window, title, false) }
+
+func (f *fakeTmux) FitHomes() error { f.fits++; return nil }
+
+func (f *fakeTmux) dock(window, title string, keys bool) error {
 	if f.dockErr != nil {
 		return f.dockErr
 	}
-	f.docked, f.dockTitle = window, title
+	f.docked, f.dockTitle, f.dockKeys = window, title, keys
 	for i := range f.windows {
 		f.windows[i].Docked = f.windows[i].ID == window
 		if f.windows[i].Docked {

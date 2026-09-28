@@ -27,11 +27,17 @@ func runNewDialog(_ Env, d deps, args []string) error {
 }
 
 // dialogStart is the dialog's Start: hq new NAME DIR PROMPT, with DIR as
-// typed (~ and relative to cwd allowed).
+// typed (~ and relative to cwd allowed), then the new agent docked with the
+// keys in its session. A failure to dock leaves the agent started.
 func dialogStart(d deps, cwd string) dialog.Start {
 	return func(name, dir, prompt string) error {
-		_, _, err := createAgent(io.Discard, d, newArgs{name: name, dir: expandDir(dir, d.getenv("HOME"), cwd), prompt: prompt})
-		return err
+		if _, _, err := createAgent(io.Discard, d, newArgs{name: name, dir: expandDir(dir, d.getenv("HOME"), cwd), prompt: prompt}); err != nil {
+			return err
+		}
+		// The user's own new agent takes the slot, and the cursor with it
+		// (spec S2, §6.3); an agent started outside the dashboard does not.
+		_ = dock(d, name)
+		return nil
 	}
 }
 

@@ -8951,7 +8951,7 @@
       "id": "jVnqD",
       "x": 0,
       "y": 5400,
-      "name": "S3 - docked 42, cursor on idm-9",
+      "name": "S3 - 42 docked by the cursor",
       "clip": true,
       "width": 1100,
       "height": 820,
@@ -9256,7 +9256,7 @@
                       "id": "MIu6J",
                       "name": "Row 42",
                       "width": "fill_container",
-                      "fill": "#00000000",
+                      "fill": "$bg-row",
                       "cornerRadius": 4,
                       "stroke": "$accent",
                       "strokeWidth": 1,
@@ -9389,10 +9389,167 @@
                               "fill": "$fg",
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
-                              "content": "Which Entra tenant should B2B users land in?",
+                              "content": "Which Entra tenant…",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "oh9cm",
+                              "name": "Actions",
+                              "gap": 10,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "Flqk3",
+                                  "name": "act open",
+                                  "fill": "$bg-preview",
+                                  "cornerRadius": 3,
+                                  "stroke": "$border",
+                                  "strokeWidth": 1,
+                                  "gap": 4,
+                                  "padding": [
+                                    1,
+                                    6
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "A9HiI",
+                                      "name": "k",
+                                      "fill": "$accent",
+                                      "content": "⏎",
+                                      "fontFamily": "$mono",
+                                      "fontSize": 11,
+                                      "fontWeight": "bold"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "dF5Re",
+                                      "name": "l",
+                                      "fill": "$fg-dim",
+                                      "content": "open",
+                                      "fontFamily": "$mono",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "ubzMC",
+                                  "name": "act code",
+                                  "fill": "$bg-preview",
+                                  "cornerRadius": 3,
+                                  "stroke": "$border",
+                                  "strokeWidth": 1,
+                                  "gap": 4,
+                                  "padding": [
+                                    1,
+                                    6
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "y2kdc",
+                                      "name": "k",
+                                      "fill": "$accent",
+                                      "content": "c",
+                                      "fontFamily": "$mono",
+                                      "fontSize": 11,
+                                      "fontWeight": "bold"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "K9Krk",
+                                      "name": "l",
+                                      "fill": "$fg-dim",
+                                      "content": "code",
+                                      "fontFamily": "$mono",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "a992C",
+                                  "name": "act pr",
+                                  "fill": "$bg-preview",
+                                  "cornerRadius": 3,
+                                  "stroke": "$border",
+                                  "strokeWidth": 1,
+                                  "gap": 4,
+                                  "padding": [
+                                    1,
+                                    6
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "FTxe6",
+                                      "name": "k",
+                                      "fill": "$accent",
+                                      "content": "p",
+                                      "fontFamily": "$mono",
+                                      "fontSize": 11,
+                                      "fontWeight": "bold"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "q5ntqp",
+                                      "name": "l",
+                                      "fill": "$fg-dim",
+                                      "content": "pr",
+                                      "fontFamily": "$mono",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "ZlEnZ",
+                                  "name": "act kill",
+                                  "fill": "$bg-preview",
+                                  "cornerRadius": 3,
+                                  "stroke": "$border",
+                                  "strokeWidth": 1,
+                                  "gap": 4,
+                                  "padding": [
+                                    1,
+                                    6
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "zvHCD",
+                                      "name": "k",
+                                      "fill": "$accent",
+                                      "content": "k",
+                                      "fontFamily": "$mono",
+                                      "fontSize": 11,
+                                      "fontWeight": "bold"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "FQtQc",
+                                      "name": "l",
+                                      "fill": "$fg-dim",
+                                      "content": "kill",
+                                      "fontFamily": "$mono",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
                           ]
                         }
@@ -9691,7 +9848,7 @@
                       "id": "jb4cb",
                       "name": "Row idm-9",
                       "width": "fill_container",
-                      "fill": "$bg-row",
+                      "fill": "#00000000",
                       "cornerRadius": 4,
                       "padding": [
                         5,
@@ -9826,126 +9983,6 @@
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "UNb4q",
-                              "name": "Actions",
-                              "gap": 10,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "xqYtF",
-                                  "name": "act open",
-                                  "fill": "$bg-preview",
-                                  "cornerRadius": 3,
-                                  "stroke": "$border",
-                                  "strokeWidth": 1,
-                                  "gap": 4,
-                                  "padding": [
-                                    1,
-                                    6
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "y3FJb",
-                                      "name": "k",
-                                      "fill": "$accent",
-                                      "content": "⏎",
-                                      "fontFamily": "$mono",
-                                      "fontSize": 11,
-                                      "fontWeight": "bold"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "BQK2b",
-                                      "name": "l",
-                                      "fill": "$fg-dim",
-                                      "content": "open",
-                                      "fontFamily": "$mono",
-                                      "fontSize": 11,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "ZRHrf",
-                                  "name": "act code",
-                                  "fill": "$bg-preview",
-                                  "cornerRadius": 3,
-                                  "stroke": "$border",
-                                  "strokeWidth": 1,
-                                  "gap": 4,
-                                  "padding": [
-                                    1,
-                                    6
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "R8BnE",
-                                      "name": "k",
-                                      "fill": "$accent",
-                                      "content": "c",
-                                      "fontFamily": "$mono",
-                                      "fontSize": 11,
-                                      "fontWeight": "bold"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "a1P5F",
-                                      "name": "l",
-                                      "fill": "$fg-dim",
-                                      "content": "code",
-                                      "fontFamily": "$mono",
-                                      "fontSize": 11,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "k58BL",
-                                  "name": "act kill",
-                                  "fill": "$bg-preview",
-                                  "cornerRadius": 3,
-                                  "stroke": "$border",
-                                  "strokeWidth": 1,
-                                  "gap": 4,
-                                  "padding": [
-                                    1,
-                                    6
-                                  ],
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "r2xze",
-                                      "name": "k",
-                                      "fill": "$accent",
-                                      "content": "k",
-                                      "fontFamily": "$mono",
-                                      "fontSize": 11,
-                                      "fontWeight": "bold"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "vBRAs",
-                                      "name": "l",
-                                      "fill": "$fg-dim",
-                                      "content": "kill",
-                                      "fontFamily": "$mono",
-                                      "fontSize": 11,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                }
-                              ]
                             }
                           ]
                         }
@@ -11194,8 +11231,7 @@
                       "width": "fill_container",
                       "fill": "#00000000",
                       "cornerRadius": 4,
-                      "stroke": "$accent",
-                      "strokeWidth": 1,
+                      "stroke": "#00000000",
                       "padding": [
                         5,
                         10
@@ -11341,6 +11377,8 @@
                       "width": "fill_container",
                       "fill": "$bg-row",
                       "cornerRadius": 4,
+                      "stroke": "$accent",
+                      "strokeWidth": 1,
                       "padding": [
                         5,
                         10
@@ -12248,7 +12286,7 @@
                           "id": "f3Jq4",
                           "name": "pv title",
                           "fill": "$fg-faint",
-                          "content": "▸ 42 · feat/42-partner-login · claude-shop-portal",
+                          "content": "▸ bok-17 · fix/17-release-notes · claude-support-chatbot",
                           "fontFamily": "$mono",
                           "fontSize": 11,
                           "fontWeight": "normal"
@@ -12260,7 +12298,7 @@
                       "id": "aKsj3",
                       "name": "line",
                       "fill": "$fg-unfocused",
-                      "content": "❯ work on issue #42",
+                      "content": "❯ write the release notes for v1.2.0",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12280,7 +12318,7 @@
                       "id": "s8L65",
                       "name": "line",
                       "fill": "$fg-unfocused",
-                      "content": "⏺ Reading the issue and the current auth setup first.",
+                      "content": "⏺ Collecting the changes merged since v1.1.4 first.",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12300,7 +12338,7 @@
                       "id": "FLetK",
                       "name": "line",
                       "fill": "$fg-unfocused",
-                      "content": "⏺ Bash(gh issue view 42 --json title,body)",
+                      "content": "⏺ Bash(git log --oneline v1.1.4..HEAD)",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12310,7 +12348,7 @@
                       "id": "u24Si",
                       "name": "line",
                       "fill": "$fg-dim",
-                      "content": "  ⎿  title: Partner (B2B) login via Microsoft Entra",
+                      "content": "  ⎿  23 commits",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12330,7 +12368,7 @@
                       "id": "Uq12X",
                       "name": "line",
                       "fill": "$fg-unfocused",
-                      "content": "⏺ Read(docs/architecture.md)",
+                      "content": "⏺ Read(docs/release-notes.md)",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12340,7 +12378,7 @@
                       "id": "evRYu",
                       "name": "line",
                       "fill": "$fg-dim",
-                      "content": "  ⎿  Read 96 lines",
+                      "content": "  ⎿  Read 58 lines",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12360,7 +12398,7 @@
                       "id": "m0hrX",
                       "name": "line",
                       "fill": "$fg-unfocused",
-                      "content": "⏺ Read(src/auth/entra.ts)",
+                      "content": "⏺ Edit(docs/release-notes.md)",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12370,7 +12408,7 @@
                       "id": "MTQeJ",
                       "name": "line",
                       "fill": "$fg-dim",
-                      "content": "  ⎿  Read 142 lines",
+                      "content": "  ⎿  Added 14 lines",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12390,7 +12428,7 @@
                       "id": "tI1OI",
                       "name": "line",
                       "fill": "$fg-unfocused",
-                      "content": "⏺ Two tenants are described in docs/architecture.md: the workforce tenant and a",
+                      "content": "⏺ The release notes for v1.2.0 are written. CHANGELOG.md still",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12400,7 +12438,7 @@
                       "id": "W9ZKt",
                       "name": "line",
                       "fill": "$fg-unfocused",
-                      "content": "  proposed dedicated B2B tenant. Both are viable for partner logins.",
+                      "content": "  ends at v1.1.4 and is kept separately by the release script.",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12420,7 +12458,7 @@
                       "id": "cORvi",
                       "name": "line",
                       "fill": "$attn",
-                      "content": "  Which Entra tenant should B2B users land in?",
+                      "content": "  Should I also update the changelog for v1.2.0?",
                       "fontFamily": "$mono",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -12462,7 +12500,7 @@
                           "id": "j7pqEI",
                           "name": "typed",
                           "fill": "$fg-unfocused",
-                          "content": "Use the workforce tenant with B2B collaboration",
+                          "content": " ",
                           "fontFamily": "$mono",
                           "fontSize": 12,
                           "fontWeight": "normal"

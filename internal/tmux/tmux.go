@@ -167,6 +167,9 @@ func (c Client) NewWindow(name, dir string, options map[string]string, argv []st
 		_ = c.KillWindow(id)
 		return "", err
 	}
+	// The slot's size before the program starts, so docking it never
+	// resizes it (#141).
+	_ = c.FitHomes()
 	return id, nil
 }
 
