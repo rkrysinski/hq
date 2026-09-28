@@ -52,9 +52,9 @@ func (c Client) LastScreen(pane string) (string, error) {
 
 // latestLines picks, from a pane's lines (its history, then its screen, as
 // capture-pane prints them), the latest ones that fill its screen but for
-// its bottom line and the one above, each run of blank lines taken as one. It returns their indexes in lines, or nil when
-// there is nothing to draw: the pane printed nothing, or the screen shows
-// just those lines already.
+// its bottom line and the one above, each run of blank lines taken as one.
+// It returns their indexes in lines, or nil when there is nothing to draw:
+// the pane printed nothing, or the screen shows just those lines already.
 func latestLines(lines []string, hist, height int) []int {
 	blank := func(i int) bool { return strings.TrimSpace(lines[i]) == "" }
 	n := len(lines)
