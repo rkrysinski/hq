@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/rkrysinski/hq/internal/proc"
 )
@@ -26,6 +27,7 @@ type Window struct {
 	Name     string
 	Pane     string // the agent's pane id
 	PaneDead bool
+	DeadAt   time.Time         // when the pane's program ended, zero when unknown
 	Docked   bool              // the agent's pane is in the docking slot
 	Title    string            // the frame title on the agent's pane
 	Options  map[string]string // @hq_* user options, without the "@hq_" prefix
@@ -42,8 +44,9 @@ type Client struct {
 
 // OptionKeys are the user options hq stores on a home window: new marks an
 // agent started with hq new (not relaunched), for the list's S2; turnend
-// when hq first saw a turn the user ended (design §3.4).
-var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "turnend"}
+// when hq first saw a turn the user ended; endseen when hq first saw the
+// agent ended, where tmux cannot tell (design §3.4).
+var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "turnend", "endseen"}
 
 func (c Client) tmux(args ...string) ([]byte, error) {
 	if c.Socket != "" {
@@ -119,12 +122,12 @@ func (c Client) Windows() ([]Window, error) {
 			continue
 		}
 		seen[p.window] = true
-		w := Window{ID: p.window, Name: p.windowName, Pane: p.id, PaneDead: p.dead, Title: p.title, Options: p.options}
+		w := Window{ID: p.window, Name: p.windowName, Pane: p.id, PaneDead: p.dead, DeadAt: p.deadAt, Title: p.title, Options: p.options}
 		if id := p.options["id"]; id != "" && p.role == roleSlot {
 			w.Docked = true
 			a, ok := byAgent[id]
 			// A docked pane that is gone took the agent with it.
-			w.Pane, w.PaneDead, w.Title = a.id, a.dead || !ok, a.title
+			w.Pane, w.PaneDead, w.DeadAt, w.Title = a.id, a.dead || !ok, a.deadAt, a.title
 		}
 		ws = append(ws, w)
 	}

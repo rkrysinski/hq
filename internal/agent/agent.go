@@ -32,6 +32,10 @@ type Agent struct {
 	ending   bool      // hq is taking the agent down (its sandbox restarting)
 	reported bool      // its session has reported, so its sandbox has run
 	turnEnd  string    // a turn the user ended, as hq first saw it (see Settle)
+	deadAt   time.Time // when its pane died, as tmux says; zero when unknown
+	endedAt  time.Time // when its session reported its end
+	started  string    // the start as stored, which keys endSeen
+	endSeen  string    // when hq first saw it ended (see SeeEnd)
 	State    string    `json:"state"`
 	Since    time.Time `json:"since"`
 	Branch   string    `json:"branch"`
@@ -85,7 +89,8 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if o["id"] == "" {
 			continue
 		}
-		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting}
+		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting,
+			deadAt: w.DeadAt, started: o["started"], endSeen: o["endseen"]}
 		if a.Name == "" {
 			a.Name = w.Name
 		}
@@ -126,21 +131,68 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 			as[i].State = state.Ended
 			as[i].New = false
 		}
-		if as[i].State == state.Ended && as[i].Last == "" {
-			as[i].Last = EndedLast
+		if as[i].State == state.Ended {
+			as[i].endTime()
+			if as[i].Last == "" {
+				as[i].Last = EndedLast
+			}
 		}
 	}
 	return as
 }
 
+// endTime makes an ended agent's time the moment it ended (spec §5): its
+// session's end when it reported one (/exit), else when hq first saw it
+// ended, else when its pane died, as tmux says (a crash, a kill, its
+// sandbox stopped), never before its last report. When none is known it
+// stays at the last report until SeeEnd records the moment.
+func (a *Agent) endTime() {
+	switch {
+	case !a.endedAt.IsZero():
+		a.Since = a.endedAt
+	case a.seen():
+	case !a.deadAt.IsZero() && a.deadAt.After(a.Since):
+		a.Since = a.deadAt
+	}
+}
+
+// seen applies the moment SeeEnd recorded for this session, if any.
+func (a *Agent) seen() bool {
+	k, at, ok := strings.Cut(a.endSeen, " ")
+	if !ok || k != a.started {
+		return false
+	}
+	n, err := strconv.ParseInt(at, 10, 64)
+	if err != nil {
+		return false
+	}
+	a.Since = time.Unix(0, n)
+	return true
+}
+
+// SeeEnd records, for an ended agent whose end nothing dates (its sandbox
+// stopped or restarting while its pane still runs, a docked pane gone),
+// that hq sees it ended now: record is the value to store as the endseen
+// option, keyed by the agent's start so a relaunch starts afresh, empty
+// when there is nothing to store.
+func (a *Agent) SeeEnd(now time.Time) (record string) {
+	if a.State != state.Ended || !a.endedAt.IsZero() || !a.deadAt.IsZero() {
+		return ""
+	}
+	if k, _, ok := strings.Cut(a.endSeen, " "); ok && k == a.started {
+		return ""
+	}
+	a.Since = now
+	return a.started + " " + strconv.FormatInt(now.UnixNano(), 10)
+}
+
 // Apply adds what the agent's state file reports (ok false: nothing yet).
 // A dead pane, or one hq is taking down, stays ended whatever the file
-// says, counted from the agent's last report (tmux does not say when the
-// pane died); the file still gives the last known message. A report older
-// than the agent's start is its previous session's (hq sandbox restart
-// relaunches an agent under its id, design §3.6): it gives the last known
-// message, branch and worktree until the new session reports, but neither
-// the state nor its time.
+// says (Collect dates the end); the file still gives the last known
+// message. A report older than the agent's start is its previous
+// session's (hq sandbox restart relaunches an agent under its id, design
+// §3.6): it gives the last known message, branch and worktree until the
+// new session reports, but neither the state nor its time.
 func (a *Agent) Apply(r state.Report, ok bool) {
 	if !ok {
 		return
@@ -151,6 +203,9 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		return
 	}
 	a.New, a.reported = false, true
+	if r.State == state.Ended {
+		a.endedAt = r.Since
+	}
 	if a.Alive && !a.ending {
 		a.State = r.State
 	}

@@ -79,7 +79,7 @@ func collect(d deps) ([]agent.Agent, error) {
 			running[s.Name] = s.Running()
 		}
 	}
-	return settle(d, agent.Collect(ws, d.readState, running)), nil
+	return seeEnds(d, settle(d, agent.Collect(ws, d.readState, running))), nil
 }
 
 // settle looks at the screens of agents whose turn the user may have ended,
@@ -105,6 +105,18 @@ func settle(d deps, as []agent.Agent) []agent.Agent {
 			if record := as[i].Settle(s, now); record != "" {
 				_ = d.tmux.SetOption(as[i].Window, "turnend", record)
 			}
+		}
+	}
+	return as
+}
+
+// seeEnds records on their windows when hq first saw ended the agents
+// whose end nothing else dates (design §3.4), so hq ls and the list agree.
+func seeEnds(d deps, as []agent.Agent) []agent.Agent {
+	now := d.now()
+	for i := range as {
+		if record := as[i].SeeEnd(now); record != "" {
+			_ = d.tmux.SetOption(as[i].Window, "endseen", record)
 		}
 	}
 	return as

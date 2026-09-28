@@ -445,7 +445,7 @@ func TestDockedAgentThatEndsStaysReadable(t *testing.T) {
 	if out := tm(t, socket, "capture-pane", "-p", "-t", p); !strings.Contains(out, "last-words") {
 		t.Errorf("ended agent's output:\n%s", out)
 	}
-	if e := mustWindows(t, c)["e"]; !e.Docked || e.Pane != p {
+	if e := mustWindows(t, c)["e"]; !e.Docked || e.Pane != p || e.DeadAt.IsZero() {
 		t.Errorf("%+v", e)
 	}
 }

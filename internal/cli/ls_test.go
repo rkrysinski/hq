@@ -47,17 +47,18 @@ func TestLsListsAgentsInAttentionOrder(t *testing.T) {
 		agentWindow("@3", "fresh", "/w/lib", f.now.Add(-5*time.Second), false),
 	}
 	f.states["id-old"] = state.Report{State: state.Done, Since: f.now.Add(-3 * time.Minute), Last: "PR #58 opened"}
+	f.tmux.windows[2].DeadAt = f.now.Add(-4 * time.Second)
 	f.states["id-gone"] = state.Report{State: state.Working, Since: f.now.Add(-10 * time.Second), Last: "Tests pass"}
 	code, out, _ := f.run("ls")
 	if code != 0 {
 		t.Fatalf("exit %d", code)
 	}
 	// AGE is the time in the state; a dead pane is ended with its last
-	// message, counted from its last report.
+	// message, counted from when the pane died (#73).
 	want := "NAME   REPO  BRANCH  STATE     AGE  LAST\n" +
 		"old    app   -       done      3m   PR #58 opened\n" +
 		"fresh  lib   -       starting  5s   -\n" +
-		"gone   lib   -       ended     10s  Tests pass\n"
+		"gone   lib   -       ended     4s   Tests pass\n"
 	if out != want {
 		t.Fatalf("got\n%s\nwant\n%s", out, want)
 	}
@@ -152,11 +153,16 @@ func TestLsShowsTheAgentsOfAStoppedSandboxEnded(t *testing.T) {
 	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second)}
 	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Last: "Tests pass"}
 	_, out, _ := f.run("ls")
+	// Its pane still runs, so nothing dates the end but hq seeing it (#73).
 	want := "NAME  REPO  BRANCH  STATE    AGE  LAST\n" +
 		"a     app   -       working  1s   -\n" +
-		"b     lib   -       ended    1s   Tests pass\n"
+		"b     lib   -       ended    0s   Tests pass\n"
 	if out != want {
 		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+	f.now = f.now.Add(6 * time.Second)
+	if _, out, _ := f.run("ls"); !strings.Contains(out, "b     lib   -       ended    6s   Tests pass") {
+		t.Fatalf("later:\n%s", out)
 	}
 	// A sandbox sbx no longer lists at all is not running either.
 	f.sbx.sandboxes = f.sbx.sandboxes[:1]
@@ -253,8 +259,9 @@ func TestLsRejectsUnknownArgument(t *testing.T) {
 func TestLsSaysSessionEndedForAnAgentThatEndedWithoutAMessage(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), true)}
+	f.tmux.windows[0].DeadAt = f.now.Add(-20 * time.Second)
 	_, out, _ := f.run("ls")
-	if want := "a     app   -       ended  1m   [session ended]\n"; !strings.HasSuffix(out, want) {
+	if want := "a     app   -       ended  20s  [session ended]\n"; !strings.HasSuffix(out, want) {
 		t.Fatalf("got\n%s\nwant a row\n%s", out, want)
 	}
 	_, js, _ := f.run("ls", "--json")
