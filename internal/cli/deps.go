@@ -35,6 +35,7 @@ type Tmux interface {
 	Start(id string) error
 	Respawn(pane, dir string, argv []string) error
 	SetOption(id, key, value string) error
+	KeepFirst(id, key, prefix, value string) (string, error)
 	Screens(panes []string) (map[string]string, error)
 	LastScreen(pane string) (string, error)
 	KillWindow(id string) error

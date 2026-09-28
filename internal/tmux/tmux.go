@@ -173,6 +173,28 @@ func (c Client) SetOption(id, key, value string) error {
 	return err
 }
 
+// KeepFirst stores value as one of OptionKeys on a window unless the
+// option already holds a value that starts with prefix, and returns what
+// the option holds then: the first value stored for a prefix wins, however
+// many hq processes store one at once (design §3.4). The check, the store
+// and the read run in one tmux call, which the server carries out without
+// running another client's commands in between. prefix is plain text: no
+// glob or format characters.
+func (c Client) KeepFirst(id, key, prefix, value string) (string, error) {
+	if strings.ContainsAny(prefix, "*?[]\\#{},") {
+		return "", errors.New("tmux: prefix " + strconv.Quote(prefix) + " is not plain")
+	}
+	opt := "@hq_" + key
+	// Empty (false) when the option starts with prefix, 1 otherwise.
+	unset := "#{?#{m:" + prefix + "*,#{" + opt + "}},,1}"
+	out, err := c.tmux("if-shell", "-F", "-t", id, unset, "set-option -w -t "+id+" "+opt+" "+tmuxQuote(value),
+		";", "display-message", "-p", "-t", id, "#{"+opt+"}")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(string(out), "\n"), nil
+}
+
 // screenMark starts the line Screens prints before each pane's screen.
 const screenMark = "::hq::screen "
 

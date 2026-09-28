@@ -313,3 +313,44 @@ func TestLsShowsARewoundTurnDoneOnceItsScreenStaysAtRest(t *testing.T) {
 		t.Fatalf("next report:\n%s", out)
 	}
 }
+
+func TestLsShowsWhatAnotherHqStoredFirst(t *testing.T) {
+	f := newLsFakes()
+	rule := strings.Repeat("─", 30)
+	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/lib", f.now.Add(-time.Minute), false)}
+	f.tmux.windows[0].Pane, f.tmux.windows[1].Pane = "%1", "%2"
+	f.tmux.windows[1].Options["sandbox"] = "claude-lib"
+	f.sbx.sandboxes = append(f.sbx.sandboxes, sbx.Sandbox{Name: "claude-lib", Status: "stopped"})
+	since := f.now.Add(-20 * time.Second)
+	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: since, Last: "Red or blue?"}
+	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Last: "Tests pass"}
+	f.tmux.screens = map[string]string{"%1": "● User declined to answer questions\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n"}
+	// Another hq process, the dashboard say, saw both a moment earlier and
+	// stored its records between this one's look and its write (#100).
+	ns := func(t time.Time) string { return strconv.FormatInt(t.UnixNano(), 10) }
+	f.tmux.onKeep = func(id, key string) {
+		w := &f.tmux.windows[0]
+		if id == "@2" {
+			w = &f.tmux.windows[1]
+		}
+		switch key {
+		case "turnend":
+			w.Options[key] = ns(since) + " " + ns(f.now.Add(-5*time.Second)) + " User declined to answer questions"
+		case "endseen":
+			w.Options[key] = w.Options["started"] + " " + ns(f.now.Add(-9*time.Second))
+		}
+	}
+	_, out, _ := f.run("ls")
+	want := "NAME  REPO  BRANCH  STATE  AGE  LAST\n" +
+		"a     app   -       done   5s   User declined to answer questions\n" +
+		"b     lib   -       ended  9s   Tests pass\n"
+	if out != want {
+		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+	// Later looks keep the first records, and so the ages go on from them.
+	f.tmux.onKeep = nil
+	f.now = f.now.Add(3 * time.Second)
+	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done   8s") || !strings.Contains(out, "b     lib   -       ended  12s") {
+		t.Fatalf("later:\n%s", out)
+	}
+}

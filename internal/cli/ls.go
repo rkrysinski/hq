@@ -113,16 +113,22 @@ func settle(d deps, as []agent.Agent) []agent.Agent {
 	}
 	for i := range as {
 		if s, ok := screens[as[i].Pane]; ok && as[i].Unsettled(now) {
-			turnEnd, restSeen := as[i].Settle(s, now)
-			if turnEnd != "" {
-				_ = d.tmux.SetOption(as[i].Window, "turnend", turnEnd)
-			}
-			if restSeen != "" {
-				_ = d.tmux.SetOption(as[i].Window, "restseen", restSeen)
-			}
+			keep(d, &as[i], as[i].Settle(s, now))
 		}
 	}
 	return as
+}
+
+// keep stores what hq saw on the agent's window, unless another hq process
+// stored its record of the same thing first, which the agent then shows,
+// so that every process shows the same moment (design §3.4).
+func keep(d deps, a *agent.Agent, r agent.Record) {
+	if r.Value == "" {
+		return
+	}
+	if stored, err := d.tmux.KeepFirst(a.Window, r.Option, r.Key, r.Value); err == nil {
+		a.Keep(r, stored)
+	}
 }
 
 // resting reports whether a working agent's screen is at rest, not yet for
@@ -141,9 +147,7 @@ func resting(as []agent.Agent) bool {
 func seeEnds(d deps, as []agent.Agent) []agent.Agent {
 	now := d.now()
 	for i := range as {
-		if record := as[i].SeeEnd(now); record != "" {
-			_ = d.tmux.SetOption(as[i].Window, "endseen", record)
-		}
+		keep(d, &as[i], as[i].SeeEnd(now))
 	}
 	return as
 }
