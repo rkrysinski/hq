@@ -251,6 +251,73 @@ func TestLastScreenDrawsTheLatestOutputAgainAfterAReset(t *testing.T) {
 	}
 }
 
+// Claude redraws its whole screen on every resize, after clearing it, and
+// tmux pushes each screen it clears into the history (scroll-on-clear). An
+// agent resized a few times, docked and undocked, then cut off, has only
+// its last screen drawn again, not a stack of the earlier ones (#130).
+func TestLastScreenDrawsOnlyTheLastOfClaudesRedraws(t *testing.T) {
+	socket := testutil.TmuxSocket(t)
+	c := Client{Run: proc.Exec{}, Socket: socket}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	next := filepath.Join(dir, "next")
+	redrawn := filepath.Join(dir, "redrawn")
+	// Screen k, drawn as Claude draws it: cleared, the conversation at the
+	// top, the footer on the bottom row. Each screen is drawn once the test
+	// has resized the pane; after the third, the reset and sbx's last word,
+	// then what LastScreen gives.
+	id, err := c.NewWindow("a", dir, map[string]string{"id": "x1", "name": "a"}, []string{"sh", "-c", `
+		for k in 1 2 3; do
+			while [ ! -e "$1.$k" ]; do sleep 0.05; done
+			printf '\033[2J\033[H\n Claude Code\n\n> say yo\n\n* Yo\033[999;1Hfooter %s' "$k"
+		done
+		while [ ! -e "$1.4" ]; do sleep 0.05; done
+		printf '\033c'; echo 'error: sandbox stopped'
+		while [ ! -e "$2" ]; do sleep 0.05; done; cat "$2"; exit 1`, "sh", next, redrawn})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Start(id); err != nil {
+		t.Fatal(err)
+	}
+	pane := tm(t, socket, "display-message", "-p", "-t", id, "#{pane_id}")
+	shown := func() string { return tm(t, socket, "capture-pane", "-p", "-t", pane) }
+	for k, height := range []int{30, 20, 16} {
+		tm(t, socket, "resize-window", "-t", id, "-y", strconv.Itoa(height), "-x", "60")
+		if err := os.WriteFile(fmt.Sprintf("%s.%d", next, k+1), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		eventually(t, "a redraw", func() bool { return strings.Contains(shown(), fmt.Sprintf("footer %d", k+1)) })
+	}
+	if err := os.WriteFile(next+".4", nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "the reset", func() bool { return strings.HasPrefix(shown(), "error: sandbox stopped") })
+	s, err := c.LastScreen(pane)
+	if err != nil || s == "" {
+		t.Fatalf("%q %v", s, err)
+	}
+	if err := os.WriteFile(redrawn+".tmp", []byte(s), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(redrawn+".tmp", redrawn); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "the pane to die", func() bool { return tm(t, socket, "display-message", "-p", "-t", pane, "#{pane_dead}") == "1" })
+	// The dead pane shows the last screen once, its blank rows folded, and
+	// sbx's last word; the history still holds the earlier screens.
+	got := shown()
+	if strings.Count(got, "Claude Code") != 1 || strings.Contains(got, "footer 1") || strings.Contains(got, "footer 2") ||
+		!strings.Contains(got, "* Yo\n\nfooter 3\nerror: sandbox stopped\n\nPane is dead") {
+		t.Fatalf("dead pane shows:\n%s", got)
+	}
+	if all := tm(t, socket, "capture-pane", "-p", "-S", "-", "-t", pane); !strings.Contains(all, "footer 1") || !strings.Contains(all, "footer 2") {
+		t.Fatalf("history lost the earlier screens:\n%s", all)
+	}
+}
+
 // An agent's pane runs its session through hq's session program, when there
 // is one, both when it starts and when it is relaunched.
 func TestAgentPanesRunTheSessionThroughHqsSessionProgram(t *testing.T) {

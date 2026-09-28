@@ -26,26 +26,86 @@ func span(from, to int) []int {
 	return s
 }
 
-func TestLatestLinesAfterSbxResetTheTerminal(t *testing.T) {
-	// sbx run reset the terminal as the sandbox stopped: tmux pushed the
-	// session into the history (lines -20..-1, its prompt box at the
-	// bottom), and sbx then printed its error on the cleared screen.
-	lines := screen(20, 10, map[int]string{-20: "Claude Code", -10: "● Bye", -9: "✻ Brewed", -3: "─", -2: "❯ ", -1: "─", 0: `error: sandbox "claude-hq" was stopped`})
-	got := latestLines(lines, 20, 10)
-	// The screen but for its bottom two lines, 8 lines: the session's last
-	// ones and the error, each run of blank rows as one.
-	want := []int{9, 10, 11, 16, 17, 18, 19, 20}
+// claudeScreen is a screen as Claude Code draws it, height lines: its
+// conversation at the top, below a blank line and its banner, and its
+// prompt box and footer at the bottom, the rows between blank.
+func claudeScreen(height int, conversation ...string) []string {
+	s := make([]string, height)
+	s[1] = " ▐▛███▛█   Claude Code v2.1.283"
+	for i, l := range conversation {
+		s[3+2*i] = l
+	}
+	copy(s[height-4:], []string{"────", "❯ ", "────", "  ⏵⏵ bypass permissions on"})
+	return s
+}
+
+// exited is Claude's screen once it exited: its resume lines written from
+// its prompt row down, the screen scrolled one line up.
+func exited(screen []string) []string {
+	s := append([]string{}, screen...)
+	h := len(s)
+	s[h-2], s[h-1] = "Resume this session with:────", "claude --resume 0229"
+	return append(s, "")
+}
+
+// resized is the history of a pane whose Claude was resized as often as
+// heights has entries: each redraw cleared the screen, and tmux pushed the
+// screen it cleared into the history (scroll-on-clear).
+func resized(heights ...int) []string {
+	var hist []string
+	for _, h := range heights {
+		hist = append(hist, claudeScreen(h, "❯ say yo", "● Yo")...)
+	}
+	return hist
+}
+
+// picked is the lines latestLines picks, every one of them at or after
+// from, the first line of the last screen.
+func picked(t *testing.T, lines []string, hist, height, from int) []string {
+	t.Helper()
+	var got []string
+	for _, i := range latestLines(lines, hist, height) {
+		if i < from {
+			t.Errorf("line %d (%q) is before the last screen, which starts at %d", i, lines[i], from)
+		}
+		got = append(got, lines[i])
+	}
+	return got
+}
+
+func TestLatestLinesAreClaudesLastScreenAfterItExited(t *testing.T) {
+	// Docked and undocked, Claude redrew itself at 30 and 20 rows, then
+	// exited (/exit, or Ctrl-C twice) at 16: its last screen scrolled one
+	// line up, the blank line above its banner went into the history.
+	last := exited(claudeScreen(16, "❯ say yo", "● Yo", "❯ /exit"))
+	hist := append(resized(30, 20, 30), last[0])
+	lines := append(append([]string{}, hist...), last[1:]...)
+	got := picked(t, lines, len(hist), 16, len(hist)-1)
+	want := []string{"", " ▐▛███▛█   Claude Code v2.1.283", "", "❯ say yo", "", "● Yo", "", "❯ /exit", "", "────", "❯ ", "Resume this session with:────", "claude --resume 0229"}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %v, want %v", got, want)
+		t.Fatalf("got %q\nwant %q", got, want)
 	}
 }
 
-func TestLatestLinesFoldTheBlankRowsAboveClaudesPromptBox(t *testing.T) {
-	// /exit: Claude's last screen stays, its reply at the top, its prompt
-	// box at the bottom, blank rows between.
-	lines := screen(2, 10, map[int]string{-2: "❯ say yo", 0: "● Yo", 7: "❯ /exit", 8: "Resume this session with:", 9: "claude --resume 0229"})
-	if got, want := latestLines(lines, 2, 10), []int{0, 1, 2, 8, 9, 10, 11}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %v, want %v", got, want)
+func TestLatestLinesAreClaudesLastScreenAfterSbxResetTheTerminal(t *testing.T) {
+	// The sandbox stopped. Claude exited, and sbx run reset the terminal:
+	// tmux pushed the screen into the history, and sbx printed its error on
+	// the cleared screen.
+	errLine := `error: sandbox "claude-hq" was stopped`
+	final := claudeScreen(16, "❯ say yo", "● Yo")
+	for name, last := range map[string][]string{
+		"Claude exited first": exited(final)[:16], // the blank bottom row is not pushed
+		"Claude cut off":      final,
+	} {
+		hist := append(resized(30, 20), last...)
+		lines := append(append([]string{}, hist...), errLine)
+		lines = append(lines, make([]string, 15)...)
+		got := picked(t, lines, len(hist), 16, len(hist)-16)
+		// The last screen from its banner down (the blank row above the
+		// banner is one line too many), then sbx's error; the banner once.
+		if got[len(got)-1] != errLine || got[0] != " ▐▛███▛█   Claude Code v2.1.283" || strings.Count(strings.Join(got, "\n"), "Claude Code") != 1 {
+			t.Errorf("%s: got %q", name, got)
+		}
 	}
 }
 
