@@ -34,21 +34,9 @@ func runLs(env Env, d deps, args []string) error {
 			return usageErr("unexpected argument '%s' (usage: hq ls [--json])", a)
 		}
 	}
-	if err := checkTmux(d.tmux); err != nil {
-		return err
-	}
-	as, err := collect(d)
+	as, err := look(d)
 	if err != nil {
 		return err
-	}
-	// A working agent's screen at rest may be a turn the user rewound,
-	// which it is once it stays so a while (design §3.4): look again then,
-	// so hq ls tells the turn's end at once, like the list.
-	if resting(as) {
-		d.sleep(agent.RestDelay)
-		if as, err = collect(d); err != nil {
-			return err
-		}
 	}
 	agent.SortAttention(as)
 	rows := lsRows(d, as)
@@ -64,11 +52,7 @@ func lsRows(d deps, as []agent.Agent) []lsRow {
 	now := d.now()
 	rows := make([]lsRow, 0, len(as))
 	for _, a := range as {
-		rows = append(rows, lsRow{
-			Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
-			Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
-			Pending: d.pending(a.RepoPath, a.ID),
-		})
+		rows = append(rows, newLsRow(d, a, now))
 	}
 	return rows
 }
@@ -91,6 +75,35 @@ func writeTable(w io.Writer, rows []lsRow) error {
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, agent.Age(time.Duration(r.AgeSeconds)*time.Second), orDash(truncate(r.Last, lastWidth)))
 	}
 	return tw.Flush()
+}
+
+// newLsRow is agent a as hq ls --json shows it at now, with how many
+// messages wait for it.
+func newLsRow(d deps, a agent.Agent, now time.Time) lsRow {
+	return lsRow{
+		Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
+		Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
+		Pending: d.pending(a.RepoPath, a.ID),
+	}
+}
+
+// look gathers the agents as hq ls shows them, once tmux is known to be
+// fit. A working agent's screen at rest may be a turn the user rewound,
+// which it is once it stays so a while (design §3.4): it looks again then,
+// so a single look tells the turn's end at once, like the list.
+func look(d deps) ([]agent.Agent, error) {
+	if err := checkTmux(d.tmux); err != nil {
+		return nil, err
+	}
+	as, err := collect(d)
+	if err != nil {
+		return nil, err
+	}
+	if resting(as) {
+		d.sleep(agent.RestDelay)
+		return collect(d)
+	}
+	return as, nil
 }
 
 // collect gathers the agents with their state from tmux, the state files and

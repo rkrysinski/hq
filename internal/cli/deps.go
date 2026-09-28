@@ -114,6 +114,9 @@ type deps struct {
 	foreground func(argv []string) (int, error)
 	// readState reads an agent's state file (design §3.4).
 	readState func(root, id string) (state.Report, bool)
+	// readDetail reads an agent's last reply in full and what it asks
+	// (design §3.4).
+	readDetail func(root, id string) state.Detail
 	// removeState deletes an agent's state files once it is gone (design §3.4).
 	removeState func(root, id string) error
 	// postMessage leaves a message in an agent's inbox, takeMessages takes
@@ -198,6 +201,7 @@ func defaultDeps() deps {
 		foreground:  func(argv []string) (int, error) { return run.Foreground(argv[0], argv[1:]...) },
 
 		readState:   state.Read,
+		readDetail:  state.ReadDetail,
 		removeState: state.Remove,
 		postMessage: func(root, id, text string, now bool) error {
 			return state.Post(root, id, text, now, time.Now())
