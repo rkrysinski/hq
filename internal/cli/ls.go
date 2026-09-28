@@ -39,6 +39,15 @@ func runLs(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
+	// A working agent's screen at rest may be a turn the user rewound,
+	// which it is once it stays so a while (design §3.4): look again then,
+	// so hq ls tells the turn's end at once, like the list.
+	if resting(as) {
+		d.sleep(agent.RestDelay)
+		if as, err = collect(d); err != nil {
+			return err
+		}
+	}
 	agent.SortAttention(as)
 	now := d.now()
 	rows := make([]lsRow, 0, len(as))
@@ -84,7 +93,9 @@ func collect(d deps) ([]agent.Agent, error) {
 
 // settle looks at the screens of agents whose turn the user may have ended,
 // which no hook reports, and records when hq first saw it on their windows
-// (design §3.4). When tmux cannot show the screens, the hooks' states stand.
+// (design §3.4): the turn's end, or the screen at rest of a turn the user
+// may have rewound. When tmux cannot show the screens, the hooks' states
+// stand.
 func settle(d deps, as []agent.Agent) []agent.Agent {
 	now := d.now()
 	var panes []string
@@ -102,12 +113,27 @@ func settle(d deps, as []agent.Agent) []agent.Agent {
 	}
 	for i := range as {
 		if s, ok := screens[as[i].Pane]; ok && as[i].Unsettled(now) {
-			if record := as[i].Settle(s, now); record != "" {
-				_ = d.tmux.SetOption(as[i].Window, "turnend", record)
+			turnEnd, restSeen := as[i].Settle(s, now)
+			if turnEnd != "" {
+				_ = d.tmux.SetOption(as[i].Window, "turnend", turnEnd)
+			}
+			if restSeen != "" {
+				_ = d.tmux.SetOption(as[i].Window, "restseen", restSeen)
 			}
 		}
 	}
 	return as
+}
+
+// resting reports whether a working agent's screen is at rest, not yet for
+// long enough to be a turn the user rewound.
+func resting(as []agent.Agent) bool {
+	for _, a := range as {
+		if a.Resting() {
+			return true
+		}
+	}
+	return false
 }
 
 // seeEnds records on their windows when hq first saw ended the agents

@@ -56,6 +56,7 @@ type fakeTmux struct {
 	chords     string            // what BindChords was given: "argv... | hints"
 	messages   []string          // shown on the status line
 	screens    map[string]string // what panes show, by pane id
+	onScreens  func()            // called after each Screens, e.g. to move the screens on
 	screenErr  error
 	focused    int      // times the keys were put on the list
 	left       []string // Leave calls, by message
@@ -242,6 +243,9 @@ func (f *fakeTmux) Screens(panes []string) (map[string]string, error) {
 		if s, ok := f.screens[p]; ok {
 			out[p] = s
 		}
+	}
+	if f.onScreens != nil {
+		f.onScreens()
 	}
 	return out, nil
 }

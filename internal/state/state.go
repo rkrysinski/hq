@@ -29,6 +29,7 @@ type Report struct {
 	SessionID string    // Claude's session id
 	Cwd       string    // where Claude works (a worktree or the repository), as the sandbox sees it
 	Branch    string    // the branch checked out in Cwd, empty when detached or unknown
+	Prompt    string    // while working since a prompt: the prompt, as the user sent it
 }
 
 // payload is the part of a Claude hook event hq reads.
@@ -38,6 +39,7 @@ type payload struct {
 	Cwd              string `json:"cwd"`
 	AssistantMessage string `json:"last_assistant_message"`
 	Message          string `json:"message"`
+	Prompt           string `json:"prompt"`
 	ToolName         string `json:"tool_name"`
 	ToolInput        struct {
 		Questions   []struct{ Question string } `json:"questions"`
@@ -85,6 +87,7 @@ func Parse(latest, lastStop []byte) Report {
 		// The hook keeps a tool's end only when it closes a dialog: the
 		// user answered and Claude works on.
 		r.State = Working
+		r.Prompt = p.Prompt
 	case "PermissionRequest":
 		r.State = NeedsInput
 		if m := p.dialogText(); m != "" {

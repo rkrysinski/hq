@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -224,12 +225,12 @@ func TestSettleMakesATurnTheUserEndedDoneFromWhenHqFirstSawIt(t *testing.T) {
 	a.Apply(r, true)
 
 	// The dialog is still open: nothing changes.
-	if rec := a.Settle("Enter to select · Esc to cancel\n", asked.Add(time.Second)); rec != "" || a.State != state.NeedsInput || a.Since != asked {
+	if rec, _ := a.Settle("Enter to select · Esc to cancel\n", asked.Add(time.Second)); rec != "" || a.State != state.NeedsInput || a.Since != asked {
 		t.Fatalf("open dialog: %q %+v", rec, a)
 	}
 	// Cancelled: done since now, and the moment is to be recorded.
 	seen := asked.Add(5 * time.Second)
-	rec := a.Settle(declined, seen)
+	rec, _ := a.Settle(declined, seen)
 	if a.State != state.Done || a.Last != "User declined to answer questions" || !a.Since.Equal(seen) || a.Pane != "%1" {
 		t.Fatalf("cancelled: %+v", a)
 	}
@@ -240,14 +241,14 @@ func TestSettleMakesATurnTheUserEndedDoneFromWhenHqFirstSawIt(t *testing.T) {
 	w.Options["turnend"] = rec
 	b := FromWindows([]tmux.Window{w})[0]
 	b.Apply(r, true)
-	if rec := b.Settle(declined, seen.Add(time.Minute)); rec != "" || !b.Since.Equal(seen) {
+	if rec, _ := b.Settle(declined, seen.Add(time.Minute)); rec != "" || !b.Since.Equal(seen) {
 		t.Fatalf("again: %q %+v", rec, b)
 	}
 	// It stays done though the screen moved on (the next prompt sent, its
 	// hook not yet reported), and needs no screen at all.
 	b = FromWindows([]tmux.Window{w})[0]
 	b.Apply(r, true)
-	if rec := b.Settle("❯ next prompt\n", seen.Add(time.Minute)); rec != "" || b.State != state.Done || b.Last != "User declined to answer questions" || !b.Since.Equal(seen) {
+	if rec, _ := b.Settle("❯ next prompt\n", seen.Add(time.Minute)); rec != "" || b.State != state.Done || b.Last != "User declined to answer questions" || !b.Since.Equal(seen) {
 		t.Fatalf("screen moved on: %q %+v", rec, b)
 	}
 	b = FromWindows([]tmux.Window{w})[0]
@@ -269,7 +270,7 @@ func TestSettleMakesATurnTheUserEndedDoneFromWhenHqFirstSawIt(t *testing.T) {
 	c := FromWindows([]tmux.Window{w})[0]
 	c.Apply(r, true)
 	later := r.Since.Add(3 * time.Second)
-	if rec := c.Settle(declined, later); rec == "" || !c.Since.Equal(later) {
+	if rec, _ := c.Settle(declined, later); rec == "" || !c.Since.Equal(later) {
 		t.Fatalf("newer report: %q %+v", rec, c)
 	}
 }
@@ -371,5 +372,82 @@ func TestAnEndedAgentCountsFromWhenItEnded(t *testing.T) {
 	ws[4].Options["endseen"] = "1150 x"
 	if a, _ := Find(Collect(ws, read, map[string]bool{"claude-app": true}), "stopped"); !a.Since.Equal(at(1160)) {
 		t.Errorf("bad record: %v", a.Since)
+	}
+}
+
+func TestSettleTakesARewoundTurnForDoneOnceItsScreenStaysAtRest(t *testing.T) {
+	rule := strings.Repeat("─", 20)
+	box := func(input string) string {
+		return "✻ Baked for 2s · done\n" + rule + "\n❯ " + input + "\n" + rule + "\n  ⏵⏵ bypass permissions on\n"
+	}
+	sent := "Write a poem about the sea."
+	asked := time.Unix(1000, 0)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	r := state.Report{State: state.Working, Since: asked, Last: "earlier", Prompt: sent}
+	look := func() Agent {
+		a := FromWindows([]tmux.Window{w})[0]
+		a.Apply(r, true)
+		return a
+	}
+
+	// First seen at rest: still working, the moment and the look recorded.
+	first := asked.Add(3 * time.Second)
+	a := look()
+	end, rest := a.Settle(box(sent), first)
+	if end != "" || rest == "" || !a.Resting() || a.State != state.Working || !a.Since.Equal(asked) {
+		t.Fatalf("first look: %q %q %+v", end, rest, a)
+	}
+	w.Options["restseen"] = rest
+	// The same a moment later: not yet.
+	a = look()
+	if end, rest := a.Settle(box(sent), first.Add(RestDelay-time.Millisecond)); end != "" || rest != "" || !a.Resting() || a.State != state.Working {
+		t.Fatalf("too soon: %q %q %+v", end, rest, a)
+	}
+	// Unchanged for RestDelay: done since first seen at rest.
+	a = look()
+	end, rest = a.Settle(box(sent), first.Add(RestDelay))
+	if end == "" || rest != "" || a.Resting() || a.State != state.Done || a.Last != Rewound || !a.Since.Equal(first) {
+		t.Fatalf("at rest: %q %q %+v", end, rest, a)
+	}
+	w.Options["turnend"] = end
+	a = look()
+	if !a.Recall() || a.State != state.Done || !a.Since.Equal(first) || a.Last != Rewound {
+		t.Fatalf("recall: %+v", a)
+	}
+	delete(w.Options, "turnend")
+
+	// The screen changed meanwhile (the user cleared the box): at rest
+	// from now, as it looks now.
+	a = look()
+	later := first.Add(time.Minute)
+	if end, rest := a.Settle(box(""), later); end != "" || rest == "" || rest == w.Options["restseen"] || !strings.HasSuffix(rest, strconv.FormatInt(later.UnixNano(), 10)) {
+		t.Fatalf("changed: %q %q", end, rest)
+	}
+	// A newer report: an earlier look does not count.
+	r.Since = asked.Add(time.Hour)
+	a = look()
+	if end, rest := a.Settle(box(sent), r.Since.Add(time.Hour)); end != "" || rest == "" {
+		t.Fatalf("newer report: %q %q", end, rest)
+	}
+	// Not at rest: text the user typed, a turn at work, another state.
+	r.Since = asked
+	for name, tc := range map[string]struct {
+		screen, state string
+	}{
+		"typed":      {box("my own draft"), state.Working},
+		"at work":    {box("") + "  esc to interrupt\n", state.Working},
+		"a dialog":   {box(""), state.NeedsInput},
+		"no box":     {"● streaming\n", state.Working},
+		"broken rec": {box(sent), state.Working},
+	} {
+		r.State = tc.state
+		if name == "broken rec" {
+			w.Options["restseen"] = "x y z"
+		}
+		a := look()
+		end, rest := a.Settle(tc.screen, first.Add(time.Hour))
+		if end != "" || a.State != tc.state || (name != "broken rec" && (rest != "" || a.Resting())) {
+			t.Errorf("%s: %q %q %+v", name, end, rest, a)
+		}
 	}
 }

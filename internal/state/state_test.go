@@ -169,3 +169,14 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 		}
 	}
 }
+
+func TestParseKeepsThePromptOfAWorkingTurn(t *testing.T) {
+	if r := Parse(fixture(t, "prompt"), nil); r.Prompt != "say hi" {
+		t.Errorf("prompt: %q", r.Prompt)
+	}
+	for _, name := range []string{"answer-ask", "stop-done", "dialog-bash"} {
+		if r := Parse(fixture(t, name), nil); r.Prompt != "" {
+			t.Errorf("%s: %q", name, r.Prompt)
+		}
+	}
+}

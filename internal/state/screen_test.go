@@ -69,3 +69,62 @@ func TestEndedByUserNeedsThePromptBoxAtTheBottom(t *testing.T) {
 		t.Error("a draft in the prompt box and blank lines below still count")
 	}
 }
+
+func TestAtRestSeesARewoundTurn(t *testing.T) {
+	// Esc about 2.5 s into a no-tool turn (Claude Code 2.1.283, #99): the
+	// prompt is back in the box, after an earlier turn or as the session's
+	// first; then the user cleared the box.
+	const sent = "Write a 200-word poem about the sea, no tools."
+	for _, name := range []string{"rewound", "rewound-first", "rewound-cleared"} {
+		ok, restored := AtRest(screen(t, name), sent)
+		if !ok || restored != (name != "rewound-cleared") {
+			t.Errorf("%s: at rest %v, prompt restored %v", name, ok, restored)
+		}
+		if last, ok := EndedByUser(screen(t, name)); ok {
+			t.Errorf("%s: ended by the user: %q", name, last)
+		}
+	}
+	// Whitespace aside, the box holds what the hooks reported.
+	if _, restored := AtRest(screen(t, "rewound"), "Write a 200-word poem\n about the sea,  no tools."); !restored {
+		t.Error("the prompt with other whitespace")
+	}
+	// Another prompt was reported: the text is the user's own.
+	if ok, _ := AtRest(screen(t, "rewound"), "Say hi."); ok {
+		t.Error("a draft that is not the reported prompt")
+	}
+}
+
+func TestAtRestIsFalseForScreensOfWorkingTurnsThatShowActivity(t *testing.T) {
+	// Real screens of turns at work: a tool running, compaction, streaming,
+	// the user typing or with a menu open (both drop Esc to interrupt from
+	// the footer), a narrow pane with a spinner (its footer drops it too).
+	for name, sent := range map[string]string{
+		"working":                  "",
+		"tool-running":             "Run this exact shell command",
+		"compacting":               "",
+		"streaming":                "Write a 120-word poem about the sea, no tools.",
+		"typing-while-working":     "Write a 60-word poem about snow, no tools.",
+		"menu-while-working":       "Write a 60-word poem about snow, no tools.",
+		"streaming-typing":         "Write a 60-word poem about snow, no tools.",
+		"dialog-open":              "",
+		"interrupted-then-working": "",
+	} {
+		if ok, _ := AtRest(screen(t, name), sent); ok {
+			t.Errorf("%s: at rest", name)
+		}
+	}
+}
+
+func TestAtRestCannotTellANarrowStreamingTurnFromOneScreen(t *testing.T) {
+	// 50 columns: the footer drops Esc to interrupt. With its spinner
+	// showing, the turn is at work; while its reply streams into an empty
+	// box there is no spinner either, and one screen looks at rest: that it
+	// keeps changing while Claude works tells them apart (design §3.4).
+	const sent = "Write a 100-word poem about fire, no tools."
+	if ok, _ := AtRest(screen(t, "narrow-working"), sent); ok {
+		t.Error("narrow, spinner showing: at rest")
+	}
+	if ok, restored := AtRest(screen(t, "narrow-streaming"), sent); !ok || restored {
+		t.Errorf("narrow, streaming: at rest %v, restored %v", ok, restored)
+	}
+}

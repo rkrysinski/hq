@@ -232,6 +232,12 @@ func TestStatesFollowTheSessionAndLeaveTheRepositoryClean(t *testing.T) {
 	h.waitReport("b", "working", "Done: hi")
 	h.typeIn("b", "esc")
 	h.waitReport("b", "done", "Interrupted")
+	// An early Esc may rewind the turn instead: no line, no hook, the
+	// prompt back in the box; hq sees the screen stay at rest (#99).
+	h.typeIn("b", "slow again")
+	h.waitReport("b", "working", "Done: hi")
+	h.typeIn("b", "rewind")
+	h.waitReport("b", "done", "Interrupted")
 
 	// A session that ends keeps its last message, and its screen stays
 	// readable though Claude drew it in the alternate screen (S7, #38).
