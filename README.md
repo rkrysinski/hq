@@ -29,6 +29,15 @@ hq kill NAME                     # end an agent's Claude session; the sandbox st
 
 In the dashboard, agents that need you (a question, a permission prompt) come first; the selected agent's session opens below the list, and the bottom line shows the keys. `hq help` lists every command.
 
+## Notifications
+
+hq sends a desktop notification when an agent needs you or finishes: `Question: <branch>` when its reply ends with a question, `Needs input: <branch>` when it waits on a question dialog or a permission prompt, and `Done: <branch>` when it completes its turn. Each event notifies exactly once, whether or not the agent is the one open in the dashboard. Starting, working and ended agents never notify, and neither does a turn you end yourself (Esc, a refused permission) or a session that has just started.
+
+Notifications come through the terminal the dashboard runs in, so they appear only while the dashboard is open in a terminal. After `q`, or with the window closed or detached, the agents keep working but nothing is shown, and missed events are not replayed; `hq` brings the dashboard and the notifications back.
+
+- macOS: iTerm2 shows each one as a macOS notification naming the kind and the branch; if none appear, check that notifications are allowed for iTerm2 in System Settings.
+- Windows: Windows Terminal flashes its taskbar button; the flash carries no text, and the dashboard shows which agent it was.
+
 ## Claude Desktop as supervisor
 
 Claude Desktop can start, watch and message your agents through hq's MCP tools (`new`, `list`, `read`, `wait`, `send`, `go`, `kill`). Set it up once, from the shell you run hq in (on Windows, in WSL):
