@@ -8,6 +8,7 @@ import (
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/iterm"
+	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
@@ -288,8 +289,15 @@ func listSource(d deps, pane string) dash.Source {
 			}
 			return running, nil
 		},
-		Now:        d.now,
-		UpdateHint: func() string { return strings.TrimSpace(updateHint(d)) },
+		Now: d.now,
+		UpdateHint: func() string {
+			// The list runs the update check itself, in the
+			// background of its own process.
+			if checkDue(d) {
+				checkUpdate(d)
+			}
+			return strings.TrimSpace(updateHint(d))
+		},
 		Layout: func() {
 			if h, err := d.tmux.TerminalHeight(pane); err == nil {
 				_ = d.tmux.ResizeHeight(pane, dash.Height(h))
@@ -308,9 +316,10 @@ func listSource(d deps, pane string) dash.Source {
 		},
 		SetCursor: func(name string) { _ = d.tmux.SetSessionValue("cursor", name) },
 		SaveModes: func(sort, view string) {
-			p := d.loadPrefs()
-			p.Sort, p.View = sort, view
-			_ = d.savePrefs(p)
+			_ = d.updatePrefs(func(p *prefs.Prefs) bool {
+				p.Sort, p.View = sort, view
+				return true
+			})
 		},
 	}
 }

@@ -590,25 +590,33 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 	}
 }
 
-func TestVersionHintKeepsItsCheckInThePreferencesFile(t *testing.T) {
-	gh, ghDir := testutil.GhStub(t)
-	if err := os.WriteFile(ghDir+"/latest", []byte("v0.2.0\n"), 0o644); err != nil {
+// The update check, as the detached hq runs it, reads the latest release
+// over HTTP (HQ_RELEASES_URL here) and keeps it in the preferences file,
+// where --version and the notice read it.
+func TestUpdateCheckKeepsTheLatestReleaseInThePreferencesFile(t *testing.T) {
+	base, dir := testutil.ReleaseServer(t)
+	if err := os.WriteFile(dir+"/latest", []byte("v0.2.0\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	t.Setenv(update.BaseEnv, base)
 	cfg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", cfg)
 	old := version.Version
 	version.Version = "v0.1.0"
 	defer func() { version.Version = old }()
 	d := defaultDeps()
-	d.releases = update.Releases{Run: proc.Exec{}, Bin: gh}
+	d.detach = func([]string) error { return nil } // the built binary's test starts it for real
 	var out bytes.Buffer
-	if code := mainWith([]string{"--version"}, Env{Stdin: strings.NewReader(""), Stdout: &out, Stderr: &out}, d); code != 0 || out.String() != "hq v0.1.0\nv0.2.0 available - hq update\n" {
-		t.Fatalf("exit %d %q", code, out.String())
+	env := Env{Stdin: strings.NewReader(""), Stdout: &out, Stderr: &out}
+	if code := mainWith([]string{updateCheckCommand}, env, d); code != 0 || out.Len() != 0 {
+		t.Fatalf("check: exit %d %q", code, out.String())
 	}
 	data, err := os.ReadFile(cfg + "/hq/preferences.json")
 	if err != nil || !strings.Contains(string(data), `"latest_release": "v0.2.0"`) {
 		t.Fatalf("%v %s", err, data)
+	}
+	if code := mainWith([]string{"--version"}, env, d); code != 0 || out.String() != "hq v0.1.0\nv0.2.0 available - hq update\n" {
+		t.Fatalf("exit %d %q", code, out.String())
 	}
 	if exe, err := d.executable(); err != nil || !filepath.IsAbs(exe) {
 		t.Fatalf("executable %q %v", exe, err)

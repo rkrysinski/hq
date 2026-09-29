@@ -468,6 +468,10 @@ type fakes struct {
 	profileWrote bool
 	profileErr   error
 	prefs        prefs.Prefs
+	// detached are the programs started to outlive hq (the update check);
+	// stderrTTY is whether stderr is a terminal.
+	detached  [][]string
+	stderrTTY bool
 
 	rawOn, rawOff int                     // terminals put in raw mode, and restored
 	alive         map[int]bool            // processes that exist
@@ -640,7 +644,18 @@ func (f *fakes) deps() deps {
 			return f.profileWrote, f.profileErr
 		},
 		loadPrefs: func() prefs.Prefs { return f.prefs },
-		savePrefs: func(p prefs.Prefs) error { f.prefs = p; return nil },
+		updatePrefs: func(change func(*prefs.Prefs) bool) error {
+			p := f.prefs
+			if change(&p) {
+				f.prefs = p
+			}
+			return nil
+		},
+		detach: func(argv []string) error {
+			f.detached = append(f.detached, argv)
+			return nil
+		},
+		stderrTerminal: func(io.Writer) bool { return f.stderrTTY },
 
 		runList: func(src dash.Source) error {
 			if f.listRan == nil {

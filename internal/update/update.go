@@ -8,44 +8,135 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/rkrysinski/hq/internal/proc"
+	"time"
 )
 
-// Repo is where hq's releases are published.
-const Repo = "rkrysinski/hq"
+// DefaultBase is where hq's releases are published: GitHub's public release
+// URLs, read without a login (design §3.9).
+const DefaultBase = "https://github.com/rkrysinski/hq/releases"
+
+// BaseEnv names another place to read releases from, one that answers as
+// GitHub's release URLs do; for tests and QA.
+const BaseEnv = "HQ_RELEASES_URL"
+
+// Base is the release URL hq reads: $HQ_RELEASES_URL, else DefaultBase.
+func Base(getenv func(string) string) string {
+	if b := strings.TrimRight(getenv(BaseEnv), "/"); b != "" {
+		return b
+	}
+	return DefaultBase
+}
 
 // SumsFile lists the SHA-256 of every file of a release.
 const SumsFile = "SHA256SUMS"
 
-// Releases reads hq's releases through the GitHub CLI, which works on the
-// private repository with the user's own login.
+// Timeouts of Releases: a lookup is one small answer, a download a binary of
+// some megabytes.
+const (
+	LookupTimeout   = 15 * time.Second
+	DownloadTimeout = 5 * time.Minute
+)
+
+// Releases reads hq's releases over HTTPS from their public URLs, as
+// install.sh does: Base/latest redirects to Base/tag/TAG, and a release's
+// files are at Base/download/TAG/FILE.
 type Releases struct {
-	Run proc.Runner
-	Bin string // gh
+	Base string
+	// Agent is the User-Agent sent, e.g. hq/v0.2.0.
+	Agent string
+	// LookupTimeout and DownloadTimeout bound a request; zero takes the
+	// defaults above.
+	LookupTimeout, DownloadTimeout time.Duration
 }
 
-// Latest returns the tag of the latest release.
+func (r Releases) get(url string, timeout, fallback time.Duration, follow bool) (*http.Response, error) {
+	if timeout == 0 {
+		timeout = fallback
+	}
+	c := &http.Client{Timeout: timeout}
+	if !follow {
+		c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	}
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if r.Agent != "" {
+		req.Header.Set("User-Agent", r.Agent)
+	}
+	return c.Do(req)
+}
+
+// Latest returns the tag of the latest release, from where Base/latest
+// redirects.
 func (r Releases) Latest() (string, error) {
-	out, err := r.Run.Run(r.Bin, "release", "view", "-R", Repo, "--json", "tagName", "-q", ".tagName")
+	resp, err := r.get(r.Base+"/latest", r.LookupTimeout, LookupTimeout, false)
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(out)), nil
+	resp.Body.Close()
+	if tag, ok := TagFrom(resp.Header.Get("Location")); ok && isRedirect(resp.StatusCode) {
+		return tag, nil
+	}
+	if resp.StatusCode == http.StatusNotFound || isRedirect(resp.StatusCode) {
+		return "", fmt.Errorf("no release at %s", r.Base)
+	}
+	return "", fmt.Errorf("%s/latest: %s", r.Base, resp.Status)
+}
+
+func isRedirect(code int) bool { return code >= 300 && code < 400 }
+
+// TagFrom reads the tag in the address a latest-release lookup redirects to
+// (.../releases/tag/v1.2.3); a repository without releases redirects to its
+// releases page instead.
+func TagFrom(location string) (string, bool) {
+	i := strings.LastIndex(location, "/tag/")
+	if i < 0 {
+		return "", false
+	}
+	tag, err := url.PathUnescape(location[i+len("/tag/"):])
+	if err != nil || tag == "" || strings.ContainsAny(tag, "/?#") {
+		return "", false
+	}
+	return tag, true
 }
 
 // Download saves the named files of a release into dir.
 func (r Releases) Download(tag, dir string, files ...string) error {
-	args := []string{"release", "download", tag, "-R", Repo, "-D", dir}
 	for _, f := range files {
-		args = append(args, "-p", f)
+		if err := r.download(tag, dir, f); err != nil {
+			return err
+		}
 	}
-	_, err := r.Run.Run(r.Bin, args...)
-	return err
+	return nil
+}
+
+func (r Releases) download(tag, dir, file string) error {
+	u := r.Base + "/download/" + url.PathEscape(tag) + "/" + url.PathEscape(file)
+	resp, err := r.get(u, r.DownloadTimeout, DownloadTimeout, true)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%s: %s", u, resp.Status)
+	}
+	out, err := os.Create(filepath.Join(dir, file))
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		out.Close()
+		return fmt.Errorf("%s: %v", u, err)
+	}
+	return out.Close()
 }
 
 // Asset is the name of the binary for a platform in a release.

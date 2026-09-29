@@ -5,6 +5,9 @@
 # here never appear in the user's hq session. XDG_CONFIG_HOME gives the
 # checkout its own preferences file, so QA never changes the user's sort,
 # view or update check; gh keeps the user's login through GH_CONFIG_DIR.
+# The build is a dev build, which never looks for updates; to check update
+# behaviour, LOCAL_DEV_VERSION=vX.Y.Z bakes that version in, and
+# HQ_RELEASES_URL points hq at a stub release server (design §3.9).
 #
 # Usage: scripts/local-dev.sh [hq arguments...]     build, then run hq with them
 #        scripts/local-dev.sh --kill-server         end this checkout's tmux server
@@ -25,5 +28,5 @@ if [ "${1:-}" = --kill-server ]; then
 fi
 
 mkdir -p "$ROOT/.local-dev"
-(cd "$ROOT" && go build -o "$BIN" ./cmd/hq)
+(cd "$ROOT" && go build ${LOCAL_DEV_VERSION:+-ldflags "-X github.com/rkrysinski/hq/internal/version.Version=$LOCAL_DEV_VERSION"} -o "$BIN" ./cmd/hq)
 exec "$BIN" "$@"

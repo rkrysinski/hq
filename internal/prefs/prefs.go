@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 // Path is the preferences file: $XDG_CONFIG_HOME/hq/preferences.json, with
@@ -42,7 +43,8 @@ func Load(path string) Prefs {
 	return p
 }
 
-// Save writes the file, creating its directory.
+// Save writes the file, creating its directory. The file is written next to
+// it and renamed over it, so a reader never sees half a file.
 func Save(path string, p Prefs) error {
 	all := map[string]any{}
 	for k, v := range p.other {
@@ -61,5 +63,45 @@ func Save(path string, p Prefs) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(data, '\n'), 0o644)
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".preferences-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(append(data, '\n')); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), path)
+}
+
+// Update changes the file under a lock, so hq processes changing it at once
+// (the list keeping its modes, the update check, hq update) never lose each
+// other's changes: change gets the file as it is and returns false to leave
+// it unchanged. The lock is an flock on the file's .lock beside it, let go
+// when the process ends, however it ends.
+func Update(path string, change func(*Prefs) bool) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	lock, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
+	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
+		return err
+	}
+	defer syscall.Flock(int(lock.Fd()), syscall.LOCK_UN)
+	p := Load(path)
+	if !change(&p) {
+		return nil
+	}
+	return Save(path, p)
 }

@@ -45,7 +45,7 @@ All operations are available from any shell; the dashboard reflects them within 
 - `hq sandbox rm REPO` / `hq sandbox restart REPO` - remove or restart a repository's sandbox after confirmation (`-y` skips it; REPO may also be the sandbox's own name as `sbx ls` shows it; restart is the remedy after laptop sleep, S9). `rm` refuses while agents of that repo are running; `restart` ends every session in the sandbox and relaunches each agent, continuing its conversation.
 - `hq mcp` - serve `new`, `list`, `read`, `wait`, `send`, `go` and `kill` as tools to an MCP client over its standard input and output (Phase 2 below); Claude Desktop starts it and ends it, the user never types it. Each tool gives what the command of the same name gives, with the same errors; `list` is `hq ls`, `wait` requires its `since` (the moment of the supervisor's most recent hq result, see `hq wait`), and `kill` needs no `-y` because the client asks the user first. `hq stop` and `hq sandbox` are not offered.
 - `hq mcp install` - add hq to Claude Desktop's configuration as an MCP server, on macOS and on Windows (where Claude Desktop starts hq in WSL). Running it again changes nothing; every other setting and server in the configuration stays as it was, and a copy of the file as it was is kept next to it. When the configuration cannot be found or edited safely, it changes nothing and prints the entry to add by hand. Claude Desktop is restarted by the user to load it.
-- `hq update` - replace hq with the latest released version, printing the version before and after. Running agents are not affected.
+- `hq update` - replace hq with the latest released version, printing the version before and after. Running agents are not affected. Needs no GitHub login.
 - `hq help`, `hq --version` (also says when a newer version is released).
 
 ### 4.2 Conventions
@@ -54,6 +54,8 @@ All operations are available from any shell; the dashboard reflects them within 
 - Exit codes: `0` success, `1` usage or refused (duplicate name, `sandbox rm` with running agents), `2` not found (agent, repo, sandbox), `3` environment (tmux or sbx unavailable). Declining a confirmation is not an error: nothing changes and the exit code is `0`; with no terminal to confirm on and no `-y`, the command is refused (`1`).
 - Errors are one line on stderr, prefixed `hq:`, and name the remedy where there is one (`hq: no agent 'x' (see hq ls)`).
 - Every command works the same from inside the dashboard's own terminal and from any other shell.
+- When a newer version of hq is released, a command the user runs in a terminal ends, after its own output, with one line on stderr: `hq v0.4.0 is available - run hq update`. Not with `--json`, not when stderr is not a terminal, not in `hq mcp` (its output is for the MCP client), not in `hq update` or `hq --version` (which says so in its own output), and not in the dashboard, whose header has its own hint (6.1). A development build never says it.
+- hq looks for new releases at most once a day and in the background: no command waits for the answer, and none is slowed down, fails or prints anything because GitHub is slow or unreachable; what a check finds shows from the next command on.
 
 ## 5. Agent state
 
@@ -101,7 +103,7 @@ The terminal window is titled `hq - agents`.
 
 Resizing the terminal window keeps the 6 list rows and gives the rest to the session. Below 24 rows the list shows 3 rows. Minimum width 80 columns; narrower terminals drop `LAST`, then `REPO`.
 
-Header: `hq` + summary `N agents · X need you · Y done · Z working` + current view mode + clock; while `sbx` has not answered for a few seconds, a quiet `sbx ?` beside the clock says that `ended` states may be stale, and it goes as soon as `sbx` answers again. The summary always counts all agents, whatever the view. When a newer version of hq is released, the header also shows a quiet hint, e.g. `v0.4.0 available - hq update`; hq looks for new releases at most once a day and only while the dashboard runs.
+Header: `hq` + summary `N agents · X need you · Y done · Z working` + current view mode + clock; while `sbx` has not answered for a few seconds, a quiet `sbx ?` beside the clock says that `ended` states may be stale, and it goes as soon as `sbx` answers again. The summary always counts all agents, whatever the view. When a newer version of hq is released, the header also shows a quiet hint, e.g. `v0.4.0 available - hq update`; hq looks for new releases at most once a day (4.2).
 
 Columns: `TAB` (name), `REPO`, `BRANCH`, `STATE` (colored dot + word), `AGE`, `LAST`. No row numbers: under attention sort rows reshuffle on every state change, so positional shortcuts would point at the wrong agent. Colors: attention amber, done green, working blue, ended grey, dark background; degrade gracefully on terminals with few colors.
 
@@ -231,8 +233,9 @@ Creating worktrees or branches, managing pull requests, PR status per branch (le
 
 ## 11. Setup
 
-- Prerequisites on the host: git, tmux 3.4 or newer, Docker Sandboxes (`sbx`), GitHub CLI (`gh`, authenticated), VS Code with `code` on PATH. macOS: iTerm2. Windows: Windows Terminal, WSL (Ubuntu 24.04 or newer) with the same tools; `sbx` is the Windows binary, reachable from WSL.
-- hq is installed once per machine with one command and available on PATH as `hq`; there is no service to start. `hq update` brings it to the latest release.
+- Prerequisites on the host: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`), VS Code with `code` on PATH. macOS: iTerm2. Windows: Windows Terminal, WSL (Ubuntu 24.04 or newer) with the same tools; `sbx` is the Windows binary, reachable from WSL.
+- Optional: GitHub CLI (`gh`, logged in), only for the dashboard's pull requests (`pr`, 6.4). Without it, or logged out, hq works the same and simply shows no pull request.
+- hq is installed once per machine with one command, from the public releases and without a GitHub login, and is available on PATH as `hq`; there is no service to start. `hq update` brings it to the latest release.
 - Repositories need no preparation: any repository with a sandbox can host agents as it is.
 - The supervisor (Phase 2) needs Claude Desktop on the same machine (on Windows, the Windows app with hq in WSL) and one command, `hq mcp install`, then a restart of Claude Desktop. Running it again after moving hq keeps the entry right.
 
