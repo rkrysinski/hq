@@ -2,6 +2,8 @@
 
 One console for many Claude Code agents. Each agent runs in a Docker Sandboxes (`sbx`) microVM and a tmux session; hq shows all of them in one dashboard, sorted by who needs you, and lets you enter, start, stop and inspect any of them from the dashboard or from any shell.
 
+![The hq dashboard: three agents, the one waiting for an answer on top, its session open below](docs/images/dashboard.png)
+
 Platforms: macOS (iTerm2) and Windows via WSL (Windows Terminal).
 
 ## Install
@@ -13,6 +15,19 @@ gh release download -R rkrysinski/hq -p install.sh -O - | sh
 ```
 
 This installs `hq` to `~/.local/bin` and checks the prerequisites. On macOS with iTerm2 it also adds an iTerm2 profile named `hq` with Option as Esc+, which hq gives only to the tab the dashboard runs in, so the Alt chords work with no setup. `hq update` moves to the latest release later; `hq --version` says when one is out.
+
+## Everyday use
+
+```bash
+hq                               # open the dashboard
+hq new NAME [DIR] [PROMPT]       # start an agent for the repository in DIR
+hq ls                            # list agents and their state
+hq go NAME                       # enter an agent's session
+hq send NAME TEXT                # leave a message, delivered when the agent is ready
+hq kill NAME                     # end an agent's Claude session; the sandbox stays
+```
+
+In the dashboard, agents that need you (a question, a permission prompt) come first; the selected agent's session opens below the list, and the bottom line shows the keys. `hq help` lists every command.
 
 ## Claude Desktop as supervisor
 
@@ -26,27 +41,6 @@ Then quit and reopen Claude Desktop. This adds an `hq` entry to Claude Desktop's
 
 In a conversation, tell Claude what to do ("start 42 in ~/work/app on issue #42, and watch it"). It reads status from hq rather than asking the agents, asks an agent with a message answered when the agent stops, and leaves an agent's permission prompts and questions to you. Claude Desktop asks you before `kill`.
 
-To remove hq, delete `~/.local/bin/hq`, the `hq` entry under `mcpServers` in Claude Desktop's configuration if you added it, `~/.config/hq` and, on macOS, `~/Library/Application Support/iTerm2/DynamicProfiles/hq.json`.
+## Uninstall
 
-## Stack
-
-Go (ADR 0011); see [Design](docs/design/hq.md), [Testing](docs/agents/testing.md) and `scripts/local-dev.sh` for running a checkout.
-
-## Releases
-
-Work lands on `dev`, the default branch; `main` holds the latest release. `scripts/cut-release.sh X.Y.Z` tags a version from `dev` and fast-forwards `main` to it; the release notes are written from the merged pull requests. See [Releasing](docs/releasing.md).
-
-## Documentation
-
-| Where | What |
-|-------|------|
-| [AGENTS.md](AGENTS.md) | How agents work in this repository (`CLAUDE.md` is a symlink to it) |
-| [CONTEXT.md](CONTEXT.md) | The glossary: the domain's terms and the words to avoid |
-| [docs/requirements/spec.md](docs/requirements/spec.md) | What hq does; milestones in section 12 |
-| [docs/requirements/](docs/requirements/) | The dashboard design, `look-and-feel.pen` (Pencil), one frame per scenario |
-| [docs/adr/](docs/adr/) | Decisions that are hard to reverse, and why they were made |
-| [docs/design/](docs/design/) | How hq is built |
-| [docs/agents/](docs/agents/) | Issue tracker, triage labels, testing, QA evidence |
-| [docs/releasing.md](docs/releasing.md) | Versions, release notes, milestones |
-
-`scripts/setup-github.sh` prepares the GitHub repository (labels, the `qa-artifacts` branch, settings); it is safe to run again.
+Delete `~/.local/bin/hq`, the `hq` entry under `mcpServers` in Claude Desktop's configuration if you added it, `~/.config/hq` and, on macOS, `~/Library/Application Support/iTerm2/DynamicProfiles/hq.json`.
