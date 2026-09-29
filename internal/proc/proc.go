@@ -122,3 +122,15 @@ func ExitStatus(ps *os.ProcessState) int {
 	}
 	return ps.ExitCode()
 }
+
+// Detach starts a program that outlives hq and returns at once: in a session
+// of its own, so the terminal's keys and hangup never reach it, with no
+// terminal (stdin, stdout and stderr are /dev/null), never waited for.
+func (Exec) Detach(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	return cmd.Process.Release()
+}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -88,5 +89,35 @@ func TestForegroundPassesATerminationRequestOnToTheProgram(t *testing.T) {
 	code, err := (Exec{}).Foreground("sh", "-c", `trap 'exit 7' TERM; touch "$1"; while :; do sleep 0.1; done`, "sh", ready)
 	if err != nil || code != 7 {
 		t.Fatalf("%d %v, want 7", code, err)
+	}
+}
+
+// A detached program runs on after Detach returns, in a session of its own.
+func TestDetachReturnsAtOnceAndTheProgramRunsOn(t *testing.T) {
+	dir := t.TempDir()
+	done := filepath.Join(dir, "done")
+	start := time.Now()
+	if err := (Exec{}).Detach("sh", "-c", `sleep 0.5; ps -o sid= -p $$ > "$1.tmp"; mv "$1.tmp" "$1"`, "sh", done); err != nil {
+		t.Fatal(err)
+	}
+	if d := time.Since(start); d > 300*time.Millisecond {
+		t.Fatalf("Detach waited %s", d)
+	}
+	var data []byte
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
+		if b, err := os.ReadFile(done); err == nil {
+			data = b
+			break
+		}
+	}
+	if data == nil {
+		t.Fatal("the detached program did not finish")
+	}
+	own, _ := syscall.Getsid(0)
+	if sid := strings.TrimSpace(string(data)); sid == "" || sid == strconv.Itoa(own) {
+		t.Fatalf("the program's session %q is hq's (%d)", sid, own)
+	}
+	if err := (Exec{}).Detach("hq-no-such-program"); err == nil {
+		t.Fatal("a missing program must be an error")
 	}
 }

@@ -53,6 +53,7 @@ func Main(args []string, env Env) int {
 
 func mainWith(args []string, env Env, d deps) int {
 	err := run(env, d, args)
+	defer afterCommand(env, d, args)
 	if err == nil {
 		return ExitOK
 	}
@@ -93,6 +94,8 @@ func run(env Env, d deps, args []string) error {
 		return runChord(env, d, rest)
 	case itermProfileCommand:
 		return runItermProfile(env, d, rest)
+	case updateCheckCommand:
+		return runUpdateCheck(env, d, rest)
 	case "--version", "-V":
 		fmt.Fprintf(env.Stdout, "hq %s\n%s", version.Version, updateHint(d))
 		return nil

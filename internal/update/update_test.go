@@ -74,3 +74,33 @@ func TestAsset(t *testing.T) {
 		t.Fatal(Asset("darwin", "arm64"))
 	}
 }
+
+func TestTagFromTheLatestReleaseRedirect(t *testing.T) {
+	for loc, want := range map[string]string{
+		"https://github.com/rkrysinski/hq/releases/tag/v0.2.0": "v0.2.0",
+		"/rkrysinski/hq/releases/tag/v1.10.3":                  "v1.10.3",
+		"https://github.com/o/r/releases/tag/v1%2E0%2E0":       "v1.0.0",
+		"https://github.com/rkrysinski/hq/releases":            "",
+		"https://github.com/o/r/releases/tag/":                 "",
+		"https://github.com/o/r/releases/tag/v1/x":             "",
+		"https://github.com/o/r/releases/tag/%zz":              "",
+		"": "", // no redirect
+	} {
+		got, ok := TagFrom(loc)
+		if got != want || ok != (want != "") {
+			t.Errorf("TagFrom(%q) = %q %v", loc, got, ok)
+		}
+	}
+}
+
+func TestBase(t *testing.T) {
+	env := map[string]string{}
+	getenv := func(k string) string { return env[k] }
+	if Base(getenv) != "https://github.com/rkrysinski/hq/releases" {
+		t.Fatal(Base(getenv))
+	}
+	env[BaseEnv] = "http://127.0.0.1:8080/o/r/releases/"
+	if Base(getenv) != "http://127.0.0.1:8080/o/r/releases" {
+		t.Fatal(Base(getenv))
+	}
+}

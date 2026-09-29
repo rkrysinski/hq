@@ -1,18 +1,21 @@
 #!/bin/sh
 # Install hq from its GitHub release (design §3.9). Published with every
-# release; the first install is one command:
+# release; the first install is one command, with no GitHub login:
 #
-#   gh release download -R rkrysinski/hq -p install.sh -O - | sh
+#   curl -fsSL https://github.com/rkrysinski/hq/releases/latest/download/install.sh | sh
 #
 # It checks the prerequisites (spec §11), downloads the binary for this
-# platform, verifies it against the release's SHA256SUMS and puts it in
-# ~/.local/bin/hq. On macOS with iTerm2 it also adds the iTerm2 profile `hq`
-# (Option as Esc+, design §3.7), changing no other profile. HQ_VERSION=vX.Y.Z installs that release instead of the
-# latest. Exit codes: 0 installed, 1 failed download or checksum, 3 missing
-# prerequisite.
+# platform over HTTPS from the release's public URLs, verifies it against the
+# release's SHA256SUMS and puts it in ~/.local/bin/hq. On macOS with iTerm2 it
+# also adds the iTerm2 profile `hq` (Option as Esc+, design §3.7), changing no
+# other profile. HQ_VERSION=vX.Y.Z installs that release instead of the
+# latest; HQ_RELEASES_URL reads the releases from another place that answers
+# as GitHub's release URLs do (tests, QA). Exit codes: 0 installed, 1 failed
+# download or checksum, 3 missing prerequisite.
 set -eu
 
-REPO=rkrysinski/hq
+RELEASES=${HQ_RELEASES_URL:-https://github.com/rkrysinski/hq/releases}
+RELEASES=${RELEASES%/}
 BIN_DIR=$HOME/.local/bin
 
 say() { echo "hq install: $*"; }
@@ -25,7 +28,7 @@ missing=
 need() { missing="$missing
   - $1"; }
 command -v git >/dev/null 2>&1 || need "git: install git"
-command -v gh >/dev/null 2>&1 || need "gh: install GitHub CLI and run gh auth login"
+command -v curl >/dev/null 2>&1 || need "curl: install curl"
 command -v sbx >/dev/null 2>&1 || command -v sbx.exe >/dev/null 2>&1 ||
     need "sbx: install Docker Sandboxes"
 command -v code >/dev/null 2>&1 || need "code: install VS Code and put code on PATH (Command Palette: Shell Command)"
@@ -53,11 +56,25 @@ case $(uname -m) in
 esac
 asset=hq-$os-$arch
 
+# The latest release is where RELEASES/latest redirects: RELEASES/tag/TAG.
+# Its tag is read once, so the binary and SHA256SUMS come from one release
+# even while another is published.
+tag=${HQ_VERSION:-}
+if [ -z "$tag" ]; then
+    location=$(curl -fsS -o /dev/null -w '%{redirect_url}' "$RELEASES/latest") ||
+        fail 1 "could not read the latest release from $RELEASES"
+    case $location in
+        */tag/?*) tag=${location##*/tag/} ;;
+        *) fail 1 "no release found at $RELEASES" ;;
+    esac
+fi
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-# Without a tag, gh downloads the latest release.
-gh release download ${HQ_VERSION:+"$HQ_VERSION"} -R "$REPO" -p "$asset" -p SHA256SUMS -D "$tmp" ||
-    fail 1 "could not download $asset (check gh auth status)"
+for f in "$asset" SHA256SUMS; do
+    curl -fsSL -o "$tmp/$f" "$RELEASES/download/$tag/$f" ||
+        fail 1 "could not download $f of $tag from $RELEASES"
+done
 
 want=$(awk -v f="$asset" '$2 == f || $2 == "*" f { print $1 }' "$tmp/SHA256SUMS")
 if command -v sha256sum >/dev/null 2>&1; then

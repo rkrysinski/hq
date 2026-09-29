@@ -59,3 +59,25 @@ func TestDashboardModesAreKept(t *testing.T) {
 		t.Fatalf("defaults written: %s", data)
 	}
 }
+
+func TestWritingWhereNoFileCanBeFails(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "file")
+	if err := os.WriteFile(file, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	under := filepath.Join(file, "hq", "preferences.json")
+	if err := Save(under, Prefs{Sort: "repo"}); err == nil {
+		t.Fatal("Save under a file")
+	}
+	if err := Update(under, func(*Prefs) bool { return true }); err == nil {
+		t.Fatal("Update under a file")
+	}
+	path := filepath.Join(dir, "preferences.json")
+	if err := os.Mkdir(path+".lock", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := Update(path, func(*Prefs) bool { return true }); err == nil {
+		t.Fatal("Update without its lock")
+	}
+}

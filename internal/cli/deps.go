@@ -26,6 +26,7 @@ import (
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 	"github.com/rkrysinski/hq/internal/update"
+	"github.com/rkrysinski/hq/internal/version"
 	"golang.org/x/term"
 )
 
@@ -150,7 +151,14 @@ type deps struct {
 	// macOS and reports whether it wrote it (design §3.7, §3.9).
 	itermProfile func() (bool, error)
 	loadPrefs    func() prefs.Prefs
-	savePrefs    func(prefs.Prefs) error
+	// updatePrefs changes the preferences file under its lock (prefs.Update).
+	updatePrefs func(change func(*prefs.Prefs) bool) error
+	// detach starts a program that outlives hq, without waiting for it
+	// (proc.Exec.Detach): the update check, so the command that found it due
+	// never waits on GitHub (design §3.9).
+	detach func(argv []string) error
+	// stderrTerminal reports whether w, a command's stderr, is a terminal.
+	stderrTerminal func(w io.Writer) bool
 
 	// home is the user's home directory.
 	home func() (string, error)
@@ -233,7 +241,7 @@ func defaultDeps() deps {
 		pid:       os.Getpid(),
 		alive:     func(pid int) bool { return syscall.Kill(pid, 0) == nil },
 
-		releases:   update.Releases{Run: run, Bin: "gh"},
+		releases:   update.Releases{Base: update.Base(os.Getenv), Agent: "hq/" + version.Version},
 		asset:      update.Asset(runtime.GOOS, runtime.GOARCH),
 		executable: executable,
 		itermProfile: func() (bool, error) {
@@ -241,7 +249,11 @@ func defaultDeps() deps {
 			return iterm.Install(runtime.GOOS, home, "/")
 		},
 		loadPrefs: func() prefs.Prefs { return prefs.Load(prefs.Path(os.Getenv)) },
-		savePrefs: func(p prefs.Prefs) error { return prefs.Save(prefs.Path(os.Getenv), p) },
+		updatePrefs: func(change func(*prefs.Prefs) bool) error {
+			return prefs.Update(prefs.Path(os.Getenv), change)
+		},
+		detach:         func(argv []string) error { return run.Detach(argv[0], argv[1:]...) },
+		stderrTerminal: isTerminalOut,
 
 		home: os.UserHomeDir,
 		desktopConfig: func() (string, error) {
@@ -283,6 +295,12 @@ func rawTerminal(r io.Reader) func() {
 		return func() {}
 	}
 	return func() { _ = term.Restore(int(f.Fd()), old) }
+}
+
+// isTerminalOut reports whether w is a terminal, not a pipe or a file.
+func isTerminalOut(w io.Writer) bool {
+	f, ok := w.(*os.File)
+	return ok && term.IsTerminal(int(f.Fd()))
 }
 
 // isTerminal reports whether r is a terminal that a confirmation can be
