@@ -336,10 +336,34 @@ func (c Client) Submit(pane string) error {
 	return err
 }
 
-// Start releases the program of a window made by NewWindow.
+// Start releases the program of a window made by NewWindow. The line it
+// waits for goes to the agent's own pane, wherever that is by now: the list
+// docks a new agent as soon as it sees its window, which can be before hq
+// releases it, and the home window then holds the placeholder, which takes
+// no keys, while the agent in the slot would wait for ever (#34).
 func (c Client) Start(id string) error {
-	_, err := c.tmux("send-keys", "-t", id, "Enter")
+	ps, err := c.panes()
+	if err != nil {
+		return err
+	}
+	_, err = c.tmux("send-keys", "-t", startTarget(ps, id), "Enter")
 	return err
+}
+
+// startTarget is where Start sends the line that releases the agent of
+// window: the agent's own pane, in its home window or docked; the window
+// itself when it has no agent's pane.
+func startTarget(ps []pane, window string) string {
+	for _, home := range ps {
+		if id := home.options["id"]; home.window == window && id != "" {
+			for _, p := range ps {
+				if p.agent == id {
+					return p.id
+				}
+			}
+		}
+	}
+	return window
 }
 
 // Respawn runs argv afresh in an agent's own pane, in dir, ending what runs

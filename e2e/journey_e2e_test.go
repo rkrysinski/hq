@@ -312,6 +312,21 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	})
 	keys("once more", "Enter")
 	shows("keys reach Claude again", "❯ once more", "│ a ")
+	// The turn is over before the terminal goes: a reply that came while it
+	// was away would scroll a's screen, and the screen after hq go a would
+	// depend on how fast the machine is (#34).
+	scrollback := func() string {
+		out, _ := exec.Command("tmux", "-L", j.socket, "capture-pane", "-p", "-S", "-", "-t", "hq:").Output()
+		return string(out)
+	}
+	turnOver := "● Done: once more\n" + strings.Repeat("─", 40) + "\n❯\n" + strings.Repeat("─", 40) + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
+	eventually(t, "the turn to end", func() bool { return strings.Contains(scrollback(), turnOver) })
+	said := scrollback()
+	for _, x := range []string{"fake claude: ready", "❯ say hi", "❯ more please", "❯ once more"} {
+		if !strings.Contains(said, x) {
+			t.Fatalf("a's session lacks %q:\n%s", x, said)
+		}
+	}
 	detach := func() {
 		t.Helper()
 		if out, err := exec.Command("tmux", "-L", j.socket, "detach-client", "-s", "hq").CombinedOutput(); err != nil {
@@ -320,11 +335,15 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 		eventually(t, "hq to return", func() bool { return strings.Contains(screen(), "[hq returned 0]") })
 		_ = exec.Command("tmux", "-L", term, "kill-server").Run()
 	}
-	// hq go from a plain terminal: the dashboard with a docked, its
-	// scrollback intact.
+	// hq go from a plain terminal: the dashboard with a docked, its screen
+	// and its scrollback as they were. The screen holds the latest turns;
+	// the first ones are in the scrollback by now.
 	detach()
 	open("go", "a")
-	shows("hq go a", "▸ a · ", "❯ say hi", "❯ more please", "│ a ", "alt+l list")
+	shows("hq go a", "▸ a · ", "❯ more please", "● Done: once more", "│ a ", "alt+l list")
+	if got := scrollback(); got != said {
+		t.Fatalf("a's session after hq go a:\n%s\nbefore the detach:\n%s", got, said)
+	}
 	// S2 from another shell, a docked: b gets the marker, a keeps the slot.
 	if code, out := j.hq("new", "b"); code != 0 {
 		t.Fatalf("new: exit %d %q", code, out)

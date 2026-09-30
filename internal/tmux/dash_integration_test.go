@@ -1134,6 +1134,40 @@ func TestShowDocksWithTheKeysOnTheList(t *testing.T) {
 	}
 }
 
+// The list docks a new agent as soon as it sees its window, which can be
+// before hq new releases the agent's program: the home window then holds
+// the placeholder, and the agent's own pane, in the slot, is the one to
+// release (#34).
+func TestAnAgentDockedBeforeItIsReleasedStillStarts(t *testing.T) {
+	for name, dock := range map[string]func(Client, string, string) error{"Dock": Client.Dock, "Show": Client.Show} {
+		t.Run(name, func(t *testing.T) {
+			c, socket := dashClient(t)
+			dir := t.TempDir()
+			d, err := c.Dashboard(dir, listStub)
+			if err != nil {
+				t.Fatal(err)
+			}
+			id, err := c.NewWindow("a", dir, map[string]string{"id": "id-a", "name": "a"}, []string{"sh", "-c", "echo agent started; sleep 30"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			pane := tm(t, socket, "display-message", "-p", "-t", id, "#{pane_id}")
+			if err := dock(c, id, "a"); err != nil {
+				t.Fatal(err)
+			}
+			if got := tm(t, socket, "display-message", "-p", "-t", pane, "#{window_id}"); got != d.Window {
+				t.Fatalf("a's pane is in %s, not docked in %s", got, d.Window)
+			}
+			if err := c.Start(id); err != nil {
+				t.Fatal(err)
+			}
+			eventually(t, "the docked agent's program to start", func() bool {
+				return strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", pane), "agent started")
+			})
+		})
+	}
+}
+
 func TestHomeWindowsFollowTheSlotsSize(t *testing.T) {
 	c, socket := dashClient(t)
 	dir := t.TempDir()
