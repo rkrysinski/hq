@@ -233,7 +233,7 @@ Creating worktrees or branches, managing pull requests, PR status per branch (le
 
 ## 11. Setup
 
-- Prerequisites on the host: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`), VS Code with `code` on PATH. macOS: iTerm2. Windows: Windows Terminal, WSL (Ubuntu 24.04 or newer) with the same tools; `sbx` is the Windows binary, reachable from WSL.
+- Prerequisites on the host: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`), VS Code with `code` on PATH. macOS: iTerm2. Windows: Windows Terminal, WSL (Ubuntu 24.04 or newer) with the same tools; `sbx` is the Windows binary, reachable from WSL. Windows Terminal's bell is set by the user to flash the taskbar (`bellStyle` including `taskbar`): as installed it does not, and the flash is the desktop notification on Windows (5).
 - Optional: GitHub CLI (`gh`, logged in), only for the dashboard's pull requests (`pr`, 6.4). Without it, or logged out, hq works the same and simply shows no pull request.
 - hq is installed once per machine with one command, from the public releases and without a GitHub login, and is available on PATH as `hq`; there is no service to start. `hq update` brings it to the latest release.
 - Repositories need no preparation: any repository with a sandbox can host agents as it is.
