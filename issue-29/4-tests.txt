@@ -1,0 +1,26 @@
+$ go test ./...
+ok  	github.com/rkrysinski/hq/internal/agent	0.161s
+ok  	github.com/rkrysinski/hq/internal/cli	0.384s
+ok  	github.com/rkrysinski/hq/internal/dash	8.409s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.120s
+ok  	github.com/rkrysinski/hq/internal/dialog	0.982s
+ok  	github.com/rkrysinski/hq/internal/gh	0.088s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.088s
+ok  	github.com/rkrysinski/hq/internal/platform	0.092s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.118s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.180s
+ok  	github.com/rkrysinski/hq/internal/state	0.176s
+ok  	github.com/rkrysinski/hq/internal/tmux	0.167s
+ok  	github.com/rkrysinski/hq/internal/update	0.176s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.145s
+
+$ go test -count=1 -tags integration ./internal/state ./internal/agent ./internal/cli ./cmd/hq
+ok  	github.com/rkrysinski/hq/internal/state	36.293s
+ok  	github.com/rkrysinski/hq/internal/agent	0.148s
+ok  	github.com/rkrysinski/hq/internal/cli	119.213s
+ok  	github.com/rkrysinski/hq/cmd/hq	42.430s
+
+$ go test -count=1 -tags e2e ./e2e/...
+ok  	github.com/rkrysinski/hq/e2e	49.655s
+
+unit 405, integration 109, e2e 3 (unit share 79%, minimum 50%)

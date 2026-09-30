@@ -1,0 +1,24 @@
+$ export SBX_STUB_CLAUDE=$S/realclau
+de/claude; claude --version
+2.1.285 (Claude Code)
+$ hq new a cc-work
+creating a sandbox for cc-work (first time only; log in to Claude when the session asks)
+started a in cc-work (sandbox claude-cc-work); enter it with: hq go a
+$ hq ls
+NAME  REPO     BRANCH  STATE        AGE  LAST
+a     cc-work  master  needs input  11s  Make auto mode your default permission mode?
+$ hq read a | sed -n '/^state/,$p'
+state     needs input 15s
+pending   0
+last      Make auto mode your default permission mode?
+
+asks
+  Make auto mode your default permission mode?
+    1. Yes, set auto mode as my default permission mode
+    2. No, keep bypass permissions
+
+reply     none
+$ hq send a 'say hi'
+queued: a waits at a dialog Claude shows at its start; once it is answered there (hq go a), delivered with its next pr
+ompt
+$

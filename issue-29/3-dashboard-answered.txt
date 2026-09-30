@@ -1,0 +1,34 @@
+  hq  1 agent · 1 done  view: attention                                                                    Wed 16:13
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ a       cc-work     master        ● done         59s   -                                 ⏎ open   c code   k kill  │
+
+
+
+
+
+
+─┬ ▸ a · master · claude-cc-work                                                                                    ┬─
+ │ ▐▛███▛█   Claude Code v2.1.285                                                                                   │
+ │▝▜██████▀  Opus 5.5 · API Usage Billing                                                                           │
+ │ ▝▝   ▝▝   $S/cc-work           │
+ │                                                                                                                  │
+ │  Get to finished work sooner with Opus 5.5. Switch anytime with /model.                                          │
+ │                                                                                                                  │
+ │──────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │❯ Try "how does <filepath> work?"                                                                                 │
+ │──────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │  ⚠ Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker · restart with CLAUDE_CODE_FORCE_SESS…  │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                       Not logged in · Run /login  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+─┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
