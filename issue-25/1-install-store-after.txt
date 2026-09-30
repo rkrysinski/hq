@@ -1,0 +1,11 @@
+$ hq mcp install; echo "[exit code: $?]"
+added hq to Claude Desktop (/mnt/c/Users/rex/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json)
+the file as it was: /mnt/c/Users/rex/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json.hq-backup-202609
+30-140247
+quit and reopen Claude Desktop to load it
+[exit code: 0]
+$ hq mcp install; echo "[exit code: $?]"
+hq is already set up in Claude Desktop (/mnt/c/Users/rex/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.j
+son)
+[exit code: 0]
+$

@@ -1,0 +1,2 @@
+foreground before: Claude
+foreground 4 s after asking Claude Desktop to call go: hq - agents

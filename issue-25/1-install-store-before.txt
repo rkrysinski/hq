@@ -1,0 +1,1 @@
+hq: Claude Desktop not found: there is no /mnt/c/Users/rex/AppData/Roaming/Claude; install Claude Desktop and open it once, then run hq mcp install again (or add the entry above to its configuration by hand)
