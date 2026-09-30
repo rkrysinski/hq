@@ -3,6 +3,7 @@
 package desktop
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,9 @@ var at = time.Date(2026, 9, 28, 10, 25, 1, 0, time.UTC)
 
 func TestInstallCreatesTheConfigurationWhenMissing(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "Library", "Application Support", "Claude", "claude_desktop_config.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
 	r, err := Install(path, hq, at)
 	if err != nil || r.Outcome != Added || r.Backup != "" {
 		t.Fatalf("%+v %v", r, err)
@@ -24,6 +28,27 @@ func TestInstallCreatesTheConfigurationWhenMissing(t *testing.T) {
 	}
 	if fi, _ := os.Stat(path); fi.Mode().Perm() != 0o600 {
 		t.Errorf("mode %v", fi.Mode())
+	}
+}
+
+func TestInstallCreatesNothingWithoutClaudeDesktopsFolder(t *testing.T) {
+	support := filepath.Join(t.TempDir(), "Application Support")
+	if err := os.Mkdir(support, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(support, "Claude", "claude_desktop_config.json")
+	if r, err := Install(path, hq, at); !errors.Is(err, ErrNoFolder) || r != (Result{}) {
+		t.Fatalf("%+v %v", r, err)
+	}
+	// A file where the folder would be is no folder either.
+	if err := os.WriteFile(filepath.Join(support, "Claude"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Install(path, hq, at); !errors.Is(err, ErrNoFolder) {
+		t.Fatalf("%v", err)
+	}
+	if left, _ := os.ReadDir(support); len(left) != 1 || left[0].IsDir() {
+		t.Fatalf("install left %v", left)
 	}
 }
 
