@@ -35,6 +35,28 @@ func waitFor(ok func() bool) bool {
 	return false
 }
 
+// reaped waits until tmux knows how every ended pane's program ended: the
+// time and the status, and its "Pane is dead" line drawn. On WSL 1 tmux now
+// and then misses the signal that its child exited and keeps the pane dead
+// with none of them, the program a zombie, until another child of the
+// server exits (#22); running one makes it look again.
+func reaped(t *testing.T, socket string) {
+	t.Helper()
+	eventually(t, "tmux to learn how the ended panes ended", func() bool {
+		out, err := exec.Command("tmux", "-L", socket, "list-panes", "-a", "-F", "#{pane_dead}:#{pane_dead_time}").Output()
+		if err != nil {
+			return false
+		}
+		for _, l := range strings.Fields(string(out)) {
+			if l == "1:" {
+				_ = exec.Command("tmux", "-L", socket, "run-shell", "true").Run()
+				return false
+			}
+		}
+		return true
+	})
+}
+
 func TestNoServerIsNoWindows(t *testing.T) {
 	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
 	ws, err := c.Windows()
@@ -77,6 +99,7 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 		ws, _ := c.Windows()
 		return len(ws) == 2 && ws[1].PaneDead
 	})
+	reaped(t, socket)
 	// tmux tells when the pane died, to the second (#73).
 	if ws, _ := c.Windows(); ws[1].DeadAt.Before(started.Truncate(time.Second)) || ws[1].DeadAt.After(time.Now()) {
 		t.Fatalf("died at %v, started %v", ws[1].DeadAt, started)
@@ -176,6 +199,11 @@ func TestScreensShowWhatEachPaneShows(t *testing.T) {
 		ws, _ := c.Windows()
 		panes = append(panes, ws[len(ws)-1].Pane)
 	}
+	eventually(t, "both programs to end", func() bool {
+		ws, _ := c.Windows()
+		return len(ws) == 3 && ws[1].PaneDead && ws[2].PaneDead
+	})
+	reaped(t, c.Socket)
 	var screens map[string]string
 	eventually(t, "both screens", func() bool {
 		var err error
@@ -232,6 +260,7 @@ func TestLastScreenDrawsTheLatestOutputAgainAfterAReset(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, "the pane to die", func() bool { return tm(t, socket, "display-message", "-p", "-t", pane, "#{pane_dead}") == "1" })
+	reaped(t, socket)
 	// The dead pane shows the latest lines, down to sbx's last word, above
 	// tmux's own line; the history still holds all of them.
 	lines := strings.Split(shown(), "\n")
@@ -306,6 +335,7 @@ func TestLastScreenDrawsOnlyTheLastOfClaudesRedraws(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, "the pane to die", func() bool { return tm(t, socket, "display-message", "-p", "-t", pane, "#{pane_dead}") == "1" })
+	reaped(t, socket)
 	// The dead pane shows the last screen once, its blank rows folded, and
 	// sbx's last word; the history still holds the earlier screens.
 	got := shown()
