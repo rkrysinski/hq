@@ -1,0 +1,39 @@
+$ go test ./...
+ok  	github.com/rkrysinski/hq/internal/agent	0.154s
+ok  	github.com/rkrysinski/hq/internal/cli	0.281s
+ok  	github.com/rkrysinski/hq/internal/dash	8.428s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.062s
+ok  	github.com/rkrysinski/hq/internal/dialog	0.852s
+ok  	github.com/rkrysinski/hq/internal/gh	0.062s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.062s
+ok  	github.com/rkrysinski/hq/internal/platform	0.063s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.107s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.117s
+ok  	github.com/rkrysinski/hq/internal/state	0.120s
+ok  	github.com/rkrysinski/hq/internal/tmux	0.115s
+ok  	github.com/rkrysinski/hq/internal/update	0.134s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.088s
+
+$ go test -count=1 -tags integration ./...
+ok  	github.com/rkrysinski/hq/cmd/hq	41.267s
+ok  	github.com/rkrysinski/hq/internal/agent	0.088s
+ok  	github.com/rkrysinski/hq/internal/cli	107.949s
+ok  	github.com/rkrysinski/hq/internal/dash	9.446s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.144s
+ok  	github.com/rkrysinski/hq/internal/dialog	1.141s
+ok  	github.com/rkrysinski/hq/internal/gh	0.141s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.141s
+ok  	github.com/rkrysinski/hq/internal/platform	1.200s
+ok  	github.com/rkrysinski/hq/internal/prefs	1.175s
+ok  	github.com/rkrysinski/hq/internal/proc	1.688s
+ok  	github.com/rkrysinski/hq/internal/repo	1.945s
+ok  	github.com/rkrysinski/hq/internal/sbx	2.824s
+ok  	github.com/rkrysinski/hq/internal/state	30.950s
+ok  	github.com/rkrysinski/hq/internal/tmux	66.836s
+ok  	github.com/rkrysinski/hq/internal/update	0.794s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.221s
+
+$ go test -count=1 -tags e2e ./e2e/...
+ok  	github.com/rkrysinski/hq/e2e	34.324s
+
+unit 406, integration 110, e2e 3 (unit share 79%, minimum 50%)

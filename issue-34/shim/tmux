@@ -1,0 +1,9 @@
+#!/bin/sh
+# Widens the window between hq new making the agent's window and releasing
+# its program (tmux send-keys -t @WINDOW Enter): that one call waits 1.5 s.
+prev2= prev=
+for a; do
+  if [ "$prev2" = send-keys ] && [ "$prev" = -t ] && [ "$a" != "${a#@}" ]; then sleep 1.5; fi
+  prev2=$prev; prev=$a
+done
+exec /usr/bin/tmux "$@"

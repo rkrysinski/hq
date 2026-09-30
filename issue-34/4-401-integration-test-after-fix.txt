@@ -1,0 +1,8 @@
+=== RUN   TestAnAgentDockedBeforeItIsReleasedStillStarts
+=== RUN   TestAnAgentDockedBeforeItIsReleasedStillStarts/Dock
+=== RUN   TestAnAgentDockedBeforeItIsReleasedStillStarts/Show
+--- PASS: TestAnAgentDockedBeforeItIsReleasedStillStarts (1.16s)
+    --- PASS: TestAnAgentDockedBeforeItIsReleasedStillStarts/Dock (0.56s)
+    --- PASS: TestAnAgentDockedBeforeItIsReleasedStillStarts/Show (0.60s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/tmux	1.239s
