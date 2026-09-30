@@ -268,7 +268,8 @@ func TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest(t *testing.T) {
 	_ = os.MkdirAll(filepath.Dir(path), 0o700)
 	theirs := `{"mcpServers":{"github":{"command":"npx","env":{"GITHUB_TOKEN":"secret-123"}}},"preferences":{"zoom":1.25}}`
 	_ = os.WriteFile(path, []byte(theirs), 0o600)
-	env := []string{"HOME=" + home, "PATH=/opt/tools/bin:/usr/bin:/bin", "HQ_TMUX_SOCKET=", "XDG_CONFIG_HOME=", "TMUX_TMPDIR=", "WSL_DISTRO_NAME="}
+	// The native platform, on WSL too (#13).
+	env := []string{"HOME=" + home, "PATH=/opt/tools/bin:/usr/bin:/bin", "HQ_TMUX_SOCKET=", "XDG_CONFIG_HOME=", "TMUX_TMPDIR=", "WSL_DISTRO_NAME=", "HQ_PLATFORM=native"}
 
 	out, errOut, err := install(t, bin, env...)
 	if err != nil || !strings.HasPrefix(out, "added hq to Claude Desktop ("+path+")\nthe file as it was: "+path+".hq-backup-") {
