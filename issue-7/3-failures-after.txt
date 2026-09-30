@@ -1,0 +1,14 @@
+hq: no agent 'nosuch' (see hq ls)
+[exit code: 2]
+$ ln -sf $(command -v hq) $(command -v tmux) $(command -v wslpath) $(command -v git) nocode/; PATH=$PWD/nocode
+ hq code a; echo "[exit code: $?]"
+hq: VS Code's code command not found; in VS Code run "Shell Command: Install 'code' command in PATH"
+[exit code: 3]
+$ cat fakecode/code; PATH=$PWD/fakecode:$PATH hq code a; echo "[exit code: $?]"
+#!/bin/sh
+echo "code: cannot open $1" >&2
+exit 4
+hq: code: code: cannot open /tmp/claude-1000/-home-rex-hq-qa-src/0e567dd8-e611-46f9-9096-ce86a1b23eb6/scratchp
+ad/repo
+[exit code: 3]
+$

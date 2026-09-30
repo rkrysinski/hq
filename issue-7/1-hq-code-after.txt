@@ -1,0 +1,8 @@
+$ hq new a repo 'say hi'
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started a in repo (sandbox claude-repo); enter it with: hq go a
+$ hq code a; echo "[exit code: $?]"
+opened /tmp/claude-1000/-home-rex-hq-qa-src/0e567dd8-e611-46f9-9096-ce86a1b23eb6/scratchpad/repo in VS Code
+[exit code: 0]
+$ # VS Code windows: Welcome - repo [WSL: Ubuntu-24.04] - Visual Studio Code [Administrator]
+$

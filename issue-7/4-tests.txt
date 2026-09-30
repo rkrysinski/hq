@@ -1,0 +1,34 @@
+$ go test ./...
+ok  	github.com/rkrysinski/hq/internal/agent	0.263s
+ok  	github.com/rkrysinski/hq/internal/cli	0.500s
+ok  	github.com/rkrysinski/hq/internal/dash	8.342s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.102s
+ok  	github.com/rkrysinski/hq/internal/dialog	1.050s
+ok  	github.com/rkrysinski/hq/internal/gh	0.072s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.065s
+ok  	github.com/rkrysinski/hq/internal/platform	0.067s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.116s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.050s
+ok  	github.com/rkrysinski/hq/internal/state	0.551s
+ok  	github.com/rkrysinski/hq/internal/tmux	0.048s
+ok  	github.com/rkrysinski/hq/internal/update	0.291s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.267s
+
+$ go test -count=1 -tags integration ./internal/cli
+ok  	github.com/rkrysinski/hq/internal/cli	76.203s
+
+$ go test -count=1 -tags integration ./internal/proc -run TestRun -v   # with the line that does not compile on Linux (#13, syscall.Getsid) patched locally, not committed
+=== RUN   TestRunReturnsStdoutAndFirstStderrLineOnFailure
+--- PASS: TestRunReturnsStdoutAndFirstStderrLineOnFailure (0.01s)
+=== RUN   TestRunWithStderrFileGivesTheProgramNoPipeAndStillReportsItsFailure
+--- PASS: TestRunWithStderrFileGivesTheProgramNoPipeAndStillReportsItsFailure (0.02s)
+=== RUN   TestRunReportsMissingProgram
+--- PASS: TestRunReportsMissingProgram (0.00s)
+=== RUN   TestRunEndsAProgramThatOutlivesTheTimeout
+--- PASS: TestRunEndsAProgramThatOutlivesTheTimeout (0.20s)
+=== RUN   TestRunSucceeds
+--- PASS: TestRunSucceeds (0.01s)
+=== RUN   TestRunRunsInDir
+--- PASS: TestRunRunsInDir (0.01s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/proc	0.296s

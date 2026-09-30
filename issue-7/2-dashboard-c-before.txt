@@ -1,0 +1,21 @@
+  hq  1 agent · 1 done  view: all                                                                  Wed 10:40
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  a       repo        main          ● done         2m    Done: say hi              ⏎ open   c code   k kill
+
+
+
+─┬ ▸ placeholder                                                                                            ┬─
+ │hq: nothing docked - select an agent above or press n                                                     │
+ │                                                                                                          │
+ │                                                                                                          │
+ │                                                                                                          │
+ │                                                                                                          │
+ │                                                                                                          │
+ │                                                                                                          │
+ │                                                                                                          │
+ │                                                                                                          │
+ │                                                                                                          │
+─┴──────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open  n new  k kill  c code  p pr  s sort: attention  a view: attention  r refresh  q quit
+pressed a (all agents), then c on the cursor row (agent a) in the dashboard; VS Code windows: none after 40 s
