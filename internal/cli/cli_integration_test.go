@@ -522,6 +522,9 @@ func TestKillAndStopRemoveTheirAgentsStateFiles(t *testing.T) {
 
 func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 	testutil.FakeClaude(t)
+	// A start slow enough for both relaunched agents to be seen starting,
+	// one after the other, where hq ls itself is slow (WSL 1).
+	t.Setenv("FAKE_CLAUDE_DELAY", "3s")
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")
 	// a has a conversation to continue; b never reported.
