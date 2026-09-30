@@ -1,12 +1,14 @@
 package platform_test
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+	"unicode/utf16"
 
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
@@ -176,9 +178,45 @@ func TestRaiseFindsTheWindowPerPlatform(t *testing.T) {
 			t.Errorf("the script has no %q:\n%s", want, r[2])
 		}
 	}
-	// WSL: the window titled hq - agents; a refusal is an error.
+	// WSL: the window titled hq - agents, by an encoded script.
 	w := platform.WSL{}.Raise("/dev/pts/3")
-	if w[0] != "powershell.exe" || !strings.Contains(w[len(w)-1], "AppActivate('hq - agents')") || !strings.Contains(w[len(w)-1], "exit 1") {
+	if w[0] != "powershell.exe" || w[len(w)-2] != "-EncodedCommand" {
 		t.Fatalf("wsl %q", w)
+	}
+	raw, err := base64.StdEncoding.DecodeString(w[len(w)-1])
+	if err != nil || len(raw)%2 != 0 {
+		t.Fatalf("not base64 of UTF-16: %v", err)
+	}
+	units := make([]uint16, len(raw)/2)
+	for i := range units {
+		units[i] = uint16(raw[2*i]) | uint16(raw[2*i+1])<<8
+	}
+	if got := string(utf16.Decode(units)); got != platform.RaiseScript {
+		t.Fatalf("the encoded script is not RaiseScript:\n%s", got)
+	}
+}
+
+// Windows answers "done" to a process it does not let change the foreground
+// window (#9), so the script must look at the window in front itself, and
+// fail when it is another one.
+func TestRaiseScriptOnWSLChecksWhichWindowIsInFront(t *testing.T) {
+	s := platform.RaiseScript
+	for _, want := range []string{
+		"$title = 'hq - agents'",
+		"FindWindow([IntPtr]::Zero, $title)",
+		`WriteLine("no window titled $title"); exit 1`,
+		"GetForegroundWindow() -eq $h",
+		"Windows kept another window in front",
+	} {
+		if !strings.Contains(s, want) {
+			t.Errorf("the script has no %q", want)
+		}
+	}
+	// Every way out that is not a check of the window in front fails.
+	if n := strings.Count(s, "exit 0"); n != strings.Count(s, "if (InFront) { exit 0 }") || n == 0 {
+		t.Errorf("the script reports success without looking at the window in front:\n%s", s)
+	}
+	if !strings.HasSuffix(strings.TrimSpace(s), "exit 1") {
+		t.Errorf("the script does not end in failure:\n%s", s)
 	}
 }
