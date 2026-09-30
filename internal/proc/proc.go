@@ -29,7 +29,8 @@ type Exec struct {
 }
 
 // Run runs name with args. A non-zero exit becomes an error carrying the
-// program's first line of stderr.
+// program's first line of stderr, and all of it for a caller that knows the
+// program's way of reporting better.
 func (e Exec) Run(name string, args ...string) ([]byte, error) {
 	ctx := context.Background()
 	if e.Timeout > 0 {
@@ -47,14 +48,15 @@ func (e Exec) Run(name string, args ...string) ([]byte, error) {
 		return out, &Error{Name: name, Msg: fmt.Sprintf("no answer within %s", e.Timeout)}
 	}
 	if err != nil {
-		msg := strings.TrimSpace(stderr.String())
+		all := strings.TrimSpace(stderr.String())
+		msg := all
 		if i := strings.IndexByte(msg, '\n'); i >= 0 {
-			msg = msg[:i]
+			msg = strings.TrimSpace(msg[:i])
 		}
 		if msg == "" {
 			msg = err.Error()
 		}
-		return out, &Error{Name: name, Msg: msg, NotFound: errors.Is(err, exec.ErrNotFound)}
+		return out, &Error{Name: name, Msg: msg, Stderr: all, NotFound: errors.Is(err, exec.ErrNotFound)}
 	}
 	return out, nil
 }
@@ -63,7 +65,8 @@ func (e Exec) Run(name string, args ...string) ([]byte, error) {
 type Error struct {
 	Name     string
 	Msg      string
-	NotFound bool // the program is not installed
+	Stderr   string // everything the program wrote to stderr, trimmed
+	NotFound bool   // the program is not installed
 }
 
 func (e *Error) Error() string { return fmt.Sprintf("%s: %s", e.Name, e.Msg) }
