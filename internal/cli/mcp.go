@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -44,9 +45,10 @@ func runMCP(env Env, d deps, args []string) error {
 	return nil
 }
 
-// runMCPInstall sets hq up in Claude Desktop's configuration; when the file
-// cannot be edited safely, it prints hq's entry for the user to add and
-// fails with the reason.
+// runMCPInstall sets hq up in Claude Desktop's configuration; when Claude
+// Desktop's folder is not there or the file cannot be edited safely, it
+// changes nothing, prints hq's entry for the user to add and fails with the
+// reason.
 func runMCPInstall(env Env, d deps) error {
 	exe, err := d.executable()
 	if err != nil {
@@ -65,6 +67,10 @@ func runMCPInstall(env Env, d deps) error {
 		return envErr("cannot find Claude Desktop's configuration (%v); add the entry above to it by hand, then quit and reopen Claude Desktop", err)
 	}
 	r, err := d.installDesktop(path, server)
+	if errors.Is(err, desktop.ErrNoFolder) {
+		fmt.Fprint(env.Stdout, desktop.Snippet(server))
+		return envErr("Claude Desktop not found: there is no %s; install Claude Desktop and open it once, then run hq mcp install again (or add the entry above to its configuration by hand)", filepath.Dir(path))
+	}
 	if err != nil {
 		fmt.Fprint(env.Stdout, desktop.Snippet(server))
 		return envErr("cannot edit %s safely (%v); add the entry above to it by hand, then quit and reopen Claude Desktop", path, err)
