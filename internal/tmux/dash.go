@@ -352,7 +352,7 @@ func (c Client) panes() ([]pane, error) {
 	for _, k := range OptionKeys {
 		fields = append(fields, "#{@hq_"+k+"}")
 	}
-	out, err := c.tmux("list-panes", "-s", "-t", Session+":", "-F", strings.Join(fields, sep))
+	out, err := c.read("list-panes", "-s", "-t", Session+":", "-F", strings.Join(fields, sep))
 	if err != nil {
 		return nil, err
 	}
@@ -639,7 +639,7 @@ func (c Client) MarkList(pane string, pid int) error {
 // SessionValue reads a user option hq keeps on its session (design §3.3:
 // the list's session state); unset is empty.
 func (c Client) SessionValue(key string) (string, error) {
-	out, err := c.tmux("show-options", "-v", "-q", "-t", Session, "@hq_"+key)
+	out, err := c.read("show-options", "-v", "-q", "-t", Session, "@hq_"+key)
 	return strings.TrimSpace(string(out)), err
 }
 

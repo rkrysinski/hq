@@ -64,6 +64,45 @@ func (c Client) tmux(args ...string) ([]byte, error) {
 	return c.Run.Run("tmux", args...)
 }
 
+// dollarProbe is the text read has tmux print after a command's output, to
+// see what this server does to a $ that starts a name.
+const dollarProbe = "$hq"
+
+// read runs a tmux command whose output hq reads values from (options,
+// paths, names) and returns it as the values are stored. tmux 3.4 puts a
+// backslash before every $ that starts a name in what it prints; newer
+// versions do not (#21). Rather than go by the version, read has the server
+// print dollarProbe last and takes the backslashes out when that came back
+// with one.
+func (c Client) read(args ...string) ([]byte, error) {
+	out, err := c.tmux(append(args, ";", "display-message", "-p", dollarProbe)...)
+	if err != nil {
+		return out, err
+	}
+	return []byte(asStored(string(out))), nil
+}
+
+// dollarEscaped finds what tmux 3.4 makes of a $ that starts a name: the
+// names are those of its own parser (a letter, _ or {).
+var dollarEscaped = regexp.MustCompile(`\\\$([A-Za-z_{])`)
+
+// asStored takes read's probe line off tmux's output and, when the probe
+// shows that this server escapes, the backslash it put before each $ that
+// starts a name. Such a backslash is always tmux's: a \$ that was stored
+// comes out as \\$, and goes back to \$ here. Output that does not end in
+// the probe is returned as it is.
+func asStored(out string) string {
+	body, ok := strings.CutSuffix(out, "\\"+dollarProbe+"\n")
+	if ok && (body == "" || strings.HasSuffix(body, "\n")) {
+		return dollarEscaped.ReplaceAllString(body, "$$$1")
+	}
+	body, ok = strings.CutSuffix(out, dollarProbe+"\n")
+	if ok && (body == "" || strings.HasSuffix(body, "\n")) {
+		return body
+	}
+	return out
+}
+
 // Version returns the tmux version, e.g. "3.4" or "3.7c".
 func (c Client) Version() (string, error) {
 	out, err := c.Run.Run("tmux", "-V")
@@ -193,7 +232,7 @@ func (c Client) KeepFirst(id, key, prefix, value string) (string, error) {
 	opt := "@hq_" + key
 	// Empty (false) when the option starts with prefix, 1 otherwise.
 	unset := "#{?#{m:" + prefix + "*,#{" + opt + "}},,1}"
-	out, err := c.tmux("if-shell", "-F", "-t", id, unset, "set-option -w -t "+id+" "+opt+" "+tmuxQuote(value),
+	out, err := c.read("if-shell", "-F", "-t", id, unset, "set-option -w -t "+id+" "+opt+" "+tmuxQuote(value),
 		";", "display-message", "-p", "-t", id, "#{"+opt+"}")
 	if err != nil {
 		return "", err
@@ -360,7 +399,7 @@ func (c Client) KillWindow(id string) error {
 
 // SocketPath returns the path of the server's socket.
 func (c Client) SocketPath() (string, error) {
-	out, err := c.tmux("display-message", "-p", "#{socket_path}")
+	out, err := c.read("display-message", "-p", "#{socket_path}")
 	if err != nil {
 		return "", err
 	}
@@ -377,7 +416,7 @@ func (c Client) Enter(id string) error {
 // ShowAttached shows a window to the clients attached to hq's session and
 // returns their terminals, none when no client is attached (design §3.11).
 func (c Client) ShowAttached(id string) ([]string, error) {
-	out, err := c.tmux("select-window", "-t", id, ";", "list-clients", "-t", Session, "-F", "#{client_tty}")
+	out, err := c.read("select-window", "-t", id, ";", "list-clients", "-t", Session, "-F", "#{client_tty}")
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +428,7 @@ func (c Client) ShowAttached(id string) ([]string, error) {
 // is shown message on its status line; any other is detached, so its
 // terminal gets back the shell it had before hq, full height.
 func (c Client) Leave(message string) error {
-	out, err := c.tmux("list-clients", "-t", Session, "-F", "#{client_name}"+sep+"#{client_last_session}")
+	out, err := c.read("list-clients", "-t", Session, "-F", "#{client_name}"+sep+"#{client_last_session}")
 	if err != nil {
 		if isNoServerOrSession(err) {
 			return nil

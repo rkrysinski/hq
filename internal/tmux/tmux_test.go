@@ -144,3 +144,21 @@ func TestChunksNeverCutACharacter(t *testing.T) {
 		t.Fatalf("%q", got)
 	}
 }
+
+func TestAsStoredUndoesWhatTmux34DoesToADollarName(t *testing.T) {
+	for _, c := range []struct{ name, out, want string }{
+		{"tmux 3.4: the backslash before each $name goes", "/w/my\\$repo::hq::a \\${b} \\$_c\n\\$hq\n", "/w/my$repo::hq::a ${b} $_c\n"},
+		{"tmux 3.4: a $ that starts no name was left alone", "5$ $1 $ \\n $\n\\$hq\n", "5$ $1 $ \\n $\n"},
+		{"tmux 3.4: a stored backslash before $name keeps one", "a \\\\$x\n\\$hq\n", "a \\$x\n"},
+		{"tmux 3.4: nothing but the probe", "\\$hq\n", ""},
+		{"newer tmux: as it is, a stored backslash too", "/w/my$repo a \\$x\n$hq\n", "/w/my$repo a \\$x\n"},
+		{"newer tmux: nothing but the probe", "$hq\n", ""},
+		{"no probe: untouched", "a \\$x\n", "a \\$x\n"},
+		{"the probe's text inside a value is no probe", "my$hq\n", "my$hq\n"},
+		{"empty", "", ""},
+	} {
+		if got := asStored(c.out); got != c.want {
+			t.Errorf("%s: %q, want %q", c.name, got, c.want)
+		}
+	}
+}

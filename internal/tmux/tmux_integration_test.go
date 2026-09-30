@@ -419,21 +419,56 @@ func TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters(t *testing.T) {
 	}
 	// A record for another report (another prefix) is replaced; quotes and
 	// spaces survive; a prefix that is not plain is refused.
-	// tmux 3.4 puts a backslash before a $ that starts a name in everything
-	// it prints, so there the record reads back with one; what it stored
-	// has none, which its length shows on every version.
-	const record = `1.5 "a b" $x`
-	if g, err := c.KeepFirst(id, "endseen", "1.5 ", record); err != nil || (g != record && g != `1.5 "a b" \$x`) {
+	// tmux 3.4 prints a $ that starts a name with a backslash (#21): hq
+	// gives the record back as it was stored.
+	const record = `1.5 "a b" $x \$y $1`
+	if g, err := c.KeepFirst(id, "endseen", "1.5 ", record); err != nil || g != record {
 		t.Fatalf("new: %q %v", g, err)
-	}
-	if n, _ := c.tmux("display-message", "-p", "-t", id, "#{n:@hq_endseen}"); strings.TrimSpace(string(n)) != strconv.Itoa(len(record)) {
-		t.Fatalf("new: stored %s characters, want %d", n, len(record))
 	}
 	if g, err := c.KeepFirst(id, "endseen", "2.5 ", "2.5 7"); err != nil || g != "2.5 7" {
 		t.Fatalf("replaced: %q %v", g, err)
 	}
 	if _, err := c.KeepFirst(id, "endseen", "2* ", "2 7"); err == nil {
 		t.Fatal("a glob prefix was taken")
+	}
+}
+
+// What hq stores on a window or the session and the paths tmux reports come
+// back as they are, a $ that starts a name too, which tmux 3.4 prints with
+// a backslash (#21).
+func TestValuesWithADollarNameReadBackAsStored(t *testing.T) {
+	socket := testutil.TmuxSocket(t)
+	c := Client{Run: proc.Exec{}, Socket: socket}
+	dir := filepath.Join(t.TempDir(), "my$repo")
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	const sandbox = `claude-my$repo ${x} $_y \$z 5$ $1`
+	id, err := c.NewWindow("a", dir, map[string]string{"repo": dir, "sandbox": sandbox}, []string{"sleep", "30"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ws, err := c.Windows()
+	if err != nil || len(ws) != 2 || ws[1].ID != id || ws[1].Options["repo"] != dir || ws[1].Options["sandbox"] != sandbox {
+		t.Fatalf("%+v %v", ws, err)
+	}
+	if err := c.SetSessionValue("filter", "$name"); err != nil {
+		t.Fatal(err)
+	}
+	if v, err := c.SessionValue("filter"); err != nil || v != "$name" {
+		t.Fatalf("session value %q %v", v, err)
+	}
+	t.Setenv("TMUX_TMPDIR", filepath.Join(t.TempDir()))
+	d := Client{Run: proc.Exec{}, Socket: "hq$sock" + socket}
+	t.Cleanup(func() { _, _ = d.tmux("kill-server") })
+	if err := d.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	if p, err := d.SocketPath(); err != nil || !strings.HasSuffix(p, "/hq$sock"+socket) {
+		t.Fatalf("socket path %q %v", p, err)
 	}
 }
 
