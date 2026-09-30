@@ -162,3 +162,14 @@ func TestAsStoredUndoesWhatTmux34DoesToADollarName(t *testing.T) {
 		}
 	}
 }
+
+func TestCommandLineQuotesEachArgumentForTmuxsParser(t *testing.T) {
+	got := commandLine([][]string{
+		{"set-option", "-p", "-t", "%4", "@hq_title", `a · feat/x; "q" $HOME \n #{pane_id}`},
+		{"swap-pane", "-d", "-s", "%4", "-t", "%1"},
+	})
+	want := `"set-option" "-p" "-t" "%4" "@hq_title" "a · feat/x; \"q\" \$HOME \\n #{pane_id}" ; "swap-pane" "-d" "-s" "%4" "-t" "%1"`
+	if got != want {
+		t.Fatalf("%s", got)
+	}
+}

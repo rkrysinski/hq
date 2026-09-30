@@ -386,7 +386,7 @@ func (c Client) KillWindow(id string) error {
 				if name == "" {
 					name = p.windowName
 				}
-				if err := c.undock(ps, KilledHint(name)); err != nil {
+				if err := c.undock(id, KilledHint(name)); err != nil {
 					return err
 				}
 				break
