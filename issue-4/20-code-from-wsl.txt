@@ -1,0 +1,50 @@
+$ command -v code
+/mnt/c/Users/rex/AppData/Local/Programs/Microsoft VS Code/bin/code
+[exit code: 0]
+
+$ timeout 120 code --version
+1.139.1
+04c0d99f4fb0d8afe6ce4f0c58e31e183ac3e4b1
+arm64
+[exit code: 0]
+
+$ timeout 180 code ~/hq-qa/repos/wslrepo
+node:net:651
+      throw new ErrnoException(err, 'open');
+            ^
+
+Error: open EISDIR
+    at new Socket (node:net:651:13)
+    at createWritableStdioStream (node:internal/bootstrap/switches/is_main_thread:83:18)
+    at process.getStderr [as stderr] (node:internal/bootstrap/switches/is_main_thread:175:12)
+    at Object.refresh (node:internal/util/colors:27:47)
+    at node:internal/util/colors:51:16
+    at BuiltinModule.compileForInternalLoader (node:internal/bootstrap/realm:398:7)
+    at requireBuiltin (node:internal/bootstrap/realm:429:14)
+    at node:internal/assert/myers_diff:15:16
+    at BuiltinModule.compileForInternalLoader (node:internal/bootstrap/realm:398:7)
+    at requireBuiltin (node:internal/bootstrap/realm:429:14)
+
+Node.js v24.20.0
+[exit code: 0]
+
+$ timeout 60 hq code b
+opened /home/rex/hq-qa/repos/wslrepo in VS Code
+[exit code: 0]
+
+
+# Follow-up: what decides whether VS Code opens (window list checked 12-15 s after each command)
+#   code DIR   in a terminal (stderr a tty)      -> window "wslrepo [WSL: Ubuntu-24.04] - Visual Studio Code" opens
+#   code DIR   2>/dev/null                       -> window opens
+#   code DIR   2>&1 | head   (stderr a pipe)     -> node "Error: open EISDIR", exit code 0, no window
+#   hq code b  in a terminal                     -> prints "opened ... in VS Code", exit 0, no window
+#   c on the cursor row in the dashboard         -> nothing visible, no window
+# hq runs the editor through proc.Run, which collects stderr through a pipe (internal/proc/proc.go:44).
+
+# Retest
+VS Code windows before: 0
+typed 'hq code a' in a foreground Windows Terminal window:
+no VS Code window after 30 s
+keys on list pane: 0
+pressed c on the cursor row in the dashboard:
+no VS Code window after 30 s

@@ -1,0 +1,41 @@
+# Second run: real sbx.exe taken off PATH, packages one at a time (-p 1)
+# hq v0.3.0 (e795aed) on Linux 4.4.0-26100-Microsoft aarch64, tmux 3.4, go version go1.27.1 linux/arm64
+$ go test -p 1 -tags integration ./...
+--- FAIL: TestMCPServerSupervisesAgentsOverStdio (4.11s)
+    mcp_integration_test.go:177: new map[dir:/tmp/TestMCPServerSupervisesAgentsOverStdio948228288/005/app name:a prompt:hello]: hq: sbx not found; install Docker Sandboxes
+--- FAIL: TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest (1.72s)
+    mcp_integration_test.go:275: exit status 3 "{\n  \"mcpServers\": {\n    \"hq\": {\n      \"command\": \"wsl.exe\",\n      \"args\": [\n        \"--exec\",\n        \"/usr/bin/env\",\n        \"PATH=/opt/tools/bin:/usr/bin:/bin\",\n        \"/tmp/TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest2039677427/001/hq\",\n        \"mcp\"\n      ]\n    }\n  }\n}\n" "hq: cannot find Claude Desktop's configuration (cmd.exe: exec: \"cmd.exe\": executable file not found in $PATH); add the entry above to it by hand, then quit and reopen Claude Desktop\n"
+FAIL
+FAIL	github.com/rkrysinski/hq/cmd/hq	13.872s
+ok  	github.com/rkrysinski/hq/internal/agent	(cached)
+--- FAIL: TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox (22.91s)
+    cli_integration_test.go:561: a never became starting: [{Name:b Repo:app RepoPath:/tmp/TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox4210645033/002/app Branch:main State:done Since:2026-09-30 06:31:51.3241097 +0000 UTC AgeSeconds:11 Last: Sandbox:claude-app Pending:0} {Name:a Repo:app RepoPath:/tmp/TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox4210645033/002/app Branch:main State:done Since:2026-09-30 06:31:50.820116 +0000 UTC AgeSeconds:11 Last:Done: hello Sandbox:claude-app Pending:0}]
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	134.872s
+ok  	github.com/rkrysinski/hq/internal/dash	(cached)
+ok  	github.com/rkrysinski/hq/internal/desktop	(cached)
+ok  	github.com/rkrysinski/hq/internal/dialog	(cached)
+ok  	github.com/rkrysinski/hq/internal/gh	(cached)
+ok  	github.com/rkrysinski/hq/internal/iterm	(cached)
+ok  	github.com/rkrysinski/hq/internal/platform	0.348s
+?   	github.com/rkrysinski/hq/internal/platform/platformtest	[no test files]
+ok  	github.com/rkrysinski/hq/internal/prefs	(cached)
+# github.com/rkrysinski/hq/internal/proc [github.com/rkrysinski/hq/internal/proc.test]
+internal/proc/proc_integration_test.go:116:20: undefined: syscall.Getsid
+FAIL	github.com/rkrysinski/hq/internal/proc [build failed]
+ok  	github.com/rkrysinski/hq/internal/repo	0.634s
+ok  	github.com/rkrysinski/hq/internal/sbx	1.062s
+ok  	github.com/rkrysinski/hq/internal/state	12.525s
+?   	github.com/rkrysinski/hq/internal/testutil	[no test files]
+--- FAIL: TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters (2.88s)
+    tmux_integration_test.go:393: new: "1.5 \"a b\" \\$x" <nil>
+--- FAIL: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (7.22s)
+    tmux_integration_test.go:442: got 6552 bytes of 12360
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	91.873s
+ok  	github.com/rkrysinski/hq/internal/update	(cached)
+?   	github.com/rkrysinski/hq/internal/version	[no test files]
+?   	github.com/rkrysinski/hq/tools/fakeclaude	[no test files]
+ok  	github.com/rkrysinski/hq/tools/testgate	(cached)
+FAIL
+[exit code: 1]

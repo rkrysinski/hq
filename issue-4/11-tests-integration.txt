@@ -1,0 +1,38 @@
+# hq v0.3.0 (e795aed) on Linux 4.4.0-26100-Microsoft aarch64, tmux 3.4, go version go1.27.1 linux/arm64
+$ go test -tags integration ./...
+# github.com/rkrysinski/hq/internal/proc [github.com/rkrysinski/hq/internal/proc.test]
+internal/proc/proc_integration_test.go:116:20: undefined: syscall.Getsid
+--- FAIL: TestMCPServerSupervisesAgentsOverStdio (19.51s)
+    mcp_integration_test.go:177: new map[dir:/tmp/TestMCPServerSupervisesAgentsOverStdio132282843/005/app name:a prompt:hello]: creating a sandbox for app (first time only; log in to Claude when the session asks)
+        hq: sbx.exe: WARN: mcp gateway teardown
+--- FAIL: TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest (5.96s)
+    mcp_integration_test.go:275: exit status 3 "{\n  \"mcpServers\": {\n    \"hq\": {\n      \"command\": \"wsl.exe\",\n      \"args\": [\n        \"--exec\",\n        \"/usr/bin/env\",\n        \"PATH=/opt/tools/bin:/usr/bin:/bin\",\n        \"/tmp/TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest1859251992/001/hq\",\n        \"mcp\"\n      ]\n    }\n  }\n}\n" "hq: cannot find Claude Desktop's configuration (cmd.exe: exec: \"cmd.exe\": executable file not found in $PATH); add the entry above to it by hand, then quit and reopen Claude Desktop\n"
+FAIL
+FAIL	github.com/rkrysinski/hq/cmd/hq	39.870s
+ok  	github.com/rkrysinski/hq/internal/agent	0.097s
+ok  	github.com/rkrysinski/hq/internal/cli	116.525s
+ok  	github.com/rkrysinski/hq/internal/dash	9.196s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.225s
+ok  	github.com/rkrysinski/hq/internal/dialog	0.987s
+ok  	github.com/rkrysinski/hq/internal/gh	0.158s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.158s
+ok  	github.com/rkrysinski/hq/internal/platform	1.259s
+?   	github.com/rkrysinski/hq/internal/platform/platformtest	[no test files]
+ok  	github.com/rkrysinski/hq/internal/prefs	1.439s
+FAIL	github.com/rkrysinski/hq/internal/proc [build failed]
+ok  	github.com/rkrysinski/hq/internal/repo	2.285s
+ok  	github.com/rkrysinski/hq/internal/sbx	3.830s
+ok  	github.com/rkrysinski/hq/internal/state	29.749s
+?   	github.com/rkrysinski/hq/internal/testutil	[no test files]
+--- FAIL: TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters (1.05s)
+    tmux_integration_test.go:393: new: "1.5 \"a b\" \\$x" <nil>
+--- FAIL: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.71s)
+    tmux_integration_test.go:442: got 6197 bytes of 12360
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	78.322s
+ok  	github.com/rkrysinski/hq/internal/update	0.777s
+?   	github.com/rkrysinski/hq/internal/version	[no test files]
+?   	github.com/rkrysinski/hq/tools/fakeclaude	[no test files]
+ok  	github.com/rkrysinski/hq/tools/testgate	0.168s
+FAIL
+[exit code: 1]

@@ -1,0 +1,46 @@
+# hq v0.3.0 (e795aed) on Linux 4.4.0-26100-Microsoft aarch64, tmux 3.4, go version go1.27.1 linux/arm64
+$ go test -tags e2e -v ./e2e/...
+=== RUN   TestInstallThenUpdate
+    install_e2e_test.go:168: timed out waiting for the commands in the terminal
+--- FAIL: TestInstallThenUpdate (81.08s)
+=== RUN   TestStartSeeEnterKill
+    journey_e2e_test.go:114: new: exit 3 "creating a sandbox for app (first time only; log in to Claude when the session asks)\nhq: sbx.exe: WARN: mcp gateway teardown\n"
+--- FAIL: TestStartSeeEnterKill (30.19s)
+=== RUN   TestDashboardFollowsAgentsQuitsAndComesBack
+    journey_e2e_test.go:256: never: a new, starting
+    journey_e2e_test.go:204:   hq  0 agents  view: attention                                                                              Wed 08:29
+        
+          TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+        
+                             ╭──────────────────────────────────────────────────────────────────────────╮
+                             │                                New agent                               × │
+                             │ ──────────────────────────────────────────────────────────────────────── │
+                             │                                                                          │
+                             │         ╭──────────────────────────────────────────────────────────────╮ │
+                             │ name    │ a                                                            │ │
+        ─┬ ▸ placeholder     │         ╰──────────────────────────────────────────────────────────────╯ │                     ┬─
+         │hq: nothing docked │         ╭──────────────────────────────────────────────────────────────╮ │                     │
+         │                   │ dir     │ /tmp/TestDashboardFollowsAgentsQuitsAndComesBack2460371799/0 │ │                     │
+         │                   │         │ 07/app                                                       │ │                     │
+         │                   │         ╰──────────────────────────────────────────────────────────────╯ │                     │
+         │                   │         ╭──────────────────────────────────────────────────────────────╮ │                     │
+         │                   │ prompt  │ say hi                                                       │ │                     │
+         │                   │         ╰──────────────────────────────────────────────────────────────╯ │                     │
+         │                   │ starting a…                                                              │                     │
+         │                   │                                                                          │                     │
+         │                   │                           Start ⏎       Cancel                           │                     │
+         │                   │                                                                          │                     │
+         │                   │                                                                          │                     │
+         │                   ╰──────────────────────────────────────────────────────────────────────────╯                     │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit
+        
+--- FAIL: TestDashboardFollowsAgentsQuitsAndComesBack (12.13s)
+FAIL
+FAIL	github.com/rkrysinski/hq/e2e	123.546s
+FAIL
+[exit code: 1]

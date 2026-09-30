@@ -1,0 +1,20 @@
+$ command -v sbx.exe
+/mnt/c/Users/rex/AppData/Local/DockerSandboxes/bin/sbx.exe
+$ curl -fsSL https://github.com/rkrysinski/hq/releases/latest/download/install.sh | sh
+hq install: installed hq v0.3.0 to ~/.local/bin/hq
+[exit code: 0]
+$ ls -la ~/.local/bin/hq; file ~/.local/bin/hq
+-rwxr-xr-x 1 rex rex 9830560 Sep 30 08:17 /home/rex/.local/bin/hq
+/home/rex/.local/bin/hq: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), statically linked, Go BuildID=re4cKsQ7D06iFrZ_n_Ij/IxXLcF1JpikEgSneVv0u/wB-6s_gQPOhFexAX_Om5/jkC4hYCmXhBUQBsmJomW, BuildID[sha1]=8f8ec85c4e5fc499247ec72c4b201f516d07d84d, stripped
+$ command -v hq
+/home/rex/.local/bin/hq
+$ hq --version
+hq v0.3.0
+[exit code: 0]
+$ sha256sum ~/.local/bin/hq; curl -fsSL .../v0.3.0/SHA256SUMS
+e600d4e12161c531b67e24d3a27a989bd05dcda7001f41c5945f9be548ab5a4d  /home/rex/.local/bin/hq
+8e947060817f174b2026099d60143075995e9409dd0b4d42b2231e622b9a41e3  hq-darwin-amd64
+a799d85da70f35c9a87d64c2c07f96fdb585b2663dadf74e8c9405418c4e4d09  hq-darwin-arm64
+0ee8d74e18301ce1b0a247919f7b7a24614004f8c2c4882116970a5c32288647  hq-linux-amd64
+e600d4e12161c531b67e24d3a27a989bd05dcda7001f41c5945f9be548ab5a4d  hq-linux-arm64
+763dbc1c6b9147765ef2b37049d4e30bd7b4508c044335a9ef6ca5bb05170f8c  install.sh

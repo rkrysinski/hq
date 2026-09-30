@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "hq": {
+      "command": "wsl.exe",
+      "args": [
+        "-d",
+        "Ubuntu-24.04",
+        "--exec",
+        "/usr/bin/env",
+        "PATH=/home/rex/hq-qa/toolchain/go/bin:/home/rex/.local/bin:/home/rex/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/:/mnt/c/WINDOWS/System32/OpenSSH/:/mnt/c/Program Files/nodejs/:/mnt/c/Program Files/WSL/:/mnt/c/Users/rex/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/rex/AppData/Roaming/npm:/mnt/c/Users/rex/AppData/Local/Programs/Microsoft VS Code/bin:/snap/bin:/mnt/c/Users/rex/AppData/Local/DockerSandboxes/bin",
+        "/home/rex/.local/bin/hq",
+        "mcp"
+      ]
+    }
+  }
+}

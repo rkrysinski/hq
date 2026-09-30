@@ -1,0 +1,28 @@
+# hq go NAME from another shell while another application (Notepad) is in front
+foreground before: Untitled - Notepad
+$ hq go d
+docked d in the open dashboard
+[exit code: 0]
+
+foreground after: Untitled - Notepad
+docked now: d
+
+# Retest (second and third run)
+foreground before: Untitled - Notepad
+$ hq go a
+docked a in the open dashboard
+[exit code: 0]
+
+foreground after: Untitled - Notepad
+taskbar: FLASHING (1095 highlighted pixels)
+foreground before: Untitled - Notepad
+$ hq go a
+docked a in the open dashboard
+[exit code: 0]
+
+foreground after: Untitled - Notepad
+taskbar: FLASHING (1106 highlighted pixels)
+
+# hq go typed in a second Windows Terminal window that is in front (the everyday case)
+try 1: typed 'hq go d' in window qa-shell2; foreground after: hq - agents; docked: d
+try 2: typed 'hq go a' in window qa-shell2; foreground after: hq - agents; docked: a

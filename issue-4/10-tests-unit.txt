@@ -1,0 +1,50 @@
+# hq v0.3.0 (e795aed) test suite on Linux 4.4.0-26100-Microsoft aarch64, tmux 3.4, go version go1.27.1 linux/arm64
+$ go test ./...
+go: downloading github.com/charmbracelet/bubbletea v1.3.10
+go: downloading github.com/charmbracelet/lipgloss v1.1.0
+go: downloading github.com/charmbracelet/x/ansi v0.10.1
+go: downloading github.com/muesli/termenv v0.16.0
+go: downloading github.com/modelcontextprotocol/go-sdk v1.8.0
+go: downloading golang.org/x/term v0.46.0
+go: downloading github.com/charmbracelet/bubbles v0.21.0
+go: downloading github.com/lucasb-eyer/go-colorful v1.2.0
+go: downloading github.com/mattn/go-runewidth v0.0.16
+go: downloading github.com/rivo/uniseg v0.4.7
+go: downloading github.com/charmbracelet/x/term v0.2.1
+go: downloading github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6
+go: downloading github.com/muesli/cancelreader v0.2.2
+go: downloading github.com/charmbracelet/x/cellbuf v0.0.13-0.20250311204145-2c3ea96c31dd
+go: downloading github.com/aymanbagabas/go-osc52/v2 v2.0.1
+go: downloading github.com/mattn/go-isatty v0.0.20
+go: downloading golang.org/x/sys v0.48.0
+go: downloading github.com/atotto/clipboard v0.1.4
+go: downloading github.com/google/jsonschema-go v0.4.3
+go: downloading github.com/yosida95/uritemplate/v3 v3.0.2
+go: downloading golang.org/x/oauth2 v0.35.0
+go: downloading golang.org/x/sync v0.20.0
+go: downloading golang.org/x/time v0.15.0
+go: downloading github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc
+go: downloading github.com/segmentio/encoding v0.5.4
+go: downloading github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e
+go: downloading github.com/segmentio/asm v1.1.3
+?   	github.com/rkrysinski/hq/cmd/hq	[no test files]
+ok  	github.com/rkrysinski/hq/internal/agent	0.120s
+ok  	github.com/rkrysinski/hq/internal/cli	0.677s
+ok  	github.com/rkrysinski/hq/internal/dash	8.641s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.167s
+ok  	github.com/rkrysinski/hq/internal/dialog	1.115s
+ok  	github.com/rkrysinski/hq/internal/gh	0.191s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.197s
+ok  	github.com/rkrysinski/hq/internal/platform	0.211s
+?   	github.com/rkrysinski/hq/internal/platform/platformtest	[no test files]
+ok  	github.com/rkrysinski/hq/internal/prefs	0.299s
+?   	github.com/rkrysinski/hq/internal/proc	[no test files]
+?   	github.com/rkrysinski/hq/internal/repo	[no test files]
+ok  	github.com/rkrysinski/hq/internal/sbx	0.328s
+ok  	github.com/rkrysinski/hq/internal/state	0.322s
+ok  	github.com/rkrysinski/hq/internal/tmux	0.284s
+ok  	github.com/rkrysinski/hq/internal/update	0.355s
+?   	github.com/rkrysinski/hq/internal/version	[no test files]
+?   	github.com/rkrysinski/hq/tools/fakeclaude	[no test files]
+ok  	github.com/rkrysinski/hq/tools/testgate	0.290s
+[exit code: 0]

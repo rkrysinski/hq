@@ -1,0 +1,16 @@
+# Externally stopped sandbox -> rows ended (spec §10: within 2 s of the sandbox having stopped)
+# Sandbox layer is the stub; the dashboard is the real hq v0.3.0 in Windows Terminal. Polling the list pane every 50 ms.
+$ hq ls
+NAME  REPO     BRANCH  STATE    AGE  LAST
+a     wslrepo  main    done     49s  Done: say hi again
+b     wslrepo  main    done     3m   Done: k
+c     winrepo  main    working  15m  -
+$ sbx.exe stop claude-winrepo   (from another shell)
+dashboard row c shows ended .215412900 s after sbx stop returned
+$ hq ls
+NAME  REPO     BRANCH  STATE  AGE  LAST
+a     wslrepo  main    done   50s  Done: say hi again
+b     wslrepo  main    done   3m   Done: k
+c     winrepo  main    ended  0s   [session ended]
+$ sbx.exe ls
+{"sandboxes":[{"name":"claude-winrepo","agent":"claude","status":"stopped","workspaces":["C:\\Users\\rex\\hq-qa-repos\\winrepo"]},{"name":"claude-wslrepo","agent":"claude","status":"running","workspaces":["\\\\wsl.localhost\\Ubuntu-24.04\\home\\rex\\hq-qa\\repos\\wslrepo"]}]}

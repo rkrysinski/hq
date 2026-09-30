@@ -1,0 +1,35 @@
+# Third run (retest, machine otherwise idle): the tests that failed, three times each
+$ go test -tags integration -count=3 -run "TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters|TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter" -v ./internal/tmux/
+=== RUN   TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters
+    tmux_integration_test.go:393: new: "1.5 \"a b\" \\$x" <nil>
+--- FAIL: TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters (0.82s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:442: got 8923 bytes of 12360
+--- FAIL: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.54s)
+=== RUN   TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters
+    tmux_integration_test.go:393: new: "1.5 \"a b\" \\$x" <nil>
+--- FAIL: TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters (0.78s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:442: got 8062 bytes of 12360
+--- FAIL: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.58s)
+=== RUN   TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters
+    tmux_integration_test.go:393: new: "1.5 \"a b\" \\$x" <nil>
+--- FAIL: TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters (0.74s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:442: got 7724 bytes of 12360
+--- FAIL: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.53s)
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	19.085s
+FAIL
+$ go test -tags integration -count=3 -run TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox ./internal/cli/
+ok  	github.com/rkrysinski/hq/internal/cli	12.136s
+$ GOARCH=amd64 go vet -tags integration ./internal/proc/   (does the proc test build for amd64?)
+# github.com/rkrysinski/hq/internal/proc
+# [github.com/rkrysinski/hq/internal/proc]
+vet: internal/proc/proc_integration_test.go:116:20: undefined: syscall.Getsid
+[exit code: 1]
+$ go vet -tags integration ./internal/proc/   (arm64, this machine)
+# github.com/rkrysinski/hq/internal/proc
+# [github.com/rkrysinski/hq/internal/proc]
+vet: internal/proc/proc_integration_test.go:116:20: undefined: syscall.Getsid
+[exit code: 1]

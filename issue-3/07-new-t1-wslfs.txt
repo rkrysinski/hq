@@ -1,0 +1,50 @@
+$ cd /mnt/c && timeout 120 sbx.exe diagnose
+
+sbx diagnose
+─────────────────────────────────────────
+
+  Installation
+  ✓ CLI binary — found
+      C:\Users\rex\AppData\Local\DockerSandboxes\bin\sbx.exe
+  ✓ Binary version — v0.46.0
+  ✓ Daemon — healthy
+      version v0.46.0
+  ✓ Daemon diagnostics — collected (50568 bytes)
+
+  Platform
+  ✗ Virtualization — not available
+      WinHvPlatform.dll: %1 is not a valid Win32 application.
+      → The platform's virtualization API could not be loaded, so sandboxes cannot start. On Windows it is provided by the Hypervisor Platform feature and by Hyper-V.
+  ✓ mkfs.erofs — found
+      C:\Users\rex\AppData\Local\DockerSandboxes\libexec\mkfs.erofs.exe, default block size 4096 bytes, guest kernel page size 4096 bytes
+
+  Storage
+  ✓ Storage directories — all 1 paths present
+  ✓ Directory permissions — all writable
+  ✓ Disk space — 28.63GiB free
+      28.63GiB free of 63.06GiB on the state directory's volume
+
+  Connection
+  ✓ Version match — v0.46.0
+  ✓ Socket — path configured
+  ✓ SSH client config — not configured
+  ✓ Authentication — authenticated
+
+─────────────────────────────────────────
+  12 passed · 1 failed
+
+[exit code: 1]
+
+$ timeout 300 hq new t1 ~/hq-qa/repos/wslrepo 'say hi'
+creating a sandbox for wslrepo (first time only; log in to Claude when the session asks)
+hq: sbx.exe: error: global network policy has not been initialized
+[exit code: 3]
+
+$ hq ls
+[exit code: 0]
+
+$ tmux ls; tmux list-windows -a
+error connecting to /tmp/tmux-1000/default (No such file or directory)
+error connecting to /tmp/tmux-1000/default (No such file or directory)
+[exit code: 1]
+

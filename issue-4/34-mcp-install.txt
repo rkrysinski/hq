@@ -1,0 +1,62 @@
+$ hq mcp install
+added hq to Claude Desktop (/mnt/c/Users/rex/AppData/Roaming/Claude/claude_desktop_config.json)
+quit and reopen Claude Desktop to load it
+[exit code: 0]
+
+$ ls /mnt/c/Users/rex/AppData/Roaming/Claude
+claude_desktop_config.json
+[exit code: 0]
+
+$ ls -d /mnt/c/Users/rex/AppData/Local/Packages/Claude_* 2>&1
+ls: cannot access '/mnt/c/Users/rex/AppData/Local/Packages/Claude_*': No such file or directory
+[exit code: 2]
+
+$ cat /mnt/c/Users/rex/AppData/Roaming/Claude/claude_desktop_config.json
+{
+  "mcpServers": {
+    "hq": {
+      "command": "wsl.exe",
+      "args": [
+        "-d",
+        "Ubuntu-24.04",
+        "--exec",
+        "/usr/bin/env",
+        "PATH=/home/rex/hq-qa/toolchain/go/bin:/home/rex/.local/bin:/home/rex/hq-qa/toolchain/go/bin:/home/rex/.local/bin:/home/rex/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/:/mnt/c/WINDOWS/System32/OpenSSH/:/mnt/c/Program Files/nodejs/:/mnt/c/Program Files/WSL/:/mnt/c/Users/rex/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/rex/AppData/Roaming/npm:/mnt/c/Users/rex/AppData/Local/Programs/Microsoft VS Code/bin:/snap/bin:/mnt/c/Users/rex/AppData/Local/DockerSandboxes/bin:/mnt/c/Users/rex/AppData/Local/DockerSandboxes/bin",
+        "/home/rex/.local/bin/hq",
+        "mcp"
+      ]
+    }
+  }
+}
+[exit code: 0]
+
+$ hq mcp install
+updated hq in Claude Desktop (/mnt/c/Users/rex/AppData/Roaming/Claude/claude_desktop_config.json)
+the file as it was: /mnt/c/Users/rex/AppData/Roaming/Claude/claude_desktop_config.json.hq-backup-20260930-085459
+quit and reopen Claude Desktop to load it
+[exit code: 0]
+
+$ ls /mnt/c/Users/rex/AppData/Roaming/Claude
+claude_desktop_config.json
+claude_desktop_config.json.hq-backup-20260930-085459
+[exit code: 0]
+
+# The handshake the entry would start, run from the Windows side as Claude Desktop would:
+wsl.exe
+7 args; PATH entries: 23
+
+$ (initialize, tools/list, tools/call list) | hq mcp
+
+# (the second run said 'updated' because my shell's PATH had changed between the two runs; third run, PATH unchanged:)
+$ hq mcp install
+hq is already set up in Claude Desktop (/mnt/c/Users/rex/AppData/Roaming/Claude/claude_desktop_config.json)
+[exit code: 0]
+
+initialize -> {'name': 'hq', 'title': 'hq', 'version': 'v0.3.0'}
+tools/list -> ['go', 'kill', 'list', 'new', 'read', 'send', 'wait']
+tools/call list -> {"content": [{"type": "text", "text": "{\n  \"agents\": [],\n  \"next_since\": \"2026-09-30T06:55:09.0389758Z\"\n}\n"}]}
+
+# The installed entry started from the Windows side (PowerShell reads the config and runs its command with its arguments)
+started: wsl.exe (from Windows, as Claude Desktop would)
+{"jsonrpc":"2.0","id":1,"result":{"capabilities":{"logging":{},"tools":{"listChanged":true}},"instructions":"hq runs Claude Code agents, each working on one task in its repository, for the user. You s
+{"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"{\n  \"agents\": [],\n  \"next_since\": \"2026-09-30T06:55:23.5077103Z\"\n}\n"}]}}

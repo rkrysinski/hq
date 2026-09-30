@@ -1,0 +1,87 @@
+$ tmux -V
+tmux 3.4
+[exit code: 0]
+
+$ hq --version
+hq v0.3.0
+[exit code: 0]
+
+$ hq ls
+[exit code: 0]
+
+$ hq ls --json
+{
+  "agents": [],
+  "next_since": "2026-09-30T06:17:56.4306574Z"
+}
+[exit code: 0]
+
+$ hq go nosuch
+hq: no agent 'nosuch' (see hq ls)
+[exit code: 2]
+
+$ hq kill nosuch -y
+hq: no agent 'nosuch' (see hq ls)
+[exit code: 2]
+
+$ hq read nosuch
+hq: no agent 'nosuch' (see hq ls)
+[exit code: 2]
+
+$ hq code nosuch
+hq: no agent 'nosuch' (see hq ls)
+[exit code: 2]
+
+$ hq send nosuch hello
+hq: no agent 'nosuch' (see hq ls)
+[exit code: 2]
+
+$ hq bogus
+hq: unknown command 'bogus' (see hq help)
+[exit code: 1]
+
+$ hq new
+hq: missing NAME (usage: hq new NAME [DIR] [PROMPT])
+[exit code: 1]
+
+$ hq new 'bad name!' ~/hq-qa/repos/wslrepo
+hq: invalid name 'bad name!': use letters, digits, - and _
+[exit code: 1]
+
+$ hq new aaaaaaaaaabbbbbbbbbbccccccccccddd /home/rex/hq-qa/repos/wslrepo
+hq: name 'aaaaaaaaaabbbbbbbbbbccccccccccddd' is too long: at most 32 characters
+[exit code: 1]
+
+$ hq new t1 /home/rex/hq-qa/repos/notarepo
+hq: /home/rex/hq-qa/repos/notarepo is not in a git repository
+[exit code: 2]
+
+$ hq stop -y
+no agents
+[exit code: 0]
+
+$ hq kill nosuch </dev/null
+hq: no agent 'nosuch' (see hq ls)
+[exit code: 2]
+
+$ hq stop </dev/null
+no agents
+[exit code: 0]
+
+$ hq sandbox rm wslrepo -y
+hq: sbx.exe: error: Not authenticated to Docker
+[exit code: 3]
+
+$ hq sandbox restart wslrepo -y
+hq: sbx.exe: error: Not authenticated to Docker
+[exit code: 3]
+
+$ hq sandbox
+hq: usage: hq sandbox rm|restart REPO|SANDBOX [-y]
+[exit code: 1]
+
+$ hq wait --timeout 2s
+nothing yet
+next: hq wait --since 2026-09-30T06:18:03.8531385Z
+[exit code: 0]
+

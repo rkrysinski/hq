@@ -1,0 +1,98 @@
+$ cd /mnt/c && timeout 300 sbx.exe create --help | head -40
+Create a sandbox with access to a host workspace for an agent.
+
+The first positional argument may be a built-in agent name or a sandbox kit
+reference. Sandbox kit references may be local directories, ZIP files, git
+repositories, or OCI references. Relative local references must be explicit
+paths such as ./my-kit or ../my-kit.zip.
+
+Omit the path to create a sandbox without a workspace bind mount: the agent
+then works in the container's own filesystem instead of on your files.
+
+Use "sbx run --name SANDBOX" to attach to the agent after creation.
+
+Available agents: claude, codex, copilot, cursor, devin, docker-agent, droid, gemini, kiro, opencode, shell
+
+With --cloud:
+Create a cloud sandbox for an agent.
+
+Cloud sandboxes have no host workspace, so no path follows the agent. Sizing
+comes from --cpus and --memory and must land on a billable shape; without them
+a cloud sandbox gets 2 CPUs and 4 GiB. A template named with -t / --template
+must already exist in the cloud registry.
+
+Cloud sandboxes use cloud network policies. Host network and HTTP policies
+do not apply. Set cloud account defaults with
+"sbx --cloud policy init <allow-all|balanced|deny-all>".
+
+Use "sbx --cloud run --name SANDBOX" to attach to the agent after creation.
+
+Usage:
+  sbx create [flags] AGENT|SANDBOX_KIT [PATH...]
+  sbx create COMMAND
+
+Examples:
+  # Create a sandbox for Claude in the current directory
+  sbx create claude .
+
+  # Create a sandbox with a custom name
+  sbx create --name my-project claude /path/to/project
+
+  # Create with additional read-only workspaces
+[exit code: 0]
+
+$ cd /mnt/c && timeout 300 sbx.exe create claude 'C:\Users\rex\hq-qa-repos\winrepo'
+── RESOLVE SETUP
+   resolving configuration…
+     sandbox    claude-winrepo
+     agent      claude
+     workspace  C:\Users\rex\hq-qa-repos\winrepo → /c/Users/rex/hq-qa-repos/winrepo (rw)
+     skills     C:\Users\rex\AppData\Local\DockerSandboxes\sandboxes\state\agent-skills → /home/agent/.claude/skills · 0 entries · (linked, read-only)
+     image      docker/sandbox-templates:claude-code-docker
+     cpu        8
+     memory     4.0 GiB
+   ✓ configuration resolved
+── PREPARE IMAGE
+   → pull docker/sandbox-templates:claude-code-docker
+     549730947ed8 already present
+     beedd5fd60fd already present
+     742e9238c102 already present
+     987b186b8f1d already present
+     89645b6ca94f already present
+     e1a8a653f761 already present
+     ad73f53ff794 already present
+   ✓ image ready
+WARN: mcp gateway teardown
+error: the Windows Hypervisor Platform is unavailable: either the optional feature is not enabled, or Windows is itself running in a virtual machine or VDI desktop whose host does not expose virtualization extensions (nested virtualization)
+[exit code: 1]
+
+$ cd /mnt/c && timeout 300 sbx.exe create claude '\\wsl.localhost\Ubuntu-24.04\home\rex\hq-qa\repos\wslrepo'
+── RESOLVE SETUP
+   resolving configuration…
+     sandbox    claude-wslrepo
+     agent      claude
+     workspace  \\wsl.localhost\Ubuntu-24.04\home\rex\hq-qa\repos\wslrepo → //wsl.localhost/Ubuntu-24.04/home/rex/hq-qa/repos/wslrepo (rw)
+     skills     C:\Users\rex\AppData\Local\DockerSandboxes\sandboxes\state\agent-skills → /home/agent/.claude/skills · 0 entries · (linked, read-only)
+     image      docker/sandbox-templates:claude-code-docker
+     cpu        8
+     memory     4.0 GiB
+   ✓ configuration resolved
+── PREPARE IMAGE
+   → pull docker/sandbox-templates:claude-code-docker
+     549730947ed8 already present
+     beedd5fd60fd already present
+     742e9238c102 already present
+     987b186b8f1d already present
+     89645b6ca94f already present
+     e1a8a653f761 already present
+     ad73f53ff794 already present
+   ✓ image ready
+WARN: mcp gateway teardown
+error: the Windows Hypervisor Platform is unavailable: either the optional feature is not enabled, or Windows is itself running in a virtual machine or VDI desktop whose host does not expose virtualization extensions (nested virtualization)
+[exit code: 1]
+
+$ cd /mnt/c && sbx.exe ls
+No sandboxes found.
+Launch one: sbx run claude
+[exit code: 0]
+

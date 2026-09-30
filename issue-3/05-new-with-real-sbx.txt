@@ -1,0 +1,42 @@
+$ wslpath -w ~/hq-qa/repos/wslrepo
+\\wsl.localhost\Ubuntu-24.04\home\rex\hq-qa\repos\wslrepo
+[exit code: 0]
+
+$ wslpath -w /mnt/c/Users/rex/hq-qa-repos/winrepo
+C:\Users\rex\hq-qa-repos\winrepo
+[exit code: 0]
+
+$ timeout 120 hq new t1 ~/hq-qa/repos/wslrepo 'say hi'
+hq: sbx.exe: error: Not authenticated to Docker
+[exit code: 3]
+
+$ hq ls
+[exit code: 0]
+
+$ timeout 120 hq new t2 /mnt/c/Users/rex/hq-qa-repos/winrepo 'say hi'
+hq: sbx.exe: error: Not authenticated to Docker
+[exit code: 3]
+
+$ hq ls
+[exit code: 0]
+
+$ tmux ls
+error connecting to /tmp/tmux-1000/default (No such file or directory)
+[exit code: 1]
+
+$ cd /mnt/c && sbx.exe ls
+error: Not authenticated to Docker
+  try: sbx login
+[exit code: 1]
+
+$ cd /mnt/c && sbx.exe login </dev/null
+By logging in, you agree to our Subscription Service Agreement. For more details, see https://www.docker.com/legal/docker-subscription-service-agreement/ 
+
+Your one-time device confirmation code is: VDSL-HQNJ
+Complete sign-in in your browser, then return to this terminal.
+Open this URL to sign in: https://login.docker.com/activate?user_code=VDSL-HQNJ
+
+Waiting for authentication...
+Signed in as rkrycha.
+[exit code: 0]
+

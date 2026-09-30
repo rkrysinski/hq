@@ -1,0 +1,17 @@
+# Does a BEL written in an agent's pane reach Windows Terminal and flash the taskbar button?
+# Windows Terminal 1.24.11911.0 with bellStyle temporarily set to "all"; Notepad in front; docked agent: d
+window 0 hq: allow-passthrough=all pane_tty=/dev/pts/9
+window 1 a: allow-passthrough=all pane_tty=/dev/pts/7
+window 2 b: allow-passthrough=all pane_tty=/dev/pts/9
+window 3 c: allow-passthrough=all pane_tty=/dev/pts/16
+window 4 d: allow-passthrough=off pane_tty=/dev/pts/8
+baseline, nothing written:                      not flashing (48 highlighted pixels)
+bare BEL in hidden agent a's pane:              FLASHING (1120 highlighted pixels)
+BEL in tmux passthrough, hidden agent a's pane: FLASHING (1120 highlighted pixels)
+bare BEL in the docked agent's pane:            FLASHING (1120 highlighted pixels)
+BEL in tmux passthrough, docked agent's pane:   FLASHING (1120 highlighted pixels)
+after bringing the hq window to front and away: not flashing (48 highlighted pixels)
+
+# Same test with Windows Terminal's settings as found (no bellStyle set = default), retested
+default settings, bare BEL in hidden agent a's pane (try 1): not flashing (48 highlighted pixels)
+default settings, bare BEL in hidden agent a's pane (try 2): not flashing (48 highlighted pixels)
