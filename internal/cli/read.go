@@ -47,7 +47,13 @@ func runRead(env Env, d deps, args []string) error {
 	if !ok {
 		return notFoundErr("no agent '%s' (see hq ls)", name)
 	}
-	v := newReadView(newLsRow(d, a, d.now()), d.readDetail(a.RepoPath, a.ID), worktree(d, a))
+	det := d.readDetail(a.RepoPath, a.ID)
+	if ask := a.StartAsk(); ask != nil {
+		// A dialog Claude shows at its start: no hook has reported it, so
+		// it comes from the screen (#29).
+		det.Ask = ask
+	}
+	v := newReadView(newLsRow(d, a, d.now()), det, worktree(d, a))
 	if asJSON {
 		v.NextSince = lookedAt(at)
 		return writeJSON(env.Stdout, v)

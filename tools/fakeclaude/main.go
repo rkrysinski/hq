@@ -38,6 +38,11 @@
 //
 // FAKE_CLAUDE_DELAY (a Go duration, default 200ms) is how long it takes to
 // start and how long a turn works.
+//
+// With FAKE_CLAUDE_START_DIALOG set it shows, once started and before it
+// takes any prompt, the dialog Claude Code 2.1.285 shows on the first start
+// in a sandbox ("Make auto mode your default permission mode?"), which no
+// hook reports, until Enter answers it (#29).
 package main
 
 import (
@@ -143,6 +148,11 @@ func main() {
 	fmt.Print(enterAltScreen + bracketedPaste)
 	fmt.Println("fake claude: ready")
 	in := bufio.NewScanner(os.Stdin)
+	if os.Getenv("FAKE_CLAUDE_START_DIALOG") != "" {
+		fmt.Print(startDialog)
+		in.Scan()
+		promptBox("")
+	}
 	if prompt != "" {
 		c.turn(prompt, in)
 	}
@@ -253,6 +263,19 @@ const question = "Which colour do you pick?"
 // promptBox draws Claude's prompt box, where the user types the next
 // prompt, holding input when given; hint is what its footer offers besides,
 // as "esc to interrupt" while a turn is at work.
+// startDialog is the dialog of Claude Code 2.1.285 as it draws it.
+const startDialog = `
+────────────────────────────────────────────────────────────────
+ Make auto mode your default permission mode?
+
+   Auto mode lets Claude handle permission prompts automatically. Claude checks each tool call for risky
+   actions and prompt injection before executing, runs the ones it assesses as lower-risk, and blocks the
+   rest.
+
+   ❯ Yes, set auto mode as my default permission mode
+     No, keep bypass permissions
+`
+
 func promptBox(hint string, input ...string) {
 	rule := strings.Repeat("─", 40)
 	footer := "  ⏵⏵ bypass permissions on (shift+tab to cycle)"
