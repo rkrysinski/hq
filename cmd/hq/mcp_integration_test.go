@@ -359,4 +359,23 @@ func TestMCPInstallOnWSLStartsHqThroughWslExe(t *testing.T) {
 	if hq.Command != "wsl.exe" || strings.Join(hq.Args, " ") != want || hq.Env != nil {
 		t.Fatalf("hq %+v", hq)
 	}
+
+	// Installed from the Microsoft Store, Claude Desktop reads the
+	// configuration in its package's folder: hq is set up there, and the one
+	// in %APPDATA% stays as it is (#25).
+	store := root + "/mnt/c/Users/stub/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json"
+	_ = os.MkdirAll(filepath.Dir(store), 0o700)
+	_ = os.WriteFile(store, []byte(`{"preferences":{"sidebarMode":"chat"}}`), 0o600)
+	out, errOut, err = install(t, bin, env...)
+	if err != nil || !strings.HasPrefix(out, "added hq to Claude Desktop ("+store+")\n") {
+		t.Fatalf("store: %v %q %q", err, out, errOut)
+	}
+	var sc config
+	sb, _ := os.ReadFile(store)
+	if err := json.Unmarshal(sb, &sc); err != nil || sc.MCPServers["hq"].Command != "wsl.exe" || sc.Preferences["sidebarMode"] != "chat" {
+		t.Fatalf("store: %v %s", err, sb)
+	}
+	if after, _ := os.ReadFile(path); string(after) != string(b) {
+		t.Fatal("store: the configuration in %APPDATA% changed")
+	}
 }

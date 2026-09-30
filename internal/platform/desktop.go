@@ -39,16 +39,37 @@ func (Native) DesktopServer(hq string, env []string) (string, []string, map[stri
 	return hq, []string{"mcp"}, m
 }
 
-// DesktopConfig is in the Windows user's %APPDATA%, which WSL reaches
+// storeConfigDirs is where Claude Desktop installed from the Microsoft
+// Store keeps its configuration, under %LOCALAPPDATA%: Windows gives a
+// packaged app a %APPDATA% of its own there, and the real %APPDATA%\Claude
+// is not used, often not even there (#25). The package's name ends in its
+// publisher's id.
+// glob lists the paths matching a pattern; the tests put their own in.
+var glob = filepath.Glob
+
+var storeConfigDirs = []string{"Packages", "Claude_*", "LocalCache", "Roaming", "Claude"}
+
+// DesktopConfig is in the Store package's folder under the Windows user's
+// %LOCALAPPDATA% when Claude Desktop was installed from the Store, and in
+// %APPDATA% otherwise (the installer from claude.ai); WSL reaches both
 // through cmd.exe and wslpath.
 func (w WSL) DesktopConfig(string) (string, error) {
-	out, err := w.Run.Run("cmd.exe", "/d", "/c", "echo %APPDATA%")
+	out, err := w.Run.Run("cmd.exe", "/d", "/c", "echo %APPDATA%&echo %LOCALAPPDATA%")
 	if err != nil {
 		return "", err
 	}
-	appdata := strings.TrimSpace(string(out))
+	appdata, local, _ := strings.Cut(strings.ReplaceAll(string(out), "\r", ""), "\n")
+	appdata, local = strings.TrimSpace(appdata), strings.TrimSpace(local)
 	if appdata == "" || strings.Contains(appdata, "%") {
 		return "", errors.New("Windows gave no %APPDATA%")
+	}
+	if local != "" && !strings.Contains(local, "%") {
+		if dir, err := w.wslpath("-u", local); err == nil {
+			// More than one package (a leftover): the first by name.
+			if dirs, _ := glob(path.Join(append([]string{dir}, storeConfigDirs...)...)); len(dirs) > 0 {
+				return path.Join(dirs[0], desktopFile), nil
+			}
+		}
 	}
 	dir, err := w.wslpath("-u", appdata)
 	if err != nil {

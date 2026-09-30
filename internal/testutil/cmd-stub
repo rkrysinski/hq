@@ -1,7 +1,8 @@
 #!/bin/sh
 # Stub of Windows' cmd.exe for integration tests, reached from WSL: it
-# answers only "echo %APPDATA%", as for a Windows user named stub.
+# answers only "echo %APPDATA%&echo %LOCALAPPDATA%", as for a Windows user
+# named stub.
 case "$*" in
-*'echo %APPDATA%') printf 'C:\\Users\\stub\\AppData\\Roaming\r\n' ;;
+*'echo %APPDATA%&echo %LOCALAPPDATA%') printf 'C:\\Users\\stub\\AppData\\Roaming\r\nC:\\Users\\stub\\AppData\\Local\r\n' ;;
 *) echo "cmd-stub: unexpected $*" >&2; exit 1 ;;
 esac

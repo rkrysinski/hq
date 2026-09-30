@@ -3,6 +3,7 @@ package platform
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -20,43 +21,79 @@ func TestClaudeDesktopsConfigurationOnMacOSAndLinux(t *testing.T) {
 	}
 }
 
-// windows answers cmd.exe with appdata and wslpath -u by mapping C:\ to
-// /mnt/c.
+// windows answers cmd.exe with its folders and wslpath -u by mapping C:\ to
+// /mnt/c; glob answers with the Store packages' folders.
 type windows struct {
-	appdata string
+	folders string
 	err     error
+	store   []string
 	calls   [][]string
+	globbed []string
 }
 
 func (w *windows) Run(name string, args ...string) ([]byte, error) {
 	w.calls = append(w.calls, append([]string{name}, args...))
 	if name == "cmd.exe" {
-		return []byte(w.appdata), w.err
+		return []byte(w.folders), w.err
 	}
-	if len(args) == 2 && args[1] == `C:\Users\dev\AppData\Roaming` {
-		return []byte("/mnt/c/Users/dev/AppData/Roaming\n"), nil
+	if len(args) == 2 && strings.HasPrefix(args[1], `C:\Users\dev\AppData\`) {
+		return []byte("/mnt/c/" + strings.ReplaceAll(strings.TrimPrefix(args[1], `C:\`), `\`, "/") + "\n"), nil
 	}
 	return nil, errors.New("wslpath: bad path")
 }
 
+// withStore has DesktopConfig find w's Store packages for this test.
+func withStore(t *testing.T, w *windows) *windows {
+	old := glob
+	glob = func(pattern string) ([]string, error) {
+		w.globbed = append(w.globbed, pattern)
+		return w.store, nil
+	}
+	t.Cleanup(func() { glob = old })
+	return w
+}
+
+const devFolders = "C:\\Users\\dev\\AppData\\Roaming\r\nC:\\Users\\dev\\AppData\\Local\r\n"
+
 func TestClaudeDesktopsConfigurationOnWindowsIsInAppData(t *testing.T) {
-	w := &windows{appdata: "C:\\Users\\dev\\AppData\\Roaming\r\n"}
+	w := withStore(t, &windows{folders: devFolders})
 	got, err := WSL{Run: w}.DesktopConfig("/home/dev")
 	if err != nil || got != "/mnt/c/Users/dev/AppData/Roaming/Claude/claude_desktop_config.json" {
 		t.Fatalf("%q %v", got, err)
 	}
-	want := [][]string{{"cmd.exe", "/d", "/c", "echo %APPDATA%"}, {"wslpath", "-u", `C:\Users\dev\AppData\Roaming`}}
+	want := [][]string{{"cmd.exe", "/d", "/c", "echo %APPDATA%&echo %LOCALAPPDATA%"}, {"wslpath", "-u", `C:\Users\dev\AppData\Local`}, {"wslpath", "-u", `C:\Users\dev\AppData\Roaming`}}
 	if !reflect.DeepEqual(w.calls, want) {
 		t.Fatalf("calls %q", w.calls)
 	}
 	for _, w := range []*windows{
 		{err: errors.New("cmd.exe: not found")},
-		{appdata: "\r\n"},
-		{appdata: "%APPDATA%\r\n"},
-		{appdata: `D:\elsewhere`},
+		{folders: "\r\n"},
+		{folders: "%APPDATA%\r\n%LOCALAPPDATA%\r\n"},
+		{folders: `D:\elsewhere`},
 	} {
-		if got, err := (WSL{Run: w}).DesktopConfig("/home/dev"); err == nil {
-			t.Errorf("%q: %q, want an error", w.appdata, got)
+		if got, err := (WSL{Run: withStore(t, w)}).DesktopConfig("/home/dev"); err == nil {
+			t.Errorf("%q: %q, want an error", w.folders, got)
+		}
+	}
+}
+
+// Installed from the Microsoft Store, Claude Desktop keeps its configuration
+// in its package's folder, and that is the one it reads (#25).
+func TestClaudeDesktopsConfigurationFromTheStoreIsInItsPackage(t *testing.T) {
+	pkg := "/mnt/c/Users/dev/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude"
+	w := withStore(t, &windows{folders: devFolders, store: []string{pkg, "/mnt/c/Users/dev/AppData/Local/Packages/Claude_zzz/LocalCache/Roaming/Claude"}})
+	got, err := WSL{Run: w}.DesktopConfig("/home/dev")
+	if err != nil || got != pkg+"/claude_desktop_config.json" {
+		t.Fatalf("%q %v", got, err)
+	}
+	if want := []string{"/mnt/c/Users/dev/AppData/Local/Packages/Claude_*/LocalCache/Roaming/Claude"}; !reflect.DeepEqual(w.globbed, want) {
+		t.Fatalf("looked for %q", w.globbed)
+	}
+	// Without a %LOCALAPPDATA%, or one wslpath cannot map: %APPDATA% as before.
+	for _, folders := range []string{"C:\\Users\\dev\\AppData\\Roaming\r\n", "C:\\Users\\dev\\AppData\\Roaming\r\n%LOCALAPPDATA%\r\n", "C:\\Users\\dev\\AppData\\Roaming\r\nD:\\elsewhere\r\n"} {
+		w := withStore(t, &windows{folders: folders, store: []string{pkg}})
+		if got, err := (WSL{Run: w}).DesktopConfig("/home/dev"); err != nil || got != "/mnt/c/Users/dev/AppData/Roaming/Claude/claude_desktop_config.json" || len(w.globbed) != 0 {
+			t.Errorf("%q: %q %v, globbed %q", folders, got, err, w.globbed)
 		}
 	}
 }
