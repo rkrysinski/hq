@@ -442,6 +442,7 @@ func TestDockedAgentThatEndsStaysReadable(t *testing.T) {
 	}
 	tm(t, socket, "send-keys", "-t", p, "Enter")
 	eventually(t, "docked pane to die", func() bool { return mustWindows(t, c)["e"].PaneDead })
+	reaped(t, socket)
 	if out := tm(t, socket, "capture-pane", "-p", "-t", p); !strings.Contains(out, "last-words") {
 		t.Errorf("ended agent's output:\n%s", out)
 	}
