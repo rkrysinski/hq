@@ -16,6 +16,24 @@ curl -fsSL https://github.com/rkrysinski/hq/releases/latest/download/install.sh 
 
 This installs `hq` to `~/.local/bin` and checks the prerequisites; no GitHub login is needed. `... | HQ_VERSION=vX.Y.Z sh` installs that release instead of the latest. On macOS with iTerm2 it also adds an iTerm2 profile named `hq` with Option as Esc+, which hq gives only to the tab the dashboard runs in, so the Alt chords work with no setup.
 
+### Setting up sbx
+
+hq starts every sandbox with your `sbx`, so `sbx` has to work on its own first. Once per machine (on Windows from WSL, where the command is `sbx.exe`):
+
+```bash
+sbx login                   # without it: error: Not authenticated to Docker
+sbx policy init balanced    # before the first sandbox; allow-all, balanced or deny-all
+```
+
+When `hq new` cannot create or start a sandbox, `sbx diagnose` says what is missing.
+
+### Windows
+
+1. Install `sbx` on Windows, not inside WSL (`winget install Docker.sbx`): hq in WSL runs the Windows `sbx.exe`.
+2. Open a new WSL session after installing it. The installer adds `sbx` to the Windows PATH, and a WSL session that was already open does not see it: there hq's installer still reports `sbx: install Docker Sandboxes`.
+3. Run the two `sbx` commands above.
+4. Check that the machine can run sandboxes: `sbx.exe diagnose` must not report `Virtualization - not available`. `sbx` on Windows is an x86-64 program that needs the Windows Hypervisor Platform feature; it starts no sandbox on ARM64 Windows, nor in a virtual machine without nested virtualization. hq itself runs on those machines (WSL 1 or 2, ARM64 too), so the first sign is a failing `hq new`.
+
 When a newer release is out, hq says so after a command's output (`hq v0.4.0 is available - run hq update`), in the dashboard's header and in `hq --version`; `hq update` moves to it. hq looks at most once a day, in the background, so no command waits for GitHub.
 
 ## Everyday use
