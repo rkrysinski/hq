@@ -694,3 +694,43 @@ func TestAnEndedAgentIsEnteredFromTheFirstSignOfItsEnd(t *testing.T) {
 		}
 	}
 }
+
+// Claude's own dialog at the start of a session is reported by no hook:
+// the agent needs input while its screen shows it (#29).
+func TestSettleSeesClaudesDialogAtTheStartOfASession(t *testing.T) {
+	rule := strings.Repeat("─", 40)
+	dialog := "fake claude: ready\n" + rule + "\n Make auto mode your default permission mode?\n\n   Auto mode lets Claude handle prompts.\n\n   ❯ Yes, set auto mode as my default permission mode\n     No, keep bypass permissions\n"
+	ready := "fake claude: ready\n" + rule + "\n❯ \n" + rule + "\n  footer\n"
+	started := time.Unix(1000, 0)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	start := state.Report{State: state.Done, Since: started, AtStart: true}
+	a := FromWindows([]tmux.Window{w})[0]
+	a.Apply(start, true)
+	if a.StartAsk() != nil || !a.Unsettled(started.Add(time.Second)) || a.Unsettled(started) {
+		t.Fatalf("a session just started is looked at once the report has settled: %+v", a)
+	}
+	if rec := a.Settle(dialog, started.Add(time.Second)); rec.Value != "" || a.State != state.NeedsInput || a.Last != "Make auto mode your default permission mode?" || !a.Since.Equal(started) {
+		t.Fatalf("dialog: %+v %+v", rec, a)
+	}
+	if ask := a.StartAsk(); ask == nil || len(ask.Questions) != 1 || len(ask.Questions[0].Options) != 2 || ask.Questions[0].Options[1].Label != "No, keep bypass permissions" {
+		t.Fatalf("ask: %+v", ask)
+	}
+	// Answered: Claude waits at its prompt, done since it started.
+	b := FromWindows([]tmux.Window{w})[0]
+	b.Apply(start, true)
+	if rec := b.Settle(ready, started.Add(time.Minute)); rec.Value != "" || b.State != state.Done || b.Last != "" || b.StartAsk() != nil || !b.Since.Equal(started) {
+		t.Fatalf("ready: %+v %+v", rec, b)
+	}
+	// A resumed session keeps its last message while no dialog shows, and
+	// a session past its start is not looked at for one.
+	c := FromWindows([]tmux.Window{w})[0]
+	c.Apply(state.Report{State: state.Done, Since: started, AtStart: true, Last: "Hi."}, true)
+	if c.Settle(ready, started.Add(time.Minute)); c.State != state.Done || c.Last != "Hi." {
+		t.Fatalf("resumed: %+v", c)
+	}
+	d := FromWindows([]tmux.Window{w})[0]
+	d.Apply(state.Report{State: state.Done, Since: started, Last: "Hi."}, true)
+	if d.Unsettled(started.Add(time.Minute)) {
+		t.Fatalf("a finished turn is looked at: %+v", d)
+	}
+}

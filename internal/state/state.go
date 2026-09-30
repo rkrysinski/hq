@@ -30,6 +30,10 @@ type Report struct {
 	Cwd       string    // where Claude works (a worktree or the repository), as the sandbox sees it
 	Branch    string    // the branch checked out in Cwd, empty when detached or unknown
 	Prompt    string    // while working since a prompt: the prompt, as the user sent it
+	// AtStart says the report is a session's start: Claude has started
+	// and, as far as its hooks tell, waits at its prompt. It may show a
+	// dialog of its own first, which no hook reports (StartDialog).
+	AtStart bool
 }
 
 // payload is the part of a Claude hook event hq reads.
@@ -120,6 +124,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 		// reports again it keeps the branch, worktree and last message the
 		// event before it gave (design §3.4).
 		r.State = Done
+		r.AtStart = true
 		if p.Source == newSource {
 			// Nothing to resume yet: Claude keeps no conversation for a
 			// session that never had a prompt, and --resume with its id

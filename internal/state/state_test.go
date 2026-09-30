@@ -45,6 +45,11 @@ func TestParseDerivesTheStateFromTheLatestEvent(t *testing.T) {
 		if r.State != tc.state || r.Last != tc.last {
 			t.Errorf("%s after %s: got %q %q, want %q %q", tc.latest, tc.lastStop, r.State, r.Last, tc.state, tc.last)
 		}
+		// Only a session's start is one: Claude may show a dialog of its
+		// own there (#29).
+		if r.AtStart != strings.HasPrefix(tc.latest, "session-start") {
+			t.Errorf("%s: at start %v", tc.latest, r.AtStart)
+		}
 		// A new session has no conversation to resume yet.
 		session := "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
 		if tc.latest == "session-start" {

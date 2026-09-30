@@ -289,6 +289,31 @@ func TestReadShowsWhatTheAgentAsksAndItsWholeReply(t *testing.T) {
 	}
 }
 
+// Claude Code's own dialog at the first start in a sandbox, which no hook
+// reports: the agent needs input until the user answers it (#29).
+func TestAnAgentAtClaudesStartDialogNeedsInput(t *testing.T) {
+	testutil.FakeClaude(t)
+	t.Setenv("FAKE_CLAUDE_START_DIALOG", "1")
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "needs input", "Make auto mode your default permission mode?")
+	code, out, _ := h.run("read", "a")
+	if code != 0 || !strings.Contains(out, "\nasks\n  Make auto mode your default permission mode?\n    1. Yes, set auto mode as my default permission mode\n    2. No, keep bypass permissions\n") {
+		t.Fatalf("read:\n%s", out)
+	}
+	// A message sent meanwhile waits for the dialog.
+	h.send("queued: a waits at a dialog Claude shows at its start; once it is answered there (hq go a), delivered with its next prompt", "a", "say hi")
+	// The user answers it in the pane: Claude takes prompts, and the
+	// message with its next one.
+	h.typeIn("a", "")
+	h.waitReport("a", "done", "")
+	h.typeIn("a", "go on")
+	h.waitPane("a", "say hi")
+}
+
 func TestAgentsInOneRepositoryAreToldApartByBranch(t *testing.T) {
 	testutil.FakeClaude(t)
 	h := newRealHQ(t)
