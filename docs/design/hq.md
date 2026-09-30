@@ -199,7 +199,7 @@ Satisfies: §4.1, §6.1-6.6, S2, S6, Phase 2; drivers 2, 3, 7.
 |---|---|---|
 | sbx command | `sbx` | `sbx.exe` through Windows interop |
 | Paths between hq and sbx | unchanged | `wslpath -w` towards sbx, `wslpath -u` back (workspace lookup in 3.6, worktree path for `c`) |
-| Editor (`c`, `hq code`) | `code PATH` | `code PATH`; the Remote-WSL shim takes Linux paths |
+| Editor (`c`, `hq code`) | `code PATH` | `code PATH`; the Remote-WSL shim takes Linux paths. hq collects the shim's stderr in a file, never a pipe: on WSL 1 a Windows program cannot open a pipe as its stderr, and the shim then opens nothing and still exits 0 (#7) |
 | Browser (`p`) | `gh pr view --web` | the same, with `BROWSER` set to `wslview` or `explorer.exe` when unset |
 | Notification sequence baked into the hook (3.5) | OSC 9 (`ESC ] 9 ; text BEL`) | BEL, shown as a taskbar flash; it carries no text, and a real check is left to Windows (#9) |
 | Raise the window titled `hq - agents` (3.11) | `osascript` to iTerm2, selecting the session on the attached client's terminal | `powershell.exe`, activate the window by title |
