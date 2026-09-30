@@ -1,0 +1,9 @@
+# dev (a1f5423): 12 runs of the five tests that look at an ended pane
+$ go test -count=12 -tags integration ./internal/tmux -run "TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit|TestDockedAgentThatEndsStaysReadable|TestLastScreenDrawsOnlyTheLastOfClaudesRedraws|TestLastScreenDrawsTheLatestOutputAgainAfterAReset|TestScreensShowWhatEachPaneShows"
+      3 --- FAIL: TestDockedAgentThatEndsStaysReadable
+      5 --- FAIL: TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit
+      6 --- FAIL: TestLastScreenDrawsOnlyTheLastOfClaudesRedraws
+      2 --- FAIL: TestLastScreenDrawsTheLatestOutputAgainAfterAReset
+      1 --- FAIL: TestScreensShowWhatEachPaneShows
+      2 FAIL
+      1 FAIL	github.com/rkrysinski/hq/internal/tmux	34.080s
