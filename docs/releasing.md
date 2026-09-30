@@ -132,3 +132,25 @@ release and leaves the milestone and the issue comments alone.
 **If the workflow fails**, the tag is already pushed - nothing is lost. Read the
 run log, fix the cause, and re-run `scripts/release.sh` locally or re-run the
 workflow; the result is the same either way.
+
+## 3. Without GitHub Actions
+
+When GitHub Actions starts no runs on the repository (for example, the
+account's Actions are blocked), a pushed tag builds nothing and writes no notes:
+the tag's run is missing from `gh run list`, and the tag has no release. Then do
+by hand what the workflow does, with the same scripts, from a clean `dev` level
+with `origin/dev`:
+
+```bash
+scripts/cut-release.sh 0.3.0                  # tag, push dev, main and the tag (step 1)
+git checkout v0.3.0
+scripts/build-release.sh v0.3.0 /tmp/dist     # hq for every platform, install.sh, SHA256SUMS
+git checkout dev
+scripts/release.sh v0.3.0                     # the release, its notes, the milestone, the comments
+gh release upload v0.3.0 /tmp/dist/* --clobber
+```
+
+Build from the tag, not from `dev`, so the binaries are exactly what was tagged.
+Check the result before announcing it: the release is marked latest, it has six
+files, and the install one-liner from the README installs the new version
+(`hq --version`).
