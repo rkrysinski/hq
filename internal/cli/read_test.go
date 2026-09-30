@@ -195,3 +195,30 @@ func TestReadNeedsOneKnownAgent(t *testing.T) {
 		t.Fatalf("no tmux: exit %d", code)
 	}
 }
+
+// Claude's own dialog at the start of a session comes from no hook: hq ls
+// and hq read take it from the screen (#29).
+func TestReadShowsClaudesDialogAtTheStartOfASession(t *testing.T) {
+	f := readFakes()
+	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), AtStart: true}
+	f.tmux.windows[1].Pane = "%4"
+	rule := strings.Repeat("─", 40)
+	f.tmux.screens = map[string]string{"%4": rule + "\n Make auto mode your default permission mode?\n\n   Auto mode lets Claude handle permission prompts automatically.\n\n   ❯ Yes, set auto mode as my default permission mode\n     No, keep bypass permissions\n"}
+	code, out, errOut := f.run("read", "42")
+	want := "state     needs input 1m\npending   0\nlast      Make auto mode your default permission mode?\n\nasks\n  Make auto mode your default permission mode?\n    1. Yes, set auto mode as my default permission mode\n    2. No, keep bypass permissions\n\nreply     none\n"
+	if code != 0 || !strings.HasSuffix(out, want) {
+		t.Fatalf("exit %d %q\n%s", code, errOut, out)
+	}
+	if code, out, _ := f.run("ls"); code != 0 || !strings.Contains(out, "needs input") || !strings.Contains(out, "Make auto mode your default permission mode?") {
+		t.Fatalf("ls: exit %d\n%s", code, out)
+	}
+	var v readView
+	if _, out, _ := f.run("read", "42", "--json"); json.Unmarshal([]byte(out), &v) != nil || v.Asks == nil || v.Asks.Description != "Auto mode lets Claude handle permission prompts automatically." || len(v.Asks.Questions[0].Options) != 2 {
+		t.Fatalf("json:\n%s", out)
+	}
+	// Answered: Claude at its prompt, done, asking nothing.
+	f.tmux.screens["%4"] = rule + "\n❯ \n" + rule + "\n  footer\n"
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     done 1m\n") || strings.Contains(out, "\nasks\n") {
+		t.Fatalf("answered:\n%s", out)
+	}
+}

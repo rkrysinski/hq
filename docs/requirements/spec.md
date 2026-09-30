@@ -64,7 +64,7 @@ Observable definitions; the mechanism is the implementer's choice, within the gi
 - `starting` - agent launched, its session not started yet (Claude still starting in the sandbox).
 - `working` - the agent is processing a prompt.
 - `question` - the agent finished a turn with a direct question to the user.
-- `needs input` - the agent is waiting for a permission or an input dialog.
+- `needs input` - the agent is waiting for a permission or an input dialog, or for a dialog Claude Code itself shows when a session starts, before it takes any prompt (such as its question about the default permission mode).
 - `done` - the agent finished a turn without asking anything, or the user ended its turn at the agent: interrupted it (Esc), cancelled its dialog or refused a permission. The last message then says so (`Interrupted`, `User declined to answer questions`). Also a session that has started and waits at its prompt for the user's first prompt: an agent started without a PROMPT (last message `-`), a session resumed or started over (`/clear`), which keep their last message.
 - `ended` - the session is gone (exited, crashed, sandbox stopped).
 
@@ -82,7 +82,7 @@ A message left with `hq send` reaches the agent when it is ready, depending on i
 
 - `working`: when the agent would finish its turn, it goes on with the message instead, and finishes after that. It stays `working` meanwhile; only the turn's final end notifies (once). With `--now`, the message comes after the agent's next tool call, within the running turn, and the agent may change course; when no tool call comes, it goes when the agent would finish, as without.
 - `done` or `question`, nothing typed in its prompt box: it is entered as the agent's next prompt. With something typed there (the user writing), it waits and goes along with the next prompt sent from there.
-- `needs input`: it waits until the dialog is closed, then goes as above. A message never answers a dialog.
+- `needs input`: it waits until the dialog is closed, then goes as above. A message never answers a dialog. At a dialog Claude Code shows when a session starts, the message waits for the agent's next prompt after the user has answered the dialog, and `hq send` says so.
 - `starting`: it waits for the session to start, then goes as above.
 - `ended`: refused.
 

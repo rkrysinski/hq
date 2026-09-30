@@ -20,34 +20,36 @@ import (
 
 // Agent is one agent: its home window and what hq stored on it.
 type Agent struct {
-	Window   string    `json:"-"`
-	Pane     string    `json:"-"` // the agent's own pane
-	ID       string    `json:"id"`
-	Name     string    `json:"name"`
-	RepoPath string    `json:"repo_path"`
-	Sandbox  string    `json:"sandbox"`
-	Started  time.Time `json:"started"`
-	Alive    bool      `json:"-"` // the agent's pane's process runs
-	Docked   bool      `json:"-"` // its pane is in the dashboard's slot
-	New      bool      `json:"-"` // started with hq new, not yet reported (S2)
-	Inbox    bool      `json:"-"` // its hooks deliver messages (hq send, ADR 0012)
-	ending   bool      // hq is taking the agent down (its sandbox restarting)
-	reported bool      // its session has reported, so its sandbox has run
-	turnEnd  string    // a turn the user ended, as hq first saw it (see Settle)
-	restSeen string    // when hq first saw its screen at rest, as it looked (see Settle)
-	resting  bool      // its screen is at rest, not yet for long enough (see Settle)
-	rewound  bool      // its turn end is a rewind, decided RestDelay after its moment (see Entered)
-	prompt   string    // the prompt it works on, as its hooks reported it
-	deadAt   time.Time // when its pane died, as tmux says; zero when unknown
-	endedAt  time.Time // when its session reported its end
-	started  string    // the start as stored, which keys endSeen
-	reportAt time.Time // the time of its session's last report; zero before its first
-	endSeen  string    // when hq first saw it ended (see SeeEnd)
-	State    string    `json:"state"`
-	Since    time.Time `json:"since"`
-	Branch   string    `json:"branch"`
-	Worktree string    `json:"worktree"` // where Claude works, as the sandbox sees it (for hq code, M4)
-	Last     string    `json:"last"`
+	Window   string     `json:"-"`
+	Pane     string     `json:"-"` // the agent's own pane
+	ID       string     `json:"id"`
+	Name     string     `json:"name"`
+	RepoPath string     `json:"repo_path"`
+	Sandbox  string     `json:"sandbox"`
+	Started  time.Time  `json:"started"`
+	Alive    bool       `json:"-"` // the agent's pane's process runs
+	Docked   bool       `json:"-"` // its pane is in the dashboard's slot
+	New      bool       `json:"-"` // started with hq new, not yet reported (S2)
+	Inbox    bool       `json:"-"` // its hooks deliver messages (hq send, ADR 0012)
+	ending   bool       // hq is taking the agent down (its sandbox restarting)
+	reported bool       // its session has reported, so its sandbox has run
+	turnEnd  string     // a turn the user ended, as hq first saw it (see Settle)
+	restSeen string     // when hq first saw its screen at rest, as it looked (see Settle)
+	resting  bool       // its screen is at rest, not yet for long enough (see Settle)
+	rewound  bool       // its turn end is a rewind, decided RestDelay after its moment (see Entered)
+	prompt   string     // the prompt it works on, as its hooks reported it
+	deadAt   time.Time  // when its pane died, as tmux says; zero when unknown
+	endedAt  time.Time  // when its session reported its end
+	atStart  bool       // its latest report is its session's start
+	startAsk *state.Ask // the dialog its screen shows at the start, if any
+	started  string     // the start as stored, which keys endSeen
+	reportAt time.Time  // the time of its session's last report; zero before its first
+	endSeen  string     // when hq first saw it ended (see SeeEnd)
+	State    string     `json:"state"`
+	Since    time.Time  `json:"since"`
+	Branch   string     `json:"branch"`
+	Worktree string     `json:"worktree"` // where Claude works, as the sandbox sees it (for hq code, M4)
+	Last     string     `json:"last"`
 }
 
 // Repo is the repository's display name.
@@ -306,6 +308,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		return
 	}
 	a.New, a.reported, a.reportAt = false, true, r.Since
+	a.atStart = r.AtStart && r.State == state.Done
 	if r.State == state.Ended {
 		a.endedAt = r.Since
 	}
@@ -326,8 +329,13 @@ const settleDelay = 500 * time.Millisecond
 // user ended, which no hook reports (design §3.4): the agent runs, and its
 // hooks said a moment ago that it works or needs input.
 func (a Agent) Unsettled(now time.Time) bool {
-	return a.Alive && !a.ending && a.reported && (a.State == state.Working || a.State == state.NeedsInput) && now.Sub(a.Since) >= settleDelay
+	return a.Alive && !a.ending && a.reported && (a.State == state.Working || a.State == state.NeedsInput || a.atStart) && now.Sub(a.Since) >= settleDelay
 }
+
+// StartAsk is the dialog Claude shows in place of its prompt box at the
+// start of the agent's session, as Settle read it off the screen; nil when
+// there is none.
+func (a Agent) StartAsk() *state.Ask { return a.startAsk }
 
 // Recall applies a turn end hq saw earlier on an Unsettled agent: done,
 // with its last message, since hq first saw it, as long as no hook has
@@ -376,6 +384,17 @@ const Rewound = "Interrupted"
 // restseen option, with no Value when there is nothing new to store.
 func (a *Agent) Settle(screen string, now time.Time) Record {
 	a.resting = false
+	// A session that has just started may show a dialog of Claude's own
+	// before its prompt box, which no hook reports (#29): the agent needs
+	// input, for as long as the screen shows it. Nothing is stored: every
+	// hq process reads it off the same screen.
+	if a.atStart {
+		if ask, ok := state.StartDialog(screen); ok {
+			a.State, a.startAsk = state.NeedsInput, ask
+			a.Last = ask.Questions[0].Question
+		}
+		return Record{}
+	}
 	if a.Recall() {
 		return Record{}
 	}
