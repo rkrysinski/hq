@@ -3,7 +3,9 @@ package sbx
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -30,7 +32,7 @@ type Client struct {
 
 // List returns every sandbox.
 func (c Client) List() ([]Sandbox, error) {
-	out, err := c.Run.Run(c.bin(), "ls", "--json")
+	out, err := c.run("ls", "--json")
 	if err != nil {
 		return nil, err
 	}
@@ -56,26 +58,26 @@ func (c Client) Create(workspace string) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.Run.Run(c.bin(), "create", "--quiet", "claude", ws)
+	_, err = c.run("create", "--quiet", "claude", ws)
 	return err
 }
 
 // Stop stops a sandbox, ending every session in it; its state is kept.
 func (c Client) Stop(sandbox string) error {
-	_, err := c.Run.Run(c.bin(), "stop", sandbox)
+	_, err := c.run("stop", sandbox)
 	return err
 }
 
 // Remove deletes a sandbox and its state without sbx asking again (hq has
 // asked).
 func (c Client) Remove(sandbox string) error {
-	_, err := c.Run.Run(c.bin(), "rm", "--force", sandbox)
+	_, err := c.run("rm", "--force", sandbox)
 	return err
 }
 
 // Exec runs a command inside a running sandbox.
 func (c Client) Exec(sandbox string, args ...string) error {
-	_, err := c.Run.Run(c.bin(), append([]string{"exec", sandbox}, args...)...)
+	_, err := c.run(append([]string{"exec", sandbox}, args...)...)
 	return err
 }
 
@@ -86,6 +88,63 @@ func (c Client) RunArgv(sandbox string, agentArgs ...string) []string {
 }
 
 func (c Client) bin() string { return c.Platform.SbxCommand() }
+
+// run runs sbx; a failure carries sbx's own error and remedy (Failure).
+func (c Client) run(args ...string) ([]byte, error) {
+	out, err := c.Run.Run(c.bin(), args...)
+	var pe *proc.Error
+	if errors.As(err, &pe) {
+		if msg := Failure(pe.Stderr); msg != "" {
+			failed := *pe
+			failed.Msg = msg
+			return out, &failed
+		}
+	}
+	return out, err
+}
+
+// Failure is what sbx's stderr says went wrong, as one line: its "error:"
+// line, not a warning or progress printed before it, followed by the remedy
+// sbx prints under it ("  try: sbx login"). Without an "error:" line it is
+// the first line that is not a warning; "" when stderr is empty.
+func Failure(stderr string) string {
+	lines := strings.Split(strings.ReplaceAll(stderr, "\r", ""), "\n")
+	at := -1
+	for i, l := range lines {
+		l = strings.TrimSpace(l)
+		if hasPrefixFold(l, "error:") {
+			at = i
+			break
+		}
+		if at < 0 && l != "" && !hasPrefixFold(l, "warn") {
+			at = i
+		}
+	}
+	if at < 0 {
+		for i, l := range lines {
+			if strings.TrimSpace(l) != "" {
+				return strings.TrimSpace(lines[i])
+			}
+		}
+		return ""
+	}
+	msg := strings.TrimSpace(lines[at])
+	if !hasPrefixFold(msg, "error:") {
+		return msg
+	}
+	// The remedy: the lines sbx indents under its error.
+	for _, l := range lines[at+1:] {
+		if l == strings.TrimLeft(l, " \t") || strings.TrimSpace(l) == "" {
+			break
+		}
+		msg += "; " + strings.TrimSpace(l)
+	}
+	return msg
+}
+
+func hasPrefixFold(s, prefix string) bool {
+	return len(s) >= len(prefix) && strings.EqualFold(s[:len(prefix)], prefix)
+}
 
 // ByWorkspace returns the sandbox whose primary workspace is path, compared
 // with same (which may resolve symlinks), or false.

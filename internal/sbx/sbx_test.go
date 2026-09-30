@@ -7,6 +7,7 @@ import (
 
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
+	"github.com/rkrysinski/hq/internal/proc"
 )
 
 type fakeRun struct {
@@ -83,5 +84,56 @@ func TestCreateGivesSbxItsOwnPathAndCommand(t *testing.T) {
 	c := Client{Run: r, Platform: platform.WSL{Run: &fakeRun{err: errors.New("wslpath: boom")}}}
 	if err := c.Create("/w/app"); err == nil {
 		t.Fatal("want the wslpath error")
+	}
+}
+
+func TestFailureIsSbxsErrorLineWithItsRemedy(t *testing.T) {
+	hv := "error: the Windows Hypervisor Platform is unavailable: either the optional feature is not enabled"
+	for _, c := range []struct{ name, stderr, want string }{
+		{"a warning comes first", "WARN: mcp gateway teardown\n" + hv, hv},
+		{"the remedy is on the next line", "error: Not authenticated to Docker\n  try: sbx login", "error: Not authenticated to Docker; try: sbx login"},
+		{"as sbx.exe writes it", "WARN: x\r\nerror: Not authenticated to Docker\r\n  try: sbx login\r\n", "error: Not authenticated to Docker; try: sbx login"},
+		{"progress before the error", "Starting sandboxd daemon...\nerror: global network policy has not been initialized\n\ttry: sbx policy init balanced", "error: global network policy has not been initialized; try: sbx policy init balanced"},
+		{"only what is indented under the error", "error: boom\n  try: this\n  or: that\nunrelated\n  more", "error: boom; try: this; or: that"},
+		{"a blank line ends the remedy", "error: boom\n\n  try: this", "error: boom"},
+		{"an error with nothing under it", "error: boom", "error: boom"},
+		{"the prefix in capitals", "Error: boom", "Error: boom"},
+		{"no error line: the first line that is no warning", "WARN: a\nwarning: b\nstub: no sandbox x\nmore", "stub: no sandbox x"},
+		{"only warnings: the first of them", "\nWARN: a\nWARN: b", "WARN: a"},
+		{"nothing", "", ""},
+		{"blank", " \n", ""},
+	} {
+		if got := Failure(c.stderr); got != c.want {
+			t.Errorf("%s: %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+func TestAFailedCallReportsSbxsErrorAndKeepsWhetherSbxIsInstalled(t *testing.T) {
+	r := &fakeRun{err: &proc.Error{Name: "sbx.exe", Msg: "WARN: mcp gateway teardown", Stderr: "WARN: mcp gateway teardown\nerror: no virtualization\n  try: sbx diagnose"}}
+	c := Client{Run: r, Platform: platformtest.Fake{Sbx: "sbx.exe"}}
+	want := "sbx.exe: error: no virtualization; try: sbx diagnose"
+	if _, err := c.List(); err == nil || err.Error() != want {
+		t.Fatalf("ls: %v", err)
+	}
+	for name, call := range map[string]func() error{
+		"create": func() error { return c.Create("/w/app") },
+		"stop":   func() error { return c.Stop("claude-app") },
+		"rm":     func() error { return c.Remove("claude-app") },
+		"exec":   func() error { return c.Exec("claude-app", "true") },
+	} {
+		if err := call(); err == nil || err.Error() != want {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	if r.err.Error() != "sbx.exe: WARN: mcp gateway teardown" {
+		t.Fatalf("the runner's own error was changed: %v", r.err)
+	}
+
+	// Without stderr (sbx missing, no answer in time) the error stays as it is.
+	r.err = &proc.Error{Name: "sbx.exe", Msg: "executable file not found", NotFound: true}
+	var pe *proc.Error
+	if _, err := c.List(); !errors.As(err, &pe) || !pe.NotFound || pe.Msg != "executable file not found" {
+		t.Fatalf("%v", err)
 	}
 }
