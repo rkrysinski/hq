@@ -1,0 +1,7 @@
+# dev (before the fix): the new test
+$ go test -count=1 -tags integration ./internal/tmux -run TestDocksAtTheSameTimeLeaveOneAgentDocked
+--- FAIL: TestDocksAtTheSameTimeLeaveOneAgentDocked (0.90s)
+    dash_integration_test.go:1202: round 0, a from four places: [<nil> <nil> <nil> <nil>], a docked false, b docked false
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	0.984s
+FAIL

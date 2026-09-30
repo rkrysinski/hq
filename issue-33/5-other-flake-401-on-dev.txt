@@ -1,0 +1,36 @@
+--- FAIL: TestDashboardFollowsAgentsQuitsAndComesBack (22.75s)
+    journey_e2e_test.go:401: never: c docked
+    journey_e2e_test.go:204:   hq  1 agent  view: all                                                                                     Wed 15:44
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ c new   app         -             ● starting     5s    -                                   ⏎ open   c code   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ c · claude-app                                                                                                   ┬─
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: repo  a view: attention  r refresh  q quit
+        
+FAIL
+FAIL	github.com/rkrysinski/hq/e2e	22.864s
+FAIL
