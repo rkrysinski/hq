@@ -1,0 +1,13 @@
+$ export PATH=$(dirname $(command -v hq)):/usr/bin:/bin:/mnt/c/WINDOWS/system32; C=/mnt/c/Users/rex/AppData/Roaming/Claude
+$ ls -d $C
+ls: cannot access '/mnt/c/Users/rex/AppData/Roaming/Claude': No such file or directory
+$ hq mcp install; echo "[exit code: $?]"
+added hq to Claude Desktop (/mnt/c/Users/rex/AppData/Roaming/Claude/claude_desktop_config.json)
+quit and reopen Claude Desktop to load it
+[exit code: 0]
+$ ls -la $C
+total 0
+drwxrwxrwx 1 rex rex 4096 Sep 30 10:46 .
+drwxrwxrwx 1 rex rex 4096 Sep 30 10:46 ..
+-rwxrwxrwx 1 rex rex  425 Sep 30 10:46 claude_desktop_config.json
+$

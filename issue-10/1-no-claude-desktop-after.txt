@@ -1,0 +1,29 @@
+$ export PATH=$(dirname $(command -v hq)):/usr/bin:/bin:/mnt/c/WINDOWS/system32; C=/mnt/c/Users/rex/AppData/Roaming/Claude
+$ ls -d $C
+ls: cannot access '/mnt/c/Users/rex/AppData/Roaming/Claude': No such file or directory
+$ hq mcp install; echo "[exit code: $?]"
+{
+  "mcpServers": {
+    "hq": {
+      "command": "wsl.exe",
+      "args": [
+        "-d",
+        "Ubuntu-24.04",
+        "--exec",
+        "/usr/bin/env",
+        "PATH=/home/rex/hq-qa/src/.claude/worktrees/issue-10-mcp-install-no-desktop/.local-dev:/usr/bin:/bin:/mnt/c/WINDOWS/s
+ystem32",
+        "HQ_TMUX_SOCKET=hq-qa-10-term",
+        "XDG_CONFIG_HOME=/home/rex/hq-qa/src/.claude/worktrees/issue-10-mcp-install-no-desktop/.local-dev/config",
+        "/home/rex/hq-qa/src/.claude/worktrees/issue-10-mcp-install-no-desktop/.local-dev/hq",
+        "mcp"
+      ]
+    }
+  }
+}
+hq: Claude Desktop not found: there is no /mnt/c/Users/rex/AppData/Roaming/Claude; install Claude Desktop and open it once, t
+hen run hq mcp install again (or add the entry above to its configuration by hand)
+[exit code: 3]
+$ ls -la $C
+ls: cannot access '/mnt/c/Users/rex/AppData/Roaming/Claude': No such file or directory
+$

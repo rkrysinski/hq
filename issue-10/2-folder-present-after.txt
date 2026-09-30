@@ -1,0 +1,15 @@
+$ hq mcp install; echo "[exit code: $?]"
+added hq to Claude Desktop (/mnt/c/Users/rex/AppData/Roaming/Claude/claude_desktop_config.json)
+quit and reopen Claude Desktop to load it
+[exit code: 0]
+$ ls $C; hq mcp install; echo "[exit code: $?]"
+claude_desktop_config.json
+hq is already set up in Claude Desktop (/mnt/c/Users/rex/AppData/Roaming/Claude/claude_desktop_config.json)
+[exit code: 0]
+$ echo '{broken' > $C/claude_desktop_config.json; hq mcp install >/dev/null; echo "[exit code: $?]"; cat $C/claude_desktop_co
+nfig.json
+hq: cannot edit /mnt/c/Users/rex/AppData/Roaming/Claude/claude_desktop_config.json safely (not valid JSON); add the entry abo
+ve to it by hand, then quit and reopen Claude Desktop
+[exit code: 3]
+{broken
+$
