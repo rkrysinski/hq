@@ -173,3 +173,33 @@ func TestCommandLineQuotesEachArgumentForTmuxsParser(t *testing.T) {
 		t.Fatalf("%s", got)
 	}
 }
+
+// The line that releases a new agent goes to the agent's own pane, docked
+// or not, never to the placeholder waiting in its home window (#34).
+func TestStartTargetIsTheAgentsOwnPane(t *testing.T) {
+	a := map[string]string{"id": "id-a"}
+	b := map[string]string{"id": "id-b"}
+	for name, c := range map[string]struct {
+		ps   []pane
+		want string
+	}{
+		"at home": {[]pane{
+			{window: "@0", dash: "1", id: "%0", role: roleSlot},
+			{window: "@1", id: "%1", agent: "id-a", options: a},
+			{window: "@2", id: "%2", agent: "id-b", options: b},
+		}, "%1"},
+		"docked, the placeholder in its home window": {[]pane{
+			{window: "@0", dash: "1", id: "%1", agent: "id-a"},
+			{window: "@1", id: "%0", role: roleSlot, options: a},
+			{window: "@2", id: "%2", agent: "id-b", options: b},
+		}, "%1"},
+		"a window without an agent's pane": {[]pane{
+			{window: "@1", id: "%1", options: map[string]string{}},
+		}, "@1"},
+		"no such window": {nil, "@1"},
+	} {
+		if got := startTarget(c.ps, "@1"); got != c.want {
+			t.Errorf("%s: %q, want %q", name, got, c.want)
+		}
+	}
+}
