@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -26,6 +27,11 @@ type Exec struct {
 	Timeout time.Duration
 	// Dir, when set, is the directory the program runs in (Run only).
 	Dir string
+	// StderrFile collects the program's stderr in a temporary file instead
+	// of a pipe (Run only). A Windows program started from WSL 1 cannot open
+	// a pipe as its stderr: VS Code's launcher dies on it, still exiting 0
+	// (#7). A file works there, on WSL 2 and on macOS alike.
+	StderrFile bool
 }
 
 // Run runs name with args. A non-zero exit becomes an error carrying the
@@ -42,7 +48,22 @@ func (e Exec) Run(name string, args ...string) ([]byte, error) {
 	cmd.WaitDelay = time.Second
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
+	var file *os.File
+	if e.StderrFile {
+		f, err := os.CreateTemp("", "hq-stderr-")
+		if err != nil {
+			return nil, &Error{Name: name, Msg: err.Error()}
+		}
+		defer os.Remove(f.Name())
+		defer f.Close()
+		cmd.Stderr, file = f, f
+	}
 	out, err := cmd.Output()
+	if file != nil {
+		if _, serr := file.Seek(0, io.SeekStart); serr == nil {
+			_, _ = io.Copy(&stderr, file)
+		}
+	}
 	if ctx.Err() != nil {
 		return out, &Error{Name: name, Msg: fmt.Sprintf("no answer within %s", e.Timeout)}
 	}
