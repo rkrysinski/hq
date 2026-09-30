@@ -345,10 +345,71 @@ type pane struct {
 	options                  map[string]string // the window's OptionKeys
 	width, height            int               // the pane's size
 	windowSize               string            // the window's, "WxH"
+	moves                    string            // the session's movesOption when the panes were listed
+}
+
+// movesOption is a user option of hq's session that counts the times hq
+// moved panes between the dashboard and the home windows.
+const movesOption = "@hq_moves"
+
+// staleMark is what move's tmux call prints when the panes were moved since
+// they were listed.
+const staleMark = "hq-stale"
+
+// move lists the panes, asks plan for the tmux commands that move them and
+// carries those out only if no other hq process moved panes since the
+// listing: several dock at once (the New agent dialog and the list both dock
+// a new agent, hq go meets the list's own dock), and a plan made from an
+// older listing swaps the wrong panes, such as the agent just docked back
+// out of the slot (#33). The check, the commands and the count are one tmux
+// call, which the server carries out without another client's commands in
+// between; when the count has moved on, move lists and plans again. No
+// commands is nothing to do.
+func (c Client) move(plan func(ps []pane) ([][]string, error)) error {
+	for try := 0; ; try++ {
+		ps, err := c.panes()
+		if err != nil {
+			return err
+		}
+		cmds, err := plan(ps)
+		if err != nil || len(cmds) == 0 {
+			return err
+		}
+		seen := ""
+		if len(ps) > 0 {
+			seen = ps[0].moves
+		}
+		n, _ := strconv.Atoi(seen)
+		cmds = append(cmds, []string{"set-option", "-t", Session, movesOption, strconv.Itoa(n + 1)})
+		out, err := c.tmux("if-shell", "-F", "-t", Session+":", "#{==:#{"+movesOption+"},"+seen+"}", commandLine(cmds), "display-message -p "+staleMark)
+		if err != nil {
+			return err
+		}
+		if !strings.Contains(string(out), staleMark) {
+			return nil
+		}
+		if try == 50 {
+			return errors.New("tmux: the panes kept moving")
+		}
+	}
+}
+
+// commandLine is tmux commands as one string for tmux's command parser,
+// each argument quoted.
+func commandLine(cmds [][]string) string {
+	var lines []string
+	for _, cmd := range cmds {
+		quoted := make([]string, len(cmd))
+		for i, a := range cmd {
+			quoted[i] = tmuxQuote(a)
+		}
+		lines = append(lines, strings.Join(quoted, " "))
+	}
+	return strings.Join(lines, " ; ")
 }
 
 func (c Client) panes() ([]pane, error) {
-	fields := []string{"#{window_id}", "#{window_name}", "#{@hq_dash}", "#{pane_id}", "#{@hq_role}", "#{@hq_agent}", "#{@hq_title}", "#{pane_dead}", "#{@hq_list_pid}", "#{@hq_placeholder}", "#{pane_dead_time}", "#{pane_width}", "#{pane_height}", "#{window_width}x#{window_height}"}
+	fields := []string{"#{window_id}", "#{window_name}", "#{@hq_dash}", "#{pane_id}", "#{@hq_role}", "#{@hq_agent}", "#{@hq_title}", "#{pane_dead}", "#{@hq_list_pid}", "#{@hq_placeholder}", "#{pane_dead_time}", "#{pane_width}", "#{pane_height}", "#{window_width}x#{window_height}", "#{" + movesOption + "}"}
 	for _, k := range OptionKeys {
 		fields = append(fields, "#{@hq_"+k+"}")
 	}
@@ -373,8 +434,9 @@ func (c Client) panes() ([]pane, error) {
 		p.width, _ = strconv.Atoi(f[11])
 		p.height, _ = strconv.Atoi(f[12])
 		p.windowSize = f[13]
+		p.moves = f[14]
 		for i, k := range OptionKeys {
-			if v := f[14+i]; v != "" {
+			if v := f[15+i]; v != "" {
 				p.options[k] = v
 			}
 		}
@@ -672,10 +734,12 @@ func (c Client) Show(window, title string) error { return c.dock(window, title, 
 // its whole screen on every resize, and each redraw leaves a copy of it in
 // the pane's history (#130, #141).
 func (c Client) dock(window, title string, keys bool) error {
-	ps, err := c.panes()
-	if err != nil {
-		return err
-	}
+	return c.move(func(ps []pane) ([][]string, error) { return dockPlan(ps, window, title, keys) })
+}
+
+// dockPlan is the tmux commands that dock the agent of window, given the
+// panes as they are.
+func dockPlan(ps []pane, window, title string, keys bool) ([][]string, error) {
 	var home pane
 	for _, p := range ps {
 		if p.window == window {
@@ -683,7 +747,7 @@ func (c Client) dock(window, title string, keys bool) error {
 		}
 	}
 	if home.id == "" || home.options["id"] == "" {
-		return fmt.Errorf("tmux: no agent window %s", window)
+		return nil, fmt.Errorf("tmux: no agent window %s", window)
 	}
 	id := home.options["id"]
 	var list string
@@ -699,13 +763,13 @@ func (c Client) dock(window, title string, keys bool) error {
 				if keys {
 					cmds = append(cmds, []string{"select-pane", "-t", p.id})
 				}
-				return c.batch(cmds...)
+				return cmds, nil
 			}
 		}
 	}
 	slot, ok := dashSlot(ps)
 	if !ok {
-		return ErrNoDashboard
+		return nil, ErrNoDashboard
 	}
 	var cmds [][]string
 	// The list has the keys while the panes move: the swaps leave them
@@ -739,7 +803,7 @@ func (c Client) dock(window, title string, keys bool) error {
 	if keys {
 		cmds = append(cmds, []string{"select-pane", "-t", home.id})
 	}
-	return c.batch(cmds...)
+	return cmds, nil
 }
 
 // splitCmds splits tmux commands joined by ";" into one slice each.
@@ -806,32 +870,34 @@ func dashSlot(ps []pane) (pane, bool) {
 
 // undock sends the agent in the slot back to its home window, bringing the
 // placeholder back into the slot, and puts the keys on the list. With a
-// hint, the placeholder starts afresh saying it.
-func (c Client) undock(ps []pane, hint string) error {
-	slot, ok := dashSlot(ps)
-	if !ok || slot.agent == "" {
-		return nil
-	}
-	var list string
-	for _, p := range ps {
-		if p.dash == "1" && p.role == roleList {
-			list = p.id
+// hint, the placeholder starts afresh saying it. With a window, only when
+// the agent in the slot is that window's.
+func (c Client) undock(window, hint string) error {
+	return c.move(func(ps []pane) ([][]string, error) {
+		slot, ok := dashSlot(ps)
+		if !ok || slot.agent == "" {
+			return nil, nil
 		}
-	}
-	for _, p := range ps {
-		if p.options["id"] == slot.agent && p.role == roleSlot {
-			cmds := []string{"swap-pane", "-d", "-s", slot.id, "-t", p.id}
-			if hint != "" {
-				cmds = append(append(cmds, ";"), c.respawnPlaceholder(p.id, hint)...)
+		var list string
+		for _, p := range ps {
+			if p.dash == "1" && p.role == roleList {
+				list = p.id
 			}
-			if list != "" {
-				cmds = append(cmds, ";", "select-pane", "-t", list)
-			}
-			_, err := c.tmux(cmds...)
-			return err
 		}
-	}
-	return nil
+		for _, p := range ps {
+			if p.options["id"] == slot.agent && p.role == roleSlot && (window == "" || p.window == window) {
+				cmds := [][]string{{"swap-pane", "-d", "-s", slot.id, "-t", p.id}}
+				if hint != "" {
+					cmds = append(cmds, splitCmds(c.respawnPlaceholder(p.id, hint))...)
+				}
+				if list != "" {
+					cmds = append(cmds, []string{"select-pane", "-t", list})
+				}
+				return cmds, nil
+			}
+		}
+		return nil, nil
+	})
 }
 
 // SetTitle sets the frame title of a pane.

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"unicode/utf8"
 
@@ -1164,5 +1165,54 @@ func TestHomeWindowsFollowTheSlotsSize(t *testing.T) {
 	tm(t, socket, "kill-window", "-t", d.Window)
 	if err := c.FitHomes(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Two hq processes may dock at once: the New agent dialog and the list both
+// dock a new agent (S2), and hq go or a chord can meet the list's own dock.
+// Each plans from the panes it listed; a plan made before the other's dock
+// must not be carried out after it, or the agent is swapped back out (#33).
+func TestDocksAtTheSameTimeLeaveOneAgentDocked(t *testing.T) {
+	c, _ := dashClient(t)
+	dir := t.TempDir()
+	if _, err := c.Dashboard(dir, listStub); err != nil {
+		t.Fatal(err)
+	}
+	wa, _ := agentWindow(t, c, "a", dir, "sleep", "600")
+	wb, _ := agentWindow(t, c, "b", dir, "sleep", "600")
+	for round := 0; round < 12; round++ {
+		// Nothing docked, then the same agent docked from four places at
+		// once: it is docked.
+		if err := c.undock("", ""); err != nil {
+			t.Fatal(err)
+		}
+		var wg sync.WaitGroup
+		errs := make([]error, 4)
+		for i := range errs {
+			wg.Add(1)
+			go func() { defer wg.Done(); errs[i] = c.Dock(wa, "a") }()
+		}
+		wg.Wait()
+		ws := mustWindows(t, c)
+		if !ws["a"].Docked || ws["b"].Docked {
+			t.Fatalf("round %d, a from four places: %v, a docked %v, b docked %v", round, errs, ws["a"].Docked, ws["b"].Docked)
+		}
+		// Two agents at once: one of them is docked, the other at home.
+		wg.Add(2)
+		go func() { defer wg.Done(); errs[0] = c.Dock(wa, "a") }()
+		go func() { defer wg.Done(); errs[1] = c.Show(wb, "b") }()
+		wg.Wait()
+		ws = mustWindows(t, c)
+		if ws["a"].Docked == ws["b"].Docked || ws["a"].Pane == ws["b"].Pane || ws["a"].PaneDead || ws["b"].PaneDead {
+			t.Fatalf("round %d, a and b: %v, a %+v, b %+v", round, errs[:2], ws["a"], ws["b"])
+		}
+		// Each agent's pane is where its state says: docked in the
+		// dashboard's window, or at home in its own.
+		for name, w := range map[string]string{"a": wa, "b": wb} {
+			in := tm(t, c.Socket, "display-message", "-p", "-t", ws[name].Pane, "#{window_id}")
+			if home := in == w; home == ws[name].Docked {
+				t.Fatalf("round %d: %s docked %v, its pane in window %s (home %s)", round, name, ws[name].Docked, in, w)
+			}
+		}
 	}
 }
