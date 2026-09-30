@@ -221,7 +221,7 @@ func TestMCPServerSupervisesAgentsOverStdio(t *testing.T) {
 	if out := s.ok("go", map[string]any{"name": "a"}); out != "docked a; no terminal shows the dashboard: run hq in a terminal to see it\n" {
 		t.Fatalf("go: %q", out)
 	}
-	if out := s.ok("kill", map[string]any{"name": "a"}); out != "killed a; the sandbox stays\n" {
+	if out := s.ok("kill", map[string]any{"name": "a", "confirmed": true}); out != "killed a; the sandbox stays\n" {
 		t.Fatalf("kill: %q", out)
 	}
 	var ls waited

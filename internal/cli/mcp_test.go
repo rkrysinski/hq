@@ -85,7 +85,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 		"read": "what it asks",
 		"wait": "since is required: the next_since of the most recent list, read, send or wait result",
 		"send": "wait for the agent with that next_since as since",
-		"kill": "Only when the user wants it",
+		"kill": "without confirmed set to true it ends nothing",
 	} {
 		if !strings.Contains(tools[name].Description, want) {
 			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
@@ -318,16 +318,23 @@ func TestGoWithoutATerminalLeavesTheAgentDocked(t *testing.T) {
 	}
 }
 
-func TestMCPKillEndsTheAgentWithoutAskingAgain(t *testing.T) {
+func TestMCPKillEndsTheAgentOnlyOnTheUsersWord(t *testing.T) {
 	f := goFakes()
 	cs := mcpSession(t, f)
-	if out, isErr := call(t, cs, "kill", map[string]any{"name": "a"}); isErr || out != "killed a; the sandbox stays\n" {
+	// Without the user's word nothing ends, and the supervisor is told to ask.
+	for _, args := range []map[string]any{{"name": "a"}, {"name": "a", "confirmed": false}} {
+		out, isErr := call(t, cs, "kill", args)
+		if !isErr || out != "hq: a not killed: ask the user whether to end it, then call kill with confirmed set to true\n" || len(f.tmux.windows) != 2 {
+			t.Fatalf("%v: %v %q, windows %+v", args, isErr, out, f.tmux.windows)
+		}
+	}
+	if out, isErr := call(t, cs, "kill", map[string]any{"name": "a", "confirmed": true}); isErr || out != "killed a; the sandbox stays\n" {
 		t.Fatalf("%v %q", isErr, out)
 	}
 	if len(f.tmux.windows) != 1 {
 		t.Fatalf("windows left %+v", f.tmux.windows)
 	}
-	if out, isErr := call(t, cs, "kill", map[string]any{"name": "a"}); !isErr || out != "hq: no agent 'a' (see hq ls)\n" {
+	if out, isErr := call(t, cs, "kill", map[string]any{"name": "a", "confirmed": true}); !isErr || out != "hq: no agent 'a' (see hq ls)\n" {
 		t.Fatalf("again: %v %q", isErr, out)
 	}
 }

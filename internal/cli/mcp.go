@@ -100,7 +100,7 @@ const mcpInstructions = `hq runs Claude Code agents, each working on one task in
 - Every list, read, send and wait result carries next_since, the moment it was taken. Always pass the next_since of the most recent of them as wait's since: wait then returns every change after that moment, even one that happened before wait was called, and none twice. A wait from a later moment misses what happened in between, such as an agent that answered at once; to start watching with no result yet, call list first.
 - To watch agents, call wait in a loop, each time with the next_since of the most recent result: it returns as soon as an agent is done, asks a question, needs input or ends, or returns no agents after its timeout; then call it again.
 - An agent that needs input has a dialog open (a permission, or questions with options). Never try to answer it, with send or otherwise: tell the user which agent waits and what it asks; they answer it in hq (go shows them the agent).
-- kill ends an agent's session for good: only when the user wants it.`
+- kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.`
 
 // Tool inputs.
 type (
@@ -117,6 +117,10 @@ type (
 		Names   []string `json:"names,omitempty" jsonschema:"the agents to wait for; every agent when empty"`
 		Since   string   `json:"since" jsonschema:"the next_since of the most recent list, read, send or wait result (e.g. 2026-09-28T10:25:01.25Z), or a duration back from now (10m); wait returns what changed after it"`
 		Timeout int      `json:"timeout,omitempty" jsonschema:"seconds to wait before returning no agents; default and at most 50"`
+	}
+	mcpKillIn struct {
+		Name      string `json:"name" jsonschema:"the agent's name, as list shows it"`
+		Confirmed bool   `json:"confirmed,omitempty" jsonschema:"true only when the user has said, in this conversation, to end this agent; otherwise ask them first, naming the agent, and call kill again once they agree"`
 	}
 	mcpSendIn struct {
 		Name string `json:"name" jsonschema:"the agent's name, as list shows it"`
@@ -217,11 +221,17 @@ func newMCPServer(d deps) *mcp.Server {
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "kill",
 		Description: "End an agent's Claude session and remove it from hq; its conversation cannot be continued. Its sandbox, worktree and commits stay. " +
-			"Only when the user wants it.",
+			"Only when the user wants it: without confirmed set to true it ends nothing and says to ask the user.",
 		Annotations: &mcp.ToolAnnotations{Title: "Kill an agent", DestructiveHint: &yes, OpenWorldHint: &no},
-	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpNameIn) (*mcp.CallToolResult, any, error) {
-		// The client asks the user before a destructive tool runs, which
-		// is the confirmation -y stands for.
+	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpKillIn) (*mcp.CallToolResult, any, error) {
+		// A client may run a destructive tool without asking the user
+		// (Claude Desktop did, #26), so the user's word comes with the call:
+		// it is the confirmation -y stands for.
+		if !in.Confirmed {
+			return callCommand(d, func(Env, deps, []string) error {
+				return usageErr("%s not killed: ask the user whether to end it, then call kill with confirmed set to true", in.Name)
+			})
+		}
 		return callCommand(d, runKill, in.Name, "-y")
 	})
 	return s
