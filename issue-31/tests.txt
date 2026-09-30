@@ -1,0 +1,8 @@
+# dev (a1739ad): 8 runs
+2 of 8 failed (b never became starting / a never became starting)
+
+$ go test -count=10 -tags integration ./internal/cli -run TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox   # this branch
+ok  	github.com/rkrysinski/hq/internal/cli	97.056s
+
+$ go test -count=1 -tags integration ./internal/cli
+ok  	github.com/rkrysinski/hq/internal/cli	88.916s
