@@ -1,0 +1,15 @@
+# Does a BEL written in a hidden agent's pane flash Windows Terminal's taskbar button?
+# Windows Terminal 1.24.11911.0, the dashboard in its window, Notepad in front, agent a's window hidden (not docked).
+# The BEL is written into agent a's pane by hand (bare, and wrapped in tmux's passthrough as Claude wraps its
+# sequences): the fake Claude emits no notification sequence. bellStyle is set in profiles.defaults of settings.json.
+# Flashing = highlighted pixels over the Terminal button in the picture of the taskbar (the .png of the same name).
+
+as installed (no bellStyle), bare BEL:                not flashing (0 highlighted pixels)
+as installed (no bellStyle), BEL in passthrough:      not flashing (0 highlighted pixels)
+"bellStyle": ["audible", "taskbar"], nothing written: not flashing (0 highlighted pixels)
+"bellStyle": ["audible", "taskbar"], bare BEL:        FLASHING (1072 highlighted pixels)
+"bellStyle": ["audible", "taskbar"], passthrough:     FLASHING (1072 highlighted pixels)
+"bellStyle": "taskbar", bare BEL:                     FLASHING (1072 highlighted pixels)
+settings restored (no bellStyle), bare BEL:           not flashing (0 highlighted pixels)
+
+Windows Terminal's settings.json after the run is byte-identical to the file before it.
