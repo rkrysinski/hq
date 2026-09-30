@@ -1,0 +1,9 @@
+$ # the dashboard is attached in another tmux pane, which is no window titled hq - agents
+$ hq go a; echo "[exit code: $?]"
+hq: docked a in the open dashboard; could not bring its window to the front: powershell.exe: no window titled hq - agent
+s
+[exit code: 0]
+$ hq go nosuch; echo "[exit code: $?]"
+hq: no agent 'nosuch' (see hq ls)
+[exit code: 2]
+$

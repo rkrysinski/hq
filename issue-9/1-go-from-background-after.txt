@@ -1,0 +1,19 @@
+# hq go NAME from a process with no foreground window, Notepad in front; the dashboard is in a Windows Terminal window
+foreground before: Untitled - Notepad
+$ time hq go a
+docked a in the open dashboard
+[exit code: 0] [1.55 s]
+foreground after: hq - agents
+
+foreground before: Untitled - Notepad
+$ time hq go b
+docked b in the open dashboard
+[exit code: 0] [1.36 s]
+foreground after: hq - agents
+
+foreground before: Untitled - Notepad
+$ time hq go a
+docked a in the open dashboard
+[exit code: 0] [1.40 s]
+foreground after: hq - agents
+

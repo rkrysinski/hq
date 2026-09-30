@@ -1,0 +1,23 @@
+$ go test ./...
+ok  	github.com/rkrysinski/hq/internal/agent	(cached)
+ok  	github.com/rkrysinski/hq/internal/cli	(cached)
+ok  	github.com/rkrysinski/hq/internal/dash	(cached)
+ok  	github.com/rkrysinski/hq/internal/desktop	(cached)
+ok  	github.com/rkrysinski/hq/internal/dialog	(cached)
+ok  	github.com/rkrysinski/hq/internal/gh	(cached)
+ok  	github.com/rkrysinski/hq/internal/iterm	(cached)
+ok  	github.com/rkrysinski/hq/internal/platform	(cached)
+ok  	github.com/rkrysinski/hq/internal/prefs	(cached)
+ok  	github.com/rkrysinski/hq/internal/sbx	(cached)
+ok  	github.com/rkrysinski/hq/internal/state	(cached)
+ok  	github.com/rkrysinski/hq/internal/tmux	(cached)
+ok  	github.com/rkrysinski/hq/internal/update	(cached)
+ok  	github.com/rkrysinski/hq/tools/testgate	(cached)
+
+$ go test -count=1 -tags integration ./internal/cli ./internal/platform
+--- FAIL: TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox (27.11s)
+    cli_integration_test.go:561: a never became starting: [{Name:b Repo:app RepoPath:/tmp/TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox4276356070/002/app Branch:main State:done Since:2026-09-30 08:59:38.0346427 +0000 UTC AgeSeconds:21 Last: Sandbox:claude-app Pending:0} {Name:a Repo:app RepoPath:/tmp/TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox4276356070/002/app Branch:main State:done Since:2026-09-30 08:59:37.5221372 +0000 UTC AgeSeconds:22 Last:Done: hello Sandbox:claude-app Pending:0}]
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	98.648s
+ok  	github.com/rkrysinski/hq/internal/platform	0.398s
+FAIL

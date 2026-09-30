@@ -1,0 +1,14 @@
+# The script of this branch with the Alt tap taken out (the line with keybd_event(0x12 ...)), run by a process with no foreground window:
+# Windows refuses, and the script sees it.
+foreground before: Untitled - Notepad
+$ powershell.exe -EncodedCommand <script without the Alt tap>
+Windows kept another window in front; the window titled hq - agents flashes on the taskbar
+[exit code: 1]
+foreground after: Untitled - Notepad
+
+foreground before: Untitled - Notepad
+$ powershell.exe -EncodedCommand <script without the Alt tap>
+Windows kept another window in front; the window titled hq - agents flashes on the taskbar
+[exit code: 1]
+foreground after: Untitled - Notepad
+
