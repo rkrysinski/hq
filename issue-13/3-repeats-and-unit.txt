@@ -1,0 +1,33 @@
+$ go test -count=3 -tags integration ./internal/tmux ./internal/proc
+--- FAIL: TestDockedAgentThatEndsStaysReadable (0.59s)
+    dash_integration_test.go:449: {ID:@1 Name:e Pane:%4 PaneDead:true DeadAt:0001-01-01 00:00:00 +0000 UTC Docked:true Title:e Options:map[id:id-e name:e]}
+--- FAIL: TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit (0.38s)
+    tmux_integration_test.go:82: died at 0001-01-01 00:00:00 +0000 UTC, started 2026-09-30 11:22:14.1797472 +0200 CEST m=+71.170668001
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	75.658s
+ok  	github.com/rkrysinski/hq/internal/proc	3.207s
+FAIL
+[exit code: 1]
+
+$ go test -count=2 -tags e2e ./e2e/...
+ok  	github.com/rkrysinski/hq/e2e	67.581s
+[exit code: 0]
+
+$ go test ./...
+ok  	github.com/rkrysinski/hq/internal/agent	0.364s
+ok  	github.com/rkrysinski/hq/internal/cli	0.711s
+ok  	github.com/rkrysinski/hq/internal/dash	8.388s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.101s
+ok  	github.com/rkrysinski/hq/internal/dialog	0.938s
+ok  	github.com/rkrysinski/hq/internal/gh	0.110s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.188s
+ok  	github.com/rkrysinski/hq/internal/platform	0.088s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.200s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.373s
+ok  	github.com/rkrysinski/hq/internal/state	0.363s
+ok  	github.com/rkrysinski/hq/internal/tmux	0.349s
+ok  	github.com/rkrysinski/hq/internal/update	0.323s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.256s
+
+$ go run ./tools/testgate pyramid
+unit 395, integration 104, e2e 3 (unit share 79%, minimum 50%)

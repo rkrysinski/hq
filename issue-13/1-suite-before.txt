@@ -1,0 +1,77 @@
+$ go test -count=1 -tags integration ./...
+# github.com/rkrysinski/hq/internal/proc [github.com/rkrysinski/hq/internal/proc.test]
+internal/proc/proc_integration_test.go:116:20: undefined: syscall.Getsid
+--- FAIL: TestMCPServerSupervisesAgentsOverStdio (5.39s)
+    mcp_integration_test.go:177: new map[dir:/tmp/TestMCPServerSupervisesAgentsOverStdio3847543071/005/app name:a prompt:hello]: hq: sbx not found; install Docker Sandboxes
+--- FAIL: TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest (3.00s)
+    mcp_integration_test.go:275: exit status 3 "{\n  \"mcpServers\": {\n    \"hq\": {\n      \"command\": \"wsl.exe\",\n      \"args\": [\n        \"--exec\",\n        \"/usr/bin/env\",\n        \"PATH=/opt/tools/bin:/usr/bin:/bin\",\n        \"/tmp/TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest2298275680/001/hq\",\n        \"mcp\"\n      ]\n    }\n  }\n}\n" "hq: cannot find Claude Desktop's configuration (cmd.exe: exec: \"cmd.exe\": executable file not found in $PATH); add the entry above to it by hand, then quit and reopen Claude Desktop\n"
+FAIL
+FAIL	github.com/rkrysinski/hq/cmd/hq	19.983s
+ok  	github.com/rkrysinski/hq/internal/agent	0.107s
+ok  	github.com/rkrysinski/hq/internal/cli	93.601s
+ok  	github.com/rkrysinski/hq/internal/dash	9.044s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.289s
+ok  	github.com/rkrysinski/hq/internal/dialog	1.035s
+ok  	github.com/rkrysinski/hq/internal/gh	0.234s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.252s
+ok  	github.com/rkrysinski/hq/internal/platform	1.475s
+?   	github.com/rkrysinski/hq/internal/platform/platformtest	[no test files]
+ok  	github.com/rkrysinski/hq/internal/prefs	1.549s
+FAIL	github.com/rkrysinski/hq/internal/proc [build failed]
+ok  	github.com/rkrysinski/hq/internal/repo	2.229s
+ok  	github.com/rkrysinski/hq/internal/sbx	3.760s
+ok  	github.com/rkrysinski/hq/internal/state	22.184s
+?   	github.com/rkrysinski/hq/internal/testutil	[no test files]
+--- FAIL: TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters (1.17s)
+    tmux_integration_test.go:393: new: "1.5 \"a b\" \\$x" <nil>
+--- FAIL: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.85s)
+    tmux_integration_test.go:442: got 7304 bytes of 12360
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	53.837s
+ok  	github.com/rkrysinski/hq/internal/update	0.930s
+?   	github.com/rkrysinski/hq/internal/version	[no test files]
+?   	github.com/rkrysinski/hq/tools/fakeclaude	[no test files]
+ok  	github.com/rkrysinski/hq/tools/testgate	0.216s
+FAIL
+[exit code: 1]
+
+$ go test -count=1 -tags e2e ./e2e/...
+--- FAIL: TestStartSeeEnterKill (5.08s)
+    journey_e2e_test.go:114: new: exit 3 "hq: sbx not found; install Docker Sandboxes\n"
+--- FAIL: TestDashboardFollowsAgentsQuitsAndComesBack (9.09s)
+    journey_e2e_test.go:256: never: a new, starting
+    journey_e2e_test.go:204:   hq  0 agents  view: attention                                                                              Wed 11:12
+        
+          TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+        
+                             ╭──────────────────────────────────────────────────────────────────────────╮
+                             │                                New agent                               × │
+                             │ ──────────────────────────────────────────────────────────────────────── │
+                             │                                                                          │
+                             │         ╭──────────────────────────────────────────────────────────────╮ │
+                             │ name    │ a                                                            │ │
+        ─┬ ▸ placeholder     │         ╰──────────────────────────────────────────────────────────────╯ │                     ┬─
+         │hq: nothing docked │         ╭──────────────────────────────────────────────────────────────╮ │                     │
+         │                   │ dir     │ /tmp/TestDashboardFollowsAgentsQuitsAndComesBack1071381026/0 │ │                     │
+         │                   │         │ 07/app                                                       │ │                     │
+         │                   │         ╰──────────────────────────────────────────────────────────────╯ │                     │
+         │                   │         ╭──────────────────────────────────────────────────────────────╮ │                     │
+         │                   │ prompt  │ say hi                                                       │ │                     │
+         │                   │         ╰──────────────────────────────────────────────────────────────╯ │                     │
+         │                   │ dir defaults to the cursor row's repo · Tab next field · Esc cancel      │                     │
+         │                   │ sbx not found; install Docker Sandboxes                                  │                     │
+         │                   │                                                                          │                     │
+         │                   │                           Start ⏎       Cancel                           │                     │
+         │                   │                                                                          │                     │
+         │                   ╰──────────────────────────────────────────────────────────────────────────╯                     │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit
+        
+FAIL
+FAIL	github.com/rkrysinski/hq/e2e	27.877s
+FAIL
+[exit code: 1]

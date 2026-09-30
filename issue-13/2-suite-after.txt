@@ -1,0 +1,30 @@
+# With a tripwire sbx.exe on PATH where the real one is (it logs every call and fails)
+$ go test -count=1 -tags integration ./...
+ok  	github.com/rkrysinski/hq/cmd/hq	48.744s
+ok  	github.com/rkrysinski/hq/internal/agent	0.119s
+ok  	github.com/rkrysinski/hq/internal/cli	109.046s
+ok  	github.com/rkrysinski/hq/internal/dash	9.238s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.241s
+ok  	github.com/rkrysinski/hq/internal/dialog	1.073s
+ok  	github.com/rkrysinski/hq/internal/gh	0.105s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.390s
+ok  	github.com/rkrysinski/hq/internal/platform	1.417s
+?   	github.com/rkrysinski/hq/internal/platform/platformtest	[no test files]
+ok  	github.com/rkrysinski/hq/internal/prefs	1.464s
+ok  	github.com/rkrysinski/hq/internal/proc	1.905s
+ok  	github.com/rkrysinski/hq/internal/repo	2.308s
+ok  	github.com/rkrysinski/hq/internal/sbx	4.295s
+ok  	github.com/rkrysinski/hq/internal/state	39.506s
+?   	github.com/rkrysinski/hq/internal/testutil	[no test files]
+ok  	github.com/rkrysinski/hq/internal/tmux	69.848s
+ok  	github.com/rkrysinski/hq/internal/update	1.003s
+?   	github.com/rkrysinski/hq/internal/version	[no test files]
+?   	github.com/rkrysinski/hq/tools/fakeclaude	[no test files]
+ok  	github.com/rkrysinski/hq/tools/testgate	0.138s
+[exit code: 0]
+
+$ go test -count=1 -tags e2e ./e2e/...
+ok  	github.com/rkrysinski/hq/e2e	40.150s
+[exit code: 0]
+
+calls of sbx.exe by the suite: 0
