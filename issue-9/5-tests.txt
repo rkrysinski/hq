@@ -21,3 +21,9 @@ FAIL
 FAIL	github.com/rkrysinski/hq/internal/cli	98.648s
 ok  	github.com/rkrysinski/hq/internal/platform	0.398s
 FAIL
+
+$ go test -count=3 -tags integration ./internal/cli -run TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox   # retest of the one failure above
+ok  	github.com/rkrysinski/hq/internal/cli	11.574s
+
+$ go test -count=1 -tags integration ./internal/cli   # whole package again
+ok  	github.com/rkrysinski/hq/internal/cli	74.595s
