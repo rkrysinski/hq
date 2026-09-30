@@ -1,0 +1,102 @@
+# The commands the new setup text names, against the real sbx 0.46.0 on this machine (read-only: help, version and diagnose)
+
+$ sbx.exe version
+sbx version: v0.46.0 991967dc90ce0d9a440cd1df1bdf3e395c5a2693
+[exit code: 0]
+
+$ sbx.exe login --help | head -12
+Sign in to Docker
+
+Usage:
+  sbx login [flags]
+
+Flags:
+  -h, --help              help for login
+      --password-stdin    Read password or access token from stdin
+      --username string   Docker username for non-interactive login
+
+Global Flags:
+      --cloud   Dispatch to Docker Cloud Sandboxes API instead of local sandboxd (supported by a growing set of verbs — run 'sbx --cloud --help' for the current list)
+[exit code: 0]
+
+$ sbx.exe policy init --help | head -16
+Initialize the global network policy that applies to all sandboxes.
+
+This sets the initial global network policy and must be run before adding
+custom allow/deny rules or starting a sandbox for the first time. It is a
+one-time setup: once initialized, use "sbx policy reset" to start over.
+
+This is the initial global policy, not a per-sandbox default; you can change
+it later. Per-sandbox rules, including those added by kits such as the
+built-in agent kits, apply on top for individual sandboxes.
+
+Available policies:
+  allow-all   All outbound network traffic is allowed
+  balanced    Typical development traffic is allowed, such as AI services and package registries
+  deny-all    All outbound network traffic is blocked
+
+After initializing, use "sbx policy allow/deny/rm" to change the global policy.
+write /dev/stdout: The specified network name is no longer available.
+[exit code: 0]
+
+$ timeout 120 sbx.exe diagnose
+
+sbx diagnose
+─────────────────────────────────────────
+
+  Installation
+  ✓ CLI binary — found
+      C:\Users\rex\AppData\Local\DockerSandboxes\bin\sbx.exe
+  ✓ Binary version — v0.46.0
+  ✓ Daemon — healthy
+      version v0.46.0
+  ✓ Daemon diagnostics — collected (55833 bytes)
+
+  Platform
+  ✗ Virtualization — not available
+      WinHvPlatform.dll: %1 is not a valid Win32 application.
+      → The platform's virtualization API could not be loaded, so sandboxes cannot start. On Windows it is provided by the Hypervisor Platform feature and by Hyper-V.
+  ✓ mkfs.erofs — found
+      C:\Users\rex\AppData\Local\DockerSandboxes\libexec\mkfs.erofs.exe, default block size 4096 bytes, guest kernel page size 4096 bytes
+
+  Storage
+  ✓ Storage directories — all 1 paths present
+  ✓ Directory permissions — all writable
+  ✓ Disk space — 24.08GiB free
+      24.08GiB free of 63.06GiB on the state directory's volume
+
+  Connection
+  ✓ Version match — v0.46.0
+  ✓ Socket — path configured
+  ✓ SSH client config — not configured
+  ✓ Authentication — authenticated
+
+─────────────────────────────────────────
+  12 passed · 1 failed
+
+[exit code: 1]
+
+$ file sbx.exe
+sbx.exe: PE32+ executable (console) x86-64, for MS Windows, 8 sections
+[exit code: 0]
+
+$ cmd.exe /c 'winget show Docker.sbx' 2>&1 | head -12
+Found Docker Sandboxes [Docker.sbx]
+Version: 0.46.0
+Publisher: Docker Inc.
+Publisher Url: https://www.docker.com/
+Publisher Support Url: https://www.docker.com/support/
+Author: Docker Inc.
+Description: Docker Sandboxes gives agents safe, isolated environments to work in.
+Homepage: https://docs.docker.com/ai/sandboxes/
+License: Proprietary
+License Url: https://github.com/docker/dash-releases/blob/HEAD/LICENSE
+Privacy Url: https://www.docker.com/legal/privacy/
+Copyright: Copyright (c) Docker Inc.
+[exit code: 0]
+
+$ uname -r; cmd.exe /c 'echo %PROCESSOR_ARCHITECTURE%'
+4.4.0-26100-Microsoft
+ARM64
+[exit code: 0]
+
