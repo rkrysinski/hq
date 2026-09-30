@@ -16,7 +16,7 @@ import (
 func TestRunReturnsStdoutAndFirstStderrLineOnFailure(t *testing.T) {
 	out, err := Exec{}.Run("sh", "-c", `echo out; echo "first" >&2; echo "second" >&2; exit 3`)
 	var pe *Error
-	if !errors.As(err, &pe) || pe.Msg != "first" || pe.NotFound || string(out) != "out\n" {
+	if !errors.As(err, &pe) || pe.Msg != "first" || pe.Stderr != "first\nsecond" || pe.NotFound || string(out) != "out\n" {
 		t.Fatalf("%q %v", out, err)
 	}
 	if pe.Error() != "sh: first" {
