@@ -410,6 +410,13 @@ func TestMCPInstallPrintsTheEntryWhenItCannotEditTheFile(t *testing.T) {
 		errOut != "hq: cannot edit /c.json safely (not valid JSON); add the entry above to it by hand, then quit and reopen Claude Desktop\n" {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
+	f.desktop = "/Users/dev/Library/Application Support/Claude/claude_desktop_config.json"
+	f.installErr = desktop.ErrNoFolder
+	code, out, errOut = f.run("mcp", "install")
+	if code != ExitEnvironment || json.Unmarshal([]byte(out), &snippet) != nil || snippet["mcpServers"]["hq"].Command != f.exe ||
+		errOut != "hq: Claude Desktop not found: there is no /Users/dev/Library/Application Support/Claude; install Claude Desktop and open it once, then run hq mcp install again (or add the entry above to its configuration by hand)\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
 	f.desktopErr = errors.New("Windows gave no %APPDATA%")
 	if code, out, errOut := f.run("mcp", "install"); code != ExitEnvironment || !strings.Contains(out, `"mcpServers"`) || !strings.HasPrefix(errOut, "hq: cannot find Claude Desktop's configuration (Windows gave no %APPDATA%)") {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
