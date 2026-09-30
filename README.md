@@ -1,6 +1,6 @@
-# hq
+# hq - agents headquarters
 
-One console for many Claude Code agents. Each agent runs in a Docker Sandboxes (`sbx`) microVM and a tmux session; hq shows all of them in one dashboard, sorted by who needs you, and lets you enter, start, stop and inspect any of them from the dashboard or from any shell.
+hq (headquarters) is one console for many Claude Code agents. Each agent runs in a Docker Sandboxes (`sbx`) microVM and a tmux session; hq shows all of them in one dashboard, sorted by who needs you, and lets you enter, start, stop and inspect any of them from the dashboard or from any shell.
 
 ![The hq dashboard: three agents, the one waiting for an answer on top, its session open below](docs/images/dashboard.png)
 
