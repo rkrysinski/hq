@@ -1,0 +1,95 @@
+$ go test ./...
+ok  	github.com/rkrysinski/hq/internal/agent	0.255s
+ok  	github.com/rkrysinski/hq/internal/cli	0.620s
+ok  	github.com/rkrysinski/hq/internal/dash	8.412s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.231s
+ok  	github.com/rkrysinski/hq/internal/dialog	1.139s
+ok  	github.com/rkrysinski/hq/internal/gh	0.313s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.269s
+ok  	github.com/rkrysinski/hq/internal/platform	0.204s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.190s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.262s
+ok  	github.com/rkrysinski/hq/internal/state	0.227s
+ok  	github.com/rkrysinski/hq/internal/tmux	(cached)
+ok  	github.com/rkrysinski/hq/internal/update	0.232s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.183s
+
+$ go test -count=1 -tags integration ./internal/tmux ./internal/cli ./cmd/hq
+--- FAIL: TestScreensShowWhatEachPaneShows (0.42s)
+    tmux_integration_test.go:186: map["%1":"first\nscreen\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPane is dead (status 0, Wed Sep 30 13:08:43 2026)\n" "%2":"\n● User declined\n❯\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"]
+--- FAIL: TestLastScreenDrawsTheLatestOutputAgainAfterAReset (0.43s)
+    tmux_integration_test.go:241: dead pane shows:
+        line 40
+        line 41
+        line 42
+        line 43
+        line 44
+        line 45
+        line 46
+        line 47
+        line 48
+        line 49
+        line 50
+        line 51
+        line 52
+        line 53
+        line 54
+        line 55
+        line 56
+        line 57
+        line 58
+        line 59
+        line 60
+        error: sandbox stopped
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	50.825s
+ok  	github.com/rkrysinski/hq/internal/cli	89.941s
+ok  	github.com/rkrysinski/hq/cmd/hq	29.001s
+FAIL
+
+$ go test -count=1 -tags e2e ./e2e/...
+--- FAIL: TestDashboardFollowsAgentsQuitsAndComesBack (9.32s)
+    journey_e2e_test.go:258: never: a docked
+    journey_e2e_test.go:204:   hq  1 agent · 1 done  view: attention                                                                      Wed 13:09
+        
+          TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+        
+                                                  nothing needs you - press a for all
+        
+        
+        
+        
+        
+        ─┬ ▸ placeholder                                                                                                      ┬─
+         │hq: nothing docked - select an agent above or press n                                                               │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+        ─┴───────────────────────────────────────────────────────────────────────────────────────────────�
+         ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit
+        
+FAIL
+FAIL	github.com/rkrysinski/hq/e2e	27.075s
+FAIL
+
+unit 399, integration 107, e2e 3 (unit share 79%, minimum 50%)
+
+# The three failures above, repeated on this branch and on dev (a1f5423), same machine:
+#   internal/tmux, 6 runs of TestScreensShowWhatEachPaneShows + TestLastScreenDrawsTheLatestOutputAgainAfterAReset:
+#     branch: TestLastScreen... failed 2 of 6, TestScreens... 0 of 6
+#     dev:    TestScreens... failed 2 of 6, TestLastScreen... 0 of 6
+#   e2e TestDashboardFollowsAgentsQuitsAndComesBack, 4 runs each: branch 4 of 4 pass, dev 4 of 4 pass
+# They are the dead-pane flakes of #22, not this change.
