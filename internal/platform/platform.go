@@ -43,9 +43,22 @@ type Platform interface {
 	DesktopServer(hq string, env []string) (command string, args []string, environment map[string]string)
 }
 
+// OverrideEnv names the variable that decides the platform instead of
+// Detect's look at the machine: "native" or "wsl". It is for tests and QA,
+// so that a suite run on WSL can still run hq as it runs on macOS, with the
+// stub sbx, and never reaches the Windows side (design §7.2).
+const OverrideEnv = "HQ_PLATFORM"
+
 // Detect chooses the platform at startup: WSL when WSL_DISTRO_NAME is set or
 // the kernel release names Microsoft, otherwise Native.
+// OverrideEnv, when set to one of its values, decides instead.
 func Detect(getenv func(string) string, readFile func(string) ([]byte, error), run proc.Runner) Platform {
+	switch getenv(OverrideEnv) {
+	case "native":
+		return Native{}
+	case "wsl":
+		return WSL{Run: run, BrowserSet: getenv("BROWSER") != "", Distro: getenv("WSL_DISTRO_NAME")}
+	}
 	if d := getenv("WSL_DISTRO_NAME"); d != "" {
 		return WSL{Run: run, BrowserSet: getenv("BROWSER") != "", Distro: d}
 	}

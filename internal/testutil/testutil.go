@@ -20,6 +20,10 @@ import (
 	"time"
 )
 
+// platformEnv is platform.OverrideEnv; named here because the packages
+// platform is built on use testutil in their own tests.
+const platformEnv = "HQ_PLATFORM"
+
 var sockets atomic.Int64
 
 // TmuxSocket returns a tmux socket name private to this test and ends that
@@ -53,9 +57,12 @@ func killServer(socket string) {
 }
 
 // SbxStub returns the path of the stub sbx and its state directory, set in
-// SBX_STUB_DIR for this test.
+// SBX_STUB_DIR for this test. An hq the test starts runs as on macOS, where
+// sbx is `sbx` and paths are hq's own, whatever the machine: on WSL it would
+// otherwise look for sbx.exe, which is the user's real one or none (#13).
 func SbxStub(t *testing.T) (bin, dir string) {
 	t.Helper()
+	t.Setenv(platformEnv, "native")
 	_, file, _, _ := runtime.Caller(0)
 	bin = filepath.Join(filepath.Dir(file), "sbx-stub")
 	dir = t.TempDir()
@@ -65,8 +72,9 @@ func SbxStub(t *testing.T) (bin, dir string) {
 
 // WSLStubs puts the stub sbx on PATH as sbx.exe, the stub wslpath as
 // wslpath and the stub cmd.exe (it knows only %APPDATA%) as cmd.exe, as hq
-// finds them on WSL, and returns the stub sbx's state
-// directory, set in SBX_STUB_DIR for this test.
+// finds them on WSL, has an hq the test starts run as on WSL whatever the
+// machine, and returns the stub sbx's state directory, set in SBX_STUB_DIR
+// for this test.
 func WSLStubs(t *testing.T) string {
 	t.Helper()
 	sbx, dir := SbxStub(t)
@@ -77,6 +85,7 @@ func WSLStubs(t *testing.T) string {
 		}
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv(platformEnv, "wsl")
 	return dir
 }
 

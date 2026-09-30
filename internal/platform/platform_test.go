@@ -143,6 +143,28 @@ func TestDetectFindsWSLFromTheEnvironmentOrTheKernel(t *testing.T) {
 	}
 }
 
+func TestDetectTakesThePlatformItIsToldInsteadOfLooking(t *testing.T) {
+	wslKernel := func(string) ([]byte, error) { return []byte("4.4.0-19041-Microsoft\n"), nil }
+	noFile := func(string) ([]byte, error) { return nil, errors.New("no such file") }
+	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
+
+	// On WSL, told native: hq as it runs on macOS.
+	p := platform.Detect(env(map[string]string{"HQ_PLATFORM": "native", "WSL_DISTRO_NAME": "Ubuntu"}), wslKernel, &fakeWslpath{})
+	if _, ok := p.(platform.Native); !ok {
+		t.Errorf("native on WSL: got %T", p)
+	}
+	// Anywhere, told wsl: the WSL adapter, with the distribution when known.
+	p = platform.Detect(env(map[string]string{"HQ_PLATFORM": "wsl", "WSL_DISTRO_NAME": "Stub", "BROWSER": "x"}), noFile, &fakeWslpath{})
+	if w, ok := p.(platform.WSL); !ok || w.Distro != "Stub" || !w.BrowserSet || w.Run == nil {
+		t.Errorf("wsl on macOS: got %#v", p)
+	}
+	// Anything else is not an answer: hq looks.
+	p = platform.Detect(env(map[string]string{"HQ_PLATFORM": "windows"}), wslKernel, &fakeWslpath{})
+	if _, ok := p.(platform.WSL); !ok {
+		t.Errorf("an unknown value: got %T", p)
+	}
+}
+
 func TestBrowserIsGhOpeningThePullRequest(t *testing.T) {
 	url := "https://github.com/o/r/pull/7"
 	for _, tc := range []struct {

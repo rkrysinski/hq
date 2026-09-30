@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 func TestRunReturnsStdoutAndFirstStderrLineOnFailure(t *testing.T) {
@@ -137,7 +139,7 @@ func TestDetachReturnsAtOnceAndTheProgramRunsOn(t *testing.T) {
 	if data == nil {
 		t.Fatal("the detached program did not finish")
 	}
-	own, _ := syscall.Getsid(0)
+	own, _ := unix.Getsid(0)
 	if sid := strings.TrimSpace(string(data)); sid == "" || sid == strconv.Itoa(own) {
 		t.Fatalf("the program's session %q is hq's (%d)", sid, own)
 	}

@@ -16,7 +16,7 @@ Rules of thumb:
 - **Don't re-check unit-tested logic through the integration level.** An integration test proves the pieces are wired together.
 - **Add an end-to-end test only for a new critical journey.** Keep them few.
 - **External tools sit behind an interface** (tmux, `sbx`, `gh`, the platform adapter, the clock, the state-file reader) with a fake for tests, so unit tests never call the real tool. Platform-specific adapters (macOS, WSL) get the same contract tests.
-- **Never touch the user's tmux server or sandboxes from a test.** Integration and end-to-end tests use a private tmux socket and the stub `sbx`.
+- **Never touch the user's tmux server or sandboxes from a test.** Integration and end-to-end tests use a private tmux socket and the stub `sbx`. A test that starts hq says which platform it runs as, so the suite behaves the same on macOS, Linux and WSL: `testutil.SbxStub` sets `HQ_PLATFORM=native` (hq runs `sbx`, the stub, never the `sbx.exe` of a WSL machine) and `testutil.WSLStubs` sets `HQ_PLATFORM=wsl`; a test that uses neither and starts the hq binary sets it itself.
 
 ## Commands
 

@@ -389,8 +389,15 @@ func TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters(t *testing.T) {
 	}
 	// A record for another report (another prefix) is replaced; quotes and
 	// spaces survive; a prefix that is not plain is refused.
-	if g, err := c.KeepFirst(id, "endseen", "1.5 ", `1.5 "a b" $x`); err != nil || g != `1.5 "a b" $x` {
+	// tmux 3.4 puts a backslash before a $ that starts a name in everything
+	// it prints, so there the record reads back with one; what it stored
+	// has none, which its length shows on every version.
+	const record = `1.5 "a b" $x`
+	if g, err := c.KeepFirst(id, "endseen", "1.5 ", record); err != nil || (g != record && g != `1.5 "a b" \$x`) {
 		t.Fatalf("new: %q %v", g, err)
+	}
+	if n, _ := c.tmux("display-message", "-p", "-t", id, "#{n:@hq_endseen}"); strings.TrimSpace(string(n)) != strconv.Itoa(len(record)) {
+		t.Fatalf("new: stored %s characters, want %d", n, len(record))
 	}
 	if g, err := c.KeepFirst(id, "endseen", "2.5 ", "2.5 7"); err != nil || g != "2.5 7" {
 		t.Fatalf("replaced: %q %v", g, err)
@@ -409,9 +416,10 @@ func TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := filepath.Join(dir, "got")
-	// A program that asks for bracketed paste, as Claude does, and records
-	// what reaches it, a line at a time.
-	id, err := c.NewWindow("w", dir, nil, []string{"sh", "-c", `stty -echo; printf '\033[?2004h'; echo ready; while IFS= read -r l; do printf '%s\n' "$l" >>"$0"; done`, got})
+	// A program that asks for bracketed paste and reads its terminal raw, as
+	// Claude does, and records what reaches it. Raw matters: read a line at
+	// a time, WSL 1's terminal drops part of a long paste (#13).
+	id, err := c.NewWindow("w", dir, nil, []string{"sh", "-c", `stty raw -echo; printf '\033[?2004h'; echo ready; exec cat >>"$0"`, got})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -436,7 +444,9 @@ func TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter(t *testing.T) {
 	if err := c.Submit(pane); err != nil {
 		t.Fatal(err)
 	}
-	want := "\x1b[200~" + text + "\x1b[201~\n"
+	// In a paste the terminal sends Enter's carriage return for a line's
+	// end, and so does Enter itself.
+	want := "\x1b[200~" + strings.ReplaceAll(text, "\n", "\r") + "\x1b[201~\r"
 	var b []byte
 	if !waitFor(func() bool { b, _ = os.ReadFile(got); return len(b) >= len(want) }) {
 		t.Fatalf("got %d bytes of %d", len(b), len(want))
