@@ -8,7 +8,7 @@ Platforms: macOS (iTerm2) and Windows via WSL (Windows Terminal).
 
 ## Install
 
-Prerequisites: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`), VS Code with `code` on PATH; iTerm2 on macOS, Windows Terminal and WSL (Ubuntu 24.04 or newer) on Windows. Optional: GitHub CLI (`gh`, logged in), only for the dashboard's pull request links (`p pr`); without it hq works the same and shows no pull requests.
+Prerequisites: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`), VS Code with `code` on PATH; iTerm2 on macOS, Windows Terminal and WSL (Ubuntu 24.04 or newer) on Windows, with Windows Terminal's bell set to flash the taskbar (see [Notifications](#notifications)). Optional: GitHub CLI (`gh`, logged in), only for the dashboard's pull request links (`p pr`); without it hq works the same and shows no pull requests.
 
 ```bash
 curl -fsSL https://github.com/rkrysinski/hq/releases/latest/download/install.sh | sh
@@ -56,7 +56,15 @@ hq sends a desktop notification when an agent needs you or finishes: `Question: 
 Notifications come through the terminal the dashboard runs in, so they appear only while the dashboard is open in a terminal. After `q`, or with the window closed or detached, the agents keep working but nothing is shown, and missed events are not replayed; `hq` brings the dashboard and the notifications back.
 
 - macOS: iTerm2 shows each one as a macOS notification naming the kind and the branch; if none appear, check that notifications are allowed for iTerm2 in System Settings.
-- Windows: Windows Terminal flashes its taskbar button; the flash carries no text, and the dashboard shows which agent it was.
+- Windows: Windows Terminal flashes its taskbar button; the flash carries no text, and the dashboard shows which agent it was. As installed, Windows Terminal does not flash on a bell, so set it once: in its settings choose "Open JSON file" and give `profiles.defaults` (or the profile WSL runs in) a `bellStyle` that includes `taskbar`:
+
+  ```json
+  "profiles": {
+      "defaults": { "bellStyle": ["audible", "taskbar"] }
+  }
+  ```
+
+  `"bellStyle": "taskbar"` flashes without the sound. Without this setting nothing is shown on Windows when an agent needs you.
 
 ## Claude Desktop as supervisor
 
@@ -66,7 +74,7 @@ Claude Desktop can start, watch and message your agents through hq's MCP tools (
 hq mcp install
 ```
 
-Then quit and reopen Claude Desktop. This adds an `hq` entry to Claude Desktop's configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows, where Claude Desktop starts hq through `wsl.exe`), keeping your other servers, with a copy of the file as it was next to it. It records hq's path and your `PATH`, so run it again after moving hq or changing where tmux, `sbx` or `gh` live; a second run with nothing changed does nothing. When the file cannot be edited safely it changes nothing and prints the entry to add by hand.
+Then quit and reopen Claude Desktop. This adds an `hq` entry to Claude Desktop's configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows, where Claude Desktop starts hq through `wsl.exe`), keeping your other servers, with a copy of the file as it was next to it. It records hq's path and your `PATH`, so run it again after moving hq or changing where tmux, `sbx` or `gh` live; a second run with nothing changed does nothing. When Claude Desktop is not installed (its folder is not there) or the file cannot be edited safely, it changes nothing and prints the entry to add by hand.
 
 In a conversation, tell Claude what to do ("start 42 in ~/work/app on issue #42, and watch it"). It reads status from hq rather than asking the agents, asks an agent with a message answered when the agent stops, and leaves an agent's permission prompts and questions to you. Claude Desktop asks you before `kill`.
 

@@ -16,11 +16,35 @@ import (
 func TestRunReturnsStdoutAndFirstStderrLineOnFailure(t *testing.T) {
 	out, err := Exec{}.Run("sh", "-c", `echo out; echo "first" >&2; echo "second" >&2; exit 3`)
 	var pe *Error
-	if !errors.As(err, &pe) || pe.Msg != "first" || pe.NotFound || string(out) != "out\n" {
+	if !errors.As(err, &pe) || pe.Msg != "first" || pe.Stderr != "first\nsecond" || pe.NotFound || string(out) != "out\n" {
 		t.Fatalf("%q %v", out, err)
 	}
 	if pe.Error() != "sh: first" {
 		t.Fatalf("%q", pe.Error())
+	}
+}
+
+func TestRunWithStderrFileGivesTheProgramNoPipeAndStillReportsItsFailure(t *testing.T) {
+	// The program exits 7 when its stderr is a pipe.
+	tmp := t.TempDir()
+	t.Setenv("TMPDIR", tmp)
+	const prog = `[ -p /dev/stderr ] && exit 7; echo out; echo "first" >&2; echo "second" >&2; exit 3`
+	out, err := Exec{StderrFile: true}.Run("sh", "-c", prog)
+	var pe *Error
+	if !errors.As(err, &pe) || pe.Msg != "first" || pe.NotFound || string(out) != "out\n" {
+		t.Fatalf("%q %v", out, err)
+	}
+	if _, err := (Exec{}).Run("sh", "-c", prog); !errors.As(err, &pe) || pe.Msg != "exit status 7" {
+		t.Fatalf("without StderrFile stderr is a pipe: %v", err)
+	}
+	if out, err := (Exec{StderrFile: true}).Run("sh", "-c", `echo noise >&2; echo ok`); err != nil || string(out) != "ok\n" {
+		t.Fatalf("%q %v", out, err)
+	}
+	if _, err := (Exec{StderrFile: true}).Run("hq-no-such-program"); !errors.As(err, &pe) || !pe.NotFound {
+		t.Fatalf("%v", err)
+	}
+	if left, _ := os.ReadDir(tmp); len(left) != 0 {
+		t.Fatalf("temporary files left: %q", left)
 	}
 }
 

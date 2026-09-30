@@ -117,12 +117,12 @@ func TestGoWithADashboardOpenElsewhereRaisesItsWindow(t *testing.T) {
 func TestAFailedRaiseLeavesTheAgentDockedAndSaysSo(t *testing.T) {
 	f := goFakes()
 	f.tmux.clients = []string{"/dev/pts/3"}
-	f.raiseErr = errors.New("powershell.exe: no window titled hq, or Windows refused to bring it to the front")
+	f.raiseErr = errors.New("powershell.exe: Windows kept another window in front; the window titled hq - agents flashes on the taskbar")
 	code, out, errOut := f.run("go", "a")
 	if code != 0 || f.tmux.docked != "@4" || f.tmux.attached != "" || out != "" {
 		t.Fatalf("exit %d out %q docked %q attached %q", code, out, f.tmux.docked, f.tmux.attached)
 	}
-	if errOut != "hq: docked a in the open dashboard; could not bring its window to the front: powershell.exe: no window titled hq, or Windows refused to bring it to the front\n" {
+	if errOut != "hq: docked a in the open dashboard; could not bring its window to the front: powershell.exe: Windows kept another window in front; the window titled hq - agents flashes on the taskbar\n" {
 		t.Errorf("err %q", errOut)
 	}
 }

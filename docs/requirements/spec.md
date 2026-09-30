@@ -233,7 +233,7 @@ Creating worktrees or branches, managing pull requests, PR status per branch (le
 
 ## 11. Setup
 
-- Prerequisites on the host: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`), VS Code with `code` on PATH. macOS: iTerm2. Windows: Windows Terminal, WSL (Ubuntu 24.04 or newer) with the same tools; `sbx` is the Windows binary, reachable from WSL.
+- Prerequisites on the host: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`), VS Code with `code` on PATH. macOS: iTerm2. Windows: Windows Terminal, WSL (Ubuntu 24.04 or newer) with the same tools; `sbx` is the Windows binary, reachable from WSL. Windows Terminal's bell is set by the user to flash the taskbar (`bellStyle` including `taskbar`): as installed it does not, and the flash is the desktop notification on Windows (5).
 - `sbx` is set up by the user before hq can start an agent: signed in (`sbx login`) and with its network policy chosen (`sbx policy init`), once per machine. Until then `hq new` fails with `sbx`'s error and its remedy (4.2).
 - Windows: `sbx` is installed on Windows, not inside WSL, and is seen from WSL sessions opened after it was installed. `sbx` needs an x86-64 machine with the Windows Hypervisor Platform; hq itself runs on WSL 1 and WSL 2, and also where `sbx` cannot start a sandbox (ARM64 Windows, a virtual machine without nested virtualization); there `hq new` fails with `sbx`'s error and `sbx diagnose` says why.
 - Optional: GitHub CLI (`gh`, logged in), only for the dashboard's pull requests (`pr`, 6.4). Without it, or logged out, hq works the same and simply shows no pull request.

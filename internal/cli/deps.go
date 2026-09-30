@@ -196,7 +196,9 @@ func defaultDeps() deps {
 		fromSbx:     plat.FromSbx,
 		editor: func(dir string) error {
 			argv := plat.Editor(dir)
-			_, err := run.Run(argv[0], argv[1:]...)
+			// Not a pipe for its stderr: VS Code's launcher on WSL 1 opens
+			// nothing with one, and says it worked (#7).
+			_, err := proc.Exec{StderrFile: true}.Run(argv[0], argv[1:]...)
 			return err
 		},
 		browse: func(url string) error {

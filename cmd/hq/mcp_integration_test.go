@@ -302,6 +302,16 @@ func TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest(t *testing.T) {
 		t.Fatalf("backup %q", kept)
 	}
 
+	// Without Claude Desktop's folder: nothing created, the entry printed.
+	bare, _ := filepath.EvalSymlinks(t.TempDir())
+	out, errOut, err = install(t, bin, append([]string{"HOME=" + bare}, env[1:]...)...)
+	if err == nil || !strings.Contains(out, `"hq": {`) || !strings.HasPrefix(errOut, "hq: Claude Desktop not found: there is no "+filepath.Dir(desktopConfig(bare))+";") {
+		t.Fatalf("no folder: %v %q %q", err, out, errOut)
+	}
+	if left, _ := os.ReadDir(bare); len(left) != 0 {
+		t.Fatalf("no folder: install created %v", left)
+	}
+
 	// A file it cannot edit safely: left alone, the entry printed.
 	_ = os.WriteFile(path, []byte("{broken"), 0o600)
 	out, errOut, err = install(t, bin, env...)
@@ -320,8 +330,21 @@ func TestMCPInstallOnWSLStartsHqThroughWslExe(t *testing.T) {
 	testutil.WSLStubs(t)
 	root := t.TempDir()
 	t.Setenv("WSL_STUB_ROOT", root)
-	out, errOut, err := install(t, bin, "WSL_DISTRO_NAME=Stub", "HQ_TMUX_SOCKET=", "XDG_CONFIG_HOME=", "TMUX_TMPDIR=")
+	env := []string{"WSL_DISTRO_NAME=Stub", "HQ_TMUX_SOCKET=", "XDG_CONFIG_HOME=", "TMUX_TMPDIR="}
 	path := root + "/mnt/c/Users/stub/AppData/Roaming/Claude/claude_desktop_config.json"
+
+	// Windows without Claude Desktop has no %APPDATA%\Claude: nothing is
+	// created there, the entry is printed (#10).
+	out, errOut, err := install(t, bin, env...)
+	if err == nil || !strings.Contains(out, `"command": "wsl.exe"`) || !strings.HasPrefix(errOut, "hq: Claude Desktop not found: there is no "+filepath.Dir(path)+";") {
+		t.Fatalf("no folder: %v %q %q", err, out, errOut)
+	}
+	if left, _ := os.ReadDir(root); len(left) != 0 {
+		t.Fatalf("no folder: install created %v", left)
+	}
+
+	_ = os.MkdirAll(filepath.Dir(path), 0o700)
+	out, errOut, err = install(t, bin, env...)
 	if err != nil || !strings.HasPrefix(out, "added hq to Claude Desktop ("+path+")\n") {
 		t.Fatalf("%v %q %q", err, out, errOut)
 	}
