@@ -8,7 +8,7 @@ Platforms: macOS (iTerm2) and Windows via WSL (Windows Terminal).
 
 ## Install
 
-Prerequisites: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`), VS Code with `code` on PATH; iTerm2 on macOS, Windows Terminal and WSL (Ubuntu 24.04 or newer) on Windows. Optional: GitHub CLI (`gh`, logged in), only for the dashboard's pull request links (`p pr`); without it hq works the same and shows no pull requests.
+Prerequisites: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`), VS Code with `code` on PATH; iTerm2 on macOS, Windows Terminal and WSL (Ubuntu 24.04 or newer) on Windows, with Windows Terminal's bell set to flash the taskbar (see [Notifications](#notifications)). Optional: GitHub CLI (`gh`, logged in), only for the dashboard's pull request links (`p pr`); without it hq works the same and shows no pull requests.
 
 ```bash
 curl -fsSL https://github.com/rkrysinski/hq/releases/latest/download/install.sh | sh
@@ -38,7 +38,15 @@ hq sends a desktop notification when an agent needs you or finishes: `Question: 
 Notifications come through the terminal the dashboard runs in, so they appear only while the dashboard is open in a terminal. After `q`, or with the window closed or detached, the agents keep working but nothing is shown, and missed events are not replayed; `hq` brings the dashboard and the notifications back.
 
 - macOS: iTerm2 shows each one as a macOS notification naming the kind and the branch; if none appear, check that notifications are allowed for iTerm2 in System Settings.
-- Windows: Windows Terminal flashes its taskbar button; the flash carries no text, and the dashboard shows which agent it was.
+- Windows: Windows Terminal flashes its taskbar button; the flash carries no text, and the dashboard shows which agent it was. As installed, Windows Terminal does not flash on a bell, so set it once: in its settings choose "Open JSON file" and give `profiles.defaults` (or the profile WSL runs in) a `bellStyle` that includes `taskbar`:
+
+  ```json
+  "profiles": {
+      "defaults": { "bellStyle": ["audible", "taskbar"] }
+  }
+  ```
+
+  `"bellStyle": "taskbar"` flashes without the sound. Without this setting nothing is shown on Windows when an agent needs you.
 
 ## Claude Desktop as supervisor
 
