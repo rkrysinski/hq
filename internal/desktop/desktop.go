@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"syscall"
 	"time"
 )
 
@@ -96,8 +97,14 @@ type Result struct {
 	Backup  string
 }
 
+// ErrNoFolder is Install finding no folder for the configuration file:
+// Claude Desktop creates it on its first start, so it is not installed, or
+// keeps its configuration elsewhere.
+var ErrNoFolder = errors.New("Claude Desktop's folder is not there")
+
 // Install sets hq up as s in the configuration file at path, created when
-// missing. It writes only when something changes: first a copy of the file
+// missing in Claude Desktop's folder; the folder itself is never created
+// (ErrNoFolder). It writes only when something changes: first a copy of the file
 // next to it (claude_desktop_config.json.hq-backup-<time>), then the new
 // file under a temporary name, moved into place so the file is never half
 // written. A link is followed, so a configuration kept elsewhere is edited
@@ -110,9 +117,9 @@ func Install(path string, s Server, now time.Time) (Result, error) {
 	var old []byte
 	mode := os.FileMode(0o600)
 	switch {
-	case errors.Is(err, os.ErrNotExist):
-		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-			return Result{}, err
+	case errors.Is(err, os.ErrNotExist), errors.Is(err, syscall.ENOTDIR):
+		if dir, err := os.Stat(filepath.Dir(path)); err != nil || !dir.IsDir() {
+			return Result{}, ErrNoFolder
 		}
 	case err != nil:
 		return Result{}, err

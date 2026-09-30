@@ -3,8 +3,10 @@
 package platform
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
+	"unicode/utf16"
 
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -142,16 +144,54 @@ func (w WSL) Browser(url string) []string {
 	return append([]string{"env", "BROWSER=explorer.exe"}, ghView(url)...)
 }
 
-// Raise is PowerShell activating the window titled hq - agents, which tmux sets
-// while the dashboard is attached; the client's terminal means nothing to
-// Windows. Windows can refuse to change the foreground window, which fails
-// the command.
+// Raise is PowerShell bringing the window titled hq - agents, which tmux sets
+// while the dashboard is attached, to the front; the client's terminal means
+// nothing to Windows. The script goes encoded, so no quoting is lost on the
+// way through WSL's interop. It fails when no such window is open or when
+// Windows kept another window in front (RaiseScript).
 func (WSL) Raise(string) []string {
-	return []string{"powershell.exe", "-NoProfile", "-NonInteractive", "-Command", raiseTitle}
+	return []string{"powershell.exe", "-NoProfile", "-NonInteractive", "-OutputFormat", "Text", "-EncodedCommand", encodedCommand(RaiseScript)}
 }
 
-// raiseTitle is the PowerShell of WSL's Raise.
-const raiseTitle = `if (-not (New-Object -ComObject WScript.Shell).AppActivate('` + tmux.TerminalTitle + `')) { [Console]::Error.WriteLine('no window titled ` + tmux.TerminalTitle + `, or Windows refused to bring it to the front'); exit 1 }`
+// RaiseScript is the PowerShell of WSL's Raise. Windows lets only the
+// process that received the last input change the foreground window (the
+// foreground lock): asked by any other, such as hq started by Claude Desktop,
+// it flashes the window's taskbar button and reports success (#9). So the
+// script looks at which window is in front afterwards instead of trusting
+// the answer, and when it is another one, taps Alt, which makes this process
+// the one with the last input, and asks again. It exits 1 with one line on
+// stderr when no window has the title or another window stayed in front.
+const RaiseScript = `$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'
+$title = '` + tmux.TerminalTitle + `'
+$w = Add-Type -PassThru -Namespace Hq -Name Win -MemberDefinition '
+[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindow(IntPtr cls, string title);
+[DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+[DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
+[DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);'
+$h = $w::FindWindow([IntPtr]::Zero, $title)
+if ($h -eq [IntPtr]::Zero) { [Console]::Error.WriteLine("no window titled $title"); exit 1 }
+function InFront { Start-Sleep -Milliseconds 100; $w::GetForegroundWindow() -eq $h }
+if ($w::IsIconic($h)) { [void]$w::ShowWindow($h, 9) }
+[void]$w::SetForegroundWindow($h)
+if (InFront) { exit 0 }
+$w::keybd_event(0x12, 0, 0, [UIntPtr]::Zero); $w::keybd_event(0x12, 0, 2, [UIntPtr]::Zero)
+[void]$w::SetForegroundWindow($h)
+if (InFront) { exit 0 }
+[Console]::Error.WriteLine("Windows kept another window in front; the window titled $title flashes on the taskbar")
+exit 1
+`
+
+// encodedCommand is a script as powershell.exe -EncodedCommand takes it:
+// UTF-16LE in base64.
+func encodedCommand(script string) string {
+	b := make([]byte, 0, 2*len(script))
+	for _, u := range utf16.Encode([]rune(script)) {
+		b = append(b, byte(u), byte(u>>8))
+	}
+	return base64.StdEncoding.EncodeToString(b)
+}
 
 func (w WSL) wslpath(flag, path string) (string, error) {
 	out, err := w.Run.Run("wslpath", flag, path)
