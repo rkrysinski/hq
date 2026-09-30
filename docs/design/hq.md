@@ -202,7 +202,7 @@ Satisfies: §4.1, §6.1-6.6, S2, S6, Phase 2; drivers 2, 3, 7.
 | Editor (`c`, `hq code`) | `code PATH` | `code PATH`; the Remote-WSL shim takes Linux paths. hq collects the shim's stderr in a file, never a pipe: on WSL 1 a Windows program cannot open a pipe as its stderr, and the shim then opens nothing and still exits 0 (#7) |
 | Browser (`p`) | `gh pr view --web` | the same, with `BROWSER` set to `wslview` or `explorer.exe` when unset |
 | Notification sequence baked into the hook (3.5) | OSC 9 (`ESC ] 9 ; text BEL`) | BEL, shown as a taskbar flash; it carries no text, and a real check is left to Windows (#9) |
-| Raise the window titled `hq - agents` (3.11) | `osascript` to iTerm2, selecting the session on the attached client's terminal | `powershell.exe`, activate the window by title |
+| Raise the window titled `hq - agents` (3.11) | `osascript` to iTerm2, selecting the session on the attached client's terminal | `powershell.exe`: find the window by its title, ask Windows to bring it to the front, then look at which window is in front. Windows lets only the process with the last input do that and answers "done" to any other while only flashing the taskbar button (the foreground lock, #9), so when another window is still in front the script taps Alt, which makes it the process with the last input, and asks again; if the other window stays in front it fails and `hq go` says so |
 | Claude Desktop's configuration and how it starts hq (3.12) | `~/Library/Application Support/Claude/claude_desktop_config.json` (`~/.config/Claude/...` on a plain Linux); command: hq's path, `mcp`, the environment in `env` | the Windows user's `%APPDATA%\Claude\claude_desktop_config.json`, found with `cmd.exe /d /c echo %APPDATA%` and `wslpath -u`; command: `wsl.exe -d DISTRO --exec /usr/bin/env K=V... HQ mcp` |
 
 Everything else (tmux, registry, state files, keys, dialogs) is one code path.
@@ -382,7 +382,6 @@ The one boundary hq opens is files written inside the sandbox and read and shown
 - Verify on Windows that tmux passes BEL from a hidden window and that Windows Terminal flashes the taskbar (#9).
 - Verify the chords of 3.7 against Claude Code's default key bindings and Windows Terminal's default actions; clicks outside an open tmux popup do nothing (verified on macOS with #48; on Windows with the WSL checks).
 - Verify in a real iTerm2 that `SetProfile=hq` on attach gives that tab Option as Esc+ and leaves the other tabs alone (#46).
-- Verify that Windows lets a background `powershell.exe` activate the window titled `hq - agents` (the foreground lock can refuse).
 - Verify `hq mcp install` and the supervisor on Windows 11 with Claude Desktop: `%APPDATA%` as `cmd.exe` gives it is where the installer from claude.ai keeps the configuration; a Microsoft Store (MSIX) install may keep it under `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude` instead, which the adapter would then have to look for; the tool-call limit there (reported about 4 minutes).
 - On macOS, `go` from Claude Desktop raises iTerm2 through `osascript`, which may make macOS ask once whether Claude may control iTerm2 (Automation); verify, and say so in the README if it does.
 - `hq update` replaces the binary while a list program may be running; the running list keeps the old version until it is restarted; say so in the update output.
