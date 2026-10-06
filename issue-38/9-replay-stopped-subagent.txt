@@ -1,0 +1,23 @@
+The same for a real session in which a background shell command failed and the user had the subagent stopped. Hook of dev:
+
+12:03:48.206  UserPromptSubmit  the user's prompt                           hook printed: '-'                     files: ID
+12:03:51.637  Stop              running: Run wait script then exit with code 3, Run wait.sh 90  hook printed: 'Done: main'  files: ID stop
+12:04:04.876  UserPromptSubmit  wake-up: Background command "Run wait script then exit with code 3" failed with exit code 3  hook printed: '-'                     files: ID stop
+12:04:06.377  Stop              running: Run wait.sh 90                     hook printed: 'Done: main'  files: ID stop
+12:04:09.940  UserPromptSubmit  the user's prompt                           hook printed: '-'                     files: ID stop
+12:04:13.839  Stop              running: none                               hook printed: 'Done: main'  files: ID stop
+12:04:13.863  UserPromptSubmit  wake-up: Agent "Run wait.sh 90" was stopped by Claude  hook printed: '-'                     files: ID stop
+12:04:15.541  Stop              running: none                               hook printed: 'Done: main'  files: ID stop
+notifications: 4
+
+Hook of this branch:
+
+12:03:48.206  UserPromptSubmit  the user's prompt                           hook printed: '-'                     files: ID
+12:03:51.637  Stop              running: Run wait script then exit with code 3, Run wait.sh 90  hook printed: '-'                     files: ID on owe stop
+12:04:04.876  UserPromptSubmit  wake-up: Background command "Run wait script then exit with code 3" failed with exit code 3  hook printed: '-'                     files: ID on owe stop
+12:04:06.377  Stop              running: Run wait.sh 90                     hook printed: '-'                     files: ID on owe stop
+12:04:09.940  UserPromptSubmit  the user's prompt                           hook printed: '-'                     files: ID owe stop
+12:04:13.839  Stop              running: none                               hook printed: '-'                     files: ID on owe stop
+12:04:13.863  UserPromptSubmit  wake-up: Agent "Run wait.sh 90" was stopped by Claude  hook printed: '-'                     files: ID on stop
+12:04:15.541  Stop              running: none                               hook printed: 'Done: main'  files: ID stop
+notifications: 1

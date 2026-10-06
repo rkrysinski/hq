@@ -1,37 +1,36 @@
-commit f766b77
+commit 222200c
 $ LC_ALL=C.UTF-8 go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./...
-ok  	github.com/rkrysinski/hq/cmd/hq	4.436s
+ok  	github.com/rkrysinski/hq/cmd/hq	4.419s
 ok  	github.com/rkrysinski/hq/internal/agent	0.005s
-ok  	github.com/rkrysinski/hq/internal/cli	58.464s
-ok  	github.com/rkrysinski/hq/internal/dash	8.012s
-ok  	github.com/rkrysinski/hq/internal/desktop	0.029s
-ok  	github.com/rkrysinski/hq/internal/dialog	0.757s
-ok  	github.com/rkrysinski/hq/internal/gh	0.009s
-ok  	github.com/rkrysinski/hq/internal/iterm	0.012s
-ok  	github.com/rkrysinski/hq/internal/platform	0.054s
-ok  	github.com/rkrysinski/hq/internal/prefs	0.048s
-ok  	github.com/rkrysinski/hq/internal/proc	0.824s
-ok  	github.com/rkrysinski/hq/internal/repo	0.049s
-ok  	github.com/rkrysinski/hq/internal/sbx	0.093s
-ok  	github.com/rkrysinski/hq/internal/state	1.274s
+ok  	github.com/rkrysinski/hq/internal/cli	60.027s
+ok  	github.com/rkrysinski/hq/internal/dash	7.995s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.010s
+ok  	github.com/rkrysinski/hq/internal/dialog	0.748s
+ok  	github.com/rkrysinski/hq/internal/gh	0.006s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.015s
+ok  	github.com/rkrysinski/hq/internal/platform	0.038s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.023s
+ok  	github.com/rkrysinski/hq/internal/proc	0.820s
+ok  	github.com/rkrysinski/hq/internal/repo	0.036s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.082s
+ok  	github.com/rkrysinski/hq/internal/state	1.312s
 --- FAIL: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.17s)
-    tmux_integration_test.go:517: got 12285 bytes of 12360
+    tmux_integration_test.go:517: got 12359 bytes of 12360
 FAIL
-FAIL	github.com/rkrysinski/hq/internal/tmux	14.099s
-ok  	github.com/rkrysinski/hq/internal/update	0.416s
-ok  	github.com/rkrysinski/hq/tools/testgate	0.008s
+FAIL	github.com/rkrysinski/hq/internal/tmux	14.182s
+ok  	github.com/rkrysinski/hq/internal/update	0.413s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.005s
 FAIL
 
 $ go run ./tools/testgate coverage cover.out
 coverage 93.61% (minimum 93.5%)
 
 $ LC_ALL=C.UTF-8 go test -count=1 -tags e2e ./e2e/...
-ok  	github.com/rkrysinski/hq/e2e	17.148s
+ok  	github.com/rkrysinski/hq/e2e	17.079s
 
 $ go run ./tools/testgate pyramid
-unit 414, integration 115, e2e 3 (unit share 78%, minimum 50%)
+unit 415, integration 115, e2e 3 (unit share 78%, minimum 50%)
 
-The failing test fails the same way on dev (086ce27) in this environment (a Docker sandbox, Linux arm64, tmux 3.6):
-TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter reads 12285 of 12360 pasted bytes. It is not in code this change touches.
-TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox, which passed here, fails on dev and on this branch alike when the machine
-is idle: it waits 5 s for a fake Claude set to take 6 s (FAKE_CLAUDE_DELAY=3s).
+The failing test fails on dev (086ce27) too in this environment (a Docker sandbox, Linux arm64, tmux 3.6): it reads fewer
+bytes than it pasted. It is not in code this change touches. TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox, which
+passed here, fails on dev and on this branch alike when the machine is idle: it waits 5 s for a fake Claude set to take 6 s.

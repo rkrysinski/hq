@@ -1,49 +1,50 @@
 == one (state changes as hq ls showed them, with this agent's notifications so far)
-+0s 12:53:31   done      AGE 1s   LAST -                                             notifications: none
-+1s 12:53:32   working   AGE 0s   LAST -                                             notifications: none
-+5s 12:53:36   working   AGE 4s   LAST started                                       notifications: none
++0s 13:15:10   working   AGE 1s   LAST -                                             notifications: none
++3s 13:15:13   working   AGE 4s   LAST started                                       notifications: none
         Esc sent to one at +22s
-+53s 12:54:24   done      AGE 0s   LAST The background agent finished and replied "do notifications: Done: one x1; 
++51s 13:16:01   done      AGE 0s   LAST The background subagent finished and reported notifications: Done: one x1; 
 
 == many (state changes as hq ls showed them, with this agent's notifications so far)
-+0s 12:53:31   working   AGE 0s   LAST -                                             notifications: none
-+5s 12:53:36   working   AGE 5s   LAST started                                       notifications: none
-+28s 12:53:59   working   AGE 28s  LAST The `./wait.sh 20` agent has finished.        notifications: none
-+53s 12:54:24   working   AGE 53s  LAST The `./wait.sh 45` agent has finished.        notifications: none
-+78s 12:54:49   done      AGE 0s   LAST The `./wait.sh 70` agent has finished, so all notifications: Done: many x1; 
++0s 13:15:10   working   AGE 0s   LAST -                                             notifications: none
++4s 13:15:14   working   AGE 4s   LAST started                                       notifications: none
++27s 13:15:37   working   AGE 28s  LAST The `./wait.sh 20` agent finished.            notifications: none
++53s 13:16:03   working   AGE 54s  LAST The `./wait.sh 45` agent finished.            notifications: none
++77s 13:16:27   done      AGE 0s   LAST The `./wait.sh 70` agent finished, so all thr notifications: none
++78s 13:16:28   done      AGE 1s   LAST The `./wait.sh 70` agent finished, so all thr notifications: Done: many x1; 
 
 == together (state changes as hq ls showed them, with this agent's notifications so far)
-+0s 12:53:31   working   AGE 0s   LAST -                                             notifications: none
-+6s 12:53:37   working   AGE 5s   LAST started                                       notifications: none
-+33s 12:54:04   working   AGE 33s  LAST First subagent finished.                      notifications: none
-+36s 12:54:07   done      AGE 0s   LAST The second subagent finished. The third subag notifications: Done: together x1; 
++0s 13:15:10   working   AGE 0s   LAST -                                             notifications: none
++7s 13:15:17   working   AGE 7s   LAST started                                       notifications: none
++36s 13:15:46   working   AGE 36s  LAST The first subagent finished and replied "done notifications: none
++40s 13:15:50   done      AGE 0s   LAST The second subagent finished and replied "don notifications: Done: together x1; 
 
 == ask (state changes as hq ls showed them, with this agent's notifications so far)
-+0s 12:53:31   working   AGE 0s   LAST -                                             notifications: none
-+5s 12:53:36   question  AGE 0s   LAST Started. Shall I also update the README?      notifications: Question: ask x1; 
-+47s 12:54:18   working   AGE 0s   LAST Started. Shall I also update the README?      notifications: Question: ask x1; 
-+49s 12:54:20   done      AGE 0s   LAST The background agent finished and reported "d notifications: Done: ask x1; Question: ask x1; 
++0s 13:15:10   working   AGE 0s   LAST -                                             notifications: none
++7s 13:15:17   question  AGE 0s   LAST Started. Shall I also update the README?      notifications: Question: ask x1; 
++51s 13:16:01   working   AGE 0s   LAST Started. Shall I also update the README?      notifications: Question: ask x1; 
++54s 13:16:04   done      AGE 0s   LAST The background agent finished and reported "d notifications: Done: ask x1; Question: ask x1; 
 
 == esc (state changes as hq ls showed them, with this agent's notifications so far)
-+0s 12:53:31   done      AGE 0s   LAST -                                             notifications: none
-+1s 12:53:32   working   AGE 0s   LAST -                                             notifications: none
-        Esc sent to esc (turn at work) at +26s
-+28s 12:53:59   done      AGE 1s   LAST Interrupted                                   notifications: none
-+56s 12:54:27   working   AGE 55s  LAST -                                             notifications: none
-+57s 12:54:28   done      AGE 0s   LAST The background subagent finished and replied  notifications: Done: esc x1; 
++0s 13:15:10   done      AGE 0s   LAST -                                             notifications: none
++1s 13:15:11   working   AGE 0s   LAST -                                             notifications: none
+        Esc sent to esc (turn at work) at +27s
++29s 13:15:39   done      AGE 1s   LAST Interrupted                                   notifications: none
++55s 13:16:05   working   AGE 55s  LAST -                                             notifications: none
++56s 13:16:06   done      AGE 0s   LAST The background subagent finished and replied  notifications: Done: esc x1; 
 
 == send (state changes as hq ls showed them, with this agent's notifications so far)
-+0s 12:53:31   starting  AGE 4s   LAST -                                             notifications: none
-+1s 12:53:32   working   AGE 0s   LAST -                                             notifications: none
-+6s 12:53:37   working   AGE 4s   LAST started                                       notifications: none
-        hq send at +26s
-+28s 12:53:59   working   AGE 2s   LAST pong                                          notifications: none
-+69s 12:54:40   done      AGE 1s   LAST The background subagent finished and reported notifications: Done: send x1; 
++0s 13:15:10   starting  AGE 4s   LAST -                                             notifications: none
++1s 13:15:11   working   AGE 0s   LAST -                                             notifications: none
++5s 13:15:15   working   AGE 4s   LAST started                                       notifications: none
+        hq send at +25s
++29s 13:15:39   working   AGE 3s   LAST pong                                          notifications: none
++67s 13:16:17   done      AGE 0s   LAST The background agent finished and reported "d notifications: none
++69s 13:16:19   done      AGE 1s   LAST The background agent finished and reported "d notifications: Done: send x1; 
 
 == shell (state changes as hq ls showed them, with this agent's notifications so far)
-+0s 12:53:31   starting  AGE 4s   LAST -                                             notifications: none
-+1s 12:53:32   working   AGE 0s   LAST -                                             notifications: none
-+6s 12:53:37   done      AGE 0s   LAST started                                       notifications: Done: shell x1; 
-+54s 12:54:25   working   AGE 0s   LAST started                                       notifications: Done: shell x1; 
-+55s 12:54:26   done      AGE 0s   LAST The background `./wait.sh 50` command finishe notifications: Done: shell x2; 
++0s 13:15:10   starting  AGE 4s   LAST -                                             notifications: none
++1s 13:15:11   working   AGE 0s   LAST -                                             notifications: none
++7s 13:15:17   done      AGE 0s   LAST started                                       notifications: Done: shell x1; 
++55s 13:16:05   working   AGE 0s   LAST started                                       notifications: Done: shell x1; 
++57s 13:16:07   done      AGE 0s   LAST The background `./wait.sh 50` command finishe notifications: Done: shell x2; 
 
