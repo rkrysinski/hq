@@ -247,6 +247,15 @@ func TestATurnEndWithBackgroundWorkKeptBesideAWorkingReportLeavesItWorking(t *te
 	if !r.Since.Equal(since) || !r.Latest.Equal(at) {
 		t.Fatalf("times: since %v latest %v", r.Since, r.Latest)
 	}
+	if r.Owed {
+		t.Fatal("a subagent runs: no turn is owed")
+	}
+	// The same turn end with nothing running any more, kept because Claude
+	// owes a turn for work that finished together with other work.
+	owed := []byte(strings.Replace(string(fixture(t, "stop-done")), `"stop_hook_active": false`, `"stop_hook_active": false, "background_tasks": [{"id": "b1", "type": "shell", "status": "running"}]`, 1))
+	if r = working.Kept(fixture(t, "prompt"), owed, at); r.State != Working || !r.Background || !r.Owed {
+		t.Fatalf("a turn owed: %+v", r)
+	}
 	// Claude's wake-up when the subagent has finished: the closing turn is
 	// at work, since the same prompt.
 	r = working.Kept(fixture(t, "prompt"), fixture(t, "prompt-wake"), at)

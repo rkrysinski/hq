@@ -30,7 +30,11 @@
 //     UserPromptSubmit with a <task-notification> prompt, which no ❯ line
 //     shows, then Stop. Words after "wake" are part of that prompt, so
 //     "wake slow" works until a line comes. With no subagent running it
-//     does nothing;
+//     does nothing. "wake together" finishes two subagents at once: both
+//     are gone from the list at the Stop of the turn for the first, and
+//     the turn for the second follows (their replies end "(one)", "(two)");
+//   - the line "lose" is no prompt: a background subagent goes without
+//     Claude taking a turn for it, and no hook fires;
 //   - the line "draft" is no prompt: it draws the box holding "a draft", as
 //     when the user has typed that and not sent it yet;
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.
@@ -184,6 +188,10 @@ func main() {
 				c.wake(strings.Join(words[1:], " "), in)
 				continue
 			}
+			if line == "lose" {
+				c.finish()
+				continue
+			}
 			c.turn(line, in)
 		}
 	}
@@ -194,15 +202,34 @@ func main() {
 const wakePrefix = "<task-notification>"
 
 // wake finishes the background subagent started first, if any, and runs
-// the turn Claude wakes itself for; note is part of its prompt.
+// the turn Claude wakes itself for; note is part of its prompt. With the
+// note "together" it finishes two at once and runs a turn for each.
 func (c *claude) wake(note string, in *bufio.Scanner) {
+	notes := []string{note}
+	if note == "together" {
+		notes = []string{"(one)", "(two)"}
+	}
+	var done []string
+	for range notes {
+		if id, ok := c.finish(); ok {
+			done = append(done, id)
+		}
+	}
+	for i, id := range done {
+		c.turn(wakePrefix+"\n<task-id>"+id+"</task-id>\n<status>completed</status>\n<summary>Agent \"Background work\" completed "+notes[i]+"</summary>\n</task-notification>", in)
+	}
+}
+
+// finish takes the background subagent started first off the list of what
+// runs, and returns its id.
+func (c *claude) finish() (id string, ok bool) {
 	for i, task := range c.tasks {
 		if task["type"] == "subagent" {
 			c.tasks = append(c.tasks[:i:i], c.tasks[i+1:]...)
-			c.turn(wakePrefix+"\n<task-id>"+task["id"]+"</task-id>\n<status>completed</status>\n<summary>Agent \"Background work\" completed "+note+"</summary>\n</task-notification>", in)
-			return
+			return task["id"], true
 		}
 	}
+	return "", false
 }
 
 func (c *claude) turn(prompt string, in *bufio.Scanner) {
@@ -279,6 +306,9 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	reply := "Done: " + prompt
 	if woken {
 		reply = fmt.Sprintf("The background work is done, %d still running.", c.subagents())
+		if strings.Contains(prompt, "(one)") || strings.Contains(prompt, "(two)") {
+			reply += prompt[strings.Index(prompt, " (") : strings.Index(prompt, ")")+1]
+		}
 	}
 	if strings.Contains(prompt, "question") {
 		reply = "Shall I go on?"

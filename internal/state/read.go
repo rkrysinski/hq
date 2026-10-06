@@ -22,6 +22,10 @@ func Dir(root string) string { return filepath.Join(root, ".git", "hq", "agents"
 // kept without restarting the agent's time (Report.Kept).
 const keptSuffix = ".on"
 
+// owedSuffix names, beside an agent's state file, the hook's own list of
+// the background tasks Claude still owes a turn for (hookAwk).
+const owedSuffix = ".owe"
+
 // Read returns the report of agent id of the repository at root; ok is false
 // until the agent's first event.
 func Read(root, id string) (r Report, ok bool) {
@@ -55,7 +59,7 @@ func Remove(root, id string) error {
 	}
 	path := filepath.Join(Dir(root), id)
 	var errs []error
-	for _, p := range []string{path, path + ".stop", path + ".prev", path + keptSuffix} {
+	for _, p := range []string{path, path + ".stop", path + ".prev", path + keptSuffix, path + owedSuffix} {
 		if err := os.Remove(p); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			errs = append(errs, err)
 		}

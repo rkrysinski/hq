@@ -813,3 +813,56 @@ func TestATurnEndHqSawDoesNotOutliveClaudesWakeUp(t *testing.T) {
 		t.Fatalf("ended after the wake-up: %+v", as[0])
 	}
 }
+
+func TestAnAgentOwedATurnThatDoesNotComeIsDoneOnceItsScreenStaysAtRest(t *testing.T) {
+	// Claude at its prompt after the turn ended, the user typing there.
+	atRest := "● The second finished.\n" + strings.Repeat("─", 20) + "\n❯ and now\n" + strings.Repeat("─", 20) + "\n  footer\n"
+	prompted := time.Unix(1000, 0)
+	ended := prompted.Add(time.Minute)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	r := state.Report{State: state.Working, Since: prompted, Latest: ended, Background: true, Owed: true, Last: "The second finished.", Prompt: "run the tests"}
+	look := func(screen string, now time.Time) (Agent, Record) {
+		a := FromWindows([]tmux.Window{w})[0]
+		a.Apply(r, true)
+		if !a.OnBackgroundWork() {
+			t.Fatalf("not at its prompt: %+v", a)
+		}
+		if !a.Unsettled(now) {
+			return a, Record{}
+		}
+		rec := a.Settle(screen, now)
+		if rec.Value != "" {
+			w.Options[rec.Option] = rec.Value
+		}
+		return a, rec
+	}
+	// The turn Claude owes comes within moments: nothing is looked at yet,
+	// and a screen at work is not at rest.
+	if a, _ := look(atRest, ended.Add(100*time.Millisecond)); a.State != state.Working {
+		t.Fatalf("just ended: %+v", a)
+	}
+	working := "✻ Brewing… (2s)\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer · esc to interrupt\n"
+	if a, rec := look(working, ended.Add(time.Second)); a.State != state.Working || rec.Value != "" {
+		t.Fatalf("at work: %+v %+v", rec, a)
+	}
+	// At rest: seen, and working until it has stayed so.
+	seen := ended.Add(2 * time.Second)
+	if a, rec := look(atRest, seen); a.State != state.Working || rec.Option != "restseen" {
+		t.Fatalf("first seen at rest: %+v %+v", rec, a)
+	}
+	if a, rec := look(atRest, seen.Add(time.Second)); a.State != state.Working || rec.Value != "" {
+		t.Fatalf("at rest for a second: %+v %+v", rec, a)
+	}
+	// Still at rest: the turn does not come. Done, with the turn's message,
+	// since it was first seen at rest, entered when that was decided.
+	a, rec := look(atRest, seen.Add(RestDelay))
+	if a.State != state.Done || a.Last != "The second finished." || !a.Since.Equal(seen) || rec.Option != "turnend" || !a.Entered().Equal(seen.Add(RestDelay)) {
+		t.Fatalf("at rest for long: %+v %+v", rec, a)
+	}
+	// Every later look agrees, without the screen.
+	b := FromWindows([]tmux.Window{w})[0]
+	b.Apply(r, true)
+	if !b.Recall() || b.State != state.Done || b.Last != "The second finished." || !b.Since.Equal(seen) || !b.Entered().Equal(seen.Add(RestDelay)) {
+		t.Fatalf("recalled: %+v", b)
+	}
+}

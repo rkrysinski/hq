@@ -76,10 +76,8 @@ func AtRest(screen, reported string) (ok, restored bool) {
 	if !ok {
 		return false, false
 	}
-	for i := b.upper - 1; i >= 0 && !strings.HasPrefix(b.lines[i], prompt); i-- {
-		if spinner.MatchString(b.lines[i]) {
-			return false, false
-		}
+	if b.spinning() {
+		return false, false
 	}
 	var input []string
 	for _, l := range b.lines[b.upper+1 : b.lower] {
@@ -91,6 +89,28 @@ func AtRest(screen, reported string) (ok, restored bool) {
 	}
 	restored = typed == strings.Join(strings.Fields(reported), " ")
 	return restored, restored
+}
+
+// Idle reports whether the screen of an agent's pane shows Claude waiting
+// at its prompt box with no turn at work: the box at the bottom, a footer
+// that does not offer Esc to interrupt, and no spinner above the box.
+// Unlike AtRest it does not look into the box: it is for an agent whose
+// turn its hooks reported ended, where what the user types there says
+// nothing about Claude.
+func Idle(screen string) bool {
+	b, ok := promptBox(screen)
+	return ok && !b.spinning()
+}
+
+// spinning reports whether Claude's spinner shows above the box, since the
+// user's last prompt.
+func (b box) spinning() bool {
+	for i := b.upper - 1; i >= 0 && !strings.HasPrefix(b.lines[i], prompt); i-- {
+		if spinner.MatchString(b.lines[i]) {
+			return true
+		}
+	}
+	return false
 }
 
 // PutBack reports whether the screen shows the reported prompt put back in

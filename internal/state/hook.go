@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// hookScript runs inside the sandbox on each lifecycle event, in Claude's
+// hookSource runs inside the sandbox on each lifecycle event, in Claude's
 // current directory, with the event payload on stdin, the event's kind in $1
 // and, on stop, dialog and input, the notification sequence in $2. It writes
 // the branch checked out there as a header line, then the payload, to the
@@ -42,12 +42,15 @@ import (
 // too, and Kept reads it as working; but not over a subagent's dialog
 // (its PermissionRequest carries agent_id), which is still open: the
 // agent needs input until it is answered. Any other prompt, stop or
-// session event drops what was kept.
+// session event drops what was kept. The ids owed a turn (.owe) last
+// until the user's next prompt or the session's next start or end, so a
+// turn that never comes holds back one turn end at most; the host then
+// sees the agent at rest (design §3.4).
 //
 // It needs only sh, git, cat, mv, cp, mkdir, rm, grep and awk and always
 // exits 0; it holds Claude back only while a message is unread (design
 // §3.4, §7.1).
-const hookScript = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
+const hookSource = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
 b=$(git branch --show-current 2>/dev/null)
 l=${b:-${PWD##*/}}
 cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null
@@ -61,6 +64,7 @@ t=$f.$$
 A='` + hookAwk + `'
 works() { grep -Eq '` + workingEvent + `' "$f" 2>/dev/null; }
 theirs() { grep -q '` + dialogEvent + `' "$f" 2>/dev/null && grep -q '"agent_id"' "$f" 2>/dev/null; }
+owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" 2>/dev/null || rm -f "$t.o" "$f` + owedSuffix + `" 2>/dev/null; }
 put() { cp -f "$t" "$t.c" 2>/dev/null && mv -f "$t.c" "$1" 2>/dev/null; rm -f "$t.c" 2>/dev/null; }
 tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1" 2>/dev/null; }
 soon() { for m in "$i"/[0-9]*` + nowSuffix + `; do [ -f "$m" ] && return 0; done; return 1; }
@@ -78,21 +82,37 @@ say() {
 }
 case $1 in
 stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
-    K=keep awk "$A" "$t" 2>/dev/null && { put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f" 2>/dev/null; rm -f "$t"; exit 0; } ;;
+    K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o" 2>/dev/null; k=$?; owe
+    [ $k = 0 ] && { put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f" 2>/dev/null; rm -f "$t"; exit 0; } ;;
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
-    grep -q '` + wakeEvent + `' "$t" 2>/dev/null && works && { mv -f "$t" "$f` + keptSuffix + `" 2>/dev/null; rm -f "$t"; exit 0; } ;;
+    w=$(K=wake awk "$A" "$t" 2>/dev/null)
+    if [ -n "$w" ]; then
+        grep -vxF -e "$w" "$f` + owedSuffix + `" >"$t.o" 2>/dev/null; owe
+        works && { mv -f "$t" "$f` + keptSuffix + `" 2>/dev/null; rm -f "$t"; exit 0; }
+    else rm -f "$f` + owedSuffix + `" 2>/dev/null; fi ;;
 answer) grep -q '` + toolEndEvent + `' "$t" 2>/dev/null && ! grep -q '"agent_id"' "$t" 2>/dev/null && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
     grep -q '` + dialogEvent + `' "$f" 2>/dev/null && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
 input) grep -q '` + dialogEvent + `' "$f" 2>/dev/null && { rm -f "$t"; exit 0; } ;;
 resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } 2>/dev/null || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; } 2>/dev/null; rm -f "$t.p" ;;
 esac
-case $1 in dialog | answer | input) ;; *) rm -f "$f` + keptSuffix + `" 2>/dev/null ;; esac
+case $1 in dialog | answer | input) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" 2>/dev/null ;; *) rm -f "$f` + keptSuffix + `" 2>/dev/null ;; esac
 if mv -f "$t" "$f" 2>/dev/null && [ "$1" = stop ]; then
     cp -f "$f" "$t" 2>/dev/null && mv -f "$t" "$f.stop" 2>/dev/null
 fi
 rm -f "$t" 2>/dev/null
 case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$f" 2>/dev/null ;; esac
 exit 0`
+
+// hookScript is hookSource as it travels in the settings: without the
+// indentation, which is a few hundred bytes of an argument tmux limits
+// (design §3.4). No line of the script or its awk depends on it.
+var hookScript = func() string {
+	lines := strings.Split(hookSource, "\n")
+	for i := range lines {
+		lines[i] = strings.TrimLeft(lines[i], " \t")
+	}
+	return strings.Join(lines, "\n")
+}()
 
 // dialogEvent is what the hook's grep finds in a state file whose latest
 // event opened a dialog: a PermissionRequest, with or without spaces.
@@ -114,21 +134,29 @@ const (
 // a dialog (PostToolUse or PostToolUseFailure).
 const workingEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"(UserPromptSubmit|PostToolUse)`
 
-// wakeEvent is what the hook's grep finds in the payload of the prompt
+// wakeEvent is what the hook's awk finds in the payload of the prompt
 // Claude gives itself when background work has finished (design §3.4).
-const wakeEvent = `"prompt"[[:blank:]]*:[[:blank:]]*"` + wakePrefix
+const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 
 // hookAwk is the awk program of the hook. It reads the state file or the
 // payload as one record.
 //
 // With K=keep it succeeds for the payload of a Stop that leaves the agent
-// working (spec §5): background work still runs, and the turn did not end
-// with a question. Background work is a task of the payload's
-// background_tasks with the status running that is no shell command (an
-// agent that left a dev server running would never be done). busy walks the
-// list to its end, reading the type and the status of each task; text
-// inside the strings of a task, its description or command, is only ever
-// data.
+// working (spec §5): background work still runs, or has finished without
+// Claude having taken its turn for it yet, and the turn did not end with a
+// question. Background work is a task of the payload's background_tasks
+// with the status running that is no shell command (an agent that left a
+// dev server running would never be done). busy walks the list to its end,
+// reading the id, the type and the status of each task; text inside the
+// strings of a task, its description or command, is only ever data. Claude
+// takes a turn for every task that ends (wakeEvent, naming its id), and
+// tasks that end together are gone from the list before the turns for the
+// later ones: so the ids seen running, less those Claude woke for, are
+// kept in the file O (one a line, printed anew on each Stop), and a Stop
+// with any of them left is not the agent's end.
+//
+// With K=wake it prints the task id of a prompt Claude gave itself ("?"
+// when it names none), and nothing for any other prompt.
 //
 // Otherwise it prints the notification for the event in the state file: on
 // dialog and input "Needs input: <branch>", on stop "Question: <branch>"
@@ -156,8 +184,8 @@ const hookAwk = `function question(s,    i, n, c, m) {
     }
     return m ~ /\?$/
 }
-function busy(s,    i, c, d, str, key, val, type, status) {
-    if (!match(s, /"background_tasks"[ \t\r\n]*:[ \t\r\n]*\[/)) return 0
+function busy(s,    i, c, d, str, key, val, type, status, id) {
+    if (!match(s, /"background_tasks"[ \t\r\n]*:[ \t\r\n]*\[/)) return
     s = substr(s, RSTART + RLENGTH)
     for (i = 1; (c = substr(s, i, 1)) != ""; i++) {
         if (c == "\"") {
@@ -166,17 +194,30 @@ function busy(s,    i, c, d, str, key, val, type, status) {
             if (!val) key = str
             else if (key == "type") type = str
             else if (key == "status") status = str
+            else if (key == "id") id = str
         } else if (c == "{" || c == "[") {
-            if (!d++) type = status = val = ""
+            if (!d++) type = status = val = id = ""
         } else if (c == "}" || c == "]") {
-            if (!d--) return 0
-            if (!d && status == "running" && type != "shell") return 1
+            if (!d--) return
+            if (!d && status == "running" && type != "shell") owed[id] = 1
         } else if (d == 1 && (c == ":" || c == ",")) val = c == ":"
     }
-    return 0
 }
 BEGIN { RS = "\001"; ends = 1 }
-NR == 1 && ENVIRON["K"] == "keep" { ends = !busy($0) || question($0); next }
+NR == 1 && ENVIRON["K"] == "keep" {
+    if ((getline o < ENVIRON["O"]) > 0) for (n = split(o, a, "\n"); n; n--) if (a[n] != "") owed[a[n]] = 1
+    busy($0)
+    for (i in owed) { if (i != "") print i; ends = 0 }
+    if (question($0)) ends = 1
+    next
+}
+NR == 1 && ENVIRON["K"] == "wake" {
+    if (match($0, /` + wakeEvent + `/)) {
+        o = substr($0, RSTART)
+        print match(o, /<task-id>[^<"\\]+/) ? substr(o, RSTART + 9, RLENGTH - 9) : "?"
+    }
+    next
+}
 NR == 1 {
     k = "Done"
     if (ENVIRON["K"] != "stop") k = "Needs input"

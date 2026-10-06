@@ -42,6 +42,7 @@ type Agent struct {
 	endedAt  time.Time  // when its session reported its end
 	atStart  bool       // its latest report is its session's start
 	atPrompt bool       // its turn ended with background work running: it works, at its prompt (see OnBackgroundWork)
+	owed     bool       // at its prompt with nothing running: Claude owes it a turn (see Settle)
 	woken    bool       // it works on a turn Claude woke itself for (see Settle)
 	startAsk *state.Ask // the dialog its screen shows at the start, if any
 	started  string     // the start as stored, which keys endSeen
@@ -316,7 +317,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		a.reportAt = r.Latest
 	}
 	a.atStart = r.AtStart && r.State == state.Done
-	a.atPrompt, a.woken = r.Background, r.Woken
+	a.atPrompt, a.owed, a.woken = r.Background, r.Background && r.Owed, r.Woken
 	if r.State == state.Ended {
 		a.endedAt = r.Since
 	}
@@ -338,9 +339,11 @@ const settleDelay = 500 * time.Millisecond
 // hooks said a moment ago that it works or needs input. An agent whose turn
 // ended with background work running (OnBackgroundWork) is not: its hooks reported
 // that end, and it rests at its prompt, as after a rewind, until Claude
-// wakes it.
+// wakes it. Unless none of that work runs any more and Claude only owes
+// the agent a turn for it: that turn comes within moments, or never, which
+// the screen tells (Settle).
 func (a Agent) Unsettled(now time.Time) bool {
-	return a.Alive && !a.ending && a.reported && !a.atPrompt && (a.State == state.Working || a.State == state.NeedsInput || a.atStart) && now.Sub(a.reportAt) >= settleDelay
+	return a.Alive && !a.ending && a.reported && (!a.atPrompt || a.owed) && (a.State == state.Working || a.State == state.NeedsInput || a.atStart) && now.Sub(a.reportAt) >= settleDelay
 }
 
 // OnBackgroundWork reports whether the agent works only on background work
@@ -371,10 +374,11 @@ func (a *Agent) recall(key string) bool {
 		return false
 	}
 	a.State, a.Since, a.Last = state.Done, time.Unix(0, n), f[2]
-	// A rewind's turn end carries the moment its screen was first seen at
-	// rest, which the restseen record of the same report holds too.
+	// A turn end decided by a screen that stayed at rest (a rewind, a turn
+	// Claude owed and did not take) carries the moment the screen was first
+	// seen at rest, which the restseen record of the same report holds too.
 	r := strings.Fields(a.restSeen)
-	a.rewound = f[2] == Rewound && len(r) == 3 && r[0] == key && r[2] == f[1]
+	a.rewound = len(r) == 3 && r[0] == key && r[2] == f[1]
 	return true
 }
 
@@ -395,7 +399,11 @@ const Rewound = "Interrupted"
 // rewind the turn instead, with no line and no hook: the working agent's
 // screen is then at rest (state.AtRest), and once it has stayed so,
 // unchanged, for RestDelay, the turn is done with Rewound as its last
-// message, since hq first saw it at rest. Both moments are kept on the
+// message, since hq first saw it at rest. The same goes for an agent at
+// its prompt that Claude owes a turn, for background work that finished
+// together with other work (state.Report.Owed): the turn comes at once, so
+// a screen at rest for RestDelay (state.Idle) says it does not come, and
+// the agent is done with its turn's message. Both moments are kept on the
 // agent's window, keyed by the report they overrule, so hq ls and the list
 // agree (see Recall): the record to store there, as the turnend or the
 // restseen option, with no Value when there is nothing new to store.
@@ -416,23 +424,31 @@ func (a *Agent) Settle(screen string, now time.Time) Record {
 		return Record{}
 	}
 	key := a.key() + " "
-	// A rewind right after a turn the user ended leaves that turn's line
-	// above the box: the rewind below tells that turn's end.
-	rewound := a.State == state.Working && state.PutBack(screen, a.prompt)
-	// A turn Claude woke itself for shows no prompt, so a line above the
-	// box may be an earlier turn's: it counts only as the last thing said.
-	ended := state.EndedByUser
-	if a.woken {
-		ended = state.EndedLast
+	last := Rewound
+	var rest, restored bool
+	if a.owed {
+		// Its turn ended by itself, and Claude owes it one more: at rest
+		// whatever its box holds, the turn's message its last.
+		rest, last = state.Idle(screen), a.Last
+	} else {
+		// A rewind right after a turn the user ended leaves that turn's line
+		// above the box: the rewind below tells that turn's end.
+		rewound := a.State == state.Working && state.PutBack(screen, a.prompt)
+		// A turn Claude woke itself for shows no prompt, so a line above the
+		// box may be an earlier turn's: it counts only as the last thing said.
+		ended := state.EndedByUser
+		if a.woken {
+			ended = state.EndedLast
+		}
+		if last, ok := ended(screen); ok && !rewound {
+			a.State, a.Since, a.Last = state.Done, now, last
+			return Record{"turnend", key, key + nanos(now) + " " + last}
+		}
+		if a.State != state.Working {
+			return Record{}
+		}
+		rest, restored = state.AtRest(screen, a.prompt)
 	}
-	if last, ok := ended(screen); ok && !rewound {
-		a.State, a.Since, a.Last = state.Done, now, last
-		return Record{"turnend", key, key + nanos(now) + " " + last}
-	}
-	if a.State != state.Working {
-		return Record{}
-	}
-	rest, restored := state.AtRest(screen, a.prompt)
 	if !rest {
 		return Record{}
 	}
@@ -446,8 +462,8 @@ func (a *Agent) Settle(screen string, now time.Time) Record {
 		a.resting = restored
 		return Record{}
 	}
-	a.State, a.Since, a.Last, a.rewound = state.Done, at, Rewound, true
-	return Record{"turnend", key, key + nanos(at) + " " + Rewound}
+	a.State, a.Since, a.Last, a.rewound = state.Done, at, last, true
+	return Record{"turnend", key, key + nanos(at) + " " + last}
 }
 
 // Resting reports whether Settle saw the agent's screen at rest with its

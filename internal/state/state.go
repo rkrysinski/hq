@@ -42,6 +42,11 @@ type Report struct {
 	// runs (subagents): it waits at its prompt, working, until Claude wakes
 	// it for the closing turn (design §3.4).
 	Background bool
+	// Owed says that of a Background agent nothing runs any more: its
+	// background work finished together, and Claude has not yet taken the
+	// turn it owes for the last of it. That turn comes within moments, or
+	// the agent is done (design §3.4).
+	Owed bool
 	// Woken says the agent works on a turn Claude woke itself for after
 	// background work finished: no prompt of the user's shows on its screen
 	// for it.
@@ -58,7 +63,11 @@ type payload struct {
 	Prompt           string `json:"prompt"`
 	Source           string `json:"source"`
 	ToolName         string `json:"tool_name"`
-	ToolInput        struct {
+	BackgroundTasks  []struct {
+		Type   string `json:"type"`
+		Status string `json:"status"`
+	} `json:"background_tasks"`
+	ToolInput struct {
 		Questions   []struct{ Question string } `json:"questions"`
 		Description string                      `json:"description"`
 		Command     string                      `json:"command"`
@@ -80,6 +89,18 @@ const wakePrefix = "<task-notification>"
 
 // askTool is Claude's tool that asks the user questions in a dialog.
 const askTool = "AskUserQuestion"
+
+// busy reports whether the event, a Stop, lists background work that
+// still runs: a running task that is no shell command (the rule of the
+// hook's awk, which decides; design §3.4).
+func (p payload) busy() bool {
+	for _, t := range p.BackgroundTasks {
+		if t.Status == "running" && t.Type != "shell" {
+			return true
+		}
+	}
+	return false
+}
 
 // dialogText is what an open dialog shows as the last message: the first
 // question Claude asks, or for a permission prompt the tool and what it is
@@ -178,6 +199,7 @@ func (r Report) Kept(latest, kept []byte, at time.Time) Report {
 	switch {
 	case p.Event == "Stop" && (r.State == Working || bytes.Equal(kept, latest)):
 		r.State, r.Background, r.Last = Working, true, Clean(p.AssistantMessage)
+		r.Owed = !p.busy()
 	case p.Event == "UserPromptSubmit" && r.State == Working:
 		r.Woken = true
 	default:

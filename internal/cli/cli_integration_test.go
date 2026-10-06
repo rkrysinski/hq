@@ -841,4 +841,27 @@ func TestAnAgentWhoseTurnEndedWhileItsSubagentsRunStaysWorkingUntilTheClosingTur
 	h.waitAtRest("a")
 	h.typeIn("a", "wake")
 	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running.")
+
+	// Two subagents finish together: nothing runs at the end of the turn
+	// Claude takes for the first, and the agent is done only at the end of
+	// the turn for the second.
+	ch = h.wait("a")
+	h.typeIn("a", "background and background again")
+	h.waitReport("a", "working", "Done: background and background again")
+	h.waitAtRest("a")
+	h.typeIn("a", "wake together")
+	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running. (two)")
+
+	// A subagent gone without Claude taking a turn for it: the agent Claude
+	// owes that turn is done once its screen has stayed at rest.
+	h.typeIn("a", "background and background once more")
+	h.waitReport("a", "working", "Done: background and background once more")
+	h.waitAtRest("a")
+	h.typeIn("a", "lose")
+	h.typeIn("a", "wake")
+	woken := time.Now()
+	h.waitReport("a", "done", "The background work is done, 0 still running.")
+	if took := time.Since(woken); took < agent.RestDelay {
+		t.Fatalf("done %v after the wake-up, before its screen had rested", took)
+	}
 }

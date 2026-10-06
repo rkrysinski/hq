@@ -565,3 +565,103 @@ func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefo
 		}
 	}
 }
+
+// turnEnd is a Stop with the tasks ids running in the background, and
+// wakeUp the prompt Claude gives itself when task id has finished, as
+// Claude Code 2.1.291 writes them.
+func turnEnd(message string, ids ...string) []byte {
+	tasks := []map[string]string{}
+	for _, id := range ids {
+		tasks = append(tasks, map[string]string{"id": id, "type": "subagent", "status": "running", "description": "Run the tests", "agent_type": "general-purpose"})
+	}
+	p, _ := json.Marshal(map[string]any{"hook_event_name": "Stop", "last_assistant_message": message, "background_tasks": tasks})
+	return p
+}
+
+func wakeUp(id string) []byte {
+	return []byte(`{"hook_event_name":"UserPromptSubmit","prompt":"<task-notification>\n<task-id>` + id + `</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"}`)
+}
+
+func TestSubagentsThatFinishTogetherNotifyOnceWhenClaudeHasTakenItsTurnForEach(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	notify := func(kind string, payload []byte) string {
+		t.Helper()
+		return run(t, root, root, id, hook(kind, "[%s]"), payload)
+	}
+	read := func() Report {
+		t.Helper()
+		r, _ := Read(root, id)
+		return r
+	}
+	quiet := func(step, out string, owed bool) {
+		t.Helper()
+		if r := read(); out != "" || r.State != Working || r.Owed != owed {
+			t.Fatalf("%s: printed %q, report %+v", step, out, r)
+		}
+	}
+	const done = `{"terminalSequence":"[Done: main]"}` + "\n"
+
+	// Three subagents finish within a second (as seen: the list is empty
+	// before Claude has taken its turn for the last): one notification, at
+	// the end of that turn.
+	notify("prompt", fixture(t, "prompt"))
+	quiet("turn end, three running", notify("stop", turnEnd("started", "a1", "a2", "a3")), false)
+	quiet("wake-up for the first", notify("prompt", wakeUp("a1")), false)
+	quiet("turn end, one running", notify("stop", turnEnd("the first finished", "a3")), false)
+	quiet("wake-up for the second", notify("prompt", wakeUp("a2")), false)
+	quiet("turn end, none running, a turn owed", notify("stop", turnEnd("the second finished")), true)
+	if r := read(); !r.Background || r.Last != "the second finished" {
+		t.Fatalf("a turn owed: %+v", r)
+	}
+	quiet("wake-up for the third", notify("prompt", wakeUp("a3")), false)
+	if out := notify("stop", turnEnd("all three finished")); out != done {
+		t.Fatalf("the last closing turn printed %q", out)
+	}
+	if r := read(); r.State != Done || r.Background || r.Owed {
+		t.Fatalf("the last closing turn: %+v", r)
+	}
+	if f := files(t, root, id); len(f) != 2 {
+		t.Fatalf("files left: %v", f)
+	}
+
+	// A subagent stopped: the list is empty at once, the wake-up follows.
+	notify("prompt", fixture(t, "prompt"))
+	quiet("turn end, one running", notify("stop", turnEnd("started", "b1")), false)
+	notify("prompt", fixture(t, "prompt-pasted")) // the user: stop it
+	if out := notify("stop", turnEnd("stopped it")); out != done {
+		// The user's prompt forgets what was owed: this turn end is theirs.
+		t.Fatalf("the user's turn printed %q", out)
+	}
+
+	// A turn that never comes holds back one turn end at most: the user's
+	// next prompt forgets it, and so does a session that starts over.
+	notify("prompt", fixture(t, "prompt"))
+	notify("stop", turnEnd("started", "c1"))
+	notify("prompt", wakeUp("c9")) // another task's
+	quiet("turn end, none running, a turn owed", notify("stop", turnEnd("one finished")), true)
+	notify("prompt", fixture(t, "prompt"))
+	if out := notify("stop", turnEnd("done")); out != done {
+		t.Fatalf("the turn after the user's prompt printed %q", out)
+	}
+	notify("prompt", fixture(t, "prompt"))
+	notify("stop", turnEnd("started", "d1"))
+	notify("start", fixture(t, "session-start-clear"))
+	notify("prompt", fixture(t, "prompt"))
+	if out := notify("stop", turnEnd("done")); out != done {
+		t.Fatalf("the turn of the session started over printed %q", out)
+	}
+
+	// A question shows and notifies whatever is owed; a wake-up after it
+	// is the report, and still pays what it names.
+	notify("prompt", fixture(t, "prompt"))
+	notify("stop", turnEnd("started", "e1", "e2"))
+	notify("prompt", wakeUp("e1"))
+	if out := notify("stop", turnEnd("One finished. Go on?")); out != `{"terminalSequence":"[Question: main]"}`+"\n" {
+		t.Fatalf("the question printed %q", out)
+	}
+	notify("prompt", wakeUp("e2"))
+	if out := notify("stop", turnEnd("both finished")); out != done {
+		t.Fatalf("the closing turn after the question printed %q", out)
+	}
+}
