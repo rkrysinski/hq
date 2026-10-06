@@ -192,7 +192,7 @@ func relaunchAgent(d deps, a agent.Agent, pane, resume string) error {
 	// The session starts without the prompt hq mcp may have started the
 	// agent with: its next prompt is the user's.
 	_ = d.withdraw(a.RepoPath, a.ID)
-	argv := d.sbx.RunArgv(a.Sandbox, claudeArgs(a.Name, a.ID, d.notify, resume, "")...)
+	argv := d.sbx.RunArgv(a.Sandbox, claudeArgs(a.Name, a.ID, resume, "")...)
 	if err := d.tmux.Respawn(pane, a.RepoPath, argv); err != nil {
 		return tmuxErr(err)
 	}

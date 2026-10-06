@@ -209,9 +209,10 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	if s.Hooks["Notification"][0].Matcher != "permission_prompt|agent_needs_input|elicitation_dialog" {
 		t.Errorf("matcher %q", s.Hooks["Notification"][0].Matcher)
 	}
-	// tmux refuses a command much longer than 16 KiB; the settings are one
-	// argument of the agent's window.
-	if len(raw) > 8<<10 {
+	// The settings are one argument of sbx run (hq __session writes them out,
+	// #40), which on WSL is sbx.exe: Windows takes a command line of at most
+	// 32 KiB, and the prompt and the rest of the line need their share.
+	if len(raw) > 24<<10 {
 		t.Errorf("settings of %d bytes", len(raw))
 	}
 	for _, event := range []string{"PermissionRequest", "PostToolUse", "PostToolUseFailure"} {

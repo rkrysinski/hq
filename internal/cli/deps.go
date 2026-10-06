@@ -196,6 +196,10 @@ func defaultDeps() deps {
 	var placeholder, session []string
 	if exe, err := executable(); err == nil {
 		placeholder, session = []string{exe, slotCommand}, []string{exe, sessionCommand}
+	} else {
+		// An agent's window refers to its settings, which only hq __session
+		// writes out (claudeArgs): hq as it was called stands in.
+		session = []string{os.Args[0], sessionCommand}
 	}
 	return deps{
 		tmux:        tmux.Client{Run: run, Socket: os.Getenv("HQ_TMUX_SOCKET"), Placeholder: placeholder, Session: session},

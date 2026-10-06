@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -10,7 +11,7 @@ import (
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/sbx"
-	"github.com/rkrysinski/hq/internal/state"
+	"github.com/rkrysinski/hq/internal/tmux"
 )
 
 // newArgs is hq new's arguments after parsing.
@@ -65,10 +66,13 @@ func checkName(name string) error {
 
 // claudeArgs are the arguments hq gives Claude: settings carrying the agent's
 // identity and the hooks that report its state and notify with the terminal's
-// sequence notify, the Claude session to resume if any, then the first prompt
-// if any.
-func claudeArgs(name, id, notify, resume, prompt string) []string {
-	args := []string{"--settings", state.Settings(name, id, notify)}
+// sequence, the Claude session to resume if any, then the first prompt if
+// any. The settings are a reference that hq __session writes out as the
+// session starts (settingsArgs): written out, they would be part of the
+// agent's tmux command, which tmux bounds, and the hook script would take
+// its room from the prompt (#40).
+func claudeArgs(name, id, resume, prompt string) []string {
+	args := []string{"--settings", settingsRef + name + ":" + id}
 	if resume != "" {
 		args = append(args, "--resume", resume)
 	}
@@ -151,7 +155,11 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string, fresh bool) 
 	if fresh {
 		opts["new"] = "1"
 	}
-	win, err := d.tmux.NewWindow(name, root, opts, d.sbx.RunArgv(sandbox, claudeArgs(name, id, d.notify, resume, prompt)...))
+	win, err := d.tmux.NewWindow(name, root, opts, d.sbx.RunArgv(sandbox, claudeArgs(name, id, resume, prompt)...))
+	var long tmux.CommandTooLong
+	if errors.As(err, &long) {
+		return dialog.FieldError{Field: dialog.Prompt, Err: usageErr("the prompt is %d bytes too long for tmux; shorten it, or send the rest with hq send once the agent runs", long.Over)}
+	}
 	if err != nil {
 		return tmuxErr(err)
 	}

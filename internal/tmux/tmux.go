@@ -5,6 +5,7 @@ package tmux
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -200,6 +201,9 @@ func (c Client) NewWindow(name, dir string, options map[string]string, argv []st
 	// no shell parsing of any argument.
 	gate := append([]string{"sh", "-c", `read _ ; exec "$@"`, "sh"}, c.session(argv)...)
 	args := append([]string{"new-window", "-d", "-P", "-F", "#{window_id}", "-t", Session + ":", "-n", name, "-c", dir, "--"}, gate...)
+	if n := commandSize(args); n > maxCommand {
+		return "", CommandTooLong{Over: n - maxCommand}
+	}
 	out, err := c.tmux(args...)
 	if err != nil {
 		return "", err
@@ -219,6 +223,27 @@ func (c Client) NewWindow(name, dir string, options map[string]string, argv []st
 	// resizes it (#141).
 	_ = c.FitHomes()
 	return id, nil
+}
+
+// maxCommand is the most a tmux command's arguments, each with its NUL, may
+// take: the client sends them in one message of at most 16 KiB with its
+// header and the count (MAX_IMSGSIZE), else tmux says "command too long".
+// The same in tmux 3.4 to 3.7c (#40).
+const maxCommand = 16384 - 16 - 4
+
+func commandSize(args []string) int {
+	n := 0
+	for _, a := range args {
+		n += len(a) + 1
+	}
+	return n
+}
+
+// CommandTooLong is a command tmux would refuse, Over bytes too long.
+type CommandTooLong struct{ Over int }
+
+func (e CommandTooLong) Error() string {
+	return fmt.Sprintf("tmux command %d bytes too long", e.Over)
 }
 
 // SetOption stores one of OptionKeys on a window.

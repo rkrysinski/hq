@@ -84,7 +84,7 @@ func TestSandboxRestartRelaunchesItsAgentsInTheirOwnPanes(t *testing.T) {
 			t.Fatalf("relaunched window %+v", w)
 		}
 		argv := strings.Join(f.tmux.argv[w.ID], " ")
-		if !strings.HasPrefix(argv, "sbx run --name claude-x -- --settings") || !strings.Contains(argv, `HQ_ID":"id-`+w.Name+`"`) {
+		if !strings.HasPrefix(argv, "sbx run --name claude-x -- --settings") || !strings.Contains(argv, " hq-settings:"+w.Name+":id-"+w.Name) {
 			t.Fatalf("argv %q", argv)
 		}
 		rest := strings.Join(f.tmux.argv[w.ID][7:], " ")

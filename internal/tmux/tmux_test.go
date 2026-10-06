@@ -1,6 +1,7 @@
 package tmux
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -222,5 +223,16 @@ func TestAttachTellsTmuxTheTerminalTakesUTF8(t *testing.T) {
 	}
 	if want := "tmux -u -L s attach-session -d -t " + Session; strings.Join(got.line, " ") != want {
 		t.Fatalf("got %q, want %q", got.line, want)
+	}
+}
+
+// tmux refuses a command longer than about 16 KiB with "command too long";
+// NewWindow says so before it asks, and by how much (#40).
+func TestNewWindowRefusesACommandTmuxWouldRefuse(t *testing.T) {
+	c := Client{Run: runner{}}
+	_, err := c.NewWindow("a", "/w", nil, []string{"sbx", strings.Repeat("x", maxCommand)})
+	var long CommandTooLong
+	if !errors.As(err, &long) || long.Over <= 0 || long.Over > 200 {
+		t.Fatalf("%v", err)
 	}
 }

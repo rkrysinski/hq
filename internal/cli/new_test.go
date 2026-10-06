@@ -2,10 +2,12 @@ package cli
 
 import (
 	"bytes"
-	"encoding/json"
+	"errors"
+	"io"
 	"strings"
 	"testing"
 
+	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -79,12 +81,11 @@ func TestNewStartsAgentInRepositorysSandbox(t *testing.T) {
 	if strings.Join(argv[:5], " ") != "sbx run --name claude-app --" || argv[len(argv)-1] != "say hi" {
 		t.Fatalf("argv %q", argv)
 	}
-	var settings struct{ Env map[string]string }
-	if err := json.Unmarshal([]byte(argv[6]), &settings); err != nil || settings.Env["HQ_ID"] != w.Options["id"] || settings.Env["HQ_AGENT"] != "a" {
-		t.Fatalf("settings %q: %v", argv[6], err)
-	}
-	if !strings.Contains(argv[6], `"stop","[notify %s]"`) { // the platform's sequence (design §3.5)
-		t.Fatalf("no notification in settings %q", argv[6])
+	// The window carries the agent's settings by reference: hq __session
+	// writes them out as the session starts, so the hook script takes no
+	// room from the prompt in the window's command (#40).
+	if argv[5] != "--settings" || argv[6] != "hq-settings:a:"+w.Options["id"] {
+		t.Fatalf("settings %q", argv[5:7])
 	}
 	if !f.tmux.started[w.ID] {
 		t.Fatal("window not started")
@@ -206,5 +207,22 @@ func TestNewReportsTmuxFailure(t *testing.T) {
 	f.tmux.newWindowErr = &proc.Error{Name: "tmux", Msg: "server exited"}
 	if code, _, errOut := f.run("new", "a"); code != ExitEnvironment || errOut != "hq: tmux: server exited\n" {
 		t.Fatalf("exit %d %q", code, errOut)
+	}
+}
+
+// A prompt longer than tmux takes in the window's command is the user's to
+// shorten, under the prompt in the dialog (#40).
+func TestNewWithAPromptTooLongForTmuxSaysSo(t *testing.T) {
+	f := newFakes()
+	f.sbx.sandboxes = sandboxesFor("/w/app")
+	f.tmux.newWindowErr = tmux.CommandTooLong{Over: 42}
+	code, _, errOut := f.run("new", "a", "say hi")
+	if code != ExitUsage || errOut != "hq: the prompt is 42 bytes too long for tmux; shorten it, or send the rest with hq send once the agent runs\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	_, _, err := createAgent(io.Discard, f.deps(), newArgs{name: "a", dir: "/w/app", prompt: "say hi"})
+	var fe dialog.FieldError
+	if !errors.As(err, &fe) || fe.Field != dialog.Prompt {
+		t.Fatalf("%v", err)
 	}
 }
