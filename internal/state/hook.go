@@ -333,8 +333,8 @@ type hookMatcher struct {
 }
 
 // hookEnv is the environment variable that carries the script: every hook
-// runs the one copy of it, which keeps the settings, an argument of the
-// agent's tmux window, within what tmux accepts for a command.
+// runs the one copy of it, which keeps the settings, an argument of sbx run,
+// within what Windows takes for a command line on WSL.
 const hookEnv = "HQ_HOOK"
 
 // hook runs the script for an event of kind; notify, when set, is the

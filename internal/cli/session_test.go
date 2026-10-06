@@ -3,7 +3,10 @@ package cli
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
+
+	"github.com/rkrysinski/hq/internal/state"
 )
 
 func TestSessionRunsTheAgentsSessionThenShowsItsLatestOutputAgain(t *testing.T) {
@@ -48,5 +51,28 @@ func TestSessionThatCannotStartOrIsNotGiven(t *testing.T) {
 	}
 	if code, _, errOut := f.run(sessionCommand); code != ExitUsage || errOut != "hq: usage: hq __session COMMAND [ARGUMENT...]\n" {
 		t.Fatalf("exit %d %q", code, errOut)
+	}
+}
+
+// The settings an agent's window refers to are written out as its session
+// starts: the agent's identity, its hooks and the platform's notification
+// (#40). Only the argument after --settings is one; a prompt that reads like
+// it stays as typed.
+func TestSessionWritesOutTheSettingsTheWindowRefersTo(t *testing.T) {
+	f := newFakes()
+	code, _, errOut := f.run(sessionCommand, "sbx", "run", "--name", "claude-app", "--", "--settings", "hq-settings:a:0123456789ab", "hq-settings:b:1")
+	if code != ExitOK || errOut != "" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	want := []string{"sbx", "run", "--name", "claude-app", "--", "--settings", state.Settings("a", "0123456789ab", "[notify %s]"), "hq-settings:b:1"}
+	if !reflect.DeepEqual(f.ran, [][]string{want}) {
+		t.Fatalf("ran %q\nwant %q", f.ran, want)
+	}
+	if !strings.Contains(f.ran[0][6], `"stop","[notify %s]"`) { // the platform's sequence (design §3.5)
+		t.Fatalf("no notification in settings %q", f.ran[0][6])
+	}
+	f.ran = nil
+	if code, _, errOut := f.run(sessionCommand, "sbx", "--settings", "hq-settings:a"); code != ExitUsage || errOut != "hq: invalid settings reference 'hq-settings:a'\n" || f.ran != nil {
+		t.Fatalf("exit %d %q, ran %q", code, errOut, f.ran)
 	}
 }

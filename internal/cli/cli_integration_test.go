@@ -32,11 +32,24 @@ type realHQ struct {
 }
 
 // newRealHQ wires hq to a private tmux server and the stub sbx.
+// TestMain lets this test binary run as hq __session, which an agent's pane
+// runs and which writes out the settings the window refers to (#40).
+func TestMain(m *testing.M) {
+	if len(os.Args) > 1 && os.Args[1] == sessionCommand {
+		os.Exit(Main(os.Args[1:], Env{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr}))
+	}
+	os.Exit(m.Run())
+}
+
 func newRealHQ(t *testing.T) *realHQ {
 	bin, _ := testutil.SbxStub(t)
 	h := &realHQ{t: t, socket: testutil.TmuxSocket(t)}
 	d := defaultDeps()
-	d.tmux = tmux.Client{Run: proc.Exec{}, Socket: h.socket}
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.tmux = tmux.Client{Run: proc.Exec{}, Socket: h.socket, Session: []string{self, sessionCommand}}
 	d.sbx = sbx.Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
 	d.pollSandboxes = sbx.Client{Run: proc.Exec{Timeout: sbxPollTimeout}, Platform: platformtest.Fake{Sbx: bin}}.List
 	d.getwd = func() (string, error) { return h.cwd, nil }
@@ -192,6 +205,33 @@ func TestNewStartsSessionInSandboxAndLsListsIt(t *testing.T) {
 	}
 	if code, _, _ := h.run("new", "a"); code != ExitUsage {
 		t.Fatalf("duplicate: exit %d", code)
+	}
+}
+
+// The first prompt has nearly all of tmux's 16 KiB for itself, the hook
+// script none of it; one longer than tmux takes is hq's error, which says by
+// how much, and starts nothing (#40).
+func TestNewTakesAPromptOfNearlyTmuxsWholeLimit(t *testing.T) {
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	prompt := strings.Repeat("p", 15<<10) + " end"
+	if code, _, errOut := h.run("new", "a", prompt); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	var log []byte
+	for i := 0; i < 50 && !strings.Contains(string(log), " end"); i++ {
+		time.Sleep(100 * time.Millisecond)
+		log, _ = os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/runs.log")
+	}
+	if !strings.Contains(string(log), `"HQ_AGENT":"a"`) || !strings.HasSuffix(strings.TrimSpace(string(log)), prompt) {
+		t.Fatalf("session args %d bytes, ending %q", len(log), log[max(0, len(log)-80):])
+	}
+	code, _, errOut := h.run("new", "b", strings.Repeat("p", 16<<10))
+	if code != ExitUsage || !strings.HasPrefix(errOut, "hq: the prompt is ") || !strings.Contains(errOut, " bytes too long for tmux;") {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if rows := h.ls(); len(rows) != 1 {
+		t.Fatalf("rows %+v", rows)
 	}
 }
 
