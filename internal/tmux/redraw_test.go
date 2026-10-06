@@ -159,11 +159,15 @@ func TestRedrawBlanksEachLineThenDrawsAboveTheBottomLine(t *testing.T) {
 	}
 }
 
-// runner answers tmux commands from a table, keyed by the command line.
+// runner answers tmux commands from a table, keyed by the command line
+// after the -u every one of them starts with (#41).
 type runner map[string]string
 
 func (r runner) Run(name string, args ...string) ([]byte, error) {
-	out, ok := r[strings.Join(args, " ")]
+	if len(args) == 0 || args[0] != "-u" {
+		return nil, fmt.Errorf("%s %v without -u", name, args)
+	}
+	out, ok := r[strings.Join(args[1:], " ")]
 	if !ok {
 		return nil, fmt.Errorf("unexpected %s %v", name, args)
 	}

@@ -31,7 +31,9 @@ trap 'rm -f "$ansi"' EXIT
 # -N keeps the blanks at a line's end, whose background can be the point.
 # tmux carries a line's colours on from the line before and freeze starts
 # each line afresh, so each line starts with the sequences still in force.
-tmux ${socket:+-L "$socket"} capture-pane -e -p -N -t "$1" |
+# The shifts tmux writes around line drawing for a client that does not take
+# UTF-8 (SO, SI) are dropped: freeze cannot render them.
+tmux -u ${socket:+-L "$socket"} capture-pane -e -p -N -t "$1" |
     sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' |
     BG=$bg FG=$fg perl -pe '
         BEGIN {
@@ -39,6 +41,7 @@ tmux ${socket:+-L "$socket"} capture-pane -e -p -N -t "$1" |
             $bg = rgb(48, $ENV{BG}); $fg = $ENV{FG} ne "" ? rgb(38, $ENV{FG}) : "";
             $sgr = $fg . $bg;
         }
+        tr/\x0e\x0f//d;
         s/\e\[49m/$bg/g; s/\e\[39m/$fg/g if $fg ne ""; s/\e\[0?m/\e[0m$fg$bg/g;
         $in = $sgr;
         for (/(\e\[[0-9;]*m)/g) { $sgr = /^\e\[0m$/ ? "" : $sgr . $_ }

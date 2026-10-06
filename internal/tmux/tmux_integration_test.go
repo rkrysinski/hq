@@ -43,13 +43,13 @@ func waitFor(ok func() bool) bool {
 func reaped(t *testing.T, socket string) {
 	t.Helper()
 	eventually(t, "tmux to learn how the ended panes ended", func() bool {
-		out, err := exec.Command("tmux", "-L", socket, "list-panes", "-a", "-F", "#{pane_dead}:#{pane_dead_time}").Output()
+		out, err := exec.Command("tmux", "-u", "-L", socket, "list-panes", "-a", "-F", "#{pane_dead}:#{pane_dead_time}").Output()
 		if err != nil {
 			return false
 		}
 		for _, l := range strings.Fields(string(out)) {
 			if l == "1:" {
-				_ = exec.Command("tmux", "-L", socket, "run-shell", "true").Run()
+				_ = exec.Command("tmux", "-u", "-L", socket, "run-shell", "true").Run()
 				return false
 			}
 		}
@@ -87,7 +87,7 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 	// Notifications pass from the hidden window to the terminal; the pane
 	// carries its agent's id and its settings when it is docked.
 	for opt, want := range map[string]string{"allow-passthrough": "all", "remain-on-exit": "on", "alternate-screen": "off", "@hq_agent": "x1"} {
-		if out, _ := exec.Command("tmux", "-L", socket, "show-options", "-pv", "-t", id, opt).Output(); strings.TrimSpace(string(out)) != want {
+		if out, _ := exec.Command("tmux", "-u", "-L", socket, "show-options", "-pv", "-t", id, opt).Output(); strings.TrimSpace(string(out)) != want {
 			t.Fatalf("%s: %q, want %q", opt, out, want)
 		}
 	}
@@ -104,7 +104,7 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 	if ws, _ := c.Windows(); ws[1].DeadAt.Before(started.Truncate(time.Second)) || ws[1].DeadAt.After(time.Now()) {
 		t.Fatalf("died at %v, started %v", ws[1].DeadAt, started)
 	}
-	out, _ := exec.Command("tmux", "-L", socket, "capture-pane", "-p", "-t", id).Output()
+	out, _ := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p", "-t", id).Output()
 	if !strings.Contains(string(out), `a b|'q"|$HOME|;exit|`) {
 		t.Fatalf("arguments were not passed verbatim:\n%s", out)
 	}
@@ -145,7 +145,7 @@ func TestSocketPathAndEnterWithoutClient(t *testing.T) {
 	}
 	// With no client attached, the window is still selected before switch-client fails.
 	_ = c.Enter(id)
-	out, _ := exec.Command("tmux", "-L", socket, "display-message", "-p", "-t", Session+":", "#{window_id}").Output()
+	out, _ := exec.Command("tmux", "-u", "-L", socket, "display-message", "-p", "-t", Session+":", "#{window_id}").Output()
 	if strings.TrimSpace(string(out)) != id {
 		t.Fatalf("active window %q, want %s", out, id)
 	}
@@ -172,10 +172,10 @@ func TestAttachSelectsWindowThenAttachesToHqSessionDetachingOthers(t *testing.T)
 	if err := c.Attach(id, term); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(term.args, " "); got != "tmux -L "+socket+" attach-session -d -t hq" {
+	if got := strings.Join(term.args, " "); got != "tmux -u -L "+socket+" attach-session -d -t hq" {
 		t.Fatalf("attach command %q", got)
 	}
-	out, _ := exec.Command("tmux", "-L", socket, "display-message", "-p", "-t", Session+":", "#{window_id}").Output()
+	out, _ := exec.Command("tmux", "-u", "-L", socket, "display-message", "-p", "-t", Session+":", "#{window_id}").Output()
 	if strings.TrimSpace(string(out)) != id {
 		t.Fatalf("active window %q, want %s", out, id)
 	}
@@ -484,9 +484,34 @@ func TestValuesWithADollarNameReadBackAsStored(t *testing.T) {
 	}
 }
 
+// longInputPasses reports whether a pane's program gets all of a long input
+// tmux types, without hq. In a Docker sandbox (kernel 7.0) it gets 4095
+// bytes and the rest stays in tmux, with every tmux from 3.4 to 3.7c, while
+// the runners' tmux delivers all of it (#41).
+func longInputPasses(t *testing.T) bool {
+	t.Helper()
+	socket := testutil.TmuxSocket(t)
+	got := filepath.Join(t.TempDir(), "got")
+	if out, err := exec.Command("tmux", "-u", "-L", socket, "new-session", "-d", "sh", "-c", `stty raw -echo; echo ready; exec cat >>"$0"`, got).CombinedOutput(); err != nil {
+		t.Fatalf("%v %s", err, out)
+	}
+	eventually(t, "the program", func() bool {
+		out, _ := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p").Output()
+		return strings.Contains(string(out), "ready")
+	})
+	const n = 5000
+	if out, err := exec.Command("tmux", "-u", "-L", socket, "send-keys", "-l", strings.Repeat("x", n)).CombinedOutput(); err != nil {
+		t.Fatalf("%v %s", err, out)
+	}
+	return waitFor(func() bool { b, _ := os.ReadFile(got); return len(b) == n })
+}
+
 // hq send types a message into Claude's prompt box as a paste: bracketed,
 // since Claude asks for that, its lines kept, then Enter; no buffer stays.
 func TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter(t *testing.T) {
+	if !longInputPasses(t) {
+		t.Skip("this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)")
+	}
 	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
 	dir := t.TempDir()
 	if err := c.EnsureSession(dir); err != nil {

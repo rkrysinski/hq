@@ -117,7 +117,7 @@ func (h *realHQ) pane(name string) string {
 	if !ok {
 		h.t.Fatalf("no agent %s", name)
 	}
-	out, _ := exec.Command("tmux", "-L", h.socket, "capture-pane", "-p", "-t", a.Window).Output()
+	out, _ := exec.Command("tmux", "-u", "-L", h.socket, "capture-pane", "-p", "-t", a.Window).Output()
 	return string(out)
 }
 
@@ -129,7 +129,7 @@ func (h *realHQ) history(name string) string {
 	if !ok {
 		h.t.Fatalf("no agent %s", name)
 	}
-	out, _ := exec.Command("tmux", "-L", h.socket, "capture-pane", "-p", "-S", "-", "-t", a.Window).Output()
+	out, _ := exec.Command("tmux", "-u", "-L", h.socket, "capture-pane", "-p", "-S", "-", "-t", a.Window).Output()
 	return string(out)
 }
 
@@ -153,7 +153,7 @@ func (h *realHQ) typeIn(name, line string) {
 	if !ok {
 		h.t.Fatalf("no agent %s", name)
 	}
-	if out, err := exec.Command("tmux", "-L", h.socket, "send-keys", "-t", a.Window, line, "Enter").CombinedOutput(); err != nil {
+	if out, err := exec.Command("tmux", "-u", "-L", h.socket, "send-keys", "-t", a.Window, line, "Enter").CombinedOutput(); err != nil {
 		h.t.Fatalf("send-keys: %v %s", err, out)
 	}
 }
@@ -416,7 +416,7 @@ func TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	ws, _ := h.d.tmux.Windows()
 	a, _ := agent.Find(agent.FromWindows(ws), "a")
-	pid, err := exec.Command("tmux", "-L", h.socket, "display-message", "-p", "-t", a.Window, "#{pane_pid}").Output()
+	pid, err := exec.Command("tmux", "-u", "-L", h.socket, "display-message", "-p", "-t", a.Window, "#{pane_pid}").Output()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -477,7 +477,7 @@ func TestKillEndsASessionThatOutlivedItsPane(t *testing.T) {
 	exited := make(chan error, 1)
 	go func() { exited <- claude.Wait() }()
 	t.Cleanup(func() { _ = claude.Process.Kill() })
-	pid, err := exec.Command("tmux", "-L", h.socket, "display-message", "-p", "-t", a.Window, "#{pane_pid}").Output()
+	pid, err := exec.Command("tmux", "-u", "-L", h.socket, "display-message", "-p", "-t", a.Window, "#{pane_pid}").Output()
 	if err != nil {
 		t.Fatal(err)
 	}
