@@ -77,15 +77,21 @@ func (h *realHQ) waitSessions(sandbox string, n int) {
 	h.t.Fatalf("%s: the stub has not recorded %d sessions", sandbox, n)
 }
 
+// stateWait is how long waitState waits for a state: by the clock, not by
+// a number of looks, so a quick hq ls does not shorten it. The slowest
+// agent of these tests takes 6 s to end its first turn (a fake Claude that
+// takes 3 s to start and 3 s for a turn), which fifty quick looks, 100 ms
+// apart, ended just before (#50).
+const stateWait = 15 * time.Second
+
 func (h *realHQ) waitState(name, state string) lsRow {
 	h.t.Helper()
-	for i := 0; i < 50; i++ {
+	for deadline := time.Now().Add(stateWait); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
 		for _, r := range h.ls() {
 			if r.Name == name && r.State == state {
 				return r
 			}
 		}
-		time.Sleep(100 * time.Millisecond)
 	}
 	h.t.Fatalf("%s never became %s: %+v", name, state, h.ls())
 	return lsRow{}

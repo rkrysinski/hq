@@ -461,14 +461,26 @@ func TestValuesWithADollarNameReadBackAsStored(t *testing.T) {
 	if v, err := c.SessionValue("filter"); err != nil || v != "$name" {
 		t.Fatalf("session value %q %v", v, err)
 	}
-	t.Setenv("TMUX_TMPDIR", filepath.Join(t.TempDir()))
+	// A socket's path must fit a socket address, 104 bytes on macOS:
+	// t.TempDir() carries the test's name and lies, on a macOS runner, under
+	// a temp directory of 50 bytes itself (#50).
+	tmp, err := os.MkdirTemp("/tmp", "hq")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(tmp) })
+	t.Setenv("TMUX_TMPDIR", tmp)
 	d := Client{Run: proc.Exec{}, Socket: "hq$sock" + socket}
 	t.Cleanup(func() { _, _ = d.tmux("kill-server") })
 	if err := d.EnsureSession(dir); err != nil {
 		t.Fatal(err)
 	}
-	if p, err := d.SocketPath(); err != nil || !strings.HasSuffix(p, "/hq$sock"+socket) {
+	p, err := d.SocketPath()
+	if err != nil || !strings.HasSuffix(p, "/hq$sock"+socket) {
 		t.Fatalf("socket path %q %v", p, err)
+	}
+	if len(p) >= 104 {
+		t.Fatalf("socket path of %d bytes, too long for macOS: %q", len(p), p)
 	}
 }
 
