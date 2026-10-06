@@ -5,7 +5,7 @@ before Esc:
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents · ↓ to manage
   ● main
-  ◯ general-purpose  Run wait script                                                                                        20s · ↓ 25.4k tokens
+  ◯ general-purpose  Run wait script                                                                                        19s · ↓ 25.4k tokens
 
 1 s after Esc:
 ✻ Waiting for 1 background agent to finish
@@ -14,4 +14,4 @@ before Esc:
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents · ↓ to manage
   ● main
-  ◯ general-purpose  Run wait script                                                                                        21s · ↓ 25.4k tokens
+  ◯ general-purpose  Run wait script                                                                                        20s · ↓ 25.4k tokens

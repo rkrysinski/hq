@@ -1,4 +1,4 @@
 NAME  REPO  BRANCH  STATE  AGE  LAST
-one   one   one     done   0s   The background agent finished and replied "done".
-next: hq wait one --since 2026-10-06T10:23:14.768660995Z
-returned at +51s
+one   one   one     done   0s   The background agent finished and replied "done" after runn…
+next: hq wait one --since 2026-10-06T10:54:23.42067597Z
+returned at +52s

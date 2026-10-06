@@ -1,0 +1,9 @@
+The same for a real session whose subagent waits on a background shell command of its own (the documented limit). Hook of this branch:
+
+11:59:23.353  UserPromptSubmit  the user's prompt                           hook printed: '-'                     files: ID
+11:59:26.511  Stop              running: Background wait.sh 60              hook printed: '-'                     files: ID on owe stop
+11:59:32.818  UserPromptSubmit  wake-up: Agent "Background wait.sh 60" finished  hook printed: '-'                     files: ID on stop
+11:59:33.530  Stop              running: Run wait script in background      hook printed: 'Done: main'  files: ID stop
+12:00:28.184  UserPromptSubmit  wake-up: Agent "Background wait.sh 60" finished  hook printed: '-'                     files: ID stop
+12:00:29.311  Stop              running: none                               hook printed: 'Done: main'  files: ID stop
+notifications: 2

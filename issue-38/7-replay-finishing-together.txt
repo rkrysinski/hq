@@ -1,0 +1,24 @@
+The hook events of a real Claude Code 2.1.291 session (three subagents finishing within 1.5 s, logged raw before this change)
+replayed in order through the hook hq injects. Hook of dev:
+
+11:58:24.905  UserPromptSubmit  the user's prompt                           hook printed: '-'                     files: ID
+11:58:28.939  Stop              running: Run wait.sh 25 (1), Run wait.sh 25 (2), Run wait.sh 25 (3)  hook printed: 'Done: main'  files: ID stop
+11:58:54.130  UserPromptSubmit  wake-up: Agent "Run wait.sh 25 (1)" finished  hook printed: '-'                     files: ID stop
+11:58:55.372  Stop              running: Run wait.sh 25 (3)                 hook printed: 'Done: main'  files: ID stop
+11:58:55.392  UserPromptSubmit  wake-up: Agent "Run wait.sh 25 (2)" finished  hook printed: '-'                     files: ID stop
+11:58:56.818  Stop              running: none                               hook printed: 'Done: main'  files: ID stop
+11:58:56.837  UserPromptSubmit  wake-up: Agent "Run wait.sh 25 (3)" finished  hook printed: '-'                     files: ID stop
+11:58:58.283  Stop              running: none                               hook printed: 'Done: main'  files: ID stop
+notifications: 4
+
+Hook of this branch:
+
+11:58:24.905  UserPromptSubmit  the user's prompt                           hook printed: '-'                     files: ID
+11:58:28.939  Stop              running: Run wait.sh 25 (1), Run wait.sh 25 (2), Run wait.sh 25 (3)  hook printed: '-'                     files: ID on owe stop
+11:58:54.130  UserPromptSubmit  wake-up: Agent "Run wait.sh 25 (1)" finished  hook printed: '-'                     files: ID on owe stop
+11:58:55.372  Stop              running: Run wait.sh 25 (3)                 hook printed: '-'                     files: ID on owe stop
+11:58:55.392  UserPromptSubmit  wake-up: Agent "Run wait.sh 25 (2)" finished  hook printed: '-'                     files: ID on owe stop
+11:58:56.818  Stop              running: none                               hook printed: '-'                     files: ID on owe stop
+11:58:56.837  UserPromptSubmit  wake-up: Agent "Run wait.sh 25 (3)" finished  hook printed: '-'                     files: ID on stop
+11:58:58.283  Stop              running: none                               hook printed: 'Done: main'  files: ID stop
+notifications: 1
