@@ -45,7 +45,10 @@
 // additionalContext of UserPromptSubmit or PostToolUse is noted in the
 // turn's reply, and a Stop hook that blocks the stop gets its reason
 // answered in a further reply, then Stop again with stop_hook_active.
-// A finished turn draws the empty prompt box.
+// A finished turn draws the empty prompt box. A terminalSequence, which
+// Claude writes to its terminal as the desktop notification, it appends
+// instead to the file FAKE_CLAUDE_NOTIFIED names, one line for each: the
+// agent's name and the sequence, quoted.
 //
 // Like Claude Code 2.1.283 it draws in the terminal's alternate screen: it
 // leaves it on /exit, and clears it first when it is terminated, as when
@@ -340,6 +343,21 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	promptBox("")
 }
 
+// notified records a desktop notification a hook sent, where a test or QA
+// reads it.
+func (c *claude) notified(sequence string) {
+	path := os.Getenv("FAKE_CLAUDE_NOTIFIED")
+	if path == "" {
+		return
+	}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fmt.Fprintf(f, "%s %q\n", c.s.Env["HQ_AGENT"], sequence)
+}
+
 // subagents is how many background subagents run.
 func (c *claude) subagents() (n int) {
 	for _, task := range c.tasks {
@@ -383,6 +401,7 @@ func promptBox(hint string, input ...string) {
 type output struct {
 	Decision           string
 	Reason             string
+	TerminalSequence   string
 	HookSpecificOutput struct{ AdditionalContext string }
 }
 
@@ -422,6 +441,9 @@ func (c *claude) fire(event string, fields map[string]any) (o output) {
 				}
 				if got.context() != "" {
 					o.HookSpecificOutput = got.HookSpecificOutput
+				}
+				if got.TerminalSequence != "" {
+					c.notified(got.TerminalSequence)
 				}
 			}
 		}

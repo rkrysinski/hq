@@ -89,8 +89,13 @@ func TestNewStartsAgentInRepositorysSandbox(t *testing.T) {
 	if !f.tmux.started[w.ID] {
 		t.Fatal("window not started")
 	}
-	if w.Options["inbox"] != "1" {
-		t.Fatalf("hooks that deliver messages not marked: %v", w.Options)
+	if w.Options["inbox"] != "2" {
+		t.Fatalf("hooks that deliver messages and tell a supervised turn not marked: %v", w.Options)
+	}
+	// hq new from a shell is the user's: its prompt is not announced as
+	// the supervisor's (spec §5).
+	if len(f.announced) != 0 {
+		t.Fatalf("announced %v", f.announced)
 	}
 	if w.Options["new"] == "" {
 		t.Fatal("not marked new (S2)")

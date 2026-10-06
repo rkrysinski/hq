@@ -154,7 +154,7 @@ func TestSendSaysWhenTheHooksAlreadyTookIt(t *testing.T) {
 	// At rest, but the hooks of a turn just begun took it first.
 	f = sendFakes(state.Done)
 	d = f.deps()
-	d.takeMessages = func(string, string) ([]string, error) { return nil, nil }
+	d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
 	out.Reset()
 	if err := runSend(Env{Stdout: &out}, d, []string{"a", "hi"}); err != nil || out.String() != "delivered: a took it with its hooks\n" || len(f.tmux.pasted) != 0 {
 		t.Fatalf("%v %q", err, out.String())

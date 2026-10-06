@@ -128,9 +128,19 @@ type deps struct {
 	// postMessage leaves a message in an agent's inbox, takeMessages takes
 	// what waits there for hq to type it in, and pending counts it (hq
 	// send, ADR 0012).
-	postMessage  func(root, id, text string, now bool) error
-	takeMessages func(root, id string) ([]string, error)
+	postMessage  func(root, id string, m state.Message, now bool) error
+	takeMessages func(root, id string) ([]state.Message, error)
 	pending      func(root, id string) int
+	// supervisor says the commands run for the supervisor, in hq mcp: the
+	// prompts and the messages they give agents are its own, not the
+	// user's, and a turn made only of them notifies nobody (spec §5).
+	supervisor bool
+	// announce tells an agent's hooks that its next prompt is the
+	// supervisor's, announced whether that word still waits for the
+	// prompt, and withdraw takes it back (design §3.5).
+	announce  func(root, id string) error
+	announced func(root, id string) bool
+	withdraw  func(root, id string) error
 	// pollSandboxes is sbx ls within a time limit, for the state of agents
 	// (design §5.1, §7.1); a slow sbx must not hold up hq ls.
 	pollSandboxes func() ([]sbx.Sandbox, error)
@@ -230,11 +240,14 @@ func defaultDeps() deps {
 		readState:   state.Read,
 		readDetail:  state.ReadDetail,
 		removeState: state.Remove,
-		postMessage: func(root, id, text string, now bool) error {
-			return state.Post(root, id, text, now, time.Now())
+		postMessage: func(root, id string, m state.Message, now bool) error {
+			return state.Post(root, id, m, now, time.Now())
 		},
 		takeMessages:  state.Take,
 		pending:       state.Pending,
+		announce:      state.Announce,
+		announced:     state.Announced,
+		withdraw:      state.Withdraw,
 		pollSandboxes: sbx.Client{Run: proc.Exec{Timeout: sbxPollTimeout}, Platform: plat}.List,
 		notify:        plat.NotifySequence(),
 

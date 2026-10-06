@@ -98,8 +98,9 @@ const mcpInstructions = `hq runs Claude Code agents, each working on one task in
 - Status comes from hq, never from asking an agent: list for every agent, read for one in full (its whole last reply, what it asks, messages waiting for it).
 - To ask an agent something or give it feedback, send it a message. hq delivers it when the agent is ready, without interrupting it; its answer is its next reply: wait for the agent with send's next_since as since, then read it. Use now only for a course correction that must reach it within the turn it is working on.
 - Every list, read, send and wait result carries next_since, the moment it was taken. Always pass the next_since of the most recent of them as wait's since: wait then returns every change after that moment, even one that happened before wait was called, and none twice. A wait from a later moment misses what happened in between, such as an agent that answered at once; to start watching with no result yet, call list first.
+- The user is not notified when work you sent finishes or asks a question: the end of a turn whose prompts all came from you (new with a prompt, send) raises no desktop notification, whether or not you are waiting, because its result is for you. So wait for the agents you gave work to, read their replies and tell the user what matters. A turn the user prompted themselves, or sent a message into, still notifies them.
 - To watch agents, call wait in a loop, each time with the next_since of the most recent result: it returns as soon as an agent is done, asks a question, needs input or ends, or returns no agents after its timeout; then call it again.
-- An agent that needs input has a dialog open (a permission, or questions with options). Never try to answer it, with send or otherwise: tell the user which agent waits and what it asks; they answer it in hq (go shows them the agent).
+- An agent that needs input has a dialog open (a permission, or questions with options). Never try to answer it, with send or otherwise: tell the user which agent waits and what it asks; they answer it in hq (go shows them the agent). hq notifies them of the dialog itself, also on a turn you started.
 - kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.`
 
 // Tool inputs.
@@ -135,13 +136,16 @@ type (
 // home: the directory Claude Desktop starts hq in means nothing to them.
 func newMCPServer(d deps) *mcp.Server {
 	d.getwd = d.home
+	// What its tools give agents is the supervisor's, not the user's.
+	d.supervisor = true
 	s := mcp.NewServer(&mcp.Implementation{Name: "hq", Title: "hq", Version: version.Version}, &mcp.ServerOptions{Instructions: mcpInstructions})
 	no, yes := false, true
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "new",
 		Description: "Start an agent: a Claude Code session named name, in the repository at dir, in that repository's sandbox, with prompt as its first prompt. " +
-			"It returns once the agent is starting; the agent then works on its own. Follow it with wait and read.",
+			"It returns once the agent is starting; the agent then works on its own. Follow it with wait and read: " +
+			"the user is not notified when the work you gave it with prompt finishes or asks a question, so wait for it and tell them.",
 		Annotations: &mcp.ToolAnnotations{Title: "Start an agent", DestructiveHint: &no, OpenWorldHint: &no},
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpNewIn) (*mcp.CallToolResult, any, error) {
 		dir, err := absDir(d, in.Dir)
@@ -199,6 +203,7 @@ func newMCPServer(d deps) *mcp.Server {
 			"an agent at work gets it when it would end its turn and goes on with it; one waiting at its prompt gets it as its next prompt; one with a dialog open gets it once the user has closed the dialog. " +
 			"With now, an agent at work gets it after its next tool call, within the running turn. " +
 			"It returns, as JSON, how the message goes (delivery: queued or delivered) and next_since, the moment before the message was left. The agent's answer is its next reply: wait for the agent with that next_since as since (it returns the answer even if the agent answered before wait was called), then read it. " +
+			"The user is not notified when a turn your message started finishes or asks a question, so wait for it and tell them. " +
 			"Never use it to answer an agent's dialog (needs input): tell the user instead.",
 		Annotations: &mcp.ToolAnnotations{Title: "Send a message", DestructiveHint: &no, OpenWorldHint: &no},
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpSendIn) (*mcp.CallToolResult, any, error) {

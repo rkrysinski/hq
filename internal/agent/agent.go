@@ -31,6 +31,7 @@ type Agent struct {
 	Docked   bool       `json:"-"` // its pane is in the dashboard's slot
 	New      bool       `json:"-"` // started with hq new, not yet reported (S2)
 	Inbox    bool       `json:"-"` // its hooks deliver messages (hq send, ADR 0012)
+	Hooks    int        `json:"-"` // the generation of its hooks, as hq stored it (see Supervisable)
 	ending   bool       // hq is taking the agent down (its sandbox restarting)
 	reported bool       // its session has reported, so its sandbox has run
 	turnEnd  string     // a turn the user ended, as hq first saw it (see Settle)
@@ -57,6 +58,15 @@ type Agent struct {
 	Worktree string     `json:"worktree"` // where Claude works, as the sandbox sees it (for hq code, M4)
 	Last     string     `json:"last"`
 }
+
+// supervisingHooks is the generation of hooks from which they tell a
+// supervised turn.
+const supervisingHooks = 2
+
+// Supervisable reports whether the agent's hooks tell a supervised turn,
+// whose end notifies nobody (spec §5). The hooks of an agent started by an
+// older hq do not: it notifies at every turn end until it is relaunched.
+func (a Agent) Supervisable() bool { return a.Hooks >= supervisingHooks }
 
 // Repo is the repository's display name.
 func (a Agent) Repo() string { return filepath.Base(a.RepoPath) }
@@ -120,6 +130,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 		}
 		a.New = o["new"] != "" && a.State == state.Starting
 		a.Inbox = o["inbox"] != ""
+		a.Hooks, _ = strconv.Atoi(o["inbox"])
 		as = append(as, a)
 	}
 	return as

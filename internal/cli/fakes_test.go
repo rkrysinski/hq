@@ -78,6 +78,8 @@ type fakeTmux struct {
 	// panes Enter was pressed in; pasteErr fails the paste.
 	pasted    []string
 	submitted []string
+	onSubmit  func() // called at each Submit: Claude takes the prompt
+	startErr  error  // fails releasing a new window
 	pasteErr  error
 }
 
@@ -97,6 +99,9 @@ func (f *fakeTmux) Paste(pane, text string) error {
 
 func (f *fakeTmux) Submit(pane string) error {
 	f.submitted = append(f.submitted, pane)
+	if f.onSubmit != nil {
+		f.onSubmit()
+	}
 	return nil
 }
 
@@ -253,7 +258,13 @@ func (f *fakeTmux) NewWindow(name, _ string, opts map[string]string, argv []stri
 	return id, nil
 }
 
-func (f *fakeTmux) Start(id string) error { f.started[id] = true; return nil }
+func (f *fakeTmux) Start(id string) error {
+	if f.startErr != nil {
+		return f.startErr
+	}
+	f.started[id] = true
+	return nil
+}
 
 // Respawn runs argv in the window whose pane is pane: the pane lives again.
 func (f *fakeTmux) Respawn(pane, _ string, argv []string) error {
@@ -453,12 +464,21 @@ type fakes struct {
 
 	states  map[string]state.Report // agent id -> its state file
 	details map[string]state.Detail // agent id -> what its state files hold in full
-	// inbox is what waits for each agent id: the text, with " (now)" when
-	// sent with --now; postErr and takeErr fail posting and taking.
+	// inbox is what waits for each agent id: the text, with " (supervisor)"
+	// when the supervisor sent it and " (now)" when sent with --now; postErr
+	// and takeErr fail posting and taking.
 	inbox   map[string][]string
 	postErr error
 	takeErr error
-	removed []string // "repo id" of each agent whose state files were removed
+	// announced are the agent ids whose hooks were told that the next
+	// prompt is the supervisor's, until a prompt takes the word (each
+	// Submit does, as the hook of a prompt would, unless promptLost) or hq
+	// takes it back (withdrawn); announceErr fails telling them.
+	announced   map[string]bool
+	withdrawn   []string
+	promptLost  bool
+	announceErr error
+	removed     []string // "repo id" of each agent whose state files were removed
 
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
@@ -497,6 +517,9 @@ type fakes struct {
 	serveErr      error
 }
 
+// supervisorMark ends, in the fakes' inbox, a message the supervisor sent.
+const supervisorMark = " (supervisor)"
+
 func newFakes() *fakes {
 	f := &fakes{
 		tmux:  &fakeTmux{version: "3.5a", argv: map[string][]string{}, started: map[string]bool{}, socket: "/tmp/tmux-501/default"},
@@ -514,8 +537,17 @@ func newFakes() *fakes {
 		inbox:   map[string][]string{},
 		details: map[string]state.Detail{},
 
+		announced: map[string]bool{},
+
 		releases: &fakeReleases{files: map[string]map[string][]byte{}},
 		exe:      "/nonexistent/hq",
+	}
+	// The hook of the prompt typed in takes hq's word that it is the
+	// supervisor's.
+	f.tmux.onSubmit = func() {
+		if !f.promptLost {
+			clear(f.announced)
+		}
 	}
 	// pkill -f 'HQ_ID":"<id>"' ends the session: its pane dies, or the
 	// orphan goes. pgrep -f finds it while it runs. Either fails when
@@ -616,9 +648,13 @@ func (f *fakes) deps() deps {
 			return nil
 		},
 		pollSandboxes: f.sbx.List,
-		postMessage: func(_, id, text string, now bool) error {
+		postMessage: func(_, id string, m state.Message, now bool) error {
 			if f.postErr != nil {
 				return f.postErr
+			}
+			text := m.Text
+			if m.Supervisor {
+				text += supervisorMark
 			}
 			if now {
 				text += " (now)"
@@ -626,15 +662,32 @@ func (f *fakes) deps() deps {
 			f.inbox[id] = append(f.inbox[id], text)
 			return nil
 		},
-		takeMessages: func(_, id string) ([]string, error) {
+		takeMessages: func(_, id string) ([]state.Message, error) {
 			if f.takeErr != nil {
 				return nil, f.takeErr
 			}
-			texts := f.inbox[id]
+			var msgs []state.Message
+			for _, text := range f.inbox[id] {
+				text, supervisor := strings.CutSuffix(text, supervisorMark)
+				msgs = append(msgs, state.Message{Text: text, Supervisor: supervisor})
+			}
 			delete(f.inbox, id)
-			return texts, nil
+			return msgs, nil
 		},
 		pending: func(_, id string) int { return len(f.inbox[id]) },
+		announce: func(_, id string) error {
+			if f.announceErr != nil {
+				return f.announceErr
+			}
+			f.announced[id] = true
+			return nil
+		},
+		announced: func(_, id string) bool { return f.announced[id] },
+		withdraw: func(_, id string) error {
+			f.withdrawn = append(f.withdrawn, id)
+			delete(f.announced, id)
+			return nil
+		},
 
 		releases:   f.releases,
 		asset:      "hq-testos-testarch",

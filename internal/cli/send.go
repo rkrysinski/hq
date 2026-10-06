@@ -21,6 +21,16 @@ const pollEvery = 250 * time.Millisecond
 // message before it presses Enter, so the Enter is not part of the paste.
 const pasteSettle = 300 * time.Millisecond
 
+// promptWait is how long hq send gives Claude to take a prompt it typed in
+// for the supervisor before it takes back its word that the next prompt is
+// the supervisor's: Claude reports a prompt as it is sent, well within it.
+// A prompt that comes later, or one of the user's, then notifies at its
+// turn's end, as the user's do (design §3.5).
+const promptWait = 3 * time.Second
+
+// promptPoll is how often hq send looks whether that prompt was taken.
+const promptPoll = 50 * time.Millisecond
+
 const sendUsage = "usage: hq send NAME TEXT [--now] [--json]"
 
 // runSend leaves a message for an agent, delivered when the agent is ready
@@ -68,7 +78,7 @@ func runSend(env Env, d deps, args []string) error {
 	// The moment before the message is left: the reply it brings is a
 	// change after it, for hq wait --since.
 	sent := lookedAt(d.now())
-	if err := d.postMessage(a.RepoPath, a.ID, text, now); err != nil {
+	if err := d.postMessage(a.RepoPath, a.ID, state.Message{Text: text, Supervisor: d.supervisor}, now); err != nil {
 		return envErr("cannot leave the message for %s: %v", a.Name, err)
 	}
 	// A starting agent's session has not started yet: wait for its first
@@ -158,30 +168,59 @@ func queued(a agent.Agent, now bool) string {
 // into the prompt box as its next prompt, oldest first, when the box is
 // empty (Claude's faint hints there aside); with anything in the box (the user typing), or a screen that does
 // not show the box, the messages wait and ride along with the next prompt
-// sent there. They leave the inbox first, so no hook delivers them too.
+// sent there. They leave the inbox first, so no hook delivers them too. A
+// prompt made only of the supervisor's messages is the supervisor's: the
+// agent's hooks are told before it is typed (spec §5).
 func typeIn(d deps, a agent.Agent) (string, error) {
 	screen, err := d.tmux.StyledScreen(a.Pane)
 	if empty, _ := state.AtRest(state.WithoutHints(screen), ""); err != nil || !empty {
 		return fmt.Sprintf("queued: %s has something in its prompt box, delivered with its next prompt", a.Name), nil
 	}
-	texts, err := d.takeMessages(a.RepoPath, a.ID)
+	msgs, err := d.takeMessages(a.RepoPath, a.ID)
 	if err != nil {
 		return "", envErr("cannot take the messages for %s: %v", a.Name, err)
 	}
-	if len(texts) == 0 {
+	if len(msgs) == 0 {
 		return fmt.Sprintf("delivered: %s took it with its hooks", a.Name), nil
 	}
+	texts := make([]string, len(msgs))
+	supervised := a.Supervisable()
+	for i, m := range msgs {
+		texts[i] = m.Text
+		supervised = supervised && m.Supervisor
+	}
+	// Without the word the turn notifies, as the user's do: no failure.
+	supervised = supervised && d.announce(a.RepoPath, a.ID) == nil
 	err = d.tmux.Paste(a.Pane, strings.Join(texts, "\n\n"))
 	if err == nil {
 		d.sleep(pasteSettle)
 		err = d.tmux.Submit(a.Pane)
 	}
 	if err != nil {
+		if supervised {
+			_ = d.withdraw(a.RepoPath, a.ID)
+		}
 		// Back into the inbox: the hooks deliver them with the next prompt.
-		for _, t := range texts {
-			_ = d.postMessage(a.RepoPath, a.ID, t, false)
+		for _, m := range msgs {
+			_ = d.postMessage(a.RepoPath, a.ID, m, false)
 		}
 		return "", tmuxErr(err)
 	}
+	if supervised {
+		awaitPrompt(d, a)
+	}
 	return fmt.Sprintf("delivered: typed into %s as its next prompt", a.Name), nil
+}
+
+// awaitPrompt waits until the agent's hooks have taken hq's word that the
+// prompt just typed in is the supervisor's, and takes the word back when
+// they have not within promptWait, so that it never falls to a prompt the
+// user sends later.
+func awaitPrompt(d deps, a agent.Agent) {
+	for deadline := d.now().Add(promptWait); d.announced(a.RepoPath, a.ID); d.sleep(promptPoll) {
+		if !d.now().Before(deadline) {
+			_ = d.withdraw(a.RepoPath, a.ID)
+			return
+		}
+	}
 }

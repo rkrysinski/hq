@@ -39,15 +39,32 @@ func decodeOutput(t *testing.T, out string) hookOutput {
 	return o
 }
 
-// post leaves messages for id, a millisecond apart so their order is sure.
+// post leaves messages of the user's for id, a millisecond apart so their
+// order is sure.
 func post(t *testing.T, root, id string, now bool, texts ...string) {
 	t.Helper()
+	postFrom(t, root, id, false, now, texts...)
+}
+
+// postFrom leaves messages for id as post does, the supervisor's when
+// supervisor.
+func postFrom(t *testing.T, root, id string, supervisor, now bool, texts ...string) {
+	t.Helper()
 	for _, text := range texts {
-		if err := Post(root, id, text, now, time.Now()); err != nil {
+		if err := Post(root, id, Message{Text: text, Supervisor: supervisor}, now, time.Now()); err != nil {
 			t.Fatal(err)
 		}
 		time.Sleep(time.Millisecond)
 	}
+}
+
+// texts are the texts of messages taken out of an inbox.
+func texts(taken []Message) []string {
+	var out []string
+	for _, m := range taken {
+		out = append(out, m.Text)
+	}
+	return out
 }
 
 // inboxLeft lists what is in id's inbox, dot files included.
@@ -73,11 +90,11 @@ func TestPostTakeAndRemoveKeepTheOrderAndLeaveNothing(t *testing.T) {
 	if Pending(root, id) != 0 {
 		t.Fatal("pending before any message")
 	}
-	if texts, err := Take(root, id); err != nil || texts != nil {
-		t.Fatalf("no inbox: %v %v", texts, err)
+	if taken, err := Take(root, id); err != nil || taken != nil {
+		t.Fatalf("no inbox: %v %v", taken, err)
 	}
 	post(t, root, id, false, "first", `second "quoted" \ line`)
-	post(t, root, id, true, "third\nwith two lines")
+	postFrom(t, root, id, true, true, "third\nwith two lines")
 	if n := Pending(root, id); n != 3 {
 		t.Fatalf("pending %d", n)
 	}
@@ -88,12 +105,16 @@ func TestPostTakeAndRemoveKeepTheOrderAndLeaveNothing(t *testing.T) {
 	os.Symlink(secret, filepath.Join(dir, "9999999999999999999-link"))
 	os.WriteFile(filepath.Join(dir, "9999999999999999999-big"), []byte(strings.Repeat("x", maxFile+1)), 0o644)
 	os.WriteFile(filepath.Join(dir, "9999999999999999999-bad"), []byte(`"`), 0o644)
-	texts, err := Take(root, id)
+	taken, err := Take(root, id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(texts, "|"); got != `first|second "quoted" \ line|third`+"\nwith two lines" {
+	if got := strings.Join(texts(taken), "|"); got != `first|second "quoted" \ line|third`+"\nwith two lines" {
 		t.Fatalf("took %q", got)
+	}
+	// Each says who sent it: the last one the supervisor, through hq mcp.
+	if len(taken) != 3 || taken[0].Supervisor || taken[1].Supervisor || !taken[2].Supervisor {
+		t.Fatalf("senders: %+v", taken)
 	}
 	if left := inboxLeft(root, id); len(left) != 0 || Pending(root, id) != 0 {
 		t.Fatalf("left %v", left)
@@ -234,11 +255,11 @@ func TestEachMessageIsDeliveredOnceWhenHqAndTheHookRace(t *testing.T) {
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
-			texts, err := Take(root, id)
+			taken, err := Take(root, id)
 			if err != nil {
 				t.Error(err)
 			}
-			add(texts...)
+			add(texts(taken)...)
 		}()
 		go func() {
 			defer wg.Done()
