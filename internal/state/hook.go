@@ -42,10 +42,12 @@ import (
 // too, and Kept reads it as working; but not over a subagent's dialog
 // (its PermissionRequest carries agent_id), which is still open: the
 // agent needs input until it is answered. Any other prompt, stop or
-// session event drops what was kept. The ids owed a turn (.owe) last
-// until the user's next prompt or the session's next start or end, so a
-// turn that never comes holds back one turn end at most; the host then
-// sees the agent at rest (design §3.4).
+// session event drops what was kept. An id owed a turn (.owe) lasts
+// until Claude wakes for it; one that has held back a turn end (!) goes
+// with the user's next prompt, so a turn that never comes holds back one
+// turn end at most, which the host sees by the agent at rest (design
+// §3.4); a wake-up that names no task, or a session's start or end,
+// forgets them all.
 //
 // It needs only sh, git, cat, mv, cp, mkdir, rm, grep and awk and always
 // exits 0; it holds Claude back only while a message is unread (design
@@ -87,9 +89,9 @@ stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
     w=$(K=wake awk "$A" "$t" 2>/dev/null)
     if [ -n "$w" ]; then
-        grep -vxF -e "$w" "$f` + owedSuffix + `" >"$t.o" 2>/dev/null; owe
+        grep -vxF -e "$w" -e "!$w" "$f` + owedSuffix + `" >"$t.o" 2>/dev/null; [ "$w" = ? ] && : >"$t.o"; owe
         works && { mv -f "$t" "$f` + keptSuffix + `" 2>/dev/null; rm -f "$t"; exit 0; }
-    else rm -f "$f` + owedSuffix + `" 2>/dev/null; fi ;;
+    else grep -v '^!' "$f` + owedSuffix + `" >"$t.o" 2>/dev/null; owe; fi ;;
 answer) grep -q '` + toolEndEvent + `' "$t" 2>/dev/null && ! grep -q '"agent_id"' "$t" 2>/dev/null && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
     grep -q '` + dialogEvent + `' "$f" 2>/dev/null && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
 input) grep -q '` + dialogEvent + `' "$f" 2>/dev/null && { rm -f "$t"; exit 0; } ;;
@@ -153,7 +155,8 @@ const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 // tasks that end together are gone from the list before the turns for the
 // later ones: so the ids seen running, less those Claude woke for, are
 // kept in the file O (one a line, printed anew on each Stop), and a Stop
-// with any of them left is not the agent's end.
+// with any of them left is not the agent's end. An id that no longer runs
+// is printed with a ! before it: it has held back a turn end.
 //
 // With K=wake it prints the task id of a prompt Claude gave itself ("?"
 // when it names none), and nothing for any other prompt.
@@ -184,7 +187,7 @@ const hookAwk = `function question(s,    i, n, c, m) {
     }
     return m ~ /\?$/
 }
-function busy(s,    i, c, d, str, key, val, type, status, id) {
+function busy(s,    i, c, d, str, key, val, ty, st, id) {
     if (!match(s, /"background_tasks"[ \t\r\n]*:[ \t\r\n]*\[/)) return
     s = substr(s, RSTART + RLENGTH)
     for (i = 1; (c = substr(s, i, 1)) != ""; i++) {
@@ -192,22 +195,23 @@ function busy(s,    i, c, d, str, key, val, type, status, id) {
             for (str = ""; (c = substr(s, ++i, 1)) != "\"" && c != ""; str = str c) if (c == "\\") i++
             if (d != 1) continue
             if (!val) key = str
-            else if (key == "type") type = str
-            else if (key == "status") status = str
+            else if (key == "type") ty = str
+            else if (key == "status") st = str
             else if (key == "id") id = str
         } else if (c == "{" || c == "[") {
-            if (!d++) type = status = val = id = ""
+            if (!d++) ty = st = val = id = ""
         } else if (c == "}" || c == "]") {
             if (!d--) return
-            if (!d && status == "running" && type != "shell") owed[id] = 1
+            if (!d && st == "running" && ty != "shell") owed[id] = 1
         } else if (d == 1 && (c == ":" || c == ",")) val = c == ":"
     }
 }
 BEGIN { RS = "\001"; ends = 1 }
 NR == 1 && ENVIRON["K"] == "keep" {
-    if ((getline o < ENVIRON["O"]) > 0) for (n = split(o, a, "\n"); n; n--) if (a[n] != "") owed[a[n]] = 1
+    if ((getline o < ENVIRON["O"]) > 0) for (n = split(o, a, "\n"); n; n--) { sub(/^!/, "", a[n]); was[a[n]] }
     busy($0)
     for (i in owed) { if (i != "") print i; ends = 0 }
+    for (i in was) if (i != "" && !(i in owed)) { print "!" i; ends = 0 }
     if (question($0)) ends = 1
     next
 }

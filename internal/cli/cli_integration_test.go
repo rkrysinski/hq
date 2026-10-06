@@ -857,11 +857,17 @@ func TestAnAgentWhoseTurnEndedWhileItsSubagentsRunStaysWorkingUntilTheClosingTur
 	h.typeIn("a", "background and background once more")
 	h.waitReport("a", "working", "Done: background and background once more")
 	h.waitAtRest("a")
+	ch = h.wait("a")
 	h.typeIn("a", "lose")
 	h.typeIn("a", "wake")
 	woken := time.Now()
-	h.waitReport("a", "done", "The background work is done, 0 still running.")
-	if took := time.Since(woken); took < agent.RestDelay {
+	r := h.waited(ch)
+	h.only(r, "a", "done", "The background work is done, 0 still running.")
+	if took := r.at.Sub(woken); took < agent.RestDelay {
 		t.Fatalf("done %v after the wake-up, before its screen had rested", took)
+	}
+	// Once: a wait from there on returns nothing more.
+	if code, out, _ := h.run("wait", "a", "--since", since(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
+		t.Fatalf("the same end again: exit %d %q", code, out)
 	}
 }

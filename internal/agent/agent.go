@@ -36,7 +36,7 @@ type Agent struct {
 	turnEnd  string     // a turn the user ended, as hq first saw it (see Settle)
 	restSeen string     // when hq first saw its screen at rest, as it looked (see Settle)
 	resting  bool       // its screen is at rest, not yet for long enough (see Settle)
-	rewound  bool       // its turn end is a rewind, decided RestDelay after its moment (see Entered)
+	rested   bool       // its turn end was read off a screen at rest, decided RestDelay after its moment (see Entered)
 	prompt   string     // the prompt it works on, as its hooks reported it
 	deadAt   time.Time  // when its pane died, as tmux says; zero when unknown
 	endedAt  time.Time  // when its session reported its end
@@ -161,7 +161,7 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 // reported since: its last known message (spec S7, #111). Its time stays
 // the moment it ended.
 func (a *Agent) keepTurnEnd() {
-	if f := strings.SplitN(a.turnEnd, " ", 3); len(f) == 3 && f[0] == a.key() {
+	if f := strings.SplitN(a.turnEnd, " ", 3); len(f) == 3 && f[0] == a.key() && f[2] != ownLast {
 		a.Last = f[2]
 	}
 }
@@ -208,8 +208,9 @@ func (a Agent) seenAt() (time.Time, bool) {
 // Entered is the moment from which any hq process can see the agent in its
 // state (design §3.4, "Entered after a moment"), which hq wait compares with
 // its --since. It is Since, the moment AGE counts from, except where that
-// is dated before the state can be seen: a turn the user rewound is decided
-// only RestDelay after its screen was first seen at rest, and an ended
+// is dated before the state can be seen: a turn the user rewound, or one
+// Claude owed and did not take, is decided only RestDelay after its screen
+// was first seen at rest, and an ended
 // agent is ended from the first of its session's end report, the moment hq
 // first saw it ended, and its pane's death, which tmux dates to the whole
 // second, so a second after that. Every process derives it from the same
@@ -235,7 +236,7 @@ func (a Agent) Entered() time.Time {
 		if !first.IsZero() {
 			return first
 		}
-	case a.State == state.Done && a.rewound:
+	case a.State == state.Done && a.rested:
 		return a.Since.Add(RestDelay)
 	}
 	return a.Since
@@ -373,12 +374,15 @@ func (a *Agent) recall(key string) bool {
 	if err != nil {
 		return false
 	}
-	a.State, a.Since, a.Last = state.Done, time.Unix(0, n), f[2]
+	a.State, a.Since = state.Done, time.Unix(0, n)
+	if f[2] != ownLast {
+		a.Last = f[2]
+	}
 	// A turn end decided by a screen that stayed at rest (a rewind, a turn
 	// Claude owed and did not take) carries the moment the screen was first
 	// seen at rest, which the restseen record of the same report holds too.
 	r := strings.Fields(a.restSeen)
-	a.rewound = len(r) == 3 && r[0] == key && r[2] == f[1]
+	a.rested = len(r) == 3 && r[0] == key && r[2] == f[1]
 	return true
 }
 
@@ -388,6 +392,12 @@ func (a *Agent) recall(key string) bool {
 // times a second; seen with Claude Code 2.1.283, its screen never stayed the
 // same for more than about half a second.
 const RestDelay = 2 * time.Second
+
+// ownLast stands in a turnend record for the agent's own last message, as
+// its hooks reported it: a turn that ended by itself. The message itself
+// is never stored on the window: it is the agent's text, and only ever
+// data (design §7.3).
+const ownLast = "="
 
 // Rewound is the last message of a turn the user rewound: an early Esc
 // that put the prompt back in the box, which Claude reports nowhere.
@@ -424,12 +434,15 @@ func (a *Agent) Settle(screen string, now time.Time) Record {
 		return Record{}
 	}
 	key := a.key() + " "
-	last := Rewound
-	var rest, restored bool
+	// What the record says of the turn's last message, and what it is.
+	mark, last := Rewound, Rewound
+	var rest, again bool
 	if a.owed {
 		// Its turn ended by itself, and Claude owes it one more: at rest
-		// whatever its box holds, the turn's message its last.
-		rest, last = state.Idle(screen), a.Last
+		// whatever its box holds, the turn's message its last. One more
+		// look, RestDelay later, tells.
+		rest, again = state.Idle(screen), true
+		mark, last = ownLast, a.Last
 	} else {
 		// A rewind right after a turn the user ended leaves that turn's line
 		// above the box: the rewind below tells that turn's end.
@@ -440,14 +453,14 @@ func (a *Agent) Settle(screen string, now time.Time) Record {
 		if a.woken {
 			ended = state.EndedLast
 		}
-		if last, ok := ended(screen); ok && !rewound {
-			a.State, a.Since, a.Last = state.Done, now, last
-			return Record{"turnend", key, key + nanos(now) + " " + last}
+		if said, ok := ended(screen); ok && !rewound {
+			a.State, a.Since, a.Last = state.Done, now, said
+			return Record{"turnend", key, key + nanos(now) + " " + said}
 		}
 		if a.State != state.Working {
 			return Record{}
 		}
-		rest, restored = state.AtRest(screen, a.prompt)
+		rest, again = state.AtRest(screen, a.prompt)
 	}
 	if !rest {
 		return Record{}
@@ -455,20 +468,21 @@ func (a *Agent) Settle(screen string, now time.Time) Record {
 	look := fingerprint(screen)
 	at, ok := a.restedSince(look)
 	if !ok {
-		a.resting = restored
+		a.resting = again
 		return Record{"restseen", key + look + " ", key + look + " " + nanos(now)}
 	}
 	if now.Sub(at) < RestDelay {
-		a.resting = restored
+		a.resting = again
 		return Record{}
 	}
-	a.State, a.Since, a.Last, a.rewound = state.Done, at, last, true
-	return Record{"turnend", key, key + nanos(at) + " " + last}
+	a.State, a.Since, a.Last, a.rested = state.Done, at, last, true
+	return Record{"turnend", key, key + nanos(at) + " " + mark}
 }
 
-// Resting reports whether Settle saw the agent's screen at rest with its
-// prompt put back in the box, the look of a turn the user rewound, but not
-// yet for long enough to take it for one.
+// Resting reports whether Settle saw the agent's screen at rest in a way
+// that one more look, RestDelay later, decides: with its prompt put back
+// in the box, the look of a turn the user rewound, or owed a turn by
+// Claude; but not yet for long enough.
 func (a Agent) Resting() bool { return a.resting }
 
 // restedSince is when hq first saw the agent's screen at rest looking as it

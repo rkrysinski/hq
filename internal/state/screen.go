@@ -91,12 +91,13 @@ func AtRest(screen, reported string) (ok, restored bool) {
 	return restored, restored
 }
 
-// Idle reports whether the screen of an agent's pane shows Claude waiting
-// at its prompt box with no turn at work: the box at the bottom, a footer
-// that does not offer Esc to interrupt, and no spinner above the box.
-// Unlike AtRest it does not look into the box: it is for an agent whose
-// turn its hooks reported ended, where what the user types there says
-// nothing about Claude.
+// Idle reports whether the screen of an agent's pane looks like Claude
+// waiting at its prompt box: the box at the bottom, a footer that does not
+// offer Esc to interrupt, and no spinner above the box. Unlike AtRest it
+// does not look into the box: it is for an agent whose turn its hooks
+// reported ended, where what the user types there says nothing about
+// Claude. Like AtRest, a turn at work can look so for a moment; the caller
+// takes only a screen that stays the same for a while.
 func Idle(screen string) bool {
 	b, ok := promptBox(screen)
 	return ok && !b.spinning()

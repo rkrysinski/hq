@@ -400,7 +400,9 @@ func TestATurnEndingWhileASubagentRunsLeavesTheAgentWorkingAndNotifiesNobody(t *
 	if r = read(); r.State != Working || r.Background || !r.Since.After(waiting.Since) {
 		t.Fatalf("the user's prompt: %+v", r)
 	}
-	if f := files(t, root, id); len(f) != 2 {
+	// What was kept is gone; the subagent still runs, and Claude owes a
+	// turn for it.
+	if f := files(t, root, id); len(f) != 3 || f[owedSuffix] != "a58b43841609db047\n" {
 		t.Fatalf("files left: %v", f)
 	}
 }
@@ -625,13 +627,35 @@ func TestSubagentsThatFinishTogetherNotifyOnceWhenClaudeHasTakenItsTurnForEach(t
 		t.Fatalf("files left: %v", f)
 	}
 
-	// A subagent stopped: the list is empty at once, the wake-up follows.
+	// A subagent the user has stopped: nothing runs at the end of the
+	// user's turn, the wake-up for it follows, and that turn's end is the
+	// agent's. The same with several ending during a turn of the user's.
 	notify("prompt", fixture(t, "prompt"))
 	quiet("turn end, one running", notify("stop", turnEnd("started", "b1")), false)
 	notify("prompt", fixture(t, "prompt-pasted")) // the user: stop it
-	if out := notify("stop", turnEnd("stopped it")); out != done {
-		// The user's prompt forgets what was owed: this turn end is theirs.
-		t.Fatalf("the user's turn printed %q", out)
+	quiet("the user's turn, a turn owed", notify("stop", turnEnd("stopped it")), true)
+	quiet("wake-up for the stopped one", notify("prompt", wakeUp("b1")), false)
+	if out := notify("stop", turnEnd("it is stopped")); out != done {
+		t.Fatalf("the turn for the stopped subagent printed %q", out)
+	}
+	notify("prompt", fixture(t, "prompt"))
+	notify("stop", turnEnd("started", "b2", "b3"))
+	notify("prompt", fixture(t, "prompt-pasted"))
+	quiet("the user's turn, two turns owed", notify("stop", turnEnd("noted")), true)
+	notify("prompt", wakeUp("b2"))
+	quiet("turn for the first, one owed", notify("stop", turnEnd("one finished")), true)
+	notify("prompt", wakeUp("b3"))
+	if out := notify("stop", turnEnd("both finished")); out != done {
+		t.Fatalf("the turn for the last printed %q", out)
+	}
+
+	// A wake-up that names no task: nothing can be told paid, so nothing is
+	// owed, and the turn end notifies.
+	notify("prompt", fixture(t, "prompt"))
+	notify("stop", turnEnd("started", "b4"))
+	notify("prompt", []byte(`{"hook_event_name":"UserPromptSubmit","prompt":"<task-notification>\n<status>completed</status>\n</task-notification>"}`))
+	if out := notify("stop", turnEnd("finished")); out != done {
+		t.Fatalf("the turn after a wake-up naming no task printed %q", out)
 	}
 
 	// A turn that never comes holds back one turn end at most: the user's
@@ -640,6 +664,9 @@ func TestSubagentsThatFinishTogetherNotifyOnceWhenClaudeHasTakenItsTurnForEach(t
 	notify("stop", turnEnd("started", "c1"))
 	notify("prompt", wakeUp("c9")) // another task's
 	quiet("turn end, none running, a turn owed", notify("stop", turnEnd("one finished")), true)
+	if f := files(t, root, id); f[owedSuffix] != "!c1\n" {
+		t.Fatalf("owed: %q", f[owedSuffix])
+	}
 	notify("prompt", fixture(t, "prompt"))
 	if out := notify("stop", turnEnd("done")); out != done {
 		t.Fatalf("the turn after the user's prompt printed %q", out)

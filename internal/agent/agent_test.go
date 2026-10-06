@@ -859,10 +859,26 @@ func TestAnAgentOwedATurnThatDoesNotComeIsDoneOnceItsScreenStaysAtRest(t *testin
 	if a.State != state.Done || a.Last != "The second finished." || !a.Since.Equal(seen) || rec.Option != "turnend" || !a.Entered().Equal(seen.Add(RestDelay)) {
 		t.Fatalf("at rest for long: %+v %+v", rec, a)
 	}
+	// The message is the agent's own: never kept on the window.
+	if strings.Contains(rec.Value, "second") {
+		t.Fatalf("the record holds the agent's message: %q", rec.Value)
+	}
+	// One hq ls looks again, RestDelay later, as for a rewound turn.
+	w2 := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	first := FromWindows([]tmux.Window{w2})[0]
+	first.Apply(r, true)
+	if first.Settle(atRest, seen); !first.Resting() {
+		t.Fatal("a first look at rest asks for no second one")
+	}
 	// Every later look agrees, without the screen.
 	b := FromWindows([]tmux.Window{w})[0]
 	b.Apply(r, true)
 	if !b.Recall() || b.State != state.Done || b.Last != "The second finished." || !b.Since.Equal(seen) || !b.Entered().Equal(seen.Add(RestDelay)) {
 		t.Fatalf("recalled: %+v", b)
+	}
+	// Ended after that: its last message stays its own.
+	w.PaneDead = true
+	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, nil); as[0].Last != "The second finished." {
+		t.Fatalf("ended: %+v", as[0])
 	}
 }

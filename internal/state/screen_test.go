@@ -264,3 +264,22 @@ func TestEndedLastTakesOnlyTheLastThingSaidForATurnTheUserEnded(t *testing.T) {
 		}
 	}
 }
+
+func TestIdleIsClaudeAtItsPromptBoxWhateverTheBoxHolds(t *testing.T) {
+	// After a turn; with a draft or Claude's suggestion in the box; with
+	// subagents listed below the footer.
+	for _, name := range []string{"interrupted", "interrupted-prompt-restored", "rewound", "background-three", "interrupted-then-woken"} {
+		if !Idle(screen(t, name)) {
+			t.Errorf("%s: not idle", name)
+		}
+	}
+	// A turn at work, a dialog, no box at all.
+	for _, name := range []string{"working", "tool-running", "dialog-open", "compacting"} {
+		if Idle(screen(t, name)) {
+			t.Errorf("%s: idle", name)
+		}
+	}
+	if Idle("") || Idle("● Done.\n") {
+		t.Error("no prompt box: idle")
+	}
+}
