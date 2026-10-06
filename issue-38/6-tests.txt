@@ -37,3 +37,6 @@ unit 415, integration 118, e2e 3 (unit share 78%, minimum 50%)
 The tests that fail here fail the same way on dev (086ce27) in this environment (a Docker sandbox, Linux arm64, tmux 3.6), and
 are not in code this change touches: TestPasteTypes... reads fewer bytes than it pasted; TestSandboxRestartRelaunches...
 waits 5 s for a fake Claude set to take 6 s, and passes only when the machine is busy.
+
+After this run one more commit (the wake-up reads only its own task id) changed the hook: its tests and the replays of the real
+sessions at that commit are in 10-replay-all-sessions.txt; the live run above was not repeated.

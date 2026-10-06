@@ -18,9 +18,9 @@ Hook of this branch:
 11:59:26.511  Stop              running: subagent ad73c1ef57410d7d2                             hook printed: '-'             files: ID on owe stop
 11:59:26.698  PostToolUse       Bash started b9dicohbg (a subagent's)                           hook printed: '-'             files: ID on owe stop
 11:59:32.818  UserPromptSubmit  wake-up: Agent "Background wait.sh 60" finished                 hook printed: '-'             files: ID on owe stop
-11:59:33.530  Stop              running: shell b9dicohbg                                        hook printed: 'Done: main'  files: ID stop
+11:59:33.530  Stop              running: shell b9dicohbg                                        hook printed: '\\u001b]9;Done: main\\u0007'  files: ID stop
 12:00:28.184  UserPromptSubmit  wake-up: Agent "Background wait.sh 60" finished                 hook printed: '-'             files: ID stop
-12:00:29.311  Stop              running: none                                                   hook printed: 'Done: main'  files: ID stop
+12:00:29.311  Stop              running: none                                                   hook printed: '\\u001b]9;Done: main\\u0007'  files: ID stop
 notifications: 2
 
 And for a real session whose subagent only watched a command (the Monitor tool) and was never woken again. Hook of this branch:
@@ -31,5 +31,5 @@ And for a real session whose subagent only watched a command (the Monitor tool) 
 11:54:19.136  UserPromptSubmit  wake-up: Agent "Run sleep 40" finished                          hook printed: '-'             files: ID on owe stop
 11:54:20.708  Stop              running: subagent ac001dcf13d8a18c8, shell bau3bnuif            hook printed: '-'             files: ID on owe stop
 11:54:20.858  UserPromptSubmit  wake-up: Agent "Run sleep 40" finished                          hook printed: '-'             files: ID on owe stop
-11:54:22.153  Stop              running: shell bau3bnuif                                        hook printed: 'Done: main'  files: ID stop
+11:54:22.153  Stop              running: shell bau3bnuif                                        hook printed: '\\u001b]9;Done: main\\u0007'  files: ID stop
 notifications: 1

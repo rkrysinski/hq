@@ -26,5 +26,5 @@ Hook of this branch:
 11:58:55.392  UserPromptSubmit  wake-up: Agent "Run wait.sh 25 (2)" finished                    hook printed: '-'             files: ID on owe stop
 11:58:56.818  Stop              running: none                                                   hook printed: '-'             files: ID on owe stop
 11:58:56.837  UserPromptSubmit  wake-up: Agent "Run wait.sh 25 (3)" finished                    hook printed: '-'             files: ID on owe stop
-11:58:58.283  Stop              running: none                                                   hook printed: 'Done: main'  files: ID stop
+11:58:58.283  Stop              running: none                                                   hook printed: '\\u001b]9;Done: main\\u0007'  files: ID stop
 notifications: 1

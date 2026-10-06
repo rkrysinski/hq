@@ -23,5 +23,5 @@ Hook of this branch:
 12:04:09.940  UserPromptSubmit  the user's prompt                                               hook printed: '-'             files: ID owe stop
 12:04:13.839  Stop              running: none                                                   hook printed: '-'             files: ID on owe stop
 12:04:13.863  UserPromptSubmit  wake-up: Agent "Run wait.sh 90" was stopped by Claude           hook printed: '-'             files: ID on owe stop
-12:04:15.541  Stop              running: none                                                   hook printed: 'Done: main'  files: ID stop
+12:04:15.541  Stop              running: none                                                   hook printed: '\\u001b]9;Done: main\\u0007'  files: ID stop
 notifications: 1
