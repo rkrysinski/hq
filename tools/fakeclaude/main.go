@@ -22,7 +22,9 @@
 //     .claude/worktrees and moves into it, as Claude does;
 //   - a prompt containing "tool" runs a tool: PostToolUse after the delay;
 //   - a prompt starts a background subagent for each "background" it
-//     contains, and a background shell command when it contains "server":
+//     contains (PostToolUse of the Agent tool, its response saying
+//     async_launched), and a background shell command when it contains
+//     "server":
 //     the turn ends at once, its Stop listing them as running
 //     (background_tasks), as every later Stop does while they run;
 //   - the line "wake" is no prompt: a background subagent finishes, and
@@ -117,6 +119,7 @@ type claude struct {
 	cwd     string
 	delay   time.Duration
 	tasks   []map[string]string // the background work that runs
+	started int                 // how many background subagents it has started
 }
 
 func main() {
@@ -243,7 +246,12 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	} else {
 		fmt.Println("❯ " + strings.ReplaceAll(prompt, "\n", "\n  "))
 		for range strings.Count(prompt, "background") {
-			c.tasks = append(c.tasks, map[string]string{"id": fmt.Sprintf("a%015x", len(c.tasks)+1), "type": "subagent", "status": "running", "description": "Background work", "agent_type": "general-purpose"})
+			c.started++
+			id := fmt.Sprintf("a%015x", c.started)
+			c.tasks = append(c.tasks, map[string]string{"id": id, "type": "subagent", "status": "running", "description": "Background work", "agent_type": "general-purpose"})
+			// The Agent tool returns at once: the subagent runs on.
+			c.fire("PostToolUse", map[string]any{"tool_name": "Agent", "tool_input": map[string]string{"description": "Background work", "prompt": "work"}, "tool_use_id": "toolu_fake",
+				"tool_response": map[string]any{"isAsync": true, "status": "async_launched", "agentId": id, "description": "Background work"}})
 		}
 		if strings.Contains(prompt, "server") {
 			c.tasks = append(c.tasks, map[string]string{"id": fmt.Sprintf("b%07x", len(c.tasks)+1), "type": "shell", "status": "running", "description": "Dev server", "command": "npm run dev"})

@@ -55,7 +55,7 @@ type Client struct {
 // ended, where tmux cannot tell (design §3.4); inbox marks an agent whose
 // hooks deliver the messages hq send leaves (ADR 0012), which agents
 // started by an older hq lack.
-var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "turnend", "restseen", "endseen", "inbox"}
+var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "turnend", "restseen", "endseen", "wokeseen", "inbox"}
 
 func (c Client) tmux(args ...string) ([]byte, error) {
 	if c.Socket != "" {

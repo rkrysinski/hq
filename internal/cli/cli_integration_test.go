@@ -852,6 +852,16 @@ func TestAnAgentWhoseTurnEndedWhileItsSubagentsRunStaysWorkingUntilTheClosingTur
 	h.typeIn("a", "wake together")
 	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running. (two)")
 
+	// The same after a turn the user interrupted, which no Stop ended: the
+	// subagents are known from their start.
+	h.typeIn("a", "slow background and background work")
+	h.waitState("a", "working")
+	h.typeIn("a", "esc")
+	h.waitReport("a", "done", "Interrupted")
+	ch = h.wait("a")
+	h.typeIn("a", "wake together")
+	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running. (two)")
+
 	// A subagent gone without Claude taking a turn for it: the agent Claude
 	// owes that turn is done once its screen has stayed at rest.
 	h.typeIn("a", "background and background once more")

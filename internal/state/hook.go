@@ -47,7 +47,8 @@ import (
 // with the user's next prompt, so a turn that never comes holds back one
 // turn end at most, which the host sees by the agent at rest (design
 // §3.4); a wake-up that names no task, or a session's start or end,
-// forgets them all.
+// forgets them all. On answer it first adds to .owe the background work
+// the tool started, if any (hookAwk).
 //
 // It needs only sh, git, cat, mv, cp, mkdir, rm, grep and awk and always
 // exits 0; it holds Claude back only while a message is unread (design
@@ -87,12 +88,12 @@ stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
     K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o" 2>/dev/null; k=$?; owe
     [ $k = 0 ] && { put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f" 2>/dev/null; rm -f "$t"; exit 0; } ;;
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
-    w=$(K=wake awk "$A" "$t" 2>/dev/null)
-    if [ -n "$w" ]; then
-        grep -vxF -e "$w" -e "!$w" "$f` + owedSuffix + `" >"$t.o" 2>/dev/null; [ "$w" = ? ] && : >"$t.o"; owe
+    if K=wake O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o" 2>/dev/null; then
+        owe
         works && { mv -f "$t" "$f` + keptSuffix + `" 2>/dev/null; rm -f "$t"; exit 0; }
     else grep -v '^!' "$f` + owedSuffix + `" >"$t.o" 2>/dev/null; owe; fi ;;
-answer) grep -q '` + toolEndEvent + `' "$t" 2>/dev/null && ! grep -q '"agent_id"' "$t" 2>/dev/null && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
+answer) grep -Eq '` + startedEvent + `' "$t" 2>/dev/null && w=$(K=tool awk "$A" "$t" 2>/dev/null) && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
+    grep -q '` + toolEndEvent + `' "$t" 2>/dev/null && ! grep -q '"agent_id"' "$t" 2>/dev/null && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
     grep -q '` + dialogEvent + `' "$f" 2>/dev/null && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
 input) grep -q '` + dialogEvent + `' "$f" 2>/dev/null && { rm -f "$t"; exit 0; } ;;
 resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } 2>/dev/null || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; } 2>/dev/null; rm -f "$t.p" ;;
@@ -136,6 +137,11 @@ const (
 // a dialog (PostToolUse or PostToolUseFailure).
 const workingEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"(UserPromptSubmit|PostToolUse)`
 
+// startedEvent is what the hook's grep -E finds in the payload of a tool
+// that started background work: a subagent or a workflow (async_launched),
+// or a shell command (backgroundTaskId).
+const startedEvent = `async_launched|backgroundTaskId`
+
 // wakeEvent is what the hook's awk finds in the payload of the prompt
 // Claude gives itself when background work has finished (design §3.4).
 const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
@@ -153,13 +159,24 @@ const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 // strings of a task, its description or command, is only ever data. Claude
 // takes a turn for every task that ends (wakeEvent, naming its id), and
 // tasks that end together are gone from the list before the turns for the
-// later ones: so the ids seen running, less those Claude woke for, are
-// kept in the file O (one a line, printed anew on each Stop), and a Stop
-// with any of them left is not the agent's end. An id that no longer runs
-// is printed with a ! before it: it has held back a turn end.
+// later ones: so the ids of the tasks that run, less those Claude woke for,
+// are kept in the file O (one a line, printed anew on each Stop), and a
+// Stop with any of them left is not the agent's end. An id that no longer
+// runs is printed with a ! before it: it has held back a turn end. A shell
+// command a subagent started is the subagent's work: listed in O as
+// "~COMMAND SUBAGENT", it counts while it runs, and is never owed a turn,
+// as Claude wakes the subagent for it, and the agent for the subagent.
 //
-// With K=wake it prints the task id of a prompt Claude gave itself ("?"
-// when it names none), and nothing for any other prompt.
+// With K=wake it succeeds for a prompt Claude gave itself, and prints O
+// without the task it names (nothing when it names none: nothing can be
+// told paid), nor, unless that task completed, the commands it started:
+// a subagent that was stopped does not go on.
+//
+// With K=tool it prints, for the payload of a tool that started background
+// work, the line that tells O of it: the id of a subagent or a workflow the
+// agent started (the tool's response says async_launched; what a subagent
+// starts is the subagent's), so the work is known before any Stop lists it,
+// as when the user interrupts that turn; or the command a subagent started.
 //
 // Otherwise it prints the notification for the event in the state file: on
 // dialog and input "Needs input: <branch>", on stop "Question: <branch>"
@@ -202,29 +219,51 @@ function busy(s,    i, c, d, str, key, val, ty, st, id) {
             if (!d++) ty = st = val = id = ""
         } else if (c == "}" || c == "]") {
             if (!d--) return
-            if (!d && st == "running" && ty != "shell") owed[id] = 1
+            if (!d && st == "running") {
+                if (ty != "shell") owed[id] = 1
+                else if (id in theirs) { print theirs[id]; ends = 0 }
+            }
         } else if (d == 1 && (c == ":" || c == ",")) val = c == ":"
     }
 }
-BEGIN { RS = "\001"; ends = 1 }
-NR == 1 && ENVIRON["K"] == "keep" {
-    if ((getline o < ENVIRON["O"]) > 0) for (n = split(o, a, "\n"); n; n--) { sub(/^!/, "", a[n]); was[a[n]] }
+function get(s, key) {
+    if (!match(s, "\"" key "\"[ \t\r\n]*:[ \t\r\n]*\"[A-Za-z0-9_-]+")) return ""
+    s = substr(s, RSTART, RLENGTH)
+    sub(/.*"/, "", s)
+    return s
+}
+function load(    o) { return (getline o < ENVIRON["O"]) > 0 ? split(o, L, "\n") : 0 }
+BEGIN { RS = "\001"; ends = 1; K = ENVIRON["K"] }
+NR == 1 && K == "keep" {
+    for (n = load(); n; n--) {
+        x = L[n]
+        if (x ~ /^~/) { split(x, a, " "); theirs[substr(a[1], 2)] = x } else { sub(/^!/, "", x); was[x] }
+    }
     busy($0)
     for (i in owed) { if (i != "") print i; ends = 0 }
     for (i in was) if (i != "" && !(i in owed)) { print "!" i; ends = 0 }
     if (question($0)) ends = 1
     next
 }
-NR == 1 && ENVIRON["K"] == "wake" {
-    if (match($0, /` + wakeEvent + `/)) {
-        o = substr($0, RSTART)
-        print match(o, /<task-id>[^<"\\]+/) ? substr(o, RSTART + 9, RLENGTH - 9) : "?"
-    }
+NR == 1 && K == "wake" {
+    if (!match($0, /` + wakeEvent + `/)) next
+    ends = 0
+    o = substr($0, RSTART)
+    if (!match(o, /<task-id>[A-Za-z0-9_-]+/)) next
+    x = substr(o, RSTART + 9, RLENGTH - 9)
+    gone = o !~ /<status>completed</
+    for (n = load(); n; n--) if (L[n] != "" && L[n] != x && L[n] != "!" x && !(gone && L[n] ~ ("^~.* " x "$"))) print L[n]
+    next
+}
+NR == 1 && K == "tool" {
+    x = get($0, "agent_id")
+    if (x != "") { if ((i = get($0, "backgroundTaskId")) != "") print "~" i " " x }
+    else if ($0 ~ /"status"[ \t\r\n]*:[ \t\r\n]*"async_launched"/ && (x = get($0, "(agentId|taskId)")) != "") print x
     next
 }
 NR == 1 {
     k = "Done"
-    if (ENVIRON["K"] != "stop") k = "Needs input"
+    if (K != "stop") k = "Needs input"
     else if (question($0)) k = "Question"
     l = ENVIRON["L"]
     gsub(/[[:cntrl:]\\"]/, "", l)
@@ -233,7 +272,7 @@ NR == 1 {
     if (i) t = substr(t, 1, i - 1) k ": " l substr(t, i + 2)
     printf "{\"terminalSequence\":\"%s\"}\n", t
 }
-END { if (ENVIRON["K"] == "keep") exit ends }`
+END { if (K == "keep" || K == "wake") exit ends }`
 
 // branchHeader starts the line the hook writes before the payload.
 const branchHeader = "branch"

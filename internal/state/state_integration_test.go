@@ -574,14 +574,44 @@ func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefo
 func turnEnd(message string, ids ...string) []byte {
 	tasks := []map[string]string{}
 	for _, id := range ids {
+		if shell, ok := strings.CutPrefix(id, "shell:"); ok {
+			tasks = append(tasks, map[string]string{"id": shell, "type": "shell", "status": "running", "description": "Wait", "command": "./wait.sh 60"})
+			continue
+		}
 		tasks = append(tasks, map[string]string{"id": id, "type": "subagent", "status": "running", "description": "Run the tests", "agent_type": "general-purpose"})
 	}
 	p, _ := json.Marshal(map[string]any{"hook_event_name": "Stop", "last_assistant_message": message, "background_tasks": tasks})
 	return p
 }
 
-func wakeUp(id string) []byte {
-	return []byte(`{"hook_event_name":"UserPromptSubmit","prompt":"<task-notification>\n<task-id>` + id + `</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"}`)
+// toolEnd is the PostToolUse of a tool with the response Claude Code
+// 2.1.291 gives it; by is the subagent whose tool it is, empty for the
+// agent's own.
+func toolEnd(tool, by, response string) []byte {
+	agent := ""
+	if by != "" {
+		agent = `"agent_id":"` + by + `","agent_type":"general-purpose",`
+	}
+	return []byte(`{"session_id":"s",` + agent + `"hook_event_name":"PostToolUse","tool_name":"` + tool + `","tool_input":{"description":"x","prompt":"say \"agentId\":\"no\""},"tool_response":` + response + `}`)
+}
+
+// The responses of the tools that start background work.
+func launched(id string) string {
+	return `{"isAsync":true,"status":"async_launched","agentId":"` + id + `","description":"Run the tests"}`
+}
+
+func workflowLaunched(id string) string {
+	return `{"status":"async_launched","taskId":"` + id + `","taskType":"local_workflow","workflowName":"w"}`
+}
+
+func shellStarted(id string) string {
+	return `{"stdout":"","stderr":"","interrupted":false,"backgroundTaskId":"` + id + `"}`
+}
+
+func wakeUp(id string) []byte { return wakeUpWith(id, "completed") }
+
+func wakeUpWith(id, status string) []byte {
+	return []byte(`{"hook_event_name":"UserPromptSubmit","prompt":"<task-notification>\n<task-id>` + id + `</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>` + status + `</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"}`)
 }
 
 func TestSubagentsThatFinishTogetherNotifyOnceWhenClaudeHasTakenItsTurnForEach(t *testing.T) {
@@ -690,5 +720,117 @@ func TestSubagentsThatFinishTogetherNotifyOnceWhenClaudeHasTakenItsTurnForEach(t
 	notify("prompt", wakeUp("e2"))
 	if out := notify("stop", turnEnd("both finished")); out != done {
 		t.Fatalf("the closing turn after the question printed %q", out)
+	}
+}
+
+func TestBackgroundWorkIsKnownFromItsStartSoATurnTheUserInterruptedStillNotifiesOnce(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	notify := func(kind string, payload []byte) string {
+		t.Helper()
+		return run(t, root, root, id, hook(kind, "[%s]"), payload)
+	}
+	quiet := func(step, out string, owed bool) {
+		t.Helper()
+		if r, _ := Read(root, id); out != "" || r.State != Working || r.Owed != owed {
+			t.Fatalf("%s: printed %q, report %+v", step, out, r)
+		}
+	}
+	const done = `{"terminalSequence":"[Done: main]"}` + "\n"
+
+	// Two subagents and a workflow started, then the user interrupts the
+	// turn: no Stop ever lists them. They finish together.
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", toolEnd("Agent", "", launched("a1")))
+	notify("answer", toolEnd("Agent", "", launched("a2")))
+	notify("answer", toolEnd("Workflow", "", workflowLaunched("w3")))
+	quiet("wake-up for the first", notify("prompt", wakeUp("a1")), false)
+	quiet("turn end, none running, two turns owed", notify("stop", turnEnd("the first finished")), true)
+	quiet("wake-up for the second", notify("prompt", wakeUp("a2")), false)
+	quiet("turn end, none running, a turn owed", notify("stop", turnEnd("the second finished")), true)
+	quiet("wake-up for the workflow", notify("prompt", wakeUp("w3")), false)
+	if out := notify("stop", turnEnd("all finished")); out != done {
+		t.Fatalf("the last closing turn printed %q", out)
+	}
+	if f := files(t, root, id); len(f) != 2 {
+		t.Fatalf("files left: %v", f)
+	}
+
+	// Started and finished within the turn, the wake-up still to come at
+	// its end: that end is not the agent's.
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", toolEnd("Agent", "", launched("b1")))
+	quiet("turn end, none running, a turn owed", notify("stop", turnEnd("started")), true)
+	notify("prompt", wakeUp("b1"))
+	if out := notify("stop", turnEnd("finished")); out != done {
+		t.Fatalf("the closing turn printed %q", out)
+	}
+
+	// What a subagent starts is its own: Claude wakes the subagent for it,
+	// not the agent. Nor does the agent's own shell command count, or a
+	// subagent that ran in the foreground.
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", toolEnd("Agent", "a9", launched("c1")))
+	notify("answer", toolEnd("Bash", "", shellStarted("c2")))
+	notify("answer", toolEnd("Agent", "", `{"status":"completed","agentId":"c3","content":[]}`))
+	if out := notify("stop", turnEnd("done", "shell:c2")); out != done {
+		t.Fatalf("the turn end printed %q", out)
+	}
+}
+
+func TestASubagentWaitingOnAShellCommandOfItsOwnKeepsTheAgentWorking(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	notify := func(kind string, payload []byte) string {
+		t.Helper()
+		return run(t, root, root, id, hook(kind, "[%s]"), payload)
+	}
+	quiet := func(step, out string) {
+		t.Helper()
+		// Something runs: no turn is owed, and the screen is not read.
+		if r, _ := Read(root, id); out != "" || r.State != Working || r.Owed {
+			t.Fatalf("%s: printed %q, report %+v", step, out, r)
+		}
+	}
+	const done = `{"terminalSequence":"[Done: main]"}` + "\n"
+
+	// As seen: the subagent starts a shell command in the background and
+	// stops; Claude wakes the agent with its interim result, and lists the
+	// command alone. When the command ends the subagent goes on, and the
+	// agent is woken for it again.
+	notify("prompt", fixture(t, "prompt"))
+	quiet("turn end, the subagent running", notify("stop", turnEnd("started", "a1")))
+	notify("answer", toolEnd("Bash", "a1", shellStarted("b9")))
+	quiet("wake-up, the result interim", notify("prompt", wakeUp("a1")))
+	quiet("turn end, its command running", notify("stop", turnEnd("it waits on its command", "shell:b9")))
+	if r, _ := Read(root, id); !r.Background || r.Last != "it waits on its command" {
+		t.Fatalf("waiting on the subagent's command: %+v", r)
+	}
+	quiet("wake-up, the subagent finished", notify("prompt", wakeUp("a1")))
+	if out := notify("stop", turnEnd("finished")); out != done {
+		t.Fatalf("the closing turn printed %q", out)
+	}
+	if f := files(t, root, id); len(f) != 2 {
+		t.Fatalf("files left: %v", f)
+	}
+
+	// A subagent that was stopped does not go on: its command, should it
+	// still run, is nobody's, like the agent's own.
+	notify("prompt", fixture(t, "prompt"))
+	notify("stop", turnEnd("started", "c1"))
+	notify("answer", toolEnd("Bash", "c1", shellStarted("d9")))
+	notify("prompt", wakeUpWith("c1", "killed"))
+	if out := notify("stop", turnEnd("stopped", "shell:d9")); out != done {
+		t.Fatalf("the turn end after the subagent was stopped printed %q", out)
+	}
+
+	// A command a subagent watches (Monitor) does not wake it again, as
+	// seen: it does not count.
+	notify("prompt", fixture(t, "prompt"))
+	notify("stop", turnEnd("started", "e1"))
+	notify("answer", toolEnd("Monitor", "e1", `{"taskId":"f9","timeoutMs":60000,"persistent":false}`))
+	notify("prompt", wakeUp("e1"))
+	if out := notify("stop", turnEnd("it watches", "shell:f9")); out != done {
+		t.Fatalf("the turn end with a watched command printed %q", out)
 	}
 }

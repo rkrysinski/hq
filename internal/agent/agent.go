@@ -48,6 +48,9 @@ type Agent struct {
 	started  string     // the start as stored, which keys endSeen
 	reportAt time.Time  // the time of its session's last report; zero before its first
 	endSeen  string     // when hq first saw it ended (see SeeEnd)
+	wokeSeen string     // when Claude woke it after a turn the user ended (see SeeWake)
+	wokeKey  string     // what keys that record now, if such a turn it is
+	wokeAt   time.Time  // the moment to record for it, when this look sees the wake-up
 	State    string     `json:"state"`
 	Since    time.Time  `json:"since"`
 	Branch   string     `json:"branch"`
@@ -102,7 +105,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 			continue
 		}
 		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], restSeen: o["restseen"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting,
-			deadAt: w.DeadAt, started: o["started"], endSeen: o["endseen"]}
+			deadAt: w.DeadAt, started: o["started"], endSeen: o["endseen"], wokeSeen: o["wokeseen"]}
 		if a.Name == "" {
 			a.Name = w.Name
 		}
@@ -292,6 +295,11 @@ func (a *Agent) Keep(r Record, stored string) {
 	case "endseen":
 		a.endSeen = stored
 		a.seen()
+	case "wokeseen":
+		a.wokeSeen = stored
+		if at, ok := a.wokeSeenAt(); ok {
+			a.Since = at
+		}
 	}
 }
 
@@ -328,6 +336,56 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	if a.Alive || r.Since.After(a.Since) {
 		a.Since = r.Since
 	}
+	a.sinceWake(r)
+}
+
+// sinceWake dates the work of an agent Claude woke after a turn the user
+// ended at it (design §3.4). The hooks know nothing of that end, so its
+// report still counts from the prompt of the turn the user ended; hq saw
+// the end (the turnend record of an earlier report since that prompt), and
+// the agent works since the wake-up: the time of the report that is the
+// wake-up, which the first look to see it records (SeeWake), as the
+// reports after it, of the same work, no longer tell.
+func (a *Agent) sinceWake(r state.Report) {
+	a.wokeKey, a.wokeAt = "", time.Time{}
+	f := strings.SplitN(a.turnEnd, " ", 3)
+	if a.State != state.Working || !r.Latest.After(r.Since) || len(f) != 3 || f[0] == a.key() {
+		return
+	}
+	if ended, err := strconv.ParseInt(f[0], 10, 64); err != nil || ended < r.Since.UnixNano() || ended >= r.Latest.UnixNano() {
+		return
+	}
+	a.wokeKey = nanos(r.Since) + " " + f[0] + " "
+	switch at, seen := a.wokeSeenAt(); {
+	case seen:
+		a.Since = at
+	case r.Woken:
+		a.Since, a.wokeAt = r.Latest, r.Latest
+	}
+}
+
+// wokeSeenAt is the moment SeeWake recorded for the agent's work now.
+func (a Agent) wokeSeenAt() (time.Time, bool) {
+	at, ok := strings.CutPrefix(a.wokeSeen, a.wokeKey)
+	if !ok || a.wokeKey == "" {
+		return time.Time{}, false
+	}
+	n, err := strconv.ParseInt(at, 10, 64)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return time.Unix(0, n), true
+}
+
+// SeeWake records, for an agent whose report is Claude's wake-up after a
+// turn the user ended, when that was: the record to store as the wokeseen
+// option, keyed by the report its state counts from and the turn end it
+// follows, with no Value when there is nothing to store.
+func (a Agent) SeeWake() Record {
+	if a.wokeAt.IsZero() {
+		return Record{}
+	}
+	return Record{"wokeseen", a.wokeKey, a.wokeKey + nanos(a.wokeAt)}
 }
 
 // settleDelay is how old the hooks' report must be before the agent's

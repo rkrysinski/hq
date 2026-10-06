@@ -801,12 +801,47 @@ func TestATurnEndHqSawDoesNotOutliveClaudesWakeUp(t *testing.T) {
 	if !b.Recall() || b.State != state.Done {
 		t.Fatalf("recalled: %+v", b)
 	}
-	r.Latest = prompted.Add(time.Minute)
+	// It works since the wake-up, not since the prompt of the turn the
+	// user ended, and the look that sees the wake-up records when.
+	woken := prompted.Add(time.Minute)
+	r.Latest, r.Woken = woken, true
 	c := FromWindows([]tmux.Window{w})[0]
 	c.Apply(r, true)
-	if c.Recall() || c.State != state.Working || !c.Since.Equal(prompted) {
-		t.Fatalf("after the wake-up: %+v", c)
+	wake := c.SeeWake()
+	if c.Recall() || c.State != state.Working || !c.Since.Equal(woken) || wake.Option != "wokeseen" {
+		t.Fatalf("after the wake-up: %+v %+v", wake, c)
 	}
+	// The closing turn ends with another subagent running: a later report
+	// of the same work, which no longer tells when the wake-up was.
+	r.Latest, r.Woken, r.Background = woken.Add(10*time.Second), false, true
+	d := FromWindows([]tmux.Window{w})[0]
+	d.Apply(r, true)
+	if d.State != state.Working || !d.Since.Equal(prompted) || d.SeeWake().Value != "" {
+		t.Fatalf("a later report, the wake-up never seen: %+v", d)
+	}
+	w.Options["wokeseen"] = wake.Value
+	d = FromWindows([]tmux.Window{w})[0]
+	d.Apply(r, true)
+	if d.State != state.Working || !d.Since.Equal(woken) || d.SeeWake().Value != "" {
+		t.Fatalf("a later report, the wake-up recorded: %+v", d)
+	}
+	// Another process stored its record first: that moment shows.
+	first := wake.Key + "1060000000000"
+	r.Latest, r.Woken, r.Background = woken, true, false
+	delete(w.Options, "wokeseen")
+	e := FromWindows([]tmux.Window{w})[0]
+	e.Apply(r, true)
+	if e.Keep(e.SeeWake(), first); !e.Since.Equal(time.Unix(1060, 0)) {
+		t.Fatalf("the record stored first: %+v", e)
+	}
+	// A wake-up with no turn the user ended before it changes nothing.
+	delete(w.Options, "turnend")
+	g := FromWindows([]tmux.Window{w})[0]
+	g.Apply(r, true)
+	if !g.Since.Equal(prompted) || g.SeeWake().Value != "" {
+		t.Fatalf("a wake-up after a turn that ended by itself: %+v", g)
+	}
+	w.Options["turnend"] = rec.Value
 	// An agent that ended keeps the turn end of its latest report only.
 	w.PaneDead = true
 	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, nil); as[0].Last == "Interrupted" {
