@@ -529,6 +529,27 @@ func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefo
 		t.Fatalf("dialog answered while waiting: %+v", r)
 	}
 
+	// A subagent's dialog still open when the turn ends is not written
+	// over: the agent needs input until it is answered, then waits on.
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	var dialog, answer map[string]any
+	_ = json.Unmarshal(fixture(t, "dialog-ask"), &dialog)
+	_ = json.Unmarshal(fixture(t, "answer-ask"), &answer)
+	dialog["agent_id"], answer["agent_id"] = "a495260ec0c2e3ace", "a495260ec0c2e3ace"
+	theirs, _ := json.Marshal(dialog)
+	answered, _ := json.Marshal(answer)
+	run(t, root, root, id, hook("dialog", "[%s]"), theirs)
+	if out := notify("stop", "stop-background"); out != "" {
+		t.Fatalf("the turn end printed %q", out)
+	}
+	if r := read(); r.State != NeedsInput || r.Background || r.Last != "Which colour do you pick: red or blue?" {
+		t.Fatalf("turn end with a subagent's dialog open: %+v", r)
+	}
+	fire(t, root, root, id, "answer", answered)
+	if r := read(); r.State != Working || !r.Background {
+		t.Fatalf("a subagent's dialog answered after the turn end: %+v", r)
+	}
+
 	// A session that starts, starts over or ends forgets what was kept.
 	for _, tc := range []struct{ kind, payload, state string }{
 		{"start", "session-start-clear", Done}, {"resume", "session-start-resume", Done}, {"end", "session-end", Ended},

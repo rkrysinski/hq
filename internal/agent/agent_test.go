@@ -745,8 +745,8 @@ func TestAnAgentWaitingForItsSubagentsWorksAtItsPromptAndItsScreenIsNotRead(t *t
 	r := state.Report{State: state.Working, Since: prompted, Latest: ended, Background: true, Last: "Started.", Prompt: "run the tests"}
 	a := FromWindows([]tmux.Window{w})[0]
 	a.Apply(r, true)
-	if !a.Waiting() || a.Unsettled(ended.Add(time.Minute)) {
-		t.Fatalf("waiting %v, unsettled %v", a.Waiting(), a.Unsettled(ended.Add(time.Minute)))
+	if !a.OnBackgroundWork() || a.Unsettled(ended.Add(time.Minute)) {
+		t.Fatalf("waiting %v, unsettled %v", a.OnBackgroundWork(), a.Unsettled(ended.Add(time.Minute)))
 	}
 	// Working since the user's prompt, with the turn's message.
 	if a.State != state.Working || !a.Since.Equal(prompted) || a.Last != "Started." || !a.Entered().Equal(prompted) {
@@ -759,26 +759,23 @@ func TestAnAgentWaitingForItsSubagentsWorksAtItsPromptAndItsScreenIsNotRead(t *t
 	r.Latest, r.Background, r.Woken = woken, false, true
 	b := FromWindows([]tmux.Window{w})[0]
 	b.Apply(r, true)
-	if b.Waiting() || b.Unsettled(woken.Add(100*time.Millisecond)) || !b.Unsettled(woken.Add(time.Second)) || !b.Since.Equal(prompted) {
-		t.Fatalf("woken: waiting %v %+v", b.Waiting(), b)
+	if b.OnBackgroundWork() || b.Unsettled(woken.Add(100*time.Millisecond)) || !b.Unsettled(woken.Add(time.Second)) || !b.Since.Equal(prompted) {
+		t.Fatalf("woken: waiting %v %+v", b.OnBackgroundWork(), b)
 	}
-	// The user ends the closing turn: done, as any turn ended at the agent.
 	if rec := b.Settle(atRest, woken.Add(time.Second)); rec.Option != "restseen" {
 		t.Fatalf("closing turn at rest: %+v", rec)
 	}
-	// An Interrupted line above the box may be the turn's before the
-	// wake-up, which shows no prompt: only a screen that stays at rest
-	// tells that the user ended the closing turn.
-	interrupted := "  ⎿  Interrupted · What should Claude do instead?\n" + atRest
+	// An Interrupted line of the turn before the wake-up stands above what
+	// the wake-up printed: not this turn's end.
+	stale := "  ⎿  Interrupted · What should Claude do instead?\n● Agent \"Run the tests\" finished · 42s\n" + atRest
 	seen := woken.Add(2 * time.Second)
-	rec := b.Settle(interrupted, seen)
-	if b.State != state.Working || rec.Option != "restseen" {
+	if rec := b.Settle(stale, seen); b.State != state.Working || rec.Option != "restseen" {
 		t.Fatalf("closing turn, an earlier turn's line above: %+v %+v", rec, b)
 	}
-	w.Options["restseen"] = rec.Value
-	b = FromWindows([]tmux.Window{w})[0]
-	b.Apply(r, true)
-	if rec = b.Settle(interrupted, seen.Add(RestDelay)); b.State != state.Done || b.Last != "Interrupted" || !b.Since.Equal(seen) || rec.Option != "turnend" {
+	// The user ends the closing turn: done, as any turn ended at the agent.
+	interrupted := "● Agent \"Run the tests\" finished · 42s\n● Started.\n  ⎿  Interrupted · What should Claude do instead?\n" + strings.TrimPrefix(atRest, "● Started.\n")
+	rec := b.Settle(interrupted, seen)
+	if b.State != state.Done || b.Last != "Interrupted" || !b.Since.Equal(seen) || rec.Option != "turnend" {
 		t.Fatalf("closing turn interrupted: %+v %+v", rec, b)
 	}
 }

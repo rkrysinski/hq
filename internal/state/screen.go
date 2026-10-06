@@ -25,7 +25,16 @@ const working = "esc to interrupt"
 // since the user's last prompt, has printed one of the lines of userEnds.
 // Anything else, a dialog or a turn at work (its footer offers Esc to
 // interrupt) included, is false.
-func EndedByUser(screen string) (last string, ok bool) {
+func EndedByUser(screen string) (last string, ok bool) { return endedByUser(screen, false) }
+
+// EndedLast is EndedByUser for a turn Claude woke itself for, which shows
+// no prompt of the user's (design §3.4): the line counts only when Claude
+// has said nothing below it. A line of an earlier turn the user ended
+// stands above what the wake-up printed (● Agent "..." finished, then the
+// reply), and is not this turn's end.
+func EndedLast(screen string) (last string, ok bool) { return endedByUser(screen, true) }
+
+func endedByUser(screen string, lastSaid bool) (last string, ok bool) {
 	b, ok := promptBox(screen)
 	if !ok {
 		return "", false
@@ -36,8 +45,19 @@ func EndedByUser(screen string) (last string, ok bool) {
 				return e.last, true
 			}
 		}
+		if lastSaid && said(b.lines[i]) {
+			return "", false
+		}
 	}
 	return "", false
+}
+
+// said reports whether a trimmed line starts something Claude said or did:
+// a bullet, as "● Agent "Run the tests" finished · 42s" or the first line
+// of a reply. The effort Claude shows at the right above its box
+// ("● high · /effort") is not.
+func said(line string) bool {
+	return strings.HasPrefix(line, "● ") && !strings.Contains(line, " · /eff")
 }
 
 // AtRest reports whether the screen of an agent's pane looks like Claude

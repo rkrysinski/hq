@@ -32,15 +32,17 @@ import (
 // with its result, but only once one of them asks for that (--now). With
 // no message waiting it prints what it printed before.
 //
-// A turn that ends while background work still runs (stopAwk) is not the
+// A turn that ends while background work still runs (hookAwk) is not the
 // agent's end: Claude goes on by itself when that work has finished, with
 // a prompt of its own (wakeEvent). Such a stop, and such a prompt while
 // the agent works, are kept beside the state file (.on, Report.Kept) and
 // leave the file alone, so the agent stays working since the user's
 // prompt; the stop still gives the last message (.stop) and notifies
 // nobody. When the file does not say working, the stop is written there
-// too, and Kept reads it as working. Any other prompt, stop or session
-// event drops what was kept.
+// too, and Kept reads it as working; but not over a subagent's dialog
+// (its PermissionRequest carries agent_id), which is still open: the
+// agent needs input until it is answered. Any other prompt, stop or
+// session event drops what was kept.
 //
 // It needs only sh, git, cat, mv, cp, mkdir, rm, grep and awk and always
 // exits 0; it holds Claude back only while a message is unread (design
@@ -56,8 +58,9 @@ mkdir -p "$d" 2>/dev/null || exit 0
 f=$d/$HQ_ID
 t=$f.$$
 { printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" 2>/dev/null || { rm -f "$t"; exit 0; }
-A='` + stopAwk + `'
+A='` + hookAwk + `'
 works() { grep -Eq '` + workingEvent + `' "$f" 2>/dev/null; }
+theirs() { grep -q '` + dialogEvent + `' "$f" 2>/dev/null && grep -q '"agent_id"' "$f" 2>/dev/null; }
 put() { cp -f "$t" "$t.c" 2>/dev/null && mv -f "$t.c" "$1" 2>/dev/null; rm -f "$t.c" 2>/dev/null; }
 tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1" 2>/dev/null; }
 soon() { for m in "$i"/[0-9]*` + nowSuffix + `; do [ -f "$m" ] && return 0; done; return 1; }
@@ -75,7 +78,7 @@ say() {
 }
 case $1 in
 stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
-    K=keep awk "$A" "$t" 2>/dev/null && { put "$f.stop"; put "$f` + keptSuffix + `"; works || mv -f "$t" "$f" 2>/dev/null; rm -f "$t"; exit 0; } ;;
+    K=keep awk "$A" "$t" 2>/dev/null && { put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f" 2>/dev/null; rm -f "$t"; exit 0; } ;;
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
     grep -q '` + wakeEvent + `' "$t" 2>/dev/null && works && { mv -f "$t" "$f` + keptSuffix + `" 2>/dev/null; rm -f "$t"; exit 0; } ;;
 answer) grep -q '` + toolEndEvent + `' "$t" 2>/dev/null && ! grep -q '"agent_id"' "$t" 2>/dev/null && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
@@ -113,9 +116,9 @@ const workingEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"(UserPromptSubm
 
 // wakeEvent is what the hook's grep finds in the payload of the prompt
 // Claude gives itself when background work has finished (design §3.4).
-const wakeEvent = `"prompt"[[:blank:]]*:[[:blank:]]*"<task-notification>`
+const wakeEvent = `"prompt"[[:blank:]]*:[[:blank:]]*"` + wakePrefix
 
-// stopAwk is the awk program of the hook. It reads the state file or the
+// hookAwk is the awk program of the hook. It reads the state file or the
 // payload as one record.
 //
 // With K=keep it succeeds for the payload of a Stop that leaves the agent
@@ -133,7 +136,7 @@ const wakeEvent = `"prompt"[[:blank:]]*:[[:blank:]]*"<task-notification>`
 // for which question walks the message's JSON string to its end), else
 // "Done: <branch>", placed at the %s of the sequence T, as Claude's hook
 // output {"terminalSequence": ...}; the branch is only ever data.
-const stopAwk = `function question(s,    i, n, c, m) {
+const hookAwk = `function question(s,    i, n, c, m) {
     i = index(s, "\"last_assistant_message\":")
     if (!i) return 0
     s = substr(s, i + 25)
@@ -172,8 +175,8 @@ function busy(s,    i, c, d, str, key, val, type, status) {
     }
     return 0
 }
-BEGIN { RS = "\001"; keep = 1 }
-NR == 1 && ENVIRON["K"] == "keep" { keep = !busy($0) || question($0); next }
+BEGIN { RS = "\001"; ends = 1 }
+NR == 1 && ENVIRON["K"] == "keep" { ends = !busy($0) || question($0); next }
 NR == 1 {
     k = "Done"
     if (ENVIRON["K"] != "stop") k = "Needs input"
@@ -185,7 +188,7 @@ NR == 1 {
     if (i) t = substr(t, 1, i - 1) k ": " l substr(t, i + 2)
     printf "{\"terminalSequence\":\"%s\"}\n", t
 }
-END { if (ENVIRON["K"] == "keep") exit keep }`
+END { if (ENVIRON["K"] == "keep") exit ends }`
 
 // branchHeader starts the line the hook writes before the payload.
 const branchHeader = "branch"

@@ -41,8 +41,8 @@ type Agent struct {
 	deadAt   time.Time  // when its pane died, as tmux says; zero when unknown
 	endedAt  time.Time  // when its session reported its end
 	atStart  bool       // its latest report is its session's start
-	waiting  bool       // its turn ended with background work running: it works, at its prompt (see Waiting)
-	woken    bool       // its latest report is Claude's wake-up for a closing turn (see Settle)
+	atPrompt bool       // its turn ended with background work running: it works, at its prompt (see OnBackgroundWork)
+	woken    bool       // it works on a turn Claude woke itself for (see Settle)
 	startAsk *state.Ask // the dialog its screen shows at the start, if any
 	started  string     // the start as stored, which keys endSeen
 	reportAt time.Time  // the time of its session's last report; zero before its first
@@ -316,8 +316,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		a.reportAt = r.Latest
 	}
 	a.atStart = r.AtStart && r.State == state.Done
-	a.waiting = r.Background && r.State == state.Working
-	a.woken = r.Woken && r.State == state.Working
+	a.atPrompt, a.woken = r.Background, r.Woken
 	if r.State == state.Ended {
 		a.endedAt = r.Since
 	}
@@ -337,18 +336,18 @@ const settleDelay = 500 * time.Millisecond
 // Unsettled reports whether the agent's screen may show a turn that the
 // user ended, which no hook reports (design §3.4): the agent runs, and its
 // hooks said a moment ago that it works or needs input. An agent whose turn
-// ended with background work running (Waiting) is not: its hooks reported
+// ended with background work running (OnBackgroundWork) is not: its hooks reported
 // that end, and it rests at its prompt, as after a rewind, until Claude
 // wakes it.
 func (a Agent) Unsettled(now time.Time) bool {
-	return a.Alive && !a.ending && a.reported && !a.waiting && (a.State == state.Working || a.State == state.NeedsInput || a.atStart) && now.Sub(a.reportAt) >= settleDelay
+	return a.Alive && !a.ending && a.reported && !a.atPrompt && (a.State == state.Working || a.State == state.NeedsInput || a.atStart) && now.Sub(a.reportAt) >= settleDelay
 }
 
-// Waiting reports whether the agent works only on background work
-// (subagents): its turn ended, and it waits at its prompt until Claude
+// OnBackgroundWork reports whether the agent works only on background work
+// (subagents): its turn ended, and it sits at its prompt until Claude
 // wakes it for the closing turn (spec §5). hq send types a message in
 // there, as for an agent that is done.
-func (a Agent) Waiting() bool { return a.waiting && a.State == state.Working }
+func (a Agent) OnBackgroundWork() bool { return a.atPrompt && a.State == state.Working }
 
 // StartAsk is the dialog Claude shows in place of its prompt box at the
 // start of the agent's session, as Settle read it off the screen; nil when
@@ -420,10 +419,13 @@ func (a *Agent) Settle(screen string, now time.Time) Record {
 	// A rewind right after a turn the user ended leaves that turn's line
 	// above the box: the rewind below tells that turn's end.
 	rewound := a.State == state.Working && state.PutBack(screen, a.prompt)
-	// A closing turn Claude woke itself for shows no prompt, so a line
-	// above the box may be an earlier turn's, as far up as the user's last
-	// prompt: only the screen at rest, below, tells that turn's end.
-	if last, ok := state.EndedByUser(screen); ok && !rewound && !a.woken {
+	// A turn Claude woke itself for shows no prompt, so a line above the
+	// box may be an earlier turn's: it counts only as the last thing said.
+	ended := state.EndedByUser
+	if a.woken {
+		ended = state.EndedLast
+	}
+	if last, ok := ended(screen); ok && !rewound {
 		a.State, a.Since, a.Last = state.Done, now, last
 		return Record{"turnend", key, key + nanos(now) + " " + last}
 	}

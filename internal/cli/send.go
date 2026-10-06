@@ -115,9 +115,9 @@ func findAgent(d deps, name string) (agent.Agent, error) {
 // deliver delivers what waits for the agent now, when it waits at its
 // prompt with nothing in the box, by typing it in; otherwise it leaves it
 // to the agent's hooks. An agent working only on background work waits at
-// its prompt too (agent.Waiting). It returns how the message goes.
+// its prompt too (agent.OnBackgroundWork). It returns how the message goes.
 func deliver(d deps, a agent.Agent, now bool) (string, error) {
-	if a.State == state.Done || a.State == state.Question || a.Waiting() {
+	if a.State == state.Done || a.State == state.Question || a.OnBackgroundWork() {
 		return typeIn(d, a)
 	}
 	if d.pending(a.RepoPath, a.ID) == 0 {

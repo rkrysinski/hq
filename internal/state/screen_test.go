@@ -241,3 +241,26 @@ func TestThePromptBoxIsFoundAboveTheSubagentsClaudeListsBelowItsFooter(t *testin
 		t.Fatal("a turn at work read as at rest")
 	}
 }
+
+// screen-interrupted-then-woken is Claude Code 2.1.291 after a turn the user
+// interrupted while a subagent ran, and the turn Claude woke itself for when
+// the subagent finished (blank lines left out).
+func TestEndedLastTakesOnlyTheLastThingSaidForATurnTheUserEnded(t *testing.T) {
+	woken := screen(t, "interrupted-then-woken")
+	if last, ok := EndedByUser(woken); !ok || last != "Interrupted" {
+		t.Fatalf("no prompt shows between the interrupted turn and the woken one: %q %v", last, ok)
+	}
+	if last, ok := EndedLast(woken); ok {
+		t.Fatalf("an earlier turn's line read as the woken turn's end: %q", last)
+	}
+	// The line as the last thing said, Claude's effort shown above the box
+	// or not, is the turn's end.
+	for name, want := range map[string]string{
+		"interrupted": "Interrupted", "interrupted-80": "Interrupted", "permission-no": "Interrupted",
+		"permission-esc": "Interrupted", "declined": "User declined to answer questions",
+	} {
+		if last, ok := EndedLast(screen(t, name)); !ok || last != want {
+			t.Errorf("%s: %q %v", name, last, ok)
+		}
+	}
+}

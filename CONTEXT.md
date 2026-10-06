@@ -45,7 +45,7 @@ _Avoid_: selection, highlighted row
 _Avoid_: alert, blocked
 
 **Background work**:
-Subagents an agent started in the background that still run when its turn ends; the agent is `working` until the closing turn ends. Background shell commands are not background work.
+Subagents or workflows an agent started in the background that still run when its turn ends; the agent is `working` until the closing turn ends. Background shell commands are not background work.
 _Avoid_: pending tasks, children, jobs
 
 **Closing turn**:

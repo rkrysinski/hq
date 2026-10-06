@@ -42,9 +42,9 @@ type Report struct {
 	// runs (subagents): it waits at its prompt, working, until Claude wakes
 	// it for the closing turn (design §3.4).
 	Background bool
-	// Woken says the agent's latest report is Claude's wake-up after
-	// background work finished: its closing turn is at work, with no prompt
-	// of the user's, so none shows on its screen.
+	// Woken says the agent works on a turn Claude woke itself for after
+	// background work finished: no prompt of the user's shows on its screen
+	// for it.
 	Woken bool
 }
 
@@ -73,6 +73,10 @@ const (
 	newSource    = "startup"
 	resumeSource = "resume"
 )
+
+// wakePrefix starts the prompt Claude gives itself when background work
+// has finished (design §3.4).
+const wakePrefix = "<task-notification>"
 
 // askTool is Claude's tool that asks the user questions in a dialog.
 const askTool = "AskUserQuestion"
@@ -113,6 +117,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 		// user answered and Claude works on.
 		r.State = Working
 		r.Prompt = p.Prompt
+		r.Woken = strings.HasPrefix(p.Prompt, wakePrefix)
 	case "PermissionRequest":
 		r.State = NeedsInput
 		if m := p.dialogText(); m != "" {

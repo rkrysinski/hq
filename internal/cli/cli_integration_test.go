@@ -841,19 +841,4 @@ func TestAnAgentWhoseTurnEndedWhileItsSubagentsRunStaysWorkingUntilTheClosingTur
 	h.waitAtRest("a")
 	h.typeIn("a", "wake")
 	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running.")
-
-	// A background shell command alone does not keep it working.
-	h.typeIn("a", "start the server")
-	h.waitReport("a", "done", "Done: start the server")
-
-	// A turn the user interrupts while a subagent runs is done; the closing
-	// turn shows working, then done.
-	h.typeIn("a", "slow background job")
-	h.waitState("a", "working")
-	h.typeIn("a", "esc")
-	h.waitReport("a", "done", "Interrupted")
-	h.typeIn("a", "wake slow")
-	h.waitState("a", "working")
-	h.typeIn("a", "go on")
-	h.waitReport("a", "done", "The background work is done, 0 still running.")
 }

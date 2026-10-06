@@ -51,7 +51,7 @@ In the dashboard, agents that need you (a question, a permission prompt) come fi
 
 ## Notifications
 
-hq sends a desktop notification when an agent needs you or finishes: `Question: <branch>` when its reply ends with a question, `Needs input: <branch>` when it waits on a question dialog or a permission prompt, and `Done: <branch>` when it completes its turn. Each event notifies exactly once, whether or not the agent is the one open in the dashboard. Starting, working and ended agents never notify, and neither does a turn you end yourself (Esc, a refused permission) or a session that has just started.
+hq sends a desktop notification when an agent needs you or finishes: `Question: <branch>` when its reply ends with a question, `Needs input: <branch>` when it waits on a question dialog or a permission prompt, and `Done: <branch>` when it completes its turn. Each event notifies exactly once, whether or not the agent is the one open in the dashboard. Starting, working and ended agents never notify, and neither does a turn you end yourself (Esc, a refused permission) or a session that has just started. An agent whose turn ends while subagents it started in the background still run is not finished: it stays `working` and notifies once, when the turn Claude takes after the last of them ends.
 
 Notifications come through the terminal the dashboard runs in, so they appear only while the dashboard is open in a terminal. After `q`, or with the window closed or detached, the agents keep working but nothing is shown, and missed events are not replayed; `hq` brings the dashboard and the notifications back.
 

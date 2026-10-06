@@ -290,6 +290,14 @@ func TestAKeptTurnEndCountsOnlyBesideAReportItBelongsTo(t *testing.T) {
 			t.Errorf("%s: latest %v", tc.latest, r.Latest)
 		}
 	}
+	// A wake-up that is the report itself, after done or a question, is a
+	// turn Claude woke itself for too.
+	if r := Parse(fixture(t, "prompt-wake"), kept, nil); r.State != Working || !r.Woken || r.Background {
+		t.Errorf("wake-up as the report: %+v", r)
+	}
+	if r := Parse(fixture(t, "prompt"), nil, nil); r.Woken {
+		t.Errorf("the user's prompt: %+v", r)
+	}
 	// A wake-up counts only while the report says working.
 	for _, latest := range []string{"stop-done", "dialog-ask", "session-start"} {
 		r := Parse(fixture(t, latest), nil, nil)
