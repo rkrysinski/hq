@@ -27,7 +27,7 @@ go test ./...                                          # unit
 go test -tags integration ./...                        # unit + integration
 go test -tags e2e ./e2e/...                            # end-to-end journeys
 go run ./tools/testgate pyramid                        # counts per level, checks the shape
-go test -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./... \
+go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./... \
   && go run ./tools/testgate coverage cover.out        # coverage threshold
 ```
 

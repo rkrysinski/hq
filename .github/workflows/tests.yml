@@ -39,10 +39,14 @@ jobs:
       - name: Unit tests
         run: go test ./...
 
+      # -count=1: a cached package's profile describes the code of the run
+      # that filled the cache, not this one's (#53).
       - name: Unit and integration tests with coverage
-        run: go test -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./...
+        run: go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./...
 
+      # bash with pipefail, so the gate's failure is not tee's success (#53).
       - name: Coverage threshold
+        shell: bash
         run: go run ./tools/testgate coverage cover.out | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: End-to-end journeys
