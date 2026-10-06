@@ -861,13 +861,15 @@ func TestATaskOwedATurnThatNeverComesHoldsBackOneTurnEnd(t *testing.T) {
 		t.Fatalf("the turn for the last printed %q", out)
 	}
 
-	// A wake-up that names two tasks pays both.
+	// A wake-up pays the task it is for, not one its report mentions.
 	notify("prompt", fixture(t, "prompt"))
 	notify("stop", turnEnd("started", "e1", "e2"))
-	both := strings.Replace(string(wakeUp("e1")), "</task-notification>", `</task-notification>\n<task-notification>\n<task-id>e2</task-id>\n</task-notification>`, 1)
-	notify("prompt", []byte(both))
+	quoting := strings.Replace(string(wakeUp("e1")), "</task-notification>", `<result>see <task-id>e2</task-id></result>\n</task-notification>`, 1)
+	notify("prompt", []byte(quoting))
+	quiet("turn for the first, the second owed", notify("stop", turnEnd("one finished")), true)
+	notify("prompt", wakeUp("e2"))
 	if out := notify("stop", turnEnd("both finished")); out != done {
-		t.Fatalf("the turn for both printed %q", out)
+		t.Fatalf("the turn for the second printed %q", out)
 	}
 
 	// The response names the task, not the tool's input.

@@ -47,8 +47,9 @@ import (
 // with the user's next prompt, or at the next Stop when no wake-up for a
 // task came in between, so a turn that never comes holds back one turn
 // end, which the host sees by the agent at rest (design §3.4); a wake-up
-// that names no task, or a session's start or end, forgets them all. On answer it first adds to .owe the background work
-// the tool started, if any (hookAwk).
+// that names no task, or a session's start or end, forgets them all. On
+// answer it first adds to .owe the background work the tool started, if
+// any (hookAwk).
 //
 // It needs only sh, git, cat, mv, cp, mkdir, rm, grep and awk and always
 // exits 0; it holds Claude back only while a message is unread (design
@@ -168,9 +169,10 @@ const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 // back one turn end.
 //
 // With K=wake it succeeds for a prompt Claude gave itself, and prints O
-// without the tasks it names, and with the + line when it named one of
-// them; it prints nothing when it names no task, as nothing can be told
-// paid.
+// without the task it names, and with the + line when that task was
+// listed; it prints nothing when it names no task, as nothing can be told
+// paid. The task is the one named first, before any other tag: the rest
+// of the prompt is the subagent's report, which is only ever data.
 //
 // With K=tool it prints, for the payload of a tool that started background
 // work, the id of the subagent or the workflow the agent started (the
@@ -250,15 +252,12 @@ NR == 1 && K == "wake" {
     if (!match($0, /` + wakeEvent + `/)) next
     ends = 0
     o = substr($0, RSTART)
-    for (n = 0; match(o, /<task-id>[^<"\\]+/); n++) {
-        woke[substr(o, RSTART + 9, RLENGTH - 9)]
-        o = substr(o, RSTART + RLENGTH)
-    }
-    if (!n) next
+    if (!match(o, /^[^<]*<task-notification>[^<]*<task-id>[^<"\\]+/)) next
+    o = substr(o, 1, RLENGTH)
+    sub(/.*>/, "", o)
     for (n = load(); n; n--) {
-        x = o = L[n]
-        sub(/^!/, "", o)
-        if (x == "+" || o in woke) paid = 1
+        x = L[n]
+        if (x == "+" || x == o || x == "!" o) paid = 1
         else if (x != "") print x
     }
     if (paid) print "+"
