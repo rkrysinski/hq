@@ -778,59 +778,104 @@ func TestBackgroundWorkIsKnownFromItsStartSoATurnTheUserInterruptedStillNotifies
 	}
 }
 
-func TestASubagentWaitingOnAShellCommandOfItsOwnKeepsTheAgentWorking(t *testing.T) {
+func TestAShellCommandIsNoBackgroundWorkWhoeverStartedIt(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
 	notify := func(kind string, payload []byte) string {
 		t.Helper()
 		return run(t, root, root, id, hook(kind, "[%s]"), payload)
 	}
-	quiet := func(step, out string) {
-		t.Helper()
-		// Something runs: no turn is owed, and the screen is not read.
-		if r, _ := Read(root, id); out != "" || r.State != Working || r.Owed {
-			t.Fatalf("%s: printed %q, report %+v", step, out, r)
-		}
-	}
 	const done = `{"terminalSequence":"[Done: main]"}` + "\n"
 
-	// As seen: the subagent starts a shell command in the background and
-	// stops; Claude wakes the agent with its interim result, and lists the
-	// command alone. When the command ends the subagent goes on, and the
-	// agent is woken for it again.
+	// As seen: a subagent starts a shell command in the background and
+	// stops; Claude wakes the agent with its result, and lists the command
+	// alone. Whether the subagent waits on it or left it running (a dev
+	// server) nothing tells, so it is the agent's end, as with a command of
+	// its own. When the command ends and the subagent goes on, the agent
+	// works again, and is done again.
 	notify("prompt", fixture(t, "prompt"))
-	quiet("turn end, the subagent running", notify("stop", turnEnd("started", "a1")))
+	notify("stop", turnEnd("started", "a1"))
 	notify("answer", toolEnd("Bash", "a1", shellStarted("b9")))
-	quiet("wake-up, the result interim", notify("prompt", wakeUp("a1")))
-	quiet("turn end, its command running", notify("stop", turnEnd("it waits on its command", "shell:b9")))
-	if r, _ := Read(root, id); !r.Background || r.Last != "it waits on its command" {
-		t.Fatalf("waiting on the subagent's command: %+v", r)
+	notify("prompt", wakeUp("a1"))
+	if out := notify("stop", turnEnd("its command runs on", "shell:b9")); out != done {
+		t.Fatalf("the turn end with a subagent's command running printed %q", out)
 	}
-	quiet("wake-up, the subagent finished", notify("prompt", wakeUp("a1")))
+	if r, _ := Read(root, id); r.State != Done || r.Background {
+		t.Fatalf("a subagent's command running: %+v", r)
+	}
+	notify("prompt", wakeUp("a1"))
+	if r, _ := Read(root, id); r.State != Working {
+		t.Fatalf("the subagent went on: %+v", r)
+	}
 	if out := notify("stop", turnEnd("finished")); out != done {
 		t.Fatalf("the closing turn printed %q", out)
 	}
 	if f := files(t, root, id); len(f) != 2 {
 		t.Fatalf("files left: %v", f)
 	}
+}
 
-	// A subagent that was stopped does not go on: its command, should it
-	// still run, is nobody's, like the agent's own.
+func TestATaskOwedATurnThatNeverComesHoldsBackOneTurnEnd(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	notify := func(kind string, payload []byte) string {
+		t.Helper()
+		return run(t, root, root, id, hook(kind, "[%s]"), payload)
+	}
+	quiet := func(step, out string, owed bool) {
+		t.Helper()
+		if r, _ := Read(root, id); out != "" || r.State != Working || r.Owed != owed {
+			t.Fatalf("%s: printed %q, report %+v", step, out, r)
+		}
+	}
+	const done = `{"terminalSequence":"[Done: main]"}` + "\n"
+
+	// A subagent Claude never wakes the agent for, and a shell command of
+	// the agent's own that ends later: the first turn end is held back, the
+	// turn Claude takes for the command is the agent's end.
 	notify("prompt", fixture(t, "prompt"))
-	notify("stop", turnEnd("started", "c1"))
-	notify("answer", toolEnd("Bash", "c1", shellStarted("d9")))
-	notify("prompt", wakeUpWith("c1", "killed"))
-	if out := notify("stop", turnEnd("stopped", "shell:d9")); out != done {
-		t.Fatalf("the turn end after the subagent was stopped printed %q", out)
+	notify("answer", toolEnd("Agent", "", launched("a1")))
+	notify("answer", toolEnd("Bash", "", shellStarted("c2")))
+	quiet("turn end, a turn owed", notify("stop", turnEnd("started", "shell:c2")), true)
+	notify("prompt", wakeUp("c2"))
+	if out := notify("stop", turnEnd("the command ended")); out != done {
+		t.Fatalf("the turn for the command printed %q", out)
+	}
+	if f := files(t, root, id); len(f) != 2 {
+		t.Fatalf("files left: %v", f)
 	}
 
-	// A command a subagent watches (Monitor) does not wake it again, as
-	// seen: it does not count.
+	// Three subagents gone from the list at the first turn end: each
+	// wake-up keeps the others owed, as their wake-ups follow.
 	notify("prompt", fixture(t, "prompt"))
-	notify("stop", turnEnd("started", "e1"))
-	notify("answer", toolEnd("Monitor", "e1", `{"taskId":"f9","timeoutMs":60000,"persistent":false}`))
-	notify("prompt", wakeUp("e1"))
-	if out := notify("stop", turnEnd("it watches", "shell:f9")); out != done {
-		t.Fatalf("the turn end with a watched command printed %q", out)
+	for _, task := range []string{"d1", "d2", "d3"} {
+		notify("answer", toolEnd("Agent", "", launched(task)))
+	}
+	quiet("turn end, three turns owed", notify("stop", turnEnd("started")), true)
+	notify("prompt", wakeUp("d1"))
+	quiet("turn for the first, two owed", notify("stop", turnEnd("one")), true)
+	notify("prompt", wakeUp("d2"))
+	quiet("turn for the second, one owed", notify("stop", turnEnd("two")), true)
+	notify("prompt", wakeUp("d3"))
+	if out := notify("stop", turnEnd("three")); out != done {
+		t.Fatalf("the turn for the last printed %q", out)
+	}
+
+	// A wake-up that names two tasks pays both.
+	notify("prompt", fixture(t, "prompt"))
+	notify("stop", turnEnd("started", "e1", "e2"))
+	both := strings.Replace(string(wakeUp("e1")), "</task-notification>", `</task-notification>\n<task-notification>\n<task-id>e2</task-id>\n</task-notification>`, 1)
+	notify("prompt", []byte(both))
+	if out := notify("stop", turnEnd("both finished")); out != done {
+		t.Fatalf("the turn for both printed %q", out)
+	}
+
+	// The response names the task, not the tool's input.
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", []byte(`{"hook_event_name":"PostToolUse","tool_name":"Agent","tool_input":{"taskId":"zz","description":"x"},"tool_response":{"status":"async_launched","agentId":"f1"}}`))
+	quiet("turn end, a turn owed", notify("stop", turnEnd("started")), true)
+	notify("prompt", wakeUp("f1"))
+	if out := notify("stop", turnEnd("finished")); out != done {
+		t.Fatalf("the closing turn printed %q", out)
 	}
 }

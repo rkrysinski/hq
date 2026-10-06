@@ -187,8 +187,8 @@ func keep(d deps, a *agent.Agent, r agent.Record) {
 	}
 }
 
-// resting reports whether a working agent's screen is at rest, not yet for
-// long enough to be a turn the user rewound.
+// resting reports whether a working agent's screen is at rest in a way one
+// more look decides (agent.Resting), not yet for long enough.
 func resting(as []agent.Agent) bool {
 	for _, a := range as {
 		if a.Resting() {

@@ -64,7 +64,6 @@ type payload struct {
 	Source           string `json:"source"`
 	ToolName         string `json:"tool_name"`
 	BackgroundTasks  []struct {
-		ID     string `json:"id"`
 		Type   string `json:"type"`
 		Status string `json:"status"`
 	} `json:"background_tasks"`
@@ -92,20 +91,11 @@ const wakePrefix = "<task-notification>"
 const askTool = "AskUserQuestion"
 
 // busy reports whether the event, a Stop, lists background work that
-// still runs: a running task that is no shell command, or a shell command
-// a subagent started, as the hook's list (owed, the .owe file) says with a
-// line "~COMMAND SUBAGENT". It is the rule of the hook's awk, which
-// decides (design §3.4).
-func (p payload) busy(owed []byte) bool {
-	theirs := map[string]bool{}
-	for _, line := range strings.Split(string(owed), "\n") {
-		if command, ok := strings.CutPrefix(line, "~"); ok {
-			command, _, _ = strings.Cut(command, " ")
-			theirs[command] = true
-		}
-	}
+// still runs: a running task that is no shell command (the rule of the
+// hook's awk, which decides; design §3.4).
+func (p payload) busy() bool {
 	for _, t := range p.BackgroundTasks {
-		if t.Status == "running" && (t.Type != "shell" || theirs[t.ID]) {
+		if t.Status == "running" && t.Type != "shell" {
 			return true
 		}
 	}
@@ -193,8 +183,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 }
 
 // Kept adds to the report of the state file latest what the hook kept
-// beside it (kept, written at; empty when there is nothing; owed is the
-// hook's list of the background work it follows): the latest
+// beside it (kept, written at; empty when there is nothing): the latest
 // event that left the agent working without restarting its time (design
 // §3.4). A turn end with background work still running (a Stop) counts
 // beside a report that says working, and as the report itself when the hook
@@ -202,7 +191,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 // prompt, with that turn's message. Claude's wake-up for the closing turn
 // (a UserPromptSubmit) counts beside a report that says working: the agent
 // works on, since the same moment.
-func (r Report) Kept(latest, kept, owed []byte, at time.Time) Report {
+func (r Report) Kept(latest, kept []byte, at time.Time) Report {
 	var p payload
 	if _, event := splitHeader(kept); json.Unmarshal(event, &p) != nil {
 		return r
@@ -210,7 +199,7 @@ func (r Report) Kept(latest, kept, owed []byte, at time.Time) Report {
 	switch {
 	case p.Event == "Stop" && (r.State == Working || bytes.Equal(kept, latest)):
 		r.State, r.Background, r.Last = Working, true, Clean(p.AssistantMessage)
-		r.Owed = !p.busy(owed)
+		r.Owed = !p.busy()
 	case p.Event == "UserPromptSubmit" && r.State == Working:
 		r.Woken = true
 	default:
