@@ -33,7 +33,7 @@ go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.
 
 ## Thresholds
 
-`tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. CI (`.github/workflows/tests.yml`, on macOS and Ubuntu) runs the pyramid check, unit and integration tests with coverage, and the end-to-end journeys. Both thresholds only go up: a PR that raises the actual figure raises the threshold in the same PR. Never lower one to get a PR through. A PR with a red CI job is not merged.
+`tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. CI (`.github/workflows/tests.yml`, on macOS and Ubuntu) runs the pyramid check, unit and integration tests with coverage, and the end-to-end journeys. Both thresholds only go up. The unit share's minimum follows the figure: a PR that raises the share raises the minimum in the same PR. The coverage minimum stays 0.5 points under CI's figure, rounded down to a tenth, so a PR that changes nothing about tests cannot fall under it: a PR that lifts the figure more than 0.5 points above the minimum raises the minimum to the figure less 0.5 (#42). Never lower one to get a PR through. A PR with a red CI job is not merged.
 
 ## In the QA plan and PR
 
