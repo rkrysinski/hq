@@ -1,0 +1,14 @@
+user $ hq new b ~/app hello
+  started b in app (sandbox claude-app); enter it with: hq go b
+  -> b is done: 'Done: hello'
+  desktop notification sent: Done: main  (agent b)
+user $ hq send b again
+  delivered: typed into b as its next prompt
+  -> b is done: 'Done: again'
+  desktop notification sent: Done: main  (agent b)
+user $ hq ls
+  NAME  REPO  BRANCH  STATE  AGE  LAST
+  b     app   main    done   0s   Done: again
+  a     app   main    done   2s   The background work is done, 0 still running.
+-- end of shell --
+$

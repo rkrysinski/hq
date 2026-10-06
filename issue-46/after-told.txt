@@ -1,0 +1,13 @@
+instructions of hq mcp (the line on notifications):
+  - The user is not notified when work you sent finishes or asks a question: the end of a turn whose prompts all
+ came from you (new with a prompt, send) raises no desktop notification, whether or not you are waiting, because
+ its result is for you. So wait for the agents you gave work to, read their replies and tell the user what matte
+rs. A turn the user prompted themselves, or sent a message into, still notifies them.
+description of new (the sentence on notifications):
+  The user is not notified when the work you gave it with prompt finishes or asks a question, so wait for it and
+ tell them..
+description of send (the sentence on notifications):
+  The user is not notified when a turn your message started finishes or asks a question, so wait for it and tell
+ them.
+-- end of told --
+$

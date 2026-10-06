@@ -1,0 +1,18 @@
+supervisor new(name="a", dir="~/app", prompt="hello")
+  creating a sandbox for app (first time only; log in to Claude when the session asks)
+  started a in app (sandbox claude-app); enter it with: hq go a
+  -> a is done: 'Done: hello'
+  desktop notifications sent: none
+supervisor send(name="a", text="one more thing")
+  delivered: typed into a as its next prompt
+  -> a is done: 'Done: one more thing'
+  desktop notifications sent: none
+supervisor send(name="a", text="a question for you")
+  delivered: typed into a as its next prompt
+  -> a is question: 'Shall I go on?'
+  desktop notifications sent: none
+user $ hq ls
+  NAME  REPO  BRANCH  STATE     AGE  LAST
+  a     app   main    question  0s   Shall I go on?
+-- end of done --
+$

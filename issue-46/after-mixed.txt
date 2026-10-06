@@ -1,0 +1,19 @@
+user types at a: 'slow job'
+  -> a is working: 'Done: this needs input'
+supervisor send(name="a", text="check the logs")
+  queued: a is working, delivered when it stops
+user types at a: 'go on'
+  -> a is done: 'Answered: Message from the user (hq send): check the logs'
+  desktop notification sent: Done: main  (agent a)
+
+supervisor send(name="a", text="slow work")
+  delivered: typed into a as its next prompt
+  -> a is working: 'Answered: Message from the user (hq send): check the logs'
+user types at a: 'go on'
+  -> a is done: 'Done: slow work'
+  desktop notifications sent: none
+user types at a: 'and thanks'
+  -> a is done: 'Done: and thanks'
+  desktop notification sent: Done: main  (agent a)
+-- end of mixed --
+$

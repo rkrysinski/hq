@@ -1,0 +1,30 @@
+  hq  2 agents · 1 need you · 1 done  view: attention                                                Tue 15:11
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ a       app         main          ● question     5s    Shall I go on?              ⏎ open   c code   k kill  │
+  nothing else needs you · 1 more agent hidden · press a to show all
+
+
+
+
+
+─┬ ▸ a · main · claude-app
+ │────────────────────────────────────────                                                                    │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                             │
+ │wake                                                                                                        │
+ │● Agent "Background work" completed                                                                         │
+ │● The background work is done, 0 still running.                                                             │
+ │────────────────────────────────────────                                                                    │
+ │❯                                                                                                           │
+ │────────────────────────────────────────                                                                    │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                             │
+ │^[[200~a question for you^[[201~                                                                            │
+ │❯ a question for you                                                                                        │
+ │● Shall I go on?                                                                                            │
+ │────────────────────────────────────────                                                                    │
+ │❯                                                                                                           │
+ │────────────────────────────────────────                                                                    │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                             │
+ │                                                                                                            │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit

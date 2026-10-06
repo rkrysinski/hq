@@ -1,0 +1,10 @@
+supervisor send(name="a", text="a question for you")
+  delivered: typed into a as its next prompt
+  -> a is question: 'Shall I go on?'
+  desktop notifications sent: none
+user $ hq ls
+  NAME  REPO  BRANCH  STATE     AGE  LAST
+  a     app   main    question  0s   Shall I go on?
+  b     app   main    done      2s   Done: again
+-- end of ask --
+$
