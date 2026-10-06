@@ -1,642 +1,814 @@
---- +0s 13:15:10  notifications so far: 
+--- +0s 13:44:01  notifications so far: 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 esc       esc       esc       done      0s   -
 ask       ask       ask       working   0s   -
+escpair   escpair   escpair   working   0s   -
 together  together  together  working   0s   -
-many      many      many      working   0s   -
+many      many      many      working   1s   -
 one       one       one       working   1s   -
 shell     shell     -         starting  4s   -
 send      send      -         starting  4s   -
---- +1s 13:15:11  notifications so far: 
+--- +1s 13:44:02  notifications so far: 
+NAME      REPO      BRANCH    STATE    AGE  LAST
+shell     shell     shell     done     0s   -
+send      send      send      done     0s   -
+esc       esc       esc       working  0s   -
+ask       ask       ask       working  1s   -
+escpair   escpair   escpair   working  1s   -
+together  together  together  working  1s   -
+many      many      many      working  2s   -
+one       one       one       working  2s   -
+--- +2s 13:44:03  notifications so far: 
 NAME      REPO      BRANCH    STATE    AGE  LAST
 send      send      send      working  0s   -
 shell     shell     shell     working  0s   -
-esc       esc       esc       working  0s   -
-ask       ask       ask       working  1s   -
-together  together  together  working  1s   -
-many      many      many      working  1s   -
-one       one       one       working  2s   -
---- +2s 13:15:12  notifications so far: 
-NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      working  1s   -
-shell     shell     shell     working  1s   -
 esc       esc       esc       working  1s   -
 ask       ask       ask       working  2s   -
+escpair   escpair   escpair   working  2s   -
 together  together  together  working  2s   -
-many      many      many      working  2s   -
+many      many      many      working  3s   -
 one       one       one       working  3s   -
---- +3s 13:15:13  notifications so far: 
+--- +3s 13:44:04  notifications so far: 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      working  2s   -
+send      send      send      working  1s   -
 shell     shell     shell     working  2s   -
 esc       esc       esc       working  2s   -
 ask       ask       ask       working  3s   -
+escpair   escpair   escpair   working  3s   -
 together  together  together  working  3s   -
-many      many      many      working  3s   -
-one       one       one       working  4s   started
---- +4s 13:15:14  notifications so far: 
+many      many      many      working  4s   -
+one       one       one       working  4s   -
+--- +4s 13:44:05  notifications so far: 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      working  3s   -
+send      send      send      working  2s   -
 shell     shell     shell     working  3s   -
 esc       esc       esc       working  3s   -
 ask       ask       ask       working  4s   -
-together  together  together  working  4s   -
-many      many      many      working  4s   started
+escpair   escpair   escpair   working  4s   -
+together  together  together  working  4s   started
+many      many      many      working  5s   started
 one       one       one       working  5s   started
---- +5s 13:15:15  notifications so far: 
+--- +5s 13:44:06  notifications so far: Done: shell x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      working  4s   started
-shell     shell     shell     working  4s   -
+shell     shell     shell     done     0s   started
+send      send      send      working  3s   -
 esc       esc       esc       working  4s   -
 ask       ask       ask       working  5s   -
-together  together  together  working  5s   -
+escpair   escpair   escpair   working  5s   -
+together  together  together  working  5s   started
 many      many      many      working  6s   started
 one       one       one       working  6s   started
---- +6s 13:15:16  notifications so far: 
-NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      working  5s   started
-shell     shell     shell     working  5s   -
-esc       esc       esc       working  5s   -
-ask       ask       ask       working  6s   -
-together  together  together  working  6s   -
-many      many      many      working  7s   started
-one       one       one       working  7s   started
---- +7s 13:15:17  notifications so far: Done: shell x1; Question: ask x1; 
+--- +6s 13:44:07  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  0s   Started. Shall I also update the README?
-shell     shell     shell     done      0s   started
-send      send      send      working   6s   started
+shell     shell     shell     done      1s   started
+send      send      send      working   4s   started
+esc       esc       esc       working   5s   -
+escpair   escpair   escpair   working   6s   -
+together  together  together  working   6s   started
+many      many      many      working   7s   started
+one       one       one       working   7s   started
+--- +7s 13:44:08  notifications so far: Done: shell x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE     AGE  LAST
+ask       ask       ask       question  1s   Started. Shall I also update the README?
+shell     shell     shell     done      2s   started
+send      send      send      working   5s   started
 esc       esc       esc       working   6s   -
+escpair   escpair   escpair   working   7s   -
 together  together  together  working   7s   started
 many      many      many      working   8s   started
 one       one       one       working   8s   started
---- +8s 13:15:18  notifications so far: Done: shell x1; Question: ask x1; 
+--- +8s 13:44:09  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  1s   Started. Shall I also update the README?
-shell     shell     shell     done      1s   started
-send      send      send      working   7s   started
+ask       ask       ask       question  2s   Started. Shall I also update the README?
+shell     shell     shell     done      3s   started
+send      send      send      working   6s   started
 esc       esc       esc       working   7s   -
+escpair   escpair   escpair   working   8s   -
 together  together  together  working   8s   started
 many      many      many      working   9s   started
 one       one       one       working   9s   started
---- +9s 13:15:19  notifications so far: Done: shell x1; Question: ask x1; 
+--- +9s 13:44:10  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  2s   Started. Shall I also update the README?
-shell     shell     shell     done      2s   started
-send      send      send      working   8s   started
+ask       ask       ask       question  3s   Started. Shall I also update the README?
+shell     shell     shell     done      4s   started
+send      send      send      working   7s   started
 esc       esc       esc       working   8s   -
+escpair   escpair   escpair   working   9s   -
 together  together  together  working   9s   started
 many      many      many      working   10s  started
 one       one       one       working   10s  started
---- +10s 13:15:20  notifications so far: Done: shell x1; Question: ask x1; 
+--- +11s 13:44:12  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  3s   Started. Shall I also update the README?
-shell     shell     shell     done      3s   started
-send      send      send      working   9s   started
-esc       esc       esc       working   10s  -
+ask       ask       ask       question  4s   Started. Shall I also update the README?
+shell     shell     shell     done      5s   started
+send      send      send      working   8s   started
+esc       esc       esc       working   9s   -
+escpair   escpair   escpair   working   10s  -
 together  together  together  working   10s  started
 many      many      many      working   11s  started
 one       one       one       working   11s  started
---- +11s 13:15:21  notifications so far: Done: shell x1; Question: ask x1; 
+--- +12s 13:44:13  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  4s   Started. Shall I also update the README?
-shell     shell     shell     done      4s   started
-send      send      send      working   10s  started
-esc       esc       esc       working   11s  -
+ask       ask       ask       question  5s   Started. Shall I also update the README?
+shell     shell     shell     done      6s   started
+send      send      send      working   9s   started
+esc       esc       esc       working   10s  -
+escpair   escpair   escpair   working   11s  -
 together  together  together  working   11s  started
 many      many      many      working   12s  started
 one       one       one       working   12s  started
---- +12s 13:15:22  notifications so far: Done: shell x1; Question: ask x1; 
+--- +13s 13:44:14  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  5s   Started. Shall I also update the README?
-shell     shell     shell     done      5s   started
+ask       ask       ask       question  6s   Started. Shall I also update the README?
+shell     shell     shell     done      7s   started
 send      send      send      working   11s  started
-esc       esc       esc       working   12s  -
+esc       esc       esc       working   11s  -
+escpair   escpair   escpair   working   12s  -
 together  together  together  working   12s  started
 many      many      many      working   13s  started
 one       one       one       working   13s  started
---- +13s 13:15:23  notifications so far: Done: shell x1; Question: ask x1; 
+--- +14s 13:44:15  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  6s   Started. Shall I also update the README?
-shell     shell     shell     done      6s   started
+ask       ask       ask       question  7s   Started. Shall I also update the README?
+shell     shell     shell     done      8s   started
 send      send      send      working   12s  started
-esc       esc       esc       working   13s  -
+esc       esc       esc       working   12s  -
+escpair   escpair   escpair   working   13s  -
 together  together  together  working   13s  started
 many      many      many      working   14s  started
 one       one       one       working   14s  started
---- +14s 13:15:24  notifications so far: Done: shell x1; Question: ask x1; 
+--- +15s 13:44:16  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  7s   Started. Shall I also update the README?
-shell     shell     shell     done      7s   started
+ask       ask       ask       question  8s   Started. Shall I also update the README?
+shell     shell     shell     done      9s   started
 send      send      send      working   13s  started
-esc       esc       esc       working   14s  -
+esc       esc       esc       working   13s  -
+escpair   escpair   escpair   working   14s  -
 together  together  together  working   14s  started
 many      many      many      working   15s  started
 one       one       one       working   15s  started
---- +15s 13:15:25  notifications so far: Done: shell x1; Question: ask x1; 
+--- +16s 13:44:17  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  8s   Started. Shall I also update the README?
-shell     shell     shell     done      8s   started
+ask       ask       ask       question  9s   Started. Shall I also update the README?
+shell     shell     shell     done      10s  started
 send      send      send      working   14s  started
 esc       esc       esc       working   15s  -
+escpair   escpair   escpair   working   15s  -
 together  together  together  working   15s  started
 many      many      many      working   16s  started
 one       one       one       working   16s  started
---- +16s 13:15:26  notifications so far: Done: shell x1; Question: ask x1; 
-NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  9s   Started. Shall I also update the README?
-shell     shell     shell     done      9s   started
-send      send      send      working   15s  started
-esc       esc       esc       working   16s  -
-together  together  together  working   16s  started
-many      many      many      working   17s  started
-one       one       one       working   17s  started
---- +19s 13:15:29  notifications so far: Done: shell x1; Question: ask x1; 
-NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  12s  Started. Shall I also update the README?
-shell     shell     shell     done      12s  started
-send      send      send      working   18s  started
-esc       esc       esc       working   18s  -
-together  together  together  working   19s  started
-many      many      many      working   20s  started
-one       one       one       working   20s  started
---- +20s 13:15:30  notifications so far: Done: shell x1; Question: ask x1; 
+--- +19s 13:44:20  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  13s  Started. Shall I also update the README?
 shell     shell     shell     done      13s  started
-send      send      send      working   19s  started
-esc       esc       esc       working   19s  -
-together  together  together  working   20s  started
-many      many      many      working   21s  started
-one       one       one       working   21s  started
---- +21s 13:15:31  notifications so far: Done: shell x1; Question: ask x1; 
+send      send      send      working   17s  started
+esc       esc       esc       working   18s  -
+escpair   escpair   escpair   working   18s  -
+together  together  together  working   19s  started
+many      many      many      working   19s  started
+one       one       one       working   20s  started
+--- +20s 13:44:21  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  14s  Started. Shall I also update the README?
 shell     shell     shell     done      14s  started
-send      send      send      working   20s  started
-esc       esc       esc       working   20s  -
-together  together  together  working   21s  started
-many      many      many      working   22s  started
-one       one       one       working   22s  started
---- +22s 13:15:32  notifications so far: Done: shell x1; Question: ask x1; 
+send      send      send      working   18s  started
+esc       esc       esc       working   19s  -
+escpair   escpair   escpair   working   19s  -
+together  together  together  working   20s  started
+many      many      many      working   20s  started
+one       one       one       working   21s  started
+--- +21s 13:44:22  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  15s  Started. Shall I also update the README?
 shell     shell     shell     done      15s  started
-send      send      send      working   21s  started
+send      send      send      working   19s  started
+esc       esc       esc       working   20s  -
+escpair   escpair   escpair   working   20s  -
+together  together  together  working   21s  started
+many      many      many      working   21s  started
+one       one       one       working   22s  started
+--- +22s 13:44:23  notifications so far: Done: shell x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE     AGE  LAST
+ask       ask       ask       question  16s  Started. Shall I also update the README?
+shell     shell     shell     done      16s  started
+send      send      send      working   20s  started
 esc       esc       esc       working   21s  -
+escpair   escpair   escpair   working   21s  -
 together  together  together  working   22s  started
-many      many      many      working   23s  started
+many      many      many      working   22s  started
 one       one       one       working   23s  started
 Esc sent to one at +22s
---- +25s 13:15:35  notifications so far: Done: shell x1; Question: ask x1; 
+--- +25s 13:44:26  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  19s  Started. Shall I also update the README?
-shell     shell     shell     done      19s  started
-send      send      send      working   25s  started
-esc       esc       esc       working   25s  -
-together  together  together  working   26s  started
-many      many      many      working   26s  started
-one       one       one       working   27s  started
-hq send at +25s
---- +27s 13:15:37  notifications so far: Done: shell x1; Question: ask x1; 
-NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  20s  Started. Shall I also update the README?
 shell     shell     shell     done      20s  started
+send      send      send      working   23s  started
+esc       esc       esc       working   24s  -
+escpair   escpair   escpair   working   25s  -
+together  together  together  working   25s  started
+many      many      many      working   26s  started
+one       one       one       working   26s  started
+hq send at +25s
+Esc sent to escpair (turn at work) at +25s
+--- +27s 13:44:28  notifications so far: Done: shell x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE     AGE  LAST
+ask       ask       ask       question  21s  Started. Shall I also update the README?
+escpair   escpair   escpair   done      0s   Interrupted
+shell     shell     shell     done      21s  started
 send      send      send      working   1s   started
 esc       esc       esc       working   26s  -
 together  together  together  working   27s  started
-many      many      many      working   28s  The `./wait.sh 20` agent finished.
-one       one       one       working   28s  started
+many      many      many      working   27s  The `./wait.sh 20` agent finished.
+one       one       one       working   27s  started
 Esc sent to esc (turn at work) at +27s
---- +29s 13:15:39  notifications so far: Done: shell x1; Question: ask x1; 
-NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  22s  Started. Shall I also update the README?
-esc       esc       esc       done      1s   Interrupted
-shell     shell     shell     done      22s  started
-send      send      send      working   3s   pong
-together  together  together  working   29s  started
-many      many      many      working   30s  The `./wait.sh 20` agent finished.
-one       one       one       working   30s  started
---- +30s 13:15:40  notifications so far: Done: shell x1; Question: ask x1; 
+--- +29s 13:44:30  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  23s  Started. Shall I also update the README?
-esc       esc       esc       done      2s   Interrupted
+esc       esc       esc       done      1s   Interrupted
+escpair   escpair   escpair   done      2s   Interrupted
 shell     shell     shell     done      23s  started
-send      send      send      working   4s   pong
-together  together  together  working   30s  started
-many      many      many      working   31s  The `./wait.sh 20` agent finished.
-one       one       one       working   31s  started
---- +31s 13:15:41  notifications so far: Done: shell x1; Question: ask x1; 
+send      send      send      working   3s   pong
+together  together  together  working   29s  started
+many      many      many      working   29s  The `./wait.sh 20` agent finished.
+one       one       one       working   30s  started
+--- +30s 13:44:31  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  24s  Started. Shall I also update the README?
-esc       esc       esc       done      3s   Interrupted
+esc       esc       esc       done      2s   Interrupted
+escpair   escpair   escpair   done      4s   Interrupted
 shell     shell     shell     done      24s  started
-send      send      send      working   5s   pong
-together  together  together  working   31s  started
-many      many      many      working   32s  The `./wait.sh 20` agent finished.
-one       one       one       working   32s  started
---- +32s 13:15:42  notifications so far: Done: shell x1; Question: ask x1; 
+send      send      send      working   4s   pong
+together  together  together  working   30s  started
+many      many      many      working   30s  The `./wait.sh 20` agent finished.
+one       one       one       working   31s  started
+--- +31s 13:44:32  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  25s  Started. Shall I also update the README?
-esc       esc       esc       done      4s   Interrupted
+esc       esc       esc       done      3s   Interrupted
+escpair   escpair   escpair   done      5s   Interrupted
 shell     shell     shell     done      25s  started
-send      send      send      working   6s   pong
-together  together  together  working   32s  started
-many      many      many      working   33s  The `./wait.sh 20` agent finished.
-one       one       one       working   33s  started
---- +33s 13:15:43  notifications so far: Done: shell x1; Question: ask x1; 
+send      send      send      working   5s   pong
+together  together  together  working   31s  started
+many      many      many      working   31s  The `./wait.sh 20` agent finished.
+one       one       one       working   32s  started
+--- +32s 13:44:33  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  26s  Started. Shall I also update the README?
 esc       esc       esc       done      5s   Interrupted
+escpair   escpair   escpair   done      6s   Interrupted
 shell     shell     shell     done      26s  started
-send      send      send      working   7s   pong
-together  together  together  working   33s  started
-many      many      many      working   34s  The `./wait.sh 20` agent finished.
-one       one       one       working   34s  started
---- +34s 13:15:44  notifications so far: Done: shell x1; Question: ask x1; 
+send      send      send      working   6s   pong
+together  together  together  working   32s  started
+many      many      many      working   32s  The `./wait.sh 20` agent finished.
+one       one       one       working   33s  started
+--- +33s 13:44:34  notifications so far: Done: shell x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  27s  Started. Shall I also update the README?
-esc       esc       esc       done      7s   Interrupted
+esc       esc       esc       done      6s   Interrupted
+escpair   escpair   escpair   done      7s   Interrupted
 shell     shell     shell     done      27s  started
-send      send      send      working   8s   pong
-together  together  together  working   34s  started
-many      many      many      working   35s  The `./wait.sh 20` agent finished.
-one       one       one       working   35s  started
---- +35s 13:15:45  notifications so far: Done: shell x1; Question: ask x1; 
+send      send      send      working   7s   pong
+together  together  together  working   33s  One of the three subagents (the second) has finished its wa…
+many      many      many      working   33s  The `./wait.sh 20` agent finished.
+one       one       one       working   34s  started
+--- +34s 13:44:35  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  28s  Started. Shall I also update the README?
-esc       esc       esc       done      8s   Interrupted
+together  together  together  done      0s   The other two subagents have finished as well, so all three…
+esc       esc       esc       done      7s   Interrupted
+escpair   escpair   escpair   done      8s   Interrupted
 shell     shell     shell     done      28s  started
-send      send      send      working   9s   pong
-together  together  together  working   35s  started
-many      many      many      working   36s  The `./wait.sh 20` agent finished.
-one       one       one       working   36s  started
---- +36s 13:15:46  notifications so far: Done: shell x1; Question: ask x1; 
+send      send      send      working   8s   pong
+many      many      many      working   34s  The `./wait.sh 20` agent finished.
+one       one       one       working   35s  started
+--- +35s 13:44:36  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  29s  Started. Shall I also update the README?
-esc       esc       esc       done      9s   Interrupted
-shell     shell     shell     done      29s  started
-send      send      send      working   10s  pong
-together  together  together  working   36s  The first subagent finished and replied "done".
-many      many      many      working   37s  The `./wait.sh 20` agent finished.
-one       one       one       working   37s  started
---- +39s 13:15:49  notifications so far: Done: shell x1; Question: ask x1; 
+together  together  together  done      1s   The other two subagents have finished as well, so all three…
+esc       esc       esc       done      8s   Interrupted
+escpair   escpair   escpair   done      9s   Interrupted
+shell     shell     shell     done      30s  started
+send      send      send      working   9s   pong
+many      many      many      working   35s  The `./wait.sh 20` agent finished.
+one       one       one       working   36s  started
+--- +36s 13:44:37  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  32s  Started. Shall I also update the README?
-esc       esc       esc       done      12s  Interrupted
-shell     shell     shell     done      32s  started
-send      send      send      working   13s  pong
-together  together  together  working   40s  The first subagent finished and replied "done".
-many      many      many      working   40s  The `./wait.sh 20` agent finished.
-one       one       one       working   40s  started
---- +40s 13:15:50  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
+ask       ask       ask       question  30s  Started. Shall I also update the README?
+together  together  together  done      2s   The other two subagents have finished as well, so all three…
+esc       esc       esc       done      9s   Interrupted
+escpair   escpair   escpair   done      10s  Interrupted
+shell     shell     shell     done      31s  started
+send      send      send      working   10s  pong
+many      many      many      working   36s  The `./wait.sh 20` agent finished.
+one       one       one       working   37s  started
+--- +39s 13:44:40  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  33s  Started. Shall I also update the README?
-together  together  together  done      0s   The second subagent finished and replied "done". The third …
-esc       esc       esc       done      13s  Interrupted
+together  together  together  done      5s   The other two subagents have finished as well, so all three…
+esc       esc       esc       done      11s  Interrupted
 shell     shell     shell     done      33s  started
-send      send      send      working   14s  pong
-many      many      many      working   41s  The `./wait.sh 20` agent finished.
-one       one       one       working   41s  started
---- +41s 13:15:51  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
+escpair   escpair   escpair   working   1s   noted
+send      send      send      working   13s  pong
+many      many      many      working   39s  The `./wait.sh 20` agent finished.
+one       one       one       working   39s  started
+--- +40s 13:44:41  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  34s  Started. Shall I also update the README?
-together  together  together  done      1s   The second subagent finished and replied "done". The third …
-esc       esc       esc       done      14s  Interrupted
+together  together  together  done      6s   The other two subagents have finished as well, so all three…
+esc       esc       esc       done      12s  Interrupted
 shell     shell     shell     done      34s  started
-send      send      send      working   15s  pong
-many      many      many      working   42s  The `./wait.sh 20` agent finished.
-one       one       one       working   42s  started
---- +42s 13:15:52  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
+escpair   escpair   escpair   working   2s   noted
+send      send      send      working   14s  pong
+many      many      many      working   40s  The `./wait.sh 20` agent finished.
+one       one       one       working   41s  started
+--- +41s 13:44:42  notifications so far: Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  35s  Started. Shall I also update the README?
-together  together  together  done      2s   The second subagent finished and replied "done". The third …
-esc       esc       esc       done      15s  Interrupted
+escpair   escpair   escpair   done      0s   noted
+together  together  together  done      7s   The other two subagents have finished as well, so all three…
+esc       esc       esc       done      13s  Interrupted
+shell     shell     shell     done      35s  started
+send      send      send      working   15s  pong
+many      many      many      working   41s  The `./wait.sh 20` agent finished.
+one       one       one       working   42s  started
+--- +42s 13:44:43  notifications so far: Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE     AGE  LAST
+ask       ask       ask       question  36s  Started. Shall I also update the README?
+escpair   escpair   escpair   done      1s   noted
+together  together  together  done      8s   The other two subagents have finished as well, so all three…
+esc       esc       esc       done      14s  Interrupted
 shell     shell     shell     done      36s  started
 send      send      send      working   16s  pong
-many      many      many      working   43s  The `./wait.sh 20` agent finished.
+many      many      many      working   42s  The `./wait.sh 20` agent finished.
 one       one       one       working   43s  started
---- +43s 13:15:54  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
+--- +43s 13:44:44  notifications so far: Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  37s  Started. Shall I also update the README?
-together  together  together  done      3s   The second subagent finished and replied "done". The third …
+escpair   escpair   escpair   done      2s   noted
+together  together  together  done      9s   The other two subagents have finished as well, so all three…
 esc       esc       esc       done      16s  Interrupted
 shell     shell     shell     done      37s  started
 send      send      send      working   17s  pong
-many      many      many      working   44s  The `./wait.sh 20` agent finished.
-one       one       one       working   45s  started
---- +45s 13:15:55  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
+many      many      many      working   43s  The `./wait.sh 20` agent finished.
+one       one       one       working   44s  started
+--- +44s 13:44:45  notifications so far: Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  38s  Started. Shall I also update the README?
-together  together  together  done      5s   The second subagent finished and replied "done". The third …
+escpair   escpair   escpair   done      4s   noted
+together  together  together  done      10s  The other two subagents have finished as well, so all three…
 esc       esc       esc       done      17s  Interrupted
 shell     shell     shell     done      38s  started
 send      send      send      working   18s  pong
-many      many      many      working   45s  The `./wait.sh 20` agent finished.
-one       one       one       working   46s  started
---- +46s 13:15:56  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
+many      many      many      working   44s  The `./wait.sh 20` agent finished.
+one       one       one       working   45s  started
+--- +45s 13:44:46  notifications so far: Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  39s  Started. Shall I also update the README?
-together  together  together  done      6s   The second subagent finished and replied "done". The third …
+escpair   escpair   escpair   done      5s   noted
+together  together  together  done      11s  The other two subagents have finished as well, so all three…
 esc       esc       esc       done      18s  Interrupted
 shell     shell     shell     done      39s  started
 send      send      send      working   19s  pong
-many      many      many      working   46s  The `./wait.sh 20` agent finished.
-one       one       one       working   47s  started
---- +47s 13:15:57  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
+many      many      many      working   45s  The `./wait.sh 20` agent finished.
+one       one       one       working   46s  started
+--- +46s 13:44:47  notifications so far: Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  40s  Started. Shall I also update the README?
-together  together  together  done      7s   The second subagent finished and replied "done". The third …
+escpair   escpair   escpair   done      6s   noted
+together  together  together  done      12s  The other two subagents have finished as well, so all three…
 esc       esc       esc       done      19s  Interrupted
-shell     shell     shell     done      40s  started
+shell     shell     shell     done      41s  started
 send      send      send      working   20s  pong
-many      many      many      working   47s  The `./wait.sh 20` agent finished.
-one       one       one       working   48s  started
---- +48s 13:15:58  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
+many      many      many      working   46s  The `./wait.sh 20` agent finished.
+one       one       one       working   47s  started
+--- +47s 13:44:48  notifications so far: Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE     AGE  LAST
 ask       ask       ask       question  41s  Started. Shall I also update the README?
-together  together  together  done      8s   The second subagent finished and replied "done". The third …
+escpair   escpair   escpair   done      7s   noted
+together  together  together  done      13s  The other two subagents have finished as well, so all three…
 esc       esc       esc       done      20s  Interrupted
-shell     shell     shell     done      41s  started
-send      send      send      working   21s  pong
-many      many      many      working   48s  The `./wait.sh 20` agent finished.
-one       one       one       working   49s  started
---- +49s 13:15:59  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
-NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  42s  Started. Shall I also update the README?
-together  together  together  done      9s   The second subagent finished and replied "done". The third …
-esc       esc       esc       done      21s  Interrupted
 shell     shell     shell     done      42s  started
-send      send      send      working   22s  pong
-many      many      many      working   49s  The `./wait.sh 20` agent finished.
-one       one       one       working   50s  started
---- +50s 13:16:00  notifications so far: Done: shell x1; Done: together x1; Question: ask x1; 
-NAME      REPO      BRANCH    STATE     AGE  LAST
-ask       ask       ask       question  43s  Started. Shall I also update the README?
-together  together  together  done      10s  The second subagent finished and replied "done". The third …
-esc       esc       esc       done      22s  Interrupted
-shell     shell     shell     done      43s  started
-send      send      send      working   23s  pong
-many      many      many      working   51s  The `./wait.sh 20` agent finished.
-one       one       one       working   51s  started
---- +51s 13:16:01  notifications so far: Done: one x1; Done: shell x1; Done: together x1; Question: ask x1; 
+send      send      send      working   21s  pong
+many      many      many      working   47s  The `./wait.sh 20` agent finished.
+one       one       one       working   48s  started
+--- +48s 13:44:49  notifications so far: Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-one       one       one       done     0s   The background subagent finished and reported "done" after …
-together  together  together  done     11s  The second subagent finished and replied "done". The third …
-esc       esc       esc       done     23s  Interrupted
-shell     shell     shell     done     44s  started
+escpair   escpair   escpair   done     8s   noted
+together  together  together  done     14s  The other two subagents have finished as well, so all three…
+esc       esc       esc       done     21s  Interrupted
+shell     shell     shell     done     43s  started
 ask       ask       ask       working  0s   Started. Shall I also update the README?
-send      send      send      working  24s  pong
-many      many      many      working  52s  The `./wait.sh 20` agent finished.
---- +52s 13:16:02  notifications so far: Done: one x1; Done: shell x1; Done: together x1; Question: ask x1; 
+send      send      send      working  22s  pong
+many      many      many      working  48s  The `./wait.sh 20` agent finished.
+one       one       one       working  49s  started
+--- +49s 13:44:50  notifications so far: Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-one       one       one       done     1s   The background subagent finished and reported "done" after …
-together  together  together  done     12s  The second subagent finished and replied "done". The third …
-esc       esc       esc       done     24s  Interrupted
-shell     shell     shell     done     45s  started
+escpair   escpair   escpair   done     9s   noted
+together  together  together  done     15s  The other two subagents have finished as well, so all three…
+esc       esc       esc       done     22s  Interrupted
+shell     shell     shell     done     44s  started
 ask       ask       ask       working  1s   Started. Shall I also update the README?
-send      send      send      working  26s  pong
-many      many      many      working  53s  The `./wait.sh 20` agent finished.
---- +53s 13:16:03  notifications so far: Done: one x1; Done: shell x1; Done: together x1; Question: ask x1; 
+send      send      send      working  23s  pong
+many      many      many      working  49s  The `./wait.sh 20` agent finished.
+one       one       one       working  50s  started
+--- +50s 13:44:51  notifications so far: Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-one       one       one       done     2s   The background subagent finished and reported "done" after …
-together  together  together  done     13s  The second subagent finished and replied "done". The third …
-esc       esc       esc       done     25s  Interrupted
+ask       ask       ask       done     0s   The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     10s  noted
+together  together  together  done     16s  The other two subagents have finished as well, so all three…
+esc       esc       esc       done     23s  Interrupted
+shell     shell     shell     done     45s  started
+send      send      send      working  24s  pong
+many      many      many      working  50s  The `./wait.sh 20` agent finished.
+one       one       one       working  51s  started
+--- +51s 13:44:52  notifications so far: Done: ask x1; Done: escpair x1; Done: shell x1; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE    AGE  LAST
+ask       ask       ask       done     1s   The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     11s  noted
+together  together  together  done     17s  The other two subagents have finished as well, so all three…
+esc       esc       esc       done     24s  Interrupted
 shell     shell     shell     done     46s  started
-ask       ask       ask       working  2s   Started. Shall I also update the README?
+send      send      send      working  25s  pong
+many      many      many      working  52s  The `./wait.sh 45` agent finished.
+one       one       one       working  52s  started
+--- +52s 13:44:53  notifications so far: Done: ask x1; Done: escpair x1; Done: one x1; Done: shell x1; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE    AGE  LAST
+one       one       one       done     0s   The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     2s   The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     12s  noted
+together  together  together  done     18s  The other two subagents have finished as well, so all three…
+esc       esc       esc       done     25s  Interrupted
+shell     shell     shell     done     47s  started
+send      send      send      working  26s  pong
+many      many      many      working  53s  The `./wait.sh 45` agent finished.
+--- +53s 13:44:54  notifications so far: Done: ask x1; Done: escpair x1; Done: one x1; Done: shell x1; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE    AGE  LAST
+one       one       one       done     1s   The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     3s   The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     13s  noted
+together  together  together  done     19s  The other two subagents have finished as well, so all three…
+esc       esc       esc       done     26s  Interrupted
+shell     shell     shell     done     48s  started
 send      send      send      working  27s  pong
 many      many      many      working  54s  The `./wait.sh 45` agent finished.
---- +54s 13:16:04  notifications so far: Done: ask x1; Done: one x1; Done: shell x1; Done: together x1; Question: ask x1; 
+--- +54s 13:44:55  notifications so far: Done: ask x1; Done: escpair x1; Done: one x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-ask       ask       ask       done     0s   The background agent finished and reported "done". I haven'…
-one       one       one       done     3s   The background subagent finished and reported "done" after …
-together  together  together  done     14s  The second subagent finished and replied "done". The third …
-esc       esc       esc       done     26s  Interrupted
-shell     shell     shell     done     47s  started
+one       one       one       done     2s   The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     4s   The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     14s  noted
+together  together  together  done     20s  The other two subagents have finished as well, so all three…
+esc       esc       esc       done     27s  Interrupted
+shell     shell     shell     working  0s   started
 send      send      send      working  28s  pong
 many      many      many      working  55s  The `./wait.sh 45` agent finished.
---- +55s 13:16:05  notifications so far: Done: ask x1; Done: one x1; Done: shell x1; Done: together x1; Question: ask x1; 
+--- +55s 13:44:56  notifications so far: Done: ask x1; Done: escpair x1; Done: one x1; Done: shell x1; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-ask       ask       ask       done     1s   The background agent finished and reported "done". I haven'…
-one       one       one       done     4s   The background subagent finished and reported "done" after …
-together  together  together  done     15s  The second subagent finished and replied "done". The third …
-shell     shell     shell     working  0s   started
-send      send      send      working  29s  pong
-esc       esc       esc       working  55s  -
-many      many      many      working  56s  The `./wait.sh 45` agent finished.
---- +56s 13:16:06  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x1; Done: together x1; Question: ask x1; 
-NAME      REPO      BRANCH    STATE    AGE  LAST
-esc       esc       esc       done     0s   The background subagent finished and replied "done" after r…
-ask       ask       ask       done     2s   The background agent finished and reported "done". I haven'…
-one       one       one       done     5s   The background subagent finished and reported "done" after …
-together  together  together  done     16s  The second subagent finished and replied "done". The third …
+one       one       one       done     3s   The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     5s   The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     15s  noted
+together  together  together  done     21s  The other two subagents have finished as well, so all three…
+esc       esc       esc       done     28s  Interrupted
 shell     shell     shell     working  1s   started
+send      send      send      working  29s  pong
+many      many      many      working  56s  The `./wait.sh 45` agent finished.
+--- +56s 13:44:57  notifications so far: Done: ask x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE    AGE  LAST
+shell     shell     shell     done     0s   The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     4s   The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     6s   The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     16s  noted
+together  together  together  done     22s  The other two subagents have finished as well, so all three…
+esc       esc       esc       done     29s  Interrupted
 send      send      send      working  30s  pong
 many      many      many      working  57s  The `./wait.sh 45` agent finished.
---- +57s 13:16:07  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +57s 13:44:58  notifications so far: Done: ask x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-shell     shell     shell     done     0s   The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     1s   The background subagent finished and replied "done" after r…
-ask       ask       ask       done     3s   The background agent finished and reported "done". I haven'…
-one       one       one       done     6s   The background subagent finished and reported "done" after …
-together  together  together  done     17s  The second subagent finished and replied "done". The third …
+shell     shell     shell     done     1s   The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     5s   The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     7s   The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     17s  noted
+together  together  together  done     23s  The other two subagents have finished as well, so all three…
+esc       esc       esc       done     30s  Interrupted
 send      send      send      working  31s  pong
 many      many      many      working  58s  The `./wait.sh 45` agent finished.
---- +58s 13:16:08  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +58s 13:44:59  notifications so far: Done: ask x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-shell     shell     shell     done     1s   The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     2s   The background subagent finished and replied "done" after r…
-ask       ask       ask       done     4s   The background agent finished and reported "done". I haven'…
-one       one       one       done     7s   The background subagent finished and reported "done" after …
-together  together  together  done     18s  The second subagent finished and replied "done". The third …
+shell     shell     shell     done     2s   The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     6s   The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     8s   The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     18s  noted
+together  together  together  done     24s  The other two subagents have finished as well, so all three…
+esc       esc       esc       working  0s   -
 send      send      send      working  32s  pong
 many      many      many      working  59s  The `./wait.sh 45` agent finished.
---- +59s 13:16:09  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +59s 13:45:00  notifications so far: Done: ask x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-shell     shell     shell     done     2s   The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     3s   The background subagent finished and replied "done" after r…
-ask       ask       ask       done     5s   The background agent finished and reported "done". I haven'…
-one       one       one       done     9s   The background subagent finished and reported "done" after …
-together  together  together  done     19s  The second subagent finished and replied "done". The third …
+shell     shell     shell     done     3s   The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     7s   The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     9s   The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     19s  noted
+together  together  together  done     25s  The other two subagents have finished as well, so all three…
+esc       esc       esc       working  1s   -
 send      send      send      working  33s  pong
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +60s 13:16:10  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +60s 13:45:01  notifications so far: Done: ask x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-shell     shell     shell     done     3s   The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     4s   The background subagent finished and replied "done" after r…
-ask       ask       ask       done     6s   The background agent finished and reported "done". I haven'…
-one       one       one       done     10s  The background subagent finished and reported "done" after …
-together  together  together  done     20s  The second subagent finished and replied "done". The third …
+shell     shell     shell     done     5s   The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     8s   The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     10s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     20s  noted
+together  together  together  done     26s  The other two subagents have finished as well, so all three…
+esc       esc       esc       working  2s   -
 send      send      send      working  34s  pong
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +61s 13:16:11  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +62s 13:45:03  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-shell     shell     shell     done     4s   The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     5s   The background subagent finished and replied "done" after r…
-ask       ask       ask       done     8s   The background agent finished and reported "done". I haven'…
-one       one       one       done     11s  The background subagent finished and reported "done" after …
-together  together  together  done     21s  The second subagent finished and replied "done". The third …
+esc       esc       esc       done     0s   The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     6s   The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     9s   The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     11s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     21s  noted
+together  together  together  done     28s  The other two subagents have finished as well, so all three…
 send      send      send      working  35s  pong
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +63s 13:16:13  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +63s 13:45:04  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-shell     shell     shell     done     5s   The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     6s   The background subagent finished and replied "done" after r…
-ask       ask       ask       done     9s   The background agent finished and reported "done". I haven'…
-one       one       one       done     12s  The background subagent finished and reported "done" after …
-together  together  together  done     23s  The second subagent finished and replied "done". The third …
-send      send      send      working  36s  pong
-many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +64s 13:16:14  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
-NAME      REPO      BRANCH    STATE    AGE  LAST
-shell     shell     shell     done     6s   The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     8s   The background subagent finished and replied "done" after r…
-ask       ask       ask       done     10s  The background agent finished and reported "done". I haven'…
-one       one       one       done     13s  The background subagent finished and reported "done" after …
-together  together  together  done     24s  The second subagent finished and replied "done". The third …
+esc       esc       esc       done     2s   The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     7s   The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     11s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     13s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     23s  noted
+together  together  together  done     29s  The other two subagents have finished as well, so all three…
 send      send      send      working  37s  pong
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +65s 13:16:15  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +64s 13:45:05  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-shell     shell     shell     done     8s   The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     9s   The background subagent finished and replied "done" after r…
-ask       ask       ask       done     11s  The background agent finished and reported "done". I haven'…
-one       one       one       done     14s  The background subagent finished and reported "done" after …
-together  together  together  done     25s  The second subagent finished and replied "done". The third …
+esc       esc       esc       done     3s   The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     8s   The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     12s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     14s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     24s  noted
+together  together  together  done     30s  The other two subagents have finished as well, so all three…
+send      send      send      working  38s  pong
+many      many      many      working  1m   The `./wait.sh 45` agent finished.
+--- +65s 13:45:06  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE    AGE  LAST
+esc       esc       esc       done     4s   The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     9s   The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     13s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     15s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     25s  noted
+together  together  together  done     31s  The other two subagents have finished as well, so all three…
 send      send      send      working  39s  pong
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +66s 13:16:16  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +67s 13:45:08  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-shell     shell     shell     done     9s   The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     10s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done     12s  The background agent finished and reported "done". I haven'…
-one       one       one       done     16s  The background subagent finished and reported "done" after …
-together  together  together  done     26s  The second subagent finished and replied "done". The third …
+esc       esc       esc       done     5s   The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     11s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     14s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     16s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     26s  noted
+together  together  together  done     33s  The other two subagents have finished as well, so all three…
 send      send      send      working  40s  pong
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +67s 13:16:17  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +68s 13:45:09  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      done     0s   The background agent finished and reported "done" after run…
-shell     shell     shell     done     10s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     11s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done     14s  The background agent finished and reported "done". I haven'…
-one       one       one       done     17s  The background subagent finished and reported "done" after …
-together  together  together  done     27s  The second subagent finished and replied "done". The third …
+esc       esc       esc       done     7s   The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     12s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     16s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     18s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     28s  noted
+together  together  together  done     34s  The other two subagents have finished as well, so all three…
+send      send      send      working  42s  pong
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +69s 13:16:19  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +69s 13:45:10  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      done     1s   The background agent finished and reported "done" after run…
-shell     shell     shell     done     11s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     12s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done     15s  The background agent finished and reported "done". I haven'…
-one       one       one       done     18s  The background subagent finished and reported "done" after …
-together  together  together  done     29s  The second subagent finished and replied "done". The third …
+esc       esc       esc       done     8s   The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     13s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     17s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     19s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     29s  noted
+together  together  together  done     35s  The other two subagents have finished as well, so all three…
+send      send      send      working  43s  pong
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +70s 13:16:20  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +70s 13:45:11  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      done     2s   The background agent finished and reported "done" after run…
-shell     shell     shell     done     13s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     14s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done     16s  The background agent finished and reported "done". I haven'…
-one       one       one       done     19s  The background subagent finished and reported "done" after …
-together  together  together  done     30s  The second subagent finished and replied "done". The third …
+send      send      send      done     0s   The background subagent finished and reported "done".
+esc       esc       esc       done     9s   The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     15s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     18s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     20s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     30s  noted
+together  together  together  done     36s  The other two subagents have finished as well, so all three…
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +71s 13:16:21  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +72s 13:45:13  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      done     3s   The background agent finished and reported "done" after run…
-shell     shell     shell     done     14s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     15s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done     17s  The background agent finished and reported "done". I haven'…
-one       one       one       done     20s  The background subagent finished and reported "done" after …
-together  together  together  done     31s  The second subagent finished and replied "done". The third …
+send      send      send      done     1s   The background subagent finished and reported "done".
+esc       esc       esc       done     10s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     16s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     19s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     21s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     31s  noted
+together  together  together  done     38s  The other two subagents have finished as well, so all three…
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +72s 13:16:22  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +73s 13:45:14  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      done     4s   The background agent finished and reported "done" after run…
-shell     shell     shell     done     15s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     16s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done     18s  The background agent finished and reported "done". I haven'…
-one       one       one       done     22s  The background subagent finished and reported "done" after …
-together  together  together  done     32s  The second subagent finished and replied "done". The third …
+send      send      send      done     2s   The background subagent finished and reported "done".
+esc       esc       esc       done     12s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     17s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     21s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     22s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     32s  noted
+together  together  together  done     39s  The other two subagents have finished as well, so all three…
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +73s 13:16:23  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +74s 13:45:15  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      done     6s   The background agent finished and reported "done" after run…
-shell     shell     shell     done     16s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     17s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done     20s  The background agent finished and reported "done". I haven'…
-one       one       one       done     23s  The background subagent finished and reported "done" after …
-together  together  together  done     33s  The second subagent finished and replied "done". The third …
+send      send      send      done     4s   The background subagent finished and reported "done".
+esc       esc       esc       done     13s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     18s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     22s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     24s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     34s  noted
+together  together  together  done     40s  The other two subagents have finished as well, so all three…
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +75s 13:16:25  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +75s 13:45:16  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      done     7s   The background agent finished and reported "done" after run…
-shell     shell     shell     done     17s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     18s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done     21s  The background agent finished and reported "done". I haven'…
-one       one       one       done     24s  The background subagent finished and reported "done" after …
-together  together  together  done     35s  The second subagent finished and replied "done". The third …
+send      send      send      done     5s   The background subagent finished and reported "done".
+esc       esc       esc       done     14s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done     19s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done     23s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done     25s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done     35s  noted
+together  together  together  done     41s  The other two subagents have finished as well, so all three…
 many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +76s 13:16:26  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
-NAME      REPO      BRANCH    STATE    AGE  LAST
-send      send      send      done     8s   The background agent finished and reported "done" after run…
-shell     shell     shell     done     19s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done     20s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done     22s  The background agent finished and reported "done". I haven'…
-one       one       one       done     25s  The background subagent finished and reported "done" after …
-together  together  together  done     36s  The second subagent finished and replied "done". The third …
-many      many      many      working  1m   The `./wait.sh 45` agent finished.
---- +77s 13:16:27  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+--- +77s 13:45:18  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE  AGE  LAST
 many      many      many      done   0s   The `./wait.sh 70` agent finished, so all three are done.
-send      send      send      done   9s   The background agent finished and reported "done" after run…
-shell     shell     shell     done   20s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done   21s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done   23s  The background agent finished and reported "done". I haven'…
-one       one       one       done   26s  The background subagent finished and reported "done" after …
-together  together  together  done   37s  The second subagent finished and replied "done". The third …
---- +78s 13:16:28  notifications so far: Done: ask x1; Done: esc x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+send      send      send      done   6s   The background subagent finished and reported "done".
+esc       esc       esc       done   15s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   21s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   24s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   26s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   36s  noted
+together  together  together  done   43s  The other two subagents have finished as well, so all three…
+--- +78s 13:45:19  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE  AGE  LAST
 many      many      many      done   1s   The `./wait.sh 70` agent finished, so all three are done.
-send      send      send      done   10s  The background agent finished and reported "done" after run…
-shell     shell     shell     done   21s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done   22s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done   24s  The background agent finished and reported "done". I haven'…
-one       one       one       done   28s  The background subagent finished and reported "done" after …
-together  together  together  done   38s  The second subagent finished and replied "done". The third …
---- +79s 13:16:29  notifications so far: Done: ask x1; Done: esc x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+send      send      send      done   7s   The background subagent finished and reported "done".
+esc       esc       esc       done   17s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   22s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   26s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   27s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   37s  noted
+together  together  together  done   44s  The other two subagents have finished as well, so all three…
+--- +79s 13:45:20  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE  AGE  LAST
 many      many      many      done   2s   The `./wait.sh 70` agent finished, so all three are done.
-send      send      send      done   12s  The background agent finished and reported "done" after run…
-shell     shell     shell     done   22s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done   23s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done   26s  The background agent finished and reported "done". I haven'…
-one       one       one       done   29s  The background subagent finished and reported "done" after …
-together  together  together  done   39s  The second subagent finished and replied "done". The third …
---- +81s 13:16:31  notifications so far: Done: ask x1; Done: esc x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+send      send      send      done   9s   The background subagent finished and reported "done".
+esc       esc       esc       done   18s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   23s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   27s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   29s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   39s  noted
+together  together  together  done   45s  The other two subagents have finished as well, so all three…
+--- +80s 13:45:21  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE  AGE  LAST
-many      many      many      done   3s   The `./wait.sh 70` agent finished, so all three are done.
-send      send      send      done   13s  The background agent finished and reported "done" after run…
-shell     shell     shell     done   23s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done   24s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done   27s  The background agent finished and reported "done". I haven'…
-one       one       one       done   30s  The background subagent finished and reported "done" after …
-together  together  together  done   41s  The second subagent finished and replied "done". The third …
---- +82s 13:16:32  notifications so far: Done: ask x1; Done: esc x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+many      many      many      done   4s   The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   10s  The background subagent finished and reported "done".
+esc       esc       esc       done   19s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   24s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   28s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   30s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   40s  noted
+together  together  together  done   46s  The other two subagents have finished as well, so all three…
+--- +81s 13:45:22  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE  AGE  LAST
 many      many      many      done   5s   The `./wait.sh 70` agent finished, so all three are done.
-send      send      send      done   14s  The background agent finished and reported "done" after run…
-shell     shell     shell     done   25s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done   26s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done   28s  The background agent finished and reported "done". I haven'…
-one       one       one       done   31s  The background subagent finished and reported "done" after …
-together  together  together  done   42s  The second subagent finished and replied "done". The third …
---- end 13:16:36  notifications: Done: ask x1; Done: esc x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+send      send      send      done   11s  The background subagent finished and reported "done".
+esc       esc       esc       done   20s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   25s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   29s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   31s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   41s  noted
+together  together  together  done   47s  The other two subagents have finished as well, so all three…
+--- +83s 13:45:24  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   6s   The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   12s  The background subagent finished and reported "done".
+esc       esc       esc       done   21s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   27s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   30s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   32s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   42s  noted
+together  together  together  done   49s  The other two subagents have finished as well, so all three…
+--- +84s 13:45:25  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   7s   The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   13s  The background subagent finished and reported "done".
+esc       esc       esc       done   23s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   28s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   32s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   33s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   43s  noted
+together  together  together  done   50s  The other two subagents have finished as well, so all three…
+--- +85s 13:45:26  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
 NAME      REPO      BRANCH    STATE  AGE  LAST
 many      many      many      done   9s   The `./wait.sh 70` agent finished, so all three are done.
-send      send      send      done   18s  The background agent finished and reported "done" after run…
-shell     shell     shell     done   29s  The background `./wait.sh 50` command finished with exit co…
-esc       esc       esc       done   30s  The background subagent finished and replied "done" after r…
-ask       ask       ask       done   32s  The background agent finished and reported "done". I haven'…
-one       one       one       done   35s  The background subagent finished and reported "done" after …
-together  together  together  done   46s  The second subagent finished and replied "done". The third …
+send      send      send      done   15s  The background subagent finished and reported "done".
+esc       esc       esc       done   24s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   29s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   33s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   35s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   45s  noted
+together  together  together  done   51s  The other two subagents have finished as well, so all three…
+--- +86s 13:45:27  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   10s  The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   16s  The background subagent finished and reported "done".
+esc       esc       esc       done   25s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   30s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   34s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   36s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   46s  noted
+together  together  together  done   52s  The other two subagents have finished as well, so all three…
+--- +88s 13:45:29  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   11s  The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   17s  The background subagent finished and reported "done".
+esc       esc       esc       done   26s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   32s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   35s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   37s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   47s  noted
+together  together  together  done   54s  The other two subagents have finished as well, so all three…
+--- +89s 13:45:30  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   12s  The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   18s  The background subagent finished and reported "done".
+esc       esc       esc       done   28s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   33s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   37s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   38s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   48s  noted
+together  together  together  done   55s  The other two subagents have finished as well, so all three…
+--- +90s 13:45:31  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   13s  The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   20s  The background subagent finished and reported "done".
+esc       esc       esc       done   29s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   34s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   38s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   40s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   50s  noted
+together  together  together  done   56s  The other two subagents have finished as well, so all three…
+--- +91s 13:45:32  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   15s  The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   21s  The background subagent finished and reported "done".
+esc       esc       esc       done   30s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   35s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   39s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   41s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   51s  noted
+together  together  together  done   57s  The other two subagents have finished as well, so all three…
+--- +92s 13:45:33  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   16s  The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   22s  The background subagent finished and reported "done".
+esc       esc       esc       done   31s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   37s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   40s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   42s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   52s  noted
+together  together  together  done   59s  The other two subagents have finished as well, so all three…
+--- +94s 13:45:35  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   17s  The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   23s  The background subagent finished and reported "done".
+esc       esc       esc       done   33s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   38s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   42s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   43s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   53s  noted
+together  together  together  done   1m   The other two subagents have finished as well, so all three…
+--- +95s 13:45:36  notifications so far: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   18s  The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   24s  The background subagent finished and reported "done".
+esc       esc       esc       done   34s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   39s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   43s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   45s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   55s  noted
+together  together  together  done   1m   The other two subagents have finished as well, so all three…
+--- end 13:45:40  notifications: Done: ask x1; Done: esc x1; Done: escpair x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Done: together x1; Question: ask x1; 
+NAME      REPO      BRANCH    STATE  AGE  LAST
+many      many      many      done   23s  The `./wait.sh 70` agent finished, so all three are done.
+send      send      send      done   29s  The background subagent finished and reported "done".
+esc       esc       esc       done   38s  The background subagent finished its `./wait.sh 50` run and…
+shell     shell     shell     done   43s  The background command `./wait.sh 50` finished with exit co…
+one       one       one       done   47s  The background subagent finished. It ran `./wait.sh 45` in …
+ask       ask       ask       done   49s  The background agent finished and reported "done" after run…
+escpair   escpair   escpair   done   59s  noted
+together  together  together  done   1m   The other two subagents have finished as well, so all three…

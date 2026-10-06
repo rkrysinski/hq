@@ -1,36 +1,39 @@
-commit 222200c
+commit 7d4e08d
 $ LC_ALL=C.UTF-8 go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./...
-ok  	github.com/rkrysinski/hq/cmd/hq	4.419s
-ok  	github.com/rkrysinski/hq/internal/agent	0.005s
-ok  	github.com/rkrysinski/hq/internal/cli	60.027s
-ok  	github.com/rkrysinski/hq/internal/dash	7.995s
-ok  	github.com/rkrysinski/hq/internal/desktop	0.010s
-ok  	github.com/rkrysinski/hq/internal/dialog	0.748s
-ok  	github.com/rkrysinski/hq/internal/gh	0.006s
-ok  	github.com/rkrysinski/hq/internal/iterm	0.015s
-ok  	github.com/rkrysinski/hq/internal/platform	0.038s
-ok  	github.com/rkrysinski/hq/internal/prefs	0.023s
-ok  	github.com/rkrysinski/hq/internal/proc	0.820s
-ok  	github.com/rkrysinski/hq/internal/repo	0.036s
-ok  	github.com/rkrysinski/hq/internal/sbx	0.082s
-ok  	github.com/rkrysinski/hq/internal/state	1.312s
---- FAIL: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.17s)
-    tmux_integration_test.go:517: got 12359 bytes of 12360
+ok  	github.com/rkrysinski/hq/cmd/hq	4.395s
+ok  	github.com/rkrysinski/hq/internal/agent	0.006s
+--- FAIL: TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox (5.57s)
+    cli_integration_test.go:559: a never became done: [{Name:a Repo:app RepoPath:/tmp/TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox3160421442/002/app Branch:main State:working Since:2026-10
 FAIL
-FAIL	github.com/rkrysinski/hq/internal/tmux	14.182s
+FAIL	github.com/rkrysinski/hq/internal/cli	61.172s
+ok  	github.com/rkrysinski/hq/internal/dash	8.009s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.014s
+ok  	github.com/rkrysinski/hq/internal/dialog	0.748s
+ok  	github.com/rkrysinski/hq/internal/gh	0.005s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.009s
+ok  	github.com/rkrysinski/hq/internal/platform	0.028s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.031s
+ok  	github.com/rkrysinski/hq/internal/proc	0.872s
+ok  	github.com/rkrysinski/hq/internal/repo	0.029s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.066s
+ok  	github.com/rkrysinski/hq/internal/state	1.614s
+--- FAIL: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.16s)
+    tmux_integration_test.go:517: got 12285 bytes of 12360
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	14.116s
 ok  	github.com/rkrysinski/hq/internal/update	0.413s
 ok  	github.com/rkrysinski/hq/tools/testgate	0.005s
 FAIL
 
 $ go run ./tools/testgate coverage cover.out
-coverage 93.61% (minimum 93.5%)
+coverage 93.55% (minimum 93.5%)
 
 $ LC_ALL=C.UTF-8 go test -count=1 -tags e2e ./e2e/...
-ok  	github.com/rkrysinski/hq/e2e	17.079s
+ok  	github.com/rkrysinski/hq/e2e	16.900s
 
 $ go run ./tools/testgate pyramid
-unit 415, integration 115, e2e 3 (unit share 78%, minimum 50%)
+unit 415, integration 118, e2e 3 (unit share 78%, minimum 50%)
 
-The failing test fails on dev (086ce27) too in this environment (a Docker sandbox, Linux arm64, tmux 3.6): it reads fewer
-bytes than it pasted. It is not in code this change touches. TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox, which
-passed here, fails on dev and on this branch alike when the machine is idle: it waits 5 s for a fake Claude set to take 6 s.
+The tests that fail here fail the same way on dev (086ce27) in this environment (a Docker sandbox, Linux arm64, tmux 3.6), and
+are not in code this change touches: TestPasteTypes... reads fewer bytes than it pasted; TestSandboxRestartRelaunches...
+waits 5 s for a fake Claude set to take 6 s, and passes only when the machine is busy.

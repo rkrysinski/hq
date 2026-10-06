@@ -1,4 +1,4 @@
 NAME  REPO  BRANCH  STATE  AGE  LAST
-one   one   one     done   0s   The background subagent finished and reported "done" after …
-next: hq wait one --since 2026-10-06T11:16:00.953948047Z
-returned at +51s
+one   one   one     done   0s   The background subagent finished. It ran `./wait.sh 45` in …
+next: hq wait one --since 2026-10-06T11:44:53.274538516Z
+returned at +52s

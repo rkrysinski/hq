@@ -1,0 +1,16 @@
+Every real session logged, through the hook of this branch (notifications per session):
+exp1     notifications: 1
+exp2     notifications: 1
+exp2b    notifications: 1
+exp3     notifications: 2
+exp4     notifications: 1
+exp4b    notifications: 1
+exp5     notifications: 1
+exp6     notifications: 1
+exp7     notifications: 1
+exp9     notifications: 1
+monitor  notifications: 1
+
+exp1 one subagent; exp2 three, 25 s apart; exp2b three finishing within 1.5 s; exp3 a subagent waiting on its own shell command
+(the documented limit); exp4, exp4b a subagent asked to run in the foreground; exp5 a failed shell command and a stopped subagent;
+exp6 a workflow; exp7 Esc at the prompt; exp9 a prompt of the user's queued while a subagent finishes; monitor: a watched command.
