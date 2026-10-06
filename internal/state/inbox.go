@@ -35,6 +35,18 @@ const MaxMessage = 8 << 10
 // it after Claude's next tool call instead of when Claude stops.
 const nowSuffix = ".now"
 
+// supervisorSuffix marks the name of a message the supervisor sent (hq
+// mcp), before nowSuffix when it has both: the hook tells by it whether a
+// message of the user's reached a turn (design §3.5).
+const supervisorSuffix = ".sup"
+
+// Message is a message for an agent.
+type Message struct {
+	Text string
+	// Supervisor says the supervisor sent it, through hq mcp, not the user.
+	Supervisor bool
+}
+
 // MessageLabel starts each message the hooks deliver, so Claude, and the
 // user watching its session, can tell it from its own work.
 const MessageLabel = "Message from the user (hq send): "
@@ -90,9 +102,13 @@ func decodeMessage(data []byte) (string, error) {
 
 // messageName names a message sent at at: nanoseconds, zero-padded so that
 // names sort as times do, a random part so that two messages sent in the
-// same nanosecond do not collide, and nowSuffix when now.
-func messageName(at time.Time, random string, now bool) string {
+// same nanosecond do not collide, supervisorSuffix when the supervisor sent
+// it and nowSuffix when now.
+func messageName(at time.Time, random string, supervisor, now bool) string {
 	name := fmt.Sprintf("%019d-%s", at.UnixNano(), random)
+	if supervisor {
+		name += supervisorSuffix
+	}
 	if now {
 		name += nowSuffix
 	}
@@ -103,11 +119,17 @@ func messageName(at time.Time, random string, now bool) string {
 // files and the directories deliveries take messages into start with a dot.
 func isMessage(name string) bool { return name != "" && name[0] >= '0' && name[0] <= '9' }
 
-// Post leaves text for agent id of the repository at root, sent at at; now
+// fromSupervisor reports whether the message named name is the
+// supervisor's.
+func fromSupervisor(name string) bool {
+	return strings.HasSuffix(strings.TrimSuffix(name, nowSuffix), supervisorSuffix)
+}
+
+// Post leaves m for agent id of the repository at root, sent at at; now
 // asks for delivery after Claude's next tool call. The message is written
 // beside the others and renamed into place, so a hook never reads half of
 // it.
-func Post(root, id, text string, now bool, at time.Time) error {
+func Post(root, id string, m Message, now bool, at time.Time) error {
 	if !idRE.MatchString(id) {
 		return errors.New("not an agent id")
 	}
@@ -117,9 +139,9 @@ func Post(root, id, text string, now bool, at time.Time) error {
 	}
 	r := make([]byte, 4)
 	_, _ = rand.Read(r)
-	name := messageName(at, hex.EncodeToString(r), now)
+	name := messageName(at, hex.EncodeToString(r), m.Supervisor, now)
 	tmp := filepath.Join(dir, "."+name)
-	if err := os.WriteFile(tmp, encodeMessage(CleanMessage(text)), 0o644); err != nil {
+	if err := os.WriteFile(tmp, encodeMessage(CleanMessage(m.Text)), 0o644); err != nil {
 		os.Remove(tmp)
 		return err
 	}
@@ -158,7 +180,7 @@ func Pending(root, id string) int {
 // out of its inbox, oldest first, for hq to deliver itself. A message a
 // hook took first is not among them. A file that is no message (a link, a
 // file too big, one that does not decode) is taken and dropped.
-func Take(root, id string) ([]string, error) {
+func Take(root, id string) ([]Message, error) {
 	if !idRE.MatchString(id) {
 		return nil, errors.New("not an agent id")
 	}
@@ -172,7 +194,7 @@ func Take(root, id string) ([]string, error) {
 		return nil, err
 	}
 	defer os.RemoveAll(taken)
-	var texts []string
+	var msgs []Message
 	for _, n := range names {
 		p := filepath.Join(taken, n)
 		if os.Rename(filepath.Join(dir, n), p) != nil {
@@ -183,10 +205,10 @@ func Take(root, id string) ([]string, error) {
 			continue
 		}
 		if text, err := decodeMessage(data); err == nil && text != "" {
-			texts = append(texts, text)
+			msgs = append(msgs, Message{Text: text, Supervisor: fromSupervisor(n)})
 		}
 	}
-	return texts, nil
+	return msgs, nil
 }
 
 // removeInbox deletes the inbox of agent id with whatever waits in it.

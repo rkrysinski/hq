@@ -91,6 +91,22 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
 		}
 	}
+	// The supervisor is told that the work it sends ends without a
+	// notification to the user (spec §5): where it starts work, and in its
+	// instructions.
+	for name, want := range map[string]string{
+		"new":  "the user is not notified when the work you gave it with prompt finishes or asks a question, so wait for it and tell them",
+		"send": "The user is not notified when a turn your message started finishes or asks a question, so wait for it and tell them",
+	} {
+		if !strings.Contains(tools[name].Description, want) {
+			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
+		}
+	}
+	for _, want := range []string{"The user is not notified when work you sent finishes or asks a question", "wait for the agents you gave work to, read their replies and tell the user", "hq notifies them of the dialog itself"} {
+		if !strings.Contains(cs.InitializeResult().Instructions, want) {
+			t.Errorf("instructions have no %q", want)
+		}
+	}
 	for _, want := range []string{"Status comes from hq, never from asking an agent", "wait for the agent with send's next_since as since, then read it", "Always pass the next_since of the most recent of them as wait's since", "call list first", "Never try to answer it"} {
 		if !strings.Contains(cs.InitializeResult().Instructions, want) {
 			t.Errorf("instructions have no %q", want)
@@ -204,7 +220,8 @@ func TestMCPSendLeavesTheMessageAsHqSendDoes(t *testing.T) {
 	if out, _ := call(t, cs, "send", map[string]any{"name": "a", "text": "use the v2 API", "now": true}); !strings.Contains(out, `"delivery": "queued: a is working, delivered after its next tool call, or when it stops"`) {
 		t.Fatalf("now: %q", out)
 	}
-	if got := strings.Join(f.inbox["id-a"], "|"); got != "Any blockers? Answer briefly when you finish.|use the v2 API (now)" {
+	// Marked the supervisor's: a turn they start notifies nobody (spec §5).
+	if got := strings.Join(f.inbox["id-a"], "|"); got != "Any blockers? Answer briefly when you finish. (supervisor)|use the v2 API (supervisor) (now)" {
 		t.Fatalf("inbox %q", got)
 	}
 	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": " "}); !isErr || !strings.HasPrefix(out, "hq: empty message") {
@@ -253,13 +270,20 @@ func TestMCPNewStartsAnAgentInTheRepositoryGiven(t *testing.T) {
 	if argv := f.tmux.argv[w.ID]; w.Options["repo"] != "/w/lib" || argv[len(argv)-1] != "work on issue #42" {
 		t.Fatalf("window %+v argv %q", w, argv)
 	}
-	// Without a prompt the agent waits for one.
+	// Its first prompt is the supervisor's: its hooks are told (spec §5).
+	if !f.announced[w.Options["id"]] || len(f.announced) != 1 {
+		t.Fatalf("the first prompt was not announced as the supervisor's: %v", f.announced)
+	}
+	// Without a prompt the agent waits for one, which may be the user's.
 	if out, isErr := call(t, cs, "new", map[string]any{"name": "idle", "dir": "/w/lib/"}); isErr {
 		t.Fatalf("no prompt: %q", out)
 	}
 	w = f.tmux.windows[len(f.tmux.windows)-1]
 	if argv := f.tmux.argv[w.ID]; w.Name != "idle" || strings.HasPrefix(argv[len(argv)-1], "/w/") {
 		t.Fatalf("no prompt: %q", argv)
+	}
+	if f.announced[w.Options["id"]] {
+		t.Fatal("announced a prompt that was not given")
 	}
 	for _, tc := range []struct{ dir, want string }{
 		{"lib", "hq: dir 'lib' is not an absolute path\n"},
@@ -433,5 +457,115 @@ func TestMCPInstallPrintsTheEntryWhenItCannotEditTheFile(t *testing.T) {
 	d.executable = func() (string, error) { return "", errors.New("no /proc") }
 	if err := runMCPInstall(Env{Stdout: new(strings.Builder)}, d); asError(err).Code != ExitEnvironment {
 		t.Fatalf("%v", err)
+	}
+}
+
+func TestAnAgentTheSupervisorCouldNotStartLeavesNoWordForItsHooks(t *testing.T) {
+	f := newFakes()
+	f.sbx.sandboxes = sandboxesFor("/w/lib")
+	f.tmux.startErr = errors.New("no server")
+	cs := mcpSession(t, f)
+	if out, isErr := call(t, cs, "new", map[string]any{"name": "42", "dir": "/w/lib", "prompt": "work on issue #42"}); !isErr || out != "hq: no server\n" {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	if len(f.announced) != 0 || len(f.withdrawn) != 1 {
+		t.Fatalf("announced %v, withdrawn %v", f.announced, f.withdrawn)
+	}
+	// Its hooks could not be told: the agent starts all the same, and its
+	// first turn notifies as the user's do.
+	f = newFakes()
+	f.sbx.sandboxes = sandboxesFor("/w/lib")
+	f.announceErr = errors.New("read-only file system")
+	cs = mcpSession(t, f)
+	if out, isErr := call(t, cs, "new", map[string]any{"name": "42", "dir": "/w/lib", "prompt": "work on issue #42"}); isErr || !strings.HasPrefix(out, "started 42") {
+		t.Fatalf("%v %q", isErr, out)
+	}
+}
+
+// A message the supervisor sends an agent that waits at its prompt is typed
+// in as a prompt of the supervisor's: the agent's hooks are told before the
+// prompt comes, so the turn it starts notifies nobody (spec §5).
+func TestMCPSendTypesInAPromptOfTheSupervisors(t *testing.T) {
+	f := sendFakes(state.Done)
+	var atSubmit []bool
+	taken := f.tmux.onSubmit
+	f.tmux.onSubmit = func() { atSubmit = append(atSubmit, f.announced["id-a"]); taken() }
+	cs := mcpSession(t, f)
+	start := f.now
+	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "open a PR"}); isErr || !strings.Contains(out, `"delivery": "delivered: typed into a as its next prompt"`) {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	if len(atSubmit) != 1 || !atSubmit[0] {
+		t.Fatalf("announced when the prompt was sent: %v", atSubmit)
+	}
+	// The prompt took the word: nothing to take back, and no waiting.
+	if len(f.announced) != 0 || len(f.withdrawn) != 0 || f.now.Sub(start) > time.Second {
+		t.Fatalf("announced %v, withdrawn %v, after %v", f.announced, f.withdrawn, f.now.Sub(start))
+	}
+	if got := strings.Join(f.tmux.pasted, "|"); got != "%4 open a PR" {
+		t.Fatalf("pasted %q", got)
+	}
+}
+
+func TestAPromptWithAMessageOfTheUsersIsNotTheSupervisors(t *testing.T) {
+	// A message the user left earlier goes in the same prompt.
+	f := sendFakes(state.Done)
+	f.inbox["id-a"] = []string{"sent earlier by the user"}
+	cs := mcpSession(t, f)
+	call(t, cs, "send", map[string]any{"name": "a", "text": "open a PR"})
+	if got := strings.Join(f.tmux.pasted, "|"); got != "%4 sent earlier by the user\n\nopen a PR" {
+		t.Fatalf("pasted %q", got)
+	}
+	// hq send from a shell is the user's, whoever started the agent.
+	g := sendFakes(state.Done)
+	if code, out, _ := g.run("send", "a", "open a PR"); code != 0 || out != "delivered: typed into a as its next prompt\n" {
+		t.Fatalf("exit %d %q", code, out)
+	}
+	// Hooks of an older hq know no supervised turn: nothing to tell them.
+	h := sendFakes(state.Done)
+	h.tmux.windows[1].Options["inbox"] = "1"
+	call(t, mcpSession(t, h), "send", map[string]any{"name": "a", "text": "open a PR"})
+	if len(h.tmux.submitted) != 1 {
+		t.Fatal("not typed into an agent with older hooks")
+	}
+	for name, f := range map[string]*fakes{"with the user's message": f, "from a shell": g, "older hooks": h} {
+		if len(f.announced) != 0 || len(f.withdrawn) != 0 {
+			t.Errorf("%s: announced %v, withdrawn %v", name, f.announced, f.withdrawn)
+		}
+	}
+}
+
+func TestTheWordForAPromptThatDidNotComeIsTakenBack(t *testing.T) {
+	// Claude did not take the prompt (its hook never ran): after a moment
+	// hq takes its word back, so a prompt the user sends later is theirs.
+	f := sendFakes(state.Done)
+	f.promptLost = true
+	cs := mcpSession(t, f)
+	start := f.now
+	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "open a PR"}); isErr || !strings.Contains(out, "delivered: typed into a as its next prompt") {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	if len(f.announced) != 0 || strings.Join(f.withdrawn, " ") != "id-a" {
+		t.Fatalf("announced %v, withdrawn %v", f.announced, f.withdrawn)
+	}
+	if took := f.now.Sub(start); took < promptWait || took > promptWait+time.Second {
+		t.Fatalf("waited %v for the prompt", took)
+	}
+	// Typing it in failed: the word goes, and the messages wait again as
+	// the supervisor's.
+	f = sendFakes(state.Done)
+	f.tmux.pasteErr = errors.New("no pane %4")
+	if out, isErr := call(t, mcpSession(t, f), "send", map[string]any{"name": "a", "text": "open a PR"}); !isErr || out != "hq: no pane %4\n" {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	if got := strings.Join(f.inbox["id-a"], "|"); got != "open a PR (supervisor)" || len(f.announced) != 0 || strings.Join(f.withdrawn, " ") != "id-a" {
+		t.Fatalf("inbox %q, announced %v, withdrawn %v", got, f.announced, f.withdrawn)
+	}
+	// Its hooks could not be told: typed in all the same, as the user's.
+	f = sendFakes(state.Done)
+	f.announceErr = errors.New("read-only file system")
+	start = f.now
+	if out, isErr := call(t, mcpSession(t, f), "send", map[string]any{"name": "a", "text": "open a PR"}); isErr || !strings.Contains(out, "delivered: typed into a") || len(f.withdrawn) != 0 || f.now.Sub(start) > time.Second {
+		t.Fatalf("%v %q withdrawn %v", isErr, out, f.withdrawn)
 	}
 }

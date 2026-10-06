@@ -51,60 +51,80 @@ import (
 // answer it first adds to .owe the background work the tool started, if
 // any (hookAwk).
 //
-// It needs only sh, git, cat, mv, cp, mkdir, rm, grep and awk and always
-// exits 0; it holds Claude back only while a message is unread (design
-// §3.4, §7.1).
+// It also knows whether the turn is a supervised turn (spec §5, design
+// §3.5): one whose every prompt came from the supervisor, whose end
+// notifies nobody. The mark is a file beside the state file (.sup). A
+// prompt that is not Claude's own takes hq's word that it is the
+// supervisor's (.next, Announce) and sets the mark, unless a message of the
+// user's rides along or background work is still owed, which may be the
+// user's; a prompt without that word, and any message of the user's it
+// delivers (one whose name lacks supervisorSuffix), removes the mark. On
+// stop it prints no notification while the mark is there; dialog and
+// input notify regardless, and Claude's wake-ups leave the mark alone, so
+// closing turns follow the turn that started the work. A session's start
+// or end removes it.
+//
+// It needs only sh, git, cat, mv, cp, mkdir, rm, grep and awk, sends its
+// own errors nowhere and always exits 0; it holds Claude back only while a
+// message is unread (design §3.4, §7.1).
 const hookSource = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
-b=$(git branch --show-current 2>/dev/null)
+exec 2>/dev/null
+b=$(git branch --show-current)
 l=${b:-${PWD##*/}}
-cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null
-g=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
+cd "${CLAUDE_PROJECT_DIR:-.}"
+g=$(git rev-parse --git-common-dir) || exit 0
 d=$g/hq/agents
 i=$g/hq/inbox/$HQ_ID
-mkdir -p "$d" 2>/dev/null || exit 0
+mkdir -p "$d" || exit 0
 f=$d/$HQ_ID
 t=$f.$$
-{ printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" 2>/dev/null || { rm -f "$t"; exit 0; }
+{ printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" || { rm -f "$t"; exit 0; }
 A='` + hookAwk + `'
-works() { grep -Eq '` + workingEvent + `' "$f" 2>/dev/null; }
-theirs() { grep -q '` + dialogEvent + `' "$f" 2>/dev/null && grep -q '"agent_id"' "$f" 2>/dev/null; }
-owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" 2>/dev/null || rm -f "$t.o" "$f` + owedSuffix + `" 2>/dev/null; }
-put() { cp -f "$t" "$t.c" 2>/dev/null && mv -f "$t.c" "$1" 2>/dev/null; rm -f "$t.c" 2>/dev/null; }
-tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1" 2>/dev/null; }
+works() { grep -Eq '` + workingEvent + `' "$f"; }
+theirs() { grep -q '` + dialogEvent + `' "$f" && grep -q '"agent_id"' "$f"; }
+owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" || rm -f "$t.o" "$f` + owedSuffix + `"; }
+put() { cp -f "$t" "$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
+tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1"; }
 soon() { for m in "$i"/[0-9]*` + nowSuffix + `; do [ -f "$m" ] && return 0; done; return 1; }
 take() {
-    c=$i/.taken.$$
-    [ -d "$i" ] && rm -rf "$c" 2>/dev/null && mkdir "$c" 2>/dev/null || return 1
-    for m in "$i"/[0-9]*; do [ -f "$m" ] && mv "$m" "$c/" 2>/dev/null; done
-    for m in "$c"/*; do [ -f "$m" ] && return 0; done
-    rm -rf "$c" 2>/dev/null; return 1
+    u=; c=$i/.taken.$$
+    [ -d "$i" ] && rm -rf "$c" && mkdir "$c" || return 1
+    for m in "$i"/[0-9]*; do [ -f "$m" ] && mv "$m" "$c/"; done
+    r=1
+    for m in "$c"/*; do [ -f "$m" ] && r=0 && case $m in *` + supervisorSuffix + ` | *` + supervisorSuffix + nowSuffix + `) ;; *) u=1 ;; esac; done
+    [ $r = 0 ] || rm -rf "$c"; return $r
 }
 say() {
+    [ "$u" ] && rm -f "$f` + supervisedSuffix + `"
     printf '%s' "$1"; s=
-    for m in "$c"/*; do [ -f "$m" ] && printf '%s%s' "$s" '` + MessageLabel + `' && cat "$m" 2>/dev/null && s='\n\n'; done
-    rm -rf "$c" 2>/dev/null; printf '%s\n' "$2"
+    for m in "$c"/*; do [ -f "$m" ] && printf '%s%s' "$s" '` + MessageLabel + `' && cat "$m" && s='\n\n'; done
+    rm -rf "$c"; printf '%s\n' "$2"
 }
 case $1 in
 stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
-    K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o" 2>/dev/null; k=$?; owe
-    [ $k = 0 ] && { put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f" 2>/dev/null; rm -f "$t"; exit 0; } ;;
+    K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; k=$?; owe
+    [ $k = 0 ] && { put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f"; rm -f "$t"; exit 0; } ;;
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
-    if K=wake O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o" 2>/dev/null; then
+    if K=wake O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; then
         owe
-        works && { mv -f "$t" "$f` + keptSuffix + `" 2>/dev/null; rm -f "$t"; exit 0; }
-    else grep -v '^[!+]' "$f` + owedSuffix + `" >"$t.o" 2>/dev/null; owe; fi ;;
-answer) grep -Eq '` + startedEvent + `' "$t" 2>/dev/null && w=$(K=tool awk "$A" "$t" 2>/dev/null) && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
-    grep -q '` + toolEndEvent + `' "$t" 2>/dev/null && ! grep -q '"agent_id"' "$t" 2>/dev/null && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
-    grep -q '` + dialogEvent + `' "$f" 2>/dev/null && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
-input) grep -q '` + dialogEvent + `' "$f" 2>/dev/null && { rm -f "$t"; exit 0; } ;;
-resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } 2>/dev/null || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; } 2>/dev/null; rm -f "$t.p" ;;
+        works && { mv -f "$t" "$f` + keptSuffix + `"; rm -f "$t"; exit 0; }
+    else grep -v '^[!+]' "$f` + owedSuffix + `" >"$t.o"; owe
+        if mv -f "$f` + announcedSuffix + `" "$t.n"; then rm -f "$t.n"; [ "$u" ] || [ -s "$f` + owedSuffix + `" ] || : >"$f` + supervisedSuffix + `"
+        else rm -f "$f` + supervisedSuffix + `"; fi
+    fi ;;
+answer) grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
+    grep -q '` + toolEndEvent + `' "$t" && ! grep -q '"agent_id"' "$t" && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
+    grep -q '` + dialogEvent + `' "$f" && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
+input) grep -q '` + dialogEvent + `' "$f" && { rm -f "$t"; exit 0; } ;;
+resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; }; rm -f "$t.p" ;;
 esac
-case $1 in dialog | answer | input) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" 2>/dev/null ;; *) rm -f "$f` + keptSuffix + `" 2>/dev/null ;; esac
-if mv -f "$t" "$f" 2>/dev/null && [ "$1" = stop ]; then
-    cp -f "$f" "$t" 2>/dev/null && mv -f "$t" "$f.stop" 2>/dev/null
+case $1 in dialog | answer | input) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `" ;; esac
+if mv -f "$t" "$f" && [ "$1" = stop ]; then
+    cp -f "$f" "$t" && mv -f "$t" "$f.stop"
 fi
-rm -f "$t" 2>/dev/null
-case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$f" 2>/dev/null ;; esac
+rm -f "$t"
+[ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && exit 0
+case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$f" ;; esac
 exit 0`
 
 // hookScript is hookSource as it travels in the settings: without the
