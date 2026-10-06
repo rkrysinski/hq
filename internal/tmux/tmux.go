@@ -54,7 +54,8 @@ type Client struct {
 // working agent's screen at rest; endseen when hq first saw the agent
 // ended, where tmux cannot tell (design §3.4); inbox marks an agent whose
 // hooks deliver the messages hq send leaves (ADR 0012), which agents
-// started by an older hq lack.
+// started by an older hq lack, and counts their generation: from 2 they
+// also tell a supervised turn (spec §5).
 var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "turnend", "restseen", "endseen", "wokeseen", "inbox"}
 
 func (c Client) tmux(args ...string) ([]byte, error) {

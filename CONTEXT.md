@@ -59,3 +59,7 @@ _Avoid_: feedback, note, mail
 **Supervisor**:
 A Claude Desktop conversation that starts, watches and messages agents through hq's MCP tools (`hq mcp`); an MCP client, not an agent, with no row of its own.
 _Avoid_: sup agent, orchestrator, manager
+
+**Supervised turn**:
+A turn whose every prompt came from the supervisor, through `hq mcp` (`new` with a prompt, or `send`); its `done` and `question` are for the supervisor and raise no desktop notification, while its `needs input` does. It is a property of the turn, never of the agent: one prompt of the user's makes the turn theirs.
+_Avoid_: silent turn, supervised agent, muted turn

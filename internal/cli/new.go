@@ -78,9 +78,11 @@ func claudeArgs(name, id, notify, resume, prompt string) []string {
 	return args
 }
 
-// inboxHooks is the inbox option of an agent whose hooks deliver messages:
-// every agent hq starts or relaunches from now on (ADR 0012).
-const inboxHooks = "1"
+// inboxHooks is the inbox option of every agent hq starts or relaunches
+// from now on, the generation of its hooks: from 1 they deliver messages
+// (ADR 0012), from 2 they also tell a supervised turn (spec §5,
+// agent.Supervisable).
+const inboxHooks = "2"
 
 func runNew(env Env, d deps, args []string) error {
 	cwd, err := d.getwd()
@@ -162,7 +164,13 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string, fresh bool) 
 		}
 		return dialog.FieldError{Field: dialog.Name, Err: duplicateErr(name)}
 	}
+	// The first prompt of an agent the supervisor starts is the
+	// supervisor's (spec §5); without the word it notifies, as the user's.
+	supervised := d.supervisor && prompt != "" && d.announce(root, id) == nil
 	if err := d.tmux.Start(win); err != nil {
+		if supervised {
+			_ = d.withdraw(root, id)
+		}
 		_ = d.tmux.KillWindow(win)
 		return tmuxErr(err)
 	}

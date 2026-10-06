@@ -46,6 +46,21 @@ func TestFromWindowsKnowsTheDockedAgent(t *testing.T) {
 	}
 }
 
+func TestAnAgentsHooksTellASupervisedTurnFromTheirSecondGeneration(t *testing.T) {
+	for inbox, want := range map[string]struct{ inbox, supervisable bool }{
+		"":  {false, false}, // started before hq send
+		"1": {true, false},  // started before supervised turns
+		"2": {true, true},
+		"3": {true, true},
+		"x": {true, false},
+	} {
+		as := FromWindows([]tmux.Window{{ID: "@1", Name: "a", Options: map[string]string{"id": "x", "inbox": inbox}}})
+		if as[0].Inbox != want.inbox || as[0].Supervisable() != want.supervisable {
+			t.Errorf("inbox %q: delivers messages %v, tells a supervised turn %v", inbox, as[0].Inbox, as[0].Supervisable())
+		}
+	}
+}
+
 func TestNewIDIsFresh(t *testing.T) {
 	if a, b := NewID(), NewID(); a == b || len(a) != 12 {
 		t.Fatalf("%q %q", a, b)

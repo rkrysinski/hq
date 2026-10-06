@@ -55,10 +55,10 @@ func TestAMessageIsStoredAsTheInsideOfAJSONString(t *testing.T) {
 func TestMessageNamesSortInTheOrderTheyWereSent(t *testing.T) {
 	at := time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
 	names := []string{
-		messageName(at.Add(time.Second), "00000000", false),
-		messageName(at, "ffffffff", true),
-		messageName(at.Add(time.Nanosecond), "00000000", false),
-		messageName(time.Unix(1, 0), "abcdef01", false),
+		messageName(at.Add(time.Second), "00000000", false, false),
+		messageName(at, "ffffffff", false, true),
+		messageName(at.Add(time.Nanosecond), "00000000", false, false),
+		messageName(time.Unix(1, 0), "abcdef01", false, false),
 	}
 	sort.Strings(names)
 	if names[0] != "0000000001000000000-abcdef01" || !strings.HasSuffix(names[1], "-ffffffff.now") || !strings.HasSuffix(names[3], "-00000000") ||
@@ -79,6 +79,30 @@ func TestMessageNamesSortInTheOrderTheyWereSent(t *testing.T) {
 	}
 }
 
+func TestAMessageNameSaysWhoSentItAndStillAsksForNow(t *testing.T) {
+	at := time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		supervisor, now bool
+		suffix          string
+	}{
+		{false, false, "-0a0b0c0d"},
+		{false, true, "-0a0b0c0d.now"},
+		{true, false, "-0a0b0c0d.sup"},
+		// The hook finds a message that asks for now by the end of its
+		// name, so that stays last.
+		{true, true, "-0a0b0c0d.sup.now"},
+	} {
+		n := messageName(at, "0a0b0c0d", tc.supervisor, tc.now)
+		if !strings.HasSuffix(n, tc.suffix) || !isMessage(n) || fromSupervisor(n) != tc.supervisor {
+			t.Errorf("supervisor %v, now %v: %q, the supervisor's %v", tc.supervisor, tc.now, n, fromSupervisor(n))
+		}
+	}
+	// Whoever sent them, messages sort in the order they were sent.
+	if first, later := messageName(at, "ffffffff", true, true), messageName(at.Add(time.Nanosecond), "00000000", false, false); first >= later {
+		t.Errorf("%q sorts after %q", first, later)
+	}
+}
+
 func TestAMessageFitsWhatHqReadsBack(t *testing.T) {
 	// The worst case: every byte escaped as \u00XX would be 6x, but
 	// CleanMessage leaves only newlines and tabs, 2 bytes each.
@@ -95,7 +119,7 @@ func TestInboxDirIsBesideTheStateFiles(t *testing.T) {
 	if Pending("/w/app", "../x") != 0 {
 		t.Fatal("not an agent id")
 	}
-	if err := Post("/w/app", "../x", "hi", false, time.Now()); err == nil {
+	if err := Post("/w/app", "../x", Message{Text: "hi"}, false, time.Now()); err == nil {
 		t.Fatal("posted for a bad id")
 	}
 	if _, err := Take("/w/app", "../x"); err == nil {

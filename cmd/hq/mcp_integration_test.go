@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -34,6 +35,10 @@ type supervisor struct {
 	t      *testing.T
 	cs     *mcp.ClientSession
 	socket string
+	// bin is the hq it started and env that hq's environment, for running
+	// hq from a shell beside it, as the user does.
+	bin string
+	env []string
 }
 
 // row is an agent as the list, read and wait tools give it.
@@ -59,9 +64,10 @@ func newSupervisor(t *testing.T) *supervisor {
 	if err := os.Symlink(stub, filepath.Join(path, "sbx")); err != nil {
 		t.Fatal(err)
 	}
-	s := &supervisor{t: t, socket: testutil.TmuxSocket(t)}
-	cmd := exec.Command(buildHQ(t), "mcp")
-	cmd.Env = append(os.Environ(), "PATH="+path+string(os.PathListSeparator)+os.Getenv("PATH"), "HQ_TMUX_SOCKET="+s.socket, "HOME="+t.TempDir(), "TMUX=")
+	s := &supervisor{t: t, socket: testutil.TmuxSocket(t), bin: buildHQ(t)}
+	s.env = append(os.Environ(), "PATH="+path+string(os.PathListSeparator)+os.Getenv("PATH"), "HQ_TMUX_SOCKET="+s.socket, "HOME="+t.TempDir(), "TMUX=")
+	cmd := exec.Command(s.bin, "mcp")
+	cmd.Env = s.env
 	cs, err := mcp.NewClient(&mcp.Implementation{Name: "supervisor", Version: "v0"}, nil).Connect(context.Background(), &mcp.CommandTransport{Command: cmd}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -231,6 +237,128 @@ func TestMCPServerSupervisesAgentsOverStdio(t *testing.T) {
 	if out, isErr := s.call("read", map[string]any{"name": "a"}); !isErr || out != "hq: no agent 'a' (see hq ls)\n" {
 		t.Fatalf("read a killed agent: %v %q", isErr, out)
 	}
+}
+
+// shell runs hq as the user does from a shell, beside the supervisor's.
+func (s *supervisor) shell(args ...string) string {
+	s.t.Helper()
+	cmd := exec.Command(s.bin, args...)
+	cmd.Env = s.env
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		s.t.Fatalf("hq %v: %v\n%s", args, err, out)
+	}
+	return string(out)
+}
+
+// The desktop notifications of issue #46's acceptance, on the fake Claude,
+// which records each one a hook sends: work the supervisor sent ends
+// without one, a dialog and anything of the user's still notify.
+func TestWorkTheSupervisorSentEndsWithoutANotification(t *testing.T) {
+	record := filepath.Join(t.TempDir(), "notified")
+	t.Setenv("FAKE_CLAUDE_NOTIFIED", record)
+	s := newSupervisor(t)
+	app := testutil.GitRepo(t, "app")
+	// notified reads the notifications sent so far, as "agent text".
+	notified := func() string {
+		b, _ := os.ReadFile(record)
+		var lines []string
+		for _, l := range strings.Split(strings.TrimSpace(string(b)), "\n") {
+			if name, seq, ok := strings.Cut(l, " "); ok {
+				text, _ := strconv.Unquote(seq)
+				lines = append(lines, name+" "+strings.TrimSuffix(strings.TrimPrefix(text, "\x1b]9;"), "\a"))
+			}
+		}
+		return strings.Join(lines, "|")
+	}
+	expect := func(when, want string) {
+		t.Helper()
+		if got := notified(); got != want {
+			t.Fatalf("%s: notified %q, want %q", when, got, want)
+		}
+	}
+	typed := func(text string) string {
+		t.Helper()
+		how, sent := s.send(map[string]any{"name": "a", "text": text})
+		if how != "delivered: typed into a as its next prompt" {
+			t.Fatalf("send %q: %s", text, how)
+		}
+		return sent
+	}
+
+	// An agent the supervisor starts with a prompt reaches done, takes a
+	// message as its next prompt, and ends a turn with a question: its row
+	// changes as ever, and nobody is notified.
+	s.ok("new", map[string]any{"name": "a", "dir": app, "prompt": "hello"})
+	if r, _ := s.until("1m", "a", "done"); r.Last != "Done: hello" {
+		t.Fatalf("a %+v", r)
+	}
+	if r, _ := s.until(typed("one more thing"), "a", "done"); r.Last != "Done: one more thing" {
+		t.Fatalf("a %+v", r)
+	}
+	if r, _ := s.until(typed("a question for you"), "a", "question"); r.Last != "Shall I go on?" {
+		t.Fatalf("a %+v", r)
+	}
+	expect("done and question on supervised turns", "")
+
+	// It opens a dialog on such a turn: one notification, the user's. Once
+	// they have answered, the turn is still the supervisor's.
+	sent := typed("this needs input")
+	s.until(sent, "a", "needs input")
+	time.Sleep(500 * time.Millisecond) // Claude's own late notification of the dialog
+	expect("a dialog on a supervised turn", "a Needs input: main")
+	s.typeIn("a", "1")
+	s.until(sent, "a", "done")
+	expect("done after the user answered", "a Needs input: main")
+
+	// The user prompts the agent, and the supervisor sends it a message
+	// before it finishes: one notification, at the turn's final end.
+	s.typeIn("a", "slow job")
+	s.readUntil("a", "working")
+	how, sent := s.send(map[string]any{"name": "a", "text": "check the logs"})
+	if how != "queued: a is working, delivered when it stops" {
+		t.Fatalf("send: %q", how)
+	}
+	s.typeIn("a", "go on")
+	if r, _ := s.until(sent, "a", "done"); r.Last != "Answered: "+state.MessageLabel+"check the logs" {
+		t.Fatalf("a %+v", r)
+	}
+	expect("the supervisor's message in the user's turn", "a Needs input: main|a Done: main")
+
+	// The supervisor's turn leaves a subagent running: done after its
+	// closing turn, with no notification.
+	sent = typed("background check")
+	s.readUntil("a", "working")
+	s.typeIn("a", "wake")
+	if r, _ := s.until(sent, "a", "done"); r.Last != "The background work is done, 0 still running." {
+		t.Fatalf("a %+v", r)
+	}
+	expect("the closing turn of a supervised turn", "a Needs input: main|a Done: main")
+
+	// The supervisor's turn runs, and the user types a prompt at the agent:
+	// one notification, at the end of what they asked.
+	sent = typed("slow work")
+	s.readUntil("a", "working")
+	s.typeIn("a", "go on")
+	_, since := s.until(sent, "a", "done")
+	s.typeIn("a", "and thanks")
+	if r, _ := s.until(since, "a", "done"); r.Last != "Done: and thanks" {
+		t.Fatalf("a %+v", r)
+	}
+	expect("the user's prompt at an agent the supervisor works with", "a Needs input: main|a Done: main|a Done: main")
+
+	// hq new with a prompt and hq send from a shell are the user's: both
+	// notify as ever.
+	s.shell("new", "b", app, "hello")
+	_, since = s.until(since, "b", "done")
+	expect("hq new from a shell", "a Needs input: main|a Done: main|a Done: main|b Done: main")
+	if out := s.shell("send", "b", "again"); out != "delivered: typed into b as its next prompt\n" {
+		t.Fatalf("hq send: %q", out)
+	}
+	if r, _ := s.until(since, "b", "done"); r.Last != "Done: again" {
+		t.Fatalf("b %+v", r)
+	}
+	expect("hq send from a shell", "a Needs input: main|a Done: main|a Done: main|b Done: main|b Done: main")
 }
 
 // desktopConfig is where Claude Desktop keeps its configuration under home

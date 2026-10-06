@@ -80,7 +80,7 @@ func TestSandboxRestartRelaunchesItsAgentsInTheirOwnPanes(t *testing.T) {
 	}
 	for _, w := range f.tmux.windows[1:3] {
 		if w.PaneDead || w.Options["id"] != "id-"+w.Name || w.Options["sandbox"] != "claude-x" || w.Options["ending"] != "" || w.Options["new"] != "" ||
-			w.Options["started"] != agent.Stamp(f.now) || w.Options["inbox"] != "1" {
+			w.Options["started"] != agent.Stamp(f.now) || w.Options["inbox"] != "2" {
 			t.Fatalf("relaunched window %+v", w)
 		}
 		argv := strings.Join(f.tmux.argv[w.ID], " ")
@@ -94,6 +94,11 @@ func TestSandboxRestartRelaunchesItsAgentsInTheirOwnPanes(t *testing.T) {
 	}
 	if w := f.tmux.windows[3]; w.PaneDead || w.Options["started"] == agent.Stamp(f.now) {
 		t.Fatal("an agent of another sandbox was touched")
+	}
+	// A prompt hq mcp started an agent with, lost with the session before
+	// Claude took it, leaves no word behind: the next prompt is the user's.
+	if got := strings.Join(f.withdrawn, " "); got != "id-a id-b" {
+		t.Fatalf("withdrawn %q", got)
 	}
 }
 
