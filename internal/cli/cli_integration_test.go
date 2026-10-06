@@ -797,3 +797,87 @@ func TestSendRefusesAnEndedAgent(t *testing.T) {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 }
+
+func TestAnAgentWhoseTurnEndedWhileItsSubagentsRunStaysWorkingUntilTheClosingTurn(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("new: %s", errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	h.waitAtRest("a")
+
+	// The turn ends with two subagents running: working, since the prompt,
+	// with the turn's message, and hq wait does not return, however long
+	// the agent rests at its prompt.
+	ch := h.wait("a")
+	h.typeIn("a", "background and background checks")
+	h.waitReport("a", "working", "Done: background and background checks")
+	prompted := h.waitState("a", "working").Since
+	h.waitAtRest("a")
+	time.Sleep(agent.RestDelay + time.Second)
+	h.waitReport("a", "working", "Done: background and background checks")
+	h.stillWaiting(ch)
+
+	// A subagent finishes: Claude wakes the agent for a turn, which ends
+	// with the other still running. Only the last message changes.
+	h.typeIn("a", "wake")
+	h.waitReport("a", "working", "The background work is done, 1 still running.")
+	if r := h.waitState("a", "working"); !r.Since.Equal(prompted) {
+		t.Fatalf("working since %v, prompted %v", r.Since, prompted)
+	}
+
+	// hq send types its message in there: the agent sits at its prompt.
+	h.waitAtRest("a")
+	h.send("delivered: typed into a as its next prompt", "a", "also run the linter")
+	h.waitReport("a", "working", "Done: also run the linter")
+	if r := h.waitState("a", "working"); !r.Since.After(prompted) {
+		t.Fatalf("the sent prompt did not restart the time: %v", r.Since)
+	}
+	h.stillWaiting(ch)
+
+	// The closing turn, with nothing running: done, and hq wait returns.
+	h.waitAtRest("a")
+	h.typeIn("a", "wake")
+	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running.")
+
+	// Two subagents finish together: nothing runs at the end of the turn
+	// Claude takes for the first, and the agent is done only at the end of
+	// the turn for the second.
+	ch = h.wait("a")
+	h.typeIn("a", "background and background again")
+	h.waitReport("a", "working", "Done: background and background again")
+	h.waitAtRest("a")
+	h.typeIn("a", "wake together")
+	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running. (two)")
+
+	// The same after a turn the user interrupted, which no Stop ended: the
+	// subagents are known from their start.
+	h.typeIn("a", "slow background and background work")
+	h.waitState("a", "working")
+	h.typeIn("a", "esc")
+	h.waitReport("a", "done", "Interrupted")
+	ch = h.wait("a")
+	h.typeIn("a", "wake together")
+	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running. (two)")
+
+	// A subagent gone without Claude taking a turn for it: the agent Claude
+	// owes that turn is done once its screen has stayed at rest.
+	h.typeIn("a", "background and background once more")
+	h.waitReport("a", "working", "Done: background and background once more")
+	h.waitAtRest("a")
+	ch = h.wait("a")
+	h.typeIn("a", "lose")
+	h.typeIn("a", "wake")
+	woken := time.Now()
+	r := h.waited(ch)
+	h.only(r, "a", "done", "The background work is done, 0 still running.")
+	if took := r.at.Sub(woken); took < agent.RestDelay {
+		t.Fatalf("done %v after the wake-up, before its screen had rested", took)
+	}
+	// Once: a wait from there on returns nothing more.
+	if code, out, _ := h.run("wait", "a", "--since", since(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
+		t.Fatalf("the same end again: exit %d %q", code, out)
+	}
+}

@@ -1,0 +1,10 @@
+{
+  "session_id": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+  "transcript_path": "/home/agent/.claude/projects/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0.jsonl",
+  "cwd": "/w/app/.claude/worktrees/feat-42",
+  "scratchpad_dir": "/tmp/claude-1000/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0/scratchpad",
+  "prompt_id": "e289c4ff-f02f-462f-8d99-1f93bbe8ed57",
+  "permission_mode": "bypassPermissions",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "<task-notification>\n<task-id>a58b43841609db047</task-id>\n<tool-use-id>toolu_0112wAsZe5QgjuXfi2EzMwNk</tool-use-id>\n<output-file>/tmp/claude-1000/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0/tasks/a58b43841609db047.output</output-file>\n<status>completed</status>\n<summary>Agent \"Run the slow tests\" finished</summary>\n<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>\n<result>done</result>\n<usage><subagent_tokens>28463</subagent_tokens><tool_uses>1</tool_uses><duration_ms>42659</duration_ms></usage>\n</task-notification>"
+}

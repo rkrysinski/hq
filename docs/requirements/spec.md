@@ -62,10 +62,10 @@ All operations are available from any shell; the dashboard reflects them within 
 Observable definitions; the mechanism is the implementer's choice, within the givens.
 
 - `starting` - agent launched, its session not started yet (Claude still starting in the sandbox).
-- `working` - the agent is processing a prompt.
+- `working` - the agent is processing a prompt, or its turn has ended while subagents it started in the background still run: Claude then goes on by itself when they finish, so the agent is not finished yet (see *Background work* below).
 - `question` - the agent finished a turn with a direct question to the user.
 - `needs input` - the agent is waiting for a permission or an input dialog, or for a dialog Claude Code itself shows when a session starts, before it takes any prompt (such as its question about the default permission mode).
-- `done` - the agent finished a turn without asking anything, or the user ended its turn at the agent: interrupted it (Esc), cancelled its dialog or refused a permission. The last message then says so (`Interrupted`, `User declined to answer questions`). Also a session that has started and waits at its prompt for the user's first prompt: an agent started without a PROMPT (last message `-`), a session resumed or started over (`/clear`), which keep their last message.
+- `done` - the agent finished a turn without asking anything and with no background subagent still running, or the user ended its turn at the agent: interrupted it (Esc), cancelled its dialog or refused a permission. The last message then says so (`Interrupted`, `User declined to answer questions`). Also a session that has started and waits at its prompt for the user's first prompt: an agent started without a PROMPT (last message `-`), a session resumed or started over (`/clear`), which keep their last message.
 - `ended` - the session is gone (exited, crashed, sandbox stopped).
 
 Requirements:
@@ -73,6 +73,14 @@ Requirements:
 - A state change is visible in the dashboard within 1 second.
 - Each state carries the time since it was entered (`3s`, `2m`, `1h`) and the agent's last message, one line, truncated.
 - Entering `question`, `needs input` or `done` triggers exactly one desktop notification per event, whether or not that agent is docked, while the dashboard is open in a terminal (S8). Notifications name the kind and the branch (`Question: feat/42-...`, `Needs input: ...`, `Done: ...`). `working`, `starting` and `ended` never notify, and neither does a turn the user ended at the agent (interrupted, a dialog cancelled or a permission refused) or a session that has just started: the user is already there, or has just started it.
+- **Background work.** `done` means "come and look". A turn that ends by itself while subagents the agent started in the background still run leaves the agent `working`: no notification, `hq wait` does not return, the time keeps counting from the user's prompt, and the last message is that turn's. Each subagent that finishes may wake the agent for a turn of its own; every such turn that ends with subagents still running leaves it `working` (only the last message changes), and the turn that ends with none running makes it `done`, with exactly one notification. Every running background task Claude reports at the turn's end counts (subagents, workflows), except shell commands: an agent that left a dev server running would never be `done`, so an agent waiting only on a background shell command is `done`, and `working` then `done` again when Claude takes a turn at the command's end. It is plain `working` everywhere: no state of its own, no marker in the row, nothing extra in `hq ls`, `hq read` or the supervisor's tools. hq sets no time limit while background work runs: the agent stays `working` until its next turn ends or its session is gone. In detail:
+  - A turn that ends with a direct question to the user is `question`, and notifies, even with subagents running; afterwards the state follows the latest turn end, so the closing turn may replace it with `done`.
+  - A turn the user ended at the agent (interrupted, a dialog cancelled, a permission refused) is `done` without a notification, whatever still runs; when the subagents finish, the closing turn shows `working`, its time counting from when Claude took it up (from the interrupted prompt when no hq was looking during that turn), then `done` with a notification.
+  - A session that starts, is resumed or started over (`/clear`), or relaunched by `hq sandbox restart`, is `done` as always: the subagents of the session before are forgotten. One that outlives `/clear` and wakes the new session shows as it happens: `working`, then `done` with a notification.
+  - Subagents that finish at almost the same moment are no exception: Claude takes a turn for each, and the agent is `done`, with its one notification, at the end of the last of those turns, although nothing runs any more at the end of the earlier ones.
+  - Should Claude not take the turn it owes for finished background work, the agent is `done` a few seconds after its turn's end, with that turn's message and without a notification, so it never stays `working` with nothing running.
+  - A shell command is no background work whoever started it. A subagent that started one and stopped is reported finished, and nothing tells whether it waits on the command or left it running (a dev server): the agent is `done`, with a notification, and `working` then `done` again (with another) if the subagent goes on when the command ends. Documented limitation.
+  - An agent started by an hq older than this rule keeps the old behaviour (`done`, with a notification, at every turn end) until it is relaunched (`hq sandbox restart`).
 - Two agents on the same branch are allowed; their states may then be indistinguishable. Documented limitation.
 - Every agent started by hq reports its state with no setup: nothing is installed, configured or committed in the repository, and nothing per machine beyond installing hq.
 
@@ -82,6 +90,7 @@ A message left with `hq send` reaches the agent when it is ready, depending on i
 
 - `working`: when the agent would finish its turn, it goes on with the message instead, and finishes after that. It stays `working` meanwhile; only the turn's final end notifies (once). With `--now`, the message comes after the agent's next tool call, within the running turn, and the agent may change course; when no tool call comes, it goes when the agent would finish, as without.
 - `done` or `question`, nothing typed in its prompt box: it is entered as the agent's next prompt. With something typed there (the user writing), it waits and goes along with the next prompt sent from there.
+- `working` only on background subagents (5, *Background work*): the agent sits at its prompt, so the message is entered as its next prompt at once, as for `done`, or waits for the next prompt sent from a box the user is typing in. The agent stays `working` if subagents still run when that turn ends.
 - `needs input`: it waits until the dialog is closed, then goes as above. A message never answers a dialog. At a dialog Claude Code shows when a session starts, the message waits for the agent's next prompt after the user has answered the dialog, and `hq send` says so.
 - `starting`: it waits for the session to start, then goes as above.
 - `ended`: refused.
@@ -187,6 +196,8 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 
 **S5. Agent done** - the row turns green `done` with the last message (e.g. "PR #58 opened"). Review happens on GitHub; the row stays until killed.
 
+**S5b. Agent waits for its subagents** - an agent told to start subagents in the background and end its turn stays blue `working`, its time counting from the user's prompt and its last message that turn's, with no notification; the user docked on it sees Claude at its prompt, and Esc there changes nothing. As the subagents finish, Claude takes a turn for each (only the last message changes while others still run). When the turn after the last one ends, the row turns green `done` and one notification fires.
+
 **S6. Kill** - `k`, strip `kill`, or `hq kill NAME`: Kill dialog, `No` default. On `Yes` the Claude session ends cleanly, the sandbox stays. If the killed agent was docked, the session slot becomes an empty placeholder with a hint, focus stays in the list, and the cursor moves to a neighbouring row without docking it (6.3). The same name may be reused afterwards.
 
 **S7. Agent ends by itself** (Claude exited, sandbox stopped, launch failed): the row turns grey `ended` with the last known message, `[session ended]` when it had none, in the list and in `hq ls` alike; its output stays readable when docked; `k` removes the row.
@@ -221,6 +232,7 @@ Creating worktrees or branches, managing pull requests, PR status per branch (le
 - Resizing the window keeps 6 list rows and gives the rest to the session.
 - Stopping a sandbox from outside flips its rows to `ended` within 2s of the sandbox having stopped (its sessions ended; `sbx stop` itself takes several seconds before that).
 - Every attention event produces exactly one desktop notification.
+- An agent told to start background subagents and end its turn stays `working` in the list, `hq ls` and `hq wait`, with no notification, until the turn Claude runs after the last of them has finished ends; then it is `done`, with one notification. An agent that only left a background shell command running is `done` at its turn's end.
 
 ### Manual test
 

@@ -21,6 +21,22 @@
 //   - a prompt "worktree BRANCH" makes a worktree on a new BRANCH under
 //     .claude/worktrees and moves into it, as Claude does;
 //   - a prompt containing "tool" runs a tool: PostToolUse after the delay;
+//   - a prompt starts a background subagent for each "background" it
+//     contains (PostToolUse of the Agent tool, its response saying
+//     async_launched), and a background shell command when it contains
+//     "server":
+//     the turn ends at once, its Stop listing them as running
+//     (background_tasks), as every later Stop does while they run;
+//   - the line "wake" is no prompt: a background subagent finishes, and
+//     Claude wakes itself for a turn, as Claude Code 2.1.291 does:
+//     UserPromptSubmit with a <task-notification> prompt, which no ❯ line
+//     shows, then Stop. Words after "wake" are part of that prompt, so
+//     "wake slow" works until a line comes. With no subagent running it
+//     does nothing. "wake together" finishes two subagents at once: both
+//     are gone from the list at the Stop of the turn for the first, and
+//     the turn for the second follows (their replies end "(one)", "(two)");
+//   - the line "lose" is no prompt: a background subagent goes without
+//     Claude taking a turn for it, and no hook fires;
 //   - the line "draft" is no prompt: it draws the box holding "a draft", as
 //     when the user has typed that and not sent it yet;
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.
@@ -102,6 +118,8 @@ type claude struct {
 	session string
 	cwd     string
 	delay   time.Duration
+	tasks   []map[string]string // the background work that runs
+	started int                 // how many background subagents it has started
 }
 
 func main() {
@@ -169,9 +187,52 @@ func main() {
 			fmt.Print(leaveAltScreen)
 			return
 		default:
+			if words := strings.Fields(line); words[0] == "wake" {
+				c.wake(strings.Join(words[1:], " "), in)
+				continue
+			}
+			if line == "lose" {
+				c.finish()
+				continue
+			}
 			c.turn(line, in)
 		}
 	}
+}
+
+// wakePrefix starts the prompt Claude gives itself when background work has
+// finished.
+const wakePrefix = "<task-notification>"
+
+// wake finishes the background subagent started first, if any, and runs
+// the turn Claude wakes itself for; note is part of its prompt. With the
+// note "together" it finishes two at once and runs a turn for each.
+func (c *claude) wake(note string, in *bufio.Scanner) {
+	notes := []string{note}
+	if note == "together" {
+		notes = []string{"(one)", "(two)"}
+	}
+	var done []string
+	for range notes {
+		if id, ok := c.finish(); ok {
+			done = append(done, id)
+		}
+	}
+	for i, id := range done {
+		c.turn(wakePrefix+"\n<task-id>"+id+"</task-id>\n<status>completed</status>\n<summary>Agent \"Background work\" completed "+notes[i]+"</summary>\n</task-notification>", in)
+	}
+}
+
+// finish takes the background subagent started first off the list of what
+// runs, and returns its id.
+func (c *claude) finish() (id string, ok bool) {
+	for i, task := range c.tasks {
+		if task["type"] == "subagent" {
+			c.tasks = append(c.tasks[:i:i], c.tasks[i+1:]...)
+			return task["id"], true
+		}
+	}
+	return "", false
 }
 
 func (c *claude) turn(prompt string, in *bufio.Scanner) {
@@ -179,7 +240,23 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	if ctx := c.fire("UserPromptSubmit", map[string]any{"prompt": prompt}).context(); ctx != "" {
 		noted = append(noted, ctx)
 	}
-	fmt.Println("❯ " + strings.ReplaceAll(prompt, "\n", "\n  "))
+	woken := strings.HasPrefix(prompt, wakePrefix)
+	if woken {
+		fmt.Println("● Agent \"Background work\" completed")
+	} else {
+		fmt.Println("❯ " + strings.ReplaceAll(prompt, "\n", "\n  "))
+		for range strings.Count(prompt, "background") {
+			c.started++
+			id := fmt.Sprintf("a%015x", c.started)
+			c.tasks = append(c.tasks, map[string]string{"id": id, "type": "subagent", "status": "running", "description": "Background work", "agent_type": "general-purpose"})
+			// The Agent tool returns at once: the subagent runs on.
+			c.fire("PostToolUse", map[string]any{"tool_name": "Agent", "tool_input": map[string]string{"description": "Background work", "prompt": "work"}, "tool_use_id": "toolu_fake",
+				"tool_response": map[string]any{"isAsync": true, "status": "async_launched", "agentId": id, "description": "Background work"}})
+		}
+		if strings.Contains(prompt, "server") {
+			c.tasks = append(c.tasks, map[string]string{"id": fmt.Sprintf("b%07x", len(c.tasks)+1), "type": "shell", "status": "running", "description": "Dev server", "command": "npm run dev"})
+		}
+	}
 	time.Sleep(c.delay)
 	if b, ok := strings.CutPrefix(prompt, "worktree "); ok {
 		dir := filepath.Join(c.cwd, ".claude", "worktrees", strings.ReplaceAll(b, "/", "-"))
@@ -235,6 +312,12 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 		time.Sleep(c.delay)
 	}
 	reply := "Done: " + prompt
+	if woken {
+		reply = fmt.Sprintf("The background work is done, %d still running.", c.subagents())
+		if strings.Contains(prompt, "(one)") || strings.Contains(prompt, "(two)") {
+			reply += prompt[strings.Index(prompt, " (") : strings.Index(prompt, ")")+1]
+		}
+	}
 	if strings.Contains(prompt, "question") {
 		reply = "Shall I go on?"
 	}
@@ -246,7 +329,7 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	}
 	for active := false; ; active = true {
 		fmt.Println("● " + reply)
-		out := c.fire("Stop", map[string]any{"stop_hook_active": active, "last_assistant_message": reply})
+		out := c.fire("Stop", map[string]any{"stop_hook_active": active, "last_assistant_message": reply, "background_tasks": append([]map[string]string{}, c.tasks...)})
 		if out.Decision != "block" {
 			break
 		}
@@ -255,6 +338,16 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 		reply = "Answered: " + out.Reason
 	}
 	promptBox("")
+}
+
+// subagents is how many background subagents run.
+func (c *claude) subagents() (n int) {
+	for _, task := range c.tasks {
+		if task["type"] == "subagent" {
+			n++
+		}
+	}
+	return n
 }
 
 // question is what the fake's question dialog asks.
@@ -302,7 +395,12 @@ func (c *claude) fire(event string, fields map[string]any) (o output) {
 	for k, v := range fields {
 		p[k] = v
 	}
-	payload, _ := json.Marshal(p)
+	// As Claude writes it: <, > and & are not escaped.
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(p)
+	payload := bytes.TrimSpace(buf.Bytes())
 	kind, _ := fields["notification_type"].(string)
 	if source, ok := fields["source"].(string); ok {
 		kind = source

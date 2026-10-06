@@ -266,3 +266,22 @@ func TestSendTypesIntoABoxShowingOnlyClaudesFaintHint(t *testing.T) {
 		t.Fatalf("exit %d %q", code, out)
 	}
 }
+
+func TestSendToAnAgentWaitingForItsSubagentsTypesItInAsItsNextPrompt(t *testing.T) {
+	f := sendFakes("")
+	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Minute), Latest: f.now.Add(-time.Second), Background: true}
+	code, out, errOut := f.run("send", "a", "also run the linter")
+	if code != 0 || out != "delivered: typed into a as its next prompt\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if got := strings.Join(f.tmux.pasted, "|"); got != "%4 also run the linter" || strings.Join(f.tmux.submitted, " ") != "%4" {
+		t.Fatalf("pasted %q submitted %v", got, f.tmux.submitted)
+	}
+	// With the user typing there it waits for the next prompt, as for done.
+	f = sendFakes("")
+	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Minute), Latest: f.now.Add(-time.Second), Background: true}
+	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ ", "❯ a draft", 1)
+	if code, out, _ := f.run("send", "a", "hi"); code != 0 || out != "queued: a has something in its prompt box, delivered with its next prompt\n" || len(f.tmux.pasted) != 0 {
+		t.Fatalf("typing: exit %d %q", code, out)
+	}
+}

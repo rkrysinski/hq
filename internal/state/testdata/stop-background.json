@@ -1,0 +1,24 @@
+{
+  "session_id": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+  "transcript_path": "/home/agent/.claude/projects/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0.jsonl",
+  "cwd": "/w/app/.claude/worktrees/feat-42",
+  "scratchpad_dir": "/tmp/claude-1000/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0/scratchpad",
+  "prompt_id": "93d846fc-d0bc-493e-9a1e-2243c4685aa5",
+  "permission_mode": "bypassPermissions",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "The tests are running in a subagent.",
+  "background_tasks": [
+    {
+      "id": "a58b43841609db047",
+      "type": "subagent",
+      "status": "running",
+      "description": "Run the \"slow\" tests [all] {twice}",
+      "agent_type": "general-purpose"
+    }
+  ],
+  "session_crons": []
+}

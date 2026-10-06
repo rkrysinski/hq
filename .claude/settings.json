@@ -1,5 +1,14 @@
 {
   "enabledPlugins": {
-    "mattpocock-skills@claude-plugins-official": true
+    "mattpocock-skills@mattpocock": true
+  },
+  "extraKnownMarketplaces": {
+    "mattpocock": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/mattpocock/skills.git",
+        "ref": "v1.3.1"
+      }
+    }
   }
 }

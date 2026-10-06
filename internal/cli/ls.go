@@ -187,8 +187,8 @@ func keep(d deps, a *agent.Agent, r agent.Record) {
 	}
 }
 
-// resting reports whether a working agent's screen is at rest, not yet for
-// long enough to be a turn the user rewound.
+// resting reports whether a working agent's screen is at rest in a way one
+// more look decides (agent.Resting), not yet for long enough.
 func resting(as []agent.Agent) bool {
 	for _, a := range as {
 		if a.Resting() {
@@ -199,11 +199,13 @@ func resting(as []agent.Agent) bool {
 }
 
 // seeEnds records on their windows when hq first saw ended the agents
-// whose end nothing else dates (design §3.4), so hq ls and the list agree.
+// whose end nothing else dates, and when Claude woke those whose turn the
+// user had ended (design §3.4), so hq ls and the list agree.
 func seeEnds(d deps, as []agent.Agent) []agent.Agent {
 	now := d.now()
 	for i := range as {
 		keep(d, &as[i], as[i].SeeEnd(now))
+		keep(d, &as[i], as[i].SeeWake())
 	}
 	return as
 }

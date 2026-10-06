@@ -211,3 +211,75 @@ func TestWithoutHintsKeepsWhatTheUserTyped(t *testing.T) {
 		}
 	}
 }
+
+// While subagents run, Claude Code 2.1.291 lists them below its footer:
+// main, then a line for each. screen-styled-background is one subagent
+// running, captured with its styles (the box shows a faint suggestion);
+// screen-background-three is three, captured without.
+func TestThePromptBoxIsFoundAboveTheSubagentsClaudeListsBelowItsFooter(t *testing.T) {
+	one := WithoutHints(screen(t, "styled-background"))
+	if ok, restored := AtRest(one, ""); !ok || restored {
+		t.Fatalf("one subagent: at rest %v, restored %v", ok, restored)
+	}
+	// Three more lines than a footer has; the box holds the suggestion,
+	// which reads as typed text without the styles.
+	three := screen(t, "background-three")
+	if ok, restored := AtRest(three, "Start three more background subagents"); !ok || !restored {
+		t.Fatalf("three subagents: at rest %v, restored %v", ok, restored)
+	}
+	// A turn the user interrupted while they run shows above the same list.
+	list := three[strings.LastIndex(three, "  ● main"):]
+	if last, ok := EndedByUser(screen(t, "interrupted") + "\n" + list); !ok || last != "Interrupted" {
+		t.Fatalf("interrupted above the list: %q %v", last, ok)
+	}
+	// Lines below the footer that are no such list are not Claude's box.
+	if _, ok := EndedByUser(screen(t, "interrupted") + "\n" + list + "more\nlines\nprinted\nbelow\n"); ok {
+		t.Fatal("text below the list read as the footer")
+	}
+	// A turn at work with subagents running is not at rest.
+	if ok, _ := AtRest(screen(t, "working")+"\n"+list, ""); ok {
+		t.Fatal("a turn at work read as at rest")
+	}
+}
+
+// screen-interrupted-then-woken is Claude Code 2.1.291 after a turn the user
+// interrupted while a subagent ran, and the turn Claude woke itself for when
+// the subagent finished (blank lines left out).
+func TestEndedLastTakesOnlyTheLastThingSaidForATurnTheUserEnded(t *testing.T) {
+	woken := screen(t, "interrupted-then-woken")
+	if last, ok := EndedByUser(woken); !ok || last != "Interrupted" {
+		t.Fatalf("no prompt shows between the interrupted turn and the woken one: %q %v", last, ok)
+	}
+	if last, ok := EndedLast(woken); ok {
+		t.Fatalf("an earlier turn's line read as the woken turn's end: %q", last)
+	}
+	// The line as the last thing said, Claude's effort shown above the box
+	// or not, is the turn's end.
+	for name, want := range map[string]string{
+		"interrupted": "Interrupted", "interrupted-80": "Interrupted", "permission-no": "Interrupted",
+		"permission-esc": "Interrupted", "declined": "User declined to answer questions",
+	} {
+		if last, ok := EndedLast(screen(t, name)); !ok || last != want {
+			t.Errorf("%s: %q %v", name, last, ok)
+		}
+	}
+}
+
+func TestIdleIsClaudeAtItsPromptBoxWhateverTheBoxHolds(t *testing.T) {
+	// After a turn; with a draft or Claude's suggestion in the box; with
+	// subagents listed below the footer.
+	for _, name := range []string{"interrupted", "interrupted-prompt-restored", "rewound", "background-three", "interrupted-then-woken"} {
+		if !Idle(screen(t, name)) {
+			t.Errorf("%s: not idle", name)
+		}
+	}
+	// A turn at work, a dialog, no box at all.
+	for _, name := range []string{"working", "tool-running", "dialog-open", "compacting"} {
+		if Idle(screen(t, name)) {
+			t.Errorf("%s: idle", name)
+		}
+	}
+	if Idle("") || Idle("● Done.\n") {
+		t.Error("no prompt box: idle")
+	}
+}

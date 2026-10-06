@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func fixture(t *testing.T, name string) []byte {
@@ -210,7 +211,7 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	}
 	// tmux refuses a command much longer than 16 KiB; the settings are one
 	// argument of the agent's window.
-	if len(raw) > 6<<10 {
+	if len(raw) > 8<<10 {
 		t.Errorf("settings of %d bytes", len(raw))
 	}
 	for _, event := range []string{"PermissionRequest", "PostToolUse", "PostToolUseFailure"} {
@@ -228,5 +229,94 @@ func TestParseKeepsThePromptOfAWorkingTurn(t *testing.T) {
 		if r := Parse(fixture(t, name), nil, nil); r.Prompt != "" {
 			t.Errorf("%s: %q", name, r.Prompt)
 		}
+	}
+}
+
+func TestATurnEndWithBackgroundWorkKeptBesideAWorkingReportLeavesItWorking(t *testing.T) {
+	since := time.Unix(1000, 0)
+	working := Parse(fixture(t, "prompt"), fixture(t, "stop-background"), nil)
+	working.Since, working.Latest = since, since
+	at := since.Add(time.Minute)
+
+	// The turn ended while a subagent still runs: working since the prompt,
+	// with that turn's message, waiting at its prompt.
+	r := working.Kept(fixture(t, "prompt"), fixture(t, "stop-background"), at)
+	if r.State != Working || !r.Background || r.Last != "The tests are running in a subagent." {
+		t.Fatalf("kept turn end: %+v", r)
+	}
+	if !r.Since.Equal(since) || !r.Latest.Equal(at) {
+		t.Fatalf("times: since %v latest %v", r.Since, r.Latest)
+	}
+	if r.Owed {
+		t.Fatal("a subagent runs: no turn is owed")
+	}
+	// The same turn end with nothing running any more, kept because Claude
+	// owes a turn for work that finished together with other work.
+	owed := []byte(strings.Replace(string(fixture(t, "stop-done")), `"background_tasks": []`, `"background_tasks": [{"id": "b1", "type": "shell", "status": "running"}]`, 1))
+	if r = working.Kept(fixture(t, "prompt"), owed, at); r.State != Working || !r.Background || !r.Owed {
+		t.Fatalf("a turn owed: %+v", r)
+	}
+	// Claude's wake-up when the subagent has finished: the closing turn is
+	// at work, since the same prompt.
+	r = working.Kept(fixture(t, "prompt"), fixture(t, "prompt-wake"), at)
+	if r.State != Working || r.Background || !r.Woken || !r.Since.Equal(since) || !r.Latest.Equal(at) || r.Prompt != "say hi" {
+		t.Fatalf("wake-up: %+v", r)
+	}
+	// Nothing kept, or something unreadable: the report as it is.
+	for _, kept := range []string{"", "{", `{"hook_event_name":"SessionEnd"}`} {
+		if r := working.Kept(fixture(t, "prompt"), []byte(kept), at); r != working {
+			t.Errorf("kept %q: %+v", kept, r)
+		}
+	}
+}
+
+func TestAKeptTurnEndCountsOnlyBesideAReportItBelongsTo(t *testing.T) {
+	since := time.Unix(1000, 0)
+	at := since.Add(time.Minute)
+	kept := fixture(t, "stop-background")
+	for _, tc := range []struct {
+		latest     string
+		state      string
+		background bool
+	}{
+		{"stop-background", Working, true}, // the hook wrote the turn end as the report too
+		{"answer-ask", Working, true},      // a dialog answered meanwhile (a subagent's)
+		{"stop-done", Done, false},
+		{"stop-background-question", Question, false},
+		{"dialog-ask", NeedsInput, false},
+		{"notification", NeedsInput, false},
+		{"session-start", Done, false},
+		{"session-end", Ended, false},
+	} {
+		latest := fixture(t, tc.latest)
+		r := Parse(latest, kept, nil)
+		r.Since, r.Latest = since, since
+		r = r.Kept(latest, kept, at)
+		if r.State != tc.state || r.Background != tc.background || !r.Since.Equal(since) {
+			t.Errorf("%s: %+v", tc.latest, r)
+		}
+		if wantLatest := map[bool]time.Time{true: at, false: since}[tc.background]; !r.Latest.Equal(wantLatest) {
+			t.Errorf("%s: latest %v", tc.latest, r.Latest)
+		}
+	}
+	// A wake-up that is the report itself, after done or a question, is a
+	// turn Claude woke itself for too.
+	if r := Parse(fixture(t, "prompt-wake"), kept, nil); r.State != Working || !r.Woken || r.Background {
+		t.Errorf("wake-up as the report: %+v", r)
+	}
+	if r := Parse(fixture(t, "prompt"), nil, nil); r.Woken {
+		t.Errorf("the user's prompt: %+v", r)
+	}
+	// A wake-up counts only while the report says working.
+	for _, latest := range []string{"stop-done", "dialog-ask", "session-start"} {
+		r := Parse(fixture(t, latest), nil, nil)
+		if got := r.Kept(fixture(t, latest), fixture(t, "prompt-wake"), at); got != r {
+			t.Errorf("wake-up beside %s: %+v", latest, got)
+		}
+	}
+	// A turn end with background work that an older hook reported is done,
+	// as it was: nothing is kept beside it.
+	if r := Parse(kept, kept, nil).Kept(kept, nil, at); r.State != Done || r.Background {
+		t.Errorf("an older hook's report: %+v", r)
 	}
 }

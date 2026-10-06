@@ -734,3 +734,186 @@ func TestSettleSeesClaudesDialogAtTheStartOfASession(t *testing.T) {
 		t.Fatalf("a finished turn is looked at: %+v", d)
 	}
 }
+
+func TestAnAgentWaitingForItsSubagentsWorksAtItsPromptAndItsScreenIsNotRead(t *testing.T) {
+	// Claude at its prompt, at rest, after a turn that ended by itself: the
+	// look of a rewind.
+	atRest := "● Started.\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer\n"
+	prompted := time.Unix(1000, 0)
+	ended := prompted.Add(10 * time.Second)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	r := state.Report{State: state.Working, Since: prompted, Latest: ended, Background: true, Last: "Started.", Prompt: "run the tests"}
+	a := FromWindows([]tmux.Window{w})[0]
+	a.Apply(r, true)
+	if !a.OnBackgroundWork() || a.Unsettled(ended.Add(time.Minute)) {
+		t.Fatalf("waiting %v, unsettled %v", a.OnBackgroundWork(), a.Unsettled(ended.Add(time.Minute)))
+	}
+	// Working since the user's prompt, with the turn's message.
+	if a.State != state.Working || !a.Since.Equal(prompted) || a.Last != "Started." || !a.Entered().Equal(prompted) {
+		t.Fatalf("%+v", a)
+	}
+
+	// Claude's wake-up: the closing turn is at work, since the same prompt,
+	// and its screen is read again, a moment after the wake-up.
+	woken := ended.Add(time.Minute)
+	r.Latest, r.Background, r.Woken = woken, false, true
+	b := FromWindows([]tmux.Window{w})[0]
+	b.Apply(r, true)
+	if b.OnBackgroundWork() || b.Unsettled(woken.Add(100*time.Millisecond)) || !b.Unsettled(woken.Add(time.Second)) || !b.Since.Equal(prompted) {
+		t.Fatalf("woken: waiting %v %+v", b.OnBackgroundWork(), b)
+	}
+	if rec := b.Settle(atRest, woken.Add(time.Second)); rec.Option != "restseen" {
+		t.Fatalf("closing turn at rest: %+v", rec)
+	}
+	// An Interrupted line of the turn before the wake-up stands above what
+	// the wake-up printed: not this turn's end.
+	stale := "  ⎿  Interrupted · What should Claude do instead?\n● Agent \"Run the tests\" finished · 42s\n" + atRest
+	seen := woken.Add(2 * time.Second)
+	if rec := b.Settle(stale, seen); b.State != state.Working || rec.Option != "restseen" {
+		t.Fatalf("closing turn, an earlier turn's line above: %+v %+v", rec, b)
+	}
+	// The user ends the closing turn: done, as any turn ended at the agent.
+	interrupted := "● Agent \"Run the tests\" finished · 42s\n● Started.\n  ⎿  Interrupted · What should Claude do instead?\n" + strings.TrimPrefix(atRest, "● Started.\n")
+	rec := b.Settle(interrupted, seen)
+	if b.State != state.Done || b.Last != "Interrupted" || !b.Since.Equal(seen) || rec.Option != "turnend" {
+		t.Fatalf("closing turn interrupted: %+v %+v", rec, b)
+	}
+}
+
+func TestATurnEndHqSawDoesNotOutliveClaudesWakeUp(t *testing.T) {
+	// The user interrupted a turn whose subagent still runs: done, with no
+	// hook. Claude's wake-up, when the subagent has finished, is a later
+	// report: the closing turn shows working.
+	prompted := time.Unix(1000, 0)
+	seen := prompted.Add(5 * time.Second)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	r := state.Report{State: state.Working, Since: prompted, Latest: prompted, Prompt: "run the tests"}
+	a := FromWindows([]tmux.Window{w})[0]
+	a.Apply(r, true)
+	interrupted := "  ⎿  Interrupted · What should Claude do instead?\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer\n"
+	rec := a.Settle(interrupted, seen)
+	if a.State != state.Done || rec.Option != "turnend" {
+		t.Fatalf("interrupted: %+v %+v", rec, a)
+	}
+	w.Options["turnend"] = rec.Value
+	b := FromWindows([]tmux.Window{w})[0]
+	b.Apply(r, true)
+	if !b.Recall() || b.State != state.Done {
+		t.Fatalf("recalled: %+v", b)
+	}
+	// It works since the wake-up, not since the prompt of the turn the
+	// user ended, and the look that sees the wake-up records when.
+	woken := prompted.Add(time.Minute)
+	r.Latest, r.Woken = woken, true
+	c := FromWindows([]tmux.Window{w})[0]
+	c.Apply(r, true)
+	wake := c.SeeWake()
+	if c.Recall() || c.State != state.Working || !c.Since.Equal(woken) || wake.Option != "wokeseen" {
+		t.Fatalf("after the wake-up: %+v %+v", wake, c)
+	}
+	// The closing turn ends with another subagent running: a later report
+	// of the same work, which no longer tells when the wake-up was.
+	r.Latest, r.Woken, r.Background = woken.Add(10*time.Second), false, true
+	d := FromWindows([]tmux.Window{w})[0]
+	d.Apply(r, true)
+	if d.State != state.Working || !d.Since.Equal(prompted) || d.SeeWake().Value != "" {
+		t.Fatalf("a later report, the wake-up never seen: %+v", d)
+	}
+	w.Options["wokeseen"] = wake.Value
+	d = FromWindows([]tmux.Window{w})[0]
+	d.Apply(r, true)
+	if d.State != state.Working || !d.Since.Equal(woken) || d.SeeWake().Value != "" {
+		t.Fatalf("a later report, the wake-up recorded: %+v", d)
+	}
+	// Another process stored its record first: that moment shows.
+	first := wake.Key + "1060000000000"
+	r.Latest, r.Woken, r.Background = woken, true, false
+	delete(w.Options, "wokeseen")
+	e := FromWindows([]tmux.Window{w})[0]
+	e.Apply(r, true)
+	if e.Keep(e.SeeWake(), first); !e.Since.Equal(time.Unix(1060, 0)) {
+		t.Fatalf("the record stored first: %+v", e)
+	}
+	// A wake-up with no turn the user ended before it changes nothing.
+	delete(w.Options, "turnend")
+	g := FromWindows([]tmux.Window{w})[0]
+	g.Apply(r, true)
+	if !g.Since.Equal(prompted) || g.SeeWake().Value != "" {
+		t.Fatalf("a wake-up after a turn that ended by itself: %+v", g)
+	}
+	w.Options["turnend"] = rec.Value
+	// An agent that ended keeps the turn end of its latest report only.
+	w.PaneDead = true
+	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, nil); as[0].Last == "Interrupted" {
+		t.Fatalf("ended after the wake-up: %+v", as[0])
+	}
+}
+
+func TestAnAgentOwedATurnThatDoesNotComeIsDoneOnceItsScreenStaysAtRest(t *testing.T) {
+	// Claude at its prompt after the turn ended, the user typing there.
+	atRest := "● The second finished.\n" + strings.Repeat("─", 20) + "\n❯ and now\n" + strings.Repeat("─", 20) + "\n  footer\n"
+	prompted := time.Unix(1000, 0)
+	ended := prompted.Add(time.Minute)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	r := state.Report{State: state.Working, Since: prompted, Latest: ended, Background: true, Owed: true, Last: "The second finished.", Prompt: "run the tests"}
+	look := func(screen string, now time.Time) (Agent, Record) {
+		a := FromWindows([]tmux.Window{w})[0]
+		a.Apply(r, true)
+		if !a.OnBackgroundWork() {
+			t.Fatalf("not at its prompt: %+v", a)
+		}
+		if !a.Unsettled(now) {
+			return a, Record{}
+		}
+		rec := a.Settle(screen, now)
+		if rec.Value != "" {
+			w.Options[rec.Option] = rec.Value
+		}
+		return a, rec
+	}
+	// The turn Claude owes comes within moments: nothing is looked at yet,
+	// and a screen at work is not at rest.
+	if a, _ := look(atRest, ended.Add(100*time.Millisecond)); a.State != state.Working {
+		t.Fatalf("just ended: %+v", a)
+	}
+	working := "✻ Brewing… (2s)\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer · esc to interrupt\n"
+	if a, rec := look(working, ended.Add(time.Second)); a.State != state.Working || rec.Value != "" {
+		t.Fatalf("at work: %+v %+v", rec, a)
+	}
+	// At rest: seen, and working until it has stayed so.
+	seen := ended.Add(2 * time.Second)
+	if a, rec := look(atRest, seen); a.State != state.Working || rec.Option != "restseen" {
+		t.Fatalf("first seen at rest: %+v %+v", rec, a)
+	}
+	if a, rec := look(atRest, seen.Add(time.Second)); a.State != state.Working || rec.Value != "" {
+		t.Fatalf("at rest for a second: %+v %+v", rec, a)
+	}
+	// Still at rest: the turn does not come. Done, with the turn's message,
+	// since it was first seen at rest, entered when that was decided.
+	a, rec := look(atRest, seen.Add(RestDelay))
+	if a.State != state.Done || a.Last != "The second finished." || !a.Since.Equal(seen) || rec.Option != "turnend" || !a.Entered().Equal(seen.Add(RestDelay)) {
+		t.Fatalf("at rest for long: %+v %+v", rec, a)
+	}
+	// The message is the agent's own: never kept on the window.
+	if strings.Contains(rec.Value, "second") {
+		t.Fatalf("the record holds the agent's message: %q", rec.Value)
+	}
+	// One hq ls looks again, RestDelay later, as for a rewound turn.
+	w2 := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	first := FromWindows([]tmux.Window{w2})[0]
+	first.Apply(r, true)
+	if first.Settle(atRest, seen); !first.Resting() {
+		t.Fatal("a first look at rest asks for no second one")
+	}
+	// Every later look agrees, without the screen.
+	b := FromWindows([]tmux.Window{w})[0]
+	b.Apply(r, true)
+	if !b.Recall() || b.State != state.Done || b.Last != "The second finished." || !b.Since.Equal(seen) || !b.Entered().Equal(seen.Add(RestDelay)) {
+		t.Fatalf("recalled: %+v", b)
+	}
+	// Ended after that: its last message stays its own.
+	w.PaneDead = true
+	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, nil); as[0].Last != "The second finished." {
+		t.Fatalf("ended: %+v", as[0])
+	}
+}

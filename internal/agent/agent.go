@@ -36,15 +36,21 @@ type Agent struct {
 	turnEnd  string     // a turn the user ended, as hq first saw it (see Settle)
 	restSeen string     // when hq first saw its screen at rest, as it looked (see Settle)
 	resting  bool       // its screen is at rest, not yet for long enough (see Settle)
-	rewound  bool       // its turn end is a rewind, decided RestDelay after its moment (see Entered)
+	rested   bool       // its turn end was read off a screen at rest, decided RestDelay after its moment (see Entered)
 	prompt   string     // the prompt it works on, as its hooks reported it
 	deadAt   time.Time  // when its pane died, as tmux says; zero when unknown
 	endedAt  time.Time  // when its session reported its end
 	atStart  bool       // its latest report is its session's start
+	atPrompt bool       // its turn ended with background work running: it works, at its prompt (see OnBackgroundWork)
+	owed     bool       // at its prompt with nothing running: Claude owes it a turn (see Settle)
+	woken    bool       // it works on a turn Claude woke itself for (see Settle)
 	startAsk *state.Ask // the dialog its screen shows at the start, if any
 	started  string     // the start as stored, which keys endSeen
 	reportAt time.Time  // the time of its session's last report; zero before its first
 	endSeen  string     // when hq first saw it ended (see SeeEnd)
+	wokeSeen string     // when Claude woke it after a turn the user ended (see SeeWake)
+	wokeKey  string     // what keys that record now, if such a turn it is
+	wokeAt   time.Time  // the moment to record for it, when this look sees the wake-up
 	State    string     `json:"state"`
 	Since    time.Time  `json:"since"`
 	Branch   string     `json:"branch"`
@@ -99,7 +105,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 			continue
 		}
 		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], restSeen: o["restseen"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting,
-			deadAt: w.DeadAt, started: o["started"], endSeen: o["endseen"]}
+			deadAt: w.DeadAt, started: o["started"], endSeen: o["endseen"], wokeSeen: o["wokeseen"]}
 		if a.Name == "" {
 			a.Name = w.Name
 		}
@@ -158,7 +164,7 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 // reported since: its last known message (spec S7, #111). Its time stays
 // the moment it ended.
 func (a *Agent) keepTurnEnd() {
-	if f := strings.SplitN(a.turnEnd, " ", 3); len(f) == 3 && f[0] == a.key() {
+	if f := strings.SplitN(a.turnEnd, " ", 3); len(f) == 3 && f[0] == a.key() && f[2] != ownLast {
 		a.Last = f[2]
 	}
 }
@@ -205,8 +211,9 @@ func (a Agent) seenAt() (time.Time, bool) {
 // Entered is the moment from which any hq process can see the agent in its
 // state (design §3.4, "Entered after a moment"), which hq wait compares with
 // its --since. It is Since, the moment AGE counts from, except where that
-// is dated before the state can be seen: a turn the user rewound is decided
-// only RestDelay after its screen was first seen at rest, and an ended
+// is dated before the state can be seen: a turn the user rewound, or one
+// Claude owed and did not take, is decided only RestDelay after its screen
+// was first seen at rest, and an ended
 // agent is ended from the first of its session's end report, the moment hq
 // first saw it ended, and its pane's death, which tmux dates to the whole
 // second, so a second after that. Every process derives it from the same
@@ -232,7 +239,7 @@ func (a Agent) Entered() time.Time {
 		if !first.IsZero() {
 			return first
 		}
-	case a.State == state.Done && a.rewound:
+	case a.State == state.Done && a.rested:
 		return a.Since.Add(RestDelay)
 	}
 	return a.Since
@@ -288,6 +295,11 @@ func (a *Agent) Keep(r Record, stored string) {
 	case "endseen":
 		a.endSeen = stored
 		a.seen()
+	case "wokeseen":
+		a.wokeSeen = stored
+		if at, ok := a.wokeSeenAt(); ok {
+			a.Since = at
+		}
 	}
 }
 
@@ -308,7 +320,13 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		return
 	}
 	a.New, a.reported, a.reportAt = false, true, r.Since
+	// An event the hook kept beside the report (state.Report.Kept) is the
+	// later one: the agent works on, since the same moment.
+	if r.Latest.After(r.Since) {
+		a.reportAt = r.Latest
+	}
 	a.atStart = r.AtStart && r.State == state.Done
+	a.atPrompt, a.owed, a.woken = r.Background, r.Background && r.Owed, r.Woken
 	if r.State == state.Ended {
 		a.endedAt = r.Since
 	}
@@ -318,6 +336,56 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	if a.Alive || r.Since.After(a.Since) {
 		a.Since = r.Since
 	}
+	a.sinceWake(r)
+}
+
+// sinceWake dates the work of an agent Claude woke after a turn the user
+// ended at it (design §3.4). The hooks know nothing of that end, so its
+// report still counts from the prompt of the turn the user ended; hq saw
+// the end (the turnend record of an earlier report since that prompt), and
+// the agent works since the wake-up: the time of the report that is the
+// wake-up, which the first look to see it records (SeeWake), as the
+// reports after it, of the same work, no longer tell.
+func (a *Agent) sinceWake(r state.Report) {
+	a.wokeKey, a.wokeAt = "", time.Time{}
+	f := strings.SplitN(a.turnEnd, " ", 3)
+	if a.State != state.Working || !r.Latest.After(r.Since) || len(f) != 3 || f[0] == a.key() {
+		return
+	}
+	if ended, err := strconv.ParseInt(f[0], 10, 64); err != nil || ended < r.Since.UnixNano() || ended >= r.Latest.UnixNano() {
+		return
+	}
+	a.wokeKey = nanos(r.Since) + " " + f[0] + " "
+	switch at, seen := a.wokeSeenAt(); {
+	case seen:
+		a.Since = at
+	case r.Woken:
+		a.Since, a.wokeAt = r.Latest, r.Latest
+	}
+}
+
+// wokeSeenAt is the moment SeeWake recorded for the agent's work now.
+func (a Agent) wokeSeenAt() (time.Time, bool) {
+	at, ok := strings.CutPrefix(a.wokeSeen, a.wokeKey)
+	if !ok || a.wokeKey == "" {
+		return time.Time{}, false
+	}
+	n, err := strconv.ParseInt(at, 10, 64)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return time.Unix(0, n), true
+}
+
+// SeeWake records, for an agent whose report is Claude's wake-up after a
+// turn the user ended, when that was: the record to store as the wokeseen
+// option, keyed by the report its state counts from and the turn end it
+// follows, with no Value when there is nothing to store.
+func (a Agent) SeeWake() Record {
+	if a.wokeAt.IsZero() {
+		return Record{}
+	}
+	return Record{"wokeseen", a.wokeKey, a.wokeKey + nanos(a.wokeAt)}
 }
 
 // settleDelay is how old the hooks' report must be before the agent's
@@ -327,10 +395,21 @@ const settleDelay = 500 * time.Millisecond
 
 // Unsettled reports whether the agent's screen may show a turn that the
 // user ended, which no hook reports (design §3.4): the agent runs, and its
-// hooks said a moment ago that it works or needs input.
+// hooks said a moment ago that it works or needs input. An agent whose turn
+// ended with background work running (OnBackgroundWork) is not: its hooks reported
+// that end, and it rests at its prompt, as after a rewind, until Claude
+// wakes it. Unless none of that work runs any more and Claude only owes
+// the agent a turn for it: that turn comes within moments, or never, which
+// the screen tells (Settle).
 func (a Agent) Unsettled(now time.Time) bool {
-	return a.Alive && !a.ending && a.reported && (a.State == state.Working || a.State == state.NeedsInput || a.atStart) && now.Sub(a.Since) >= settleDelay
+	return a.Alive && !a.ending && a.reported && (!a.atPrompt || a.owed) && (a.State == state.Working || a.State == state.NeedsInput || a.atStart) && now.Sub(a.reportAt) >= settleDelay
 }
+
+// OnBackgroundWork reports whether the agent works only on background work
+// (subagents): its turn ended, and it sits at its prompt until Claude
+// wakes it for the closing turn (spec §5). hq send types a message in
+// there, as for an agent that is done.
+func (a Agent) OnBackgroundWork() bool { return a.atPrompt && a.State == state.Working }
 
 // StartAsk is the dialog Claude shows in place of its prompt box at the
 // start of the agent's session, as Settle read it off the screen; nil when
@@ -353,11 +432,15 @@ func (a *Agent) recall(key string) bool {
 	if err != nil {
 		return false
 	}
-	a.State, a.Since, a.Last = state.Done, time.Unix(0, n), f[2]
-	// A rewind's turn end carries the moment its screen was first seen at
-	// rest, which the restseen record of the same report holds too.
+	a.State, a.Since = state.Done, time.Unix(0, n)
+	if f[2] != ownLast {
+		a.Last = f[2]
+	}
+	// A turn end decided by a screen that stayed at rest (a rewind, a turn
+	// Claude owed and did not take) carries the moment the screen was first
+	// seen at rest, which the restseen record of the same report holds too.
 	r := strings.Fields(a.restSeen)
-	a.rewound = f[2] == Rewound && len(r) == 3 && r[0] == key && r[2] == f[1]
+	a.rested = len(r) == 3 && r[0] == key && r[2] == f[1]
 	return true
 }
 
@@ -367,6 +450,12 @@ func (a *Agent) recall(key string) bool {
 // times a second; seen with Claude Code 2.1.283, its screen never stayed the
 // same for more than about half a second.
 const RestDelay = 2 * time.Second
+
+// ownLast stands in a turnend record for the agent's own last message, as
+// its hooks reported it: a turn that ended by itself. The message itself
+// is never stored on the window: it is the agent's text, and only ever
+// data (design §7.3).
+const ownLast = "="
 
 // Rewound is the last message of a turn the user rewound: an early Esc
 // that put the prompt back in the box, which Claude reports nowhere.
@@ -378,7 +467,11 @@ const Rewound = "Interrupted"
 // rewind the turn instead, with no line and no hook: the working agent's
 // screen is then at rest (state.AtRest), and once it has stayed so,
 // unchanged, for RestDelay, the turn is done with Rewound as its last
-// message, since hq first saw it at rest. Both moments are kept on the
+// message, since hq first saw it at rest. The same goes for an agent at
+// its prompt that Claude owes a turn, for background work that finished
+// together with other work (state.Report.Owed): the turn comes at once, so
+// a screen at rest for RestDelay (state.Idle) says it does not come, and
+// the agent is done with its turn's message. Both moments are kept on the
 // agent's window, keyed by the report they overrule, so hq ls and the list
 // agree (see Recall): the record to store there, as the turnend or the
 // restseen option, with no Value when there is nothing new to store.
@@ -399,37 +492,55 @@ func (a *Agent) Settle(screen string, now time.Time) Record {
 		return Record{}
 	}
 	key := a.key() + " "
-	// A rewind right after a turn the user ended leaves that turn's line
-	// above the box: the rewind below tells that turn's end.
-	rewound := a.State == state.Working && state.PutBack(screen, a.prompt)
-	if last, ok := state.EndedByUser(screen); ok && !rewound {
-		a.State, a.Since, a.Last = state.Done, now, last
-		return Record{"turnend", key, key + nanos(now) + " " + last}
+	// What the record says of the turn's last message, and what it is.
+	mark, last := Rewound, Rewound
+	var rest, again bool
+	if a.owed {
+		// Its turn ended by itself, and Claude owes it one more: at rest
+		// whatever its box holds, the turn's message its last. One more
+		// look, RestDelay later, tells.
+		rest, again = state.Idle(screen), true
+		mark, last = ownLast, a.Last
+	} else {
+		// A rewind right after a turn the user ended leaves that turn's line
+		// above the box: the rewind below tells that turn's end.
+		rewound := a.State == state.Working && state.PutBack(screen, a.prompt)
+		// A turn Claude woke itself for shows no prompt, so a line above the
+		// box may be an earlier turn's: it counts only as the last thing said.
+		ended := state.EndedByUser
+		if a.woken {
+			ended = state.EndedLast
+		}
+		if said, ok := ended(screen); ok && !rewound {
+			a.State, a.Since, a.Last = state.Done, now, said
+			return Record{"turnend", key, key + nanos(now) + " " + said}
+		}
+		if a.State != state.Working {
+			return Record{}
+		}
+		rest, again = state.AtRest(screen, a.prompt)
 	}
-	if a.State != state.Working {
-		return Record{}
-	}
-	rest, restored := state.AtRest(screen, a.prompt)
 	if !rest {
 		return Record{}
 	}
 	look := fingerprint(screen)
 	at, ok := a.restedSince(look)
 	if !ok {
-		a.resting = restored
+		a.resting = again
 		return Record{"restseen", key + look + " ", key + look + " " + nanos(now)}
 	}
 	if now.Sub(at) < RestDelay {
-		a.resting = restored
+		a.resting = again
 		return Record{}
 	}
-	a.State, a.Since, a.Last, a.rewound = state.Done, at, Rewound, true
-	return Record{"turnend", key, key + nanos(at) + " " + Rewound}
+	a.State, a.Since, a.Last, a.rested = state.Done, at, last, true
+	return Record{"turnend", key, key + nanos(at) + " " + mark}
 }
 
-// Resting reports whether Settle saw the agent's screen at rest with its
-// prompt put back in the box, the look of a turn the user rewound, but not
-// yet for long enough to take it for one.
+// Resting reports whether Settle saw the agent's screen at rest in a way
+// that one more look, RestDelay later, decides: with its prompt put back
+// in the box, the look of a turn the user rewound, or owed a turn by
+// Claude; but not yet for long enough.
 func (a Agent) Resting() bool { return a.resting }
 
 // restedSince is when hq first saw the agent's screen at rest looking as it
@@ -455,8 +566,14 @@ func fingerprint(screen string) string {
 
 func nanos(t time.Time) string { return strconv.FormatInt(t.UnixNano(), 10) }
 
-// key names the agent's current report in its turnend record.
-func (a Agent) key() string { return strconv.FormatInt(a.Since.UnixNano(), 10) }
+// key names the agent's current report in its turnend record: its latest
+// one, which may be later than the moment its state counts from (Apply).
+func (a Agent) key() string {
+	if a.reported {
+		return nanos(a.reportAt)
+	}
+	return nanos(a.Since)
+}
 
 // Find returns the agent named name.
 func Find(as []Agent, name string) (Agent, bool) {

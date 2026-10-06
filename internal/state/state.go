@@ -34,6 +34,23 @@ type Report struct {
 	// and, as far as its hooks tell, waits at its prompt. It may show a
 	// dialog of its own first, which no hook reports (StartDialog).
 	AtStart bool
+	// Latest is the time of the agent's latest report: Since, or the later
+	// time of an event that left it working without restarting its time
+	// (Kept).
+	Latest time.Time
+	// Background says the agent's turn ended while background work still
+	// runs (subagents): it waits at its prompt, working, until Claude wakes
+	// it for the closing turn (design §3.4).
+	Background bool
+	// Owed says that of a Background agent nothing runs any more: its
+	// background work finished together, and Claude has not yet taken the
+	// turn it owes for the last of it. That turn comes within moments, or
+	// the agent is done (design §3.4).
+	Owed bool
+	// Woken says the agent works on a turn Claude woke itself for after
+	// background work finished: no prompt of the user's shows on its screen
+	// for it.
+	Woken bool
 }
 
 // payload is the part of a Claude hook event hq reads.
@@ -46,7 +63,11 @@ type payload struct {
 	Prompt           string `json:"prompt"`
 	Source           string `json:"source"`
 	ToolName         string `json:"tool_name"`
-	ToolInput        struct {
+	BackgroundTasks  []struct {
+		Type   string `json:"type"`
+		Status string `json:"status"`
+	} `json:"background_tasks"`
+	ToolInput struct {
 		Questions   []struct{ Question string } `json:"questions"`
 		Description string                      `json:"description"`
 		Command     string                      `json:"command"`
@@ -62,8 +83,24 @@ const (
 	resumeSource = "resume"
 )
 
+// wakePrefix starts the prompt Claude gives itself when background work
+// has finished (design §3.4).
+const wakePrefix = "<task-notification>"
+
 // askTool is Claude's tool that asks the user questions in a dialog.
 const askTool = "AskUserQuestion"
+
+// busy reports whether the event, a Stop, lists background work that
+// still runs: a running task that is no shell command (the rule of the
+// hook's awk, which decides; design §3.4).
+func (p payload) busy() bool {
+	for _, t := range p.BackgroundTasks {
+		if t.Status == "running" && t.Type != "shell" {
+			return true
+		}
+	}
+	return false
+}
 
 // dialogText is what an open dialog shows as the last message: the first
 // question Claude asks, or for a permission prompt the tool and what it is
@@ -101,6 +138,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 		// user answered and Claude works on.
 		r.State = Working
 		r.Prompt = p.Prompt
+		r.Woken = strings.HasPrefix(p.Prompt, wakePrefix)
 	case "PermissionRequest":
 		r.State = NeedsInput
 		if m := p.dialogText(); m != "" {
@@ -140,6 +178,35 @@ func Parse(latest, lastStop, prev []byte) Report {
 		r.State = Ended
 	default:
 		r.State = Starting
+	}
+	return r
+}
+
+// Kept adds to the report of the state file latest what the hook kept
+// beside it (kept, written at; empty when there is nothing): the latest
+// event that left the agent working without restarting its time (design
+// §3.4). A turn end with background work still running (a Stop) counts
+// beside a report that says working, and as the report itself when the hook
+// wrote it there too, the agent not working before: the agent works, at its
+// prompt, with that turn's message. Claude's wake-up for the closing turn
+// (a UserPromptSubmit) counts beside a report that says working: the agent
+// works on, since the same moment.
+func (r Report) Kept(latest, kept []byte, at time.Time) Report {
+	var p payload
+	if _, event := splitHeader(kept); json.Unmarshal(event, &p) != nil {
+		return r
+	}
+	switch {
+	case p.Event == "Stop" && (r.State == Working || bytes.Equal(kept, latest)):
+		r.State, r.Background, r.Last = Working, true, Clean(p.AssistantMessage)
+		r.Owed = !p.busy()
+	case p.Event == "UserPromptSubmit" && r.State == Working:
+		r.Woken = true
+	default:
+		return r
+	}
+	if at.After(r.Latest) {
+		r.Latest = at
 	}
 	return r
 }
