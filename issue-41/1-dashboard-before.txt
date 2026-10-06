@@ -1,0 +1,14 @@
+  hq  2 agents ~ 2 done  view: attention                                                 Tue 17:15
+
+  TAB     REPO        BRANCH        STATE _        AGE   LAST
+
+                                nothing needs you - press a for all
+
+
+qw _ placeholder
+ xhq: nothing docked - select an agent above or press n                                           x
+ x                                                                                                x
+ x                                                                                                x
+ x                                                                                                x
+qvqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqvq
+ _ open  c code  p pr  k kill  n new  / name  q quit

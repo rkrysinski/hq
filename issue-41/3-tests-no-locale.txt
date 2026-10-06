@@ -1,0 +1,7 @@
+$ env | grep -E "^(LANG|LC_)"  # none
+$ go test -tags integration -count=1 ./internal/tmux/
+ok  	github.com/rkrysinski/hq/internal/tmux	14.719s
+$ go test -tags integration -count=1 -v -run TestPasteTypes ./internal/tmux/
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.37s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/tmux	5.373s
