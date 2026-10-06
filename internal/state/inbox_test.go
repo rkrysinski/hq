@@ -2,8 +2,6 @@ package state
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -126,17 +124,5 @@ func TestInboxDirIsBesideTheStateFiles(t *testing.T) {
 	}
 	if _, err := Take("/w/app", "../x"); err == nil {
 		t.Fatal("took for a bad id")
-	}
-}
-
-func TestOnlyAnAgentsIdIsAnnouncedFor(t *testing.T) {
-	root := t.TempDir()
-	for _, id := range []string{"", "../x", "ABC", "abc/../def"} {
-		if Announce(root, id) == nil || Withdraw(root, id) == nil || Announced(root, id) {
-			t.Errorf("announced for the invalid id %q", id)
-		}
-	}
-	if _, err := os.Stat(filepath.Join(root, ".git")); !os.IsNotExist(err) {
-		t.Fatal("wrote something for an invalid id")
 	}
 }

@@ -86,7 +86,8 @@ Requirements:
   - Only `hq mcp` counts: `hq new` and `hq send` from a shell are the user's and notify. Every MCP client is the supervisor; several are not told apart.
   - Any prompt of the user's in the turn makes its end notify, once: a message of the supervisor's that reaches a turn the user started (5.1, with or without `--now`), a prompt the user types or a message they send (`hq send`) during a supervised turn, and a message of the supervisor's that goes along with a prompt the user was typing (5.1).
   - Answering, refusing or cancelling a dialog on a supervised turn does not change whose turn it is: `needs input` notified, the later `done` does not.
-  - The closing turns of background work are of the turn that started the work: after a supervised turn they notify nobody, after the user's they notify as above. When work of both is owed, the end notifies.
+  - The closing turns of background work are of the turn that started the work: after a supervised turn they notify nobody, after the user's they notify as above. When work of both is owed, the end notifies. A background shell command is no background work (above): the turn Claude takes at its end, after the turn that started it has ended, notifies, whoever started the command.
+  - After a turn of the user's that they interrupted at the agent (Esc), the next turn the supervisor sends notifies at its end like a turn of theirs. Documented limitation.
   - It is forgotten with the session: background work that outlives `/clear`, a resume or a relaunch and wakes the new session ends `done` with a notification, as above.
   - Whether the supervisor waits for the agent (`wait`) makes no difference: a supervised turn ends without a notification even when nobody is listening. The row shows the state, and the user asks the supervisor. No setting turns this off.
   - An agent started by an hq older than this rule notifies at every turn end until it is relaunched (`hq sandbox restart`).
@@ -209,6 +210,8 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 
 **S5b. Agent waits for its subagents** - an agent told to start subagents in the background and end its turn stays blue `working`, its time counting from the user's prompt and its last message that turn's, with no notification; the user docked on it sees Claude at its prompt, and Esc there changes nothing. As the subagents finish, Claude takes a turn for each (only the last message changes while others still run). When the turn after the last one ends, the row turns green `done` and one notification fires.
 
+**S5c. Agent done for the supervisor** - an agent the supervisor gave a prompt (through `hq mcp`: `new` with a prompt, or `send`) ends its turn: the row turns green `done`, or amber `question`, exactly as in S4 and S5, and no desktop notification fires; the supervisor reads the reply and tells the user. If the agent opens a permission prompt on that turn, one notification fires (S4); after the user approves, its `done` fires none. When the user prompts the agent themselves, or their prompt or message reaches a turn of the supervisor's, or the supervisor's message reaches a turn of theirs, one notification fires at the turn's final end.
+
 **S6. Kill** - `k`, strip `kill`, or `hq kill NAME`: Kill dialog, `No` default. On `Yes` the Claude session ends cleanly, the sandbox stays. If the killed agent was docked, the session slot becomes an empty placeholder with a hint, focus stays in the list, and the cursor moves to a neighbouring row without docking it (6.3). The same name may be reused afterwards.
 
 **S7. Agent ends by itself** (Claude exited, sandbox stopped, launch failed): the row turns grey `ended` with the last known message, `[session ended]` when it had none, in the list and in `hq ls` alike; its output stays readable when docked; `k` removes the row.
@@ -235,8 +238,6 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 ## 9. Out of scope (v1)
 
 Creating worktrees or branches, managing pull requests, PR status per branch (leave room for a column), several sessions side by side, multiple tmux sessions, anything workmux-like beyond control and visual.
-
-**S5c. Agent done for the supervisor** - an agent the supervisor gave a prompt (through `hq mcp`: `new` with a prompt, or `send`) ends its turn: the row turns green `done`, or amber `question`, exactly as in S4 and S5, and no desktop notification fires; the supervisor reads the reply and tells the user. If the agent opens a permission prompt on that turn, one notification fires (S4); after the user approves, its `done` fires none. When the user prompts the agent themselves, or their prompt or message reaches a turn of the supervisor's, or the supervisor's message reaches a turn of theirs, one notification fires at the turn's final end.
 
 ## 10. Acceptance
 

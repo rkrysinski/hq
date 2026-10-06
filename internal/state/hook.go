@@ -53,16 +53,19 @@ import (
 //
 // It also knows whether the turn is a supervised turn (spec §5, design
 // §3.5): one whose every prompt came from the supervisor, whose end
-// notifies nobody. The mark is a file beside the state file (.sup). A
-// prompt that is not Claude's own takes hq's word that it is the
-// supervisor's (.next, Announce) and sets the mark, unless a message of the
-// user's rides along or background work is still owed, which may be the
-// user's; a prompt without that word, and any message of the user's it
-// delivers (one whose name lacks supervisorSuffix), removes the mark. On
-// stop it prints no notification while the mark is there; dialog and
-// input notify regardless, and Claude's wake-ups leave the mark alone, so
-// closing turns follow the turn that started the work. A session's start
-// or end removes it.
+// notifies nobody. The mark is a file beside the state file (.sup), there
+// while everything the agent works on or owes a turn for is the
+// supervisor's. A prompt that is not Claude's own takes hq's word that it
+// is the supervisor's (.next, Announce) and sets the mark, unless something
+// of the user's may be under way: a message of theirs rides along,
+// background work is owed a turn (held back or not) or the state file says
+// working, with no mark there already. A prompt without that word, and any
+// message of the user's the hook delivers (one whose name lacks
+// supervisorSuffix), removes the mark. On stop it prints no notification
+// while the mark is there, and removes it when no turn is owed any more;
+// dialog and input notify regardless, and Claude's wake-ups leave the mark
+// alone, so closing turns follow the turn that started the work. A
+// session's start or end removes it.
 //
 // It needs only sh, git, cat, mv, cp, mkdir, rm, grep and awk, sends its
 // own errors nowhere and always exits 0; it holds Claude back only while a
@@ -108,9 +111,10 @@ prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","
     if K=wake O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; then
         owe
         works && { mv -f "$t" "$f` + keptSuffix + `"; rm -f "$t"; exit 0; }
-    else grep -v '^[!+]' "$f` + owedSuffix + `" >"$t.o"; owe
-        if mv -f "$f` + announcedSuffix + `" "$t.n"; then rm -f "$t.n"; [ "$u" ] || [ -s "$f` + owedSuffix + `" ] || : >"$f` + supervisedSuffix + `"
+    else
+        if mv -f "$f` + announcedSuffix + `" "$t.n"; then rm -f "$t.n"; [ "$u" ] || [ -f "$f` + supervisedSuffix + `" ] || [ -s "$f` + owedSuffix + `" ] || works || : >"$f` + supervisedSuffix + `"
         else rm -f "$f` + supervisedSuffix + `"; fi
+        grep -v '^[!+]' "$f` + owedSuffix + `" >"$t.o"; owe
     fi ;;
 answer) grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
     grep -q '` + toolEndEvent + `' "$t" && ! grep -q '"agent_id"' "$t" && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
@@ -123,7 +127,7 @@ if mv -f "$t" "$f" && [ "$1" = stop ]; then
     cp -f "$f" "$t" && mv -f "$t" "$f.stop"
 fi
 rm -f "$t"
-[ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && exit 0
+[ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && { [ -s "$f` + owedSuffix + `" ] || rm -f "$f` + supervisedSuffix + `"; exit 0; }
 case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$f" ;; esac
 exit 0`
 

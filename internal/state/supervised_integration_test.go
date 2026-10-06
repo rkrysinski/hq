@@ -4,6 +4,8 @@ package state
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/rkrysinski/hq/internal/testutil"
@@ -387,5 +389,129 @@ func TestAnAnnouncementIsForOnePromptAndCanBeWithdrawn(t *testing.T) {
 	}
 	if f := files(t, h.root, h.id); len(f) != 2 { // the other agent's report and its last stop
 		t.Fatalf("files left: %v", f)
+	}
+}
+
+// Each of these ended a turn of the user's without a notification before
+// the review of #46: the mark of a supervised turn outlived the turn, or
+// was set while work of the user's was still owed.
+func TestWorkOfTheUsersStillUnderWayKeepsTheSupervisorsTurnFromHidingItsEnd(t *testing.T) {
+	agent := agents(t)
+	const task = "a58b43841609db047" // the subagent of the fixtures
+
+	// The user's turn left a shell command running, which is no background
+	// work: done, notified. A supervised turn comes and goes. When the
+	// command ends Claude takes a turn for it, and that end notifies: the
+	// mark does not outlast the supervised turn.
+	h := agent()
+	h.event("prompt", "prompt")
+	if got := h.notified("stop", "stop-background-shell"); got != doneNotice {
+		t.Fatalf("the user's turn that left a shell command running: %q", got)
+	}
+	h.supervisorPrompt()
+	if got := h.notified("stop", "stop-background-shell"); got != "" {
+		t.Fatalf("the supervised turn: %q", got)
+	}
+	h.on("prompt", wakeUp("b9dicohbg"))
+	if got := h.notified("stop", "stop-done"); got != doneNotice {
+		t.Fatalf("the turn Claude took when the user's command ended: %q", got)
+	}
+
+	// The user's turn started a subagent that finished before the turn's
+	// end: the end is held back for the turn Claude owes. The supervisor's
+	// prompt comes first: work of both, so its end notifies.
+	h = agent()
+	h.event("prompt", "prompt")
+	h.on("answer", toolEnd("Agent", "", launched(task)))
+	if got := h.notified("stop", "stop-done"); got != "" || h.state() != Working {
+		t.Fatalf("the user's turn end, held back for a turn owed: notified %q, %s", got, h.state())
+	}
+	h.supervisorPrompt()
+	if got := h.notified("stop", "stop-done"); got != doneNotice {
+		t.Fatalf("the supervisor's turn while the user's is owed a turn: %q", got)
+	}
+
+	// The user's subagent still runs through two prompts of the
+	// supervisor's: neither makes the end silent.
+	h = agent()
+	h.event("prompt", "prompt")
+	h.notified("stop", "stop-background")
+	h.supervisorPrompt()
+	h.on("stop", turnEnd("first", task))
+	h.supervisorPrompt()
+	if got := h.on("stop", turnEnd("second")).TerminalSequence; got != "" || h.state() != Working {
+		t.Fatalf("the end held back for the user's subagent: notified %q, %s", got, h.state())
+	}
+	h.on("prompt", wakeUp(task))
+	if got := h.notified("stop", "stop-done"); got != doneNotice {
+		t.Fatalf("the closing turn of the user's work after two prompts of the supervisor's: %q", got)
+	}
+
+	// The supervisor's prompt reaches a turn of the user's that is at work
+	// (the user sent theirs in the moment hq typed): the turn stays theirs.
+	h = agent()
+	h.event("prompt", "prompt")
+	h.supervisorPrompt()
+	if got := h.notified("stop", "stop-done"); got != doneNotice {
+		t.Fatalf("the supervisor's prompt in a turn of the user's at work: %q", got)
+	}
+	// And so does one after a turn of the user's that they interrupted,
+	// which no hook reports: it notifies, once, rather than risk the above.
+	h.event("prompt", "prompt")
+	h.supervisorPrompt()
+	if got := h.notified("stop", "stop-done"); got != doneNotice {
+		t.Fatalf("the supervisor's prompt after a turn the user interrupted: %q", got)
+	}
+	h.supervisorPrompt()
+	if got := h.notified("stop", "stop-done"); got != "" {
+		t.Fatalf("the supervised turn after that: %q", got)
+	}
+
+	// A supervised turn the user interrupted stays the supervisor's when
+	// the supervisor sends the next prompt.
+	h = agent()
+	h.supervisorPrompt()
+	h.supervisorPrompt()
+	if got := h.notified("stop", "stop-done"); got != "" {
+		t.Fatalf("the supervisor's prompt after its own interrupted turn: %q", got)
+	}
+}
+
+func TestAnnouncingNeverWritesThroughALinkTheSandboxPlanted(t *testing.T) {
+	root := t.TempDir()
+	const id = "0a1b2c3d"
+	for _, bad := range []string{"", "../x", "ABC", "abc/../def"} {
+		if Announce(root, bad) == nil || Withdraw(root, bad) == nil || Announced(root, bad) {
+			t.Errorf("announced for the invalid id %q", bad)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(root, ".git")); !os.IsNotExist(err) {
+		t.Fatal("wrote something for an invalid id")
+	}
+	// The sandbox knows the agent's id and writes in the same directory:
+	// a link at the word's name must not make hq empty the file it names.
+	if err := os.MkdirAll(Dir(root), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	secret := filepath.Join(root, "secret")
+	os.WriteFile(secret, []byte("the user's file"), 0o600)
+	word := filepath.Join(Dir(root), id+announcedSuffix)
+	if err := os.Symlink(secret, word); err != nil {
+		t.Fatal(err)
+	}
+	if err := Announce(root, id); err != nil || !Announced(root, id) {
+		t.Fatalf("announce over a link: %v", err)
+	}
+	if b, _ := os.ReadFile(secret); string(b) != "the user's file" {
+		t.Fatalf("the link's target was written: %q", b)
+	}
+	if info, err := os.Lstat(word); err != nil || !info.Mode().IsRegular() {
+		t.Fatalf("the word is not a file of its own: %v", err)
+	}
+	if err := Withdraw(root, id); err != nil || Announced(root, id) {
+		t.Fatalf("withdraw: %v", err)
+	}
+	if left := files(t, root, id); len(left) != 0 {
+		t.Fatalf("files left: %v", left)
 	}
 }
