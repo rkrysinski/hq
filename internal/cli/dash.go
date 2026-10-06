@@ -64,7 +64,7 @@ func dockOnEntry(d deps) {
 	if err != nil {
 		return
 	}
-	as := seeEnds(d, settle(d, agent.Collect(ws, d.readState, nil)))
+	as := seeEnds(d, settle(d, agent.Collect(ws, d.readState, agent.Sandboxes{})))
 	cursor, _ := d.tmux.SessionValue("cursor")
 	p := d.loadPrefs()
 	name, ok := dash.EntryDock(as, p.Sort, p.View, cursor)
@@ -169,7 +169,7 @@ func dockAs(d deps, name string, how func(window, title string) error) error {
 	if err != nil {
 		return err
 	}
-	a, ok := agent.Find(agent.Collect(ws, d.readState, nil), name)
+	a, ok := agent.Find(agent.Collect(ws, d.readState, agent.Sandboxes{}), name)
 	if !ok {
 		return fmt.Errorf("no agent '%s'", name)
 	}
@@ -259,7 +259,7 @@ func runList(env Env, d deps, args []string) error {
 // listSource connects the list program to tmux, the state files and sbx.
 func listSource(d deps, pane string) dash.Source {
 	return dash.Source{
-		Agents: func(running map[string]bool) ([]agent.Agent, error) {
+		Agents: func(running agent.Sandboxes) ([]agent.Agent, error) {
 			ws, err := d.tmux.Windows()
 			if err != nil {
 				return nil, err
@@ -278,16 +278,17 @@ func listSource(d deps, pane string) dash.Source {
 		},
 		PullRequests: d.pullRequests,
 		Browse:       d.browse,
-		Running: func() (map[string]bool, error) {
+		Running: func() (agent.Sandboxes, error) {
+			asked := d.now() // before the question, as runningSandboxes
 			sbs, err := d.pollSandboxes()
 			if err != nil {
-				return nil, err
+				return agent.Sandboxes{}, err
 			}
 			running := map[string]bool{}
 			for _, s := range sbs {
 				running[s.Name] = s.Running()
 			}
-			return running, nil
+			return agent.Sandboxes{Running: running, Asked: asked}, nil
 		},
 		Now: d.now,
 		UpdateHint: func() string {

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
@@ -224,8 +225,10 @@ func TestListSourceReadsTmuxStateFilesAndSbx(t *testing.T) {
 	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "running"}, {Name: "claude-lib", Status: "stopped"}}
 	src := listSource(f.deps(), "%1")
 
+	// The answer carries the moment hq asked: an agent that reports after
+	// it is not ended by it (#48).
 	running, err := src.Running()
-	if err != nil || !running["claude-x"] || running["claude-lib"] {
+	if err != nil || !running.Running["claude-x"] || running.Running["claude-lib"] || !running.Asked.Equal(f.now) {
 		t.Fatalf("running %v %v", running, err)
 	}
 	as, err := src.Agents(running)
@@ -237,7 +240,7 @@ func TestListSourceReadsTmuxStateFilesAndSbx(t *testing.T) {
 		t.Error("a failed sbx ls is not reported")
 	}
 	f.tmux.windowsErr = errors.New("tmux gone")
-	if _, err := src.Agents(nil); err == nil {
+	if _, err := src.Agents(agent.Sandboxes{}); err == nil {
 		t.Error("a failed tmux is not reported")
 	}
 	if !src.Now().Equal(f.now) {
@@ -346,12 +349,12 @@ func TestListSourceKeepsTheFrameTitleCurrent(t *testing.T) {
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, w, agentWindow("@5", "b", "/w/app", f.now, false)}
 	f.states["id-a"] = state.Report{State: state.Working, Branch: "feat/1"}
 	src := listSource(f.deps(), "%1")
-	as, _ := src.Agents(nil)
+	as, _ := src.Agents(agent.Sandboxes{})
 	if len(f.tmux.titles) != 0 || !as[0].Docked || as[1].Docked {
 		t.Fatalf("titles %v, agents %+v", f.tmux.titles, as)
 	}
 	f.states["id-a"] = state.Report{State: state.Working, Branch: "feat/2"}
-	src.Agents(nil)
+	src.Agents(agent.Sandboxes{})
 	if want := []string{"%7=a · feat/2 · claude-x"}; !reflect.DeepEqual(f.tmux.titles, want) {
 		t.Fatalf("titles %v, want %v", f.tmux.titles, want)
 	}

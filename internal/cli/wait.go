@@ -134,7 +134,7 @@ func runWait(env Env, d deps, args []string) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	sbxs := &sbxPoll{ask: func() map[string]bool { return runningSandboxes(d) }}
+	sbxs := &sbxPoll{ask: func() agent.Sandboxes { return runningSandboxes(d) }}
 	var seen map[string]agent.Agent // the agents waited on at the last look, by id
 	for first := true; ; first = false {
 		at := d.now()
@@ -240,18 +240,18 @@ func printWait(out io.Writer, w waitArgs, rows []lsRow, next time.Time) error {
 }
 
 // sbxPoll asks sbx which sandboxes run at most every waitSbxEvery, in the
-// background, and gives the latest answer (nil: sbx could not say, which
-// changes no agent).
+// background, and gives the latest answer (which says nothing when sbx
+// could not say, and changes no agent then).
 type sbxPoll struct {
-	ask     func() map[string]bool
-	answers chan map[string]bool
+	ask     func() agent.Sandboxes
+	answers chan agent.Sandboxes
 	asked   time.Time
 	busy    bool
-	latest  map[string]bool
+	latest  agent.Sandboxes
 }
 
 // running is sbx's latest answer at now; wait asks and waits for the answer.
-func (p *sbxPoll) running(now time.Time, wait bool) map[string]bool {
+func (p *sbxPoll) running(now time.Time, wait bool) agent.Sandboxes {
 	if wait {
 		p.latest, p.asked = p.ask(), now
 		return p.latest
@@ -265,7 +265,7 @@ func (p *sbxPoll) running(now time.Time, wait bool) map[string]bool {
 	}
 	if !p.busy && now.Sub(p.asked) >= waitSbxEvery {
 		if p.answers == nil {
-			p.answers = make(chan map[string]bool, 1)
+			p.answers = make(chan agent.Sandboxes, 1)
 		}
 		p.busy, p.asked = true, now
 		go func() { p.answers <- p.ask() }()

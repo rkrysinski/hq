@@ -123,9 +123,9 @@ func collect(d deps) ([]agent.Agent, error) {
 	return collectWith(d, runningSandboxes(d))
 }
 
-// collectWith is collect with sbx's answer given: which sandboxes run, nil
-// when sbx could not say.
-func collectWith(d deps, running map[string]bool) ([]agent.Agent, error) {
+// collectWith is collect with sbx's answer given: which sandboxes run, and
+// when hq asked.
+func collectWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
 	ws, err := d.tmux.Windows()
 	if err != nil {
 		return nil, tmuxErr(err)
@@ -133,18 +133,21 @@ func collectWith(d deps, running map[string]bool) ([]agent.Agent, error) {
 	return seeEnds(d, settle(d, agent.Collect(ws, d.readState, running))), nil
 }
 
-// runningSandboxes asks sbx which sandboxes run; nil when it fails or does
-// not answer in time.
-func runningSandboxes(d deps) map[string]bool {
+// runningSandboxes asks sbx which sandboxes run, noting when it asked; the
+// answer says nothing when sbx fails or does not answer in time.
+func runningSandboxes(d deps) agent.Sandboxes {
+	// The moment before the question: what an agent reports from here on
+	// is newer than the answer (#48).
+	asked := d.now()
 	sbs, err := d.pollSandboxes()
 	if err != nil {
-		return nil
+		return agent.Sandboxes{}
 	}
 	running := map[string]bool{}
 	for _, s := range sbs {
 		running[s.Name] = s.Running()
 	}
-	return running
+	return agent.Sandboxes{Running: running, Asked: asked}
 }
 
 // settle looks at the screens of agents whose turn the user may have ended,

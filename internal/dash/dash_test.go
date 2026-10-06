@@ -49,20 +49,20 @@ type fakeSource struct {
 	browsed    []string // URLs opened
 
 	collects, polls, layouts int
-	seen                     []map[string]bool // running as given to Agents
+	seen                     []agent.Sandboxes // sbx's answer as given to Agents
 	footer                   []Hint
 }
 
 func (f *fakeSource) source() Source {
 	return Source{
-		Agents: func(running map[string]bool) ([]agent.Agent, error) {
+		Agents: func(running agent.Sandboxes) ([]agent.Agent, error) {
 			f.collects++
 			f.seen = append(f.seen, running)
 			return append([]agent.Agent(nil), f.agents...), f.agentsErr
 		},
-		Running: func() (map[string]bool, error) {
+		Running: func() (agent.Sandboxes, error) {
 			f.polls++
-			return f.running, f.runningErr
+			return agent.Sandboxes{Running: f.running, Asked: now}, f.runningErr
 		},
 		Now:        func() time.Time { return now },
 		UpdateHint: func() string { return f.hint },
@@ -304,7 +304,7 @@ func TestTicksRefreshFromTmuxAndSbxEverySecond(t *testing.T) {
 	if f.polls != polls+1 {
 		t.Errorf("4th tick: %d polls, want 1", f.polls-polls)
 	}
-	if last := f.seen[len(f.seen)-1]; !last["claude-x"] {
+	if last := f.seen[len(f.seen)-1]; !last.Running["claude-x"] || !last.Asked.Equal(now) {
 		t.Errorf("sbx's answer not passed on: %v", last)
 	}
 }
@@ -325,7 +325,7 @@ func TestOneSbxPollAtATime(t *testing.T) {
 func TestFailedSbxKeepsTheClockAndLeavesStatesToTmux(t *testing.T) {
 	f := &fakeSource{runningErr: errors.New("sbx hangs")}
 	m := started(f, 100, 10)
-	if !m.polled.IsZero() || m.running != nil {
+	if !m.polled.IsZero() || m.running.Running != nil {
 		t.Fatalf("polled %v running %v", m.polled, m.running)
 	}
 	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32") {
@@ -360,7 +360,7 @@ func TestAStaleSbxAnswerShowsSbxUnknownUntilTheNextAnswer(t *testing.T) {
 	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32  sbx ?") {
 		t.Errorf("header %q, want sbx ? after the clock", h)
 	}
-	m, _ = update(m, runningMsg{running: map[string]bool{}})
+	m, _ = update(m, runningMsg{running: agent.Sandboxes{Running: map[string]bool{}}})
 	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32") || strings.Contains(h, "sbx ?") {
 		t.Errorf("header %q, want sbx ? gone with the answer", h)
 	}

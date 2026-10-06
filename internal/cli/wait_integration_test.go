@@ -157,3 +157,16 @@ func TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne(t *testing.
 	}
 	h.only(h.waited(ch), "a", "ended", "Done: hi")
 }
+
+// hq new starts a sandbox that was not running; hq wait called at once
+// asks sbx before the sandbox says it runs, and keeps the answer for a
+// second, in which the agent's session starts and its turn ends (#48).
+func TestWaitRightAfterNewNeverSeesTheAgentEndedOnAnOlderAnswerOfSbx(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("new: %s", errOut)
+	}
+	h.only(h.waited(h.wait("--since", "1m")), "a", "done", "Done: hello")
+}

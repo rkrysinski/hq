@@ -59,7 +59,7 @@ func runKillDialog(_ Env, d deps, args []string) error {
 		return tmuxErr(err)
 	}
 	// With its state, for the branch.
-	a, ok := agent.Find(agent.Collect(ws, d.readState, nil), args[0])
+	a, ok := agent.Find(agent.Collect(ws, d.readState, agent.Sandboxes{}), args[0])
 	if !ok {
 		return notFoundErr("no agent '%s' (see hq ls)", args[0])
 	}

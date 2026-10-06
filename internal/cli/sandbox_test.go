@@ -46,7 +46,7 @@ func TestSandboxRestartRelaunchesItsAgentsInTheirOwnPanes(t *testing.T) {
 	collect := func() {
 		read := func(_, id string) (state.Report, bool) { return state.Report{State: state.Done, Since: f.now}, true }
 		var s []string
-		for _, a := range agent.Collect(f.tmux.windows, read, nil) {
+		for _, a := range agent.Collect(f.tmux.windows, read, agent.Sandboxes{}) {
 			s = append(s, a.Name+"="+a.State)
 		}
 		during = append(during, strings.Join(s, " "))
@@ -273,7 +273,7 @@ func TestARelaunchedAgentsEndCountsFromItsPanesDeathNotFromTheRestart(t *testing
 	// sees (#104).
 	f.tmux.onSet = func(string, string) {
 		read := func(_, id string) (state.Report, bool) { r, ok := f.states[id]; return r, ok }
-		as := agent.Collect(f.tmux.windows, read, nil)
+		as := agent.Collect(f.tmux.windows, read, agent.Sandboxes{})
 		for i := range as {
 			keep(f.deps(), &as[i], as[i].SeeEnd(f.now))
 		}

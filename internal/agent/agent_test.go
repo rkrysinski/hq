@@ -67,11 +67,56 @@ func TestCollectEndsAgentsWhoseSandboxIsNotRunning(t *testing.T) {
 		}
 		return strings.Join(s, " ")
 	}
-	if got := states(Collect(ws, read, map[string]bool{"claude-app": true})); got != "a=working/on it a b=ended/on it b" {
+	if got := states(Collect(ws, read, sbxSays(map[string]bool{"claude-app": true}))); got != "a=working/on it a b=ended/on it b" {
 		t.Fatalf("claude-lib stopped: %s", got)
 	}
-	if got := states(Collect(ws, read, nil)); got != "a=working/on it a b=working/on it b" {
+	if got := states(Collect(ws, read, Sandboxes{})); got != "a=working/on it a b=working/on it b" {
 		t.Fatalf("sbx could not say: %s", got)
+	}
+}
+
+// sbxSays is sbx's answer that the sandboxes of running run, asked after
+// every report of a test's agents.
+func sbxSays(running map[string]bool) Sandboxes {
+	return Sandboxes{Running: running, Asked: time.Unix(1<<40, 0)}
+}
+
+func TestAnAnswerOfSbxOlderThanAnAgentsReportDoesNotEndIt(t *testing.T) {
+	// hq asked sbx while claude-lib was still starting; b's session started
+	// in it and reported after that (#48). a reported before the question:
+	// its sandbox has stopped.
+	ws := []tmux.Window{
+		{ID: "@1", Options: map[string]string{"id": "a", "name": "a", "sandbox": "claude-app", "started": "100"}},
+		{ID: "@2", Options: map[string]string{"id": "b", "name": "b", "sandbox": "claude-lib", "started": "100"}},
+	}
+	asked := time.Unix(200, 0)
+	read := func(root, id string) (state.Report, bool) {
+		r := state.Report{State: state.Done, Since: asked.Add(-time.Second), Last: "Done."}
+		if id == "b" {
+			r.Since = asked.Add(time.Millisecond)
+		}
+		r.Latest = r.Since
+		return r, true
+	}
+	as := Collect(ws, read, Sandboxes{Running: map[string]bool{}, Asked: asked})
+	if as[0].State != state.Ended || as[1].State != state.Done {
+		t.Fatalf("a %s, b %s; want a ended and b done", as[0].State, as[1].State)
+	}
+	// The next answer, asked after b's report, counts for b too.
+	as = Collect(ws, read, Sandboxes{Running: map[string]bool{"claude-lib": true}, Asked: asked.Add(time.Second)})
+	if as[1].State != state.Done {
+		t.Fatalf("b in a running sandbox: %s", as[1].State)
+	}
+	as = Collect(ws, read, Sandboxes{Running: map[string]bool{}, Asked: asked.Add(time.Second)})
+	if as[1].State != state.Ended {
+		t.Fatalf("b once sbx says, after its report, that its sandbox does not run: %s", as[1].State)
+	}
+	// A turn end kept beside the report (background work) is a report too.
+	kept := func(root, id string) (state.Report, bool) {
+		return state.Report{State: state.Working, Since: asked.Add(-time.Minute), Latest: asked.Add(time.Millisecond), Background: true}, true
+	}
+	if a := Collect(ws[:1], kept, Sandboxes{Running: map[string]bool{}, Asked: asked})[0]; a.State != state.Working {
+		t.Fatalf("an agent whose kept report is newer than the answer: %s", a.State)
 	}
 }
 
@@ -83,7 +128,7 @@ func TestCollectLeavesAnAgentStartingWhileItsSandboxHasNotStarted(t *testing.T) 
 		{ID: "@2", PaneDead: true, Options: map[string]string{"id": "d", "name": "d", "sandbox": "claude-lib"}},
 	}
 	read := func(root, id string) (state.Report, bool) { return state.Report{}, false }
-	as := Collect(ws, read, map[string]bool{})
+	as := Collect(ws, read, sbxSays(map[string]bool{}))
 	if as[0].State != state.Starting || !as[0].New {
 		t.Fatalf("c while its sandbox starts: %+v", as[0])
 	}
@@ -129,7 +174,7 @@ func TestAnAgentIsNewUntilItsFirstReport(t *testing.T) {
 		return state.Report{State: state.Working}, id == "b"
 	}
 	var got []string
-	for _, a := range Collect(ws, read, map[string]bool{"": true}) {
+	for _, a := range Collect(ws, read, sbxSays(map[string]bool{"": true})) {
 		if a.New {
 			got = append(got, a.Name)
 		}
@@ -159,7 +204,7 @@ func TestCollectSaysSessionEndedForAnEndedAgentWithoutAMessage(t *testing.T) {
 		return state.Report{}, false
 	}
 	var got []string
-	for _, a := range Collect(ws, read, map[string]bool{"claude-app": true}) {
+	for _, a := range Collect(ws, read, sbxSays(map[string]bool{"claude-app": true})) {
 		got = append(got, a.Name+"="+a.Last)
 	}
 	if want := "dead=[session ended] stopped=[session ended] said=hi quiet= silent=[session ended] restarting=[session ended]"; strings.Join(got, " ") != want {
@@ -181,7 +226,7 @@ func TestCollectKeepsTheTurnEndHqSawAsAnEndedAgentsMessage(t *testing.T) {
 		return state.Report{State: state.Working, Since: at}, true
 	}
 	var got []string
-	for _, a := range Collect(ws, read, map[string]bool{"claude-app": true}) {
+	for _, a := range Collect(ws, read, sbxSays(map[string]bool{"claude-app": true})) {
 		got = append(got, a.Name+"="+string(a.State)+"="+a.Last)
 	}
 	if want := "rewound=ended=" + Rewound + " stale=ended=" + EndedLast; strings.Join(got, " ") != want {
@@ -200,17 +245,17 @@ func TestAnAgentStartedWithoutAPromptIsDoneOnceClaudeWaitsAtItsPrompt(t *testing
 		r.Since = time.Unix(102, 0)
 		return r, true
 	}
-	if a := Collect(ws, read, nil)[0]; a.State != state.Starting || !a.New {
+	if a := Collect(ws, read, Sandboxes{})[0]; a.State != state.Starting || !a.New {
 		t.Fatalf("launched: %+v", a)
 	}
 	// Claude's session started (SessionStart, before any prompt).
 	file = "branch main\n" + `{"session_id":"s","cwd":"/w/app","hook_event_name":"SessionStart","source":"startup"}`
-	if a := Collect(ws, read, nil)[0]; a.State != state.Done || a.New || a.Last != "" || a.Branch != "main" || a.Since.Unix() != 102 {
+	if a := Collect(ws, read, Sandboxes{})[0]; a.State != state.Done || a.New || a.Last != "" || a.Branch != "main" || a.Since.Unix() != 102 {
 		t.Fatalf("session started: %+v", a)
 	}
 	// The user's first prompt makes it work as usual.
 	file = "branch main\n" + `{"session_id":"s","cwd":"/w/app","hook_event_name":"UserPromptSubmit","prompt":"go"}`
-	if a := Collect(ws, read, nil)[0]; a.State != state.Working || a.New {
+	if a := Collect(ws, read, Sandboxes{})[0]; a.State != state.Working || a.New {
 		t.Fatalf("prompted: %+v", a)
 	}
 }
@@ -360,7 +405,7 @@ func TestAnEndedAgentCountsFromWhenItEnded(t *testing.T) {
 		}
 		return state.Report{State: state.Working, Since: at(950)}, true
 	}
-	as := Collect(ws, read, map[string]bool{"claude-app": true})
+	as := Collect(ws, read, sbxSays(map[string]bool{"claude-app": true}))
 	got := map[string]time.Time{}
 	for _, a := range as {
 		got[a.Name] = a.Since
@@ -401,7 +446,7 @@ func TestAnEndedAgentCountsFromWhenItEnded(t *testing.T) {
 			ws[i].Options["endseen"] = r
 		}
 	}
-	for _, a := range Collect(ws, read, map[string]bool{"claude-app": true}) {
+	for _, a := range Collect(ws, read, sbxSays(map[string]bool{"claude-app": true})) {
 		if _, ok := records[a.Name]; ok {
 			if !a.Since.Equal(now) || a.SeeEnd(at(1200)).Value != "" {
 				t.Errorf("%s again: since %v", a.Name, a.Since)
@@ -412,13 +457,13 @@ func TestAnEndedAgentCountsFromWhenItEnded(t *testing.T) {
 	// again: the record is the previous session's.
 	ws[4].Options["started"] = "1150"
 	stopped = at(1160)
-	a, _ := Find(Collect(ws, read, map[string]bool{"claude-app": true}), "stopped")
+	a, _ := Find(Collect(ws, read, sbxSays(map[string]bool{"claude-app": true})), "stopped")
 	if r := a.SeeEnd(at(1300)).Value; r == "" || !a.Since.Equal(at(1300)) {
 		t.Errorf("relaunched: %q %v", r, a.Since)
 	}
 	// A bad record counts for nothing: the last report stands.
 	ws[4].Options["endseen"] = "1150 x"
-	if a, _ := Find(Collect(ws, read, map[string]bool{"claude-app": true}), "stopped"); !a.Since.Equal(at(1160)) {
+	if a, _ := Find(Collect(ws, read, sbxSays(map[string]bool{"claude-app": true})), "stopped"); !a.Since.Equal(at(1160)) {
 		t.Errorf("bad record: %v", a.Since)
 	}
 }
@@ -584,7 +629,7 @@ func TestAnEndedAgentsEndSeenBeforeItsLastReportDoesNotCount(t *testing.T) {
 	}
 	since := func(endSeen string) time.Time {
 		w := tmux.Window{ID: "@1", PaneDead: true, DeadAt: at(1300), Options: map[string]string{"id": "x", "sandbox": "claude-app", "started": "1150", "endseen": endSeen}}
-		return Collect([]tmux.Window{w}, read, nil)[0].Since
+		return Collect([]tmux.Window{w}, read, Sandboxes{})[0].Since
 	}
 	for name, tc := range map[string]struct {
 		endSeen string
@@ -601,7 +646,7 @@ func TestAnEndedAgentsEndSeenBeforeItsLastReportDoesNotCount(t *testing.T) {
 	}
 	// Ended again after a report, it is seen ended afresh.
 	w := tmux.Window{ID: "@1", Options: map[string]string{"id": "x", "sandbox": "claude-app", "started": "1150", "ending": "1", "endseen": "1150 0 " + nanos(at(1150.046))}}
-	a := Collect([]tmux.Window{w}, read, nil)[0]
+	a := Collect([]tmux.Window{w}, read, Sandboxes{})[0]
 	if r := a.SeeEnd(at(1400)); r.Value != "1150 "+nanos(at(1200))+" "+nanos(at(1400)) || !a.Since.Equal(at(1400)) {
 		t.Errorf("seen afresh: %+v %v", r, a.Since)
 	}
@@ -670,7 +715,7 @@ func TestAnEndedAgentIsEnteredFromTheFirstSignOfItsEnd(t *testing.T) {
 		if deadAt > 0 {
 			w.DeadAt = at(deadAt)
 		}
-		as := Collect([]tmux.Window{w}, func(_, _ string) (state.Report, bool) { return report, true }, nil)
+		as := Collect([]tmux.Window{w}, func(_, _ string) (state.Report, bool) { return report, true }, Sandboxes{})
 		if as[0].State != state.Ended {
 			t.Fatalf("not ended: %+v", as[0])
 		}
@@ -844,7 +889,7 @@ func TestATurnEndHqSawDoesNotOutliveClaudesWakeUp(t *testing.T) {
 	w.Options["turnend"] = rec.Value
 	// An agent that ended keeps the turn end of its latest report only.
 	w.PaneDead = true
-	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, nil); as[0].Last == "Interrupted" {
+	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, Sandboxes{}); as[0].Last == "Interrupted" {
 		t.Fatalf("ended after the wake-up: %+v", as[0])
 	}
 }
@@ -913,7 +958,7 @@ func TestAnAgentOwedATurnThatDoesNotComeIsDoneOnceItsScreenStaysAtRest(t *testin
 	}
 	// Ended after that: its last message stays its own.
 	w.PaneDead = true
-	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, nil); as[0].Last != "The second finished." {
+	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, Sandboxes{}); as[0].Last != "The second finished." {
 		t.Fatalf("ended: %+v", as[0])
 	}
 }
