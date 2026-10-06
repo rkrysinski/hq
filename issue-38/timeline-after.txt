@@ -1,0 +1,547 @@
+--- +0s 12:22:24  notifications so far: 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+esc    esc    esc     done      0s   -
+ask    ask    ask     working   0s   -
+many   many   many    working   0s   -
+one    one    one     working   0s   -
+shell  shell  -       starting  3s   -
+send   send   -       starting  4s   -
+--- +1s 12:22:25  notifications so far: 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+send   send   send    done     0s   -
+shell  shell  shell   working  0s   -
+esc    esc    esc     working  0s   -
+ask    ask    ask     working  1s   -
+many   many   many    working  1s   -
+one    one    one     working  1s   -
+--- +2s 12:22:26  notifications so far: 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+send   send   send    working  0s   -
+shell  shell  shell   working  1s   -
+esc    esc    esc     working  1s   -
+ask    ask    ask     working  2s   -
+many   many   many    working  2s   -
+one    one    one     working  2s   -
+--- +3s 12:22:27  notifications so far: Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  0s   Started. Shall I also update the README?
+send   send   send    working   1s   -
+shell  shell  shell   working   2s   -
+esc    esc    esc     working   2s   -
+many   many   many    working   3s   -
+one    one    one     working   4s   started
+--- +4s 12:22:28  notifications so far: Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  1s   Started. Shall I also update the README?
+send   send   send    working   2s   -
+shell  shell  shell   working   3s   -
+esc    esc    esc     working   4s   -
+many   many   many    working   4s   -
+one    one    one     working   5s   started
+--- +5s 12:22:29  notifications so far: Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  2s   Started. Shall I also update the README?
+send   send   send    working   3s   started
+shell  shell  shell   working   4s   -
+esc    esc    esc     working   5s   -
+many   many   many    working   5s   started
+one    one    one     working   6s   started
+--- +6s 12:22:30  notifications so far: Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  3s   Started. Shall I also update the README?
+send   send   send    working   4s   started
+shell  shell  shell   working   5s   -
+esc    esc    esc     working   6s   -
+many   many   many    working   6s   started
+one    one    one     working   7s   started
+--- +7s 12:22:31  notifications so far: Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  4s   Started. Shall I also update the README?
+send   send   send    working   6s   started
+shell  shell  shell   working   6s   -
+esc    esc    esc     working   7s   -
+many   many   many    working   7s   started
+one    one    one     working   8s   started
+--- +8s 12:22:32  notifications so far: Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  5s   Started. Shall I also update the README?
+send   send   send    working   7s   started
+shell  shell  shell   working   7s   -
+esc    esc    esc     working   8s   -
+many   many   many    working   8s   started
+one    one    one     working   9s   started
+--- +9s 12:22:33  notifications so far: Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  6s   Started. Shall I also update the README?
+send   send   send    working   8s   started
+shell  shell  shell   working   8s   -
+esc    esc    esc     working   9s   -
+many   many   many    working   9s   started
+one    one    one     working   10s  started
+--- +10s 12:22:34  notifications so far: Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  7s   Started. Shall I also update the README?
+send   send   send    working   9s   started
+shell  shell  shell   working   9s   -
+esc    esc    esc     working   10s  -
+many   many   many    working   10s  started
+one    one    one     working   11s  started
+--- +11s 12:22:35  notifications so far: Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  8s   Started. Shall I also update the README?
+send   send   send    working   10s  started
+shell  shell  shell   working   10s  -
+esc    esc    esc     working   11s  -
+many   many   many    working   11s  started
+one    one    one     working   12s  started
+--- +12s 12:22:36  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  9s   Started. Shall I also update the README?
+shell  shell  shell   done      0s   started
+send   send   send    working   11s  started
+esc    esc    esc     working   12s  -
+many   many   many    working   12s  started
+one    one    one     working   13s  started
+--- +13s 12:22:37  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  10s  Started. Shall I also update the README?
+shell  shell  shell   done      2s   started
+send   send   send    working   12s  started
+esc    esc    esc     working   13s  -
+many   many   many    working   13s  started
+one    one    one     working   14s  started
+--- +14s 12:22:38  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  11s  Started. Shall I also update the README?
+shell  shell  shell   done      3s   started
+send   send   send    working   13s  started
+esc    esc    esc     working   14s  -
+many   many   many    working   14s  started
+one    one    one     working   15s  started
+--- +15s 12:22:39  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  12s  Started. Shall I also update the README?
+shell  shell  shell   done      4s   started
+send   send   send    working   14s  started
+esc    esc    esc     working   15s  -
+many   many   many    working   15s  started
+one    one    one     working   16s  started
+--- +16s 12:22:40  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  13s  Started. Shall I also update the README?
+shell  shell  shell   done      5s   started
+send   send   send    working   15s  started
+esc    esc    esc     working   16s  -
+many   many   many    working   16s  started
+one    one    one     working   17s  started
+--- +19s 12:22:43  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  16s  Started. Shall I also update the README?
+shell  shell  shell   done      7s   started
+send   send   send    working   18s  started
+esc    esc    esc     working   19s  -
+many   many   many    working   19s  started
+one    one    one     working   20s  started
+--- +20s 12:22:44  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  17s  Started. Shall I also update the README?
+shell  shell  shell   done      8s   started
+send   send   send    working   19s  started
+esc    esc    esc     working   20s  -
+many   many   many    working   20s  started
+one    one    one     working   21s  started
+--- +21s 12:22:45  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  18s  Started. Shall I also update the README?
+shell  shell  shell   done      10s  started
+send   send   send    working   20s  started
+esc    esc    esc     working   21s  -
+many   many   many    working   21s  started
+one    one    one     working   22s  started
+--- +22s 12:22:46  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  19s  Started. Shall I also update the README?
+shell  shell  shell   done      11s  started
+send   send   send    working   21s  started
+esc    esc    esc     working   22s  -
+many   many   many    working   22s  started
+one    one    one     working   23s  started
+Esc sent to one at +22s
+--- +25s 12:22:49  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  23s  Started. Shall I also update the README?
+shell  shell  shell   done      14s  started
+send   send   send    working   24s  started
+esc    esc    esc     working   25s  -
+many   many   many    working   26s  started
+one    one    one     working   26s  started
+hq send at +25s
+--- +27s 12:22:51  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  24s  Started. Shall I also update the README?
+shell  shell  shell   done      15s  started
+send   send   send    working   1s   started
+esc    esc    esc     working   27s  -
+many   many   many    working   27s  The './wait.sh 20' subagent finished.
+one    one    one     working   28s  started
+Esc sent to esc (turn at work) at +27s
+--- +29s 12:22:53  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  26s  Started. Shall I also update the README?
+esc    esc    esc     done      1s   Interrupted
+shell  shell  shell   done      17s  started
+send   send   send    working   3s   pong
+many   many   many    working   29s  The './wait.sh 20' subagent finished.
+one    one    one     working   30s  started
+--- +30s 12:22:54  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  27s  Started. Shall I also update the README?
+esc    esc    esc     done      2s   Interrupted
+shell  shell  shell   done      18s  started
+send   send   send    working   4s   pong
+many   many   many    working   30s  The './wait.sh 20' subagent finished.
+one    one    one     working   31s  started
+--- +31s 12:22:55  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  28s  Started. Shall I also update the README?
+esc    esc    esc     done      3s   Interrupted
+shell  shell  shell   done      19s  started
+send   send   send    working   5s   pong
+many   many   many    working   31s  The './wait.sh 20' subagent finished.
+one    one    one     working   32s  started
+--- +32s 12:22:56  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  29s  Started. Shall I also update the README?
+esc    esc    esc     done      4s   Interrupted
+shell  shell  shell   done      20s  started
+send   send   send    working   6s   pong
+many   many   many    working   32s  The './wait.sh 20' subagent finished.
+one    one    one     working   33s  started
+--- +33s 12:22:57  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  30s  Started. Shall I also update the README?
+esc    esc    esc     done      5s   Interrupted
+shell  shell  shell   done      21s  started
+send   send   send    working   7s   pong
+many   many   many    working   33s  The './wait.sh 20' subagent finished.
+one    one    one     working   34s  started
+--- +34s 12:22:58  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  31s  Started. Shall I also update the README?
+esc    esc    esc     done      6s   Interrupted
+shell  shell  shell   done      22s  started
+send   send   send    working   8s   pong
+many   many   many    working   34s  The './wait.sh 20' subagent finished.
+one    one    one     working   35s  started
+--- +35s 12:22:59  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  32s  Started. Shall I also update the README?
+esc    esc    esc     done      7s   Interrupted
+shell  shell  shell   done      24s  started
+send   send   send    working   9s   pong
+many   many   many    working   35s  The './wait.sh 20' subagent finished.
+one    one    one     working   36s  started
+--- +36s 12:23:00  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  33s  Started. Shall I also update the README?
+esc    esc    esc     done      9s   Interrupted
+shell  shell  shell   done      25s  started
+send   send   send    working   10s  pong
+many   many   many    working   36s  The './wait.sh 20' subagent finished.
+one    one    one     working   37s  started
+--- +39s 12:23:03  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  36s  Started. Shall I also update the README?
+esc    esc    esc     done      11s  Interrupted
+shell  shell  shell   done      27s  started
+send   send   send    working   12s  pong
+many   many   many    working   39s  The './wait.sh 20' subagent finished.
+one    one    one     working   39s  started
+--- +40s 12:23:04  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  37s  Started. Shall I also update the README?
+esc    esc    esc     done      12s  Interrupted
+shell  shell  shell   done      28s  started
+send   send   send    working   13s  pong
+many   many   many    working   40s  The './wait.sh 20' subagent finished.
+one    one    one     working   41s  started
+--- +41s 12:23:05  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  38s  Started. Shall I also update the README?
+esc    esc    esc     done      13s  Interrupted
+shell  shell  shell   done      29s  started
+send   send   send    working   14s  pong
+many   many   many    working   41s  The './wait.sh 20' subagent finished.
+one    one    one     working   42s  started
+--- +42s 12:23:06  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  39s  Started. Shall I also update the README?
+esc    esc    esc     done      14s  Interrupted
+shell  shell  shell   done      30s  started
+send   send   send    working   15s  pong
+many   many   many    working   42s  The './wait.sh 20' subagent finished.
+one    one    one     working   43s  started
+--- +43s 12:23:07  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  40s  Started. Shall I also update the README?
+esc    esc    esc     done      15s  Interrupted
+shell  shell  shell   done      31s  started
+send   send   send    working   17s  pong
+many   many   many    working   43s  The './wait.sh 20' subagent finished.
+one    one    one     working   44s  started
+--- +44s 12:23:08  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  41s  Started. Shall I also update the README?
+esc    esc    esc     done      16s  Interrupted
+shell  shell  shell   done      32s  started
+send   send   send    working   18s  pong
+many   many   many    working   44s  The './wait.sh 20' subagent finished.
+one    one    one     working   45s  started
+--- +45s 12:23:09  notifications so far: Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+esc    esc    esc     done     17s  Interrupted
+shell  shell  shell   done     33s  started
+ask    ask    ask     working  0s   Started. Shall I also update the README?
+send   send   send    working  19s  pong
+many   many   many    working  45s  The './wait.sh 20' subagent finished.
+one    one    one     working  46s  started
+--- +46s 12:23:10  notifications so far: Done: ask x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+ask    ask    ask     done     0s   The background agent finished and reported "done". I haven'…
+esc    esc    esc     done     18s  Interrupted
+shell  shell  shell   done     34s  started
+send   send   send    working  20s  pong
+many   many   many    working  46s  The './wait.sh 20' subagent finished.
+one    one    one     working  47s  started
+--- +47s 12:23:11  notifications so far: Done: ask x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+ask    ask    ask     done     1s   The background agent finished and reported "done". I haven'…
+esc    esc    esc     done     19s  Interrupted
+shell  shell  shell   done     35s  started
+send   send   send    working  21s  pong
+many   many   many    working  47s  The './wait.sh 20' subagent finished.
+one    one    one     working  48s  started
+--- +48s 12:23:12  notifications so far: Done: ask x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+ask    ask    ask     done     2s   The background agent finished and reported "done". I haven'…
+esc    esc    esc     done     20s  Interrupted
+shell  shell  shell   done     36s  started
+send   send   send    working  22s  pong
+many   many   many    working  48s  The './wait.sh 20' subagent finished.
+one    one    one     working  49s  started
+--- +49s 12:23:13  notifications so far: Done: ask x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+ask    ask    ask     done     3s   The background agent finished and reported "done". I haven'…
+esc    esc    esc     done     21s  Interrupted
+shell  shell  shell   done     38s  started
+send   send   send    working  23s  pong
+many   many   many    working  49s  The './wait.sh 20' subagent finished.
+one    one    one     working  50s  started
+--- +50s 12:23:14  notifications so far: Done: ask x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+ask    ask    ask     done     4s   The background agent finished and reported "done". I haven'…
+esc    esc    esc     done     22s  Interrupted
+shell  shell  shell   done     39s  started
+send   send   send    working  24s  pong
+many   many   many    working  50s  The './wait.sh 20' subagent finished.
+one    one    one     working  51s  started
+--- +51s 12:23:15  notifications so far: Done: ask x1; Done: one x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+one    one    one     done     0s   The background agent finished and replied "done".
+ask    ask    ask     done     5s   The background agent finished and reported "done". I haven'…
+esc    esc    esc     done     24s  Interrupted
+shell  shell  shell   done     40s  started
+send   send   send    working  25s  pong
+many   many   many    working  51s  The './wait.sh 45' subagent finished.
+--- +52s 12:23:16  notifications so far: Done: ask x1; Done: one x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+one    one    one     done     2s   The background agent finished and replied "done".
+ask    ask    ask     done     6s   The background agent finished and reported "done". I haven'…
+esc    esc    esc     done     25s  Interrupted
+shell  shell  shell   done     41s  started
+send   send   send    working  26s  pong
+many   many   many    working  52s  The './wait.sh 45' subagent finished.
+--- +53s 12:23:17  notifications so far: Done: ask x1; Done: one x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+one    one    one     done     3s   The background agent finished and replied "done".
+ask    ask    ask     done     7s   The background agent finished and reported "done". I haven'…
+esc    esc    esc     done     26s  Interrupted
+shell  shell  shell   done     42s  started
+send   send   send    working  27s  pong
+many   many   many    working  53s  The './wait.sh 45' subagent finished.
+--- +54s 12:23:18  notifications so far: Done: ask x1; Done: one x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+one    one    one     done     4s   The background agent finished and replied "done".
+ask    ask    ask     done     8s   The background agent finished and reported "done". I haven'…
+shell  shell  shell   done     43s  started
+send   send   send    working  28s  pong
+esc    esc    esc     working  54s  -
+many   many   many    working  54s  The './wait.sh 45' subagent finished.
+--- +55s 12:23:19  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+esc    esc    esc     done     0s   The background subagent finished and replied "done" after r…
+one    one    one     done     5s   The background agent finished and replied "done".
+ask    ask    ask     done     9s   The background agent finished and reported "done". I haven'…
+shell  shell  shell   done     44s  started
+send   send   send    working  29s  pong
+many   many   many    working  55s  The './wait.sh 45' subagent finished.
+--- +56s 12:23:20  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+esc    esc    esc     done     1s   The background subagent finished and replied "done" after r…
+one    one    one     done     6s   The background agent finished and replied "done".
+ask    ask    ask     done     10s  The background agent finished and reported "done". I haven'…
+shell  shell  shell   done     45s  started
+send   send   send    working  30s  pong
+many   many   many    working  57s  The './wait.sh 45' subagent finished.
+--- +57s 12:23:21  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+esc    esc    esc     done     2s   The background subagent finished and replied "done" after r…
+one    one    one     done     7s   The background agent finished and replied "done".
+ask    ask    ask     done     11s  The background agent finished and reported "done". I haven'…
+shell  shell  shell   done     46s  started
+send   send   send    working  31s  pong
+many   many   many    working  58s  The './wait.sh 45' subagent finished.
+--- +58s 12:23:22  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+esc    esc    esc     done     3s   The background subagent finished and replied "done" after r…
+one    one    one     done     8s   The background agent finished and replied "done".
+ask    ask    ask     done     12s  The background agent finished and reported "done". I haven'…
+shell  shell  shell   done     47s  started
+send   send   send    working  32s  pong
+many   many   many    working  59s  The './wait.sh 45' subagent finished.
+--- +59s 12:23:23  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+esc    esc    esc     done     4s   The background subagent finished and replied "done" after r…
+one    one    one     done     9s   The background agent finished and replied "done".
+ask    ask    ask     done     13s  The background agent finished and reported "done". I haven'…
+shell  shell  shell   working  0s   started
+send   send   send    working  33s  pong
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +60s 12:23:24  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x1; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+esc    esc    esc     done     5s   The background subagent finished and replied "done" after r…
+one    one    one     done     10s  The background agent finished and replied "done".
+ask    ask    ask     done     14s  The background agent finished and reported "done". I haven'…
+shell  shell  shell   working  1s   started
+send   send   send    working  34s  pong
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +62s 12:23:26  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+shell  shell  shell   done     0s   The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     6s   The background subagent finished and replied "done" after r…
+one    one    one     done     11s  The background agent finished and replied "done".
+ask    ask    ask     done     16s  The background agent finished and reported "done". I haven'…
+send   send   send    working  35s  pong
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +63s 12:23:27  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+shell  shell  shell   done     2s   The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     7s   The background subagent finished and replied "done" after r…
+one    one    one     done     12s  The background agent finished and replied "done".
+ask    ask    ask     done     17s  The background agent finished and reported "done". I haven'…
+send   send   send    working  37s  pong
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +64s 12:23:28  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+shell  shell  shell   done     3s   The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     9s   The background subagent finished and replied "done" after r…
+one    one    one     done     13s  The background agent finished and replied "done".
+ask    ask    ask     done     18s  The background agent finished and reported "done". I haven'…
+send   send   send    working  38s  pong
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +65s 12:23:29  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+shell  shell  shell   done     4s   The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     10s  The background subagent finished and replied "done" after r…
+one    one    one     done     15s  The background agent finished and replied "done".
+ask    ask    ask     done     19s  The background agent finished and reported "done". I haven'…
+send   send   send    working  39s  pong
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +66s 12:23:30  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+shell  shell  shell   done     5s   The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     11s  The background subagent finished and replied "done" after r…
+one    one    one     done     16s  The background agent finished and replied "done".
+ask    ask    ask     done     20s  The background agent finished and reported "done". I haven'…
+send   send   send    working  40s  pong
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +68s 12:23:32  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+send   send   send    done     0s   The background subagent finished and reported "done" after …
+shell  shell  shell   done     6s   The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     12s  The background subagent finished and replied "done" after r…
+one    one    one     done     17s  The background agent finished and replied "done".
+ask    ask    ask     done     22s  The background agent finished and reported "done". I haven'…
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +69s 12:23:33  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+send   send   send    done     1s   The background subagent finished and reported "done" after …
+shell  shell  shell   done     8s   The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     13s  The background subagent finished and replied "done" after r…
+one    one    one     done     18s  The background agent finished and replied "done".
+ask    ask    ask     done     23s  The background agent finished and reported "done". I haven'…
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +70s 12:23:34  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+send   send   send    done     2s   The background subagent finished and reported "done" after …
+shell  shell  shell   done     9s   The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     15s  The background subagent finished and replied "done" after r…
+one    one    one     done     19s  The background agent finished and replied "done".
+ask    ask    ask     done     24s  The background agent finished and reported "done". I haven'…
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +71s 12:23:35  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+send   send   send    done     3s   The background subagent finished and reported "done" after …
+shell  shell  shell   done     10s  The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     16s  The background subagent finished and replied "done" after r…
+one    one    one     done     21s  The background agent finished and replied "done".
+ask    ask    ask     done     25s  The background agent finished and reported "done". I haven'…
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +73s 12:23:37  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+send   send   send    done     5s   The background subagent finished and reported "done" after …
+shell  shell  shell   done     11s  The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     17s  The background subagent finished and replied "done" after r…
+one    one    one     done     22s  The background agent finished and replied "done".
+ask    ask    ask     done     26s  The background agent finished and reported "done". I haven'…
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +74s 12:23:38  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+send   send   send    done     6s   The background subagent finished and reported "done" after …
+shell  shell  shell   done     12s  The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     18s  The background subagent finished and replied "done" after r…
+one    one    one     done     23s  The background agent finished and replied "done".
+ask    ask    ask     done     28s  The background agent finished and reported "done". I haven'…
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +75s 12:23:39  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+send   send   send    done     7s   The background subagent finished and reported "done" after …
+shell  shell  shell   done     14s  The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     19s  The background subagent finished and replied "done" after r…
+one    one    one     done     24s  The background agent finished and replied "done".
+ask    ask    ask     done     29s  The background agent finished and reported "done". I haven'…
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +76s 12:23:40  notifications so far: Done: ask x1; Done: esc x1; Done: one x1; Done: send x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE    AGE  LAST
+send   send   send    done     8s   The background subagent finished and reported "done" after …
+shell  shell  shell   done     15s  The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done     21s  The background subagent finished and replied "done" after r…
+one    one    one     done     26s  The background agent finished and replied "done".
+ask    ask    ask     done     30s  The background agent finished and reported "done". I haven'…
+many   many   many    working  1m   The './wait.sh 45' subagent finished.
+--- +77s 12:23:41  notifications so far: Done: ask x1; Done: esc x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE  AGE  LAST
+many   many   many    done   0s   The './wait.sh 70' subagent finished.
+send   send   send    done   9s   The background subagent finished and reported "done" after …
+shell  shell  shell   done   16s  The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done   22s  The background subagent finished and replied "done" after r…
+one    one    one     done   27s  The background agent finished and replied "done".
+ask    ask    ask     done   31s  The background agent finished and reported "done". I haven'…
+--- end 12:23:46  notifications: Done: ask x1; Done: esc x1; Done: many x1; Done: one x1; Done: send x1; Done: shell x2; Question: ask x1; 
+NAME   REPO   BRANCH  STATE  AGE  LAST
+many   many   many    done   4s   The './wait.sh 70' subagent finished.
+send   send   send    done   14s  The background subagent finished and reported "done" after …
+shell  shell  shell   done   20s  The background `./wait.sh 50` command finished with exit co…
+esc    esc    esc     done   26s  The background subagent finished and replied "done" after r…
+one    one    one     done   31s  The background agent finished and replied "done".
+ask    ask    ask     done   35s  The background agent finished and reported "done". I haven'…

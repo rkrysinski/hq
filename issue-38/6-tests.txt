@@ -1,0 +1,39 @@
+commit fc772c5
+$ LC_ALL=C.UTF-8 go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./...
+ok  	github.com/rkrysinski/hq/cmd/hq	4.215s
+ok  	github.com/rkrysinski/hq/internal/agent	0.005s
+--- FAIL: TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox (5.72s)
+    cli_integration_test.go:559: a never became done: [{Name:a Repo:app RepoPath:/tmp/TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox3897432568/002/app Branch:main State:working Since:2026-10-06 10:24:29.923399864 +0000 UTC AgeSeconds:2 Last: Sandbox:claude-app Pending:0}]
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	53.830s
+ok  	github.com/rkrysinski/hq/internal/dash	8.108s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.010s
+ok  	github.com/rkrysinski/hq/internal/dialog	0.753s
+ok  	github.com/rkrysinski/hq/internal/gh	0.006s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.008s
+ok  	github.com/rkrysinski/hq/internal/platform	0.027s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.026s
+ok  	github.com/rkrysinski/hq/internal/proc	0.819s
+ok  	github.com/rkrysinski/hq/internal/repo	0.034s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.061s
+ok  	github.com/rkrysinski/hq/internal/state	0.901s
+--- FAIL: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.24s)
+    tmux_integration_test.go:517: got 12285 bytes of 12360
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	14.146s
+ok  	github.com/rkrysinski/hq/internal/update	0.412s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.005s
+FAIL
+
+$ go run ./tools/testgate coverage cover.out
+coverage 93.58% (minimum 93.5%)
+
+$ LC_ALL=C.UTF-8 go test -count=1 -tags e2e ./e2e/...
+ok  	github.com/rkrysinski/hq/e2e	16.664s
+
+$ go run ./tools/testgate pyramid
+unit 413, integration 114, e2e 3 (unit share 78%, minimum 50%)
+
+The two failing tests fail the same way on dev (086ce27) in this environment (a Docker sandbox, Linux arm64, tmux 3.6):
+TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox waits 5 s for a fake Claude set to take 6 s (FAKE_CLAUDE_DELAY=3s),
+TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter reads 12285 of 12360 pasted bytes. Neither is in code this change touches.

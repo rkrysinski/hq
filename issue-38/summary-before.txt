@@ -1,0 +1,6 @@
+== one (state changes as hq ls showed them, with this agent's notifications so far)
++0s 12:11:19   done      AGE 14s  LAST started                                       notifications: Done: one x1; 
+        Esc sent to one at +22s
++33s 12:11:52   working   AGE 0s   LAST started                                       notifications: Done: one x1; 
++35s 12:11:54   done      AGE 0s   LAST The background agent finished the `./wait.sh  notifications: Done: one x2; 
+

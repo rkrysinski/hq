@@ -1,0 +1,11 @@
+$ hq ls (before)
+NAME   REPO   BRANCH  STATE     AGE  LAST
+ask    ask    ask     question  23s  Started. Shall I also update the README?
+shell  shell  shell   done      14s  started
+send   send   send    working   24s  started
+esc    esc    esc     working   25s  -
+many   many   many    working   26s  started
+one    one    one     working   26s  started
+$ hq send send 'Reply with the single word pong.'
+delivered: typed into send as its next prompt
+exit 0
