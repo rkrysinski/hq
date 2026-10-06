@@ -734,3 +734,85 @@ func TestSettleSeesClaudesDialogAtTheStartOfASession(t *testing.T) {
 		t.Fatalf("a finished turn is looked at: %+v", d)
 	}
 }
+
+func TestAnAgentWaitingForItsSubagentsWorksAtItsPromptAndItsScreenIsNotRead(t *testing.T) {
+	// Claude at its prompt, at rest, after a turn that ended by itself: the
+	// look of a rewind.
+	atRest := "● Started.\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer\n"
+	prompted := time.Unix(1000, 0)
+	ended := prompted.Add(10 * time.Second)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	r := state.Report{State: state.Working, Since: prompted, Latest: ended, Background: true, Last: "Started.", Prompt: "run the tests"}
+	a := FromWindows([]tmux.Window{w})[0]
+	a.Apply(r, true)
+	if !a.Waiting() || a.Unsettled(ended.Add(time.Minute)) {
+		t.Fatalf("waiting %v, unsettled %v", a.Waiting(), a.Unsettled(ended.Add(time.Minute)))
+	}
+	// Working since the user's prompt, with the turn's message.
+	if a.State != state.Working || !a.Since.Equal(prompted) || a.Last != "Started." || !a.Entered().Equal(prompted) {
+		t.Fatalf("%+v", a)
+	}
+
+	// Claude's wake-up: the closing turn is at work, since the same prompt,
+	// and its screen is read again, a moment after the wake-up.
+	woken := ended.Add(time.Minute)
+	r.Latest, r.Background, r.Woken = woken, false, true
+	b := FromWindows([]tmux.Window{w})[0]
+	b.Apply(r, true)
+	if b.Waiting() || b.Unsettled(woken.Add(100*time.Millisecond)) || !b.Unsettled(woken.Add(time.Second)) || !b.Since.Equal(prompted) {
+		t.Fatalf("woken: waiting %v %+v", b.Waiting(), b)
+	}
+	// The user ends the closing turn: done, as any turn ended at the agent.
+	if rec := b.Settle(atRest, woken.Add(time.Second)); rec.Option != "restseen" {
+		t.Fatalf("closing turn at rest: %+v", rec)
+	}
+	// An Interrupted line above the box may be the turn's before the
+	// wake-up, which shows no prompt: only a screen that stays at rest
+	// tells that the user ended the closing turn.
+	interrupted := "  ⎿  Interrupted · What should Claude do instead?\n" + atRest
+	seen := woken.Add(2 * time.Second)
+	rec := b.Settle(interrupted, seen)
+	if b.State != state.Working || rec.Option != "restseen" {
+		t.Fatalf("closing turn, an earlier turn's line above: %+v %+v", rec, b)
+	}
+	w.Options["restseen"] = rec.Value
+	b = FromWindows([]tmux.Window{w})[0]
+	b.Apply(r, true)
+	if rec = b.Settle(interrupted, seen.Add(RestDelay)); b.State != state.Done || b.Last != "Interrupted" || !b.Since.Equal(seen) || rec.Option != "turnend" {
+		t.Fatalf("closing turn interrupted: %+v %+v", rec, b)
+	}
+}
+
+func TestATurnEndHqSawDoesNotOutliveClaudesWakeUp(t *testing.T) {
+	// The user interrupted a turn whose subagent still runs: done, with no
+	// hook. Claude's wake-up, when the subagent has finished, is a later
+	// report: the closing turn shows working.
+	prompted := time.Unix(1000, 0)
+	seen := prompted.Add(5 * time.Second)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	r := state.Report{State: state.Working, Since: prompted, Latest: prompted, Prompt: "run the tests"}
+	a := FromWindows([]tmux.Window{w})[0]
+	a.Apply(r, true)
+	interrupted := "  ⎿  Interrupted · What should Claude do instead?\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer\n"
+	rec := a.Settle(interrupted, seen)
+	if a.State != state.Done || rec.Option != "turnend" {
+		t.Fatalf("interrupted: %+v %+v", rec, a)
+	}
+	w.Options["turnend"] = rec.Value
+	b := FromWindows([]tmux.Window{w})[0]
+	b.Apply(r, true)
+	if !b.Recall() || b.State != state.Done {
+		t.Fatalf("recalled: %+v", b)
+	}
+	r.Latest = prompted.Add(time.Minute)
+	c := FromWindows([]tmux.Window{w})[0]
+	c.Apply(r, true)
+	if c.Recall() || c.State != state.Working || !c.Since.Equal(prompted) {
+		t.Fatalf("after the wake-up: %+v", c)
+	}
+	// An agent that ended keeps the turn end of its latest report only.
+	w.PaneDead = true
+	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, nil); as[0].Last == "Interrupted" {
+		t.Fatalf("ended after the wake-up: %+v", as[0])
+	}
+}

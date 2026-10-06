@@ -1,0 +1,40 @@
+❯ Start one background subagent (Agent tool, run_in_background true). Its task: run './wait.sh 40' with the Bash tool
+  as a plain FOREGROUND command (timeout 120000, no run_in_background, no Monitor tool), then reply 'done'. Do not wait
+  for it; end your turn right away with the single word 'started'.
+
+● Agent(Run wait.sh 40)
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+
+● started
+
+✻ Waiting for 1 background agent to finish
+
+● Agent "Run wait.sh 40" finished · 42s
+
+● The background agent finished. It ran ./wait.sh 40 in the foreground and replied "done".
+
+✻ Brewed for 45s · done 9:56 AM
+
+❯ Start three background subagents in one message (Agent tool, run_in_background true each). Tasks: A runs './wait.sh
+  20', B runs './wait.sh 45', C runs './wait.sh 70'; each with the Bash tool as a plain FOREGROUND command (timeout
+  120000, no run_in_background, no Monitor tool), then replies 'done'. Do not wait for them; end your turn right away
+  with the single word 'started'.
+
+● 3 background agents launched (↓ to manage)
+   ├ Run wait.sh 20
+   ├ Run wait.sh 45
+   └ Run wait.sh 70
+
+● started
+
+✻ Waiting for 3 background agents to finish
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Start three more background subagents
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents · ↓ to manage
+
+  ● main
+  ◯ general-purpose  Run wait.sh 20                                                                7s · ↓ 26.5k tokens
+  ◯ general-purpose  Run wait.sh 45                                                                6s · ↓ 26.5k tokens
+  ◯ general-purpose  Run wait.sh 70                                                                5s · ↓ 26.5k tokens

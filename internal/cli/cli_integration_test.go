@@ -797,3 +797,63 @@ func TestSendRefusesAnEndedAgent(t *testing.T) {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 }
+
+func TestAnAgentWhoseTurnEndedWhileItsSubagentsRunStaysWorkingUntilTheClosingTurn(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("new: %s", errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	h.waitAtRest("a")
+
+	// The turn ends with two subagents running: working, since the prompt,
+	// with the turn's message, and hq wait does not return, however long
+	// the agent rests at its prompt.
+	ch := h.wait("a")
+	h.typeIn("a", "background and background checks")
+	h.waitReport("a", "working", "Done: background and background checks")
+	prompted := h.waitState("a", "working").Since
+	h.waitAtRest("a")
+	time.Sleep(agent.RestDelay + time.Second)
+	h.waitReport("a", "working", "Done: background and background checks")
+	h.stillWaiting(ch)
+
+	// A subagent finishes: Claude wakes the agent for a turn, which ends
+	// with the other still running. Only the last message changes.
+	h.typeIn("a", "wake")
+	h.waitReport("a", "working", "The background work is done, 1 still running.")
+	if r := h.waitState("a", "working"); !r.Since.Equal(prompted) {
+		t.Fatalf("working since %v, prompted %v", r.Since, prompted)
+	}
+
+	// hq send types its message in there: the agent sits at its prompt.
+	h.waitAtRest("a")
+	h.send("delivered: typed into a as its next prompt", "a", "also run the linter")
+	h.waitReport("a", "working", "Done: also run the linter")
+	if r := h.waitState("a", "working"); !r.Since.After(prompted) {
+		t.Fatalf("the sent prompt did not restart the time: %v", r.Since)
+	}
+	h.stillWaiting(ch)
+
+	// The closing turn, with nothing running: done, and hq wait returns.
+	h.waitAtRest("a")
+	h.typeIn("a", "wake")
+	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running.")
+
+	// A background shell command alone does not keep it working.
+	h.typeIn("a", "start the server")
+	h.waitReport("a", "done", "Done: start the server")
+
+	// A turn the user interrupts while a subagent runs is done; the closing
+	// turn shows working, then done.
+	h.typeIn("a", "slow background job")
+	h.waitState("a", "working")
+	h.typeIn("a", "esc")
+	h.waitReport("a", "done", "Interrupted")
+	h.typeIn("a", "wake slow")
+	h.waitState("a", "working")
+	h.typeIn("a", "go on")
+	h.waitReport("a", "done", "The background work is done, 0 still running.")
+}

@@ -211,3 +211,33 @@ func TestWithoutHintsKeepsWhatTheUserTyped(t *testing.T) {
 		}
 	}
 }
+
+// While subagents run, Claude Code 2.1.291 lists them below its footer:
+// main, then a line for each. screen-styled-background is one subagent
+// running, captured with its styles (the box shows a faint suggestion);
+// screen-background-three is three, captured without.
+func TestThePromptBoxIsFoundAboveTheSubagentsClaudeListsBelowItsFooter(t *testing.T) {
+	one := WithoutHints(screen(t, "styled-background"))
+	if ok, restored := AtRest(one, ""); !ok || restored {
+		t.Fatalf("one subagent: at rest %v, restored %v", ok, restored)
+	}
+	// Three more lines than a footer has; the box holds the suggestion,
+	// which reads as typed text without the styles.
+	three := screen(t, "background-three")
+	if ok, restored := AtRest(three, "Start three more background subagents"); !ok || !restored {
+		t.Fatalf("three subagents: at rest %v, restored %v", ok, restored)
+	}
+	// A turn the user interrupted while they run shows above the same list.
+	list := three[strings.LastIndex(three, "  ● main"):]
+	if last, ok := EndedByUser(screen(t, "interrupted") + "\n" + list); !ok || last != "Interrupted" {
+		t.Fatalf("interrupted above the list: %q %v", last, ok)
+	}
+	// Lines below the footer that are no such list are not Claude's box.
+	if _, ok := EndedByUser(screen(t, "interrupted") + "\n" + list + "more\nlines\nprinted\nbelow\n"); ok {
+		t.Fatal("text below the list read as the footer")
+	}
+	// A turn at work with subagents running is not at rest.
+	if ok, _ := AtRest(screen(t, "working")+"\n"+list, ""); ok {
+		t.Fatal("a turn at work read as at rest")
+	}
+}

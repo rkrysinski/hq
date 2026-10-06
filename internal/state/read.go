@@ -18,6 +18,10 @@ var idRE = regexp.MustCompile(`^[0-9a-f]{1,64}$`)
 // Dir is where agents of the repository at root report their state.
 func Dir(root string) string { return filepath.Join(root, ".git", "hq", "agents") }
 
+// keptSuffix names, beside an agent's state file, the latest event the hook
+// kept without restarting the agent's time (Report.Kept).
+const keptSuffix = ".on"
+
 // Read returns the report of agent id of the repository at root; ok is false
 // until the agent's first event.
 func Read(root, id string) (r Report, ok bool) {
@@ -33,6 +37,10 @@ func Read(root, id string) (r Report, ok bool) {
 	prev, _, _ := readData(path + ".prev")
 	r = Parse(latest, lastStop, prev)
 	r.Since = info.ModTime()
+	r.Latest = r.Since
+	if kept, info, err := readData(path + keptSuffix); err == nil {
+		r = r.Kept(latest, kept, info.ModTime())
+	}
 	return r, true
 }
 
@@ -47,7 +55,7 @@ func Remove(root, id string) error {
 	}
 	path := filepath.Join(Dir(root), id)
 	var errs []error
-	for _, p := range []string{path, path + ".stop", path + ".prev"} {
+	for _, p := range []string{path, path + ".stop", path + ".prev", path + keptSuffix} {
 		if err := os.Remove(p); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			errs = append(errs, err)
 		}

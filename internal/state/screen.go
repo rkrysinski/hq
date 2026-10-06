@@ -109,16 +109,21 @@ type box struct {
 // promptBox finds Claude's prompt box at the bottom of a screen with a
 // footer that does not offer Esc to interrupt: a rule, the input line
 // starting with ❯ (and its continuation lines), a rule, then only the
-// footer.
+// footer, and below it the list of agents while subagents run.
 func promptBox(screen string) (box, bool) {
 	// Claude puts a no-break space after its bullets; its indents vary.
 	lines := strings.Split(strings.ReplaceAll(screen, "\u00a0", " "), "\n")
 	for i := range lines {
 		lines[i] = strings.Join(strings.Fields(lines[i]), " ")
 	}
+	// Below the footer Claude lists the agents while subagents run.
+	bottom := len(lines) - 1
+	for bottom >= 0 && (lines[bottom] == "" || listed(lines[bottom])) {
+		bottom--
+	}
 	// The lower rule of the prompt box: only the footer follows it.
 	lower, footer := -1, 0
-	for i := len(lines) - 1; i >= 0 && footer <= maxFooter; i-- {
+	for i := bottom; i >= 0 && footer <= maxFooter; i-- {
 		if isRule(lines[i]) {
 			lower = i
 			break
@@ -150,6 +155,14 @@ const prompt = "❯"
 
 // maxFooter is how many lines Claude shows below its prompt box.
 const maxFooter = 3
+
+// listed reports whether a trimmed line is one of the list Claude Code
+// 2.1.291 draws below its footer while subagents run: "● main", then a
+// line for each subagent, as "◯ general-purpose Run the tests 7s · ↓ 26.5k
+// tokens"; the one the user looks at has the filled dot.
+func listed(line string) bool {
+	return strings.HasPrefix(line, "◯ ") || strings.HasPrefix(line, "● ")
+}
 
 // isRule reports whether a trimmed line is one of the horizontal rules
 // around Claude's prompt box.

@@ -44,6 +44,14 @@ _Avoid_: selection, highlighted row
 `question` or `needs input`: the agent is waiting for the user.
 _Avoid_: alert, blocked
 
+**Background work**:
+Subagents an agent started in the background that still run when its turn ends; the agent is `working` until the closing turn ends. Background shell commands are not background work.
+_Avoid_: pending tasks, children, jobs
+
+**Closing turn**:
+The turn Claude runs by itself when background work has finished; the one that ends with none running makes the agent `done`.
+_Avoid_: wake-up turn, follow-up, callback
+
 **Message**:
 Text the user leaves for an agent with `hq send`, delivered to it when it is ready; it waits in the agent's inbox until then.
 _Avoid_: feedback, note, mail

@@ -34,6 +34,18 @@ type Report struct {
 	// and, as far as its hooks tell, waits at its prompt. It may show a
 	// dialog of its own first, which no hook reports (StartDialog).
 	AtStart bool
+	// Latest is the time of the agent's latest report: Since, or the later
+	// time of an event that left it working without restarting its time
+	// (Kept).
+	Latest time.Time
+	// Background says the agent's turn ended while background work still
+	// runs (subagents): it waits at its prompt, working, until Claude wakes
+	// it for the closing turn (design §3.4).
+	Background bool
+	// Woken says the agent's latest report is Claude's wake-up after
+	// background work finished: its closing turn is at work, with no prompt
+	// of the user's, so none shows on its screen.
+	Woken bool
 }
 
 // payload is the part of a Claude hook event hq reads.
@@ -140,6 +152,34 @@ func Parse(latest, lastStop, prev []byte) Report {
 		r.State = Ended
 	default:
 		r.State = Starting
+	}
+	return r
+}
+
+// Kept adds to the report of the state file latest what the hook kept
+// beside it (kept, written at; empty when there is nothing): the latest
+// event that left the agent working without restarting its time (design
+// §3.4). A turn end with background work still running (a Stop) counts
+// beside a report that says working, and as the report itself when the hook
+// wrote it there too, the agent not working before: the agent works, at its
+// prompt, with that turn's message. Claude's wake-up for the closing turn
+// (a UserPromptSubmit) counts beside a report that says working: the agent
+// works on, since the same moment.
+func (r Report) Kept(latest, kept []byte, at time.Time) Report {
+	var p payload
+	if _, event := splitHeader(kept); json.Unmarshal(event, &p) != nil {
+		return r
+	}
+	switch {
+	case p.Event == "Stop" && (r.State == Working || bytes.Equal(kept, latest)):
+		r.State, r.Background, r.Last = Working, true, Clean(p.AssistantMessage)
+	case p.Event == "UserPromptSubmit" && r.State == Working:
+		r.Woken = true
+	default:
+		return r
+	}
+	if at.After(r.Latest) {
+		r.Latest = at
 	}
 	return r
 }
