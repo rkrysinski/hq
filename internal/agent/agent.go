@@ -140,22 +140,41 @@ func FromWindows(ws []tmux.Window) []Agent {
 // never reported a message before its session went (spec S7, the mocks).
 const EndedLast = "[session ended]"
 
+// Sandboxes is sbx's answer to which sandboxes run, with the moment hq
+// asked for it. hq keeps an answer for up to a second, and reads the agents
+// after it has it, so an answer can be older than an agent's report.
+type Sandboxes struct {
+	// Running says, by a sandbox's name, whether it runs; nil when sbx
+	// could not say, which ends no agent.
+	Running map[string]bool
+	// Asked is when hq asked sbx.
+	Asked time.Time
+}
+
+// stopped reports whether the answer ends a: its sandbox does not run, and
+// a has reported, but not since hq asked. Before its first report its
+// session may still wait for sbx run to start the sandbox (S2). A report
+// after the question proves the sandbox ran after it: the answer was taken
+// while the sandbox started, and the next one decides (#48).
+func (s Sandboxes) stopped(a Agent) bool {
+	return s.Running != nil && !s.Running[a.Sandbox] && a.reported && !a.reportAt.After(s.Asked)
+}
+
 // Collect is the row model's collection, shared by hq ls and the list
 // program (design §3.8, §5.1): the agents of the home windows with what
 // their state files report, and ended when sbx lists their sandbox as not
-// running. running is nil when sbx could not say, which changes nothing.
-// sbx ends only an agent that has reported: until then its sandbox may not
+// running (Sandboxes). sbx ends only an agent that has reported: until then its sandbox may not
 // have started yet (sbx run starts a stopped one, which takes seconds), so
 // a sandbox not running is no sign that the session ended; the agent is
 // starting (S2), and ended when its pane dies, as sbx run returns when its
 // sandbox stops. An ended agent keeps the last turn end hq saw on its
 // screen, and one without a last message has EndedLast, so
 // hq ls and the list show the same (design §6).
-func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), running map[string]bool) []Agent {
+func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), sandboxes Sandboxes) []Agent {
 	as := FromWindows(ws)
 	for i := range as {
 		as[i].Apply(read(as[i].RepoPath, as[i].ID))
-		if running != nil && !running[as[i].Sandbox] && as[i].reported {
+		if sandboxes.stopped(as[i]) {
 			as[i].State = state.Ended
 			as[i].New = false
 		}

@@ -2,10 +2,12 @@ package cli
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -70,6 +72,28 @@ func TestWaitReturnsAnAgentThatTurnsDoneWithItsRowAndTheNextSince(t *testing.T) 
 	next := strings.TrimPrefix(lines[2], "next: hq wait --since ")
 	if at, err := time.Parse(time.RFC3339Nano, next); err != nil || at.Before(doneAt) || at.After(f.now) {
 		t.Fatalf("next line %q (done at %v, now %v)", lines[2], doneAt, f.now)
+	}
+}
+
+func TestWaitNeverReturnsAnAgentEndedOnAnAnswerOfSbxOlderThanItsReport(t *testing.T) {
+	// hq new has just started a in a sandbox that was not running: sbx
+	// still says so when wait first asks, and wait keeps that answer for a
+	// second. a's session starts and its turn ends within it (#48).
+	f := newWaitFakes()
+	f.tmux.windows = f.tmux.windows[:2]
+	f.tmux.windows[1].Options["started"] = strconv.FormatInt(f.now.Add(-time.Second).Unix(), 10)
+	delete(f.states, "id-a")
+	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "stopped"}}
+	f.after(500*time.Millisecond, func() {
+		f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "running"}}
+		f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: hello"}
+	})
+	code, out, errOut := f.run("wait", "--since", "1m", "--json")
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	if w := waitJSON(t, out); len(w.Agents) != 1 || w.Agents[0].Name != "a" || w.Agents[0].State != state.Done || w.Agents[0].Last != "Done: hello" {
+		t.Fatalf("want a done, got %s", out)
 	}
 }
 

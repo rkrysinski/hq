@@ -290,7 +290,6 @@ func TestWorkTheSupervisorSentEndsWithoutANotification(t *testing.T) {
 	// message as its next prompt, and ends a turn with a question: its row
 	// changes as ever, and nobody is notified.
 	s.ok("new", map[string]any{"name": "a", "dir": app, "prompt": "hello"})
-	s.readUntil("a", "done") // its sandbox, new, is running by then
 	if r, _ := s.until("1m", "a", "done"); r.Last != "Done: hello" {
 		t.Fatalf("a %+v", r)
 	}

@@ -34,7 +34,7 @@ func chord(d deps, action string) error {
 	if err != nil {
 		return tmuxErr(err)
 	}
-	as := seeEnds(d, settle(d, agent.Collect(ws, d.readState, nil)))
+	as := seeEnds(d, settle(d, agent.Collect(ws, d.readState, agent.Sandboxes{})))
 	var docked agent.Agent
 	for _, a := range as {
 		if a.Docked {

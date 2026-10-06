@@ -153,6 +153,24 @@ func TestLsCutsTheLastMessageToOneColumn(t *testing.T) {
 	}
 }
 
+func TestLsDoesNotEndAnAgentThatReportedAfterSbxWasAsked(t *testing.T) {
+	// hq asked sbx while a's sandbox was still starting, and a's session
+	// reported before hq read the agents (#48): the answer is older than
+	// the report. old's last report is older than the answer.
+	f := newFakes()
+	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "stopped"}}
+	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Second), false), agentWindow("@2", "old", "/w/app", f.now.Add(-time.Hour), false)}
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(time.Millisecond), Last: "Done: hello"}
+	f.states["id-old"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened"}
+	_, out, _ := f.run("ls")
+	want := "NAME  REPO  BRANCH  STATE  AGE  LAST\n" +
+		"a     app   -       done   0s   Done: hello\n" +
+		"old   app   -       ended  0s   PR #58 opened\n"
+	if out != want {
+		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+}
+
 func TestLsShowsTheAgentsOfAStoppedSandboxEnded(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/lib", f.now.Add(-time.Minute), false)}

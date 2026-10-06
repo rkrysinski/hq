@@ -22,10 +22,10 @@ import (
 // Source is what the list program reads and drives.
 type Source struct {
 	// Agents collects the agents from tmux and the state files; running is
-	// the latest answer of sbx, nil while unknown (design §5.1).
-	Agents func(running map[string]bool) ([]agent.Agent, error)
+	// the latest answer of sbx, which says nothing while unknown (design §5.1).
+	Agents func(running agent.Sandboxes) ([]agent.Agent, error)
 	// Running asks sbx which sandboxes run; it may take seconds.
-	Running func() (map[string]bool, error)
+	Running func() (agent.Sandboxes, error)
 	Now     func() time.Time
 	// UpdateHint is "vX.Y.Z available - hq update" when a newer release
 	// exists, else empty; it asks GitHub at most once a day.
@@ -234,7 +234,7 @@ type (
 	restMsg    struct{ seq int }   // the cursor moved by the user rested for restFor
 	dockedMsg  struct{ err error } // the list's own dock finished
 	runningMsg struct {
-		running map[string]bool
+		running agent.Sandboxes
 		err     error
 	}
 	hintMsg    struct{ text string }
@@ -255,7 +255,7 @@ type Model struct {
 	src     Source
 	agents  []agent.Agent // every agent, as collected
 	rows    []agent.Agent // the agents the view shows, in sort order
-	running map[string]bool
+	running agent.Sandboxes
 	err     error
 	actErr  error // why the last row action failed, for errFor or until the next key
 	errSeq  int   // counts the row actions' errors, so an older timer clears no newer one
