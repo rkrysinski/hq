@@ -160,13 +160,13 @@ func TestInstallThenUpdate(t *testing.T) {
 	// nor when stderr is a pipe.
 	socket := testutil.TmuxSocket(t)
 	shell := hq + " ls; echo --; " + hq + " ls --json >/dev/null; echo --; " + hq + " ls 2>&1 | cat; echo END; sleep 60"
-	if out, err := exec.Command("tmux", "-L", socket, "-f", "/dev/null", "new-session", "-d", "-x", "100", "-y", "12",
+	if out, err := exec.Command("tmux", "-u", "-L", socket, "-f", "/dev/null", "new-session", "-d", "-x", "100", "-y", "12",
 		"-e", "HQ_TMUX_SOCKET="+socket, "sh", "-c", shell).CombinedOutput(); err != nil {
 		t.Fatalf("tmux: %v %s", err, out)
 	}
 	var screen string
 	waitFor(t, "the commands in the terminal", func() bool {
-		out, _ := exec.Command("tmux", "-L", socket, "capture-pane", "-p").Output()
+		out, _ := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p").Output()
 		screen = string(out)
 		return strings.Contains(screen, "END")
 	})

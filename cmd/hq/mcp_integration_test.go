@@ -120,7 +120,7 @@ func (s *supervisor) until(since, name, st string) (row, string) {
 			}
 		}
 	}
-	out, _ := exec.Command("tmux", "-L", s.socket, "capture-pane", "-p", "-a", "-t", "hq:").Output()
+	out, _ := exec.Command("tmux", "-u", "-L", s.socket, "capture-pane", "-p", "-a", "-t", "hq:").Output()
 	s.t.Fatalf("%s never became %s: %+v\n%s", name, st, s.read(name), out)
 	return row{}, ""
 }
@@ -163,10 +163,10 @@ func (s *supervisor) readUntil(name, st string) {
 // typeIn types a line into an agent's session, as the user does there.
 func (s *supervisor) typeIn(name, line string) {
 	s.t.Helper()
-	out, _ := exec.Command("tmux", "-L", s.socket, "list-windows", "-a", "-F", "#{window_id} #{@hq_name}").Output()
+	out, _ := exec.Command("tmux", "-u", "-L", s.socket, "list-windows", "-a", "-F", "#{window_id} #{@hq_name}").Output()
 	for _, w := range strings.Split(string(out), "\n") {
 		if id, n, _ := strings.Cut(w, " "); n == name {
-			if out, err := exec.Command("tmux", "-L", s.socket, "send-keys", "-t", id, line, "Enter").CombinedOutput(); err != nil {
+			if out, err := exec.Command("tmux", "-u", "-L", s.socket, "send-keys", "-t", id, line, "Enter").CombinedOutput(); err != nil {
 				s.t.Fatalf("send-keys: %v %s", err, out)
 			}
 			return

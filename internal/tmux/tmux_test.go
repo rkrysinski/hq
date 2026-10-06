@@ -203,3 +203,24 @@ func TestStartTargetIsTheAgentsOwnPane(t *testing.T) {
 		}
 	}
 }
+
+// term records the program Attach hands the user's terminal.
+type term struct{ line []string }
+
+func (t *term) Interactive(name string, args ...string) error {
+	t.line = append([]string{name}, args...)
+	return nil
+}
+
+// tmux draws hq's lines and marks as _ unless told the terminal takes
+// UTF-8, which a locale without UTF-8 does not say (#41).
+func TestAttachTellsTmuxTheTerminalTakesUTF8(t *testing.T) {
+	var got term
+	c := Client{Run: runner{"-L s select-window -t @1": ""}, Socket: "s"}
+	if err := c.Attach("@1", &got); err != nil {
+		t.Fatal(err)
+	}
+	if want := "tmux -u -L s attach-session -d -t " + Session; strings.Join(got.line, " ") != want {
+		t.Fatalf("got %q, want %q", got.line, want)
+	}
+}

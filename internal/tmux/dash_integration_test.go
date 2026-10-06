@@ -22,7 +22,7 @@ var listStub = []string{"sh", "-c", `printf 'list:%s\n' "$HQ_TMUX_SOCKET"; sleep
 
 func tm(t *testing.T, socket string, args ...string) string {
 	t.Helper()
-	out, err := exec.Command("tmux", append([]string{"-L", socket}, args...)...).CombinedOutput()
+	out, err := exec.Command("tmux", append([]string{"-u", "-L", socket}, args...)...).CombinedOutput()
 	if err != nil {
 		t.Fatalf("tmux %v: %v %s", args, err, out)
 	}
@@ -516,7 +516,7 @@ func TestPopupRunsCenteredOverTheClientAndReturnsWhenItCloses(t *testing.T) {
 	}
 	// A terminal attached to hq's session: popups need a client.
 	term := testutil.TmuxSocket(t)
-	tm(t, term, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-L", socket, "attach", "-t", Session)
+	tm(t, term, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-u", "-L", socket, "attach", "-t", Session)
 	screen := func() string { return tm(t, term, "capture-pane", "-p") }
 	eventually(t, "the client to attach", func() bool { return strings.Contains(screen(), "list:") })
 
@@ -599,7 +599,7 @@ func TestChordsWorkInHqsSessionAloneAndKeepOtherBindings(t *testing.T) {
 	}
 
 	term := testutil.TmuxSocket(t)
-	tm(t, term, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-L", socket, "attach", "-t", Session)
+	tm(t, term, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-u", "-L", socket, "attach", "-t", Session)
 	screen := func() string { return tm(t, term, "capture-pane", "-p") }
 	eventually(t, "the client to attach", func() bool { return strings.Contains(screen(), "list:") })
 	logged := func() string {
@@ -667,7 +667,7 @@ func TestShowAttachedNamesTheClientsTerminalAndShowsItTheWindow(t *testing.T) {
 		t.Fatalf("no client: %q %v", ttys, err)
 	}
 	term := testutil.TmuxSocket(t)
-	tm(t, term, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-L", socket, "attach", "-t", Session)
+	tm(t, term, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-u", "-L", socket, "attach", "-t", Session)
 	eventually(t, "the client to attach", func() bool { return tm(t, socket, "list-clients", "-t", Session) != "" })
 	tm(t, socket, "select-window", "-t", other)
 	ttys, err := c.ShowAttached(d.Window)
@@ -709,7 +709,7 @@ func TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack(t *testing.T) {
 	plain, switched := testutil.TmuxSocket(t), testutil.TmuxSocket(t)
 	tm(t, plain, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "sh", "-c",
 		"tmux -L "+socket+" attach -t "+Session+"; echo back-in-the-shell; sleep 30")
-	tm(t, switched, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-L", socket, "attach", "-t", "work")
+	tm(t, switched, "new-session", "-d", "-x", "100", "-y", "30", "env", "-u", "TMUX", "tmux", "-u", "-L", socket, "attach", "-t", "work")
 	eventually(t, "both clients", func() bool {
 		return len(strings.Fields(tm(t, socket, "list-clients", "-F", "#{client_name}"))) == 2
 	})
@@ -943,7 +943,7 @@ func TestTheSideWithTheKeysLooksFocusedOnScreen(t *testing.T) {
 		t.Fatal(err)
 	}
 	term := testutil.TmuxSocket(t)
-	tm(t, term, "new-session", "-d", "-x", "60", "-y", "20", "env", "-u", "TMUX", "tmux", "-L", socket, "attach", "-t", Session)
+	tm(t, term, "new-session", "-d", "-x", "60", "-y", "20", "env", "-u", "TMUX", "tmux", "-u", "-L", socket, "attach", "-t", Session)
 	eventually(t, "the client to attach", func() bool {
 		return strings.Contains(tm(t, term, "capture-pane", "-p"), "▸ placeholder")
 	})

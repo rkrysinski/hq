@@ -59,10 +59,18 @@ type Client struct {
 var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "turnend", "restseen", "endseen", "wokeseen", "inbox"}
 
 func (c Client) tmux(args ...string) ([]byte, error) {
+	return c.Run.Run("tmux", c.global(args)...)
+}
+
+// global puts tmux's global flags before a command: -u, since hq's list and
+// dashboard draw lines and marks tmux would show as _ when the locale does
+// not say UTF-8 (#41), and the socket if any.
+func (c Client) global(args []string) []string {
+	g := []string{"-u"}
 	if c.Socket != "" {
-		args = append([]string{"-L", c.Socket}, args...)
+		g = append(g, "-L", c.Socket)
 	}
-	return c.Run.Run("tmux", args...)
+	return append(g, args...)
 }
 
 // dollarProbe is the text read has tmux print after a command's output, to
@@ -487,11 +495,7 @@ func (c Client) Attach(id string, t Terminal) error {
 	if _, err := c.tmux("select-window", "-t", id); err != nil {
 		return err
 	}
-	args := []string{"attach-session", "-d", "-t", Session}
-	if c.Socket != "" {
-		args = append([]string{"-L", c.Socket}, args...)
-	}
-	return t.Interactive("tmux", args...)
+	return t.Interactive("tmux", c.global([]string{"attach-session", "-d", "-t", Session})...)
 }
 
 // Terminal runs a program attached to the user's terminal.

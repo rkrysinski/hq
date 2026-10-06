@@ -81,7 +81,7 @@ func (j *journey) hq(args ...string) (int, string) {
 // id is the id hq gave the agent named name, from its home window.
 func (j *journey) id(name string) string {
 	j.t.Helper()
-	out, err := exec.Command("tmux", "-L", j.socket, "list-windows", "-t", "hq", "-F", "#{window_name} #{@hq_id}").Output()
+	out, err := exec.Command("tmux", "-u", "-L", j.socket, "list-windows", "-t", "hq", "-F", "#{window_name} #{@hq_id}").Output()
 	if err != nil {
 		j.t.Fatalf("list-windows: %v", err)
 	}
@@ -135,12 +135,12 @@ func TestStartSeeEnterKill(t *testing.T) {
 
 	// Enter, from a plain terminal: an outer tmux server serves as the terminal.
 	term := testutil.TmuxSocket(t)
-	if out, err := exec.Command("tmux", "-L", term, "new-session", "-d", "-x", "120", "-y", "30",
+	if out, err := exec.Command("tmux", "-u", "-L", term, "new-session", "-d", "-x", "120", "-y", "30",
 		"env", "-u", "TMUX", j.bin, "go", "a").CombinedOutput(); err != nil {
 		t.Fatalf("terminal: %v %s", err, out)
 	}
 	screen := func() string {
-		out, _ := exec.Command("tmux", "-L", term, "capture-pane", "-p").Output()
+		out, _ := exec.Command("tmux", "-u", "-L", term, "capture-pane", "-p").Output()
 		return string(out)
 	}
 	eventually(t, "the terminal shows a's session", func() bool {
@@ -148,7 +148,7 @@ func TestStartSeeEnterKill(t *testing.T) {
 	})
 
 	// Reply in the session: the agent works, then asks.
-	if out, err := exec.Command("tmux", "-L", term, "send-keys", "a question please", "Enter").CombinedOutput(); err != nil {
+	if out, err := exec.Command("tmux", "-u", "-L", term, "send-keys", "a question please", "Enter").CombinedOutput(); err != nil {
 		t.Fatalf("send-keys: %v %s", err, out)
 	}
 	eventually(t, "a listed as asking a question", func() bool {
@@ -188,13 +188,13 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	open := func(args ...string) {
 		t.Helper()
 		term = testutil.TmuxSocket(t)
-		if out, err := exec.Command("tmux", append([]string{"-L", term, "new-session", "-d", "-x", "120", "-y", "30",
+		if out, err := exec.Command("tmux", append([]string{"-u", "-L", term, "new-session", "-d", "-x", "120", "-y", "30",
 			"-c", j.repo, "env", "-u", "TMUX", "sh", "-c", `"$@"; echo "[hq returned $?]"; exec sleep 600`, "sh", j.bin}, args...)...).CombinedOutput(); err != nil {
 			t.Fatalf("terminal: %v %s", err, out)
 		}
 	}
 	screen := func() string {
-		out, _ := exec.Command("tmux", "-L", term, "capture-pane", "-p").Output()
+		out, _ := exec.Command("tmux", "-u", "-L", term, "capture-pane", "-p").Output()
 		return string(out)
 	}
 	shows := func(what string, texts ...string) {
@@ -216,12 +216,12 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	}
 	keys := func(k ...string) {
 		t.Helper()
-		if out, err := exec.Command("tmux", append([]string{"-L", term, "send-keys"}, k...)...).CombinedOutput(); err != nil {
+		if out, err := exec.Command("tmux", append([]string{"-u", "-L", term, "send-keys"}, k...)...).CombinedOutput(); err != nil {
 			t.Fatalf("send-keys: %v %s", err, out)
 		}
 	}
 	listPane := func() string {
-		out, _ := exec.Command("tmux", "-L", j.socket, "list-panes", "-s", "-t", "hq:", "-F", "#{@hq_role} #{pane_id} #{@hq_list_pid}").Output()
+		out, _ := exec.Command("tmux", "-u", "-L", j.socket, "list-panes", "-s", "-t", "hq:", "-F", "#{@hq_role} #{pane_id} #{@hq_list_pid}").Output()
 		for _, l := range strings.Split(string(out), "\n") {
 			if strings.HasPrefix(l, "list ") {
 				return l
@@ -235,7 +235,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	shows("the empty dashboard", "hq  0 agents", "no agents yet - press n to start one", "▸ placeholder",
 		"hq: nothing docked - select an agent above or press n", "r refresh  q quit")
 	role := func() string {
-		out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_role}").Output()
+		out, _ := exec.Command("tmux", "-u", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_role}").Output()
 		return strings.TrimSpace(string(out))
 	}
 	// The empty slot is not a shell: what is typed there runs nothing and
@@ -307,7 +307,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	shows("the search", "/a · 1 match: a", "esc cancel")
 	keys("Enter")
 	eventually(t, "the keys in a's session", func() bool {
-		out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_agent}").Output()
+		out, _ := exec.Command("tmux", "-u", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_agent}").Output()
 		return strings.TrimSpace(string(out)) != ""
 	})
 	keys("once more", "Enter")
@@ -316,7 +316,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	// was away would scroll a's screen, and the screen after hq go a would
 	// depend on how fast the machine is (#34).
 	scrollback := func() string {
-		out, _ := exec.Command("tmux", "-L", j.socket, "capture-pane", "-p", "-S", "-", "-t", "hq:").Output()
+		out, _ := exec.Command("tmux", "-u", "-L", j.socket, "capture-pane", "-p", "-S", "-", "-t", "hq:").Output()
 		return string(out)
 	}
 	turnOver := "● Done: once more\n" + strings.Repeat("─", 40) + "\n❯\n" + strings.Repeat("─", 40) + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
@@ -329,11 +329,11 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	}
 	detach := func() {
 		t.Helper()
-		if out, err := exec.Command("tmux", "-L", j.socket, "detach-client", "-s", "hq").CombinedOutput(); err != nil {
+		if out, err := exec.Command("tmux", "-u", "-L", j.socket, "detach-client", "-s", "hq").CombinedOutput(); err != nil {
 			t.Fatalf("detach: %v %s", err, out)
 		}
 		eventually(t, "hq to return", func() bool { return strings.Contains(screen(), "[hq returned 0]") })
-		_ = exec.Command("tmux", "-L", term, "kill-server").Run()
+		_ = exec.Command("tmux", "-u", "-L", term, "kill-server").Run()
 	}
 	// hq go from a plain terminal: the dashboard with a docked, its screen
 	// and its scrollback as they were. The screen holds the latest turns;
@@ -398,7 +398,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	shows("the Kill dialog again", "Kill agent")
 	keys("y")
 	shows("the list empty again, the placeholder back", "hq  0 agents", "▸ placeholder", "hq: a killed - select an agent above or press n")
-	if out, _ := exec.Command("tmux", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_role}").Output(); strings.TrimSpace(string(out)) != "list" {
+	if out, _ := exec.Command("tmux", "-u", "-L", j.socket, "display-message", "-p", "-t", "hq:", "#{@hq_role}").Output(); strings.TrimSpace(string(out)) != "list" {
 		t.Fatalf("the keys are in the %q pane, not the list", out)
 	}
 	// The name is free at once.
@@ -419,7 +419,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	}
 	shows("c docked", "▸ c · ", "fake claude: ready")
 	cPane := func() string {
-		out, _ := exec.Command("tmux", "-L", j.socket, "list-panes", "-t", "hq:", "-F", "#{@hq_agent}#{pane_id}").Output()
+		out, _ := exec.Command("tmux", "-u", "-L", j.socket, "list-panes", "-t", "hq:", "-F", "#{@hq_agent}#{pane_id}").Output()
 		return strings.TrimSpace(string(out))
 	}
 	docked := cPane()
@@ -430,11 +430,11 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	if s := screen(); strings.Contains(s, "q quit") || strings.Contains(s, "TAB") || strings.Contains(s, "▸") {
 		t.Fatalf("hq left on the terminal after q:\n%s", s)
 	}
-	if out, _ := exec.Command("tmux", "-L", j.socket, "list-clients").Output(); len(out) != 0 {
+	if out, _ := exec.Command("tmux", "-u", "-L", j.socket, "list-clients").Output(); len(out) != 0 {
 		t.Fatalf("clients still on hq's session: %s", out)
 	}
 	eventually(t, "the list program to end", func() bool { return len(strings.Fields(listPane())) == 2 }) // role and pane, no pid
-	_ = exec.Command("tmux", "-L", term, "kill-server").Run()
+	_ = exec.Command("tmux", "-u", "-L", term, "kill-server").Run()
 	open()
 	shows("the list back, in the modes left, c still docked", "hq  1 agent", "view: all", "REPO ▾", "q quit", "▸ c · ", "fake claude: ready")
 	if after := cPane(); after != docked {
