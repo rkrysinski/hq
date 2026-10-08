@@ -349,7 +349,9 @@ type fakeSbx struct {
 	created   []string
 	err       error
 	createErr error
-	execs     [][]string // sandbox, then the command
+	// createdWith is what each Create was given besides the workspace.
+	createdWith []sbx.Options
+	execs       [][]string // sandbox, then the command
 	// onExec is what the command does; its error is the command's.
 	onExec func(args []string) error
 	// orphans are the Claude sessions that run in a sandbox although their
@@ -399,7 +401,8 @@ func (f *fakeSbx) Exec(sandbox string, args ...string) error {
 
 func (f *fakeSbx) List() ([]sbx.Sandbox, error) { return f.sandboxes, f.err }
 
-func (f *fakeSbx) Create(ws string) error {
+func (f *fakeSbx) Create(ws string, o sbx.Options) error {
+	f.createdWith = append(f.createdWith, o)
 	if f.createErr != nil {
 		return f.createErr
 	}

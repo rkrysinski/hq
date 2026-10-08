@@ -208,6 +208,36 @@ func TestNewStartsSessionInSandboxAndLsListsIt(t *testing.T) {
 	}
 }
 
+// hq new creates the sandbox with the preferences file's template and MCP
+// servers, and names them when sbx refuses one (#58).
+func TestNewCreatesSandboxWithTheSettingsOfThePreferencesFile(t *testing.T) {
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	file := filepath.Join(cfg, "hq", "preferences.json")
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, []byte(`{"sandbox":{"template":"sbx-image:local","staticMcp":["pencil"]}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	log, _ := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/creates.log")
+	if !strings.HasPrefix(string(log), "--quiet --template sbx-image:local --static-mcp pencil claude F:") {
+		t.Fatalf("created with %q", log)
+	}
+
+	h.cwd = testutil.GitRepo(t, "lib")
+	t.Setenv("SBX_STUB_CREATE_ERR", "template sbx-image:local not found")
+	code, _, errOut := h.run("new", "b")
+	if want := "error: template sbx-image:local not found; created with sandbox.template sbx-image:local, sandbox.staticMcp pencil (" + file + ")\n"; code != ExitEnvironment || !strings.HasSuffix(errOut, want) {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+}
+
 // The first prompt has nearly all of tmux's 16 KiB for itself, the hook
 // script none of it; one longer than tmux takes is hq's error, which says by
 // how much, and starts nothing (#40).

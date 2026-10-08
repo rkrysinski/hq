@@ -75,15 +75,37 @@ func TestListFailsWhenAWorkspaceCannotBeMapped(t *testing.T) {
 
 func TestCreateGivesSbxItsOwnPathAndCommand(t *testing.T) {
 	r := &fakeRun{}
-	if err := (Client{Run: r, Platform: platformtest.Fake{Sbx: "sbx.exe"}}).Create("/w/app"); err != nil {
+	if err := (Client{Run: r, Platform: platformtest.Fake{Sbx: "sbx.exe"}}).Create("/w/app", Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if want := []string{"sbx.exe", "create", "--quiet", "claude", `F:\w\app`}; !reflect.DeepEqual(r.args, want) {
 		t.Fatalf("args %q", r.args)
 	}
 	c := Client{Run: r, Platform: platform.WSL{Run: &fakeRun{err: errors.New("wslpath: boom")}}}
-	if err := c.Create("/w/app"); err == nil {
+	if err := c.Create("/w/app", Options{}); err == nil {
 		t.Fatal("want the wslpath error")
+	}
+}
+
+// The template and static MCP servers go to sbx create only when set (#58).
+func TestCreateGivesTheTemplateAndStaticMCPServersWhenSet(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		o    Options
+		want []string
+	}{
+		{"template", Options{Template: "sbx-image:local"}, []string{"--template", "sbx-image:local"}},
+		{"servers", Options{StaticMCP: []string{"pencil", "docs"}}, []string{"--static-mcp", "pencil,docs"}},
+		{"both", Options{Template: "ghcr.io/o/i:latest", StaticMCP: []string{"pencil"}}, []string{"--template", "ghcr.io/o/i:latest", "--static-mcp", "pencil"}},
+	} {
+		r := &fakeRun{}
+		if err := (Client{Run: r, Platform: platformtest.Fake{Sbx: "sbx"}}).Create("/w/app", c.o); err != nil {
+			t.Fatal(err)
+		}
+		want := append(append([]string{"sbx", "create", "--quiet"}, c.want...), "claude", `F:\w\app`)
+		if !reflect.DeepEqual(r.args, want) {
+			t.Errorf("%s: args %q", c.name, r.args)
+		}
 	}
 }
 
@@ -117,7 +139,7 @@ func TestAFailedCallReportsSbxsErrorAndKeepsWhetherSbxIsInstalled(t *testing.T) 
 		t.Fatalf("ls: %v", err)
 	}
 	for name, call := range map[string]func() error{
-		"create": func() error { return c.Create("/w/app") },
+		"create": func() error { return c.Create("/w/app", Options{}) },
 		"stop":   func() error { return c.Stop("claude-app") },
 		"rm":     func() error { return c.Remove("claude-app") },
 		"exec":   func() error { return c.Exec("claude-app", "true") },

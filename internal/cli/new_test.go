@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/rkrysinski/hq/internal/dialog"
+	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
+	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
@@ -126,6 +129,72 @@ func TestNewCreatesSandboxWhenRepositoryHasNone(t *testing.T) {
 	}
 	if !strings.Contains(out, "creating a sandbox for lib") {
 		t.Fatalf("stdout %q", out)
+	}
+}
+
+// Without settings hq creates the sandbox with sbx's defaults; with them,
+// the template and MCP servers of the preferences file, each overridden by
+// its environment variable (#58).
+func TestNewCreatesSandboxWithTheSandboxSettings(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		prefs prefs.Sandbox
+		env   map[string]string
+		want  sbx.Options
+	}{
+		{"none", prefs.Sandbox{}, nil, sbx.Options{}},
+		{"from the file", prefs.Sandbox{Template: "sbx-image:local", StaticMCP: []string{"pencil", " ", "docs "}}, nil,
+			sbx.Options{Template: "sbx-image:local", StaticMCP: []string{"pencil", "docs"}}},
+		{"the environment wins", prefs.Sandbox{Template: "sbx-image:local", StaticMCP: []string{"pencil"}},
+			map[string]string{"HQ_SBX_TEMPLATE": "ghcr.io/o/i:latest", "HQ_SBX_STATIC_MCP": "a, b,"},
+			sbx.Options{Template: "ghcr.io/o/i:latest", StaticMCP: []string{"a", "b"}}},
+		{"an empty variable is unset", prefs.Sandbox{StaticMCP: []string{"pencil"}},
+			map[string]string{"HQ_SBX_TEMPLATE": " ", "HQ_SBX_STATIC_MCP": ","},
+			sbx.Options{StaticMCP: []string{"pencil"}}},
+	} {
+		f := newFakes()
+		f.prefs.Sandbox = c.prefs
+		for k, v := range c.env {
+			f.env[k] = v
+		}
+		if code, _, errOut := f.run("new", "a", "/w/lib"); code != 0 {
+			t.Fatalf("%s: exit %d %q", c.name, code, errOut)
+		}
+		if len(f.sbx.createdWith) != 1 || !reflect.DeepEqual(f.sbx.createdWith[0], c.want) {
+			t.Errorf("%s: created with %+v", c.name, f.sbx.createdWith)
+		}
+	}
+}
+
+// A sandbox that exists is used as it is, whatever the settings.
+func TestNewReusesSandboxWhateverTheSandboxSettings(t *testing.T) {
+	f := newFakes()
+	f.sbx.sandboxes = sandboxesFor("/w/app")
+	f.prefs.Sandbox = prefs.Sandbox{Template: "sbx-image:local"}
+	if code, _, _ := f.run("new", "a"); code != 0 || len(f.sbx.createdWith) != 0 {
+		t.Fatalf("exit %d, created with %+v", code, f.sbx.createdWith)
+	}
+}
+
+// sbx's error for a template or server it cannot find names the settings
+// and where they were set (#58).
+func TestNewCreationFailureNamesTheSandboxSettings(t *testing.T) {
+	f := newFakes()
+	f.env["HOME"] = "/home/u"
+	f.env["HQ_SBX_TEMPLATE"] = "sbx-image:gone"
+	f.prefs.Sandbox = prefs.Sandbox{StaticMCP: []string{"pencil"}}
+	f.sbx.createErr = &proc.Error{Name: "sbx", Msg: "error: image not found"}
+	code, _, errOut := f.run("new", "a")
+	want := "hq: sbx: error: image not found; created with sandbox.template sbx-image:gone (HQ_SBX_TEMPLATE), sandbox.staticMcp pencil (/home/u/.config/hq/preferences.json)\n"
+	if code != ExitEnvironment || errOut != want {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	// Settings from one place name it once.
+	delete(f.env, "HQ_SBX_TEMPLATE")
+	f.prefs.Sandbox.Template = "sbx-image:local"
+	_, _, errOut = f.run("new", "a")
+	if want := "hq: sbx: error: image not found; created with sandbox.template sbx-image:local, sandbox.staticMcp pencil (/home/u/.config/hq/preferences.json)\n"; errOut != want {
+		t.Fatalf("%q", errOut)
 	}
 }
 
