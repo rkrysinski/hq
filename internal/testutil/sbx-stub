@@ -6,7 +6,9 @@
 # Workspaces may be Windows paths, as sbx.exe sees them from WSL.
 # With SBX_STUB_BOOT set to a path, `run` starts a sandbox that is not
 # running only once that file exists, as sbx takes a while to start one
-# before the session begins.
+# before the session begins. `create` logs its arguments to creates.log,
+# and with SBX_STUB_CREATE_ERR set fails with that error, as sbx does for a
+# template or MCP server it cannot find.
 set -eu
 d=${SBX_STUB_DIR:?SBX_STUB_DIR not set}
 mkdir -p "$d/sandboxes"
@@ -34,9 +36,19 @@ ls)
     printf ']}\n'
     ;;
 create)
+    printf '%s\n' "$*" >>"$d/creates.log"
+    if [ -n "${SBX_STUB_CREATE_ERR:-}" ]; then
+        printf 'error: %s\n' "$SBX_STUB_CREATE_ERR" >&2
+        exit 1
+    fi
     ws=
-    for a in "$@"; do
-        case $a in -q | --quiet | claude) ;; *) ws=$a ;; esac
+    while [ $# -gt 0 ]; do
+        case $1 in
+        --template | -t | --static-mcp) shift ;;
+        -q | --quiet | claude) ;;
+        *) ws=$1 ;;
+        esac
+        shift
     done
     put "claude-$(basename "$(printf %s "$ws" | tr '\\' /)")" stopped "$ws"
     ;;

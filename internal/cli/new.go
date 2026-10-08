@@ -10,6 +10,7 @@ import (
 
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dialog"
+	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -194,7 +195,11 @@ func findOrCreateSandbox(out io.Writer, d deps, root string) (sbx.Sandbox, error
 		return s, nil
 	}
 	fmt.Fprintf(out, "creating a sandbox for %s (first time only; log in to Claude when the session asks)\n", filepath.Base(root))
-	if err := d.sbx.Create(root); err != nil {
+	set := sandboxSettings(d)
+	if err := d.sbx.Create(root, set.Options); err != nil {
+		if set.from != "" {
+			err = fmt.Errorf("%w; created with %s", err, set.from)
+		}
 		return sbx.Sandbox{}, sbxErr(err)
 	}
 	if all, err = d.sbx.List(); err != nil {
@@ -204,6 +209,65 @@ func findOrCreateSandbox(out io.Writer, d deps, root string) (sbx.Sandbox, error
 		return s, nil
 	}
 	return sbx.Sandbox{}, envErr("sbx created no sandbox for %s (see sbx ls)", root)
+}
+
+// The environment variables that override the preferences file's sandbox
+// settings, for scripts and tests.
+const (
+	templateEnv  = "HQ_SBX_TEMPLATE"
+	staticMCPEnv = "HQ_SBX_STATIC_MCP" // comma-separated
+)
+
+// sandboxSetup is what hq creates a sandbox with; from names the settings
+// in effect and where they were set, for sbx's error about them.
+type sandboxSetup struct {
+	sbx.Options
+	from string
+}
+
+// sandboxSettings reads the settings hq creates a sandbox with (#58), each
+// from its environment variable when set, else from the preferences file.
+func sandboxSettings(d deps) sandboxSetup {
+	file := prefs.Path(d.getenv)
+	p := d.loadPrefs().Sandbox
+	var r sandboxSetup
+	var named []string // setting, where; where "" is the file
+	if r.Template = strings.TrimSpace(d.getenv(templateEnv)); r.Template != "" {
+		named = append(named, "sandbox.template "+r.Template, templateEnv)
+	} else if r.Template = strings.TrimSpace(p.Template); r.Template != "" {
+		named = append(named, "sandbox.template "+r.Template, "")
+	}
+	if r.StaticMCP = names(strings.Split(d.getenv(staticMCPEnv), ",")); r.StaticMCP != nil {
+		named = append(named, "sandbox.staticMcp "+strings.Join(r.StaticMCP, ","), staticMCPEnv)
+	} else if r.StaticMCP = names(p.StaticMCP); r.StaticMCP != nil {
+		named = append(named, "sandbox.staticMcp "+strings.Join(r.StaticMCP, ","), "")
+	}
+	// Settings from the same place share its name: "a, b (where)".
+	for i := 0; i < len(named); i += 2 {
+		if r.from != "" {
+			r.from += ", "
+		}
+		r.from += named[i]
+		if i+2 >= len(named) || named[i+3] != named[i+1] {
+			where := named[i+1]
+			if where == "" {
+				where = file
+			}
+			r.from += " (" + where + ")"
+		}
+	}
+	return r
+}
+
+// names is the list without blanks, trimmed; nil when nothing is left.
+func names(list []string) []string {
+	var out []string
+	for _, n := range list {
+		if n = strings.TrimSpace(n); n != "" {
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 // lostNameRace reports whether another window with this name was created

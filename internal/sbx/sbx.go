@@ -52,13 +52,27 @@ func (c Client) List() ([]Sandbox, error) {
 	return v.Sandboxes, nil
 }
 
+// Options are what a sandbox is created with besides its workspace; the
+// zero value is sbx's defaults.
+type Options struct {
+	Template  string   // the image, sbx create --template
+	StaticMCP []string // MCP servers registered with sbx mcp add, --static-mcp
+}
+
 // Create creates a Claude sandbox for the workspace under sbx's default name.
-func (c Client) Create(workspace string) error {
+func (c Client) Create(workspace string, o Options) error {
 	ws, err := c.Platform.ToSbx(workspace)
 	if err != nil {
 		return err
 	}
-	_, err = c.run("create", "--quiet", "claude", ws)
+	args := []string{"create", "--quiet"}
+	if o.Template != "" {
+		args = append(args, "--template", o.Template)
+	}
+	if len(o.StaticMCP) > 0 {
+		args = append(args, "--static-mcp", strings.Join(o.StaticMCP, ","))
+	}
+	_, err = c.run(append(args, "claude", ws)...)
 	return err
 }
 

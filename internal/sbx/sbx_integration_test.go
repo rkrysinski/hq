@@ -20,7 +20,7 @@ func TestCreateThenListFindsSandboxByWorkspace(t *testing.T) {
 	if all, err := c.List(); err != nil || len(all) != 0 {
 		t.Fatalf("%v %v", all, err)
 	}
-	if err := c.Create("/w/app"); err != nil {
+	if err := c.Create("/w/app", Options{}); err != nil {
 		t.Fatal(err)
 	}
 	all, err := c.List()
@@ -30,6 +30,28 @@ func TestCreateThenListFindsSandboxByWorkspace(t *testing.T) {
 	s, ok := ByWorkspace(all, "/w/app", func(a, b string) bool { return a == b })
 	if !ok || s.Name != "claude-app" || s.Running() {
 		t.Fatalf("%+v %v", s, ok)
+	}
+}
+
+// The template and MCP servers reach sbx create, and sbx's error for one it
+// cannot find comes back as sbx says it (#58).
+func TestCreateWithTemplateAndStaticMCP(t *testing.T) {
+	bin, dir := testutil.SbxStub(t)
+	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
+	if err := c.Create("/w/app", Options{Template: "sbx-image:local", StaticMCP: []string{"pencil", "docs"}}); err != nil {
+		t.Fatal(err)
+	}
+	log, _ := os.ReadFile(dir + "/creates.log")
+	if got := strings.TrimSpace(string(log)); got != `--quiet --template sbx-image:local --static-mcp pencil,docs claude F:\w\app` {
+		t.Fatalf("created with %q", got)
+	}
+	if all, _ := c.List(); len(all) != 1 || all[0].Name != "claude-app" {
+		t.Fatalf("%+v", all)
+	}
+	t.Setenv("SBX_STUB_CREATE_ERR", "image sbx-image:gone not found")
+	err := c.Create("/w/lib", Options{Template: "sbx-image:gone"})
+	if err == nil || !strings.HasSuffix(err.Error(), ": error: image sbx-image:gone not found") {
+		t.Fatalf("%v", err)
 	}
 }
 
@@ -50,7 +72,7 @@ func TestExecRunsTheCommandInTheSandbox(t *testing.T) {
 func TestStopThenExecStartsAgainAndRemoveDeletes(t *testing.T) {
 	bin, _ := testutil.SbxStub(t)
 	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
-	if err := c.Create("/w/app"); err != nil {
+	if err := c.Create("/w/app", Options{}); err != nil {
 		t.Fatal(err)
 	}
 	status := func() string {
@@ -75,7 +97,7 @@ func TestStopThenExecStartsAgainAndRemoveDeletes(t *testing.T) {
 func TestWSLCreateThenListThroughSbxExe(t *testing.T) {
 	dir := testutil.WSLStubs(t)
 	c := Client{Run: proc.Exec{}, Platform: platform.WSL{Run: proc.Exec{}}}
-	if err := c.Create("/home/dev/app"); err != nil {
+	if err := c.Create("/home/dev/app", Options{}); err != nil {
 		t.Fatal(err)
 	}
 	state, err := os.ReadFile(dir + "/sandboxes/claude-app")

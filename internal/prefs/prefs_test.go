@@ -81,3 +81,27 @@ func TestWritingWhereNoFileCanBeFails(t *testing.T) {
 		t.Fatal("Update without its lock")
 	}
 }
+
+// The sandbox settings are read as the user wrote them, and hq writing the
+// file for its own reasons keeps them as they are (#58).
+func TestSandboxSettingsAreReadAndKept(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "preferences.json")
+	if err := os.WriteFile(path, []byte(`{"sandbox":{"template":"sbx-image:local","staticMcp":["pencil","docs"],"later":1},"sort":"repo"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p := Load(path)
+	if p.Sandbox.Template != "sbx-image:local" || strings.Join(p.Sandbox.StaticMCP, ",") != "pencil,docs" {
+		t.Fatalf("%+v", p.Sandbox)
+	}
+	p.Sort = "state"
+	if err := Save(path, p); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(path)
+	if !strings.Contains(string(data), `"later": 1`) || !strings.Contains(string(data), `"sort": "state"`) {
+		t.Fatalf("%s", data)
+	}
+	if q := Load(path); q.Sandbox.Template != "sbx-image:local" || len(q.Sandbox.StaticMCP) != 2 {
+		t.Fatalf("%+v", q)
+	}
+}

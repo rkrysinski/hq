@@ -27,6 +27,19 @@ sbx policy init balanced    # before the first sandbox; allow-all, balanced or d
 
 When `hq new` cannot create or start a sandbox, `sbx diagnose` says what is missing.
 
+hq creates a repository's sandbox the first time `hq new` runs there, with sbx's default Claude image and no MCP servers. To create sandboxes from a shared image, or with MCP servers you registered with `sbx mcp add`, set them in `~/.config/hq/preferences.json` (`$XDG_CONFIG_HOME/hq` when that is set):
+
+```json
+{
+  "sandbox": {
+    "template": "ghcr.io/<org>/sbx-image:latest",
+    "staticMcp": ["pencil"]
+  }
+}
+```
+
+`template` goes to `sbx create --template` and `staticMcp` to `--static-mcp`; either may be left out. `HQ_SBX_TEMPLATE` and `HQ_SBX_STATIC_MCP` (comma-separated) override them for one command. They apply only when hq creates a sandbox: one that exists, hq's or one you created by hand, is used as it is, so to change its image remove it (`hq sandbox rm REPO`) and let the next `hq new` create it again. hq neither pulls nor checks the image; when `sbx` refuses the image or a server, `hq new` shows sbx's error and the settings it used.
+
 ### Windows
 
 1. Install `sbx` on Windows, not inside WSL (`winget install Docker.sbx`): hq in WSL runs the Windows `sbx.exe`.

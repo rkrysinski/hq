@@ -73,7 +73,7 @@ type Tmux interface {
 // Sandboxes is the seam to sbx (design §7.2).
 type Sandboxes interface {
 	List() ([]sbx.Sandbox, error)
-	Create(workspace string) error
+	Create(workspace string, o sbx.Options) error
 	RunArgv(sandbox string, agentArgs ...string) []string
 	Exec(sandbox string, args ...string) error
 	Stop(sandbox string) error

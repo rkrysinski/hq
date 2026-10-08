@@ -26,9 +26,20 @@ type Prefs struct {
 	LatestRelease string `json:"latest_release,omitempty"`
 	// Sort and View are the dashboard's modes as the user left them (spec
 	// §6.2); empty is the default.
-	Sort  string `json:"sort,omitempty"`
-	View  string `json:"view,omitempty"`
-	other map[string]json.RawMessage
+	Sort string `json:"sort,omitempty"`
+	View string `json:"view,omitempty"`
+	// Sandbox is what hq creates a repository's sandbox with. The user
+	// writes it and hq only reads it: Save keeps it as the file has it.
+	Sandbox Sandbox `json:"sandbox"`
+	other   map[string]json.RawMessage
+}
+
+// Sandbox is the "sandbox" object: the image (sbx create --template) and
+// the MCP servers registered with sbx mcp add (--static-mcp). Empty is sbx's
+// defaults.
+type Sandbox struct {
+	Template  string   `json:"template,omitempty"`
+	StaticMCP []string `json:"staticMcp,omitempty"`
 }
 
 // Load reads the file; a missing or unreadable file gives empty preferences.
