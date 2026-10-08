@@ -1,0 +1,30 @@
+$ hq new e app; echo exit $?; echo '# creates so far:'; wc -l < ../stub/creates.log; hq ls
+started e in app (sandbox claude-app); enter it with: hq go e
+exit 0
+# creates so far:
+4
+NAME  REPO  BRANCH  STATE     AGE  LAST
+e     app   -       starting  0s   -
+c     web   -       starting  15s  -
+b     lib   -       starting  22s  -
+a     app   -       starting  40s  -
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

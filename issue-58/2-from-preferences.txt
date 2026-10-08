@@ -1,0 +1,30 @@
+$ cat /Users/romankrysinski/work/repositories/hq/.claude/worktrees/issue-58-sandbox-template/.local-dev/config/hq/preferences.json; hq new b lib; echo
+ exit $?; echo '# sbx create was given:'; tail -1 ../stub/creates.log
+{
+  "sandbox": {
+    "template": "sbx-image:local",
+    "staticMcp": ["pencil", "docs"]
+  }
+}
+creating a sandbox for lib (first time only; log in to Claude when the session asks)
+started b in lib (sandbox claude-lib); enter it with: hq go b
+exit 0
+# sbx create was given:
+--quiet --template sbx-image:local --static-mcp pencil,docs claude /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/8fa23b3d-b07d-408a-b28e
+-940465ee417b/scratchpad/qa/repos/lib
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

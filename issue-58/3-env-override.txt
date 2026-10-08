@@ -1,0 +1,30 @@
+$ HQ_SBX_TEMPLATE=ghcr.io/org/sbx-image:latest HQ_SBX_STATIC_MCP=pencil hq new c web; echo exit $?; echo '# sbx create was given:'; tail -1 ../stub/cr
+eates.log
+creating a sandbox for web (first time only; log in to Claude when the session asks)
+started c in web (sandbox claude-web); enter it with: hq go c
+exit 0
+# sbx create was given:
+--quiet --template ghcr.io/org/sbx-image:latest --static-mcp pencil claude /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/8fa23b3d-b07d-4
+08a-b28e-940465ee417b/scratchpad/qa/repos/web
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

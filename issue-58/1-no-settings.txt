@@ -1,0 +1,30 @@
+$ hq new a app; echo exit $?; echo '# sbx create was given:'; cat ../stub/creates.log
+creating a sandbox for app (first time only; log in to Claude when the session asks)
+started a in app (sandbox claude-app); enter it with: hq go a
+exit 0
+# sbx create was given:
+--quiet claude /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/8fa23b3d-b07d-408a-b28e-940465ee417b/scratchpad/qa/repos/app
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,30 @@
+$ SBX_STUB_CREATE_ERR='template sbx-image:local not found' hq new d doc; echo exit $?; hq ls
+creating a sandbox for doc (first time only; log in to Claude when the session asks)
+hq: sbx: error: template sbx-image:local not found; created with sandbox.template sbx-image:local, sandbox.staticMcp pencil,docs (/Users/romankrysinsk
+i/work/repositories/hq/.claude/worktrees/issue-58-sandbox-template/.local-dev/config/hq/preferences.json)
+exit 3
+NAME  REPO  BRANCH  STATE     AGE  LAST
+e     app   -       starting  1m   -
+c     web   -       starting  1m   -
+b     lib   -       starting  1m   -
+a     app   -       starting  1m   -
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
