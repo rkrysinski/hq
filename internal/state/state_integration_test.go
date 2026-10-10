@@ -778,40 +778,84 @@ func TestBackgroundWorkIsKnownFromItsStartSoATurnTheUserInterruptedStillNotifies
 	}
 }
 
-func TestAShellCommandIsNoBackgroundWorkWhoeverStartedIt(t *testing.T) {
+func TestAShellCommandASubagentStartedKeepsItsAgentWorkingWhileItRuns(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
 	notify := func(kind string, payload []byte) string {
 		t.Helper()
 		return run(t, root, root, id, hook(kind, "[%s]"), payload)
 	}
+	quiet := func(step, out string, last string) {
+		t.Helper()
+		if r, _ := Read(root, id); out != "" || r.State != Working || r.Owed || r.Last != last {
+			t.Fatalf("%s: printed %q, report %+v", step, out, r)
+		}
+	}
 	const done = `{"terminalSequence":"[Done: main]"}` + "\n"
 
-	// As seen: a subagent starts a shell command in the background and
-	// stops; Claude wakes the agent with its result, and lists the command
-	// alone. Whether the subagent waits on it or left it running (a dev
-	// server) nothing tells, so it is the agent's end, as with a command of
-	// its own. When the command ends and the subagent goes on, the agent
-	// works again, and is done again.
+	// As seen (#60): a subagent starts a shell command in the background
+	// and stops; Claude wakes the agent with its interim report, and lists
+	// the command alone. The agent works on, with that report's message,
+	// until Claude has woken the subagent for the command and the agent for
+	// the subagent's report: one notification, at the end of that turn.
 	notify("prompt", fixture(t, "prompt"))
-	notify("stop", turnEnd("started", "a1"))
+	quiet("turn end, the subagent runs", notify("stop", turnEnd("started", "a1")), "started")
 	notify("answer", toolEnd("Bash", "a1", shellStarted("b9")))
-	notify("prompt", wakeUp("a1"))
-	if out := notify("stop", turnEnd("its command runs on", "shell:b9")); out != done {
-		t.Fatalf("the turn end with a subagent's command running printed %q", out)
+	quiet("the interim report", notify("prompt", wakeUp("a1")), "started")
+	quiet("turn end, its command runs", notify("stop", turnEnd("it waits on its command", "shell:b9")), "it waits on its command")
+	if f := files(t, root, id); f[owedSuffix] != "~b9\n" {
+		t.Fatalf("owed: %q", f[owedSuffix])
 	}
-	if r, _ := Read(root, id); r.State != Done || r.Background {
-		t.Fatalf("a subagent's command running: %+v", r)
-	}
-	notify("prompt", wakeUp("a1"))
-	if r, _ := Read(root, id); r.State != Working {
-		t.Fatalf("the subagent went on: %+v", r)
-	}
+	// The user's prompt meanwhile keeps the command.
+	notify("prompt", fixture(t, "prompt-pasted"))
+	quiet("the user's turn, its command runs", notify("stop", turnEnd("noted", "shell:b9")), "noted")
+	// The command ends; the subagent, woken for it, runs again.
+	quiet("turn end, the subagent woken", notify("stop", turnEnd("it goes on", "a1")), "it goes on")
+	quiet("the final report", notify("prompt", wakeUp("a1")), "it goes on")
 	if out := notify("stop", turnEnd("finished")); out != done {
 		t.Fatalf("the closing turn printed %q", out)
 	}
 	if f := files(t, root, id); len(f) != 2 {
 		t.Fatalf("files left: %v", f)
+	}
+
+	// A subagent that leaves a server running looks the same: the agent
+	// works until the server ends.
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", toolEnd("Agent", "", launched("a2")))
+	notify("answer", toolEnd("Bash", "a2", shellStarted("c1")))
+	notify("prompt", wakeUp("a2"))
+	for range 3 {
+		quiet("turn end, its server runs", notify("stop", turnEnd("the server is up", "shell:c1")), "the server is up")
+	}
+	if out := notify("stop", turnEnd("the server is gone")); out != done {
+		t.Fatalf("the turn end after the server printed %q", out)
+	}
+
+	// A watch a subagent started (the Monitor tool, reported as a shell
+	// command) counts the same. A task id in a subagent's tool input, or a
+	// command the agent itself started, does not; a command of a subagent's
+	// that no Stop lists any more is dropped at the first Stop.
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", toolEnd("Monitor", "a3", `{"taskId":"m1","timeoutMs":300000,"persistent":false}`))
+	notify("answer", []byte(`{"agent_id":"a3","hook_event_name":"PostToolUse","tool_name":"TaskOutput","tool_input":{"taskId":"m2"},"tool_response":{"status":"done"}}`))
+	notify("answer", toolEnd("Bash", "", shellStarted("m3")))
+	notify("answer", toolEnd("Bash", "a3", shellStarted("m4")))
+	quiet("turn end, its watch runs", notify("stop", turnEnd("watching", "shell:m1", "shell:m2", "shell:m3")), "watching")
+	if f := files(t, root, id); f[owedSuffix] != "~m1\n" {
+		t.Fatalf("owed: %q", f[owedSuffix])
+	}
+	if out := notify("stop", turnEnd("the watch ended", "shell:m2", "shell:m3", "shell:m4")); out != done {
+		t.Fatalf("the turn end after the watch printed %q", out)
+	}
+
+	// A session that starts over forgets the command.
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", toolEnd("Bash", "a4", shellStarted("d1")))
+	notify("start", fixture(t, "session-start-clear"))
+	notify("prompt", fixture(t, "prompt"))
+	if out := notify("stop", turnEnd("done", "shell:d1")); out != done {
+		t.Fatalf("the turn of the session started over printed %q", out)
 	}
 }
 

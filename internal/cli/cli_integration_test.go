@@ -957,3 +957,36 @@ func TestAnAgentWhoseTurnEndedWhileItsSubagentsRunStaysWorkingUntilTheClosingTur
 		t.Fatalf("the same end again: exit %d %q", code, out)
 	}
 }
+
+func TestAnAgentWhoseSubagentWaitsOnItsOwnCommandStaysWorkingUntilTheClosingTurn(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("new: %s", errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	h.waitAtRest("a")
+
+	// The subagent starts a command in the background and reports (#60):
+	// the agent works on with that report's message, however long it rests
+	// at its prompt, and hq wait does not return.
+	ch := h.wait("a")
+	h.typeIn("a", "background checks")
+	h.waitReport("a", "working", "Done: background checks")
+	h.waitAtRest("a")
+	h.typeIn("a", "detach sleep 180")
+	h.waitReport("a", "working", "The subagent waits on sleep 180.")
+	h.waitAtRest("a")
+	time.Sleep(agent.RestDelay + time.Second)
+	h.waitReport("a", "working", "The subagent waits on sleep 180.")
+	h.stillWaiting(ch)
+
+	// The command ends, the subagent reports again: done, once.
+	h.typeIn("a", "wake")
+	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running.")
+
+	// A command the agent itself started does not count.
+	h.typeIn("a", "start a server")
+	h.waitReport("a", "done", "Done: start a server")
+}

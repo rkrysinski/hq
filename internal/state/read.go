@@ -23,7 +23,8 @@ func Dir(root string) string { return filepath.Join(root, ".git", "hq", "agents"
 const keptSuffix = ".on"
 
 // owedSuffix names, beside an agent's state file, the hook's own list of
-// the background tasks Claude still owes a turn for (hookAwk).
+// the background work it follows: the tasks Claude still owes a turn for,
+// and the shell commands the agent's subagents started (hookAwk).
 const owedSuffix = ".owe"
 
 // supervisedSuffix names, beside an agent's state file, the hook's mark
@@ -52,7 +53,8 @@ func Read(root, id string) (r Report, ok bool) {
 	r.Since = info.ModTime()
 	r.Latest = r.Since
 	if kept, info, err := readData(path + keptSuffix); err == nil {
-		r = r.Kept(latest, kept, info.ModTime())
+		owed, _, _ := readData(path + owedSuffix)
+		r = r.Kept(latest, kept, owed, info.ModTime())
 	}
 	return r, true
 }
