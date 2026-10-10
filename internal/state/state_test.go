@@ -241,7 +241,7 @@ func TestATurnEndWithBackgroundWorkKeptBesideAWorkingReportLeavesItWorking(t *te
 
 	// The turn ended while a subagent still runs: working since the prompt,
 	// with that turn's message, waiting at its prompt.
-	r := working.Kept(fixture(t, "prompt"), fixture(t, "stop-background"), at)
+	r := working.Kept(fixture(t, "prompt"), fixture(t, "stop-background"), nil, at)
 	if r.State != Working || !r.Background || r.Last != "The tests are running in a subagent." {
 		t.Fatalf("kept turn end: %+v", r)
 	}
@@ -254,18 +254,26 @@ func TestATurnEndWithBackgroundWorkKeptBesideAWorkingReportLeavesItWorking(t *te
 	// The same turn end with nothing running any more, kept because Claude
 	// owes a turn for work that finished together with other work.
 	owed := []byte(strings.Replace(string(fixture(t, "stop-done")), `"background_tasks": []`, `"background_tasks": [{"id": "b1", "type": "shell", "status": "running"}]`, 1))
-	if r = working.Kept(fixture(t, "prompt"), owed, at); r.State != Working || !r.Background || !r.Owed {
+	if r = working.Kept(fixture(t, "prompt"), owed, nil, at); r.State != Working || !r.Background || !r.Owed {
 		t.Fatalf("a turn owed: %+v", r)
+	}
+	// The same shell command started by a subagent, which the hook's list
+	// names: it runs, so no turn is owed (#60). Another command, or the
+	// list naming it otherwise, leaves the turn owed.
+	for list, wantOwed := range map[string]bool{"~b1\n": false, "a1\n~b1\n!a2\n": false, "~b2\n": true, "b1\n!b1\n": true, "~\n": true} {
+		if r = working.Kept(fixture(t, "prompt"), owed, []byte(list), at); r.State != Working || !r.Background || r.Owed != wantOwed {
+			t.Errorf("list %q: %+v", list, r)
+		}
 	}
 	// Claude's wake-up when the subagent has finished: the closing turn is
 	// at work, since the same prompt.
-	r = working.Kept(fixture(t, "prompt"), fixture(t, "prompt-wake"), at)
+	r = working.Kept(fixture(t, "prompt"), fixture(t, "prompt-wake"), nil, at)
 	if r.State != Working || r.Background || !r.Woken || !r.Since.Equal(since) || !r.Latest.Equal(at) || r.Prompt != "say hi" {
 		t.Fatalf("wake-up: %+v", r)
 	}
 	// Nothing kept, or something unreadable: the report as it is.
 	for _, kept := range []string{"", "{", `{"hook_event_name":"SessionEnd"}`} {
-		if r := working.Kept(fixture(t, "prompt"), []byte(kept), at); r != working {
+		if r := working.Kept(fixture(t, "prompt"), []byte(kept), nil, at); r != working {
 			t.Errorf("kept %q: %+v", kept, r)
 		}
 	}
@@ -292,7 +300,7 @@ func TestAKeptTurnEndCountsOnlyBesideAReportItBelongsTo(t *testing.T) {
 		latest := fixture(t, tc.latest)
 		r := Parse(latest, kept, nil)
 		r.Since, r.Latest = since, since
-		r = r.Kept(latest, kept, at)
+		r = r.Kept(latest, kept, nil, at)
 		if r.State != tc.state || r.Background != tc.background || !r.Since.Equal(since) {
 			t.Errorf("%s: %+v", tc.latest, r)
 		}
@@ -311,13 +319,13 @@ func TestAKeptTurnEndCountsOnlyBesideAReportItBelongsTo(t *testing.T) {
 	// A wake-up counts only while the report says working.
 	for _, latest := range []string{"stop-done", "dialog-ask", "session-start"} {
 		r := Parse(fixture(t, latest), nil, nil)
-		if got := r.Kept(fixture(t, latest), fixture(t, "prompt-wake"), at); got != r {
+		if got := r.Kept(fixture(t, latest), fixture(t, "prompt-wake"), nil, at); got != r {
 			t.Errorf("wake-up beside %s: %+v", latest, got)
 		}
 	}
 	// A turn end with background work that an older hook reported is done,
 	// as it was: nothing is kept beside it.
-	if r := Parse(kept, kept, nil).Kept(kept, nil, at); r.State != Done || r.Background {
+	if r := Parse(kept, kept, nil).Kept(kept, nil, nil, at); r.State != Done || r.Background {
 		t.Errorf("an older hook's report: %+v", r)
 	}
 }

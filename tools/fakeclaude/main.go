@@ -35,6 +35,15 @@
 //     does nothing. "wake together" finishes two subagents at once: both
 //     are gone from the list at the Stop of the turn for the first, and
 //     the turn for the second follows (their replies end "(one)", "(two)");
+//   - the line "detach" is no prompt: the background subagent started
+//     first starts a shell command in the background and reports, as
+//     Claude Code 2.1.291 does when the subagent waits on it: PostToolUse
+//     of the subagent's Bash (agent_id, backgroundTaskId), then the turn
+//     Claude wakes itself for the report, its Stop listing the command
+//     alone as running. Words after "detach" are the command (default
+//     "sleep 180"). The next "wake" with no subagent running ends that
+//     command, and the subagent, woken for it, reports again: the turn
+//     Claude wakes itself for, under the subagent's id;
 //   - the line "lose" is no prompt: a background subagent goes without
 //     Claude taking a turn for it, and no hook fires;
 //   - the line "draft" is no prompt: it draws the box holding "a draft", as
@@ -123,6 +132,7 @@ type claude struct {
 	delay   time.Duration
 	tasks   []map[string]string // the background work that runs
 	started int                 // how many background subagents it has started
+	owners  map[string]string   // the subagent that started each shell command
 }
 
 func main() {
@@ -194,6 +204,10 @@ func main() {
 				c.wake(strings.Join(words[1:], " "), in)
 				continue
 			}
+			if words := strings.Fields(line); words[0] == "detach" {
+				c.detach(strings.Join(words[1:], " "), in)
+				continue
+			}
 			if line == "lose" {
 				c.finish()
 				continue
@@ -227,15 +241,49 @@ func (c *claude) wake(note string, in *bufio.Scanner) {
 }
 
 // finish takes the background subagent started first off the list of what
-// runs, and returns its id.
+// runs, and returns its id; with none running, it ends the shell command a
+// subagent started first, and returns the id of that subagent, which
+// reports again.
 func (c *claude) finish() (id string, ok bool) {
-	for i, task := range c.tasks {
-		if task["type"] == "subagent" {
-			c.tasks = append(c.tasks[:i:i], c.tasks[i+1:]...)
-			return task["id"], true
+	for _, theirs := range []bool{false, true} {
+		for i, task := range c.tasks {
+			owner, started := c.owners[task["id"]]
+			if !theirs && task["type"] == "subagent" || theirs && started {
+				c.tasks = append(c.tasks[:i:i], c.tasks[i+1:]...)
+				if theirs {
+					delete(c.owners, task["id"])
+					return owner, true
+				}
+				return task["id"], true
+			}
 		}
 	}
 	return "", false
+}
+
+// detach has the background subagent started first start command in the
+// background and report: its turn ends, and Claude wakes itself for the
+// report with the command listed alone.
+func (c *claude) detach(command string, in *bufio.Scanner) {
+	if command == "" {
+		command = "sleep 180"
+	}
+	id, ok := c.finish()
+	if !ok {
+		return
+	}
+	c.started++
+	shell := fmt.Sprintf("b%07x", c.started)
+	c.fire("PostToolUse", map[string]any{"agent_id": id, "agent_type": "general-purpose", "tool_name": "Bash",
+		"tool_input":    map[string]any{"command": command, "description": "Wait", "run_in_background": true},
+		"tool_use_id":   "toolu_fake",
+		"tool_response": map[string]any{"stdout": "", "stderr": "", "interrupted": false, "isImage": false, "noOutputExpected": false, "backgroundTaskId": shell}})
+	c.tasks = append(c.tasks, map[string]string{"id": shell, "type": "shell", "status": "running", "description": "Wait", "command": command})
+	if c.owners == nil {
+		c.owners = map[string]string{}
+	}
+	c.owners[shell] = id
+	c.turn(wakePrefix+"\n<task-id>"+id+"</task-id>\n<status>completed</status>\n<summary>Agent \"Background work\" completed (waits on "+command+")</summary>\n</task-notification>", in)
 }
 
 func (c *claude) turn(prompt string, in *bufio.Scanner) {
@@ -319,6 +367,10 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 		reply = fmt.Sprintf("The background work is done, %d still running.", c.subagents())
 		if strings.Contains(prompt, "(one)") || strings.Contains(prompt, "(two)") {
 			reply += prompt[strings.Index(prompt, " (") : strings.Index(prompt, ")")+1]
+		}
+		if _, waits, ok := strings.Cut(prompt, "(waits on "); ok {
+			waits, _, _ = strings.Cut(waits, ")</summary>")
+			reply = "The subagent waits on " + waits + "."
 		}
 	}
 	if strings.Contains(prompt, "question") {

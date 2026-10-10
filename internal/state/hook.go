@@ -163,8 +163,9 @@ const (
 const workingEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"(UserPromptSubmit|PostToolUse)`
 
 // startedEvent is what the hook's grep -E finds in the payload of a tool
-// that started background work: a subagent or a workflow.
-const startedEvent = `async_launched`
+// that started background work: a subagent or a workflow (async_launched),
+// or a shell command or a watch a subagent started (its task id).
+const startedEvent = `async_launched|"(backgroundTaskId|taskId)"`
 
 // wakeEvent is what the hook's awk finds in the payload of the prompt
 // Claude gives itself when background work has finished (design §3.4).
@@ -177,8 +178,14 @@ const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 // working (spec §5): background work still runs, or has finished without
 // Claude having taken its turn for it yet, and the turn did not end with a
 // question. Background work is a task of the payload's background_tasks
-// with the status running that is no shell command (an agent that left a
-// dev server running would never be done). busy walks the list to its end,
+// with the status running that is no shell command the agent itself started
+// (an agent that left a dev server running would never be done). A shell
+// command one of its subagents started (K=tool, kept in O as ~ID) counts
+// while a Stop lists it running, and is dropped at the first Stop that does
+// not: Claude wakes the subagent for it, not the agent, so no turn is owed
+// for it, and the subagent, woken, is listed until it reports. That a
+// subagent which left a dev server running keeps the agent working is the
+// price (design §3.4). busy walks the list to its end,
 // reading the id, the type and the status of each task; text inside the
 // strings of a task, its description or command, is only ever data. Claude
 // takes a turn for every task that ends (wakeEvent, naming its id), and
@@ -203,7 +210,9 @@ const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 // tool's response says async_launched), so the work is known before any
 // Stop lists it, as when the user interrupts that turn. What a subagent
 // starts (its events carry agent_id) is the subagent's: Claude wakes the
-// subagent for it, not the agent.
+// subagent for it, not the agent; of that, it prints the task id in the
+// tool's response, of a shell command (backgroundTaskId) or a watch (the
+// Monitor tool's taskId), as ~ID.
 //
 // Otherwise it prints the notification for the event in the state file: on
 // dialog and input "Needs input: <branch>", on stop "Question: <branch>"
@@ -246,7 +255,7 @@ function busy(s,    i, c, d, str, key, val, ty, st, id) {
             if (!d++) ty = st = val = id = ""
         } else if (c == "}" || c == "]") {
             if (!d--) return
-            if (!d && st == "running" && ty != "shell") owed[id] = 1
+            if (!d && st == "running") { if (ty != "shell") owed[id] = 1; else if (id in theirs) mine[id] = 1 }
         } else if (d == 1 && (c == ":" || c == ",")) val = c == ":"
     }
 }
@@ -262,11 +271,13 @@ NR == 1 && K == "keep" {
     for (n = load(); n; n--) {
         x = L[n]
         if (x == "+") paid = 1
+        else if (sub(/^~/, "", x)) theirs[x]
         else if (sub(/^!/, "", x)) held[x]
         else was[x]
     }
     busy($0)
     for (i in owed) { if (i != "") print i; ends = 0 }
+    for (i in mine) { if (i != "") print "~" i; ends = 0 }
     for (i in was) if (i != "" && !(i in owed)) { print "!" i; ends = 0 }
     if (paid) for (i in held) if (i != "" && !(i in owed) && !(i in was)) { print "!" i; ends = 0 }
     if (question($0)) ends = 1
@@ -288,10 +299,10 @@ NR == 1 && K == "wake" {
     next
 }
 NR == 1 && K == "tool" {
-    if (get($0, "agent_id") == "" && match($0, /"tool_response"[ \t\r\n]*:/)) {
-        o = substr($0, RSTART)
-        if (o ~ /"status"[ \t\r\n]*:[ \t\r\n]*"async_launched"/ && (x = get(o, "(agentId|taskId)")) != "") print x
-    }
+    if (!match($0, /"tool_response"[ \t\r\n]*:/)) next
+    o = substr($0, RSTART)
+    if (get($0, "agent_id") != "") { if ((x = get(o, "(backgroundTaskId|taskId)")) != "") print "~" x }
+    else if (o ~ /"status"[ \t\r\n]*:[ \t\r\n]*"async_launched"/ && (x = get(o, "(agentId|taskId)")) != "") print x
     next
 }
 NR == 1 {
