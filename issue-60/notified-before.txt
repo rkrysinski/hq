@@ -1,0 +1,5 @@
+a1 "\x1b]9;Done: main\a"
+a1 "\x1b]9;Done: main\a"
+a2 "\x1b]9;Done: main\a"
+a2 "\x1b]9;Done: main\a"
+a3 "\x1b]9;Done: main\a"

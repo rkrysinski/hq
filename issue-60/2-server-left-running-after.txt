@@ -1,0 +1,30 @@
+NAME  REPO  BRANCH  STATE    AGE  LAST
+a1    repo  main    done     11s  The background work is done, 0 still running.
+a2    repo  main    working  5s   The subagent waits on python3 -m http.server.
+name      a2
+repo      repo  /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/1b73db2a-2e40-4ed1-8afd-b29fedbb2841/scratchpad/repo
+branch    main
+worktree  /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/1b73db2a-2e40-4ed1-8afd-b29fedbb2841/scratchpad/repo
+sandbox   claude-repo
+state     working 5s
+pending   0
+
+reply
+  The subagent waits on python3 -m http.server.
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
