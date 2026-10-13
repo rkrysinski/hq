@@ -23,8 +23,12 @@
 //   - a prompt containing "tool" runs a tool: PostToolUse after the delay;
 //   - a prompt starts a background subagent for each "background" it
 //     contains (PostToolUse of the Agent tool, its response saying
-//     async_launched), and a background shell command when it contains
-//     "server":
+//     async_launched), a background shell command when it contains
+//     "server", a watch of the agent's own when it contains "watch"
+//     (PostToolUse of the Monitor tool, its response naming the taskId),
+//     and publishes an artifact when it contains "publish" (PostToolUse of
+//     the Artifact tool), which arms a watch on it, as Claude Code 2.1.296
+//     does, that runs until the session ends:
 //     the turn ends at once, its Stop listing them as running
 //     (background_tasks), as every later Stop does while they run;
 //   - the line "wake" is no prompt: a background subagent finishes, and
@@ -41,9 +45,11 @@
 //     of the subagent's Bash (agent_id, backgroundTaskId), then the turn
 //     Claude wakes itself for the report, its Stop listing the command
 //     alone as running. Words after "detach" are the command (default
-//     "sleep 180"). The next "wake" with no subagent running ends that
-//     command, and the subagent, woken for it, reports again: the turn
-//     Claude wakes itself for, under the subagent's id;
+//     "sleep 180"); the word "monitor" has it keep a watch with the
+//     Monitor tool instead (PostToolUse of the subagent's Monitor,
+//     taskId; a monitor task). The next "wake" with no subagent running
+//     ends that command or watch, and the subagent, woken for it, reports
+//     again: the turn Claude wakes itself for, under the subagent's id;
 //   - the line "lose" is no prompt: a background subagent goes without
 //     Claude taking a turn for it, and no hook fires;
 //   - the line "draft" is no prompt: it draws the box holding "a draft", as
@@ -131,8 +137,8 @@ type claude struct {
 	cwd     string
 	delay   time.Duration
 	tasks   []map[string]string // the background work that runs
-	started int                 // how many background subagents it has started
-	owners  map[string]string   // the subagent that started each shell command
+	started int                 // how many background tasks it has started
+	owners  map[string]string   // the subagent that started each shell command or watch
 }
 
 func main() {
@@ -262,8 +268,9 @@ func (c *claude) finish() (id string, ok bool) {
 }
 
 // detach has the background subagent started first start command in the
-// background and report: its turn ends, and Claude wakes itself for the
-// report with the command listed alone.
+// background, or keep a watch with the Monitor tool when command is
+// "monitor", and report: its turn ends, and Claude wakes itself for the
+// report with the command or the watch listed alone.
 func (c *claude) detach(command string, in *bufio.Scanner) {
 	if command == "" {
 		command = "sleep 180"
@@ -272,18 +279,53 @@ func (c *claude) detach(command string, in *bufio.Scanner) {
 	if !ok {
 		return
 	}
-	c.started++
-	shell := fmt.Sprintf("b%07x", c.started)
-	c.fire("PostToolUse", map[string]any{"agent_id": id, "agent_type": "general-purpose", "tool_name": "Bash",
-		"tool_input":    map[string]any{"command": command, "description": "Wait", "run_in_background": true},
-		"tool_use_id":   "toolu_fake",
-		"tool_response": map[string]any{"stdout": "", "stderr": "", "interrupted": false, "isImage": false, "noOutputExpected": false, "backgroundTaskId": shell}})
-	c.tasks = append(c.tasks, map[string]string{"id": shell, "type": "shell", "status": "running", "description": "Wait", "command": command})
+	var task string
+	if command == "monitor" {
+		task = c.watch(id)
+	} else {
+		c.started++
+		task = fmt.Sprintf("b%07x", c.started)
+		c.fire("PostToolUse", map[string]any{"agent_id": id, "agent_type": "general-purpose", "tool_name": "Bash",
+			"tool_input":    map[string]any{"command": command, "description": "Wait", "run_in_background": true},
+			"tool_use_id":   "toolu_fake",
+			"tool_response": map[string]any{"stdout": "", "stderr": "", "interrupted": false, "isImage": false, "noOutputExpected": false, "backgroundTaskId": task}})
+		c.tasks = append(c.tasks, map[string]string{"id": task, "type": "shell", "status": "running", "description": "Wait", "command": command})
+	}
 	if c.owners == nil {
 		c.owners = map[string]string{}
 	}
-	c.owners[shell] = id
+	c.owners[task] = id
 	c.turn(wakePrefix+"\n<task-id>"+id+"</task-id>\n<status>completed</status>\n<summary>Agent \"Background work\" completed (waits on "+command+")</summary>\n</task-notification>", in)
+}
+
+// watch runs the Monitor tool for the subagent by (the agent itself when
+// empty), an until-loop on a file, and lists the watch as running; it
+// returns the watch's task id.
+func (c *claude) watch(by string) string {
+	c.started++
+	task := fmt.Sprintf("m%08x", c.started)
+	p := map[string]any{"tool_name": "Monitor",
+		"tool_input":    map[string]any{"command": "until [ -f done ]; do sleep 5; done; echo done", "description": "Wait for the file", "timeout_ms": 300000},
+		"tool_use_id":   "toolu_fake",
+		"tool_response": map[string]any{"taskId": task, "timeoutMs": 300000, "persistent": false}}
+	if by != "" {
+		p["agent_id"], p["agent_type"] = by, "general-purpose"
+	}
+	c.fire("PostToolUse", p)
+	c.tasks = append(c.tasks, map[string]string{"id": task, "type": "monitor", "status": "running", "description": "Wait for the file"})
+	return task
+}
+
+// publish publishes an artifact with the Artifact tool, and arms the watch
+// on it that Claude Code 2.1.296 keeps until the session ends.
+func (c *claude) publish() {
+	c.started++
+	id := fmt.Sprintf("%032x", c.started)
+	c.fire("PostToolUse", map[string]any{"tool_name": "Artifact",
+		"tool_input":    map[string]any{"file_path": "report.html", "icon": "report"},
+		"tool_use_id":   "toolu_fake",
+		"tool_response": map[string]any{"url": "https://claude.ai/artifact/" + id, "title": "Report"}})
+	c.tasks = append(c.tasks, map[string]string{"id": fmt.Sprintf("w%08x", c.started), "type": "monitor", "status": "running", "description": "live updates for artifact https://claude.ai/artifact/" + id + " (auto-armed on publish)"})
 }
 
 func (c *claude) turn(prompt string, in *bufio.Scanner) {
@@ -306,6 +348,12 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 		}
 		if strings.Contains(prompt, "server") {
 			c.tasks = append(c.tasks, map[string]string{"id": fmt.Sprintf("b%07x", len(c.tasks)+1), "type": "shell", "status": "running", "description": "Dev server", "command": "npm run dev"})
+		}
+		if strings.Contains(prompt, "watch") {
+			c.watch("")
+		}
+		if strings.Contains(prompt, "publish") {
+			c.publish()
 		}
 	}
 	time.Sleep(c.delay)

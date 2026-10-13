@@ -178,14 +178,19 @@ const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 // working (spec §5): background work still runs, or has finished without
 // Claude having taken its turn for it yet, and the turn did not end with a
 // question. Background work is a task of the payload's background_tasks
-// with the status running that is no shell command the agent itself started
-// (an agent that left a dev server running would never be done). A shell
-// command one of its subagents started (K=tool, kept in O as ~ID) counts
-// while a Stop lists it running, and is dropped at the first Stop that does
-// not: Claude wakes the subagent for it, not the agent, so no turn is owed
-// for it, and the subagent, woken, is listed until it reports. That a
-// subagent which left a dev server running keeps the agent working is the
-// price (design §3.4). busy walks the list to its end,
+// with the status running that is neither a shell command nor a watch (a
+// monitor task) the agent itself started: an agent that left a dev server
+// running would never be done, and neither would one that published an
+// artifact, which arms a watch that runs to the session's end and wakes
+// the agent only for a comment (#62). A shell command or a watch one of
+// its subagents started (K=tool, kept in O as ~ID) counts while a Stop
+// lists it running, and is dropped at the first Stop that does not: Claude
+// wakes the subagent for it, not the agent, so no turn is owed for it, and
+// the subagent, woken, is listed until it reports. That a subagent which
+// left a dev server running keeps the agent working is the price (design
+// §3.4). A task of any other type counts, seen or not: a new kind of
+// Claude's that is real work ending done early is the worse fault. busy
+// walks the list to its end,
 // reading the id, the type and the status of each task; text inside the
 // strings of a task, its description or command, is only ever data. Claude
 // takes a turn for every task that ends (wakeEvent, naming its id), and
@@ -255,7 +260,7 @@ function busy(s,    i, c, d, str, key, val, ty, st, id) {
             if (!d++) ty = st = val = id = ""
         } else if (c == "}" || c == "]") {
             if (!d--) return
-            if (!d && st == "running") { if (ty != "shell") owed[id] = 1; else if (id in theirs) mine[id] = 1 }
+            if (!d && st == "running") { if (ty != "shell" && ty != "monitor") owed[id] = 1; else if (id in theirs) mine[id] = 1 }
         } else if (d == 1 && (c == ":" || c == ",")) val = c == ":"
     }
 }

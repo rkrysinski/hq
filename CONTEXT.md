@@ -45,7 +45,7 @@ _Avoid_: selection, highlighted row
 _Avoid_: alert, blocked
 
 **Background work**:
-Subagents or workflows an agent started in the background that still run when its turn ends; the agent is `working` until the closing turn ends. Shell commands its subagents started in the background are background work while they run; background shell commands the agent itself started are not.
+Subagents or workflows an agent started in the background that still run when its turn ends; the agent is `working` until the closing turn ends. Shell commands and watches (monitors) its subagents started in the background are background work while they run; background shell commands and watches the agent itself started, the artifact watch Claude arms when the agent publishes an artifact among them, are not.
 _Avoid_: pending tasks, children, jobs
 
 **Closing turn**:

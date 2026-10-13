@@ -990,3 +990,53 @@ func TestAnAgentWhoseSubagentWaitsOnItsOwnCommandStaysWorkingUntilTheClosingTurn
 	h.typeIn("a", "start a server")
 	h.waitReport("a", "done", "Done: start a server")
 }
+
+func TestAnAgentWhoseOwnWatchRunsIsDoneAtItsTurnEnd(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("new: %s", errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	h.waitAtRest("a")
+
+	// The agent publishes an artifact, and Claude arms a watch on it that
+	// runs to the session's end (#62): the turn is its end, once, and the
+	// turns after it end as ever while the watch runs.
+	ch := h.wait("a")
+	h.typeIn("a", "publish the report")
+	r := h.waited(ch)
+	h.only(r, "a", "done", "Done: publish the report")
+	if code, out, _ := h.run("wait", "a", "--since", since(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
+		t.Fatalf("the same end again: exit %d %q", code, out)
+	}
+	h.waitAtRest("a")
+	h.typeIn("a", "a question")
+	h.waitReport("a", "question", "Shall I go on?")
+	h.waitAtRest("a")
+	h.typeIn("a", "go on")
+	h.waitReport("a", "done", "Done: go on")
+
+	// A watch the agent keeps itself (the Monitor tool) is no work either.
+	h.waitAtRest("a")
+	h.typeIn("a", "watch the file")
+	h.waitReport("a", "done", "Done: watch the file")
+
+	// A watch a subagent keeps counts while it runs (#60): the agent works
+	// on through the subagent's interim report, and is done once the
+	// subagent has reported again.
+	h.waitAtRest("a")
+	ch = h.wait("a")
+	h.typeIn("a", "background checks")
+	h.waitReport("a", "working", "Done: background checks")
+	h.waitAtRest("a")
+	h.typeIn("a", "detach monitor")
+	h.waitReport("a", "working", "The subagent waits on monitor.")
+	h.waitAtRest("a")
+	time.Sleep(agent.RestDelay + time.Second)
+	h.waitReport("a", "working", "The subagent waits on monitor.")
+	h.stillWaiting(ch)
+	h.typeIn("a", "wake")
+	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running.")
+}

@@ -407,7 +407,7 @@ func TestATurnEndingWhileASubagentRunsLeavesTheAgentWorkingAndNotifiesNobody(t *
 	}
 }
 
-func TestOnlyRunningBackgroundWorkThatIsNoShellCommandKeepsATurnEndWorking(t *testing.T) {
+func TestOnlyRunningBackgroundWorkThatIsNoCommandOrWatchOfTheAgentsOwnKeepsATurnEndWorking(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	task := func(kind, status string) map[string]any {
 		return map[string]any{"id": "a1", "type": kind, "status": status, "description": `say "status":"running" {[`, "command": "x"}
@@ -424,6 +424,9 @@ func TestOnlyRunningBackgroundWorkThatIsNoShellCommandKeepsATurnEndWorking(t *te
 		{"a shell command", []any{task("shell", "running")}, "The server is up.", "Done"},
 		{"a shell command and a subagent", []any{task("shell", "running"), task("subagent", "running")}, "Started.", ""},
 		{"a workflow", []any{task("workflow", "running")}, "Started.", ""},
+		{"a watch", []any{task("monitor", "running")}, "Published.", "Done"},
+		{"a watch and a subagent", []any{task("monitor", "running"), task("subagent", "running")}, "Started.", ""},
+		{"a task of a kind not seen", []any{task("cron", "running")}, "Started.", ""},
 		{"a finished subagent", []any{task("subagent", "completed")}, "Done.", "Done"},
 		{"a finished subagent and a shell command", []any{task("subagent", "completed"), task("shell", "running")}, "Done.", "Done"},
 		{"a subagent, with a question", []any{task("subagent", "running")}, "Started. Shall I go on?", "Question"},
@@ -576,6 +579,10 @@ func turnEnd(message string, ids ...string) []byte {
 	for _, id := range ids {
 		if shell, ok := strings.CutPrefix(id, "shell:"); ok {
 			tasks = append(tasks, map[string]string{"id": shell, "type": "shell", "status": "running", "description": "Wait", "command": "./wait.sh 60"})
+			continue
+		}
+		if watch, ok := strings.CutPrefix(id, "monitor:"); ok {
+			tasks = append(tasks, map[string]string{"id": watch, "type": "monitor", "status": "running", "description": "live updates for artifact https://claude.ai/artifact/x (auto-armed on publish)"})
 			continue
 		}
 		tasks = append(tasks, map[string]string{"id": id, "type": "subagent", "status": "running", "description": "Run the tests", "agent_type": "general-purpose"})
@@ -832,21 +839,51 @@ func TestAShellCommandASubagentStartedKeepsItsAgentWorkingWhileItRuns(t *testing
 		t.Fatalf("the turn end after the server printed %q", out)
 	}
 
-	// A watch a subagent started (the Monitor tool, reported as a shell
-	// command) counts the same. A task id in a subagent's tool input, or a
-	// command the agent itself started, does not; a command of a subagent's
-	// that no Stop lists any more is dropped at the first Stop.
+	// A watch a subagent started (the Monitor tool, a monitor task) counts
+	// the same. A task id in a subagent's tool input, a watch the agent
+	// itself keeps, or a command the agent itself started, does not; a
+	// command of a subagent's that no Stop lists any more is dropped at
+	// the first Stop.
 	notify("prompt", fixture(t, "prompt"))
 	notify("answer", toolEnd("Monitor", "a3", `{"taskId":"m1","timeoutMs":300000,"persistent":false}`))
 	notify("answer", []byte(`{"agent_id":"a3","hook_event_name":"PostToolUse","tool_name":"TaskOutput","tool_input":{"taskId":"m2"},"tool_response":{"status":"done"}}`))
 	notify("answer", toolEnd("Bash", "", shellStarted("m3")))
 	notify("answer", toolEnd("Bash", "a3", shellStarted("m4")))
-	quiet("turn end, its watch runs", notify("stop", turnEnd("watching", "shell:m1", "shell:m2", "shell:m3")), "watching")
+	quiet("turn end, its watch runs", notify("stop", turnEnd("watching", "monitor:m1", "monitor:m2", "shell:m3")), "watching")
 	if f := files(t, root, id); f[owedSuffix] != "~m1\n" {
 		t.Fatalf("owed: %q", f[owedSuffix])
 	}
-	if out := notify("stop", turnEnd("the watch ended", "shell:m2", "shell:m3", "shell:m4")); out != done {
+	if out := notify("stop", turnEnd("the watch ended", "monitor:m2", "shell:m3", "shell:m4")); out != done {
 		t.Fatalf("the turn end after the watch printed %q", out)
+	}
+
+	// As seen (#62): the agent publishes an artifact, and Claude arms a
+	// watch on it, a monitor task that runs to the session's end and wakes
+	// nobody but for a comment. The turn is the agent's end; a subagent it
+	// starts later counts as ever, beside the watch; and so is a turn that
+	// leaves the agent's own Monitor tool running.
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", toolEnd("Artifact", "", `{"url":"https://claude.ai/artifact/x","title":"QA evidence"}`))
+	if out := notify("stop", turnEnd("published", "monitor:w1")); out != done {
+		t.Fatalf("the turn end after the publish printed %q", out)
+	}
+	if f := files(t, root, id); len(f) != 2 {
+		t.Fatalf("files left: %v", f)
+	}
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", toolEnd("Agent", "", launched("a5")))
+	quiet("turn end, a subagent beside the watch", notify("stop", turnEnd("started", "a5", "monitor:w1")), "started")
+	notify("prompt", wakeUp("a5"))
+	if out := notify("stop", turnEnd("finished", "monitor:w1")); out != done {
+		t.Fatalf("the closing turn beside the watch printed %q", out)
+	}
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", toolEnd("Monitor", "", `{"taskId":"w2","timeoutMs":300000,"persistent":false}`))
+	if out := notify("stop", turnEnd("watching", "monitor:w1", "monitor:w2")); out != done {
+		t.Fatalf("the turn end with the agent's own watch printed %q", out)
+	}
+	if f := files(t, root, id); len(f) != 2 {
+		t.Fatalf("files left: %v", f)
 	}
 
 	// A session that starts over forgets the command.

@@ -265,6 +265,30 @@ func TestATurnEndWithBackgroundWorkKeptBesideAWorkingReportLeavesItWorking(t *te
 			t.Errorf("list %q: %+v", list, r)
 		}
 	}
+	// A watch (a monitor task) counts like a shell command (#62): the
+	// artifact watch Claude arms on publish, or the agent's own Monitor
+	// tool, runs to the session's end and wakes nobody, so a turn is owed
+	// for it; one a subagent started, named in the list, runs as work, and
+	// a subagent beside it does too.
+	stop := func(tasks string) []byte {
+		return []byte(strings.Replace(string(fixture(t, "stop-done")), `"background_tasks": []`, `"background_tasks": [`+tasks+`]`, 1))
+	}
+	const monitor = `{"id": "m1", "type": "monitor", "status": "running", "description": "live updates for artifact https://claude.ai/artifact/x (auto-armed on publish)"}`
+	for _, tc := range []struct {
+		name  string
+		tasks string
+		list  string
+		owed  bool
+	}{
+		{"a monitor alone", monitor, "", true},
+		{"a monitor a subagent started", monitor, "~m1\n", false},
+		{"a subagent beside a monitor", monitor + `, {"id": "a1", "type": "subagent", "status": "running"}`, "", false},
+		{"a task of a kind not seen", `{"id": "z1", "type": "cron", "status": "running"}`, "", false},
+	} {
+		if r = working.Kept(fixture(t, "prompt"), stop(tc.tasks), []byte(tc.list), at); r.State != Working || !r.Background || r.Owed != tc.owed {
+			t.Errorf("%s: %+v", tc.name, r)
+		}
+	}
 	// Claude's wake-up when the subagent has finished: the closing turn is
 	// at work, since the same prompt.
 	r = working.Kept(fixture(t, "prompt"), fixture(t, "prompt-wake"), nil, at)
