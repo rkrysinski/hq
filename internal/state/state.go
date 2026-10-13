@@ -92,10 +92,12 @@ const wakePrefix = "<task-notification>"
 const askTool = "AskUserQuestion"
 
 // busy reports whether the event, a Stop, lists background work that
-// still runs: a running task that is no shell command, or a shell command
-// one of the agent's subagents started, which the hook's list (owed, the
-// .owe file) names on a line ~ID. It is the rule of the hook's awk, which
-// decides (design §3.4).
+// still runs: a running task that is neither a shell command nor a watch
+// (a monitor task: the artifact watch Claude arms when the agent publishes
+// one, the Monitor tool), or one of those that one of the agent's
+// subagents started, which the hook's list (owed, the .owe file) names on
+// a line ~ID. It is the rule of the hook's awk, which decides (design
+// §3.4).
 func (p payload) busy(owed []byte) bool {
 	theirs := map[string]bool{}
 	for _, line := range strings.Split(string(owed), "\n") {
@@ -104,7 +106,7 @@ func (p payload) busy(owed []byte) bool {
 		}
 	}
 	for _, t := range p.BackgroundTasks {
-		if t.Status == "running" && (t.Type != "shell" || theirs[t.ID]) {
+		if t.Status == "running" && ((t.Type != "shell" && t.Type != "monitor") || theirs[t.ID]) {
 			return true
 		}
 	}
