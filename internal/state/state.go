@@ -106,7 +106,7 @@ func (p payload) busy(owed []byte) bool {
 		}
 	}
 	for _, t := range p.BackgroundTasks {
-		if t.Status == "running" && (t.Type != "shell" && t.Type != "monitor" || theirs[t.ID]) {
+		if t.Status == "running" && ((t.Type != "shell" && t.Type != "monitor") || theirs[t.ID]) {
 			return true
 		}
 	}
