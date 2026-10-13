@@ -1,0 +1,30 @@
+NAME  REPO  BRANCH  STATE    AGE  LAST
+a5    repo  main    done     3s   Done: start a server
+a3    repo  main    done     19s  The background work is done, 0 still running.
+a4    repo  main    working  12s  The subagent waits on sleep 180.
+a2    repo  main    working  40s  Done: watch the file
+a1    repo  main    working  46s  Done: go on
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

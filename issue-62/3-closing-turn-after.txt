@@ -1,0 +1,30 @@
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a3    repo  main    done   1s   The background work is done, 0 still running.
+a2    repo  main    done   21s  Done: watch the file
+a1    repo  main    done   27s  Done: go on
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

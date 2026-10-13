@@ -1,0 +1,21 @@
+?   	github.com/rkrysinski/hq/cmd/hq	[no test files]
+ok  	github.com/rkrysinski/hq/internal/agent	0.002s
+ok  	github.com/rkrysinski/hq/internal/cli	0.040s
+ok  	github.com/rkrysinski/hq/internal/dash	8.248s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.003s
+ok  	github.com/rkrysinski/hq/internal/dialog	0.778s
+ok  	github.com/rkrysinski/hq/internal/gh	0.002s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.002s
+ok  	github.com/rkrysinski/hq/internal/platform	0.002s
+?   	github.com/rkrysinski/hq/internal/platform/platformtest	[no test files]
+ok  	github.com/rkrysinski/hq/internal/prefs	0.006s
+?   	github.com/rkrysinski/hq/internal/proc	[no test files]
+?   	github.com/rkrysinski/hq/internal/repo	[no test files]
+ok  	github.com/rkrysinski/hq/internal/sbx	0.002s
+ok  	github.com/rkrysinski/hq/internal/state	0.024s
+ok  	github.com/rkrysinski/hq/internal/tmux	0.002s
+ok  	github.com/rkrysinski/hq/internal/update	0.002s
+?   	github.com/rkrysinski/hq/internal/version	[no test files]
+?   	github.com/rkrysinski/hq/tools/fakeclaude	[no test files]
+ok  	github.com/rkrysinski/hq/tools/testgate	0.002s
+unit exit 0
