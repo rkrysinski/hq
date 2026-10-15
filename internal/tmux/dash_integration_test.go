@@ -87,9 +87,11 @@ func TestDashboardHasTheListOnTopAndThePlaceholderBelow(t *testing.T) {
 		}
 	}
 	// Other sessions keep the server's mouse setting (text selection there
-	// is unchanged).
-	if got := tm(t, socket, "show-options", "-gv", "mouse"); got != "off" {
-		t.Errorf("global mouse %q, want off", got)
+	// is unchanged): tmux's own default, off until tmux 3.8 and on since.
+	fresh := testutil.TmuxSocket(t)
+	want := tm(t, fresh, "-f", "/dev/null", "start-server", ";", "show-options", "-gv", "mouse")
+	if got := tm(t, socket, "show-options", "-gv", "mouse"); got != want {
+		t.Errorf("global mouse %q, want tmux's default %q", got, want)
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -99,14 +100,22 @@ const stateWait = 15 * time.Second
 
 func (h *realHQ) waitState(name, state string) lsRow {
 	h.t.Helper()
+	return h.waitRow(name, state, func(lsRow) bool { return true })
+}
+
+// waitRow waits until name shows state in a row that is as wanted: an agent
+// just started is done before its first prompt, with no reply and in the
+// repository's branch.
+func (h *realHQ) waitRow(name, state string, wanted func(lsRow) bool) lsRow {
+	h.t.Helper()
 	for deadline := time.Now().Add(stateWait); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
 		for _, r := range h.ls() {
-			if r.Name == name && r.State == state {
+			if r.Name == name && r.State == state && wanted(r) {
 				return r
 			}
 		}
 	}
-	h.t.Fatalf("%s never became %s: %+v", name, state, h.ls())
+	h.t.Fatalf("%s never became %s as wanted: %+v", name, state, h.ls())
 	return lsRow{}
 }
 
@@ -365,6 +374,39 @@ func TestReadShowsWhatTheAgentAsksAndItsWholeReply(t *testing.T) {
 	}
 }
 
+// A turn that ends with a reply of 82,000 characters, as in #64: the agent
+// is done, hq read gives the reply in full over pages, and hq send types a
+// message in as its next prompt.
+func TestALongReplyIsDoneReadInPagesAndTakesAMessage(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "long"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitRow("a", "done", func(r lsRow) bool { return strings.HasPrefix(r.Last, "Line 0001 of the long reply") })
+	var reply strings.Builder
+	args := []string{"read", "a", "--json"}
+	for pages := 1; ; pages++ {
+		code, out, errOut := h.run(args...)
+		var v readView
+		if code != 0 || json.Unmarshal([]byte(out), &v) != nil {
+			t.Fatalf("page %d: exit %d %q\n%.300s", pages, code, errOut, out)
+		}
+		reply.WriteString(v.Reply)
+		if v.NextOffset == nil {
+			if pages != 3 || reply.Len() != v.ReplySize || !strings.HasSuffix(reply.String(), "\nLine 1000 of the long reply, a recon report, pasted verbatim into the turn's end.\nEnd of the long reply.") {
+				t.Fatalf("%d pages make %d bytes of %d", pages, reply.Len(), v.ReplySize)
+			}
+			break
+		}
+		args = []string{"read", "a", "--json", "--offset", strconv.Itoa(*v.NextOffset), "--since", v.NextSince.Format(time.RFC3339Nano)}
+	}
+	h.waitAtRest("a")
+	h.send("delivered: typed into a as its next prompt", "a", "thanks")
+	h.waitReport("a", "done", "Done: thanks")
+}
+
 // Claude Code's own dialog at the first start in a sandbox, which no hook
 // reports: the agent needs input until the user answers it (#29).
 func TestAnAgentAtClaudesStartDialogNeedsInput(t *testing.T) {
@@ -399,15 +441,8 @@ func TestAgentsInOneRepositoryAreToldApartByBranch(t *testing.T) {
 			t.Fatalf("new %s: exit %d: %s", name, code, errOut)
 		}
 	}
-	h.waitState("a", "done")
-	h.waitState("b", "done")
-	got := map[string]string{}
-	for _, r := range h.ls() {
-		got[r.Name] = r.Branch
-	}
-	if got["a"] != "feat/42-x" || got["b"] != "fix/7-y" {
-		t.Fatalf("branches %v", got)
-	}
+	h.waitRow("a", "done", func(r lsRow) bool { return r.Branch == "feat/42-x" })
+	h.waitRow("b", "done", func(r lsRow) bool { return r.Branch == "fix/7-y" })
 	// A later turn in the worktree keeps its branch.
 	h.typeIn("a", "hello")
 	h.waitReport("a", "done", "Done: hello")

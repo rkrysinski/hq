@@ -9,6 +9,9 @@
 //     UserPromptSubmit, then Stop with the reply;
 //   - a prompt containing "question" gets a reply ending in "?";
 //   - a prompt containing "lines" gets a reply of two paragraphs;
+//   - a prompt containing "long" gets a reply of about 82,000 characters, past
+//     what hq once read of a state file (#64), and only its first line on
+//     the screen;
 //   - a prompt containing "input" first opens a question dialog, as
 //     AskUserQuestion does: PermissionRequest at once, Claude's late
 //     permission Notification after the delay, then it waits for a line.
@@ -430,8 +433,13 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	for _, n := range noted {
 		reply += " | " + n
 	}
+	shown := reply
+	if strings.Contains(prompt, "long") {
+		reply = longReply()
+		shown, _, _ = strings.Cut(reply, "\n")
+	}
 	for active := false; ; active = true {
-		fmt.Println("● " + reply)
+		fmt.Println("● " + shown)
 		out := c.fire("Stop", map[string]any{"stop_hook_active": active, "last_assistant_message": reply, "background_tasks": append([]map[string]string{}, c.tasks...)})
 		if out.Decision != "block" {
 			break
@@ -549,4 +557,14 @@ func (c *claude) fire(event string, fields map[string]any) (o output) {
 		}
 	}
 	return o
+}
+
+// longReply is the reply to a prompt containing "long": 1,000 numbered
+// lines of 81 characters, then one saying it is the end.
+func longReply() string {
+	var b strings.Builder
+	for i := 1; i <= 1000; i++ {
+		fmt.Fprintf(&b, "Line %04d of the long reply, a recon report, pasted verbatim into the turn's end.\n", i)
+	}
+	return b.String() + "End of the long reply."
 }

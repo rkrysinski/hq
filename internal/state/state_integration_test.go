@@ -261,7 +261,7 @@ func TestHookNeverFailsAndWritesNothingWithoutAnAgentOrARepository(t *testing.T)
 	fire(t, d, d, "abc", "stop", fixture(t, "stop-done")) // not a repository
 }
 
-func TestReadRefusesAnythingButASmallRegularFile(t *testing.T) {
+func TestReadRefusesAnythingButARegularFile(t *testing.T) {
 	root := t.TempDir()
 	dir := Dir(root)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -270,19 +270,124 @@ func TestReadRefusesAnythingButASmallRegularFile(t *testing.T) {
 	secret := filepath.Join(root, "secret")
 	os.WriteFile(secret, fixture(t, "stop-done"), 0o600)
 	os.Symlink(secret, filepath.Join(dir, "aaa"))
-	os.WriteFile(filepath.Join(dir, "bbb"), append(fixture(t, "stop-done"), bytes.Repeat([]byte(" "), maxFile)...), 0o644)
 	syscall.Mkfifo(filepath.Join(dir, "ccc"), 0o644)
 	os.Mkdir(filepath.Join(dir, "ddd"), 0o755)
 	os.WriteFile(filepath.Join(dir, "eee"), fixture(t, "stop-done"), 0o644)
 	os.Symlink(secret, filepath.Join(dir, "eee.stop"))
-	for _, id := range []string{"aaa", "bbb", "ccc", "ddd", "../secret"} {
+	for _, id := range []string{"aaa", "ccc", "ddd", "../secret"} {
 		if r, ok := Read(root, id); ok {
 			t.Errorf("%s read: %+v", id, r)
+		}
+		if d := ReadDetail(root, id); d.Reply != "" || !d.ReplyAt.IsZero() {
+			t.Errorf("%s detail: %+v", id, d)
 		}
 	}
 	// A linked .stop file is ignored; the event file itself still counts.
 	if r, ok := Read(root, "eee"); !ok || r.State != Done {
 		t.Fatalf("eee: %+v %v", r, ok)
+	}
+}
+
+// A turn that ends with a reply of 82k characters, as in #64, written by
+// the hook: the agent is done, notified, and its reply is read in full.
+func TestALongReplyIsDoneAndReadInFull(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "c73ccdf123a7"
+	reply := strings.Repeat("A line of the recon report, pasted verbatim.\n", 1800) + "\nAll done."
+	payload, _ := json.Marshal(map[string]string{"hook_event_name": "Stop", "session_id": "s1", "cwd": root, "last_assistant_message": reply})
+	out := run(t, root, root, id, hook("stop", "%s"), payload)
+	var v struct{ TerminalSequence string }
+	if err := json.Unmarshal([]byte(out), &v); err != nil || !strings.HasPrefix(v.TerminalSequence, "Done: ") {
+		t.Fatalf("hook: %q %v", out, err)
+	}
+	info, err := os.Stat(filepath.Join(Dir(root), id+".stop"))
+	if err != nil || info.Size() <= 64<<10 {
+		t.Fatalf("the reply's state file is %v bytes (%v): not past the old cap", info.Size(), err)
+	}
+	if r, ok := Read(root, id); !ok || r.State != Done || r.Last != Clean(reply) {
+		t.Fatalf("read: %v %s %q", ok, r.State, r.Last)
+	}
+	d := ReadDetail(root, id)
+	if d.Reply != CleanText(reply) || !d.ReplyAt.Equal(info.ModTime()) {
+		t.Fatalf("detail: %d characters of %d, at %v (want %v)", len(d.Reply), len(reply), d.ReplyAt, info.ModTime())
+	}
+}
+
+// A state file over the cap is no state hq reads, but it is the agent's
+// report: it counts, and hq says it was too large, never starting with
+// nothing (#64).
+func TestAReportTooLargeToReadSaysSo(t *testing.T) {
+	root := t.TempDir()
+	dir := Dir(root)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	tooLarge := func(name, payload string) {
+		p := filepath.Join(dir, name)
+		os.WriteFile(p, fixture(t, payload), 0o600)
+		if err := os.Truncate(p, maxFile+1); err != nil {
+			t.Fatal(err)
+		}
+	}
+	const say = "[report too large to read: 16.0 MiB]"
+	tooLarge("aaa", "stop-done")
+	tooLarge("aaa.stop", "stop-done")
+	info, _ := os.Stat(filepath.Join(dir, "aaa"))
+	if r, ok := Read(root, "aaa"); !ok || r.State != Done || r.Last != say || !r.Since.Equal(info.ModTime()) {
+		t.Fatalf("aaa: %v %+v", ok, r)
+	}
+	if d := ReadDetail(root, "aaa"); d.Reply != say || d.ReplyAt.IsZero() {
+		t.Fatalf("aaa detail: %+v", d)
+	}
+	// The agent works on since; its last message is that reply.
+	os.WriteFile(filepath.Join(dir, "bbb"), fixture(t, "prompt"), 0o600)
+	tooLarge("bbb.stop", "stop-done")
+	if r, ok := Read(root, "bbb"); !ok || r.State != Working || r.Last != say {
+		t.Fatalf("bbb: %v %+v", ok, r)
+	}
+	if d := ReadDetail(root, "bbb"); d.Reply != say {
+		t.Fatalf("bbb detail: %+v", d)
+	}
+}
+
+func TestReadParsesTheStateFilesOncePerChange(t *testing.T) {
+	root := t.TempDir()
+	dir := Dir(root)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "abc")
+	os.WriteFile(path, fixture(t, "prompt"), 0o600)
+	if r, ok := Read(root, "abc"); !ok || r.State != Working {
+		t.Fatalf("prompt: %v %+v", ok, r)
+	}
+	// Other bytes of the same size at the same time: no change, so the
+	// report parsed before stands (parsed, they would say starting).
+	info, _ := os.Stat(path)
+	os.WriteFile(path, bytes.Repeat([]byte("x"), int(info.Size())), 0o600)
+	os.Chtimes(path, info.ModTime(), info.ModTime())
+	if r, _ := Read(root, "abc"); r.State != Working {
+		t.Fatalf("unchanged: %+v", r)
+	}
+	// A new time is a change.
+	later := info.ModTime().Add(time.Second)
+	os.Chtimes(path, later, later)
+	if r, _ := Read(root, "abc"); r.State != Starting {
+		t.Fatalf("touched: %+v", r)
+	}
+	// So is a file beside it that appears.
+	os.WriteFile(path, fixture(t, "prompt"), 0o600)
+	os.Chtimes(path, later, later)
+	os.WriteFile(path+".stop", fixture(t, "stop-done"), 0o600)
+	if r, _ := Read(root, "abc"); r.State != Working || r.Last != "Hi. The tests pass and PR #58 is open." {
+		t.Fatalf("beside: %+v", r)
+	}
+	// Removed, the agent has nothing to report, whatever was parsed.
+	if err := Remove(root, "abc"); err != nil {
+		t.Fatal(err)
+	}
+	if r, ok := Read(root, "abc"); ok {
+		t.Fatalf("removed: %+v", r)
 	}
 }
 
