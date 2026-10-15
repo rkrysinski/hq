@@ -147,10 +147,11 @@ func queued(a agent.Agent, now bool) string {
 			when = "is working, delivered after its next tool call, or when it stops"
 		}
 	case state.NeedsInput:
-		if a.StartAsk() != nil {
-			// Claude's own dialog at its start: closing it fires no hook,
-			// so nothing delivers the message until the next prompt (#29).
-			return fmt.Sprintf("queued: %s waits at a dialog Claude shows at its start; once it is answered there (hq go %s), delivered with its next prompt", a.Name, a.Name)
+		if a.OwnAsk() != nil {
+			// A dialog of Claude's own, at its start or after a turn:
+			// closing it fires no hook, so nothing delivers the message
+			// until the next prompt (#29, #66).
+			return fmt.Sprintf("queued: %s waits at a dialog of Claude's own; once it is answered there (hq go %s), delivered with its next prompt", a.Name, a.Name)
 		}
 		when = "needs input, delivered once its dialog is closed, when it stops"
 		if now {

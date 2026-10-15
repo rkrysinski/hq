@@ -423,11 +423,40 @@ func TestAnAgentAtClaudesStartDialogNeedsInput(t *testing.T) {
 		t.Fatalf("read:\n%s", out)
 	}
 	// A message sent meanwhile waits for the dialog.
-	h.send("queued: a waits at a dialog Claude shows at its start; once it is answered there (hq go a), delivered with its next prompt", "a", "say hi")
+	h.send("queued: a waits at a dialog of Claude's own; once it is answered there (hq go a), delivered with its next prompt", "a", "say hi")
 	// The user answers it in the pane: Claude takes prompts, and the
 	// message with its next one.
 	h.typeIn("a", "")
 	h.waitReport("a", "done", "")
+	h.typeIn("a", "go on")
+	h.waitPane("a", "say hi")
+}
+
+// A dialog Claude opens after a turn, as /effort does, fires no hook: the
+// agent needs input until the user answers it, hq wait returns it, and a
+// message waits for its next prompt (#66).
+func TestAnAgentAtADialogClaudeOpensAfterItsTurnNeedsInput(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	before := time.Now().UTC().Format(time.RFC3339Nano)
+	h.typeIn("a", "/effort max")
+	h.waitReport("a", "needs input", "Change effort level?")
+	// A supervisor waiting since before the dialog opened is told.
+	if code, out, _ := h.run("wait", "a", "--since", before, "--timeout", "5s"); code != 0 || !strings.Contains(out, "needs input") || !strings.Contains(out, "Change effort level?") {
+		t.Fatalf("wait: exit %d\n%s", code, out)
+	}
+	code, out, _ := h.run("read", "a")
+	if code != 0 || !strings.Contains(out, "\nasks\n  Change effort level?\n    1. Yes, switch to max\n    2. No, go back\n") {
+		t.Fatalf("read:\n%s", out)
+	}
+	h.send("queued: a waits at a dialog of Claude's own; once it is answered there (hq go a), delivered with its next prompt", "a", "say hi")
+	h.typeIn("a", "")
+	h.waitReport("a", "done", "Done: hello")
 	h.typeIn("a", "go on")
 	h.waitPane("a", "say hi")
 }

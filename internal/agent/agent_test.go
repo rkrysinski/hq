@@ -290,7 +290,10 @@ func TestAReportFromBeforeTheStartGivesTheMessageButNotTheState(t *testing.T) {
 	}
 }
 
-func TestAnAgentWorkingOrNeedingInputIsUnsettledAfterAMoment(t *testing.T) {
+// Every live agent that has reported has its screen looked at, once the
+// report has settled: one at work or at a dialog for a turn the user ended,
+// one at its prompt for a dialog of Claude's own (#66).
+func TestAnAgentThatHasReportedIsUnsettledAfterAMoment(t *testing.T) {
 	now := time.Unix(1000, 0)
 	report := func(s string, age time.Duration) state.Report { return state.Report{State: s, Since: now.Add(-age)} }
 	for _, tc := range []struct {
@@ -304,9 +307,10 @@ func TestAnAgentWorkingOrNeedingInputIsUnsettledAfterAMoment(t *testing.T) {
 		{"just now", tmux.Window{}, report(state.NeedsInput, 100*time.Millisecond), true, false},
 		{"working", tmux.Window{}, report(state.Working, time.Second), true, true},
 		{"working just now", tmux.Window{}, report(state.Working, 100*time.Millisecond), true, false},
-		{"question", tmux.Window{}, report(state.Question, time.Second), true, false},
+		{"question", tmux.Window{}, report(state.Question, time.Second), true, true},
 		{"starting", tmux.Window{}, report(state.Starting, time.Second), true, false},
-		{"done", tmux.Window{}, report(state.Done, time.Second), true, false},
+		{"done", tmux.Window{}, report(state.Done, time.Second), true, true},
+		{"done just now", tmux.Window{}, report(state.Done, 100*time.Millisecond), true, false},
 		{"no report", tmux.Window{}, state.Report{}, false, false},
 		{"dead", tmux.Window{PaneDead: true}, report(state.NeedsInput, time.Second), true, false},
 		{"ending", tmux.Window{Options: map[string]string{"ending": "1"}}, report(state.NeedsInput, time.Second), true, false},
@@ -756,42 +760,129 @@ func TestAnEndedAgentIsEnteredFromTheFirstSignOfItsEnd(t *testing.T) {
 }
 
 // Claude's own dialog at the start of a session is reported by no hook:
-// the agent needs input while its screen shows it (#29).
+// the agent needs input while its screen shows it (#29), from the moment hq
+// first saw it.
 func TestSettleSeesClaudesDialogAtTheStartOfASession(t *testing.T) {
 	rule := strings.Repeat("─", 40)
 	dialog := "fake claude: ready\n" + rule + "\n Make auto mode your default permission mode?\n\n   Auto mode lets Claude handle prompts.\n\n   ❯ Yes, set auto mode as my default permission mode\n     No, keep bypass permissions\n"
 	ready := "fake claude: ready\n" + rule + "\n❯ \n" + rule + "\n  footer\n"
 	started := time.Unix(1000, 0)
+	seen := started.Add(time.Second)
 	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	start := state.Report{State: state.Done, Since: started, AtStart: true}
+	start := state.Report{State: state.Done, Since: started}
 	a := FromWindows([]tmux.Window{w})[0]
 	a.Apply(start, true)
-	if a.StartAsk() != nil || !a.Unsettled(started.Add(time.Second)) || a.Unsettled(started) {
+	if a.OwnAsk() != nil || !a.Unsettled(seen) || a.Unsettled(started) {
 		t.Fatalf("a session just started is looked at once the report has settled: %+v", a)
 	}
-	if rec := a.Settle(dialog, started.Add(time.Second)); rec.Value != "" || a.State != state.NeedsInput || a.Last != "Make auto mode your default permission mode?" || !a.Since.Equal(started) {
+	if rec := a.Settle(dialog, seen); rec.Option != "dialogseen" || rec.Value == "" || a.State != state.NeedsInput || a.Last != "Make auto mode your default permission mode?" || !a.Since.Equal(seen) {
 		t.Fatalf("dialog: %+v %+v", rec, a)
 	}
-	if ask := a.StartAsk(); ask == nil || len(ask.Questions) != 1 || len(ask.Questions[0].Options) != 2 || ask.Questions[0].Options[1].Label != "No, keep bypass permissions" {
+	if ask := a.OwnAsk(); ask == nil || len(ask.Questions) != 1 || len(ask.Questions[0].Options) != 2 || ask.Questions[0].Options[1].Label != "No, keep bypass permissions" {
 		t.Fatalf("ask: %+v", ask)
 	}
 	// Answered: Claude waits at its prompt, done since it started.
 	b := FromWindows([]tmux.Window{w})[0]
 	b.Apply(start, true)
-	if rec := b.Settle(ready, started.Add(time.Minute)); rec.Value != "" || b.State != state.Done || b.Last != "" || b.StartAsk() != nil || !b.Since.Equal(started) {
+	if rec := b.Settle(ready, started.Add(time.Minute)); rec.Value != "" || b.State != state.Done || b.Last != "" || b.OwnAsk() != nil || !b.Since.Equal(started) {
 		t.Fatalf("ready: %+v %+v", rec, b)
 	}
-	// A resumed session keeps its last message while no dialog shows, and
-	// a session past its start is not looked at for one.
+	// A resumed session keeps its last message while no dialog shows.
 	c := FromWindows([]tmux.Window{w})[0]
-	c.Apply(state.Report{State: state.Done, Since: started, AtStart: true, Last: "Hi."}, true)
+	c.Apply(state.Report{State: state.Done, Since: started, Last: "Hi."}, true)
 	if c.Settle(ready, started.Add(time.Minute)); c.State != state.Done || c.Last != "Hi." {
 		t.Fatalf("resumed: %+v", c)
 	}
-	d := FromWindows([]tmux.Window{w})[0]
-	d.Apply(state.Report{State: state.Done, Since: started, Last: "Hi."}, true)
-	if d.Unsettled(started.Add(time.Minute)) {
-		t.Fatalf("a finished turn is looked at: %+v", d)
+}
+
+// A dialog Claude opens after a turn, as for /effort, is reported by no
+// hook either: the agent needs input while its screen shows it, from the
+// moment hq first saw it, which every hq process takes from the record on
+// the agent's window; once it is answered, the agent is done with its
+// turn's message again (#66).
+func TestSettleSeesClaudesDialogAfterATurn(t *testing.T) {
+	top := strings.Repeat("▔", 40)
+	rule := strings.Repeat("─", 40)
+	dialog := "❯ say hi\n● hi\n" + top + "\n   Change effort level?\n   Your next response will be slower\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"
+	moved := strings.Replace(strings.Replace(dialog, "❯ 1.", "  1.", 1), "  2.", "❯ 2.", 1)
+	ready := "❯ say hi\n● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n"
+	done := time.Unix(1000, 0)
+	seen := done.Add(time.Hour)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	turn := state.Report{State: state.Done, Since: done, Last: "hi"}
+	look := func(screen string, now time.Time) (Agent, Record) {
+		a := FromWindows([]tmux.Window{w})[0]
+		a.Apply(turn, true)
+		if !a.Unsettled(now) {
+			t.Fatalf("a done agent is not looked at: %+v", a)
+		}
+		return a, a.Settle(screen, now)
+	}
+	a, rec := look(dialog, seen)
+	if rec.Option != "dialogseen" || rec.Value == "" || a.State != state.NeedsInput || a.Last != "Change effort level?" || !a.Since.Equal(seen) || a.Entered() != seen {
+		t.Fatalf("dialog: %+v %+v", rec, a)
+	}
+	if ask := a.OwnAsk(); ask == nil || ask.Questions[0].Options[0].Label != "Yes, switch to max" || ask.Description != "Your next response will be slower" {
+		t.Fatalf("ask: %+v", ask)
+	}
+	// Seen again later, the cursor moved: since the recorded moment.
+	w.Options["dialogseen"] = rec.Value
+	if b, rec := look(moved, seen.Add(time.Minute)); rec.Value != "" || b.State != state.NeedsInput || !b.Since.Equal(seen) {
+		t.Fatalf("again: %+v %+v", rec, b)
+	}
+	// Another hq process stored its moment first: that one counts.
+	w.Options["dialogseen"] = ""
+	c, rec := look(dialog, seen.Add(2*time.Second))
+	c.Keep(rec, strings.Replace(rec.Value, nanos(seen.Add(2*time.Second)), nanos(seen), 1))
+	if !c.Since.Equal(seen) || c.State != state.NeedsInput {
+		t.Fatalf("stored first elsewhere: %+v", c)
+	}
+	// Answered: done with its turn's message, since the turn; the record
+	// is closed, so a dialog opened again counts from when it is seen.
+	w.Options["dialogseen"] = c.dialogSeen
+	d, rec := look(ready, seen.Add(time.Minute))
+	if rec.Option != "dialogseen" || rec.Value == "" || d.State != state.Done || d.Last != "hi" || d.OwnAsk() != nil || !d.Since.Equal(done) {
+		t.Fatalf("answered: %+v %+v", rec, d)
+	}
+	w.Options["dialogseen"] = rec.Value
+	if _, rec := look(ready, seen.Add(2*time.Minute)); rec.Value != "" {
+		t.Fatalf("closed twice: %+v", rec)
+	}
+	again := seen.Add(3 * time.Minute)
+	if e, rec := look(dialog, again); rec.Value == "" || e.State != state.NeedsInput || !e.Since.Equal(again) {
+		t.Fatalf("opened again: %+v %+v", rec, e)
+	}
+	// A record of an earlier report does not count for a later one.
+	w.Options["dialogseen"] = c.dialogSeen
+	turn.Since = done.Add(2 * time.Hour)
+	later := turn.Since.Add(time.Second)
+	if f, rec := look(dialog, later); rec.Value == "" || !f.Since.Equal(later) {
+		t.Fatalf("later report: %+v %+v", rec, f)
+	}
+	if _, rec := look(ready, later); rec.Value != "" {
+		t.Fatalf("closing another report's record: %+v", rec)
+	}
+}
+
+// A question at its prompt, or a turn the user ended, waits at its prompt
+// as a done agent does: a dialog Claude opens there needs input too (#66).
+func TestSettleSeesClaudesDialogAfterAQuestionAndATurnTheUserEnded(t *testing.T) {
+	dialog := "● hi\n" + strings.Repeat("▔", 40) + "\n   Change effort level?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"
+	at := time.Unix(1000, 0)
+	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
+	a := FromWindows([]tmux.Window{w})[0]
+	a.Apply(state.Report{State: state.Question, Since: at, Last: "Red or blue?"}, true)
+	if a.Settle(dialog, at.Add(time.Minute)); a.State != state.NeedsInput || a.Last != "Change effort level?" {
+		t.Fatalf("question: %+v", a)
+	}
+	working := state.Report{State: state.Working, Since: at, Prompt: "go"}
+	b := FromWindows([]tmux.Window{w})[0]
+	b.Apply(working, true)
+	w.Options["turnend"] = b.key() + " " + nanos(at.Add(time.Second)) + " " + Rewound
+	c := FromWindows([]tmux.Window{w})[0]
+	c.Apply(working, true)
+	if c.Settle(dialog, at.Add(time.Minute)); c.State != state.NeedsInput || c.Last != "Change effort level?" {
+		t.Fatalf("turn ended by the user: %+v", c)
 	}
 }
 

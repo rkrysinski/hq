@@ -105,9 +105,9 @@ func runRead(env Env, d deps, args []string) error {
 	if r.offset > 0 && replyChanged(det.ReplyAt, r.since) {
 		return usageErr("%s's reply changed since %s: read it again from its start, without --offset", a.Name, r.since.Format(time.RFC3339Nano))
 	}
-	if ask := a.StartAsk(); ask != nil {
-		// A dialog Claude shows at its start: no hook has reported it, so
-		// it comes from the screen (#29).
+	if ask := a.OwnAsk(); ask != nil {
+		// A dialog of Claude's own, at its start or after a turn: no hook
+		// has reported it, so it comes from the screen (#29, #66).
 		det.Ask = ask
 	}
 	v, err := newReadView(newLsRow(d, a, d.now()), det, worktree(d, a), r.offset)

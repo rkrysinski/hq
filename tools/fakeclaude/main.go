@@ -57,6 +57,9 @@
 //     Claude taking a turn for it, and no hook fires;
 //   - the line "draft" is no prompt: it draws the box holding "a draft", as
 //     when the user has typed that and not sent it yet;
+//   - the line "/effort LEVEL" is no prompt: it draws the dialog Claude Code
+//     2.1.300 opens in place of its prompt box ("Change effort level?"),
+//     which no hook reports, until a line answers it (#66);
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.
 //
 // It reads the hooks' output as Claude Code 2.1.283 does (ADR 0012):
@@ -204,6 +207,13 @@ func main() {
 			// The user has typed something in the box and not sent it:
 			// Claude draws the box holding it; no hook fires.
 			promptBox("", "a draft")
+		case "/effort max":
+			// A slash command, no prompt: its dialog takes the box's place
+			// until it is answered; no hook fires.
+			fmt.Print(effortDialog)
+			in.Scan()
+			fmt.Println("  ⎿  Kept effort level as high")
+			promptBox("")
 		case "/exit":
 			c.fire("SessionEnd", map[string]any{"reason": "prompt_input_exit"})
 			fmt.Print(leaveAltScreen)
@@ -479,9 +489,6 @@ func (c *claude) subagents() (n int) {
 // question is what the fake's question dialog asks.
 const question = "Which colour do you pick?"
 
-// promptBox draws Claude's prompt box, where the user types the next
-// prompt, holding input when given; hint is what its footer offers besides,
-// as "esc to interrupt" while a turn is at work.
 // startDialog is the dialog of Claude Code 2.1.285 as it draws it.
 const startDialog = `
 ────────────────────────────────────────────────────────────────
@@ -495,6 +502,22 @@ const startDialog = `
      No, keep bypass permissions
 `
 
+// effortDialog is the dialog of Claude Code 2.1.300 for /effort max after a
+// turn, as it draws it.
+const effortDialog = `
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Change effort level?
+   Your next response will be slower and use more tokens
+
+   This conversation is cached for the current effort level. Switching to max means the full history gets re-read on your next message.
+
+   ❯ 1. Yes, switch to max
+     2. No, go back
+`
+
+// promptBox draws Claude's prompt box, where the user types the next
+// prompt, holding input when given; hint is what its footer offers besides,
+// as "esc to interrupt" while a turn is at work.
 func promptBox(hint string, input ...string) {
 	rule := strings.Repeat("─", 40)
 	footer := "  ⏵⏵ bypass permissions on (shift+tab to cycle)"
