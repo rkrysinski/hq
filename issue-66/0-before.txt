@@ -1,0 +1,45 @@
+$ scripts/local-dev.sh send a '/effort max'
+delivered: typed into a as its next prompt
+$ scripts/local-dev.sh ls
+NAME  REPO     BRANCH  STATE  AGE  LAST
+a     cc-work  master  done   33s  hi
+$ scripts/local-dev.sh read a
+name      a
+repo      cc-work  $S/cc-work
+branch    master
+worktree  $S/cc-work
+sandbox   claude-cc-work
+state     done 36s
+pending   0
+
+reply
+  hi
+$ scripts/local-dev.sh read a --json | grep -E '"(state|last|asks)"'
+  "state": "done",
+  "last": "hi",
+  "asks": null,
+$ scripts/local-dev.sh send a 'say hi'
+queued: a has something in its prompt box, delivered with its next prompt
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

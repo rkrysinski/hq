@@ -1,0 +1,7 @@
+$ scripts/local-dev.sh send a 'say hi'
+queued: a waits at a dialog of Claude's own; once it is answered there (hq go a), delivered with its next prompt
+$ scripts/local-dev.sh wait a --since $before --timeout 5s
+NAME  REPO     BRANCH  STATE        AGE  LAST
+a     cc-work  master  needs input  22s  Change effort level?
+next: hq wait a --since 2026-10-15T14:37:03.916626917Z
+$

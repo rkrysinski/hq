@@ -1,0 +1,20 @@
+ok  	github.com/rkrysinski/hq/internal/agent	0.002s
+ok  	github.com/rkrysinski/hq/internal/cli	0.058s
+ok  	github.com/rkrysinski/hq/internal/dash	8.294s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.003s
+ok  	github.com/rkrysinski/hq/internal/dialog	0.762s
+ok  	github.com/rkrysinski/hq/internal/gh	0.001s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.002s
+ok  	github.com/rkrysinski/hq/internal/platform	0.003s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.006s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.003s
+ok  	github.com/rkrysinski/hq/internal/state	0.029s
+ok  	github.com/rkrysinski/hq/internal/tmux	0.003s
+ok  	github.com/rkrysinski/hq/internal/update	0.003s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.004s
+--- integration + coverage
+coverage 94.28% (minimum 93.8%)
+--- e2e
+ok  	github.com/rkrysinski/hq/e2e	17.187s
+--- pyramid
+unit 443, integration 137, e2e 3 (unit share 76%, minimum 50%)

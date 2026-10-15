@@ -1,0 +1,50 @@
+$ before=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ); echo $before
+2026-10-15T14:36:35.523279612Z
+$ scripts/local-dev.sh send a '/effort max'
+delivered: typed into a as its next prompt
+$ scripts/local-dev.sh ls
+NAME  REPO     BRANCH  STATE        AGE  LAST
+a     cc-work  master  needs input  0s   Change effort level?
+$ scripts/local-dev.sh read a
+name      a
+repo      cc-work  $S/cc-work
+branch    master
+worktree  $S/cc-work
+sandbox   claude-cc-work
+state     needs input 3s
+pending   0
+last      Change effort level?
+asks
+  Change effort level?
+    1. Yes, switch to max
+    2. No, go back
+reply
+  hi
+$ scripts/local-dev.sh read a --json | grep -E -A14 '"(state|asks)"' | grep -v path
+  "state": "needs input",
+  "since": "2026-10-15T14:36:41.636037823Z",
+  "age_seconds": 6,
+  "last": "Change effort level?",
+  "sandbox": "claude-cc-work",
+  "pending": 0,
+  "worktree": "$S/cc-work",
+  "reply": "hi",
+  "reply_size": 2,
+  "next_offset": null,
+  "asks": {
+    "description": "Your next response will be slower and use more tokens This conversation is cached for the current effort level. Switching to max means the f
+ull history gets re-read on your next message.",
+    "questions": [
+      {
+        "question": "Change effort level?",
+        "options": [
+          {
+            "label": "Yes, switch to max"
+          },
+          {
+            "label": "No, go back"
+          }
+        ],
+        "multi_select": false
+      }
+$
