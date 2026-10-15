@@ -1,0 +1,16 @@
+$ hq read big
+reply     bytes 0-32767 of 82022
+  Line 0001 of the long reply, a recon report, pasted verbatim into the turn's end.
+  ...
+  Line 0400 of the long reply, a recon report, paste
+$ hq read big --offset 32768 --since 2026-10-15T12:25:30.259301237Z
+reply     bytes 32768-65535 of 82022
+  d verbatim into the turn's end.
+  ...
+  Line 0800 of the l
+$ hq read big --offset 65536 --since 2026-10-15T12:25:30.365538445Z
+reply     bytes 65536-82021 of 82022
+  ong reply, a recon report, pasted verbatim into the turn's end.
+  ...
+  End of the long reply.
+$ 

@@ -1,0 +1,8 @@
+wrote 17826136 bytes to .git/hq/agents/606da8de198e and its .stop
+NAME  REPO  BRANCH  STATE  AGE  LAST
+huge  bok   -       done   1s   [report too large to read: 17.0 MiB]
+big   bok   main    done   44s  Line 0001 of the long reply, a recon report, pasted verbati…
+pending   0
+reply
+  [report too large to read: 17.0 MiB]
+$ 
