@@ -57,7 +57,7 @@
 //     Claude taking a turn for it, and no hook fires;
 //   - the line "draft" is no prompt: it draws the box holding "a draft", as
 //     when the user has typed that and not sent it yet;
-//   - the line "/effort LEVEL" is no prompt: it draws the dialog Claude Code
+//   - the line "/effort max" is no prompt: it draws the dialog Claude Code
 //     2.1.300 opens in place of its prompt box ("Change effort level?"),
 //     which no hook reports, until a line answers it (#66);
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.

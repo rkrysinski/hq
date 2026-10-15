@@ -369,3 +369,24 @@ func TestCommandsSeeClaudesDialogAfterATurn(t *testing.T) {
 		t.Fatalf("answered:\n%s", out)
 	}
 }
+
+// A turn the user ended, which hq recorded, leaves the agent at its prompt
+// as a finished turn does: a dialog Claude opens there needs input too
+// (#66).
+func TestADialogAfterATurnTheUserEndedNeedsInput(t *testing.T) {
+	f := readFakes()
+	since := f.now.Add(-time.Hour)
+	f.states["id-42"] = state.Report{State: state.Working, Since: since, Prompt: "go"}
+	f.tmux.windows[1].Pane = "%4"
+	f.tmux.windows[1].Options["turnend"] = strconv.FormatInt(since.UnixNano(), 10) + " " + strconv.FormatInt(since.Add(time.Minute).UnixNano(), 10) + " Interrupted"
+	f.tmux.screens = map[string]string{"%4": "⎿  Interrupted\n" + strings.Repeat("▔", 40) + "\n   Change effort level?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"}
+	if code, out, _ := f.run("ls"); code != 0 || !strings.Contains(out, "needs input") || !strings.Contains(out, "Change effort level?") {
+		t.Fatalf("ls: exit %d\n%s", code, out)
+	}
+	// Answered: done with the turn's end again.
+	rule := strings.Repeat("─", 40)
+	f.tmux.screens["%4"] = "⎿  Interrupted\n" + rule + "\n❯ \n" + rule + "\n  footer\n"
+	if code, out, _ := f.run("ls"); code != 0 || !strings.Contains(out, "done") || !strings.Contains(out, "Interrupted") {
+		t.Fatalf("answered: exit %d\n%s", code, out)
+	}
+}

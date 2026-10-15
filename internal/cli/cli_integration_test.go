@@ -450,10 +450,6 @@ func TestAnAgentAtADialogClaudeOpensAfterItsTurnNeedsInput(t *testing.T) {
 	if code, out, _ := h.run("wait", "a", "--since", before, "--timeout", "5s"); code != 0 || !strings.Contains(out, "needs input") || !strings.Contains(out, "Change effort level?") {
 		t.Fatalf("wait: exit %d\n%s", code, out)
 	}
-	code, out, _ := h.run("read", "a")
-	if code != 0 || !strings.Contains(out, "\nasks\n  Change effort level?\n    1. Yes, switch to max\n    2. No, go back\n") {
-		t.Fatalf("read:\n%s", out)
-	}
 	h.send("queued: a waits at a dialog of Claude's own; once it is answered there (hq go a), delivered with its next prompt", "a", "say hi")
 	h.typeIn("a", "")
 	h.waitReport("a", "done", "Done: hello")

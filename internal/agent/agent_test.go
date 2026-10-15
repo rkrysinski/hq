@@ -825,10 +825,15 @@ func TestSettleSeesClaudesDialogAfterATurn(t *testing.T) {
 	if ask := a.OwnAsk(); ask == nil || ask.Questions[0].Options[0].Label != "Yes, switch to max" || ask.Description != "Your next response will be slower" {
 		t.Fatalf("ask: %+v", ask)
 	}
-	// Seen again later, the cursor moved: since the recorded moment.
+	// Seen again later, the cursor moved, or a list of options scrolled:
+	// since the recorded moment.
 	w.Options["dialogseen"] = rec.Value
 	if b, rec := look(moved, seen.Add(time.Minute)); rec.Value != "" || b.State != state.NeedsInput || !b.Since.Equal(seen) {
 		t.Fatalf("again: %+v %+v", rec, b)
+	}
+	scrolled := strings.Replace(moved, "     2. No, go back\n", "     2. No, go back\n     3. Ask me later\n", 1)
+	if b, rec := look(scrolled, seen.Add(time.Minute)); rec.Value != "" || !b.Since.Equal(seen) {
+		t.Fatalf("scrolled: %+v %+v", rec, b)
 	}
 	// Another hq process stored its moment first: that one counts.
 	w.Options["dialogseen"] = ""

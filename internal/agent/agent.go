@@ -44,7 +44,7 @@ type Agent struct {
 	atPrompt   bool       // its turn ended with background work running: it works, at its prompt (see OnBackgroundWork)
 	owed       bool       // at its prompt with nothing running: Claude owes it a turn (see Settle)
 	woken      bool       // it works on a turn Claude woke itself for (see Settle)
-	ownAsk     *state.Ask // the dialog of Claude's own its screen shows, if any (see Settle)
+	ownAsk     *state.Ask // the dialog Claude shows of its own on its screen, if any (see Settle)
 	dialogSeen string     // when hq first saw that dialog, as it read (see Settle)
 	started    string     // the start as stored, which keys endSeen
 	reportAt   time.Time  // the time of its session's last report; zero before its first
@@ -572,13 +572,14 @@ func (a *Agent) Settle(screen string, now time.Time) Record {
 // that dialog during its current report. That moment is kept on its
 // window, so hq ls and the list agree and hq wait sees the agent arrive:
 // the record to store as the dialogseen option, keyed by the report and
-// the dialog as it reads, the cursor aside. A look that finds the dialog
+// the dialog's title and text. A look that finds the dialog
 // gone closes the record, so a dialog opened again counts anew.
 func (a *Agent) seeDialog(screen string, now time.Time) Record {
 	key := a.key() + " "
 	ask, ok := state.OwnDialog(screen)
 	if !ok {
 		if f := strings.Fields(a.dialogSeen); len(f) == 3 && f[0] == a.key() {
+			// Open for this report: closed now.
 			return Record{"dialogseen", key + "- ", key + "-"}
 		}
 		return Record{}
@@ -593,32 +594,23 @@ func (a *Agent) seeDialog(screen string, now time.Time) Record {
 	return Record{"dialogseen", key + look + " ", key + look + " " + nanos(now)}
 }
 
-// ownLook names the dialog of Claude's own the agent's screen shows, as it
-// reads: its title, text and options, whichever the cursor is on.
+// ownLook names the dialog Claude shows of its own on the agent's screen
+// by its title and text: not by its options, which a list such as the
+// picker of /model scrolls as the cursor moves.
 func (a Agent) ownLook() string {
 	if a.ownAsk == nil {
 		return ""
 	}
-	q := a.ownAsk.Questions[0]
-	parts := []string{q.Question, a.ownAsk.Description}
-	for _, o := range q.Options {
-		parts = append(parts, o.Label)
-	}
-	return fingerprint(strings.Join(parts, "\n"))
+	return fingerprint(a.ownAsk.Questions[0].Question + "\n" + a.ownAsk.Description)
 }
 
 // dialogSeenAt is when hq first saw the dialog named look on the agent's
 // screen, during its current report.
 func (a Agent) dialogSeenAt(look string) (time.Time, bool) {
-	f := strings.Fields(a.dialogSeen)
-	if look == "" || len(f) != 3 || f[0] != a.key() || f[1] != look {
+	if look == "" {
 		return time.Time{}, false
 	}
-	n, err := strconv.ParseInt(f[2], 10, 64)
-	if err != nil {
-		return time.Time{}, false
-	}
-	return time.Unix(0, n), true
+	return seenAt(a.dialogSeen, a.key(), look)
 }
 
 // Resting reports whether Settle saw the agent's screen at rest in a way
@@ -629,9 +621,13 @@ func (a Agent) Resting() bool { return a.resting }
 
 // restedSince is when hq first saw the agent's screen at rest looking as it
 // looks now (look), during its current report.
-func (a Agent) restedSince(look string) (time.Time, bool) {
-	f := strings.Fields(a.restSeen)
-	if len(f) != 3 || f[0] != a.key() || f[1] != look {
+func (a Agent) restedSince(look string) (time.Time, bool) { return seenAt(a.restSeen, a.key(), look) }
+
+// seenAt reads a record of a look hq first saw during a report, "REPORT
+// LOOK NANOS": its moment, when it is of the report key and the look.
+func seenAt(record, key, look string) (time.Time, bool) {
+	f := strings.Fields(record)
+	if len(f) != 3 || f[0] != key || f[1] != look {
 		return time.Time{}, false
 	}
 	n, err := strconv.ParseInt(f[2], 10, 64)
