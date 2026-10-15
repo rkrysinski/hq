@@ -22,7 +22,7 @@ const (
 	// MinCoverage is the lowest allowed statement coverage of internal/, in
 	// percent: 0.5 points under CI's figure, rounded down to a tenth, so a
 	// PR that changes nothing about tests stays above it (#42).
-	MinCoverage = 93.7
+	MinCoverage = 93.8
 )
 
 func main() {

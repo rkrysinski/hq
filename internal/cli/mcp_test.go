@@ -147,6 +147,37 @@ func TestMCPListAndReadGiveWhatHqLsAndHqReadPrint(t *testing.T) {
 	}
 }
 
+// An 82k-character reply, as in #64, is read in full in 3 pages.
+func TestMCPReadGivesALongReplyInPages(t *testing.T) {
+	f := newLsFakes()
+	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false)}
+	reply := longReply()
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
+	f.details["id-a"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
+	cs := mcpSession(t, f)
+	var got strings.Builder
+	args := map[string]any{"name": "a"}
+	for pages := 1; ; pages++ {
+		out, isErr := call(t, cs, "read", args)
+		var v readJSON
+		if isErr || json.Unmarshal([]byte(out), &v) != nil || v.ReplySize != len(reply) {
+			t.Fatalf("page %d %v: %v\n%.300s", pages, args, isErr, out)
+		}
+		got.WriteString(v.Reply)
+		if v.NextOffset == nil {
+			if pages != 3 || got.String() != reply {
+				t.Fatalf("%d pages make %d bytes of %d", pages, got.Len(), len(reply))
+			}
+			break
+		}
+		args = map[string]any{"name": "a", "offset": *v.NextOffset, "since": v.NextSince}
+	}
+	// A page without the moment of the read that gave its offset is refused.
+	if out, isErr := call(t, cs, "read", map[string]any{"name": "a", "offset": 32768}); !isErr || !strings.HasPrefix(out, "hq: --offset needs --since: ") {
+		t.Fatalf("no since: %v %q", isErr, out)
+	}
+}
+
 func TestMCPWaitInALoopWithSinceReturnsEachChangeOnce(t *testing.T) {
 	f := newWaitFakes()
 	cs := mcpSession(t, f)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -114,6 +115,11 @@ type (
 	mcpNameIn struct {
 		Name string `json:"name" jsonschema:"the agent's name, as list shows it"`
 	}
+	mcpReadIn struct {
+		Name   string `json:"name" jsonschema:"the agent's name, as list shows it"`
+		Offset int    `json:"offset,omitempty" jsonschema:"where the reply's page starts: the next_offset of the read before; 0 or absent for the first page"`
+		Since  string `json:"since,omitempty" jsonschema:"with offset: the next_since of the read that gave that next_offset, so the page is of the same reply"`
+	}
 	mcpWaitIn struct {
 		Names   []string `json:"names,omitempty" jsonschema:"the agents to wait for; every agent when empty"`
 		Since   string   `json:"since" jsonschema:"the next_since of the most recent list, read, send or wait result (e.g. 2026-09-28T10:25:01.25Z), or a duration back from now (10m); wait returns what changed after it"`
@@ -171,11 +177,20 @@ func newMCPServer(d deps) *mcp.Server {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "read",
-		Description: "One agent in full, as JSON: what list gives, its worktree, its whole last reply, what it asks (asks: the open dialog's questions and options while it needs input, the question while in question; null otherwise), and next_since, the moment of the read, to pass to wait as since. " +
+		Description: "One agent in full, as JSON: what list gives, its worktree, its last reply, what it asks (asks: the open dialog's questions and options while it needs input, the question while in question; null otherwise), and next_since, the moment of the read, to pass to wait as since. " +
+			"A reply longer than 32 KiB comes in pages: reply is the page, reply_size the whole reply's size in bytes, and next_offset where the next page starts, null on the last page. " +
+			"To read on, call read again with offset set to next_offset and since set to this read's next_since; if the agent has replied anew in between, it says the reply changed: read it again from its start. " +
 			"Read an agent when wait returns it, and to see its answer to a message you sent.",
 		Annotations: &mcp.ToolAnnotations{Title: "Read an agent", ReadOnlyHint: true, OpenWorldHint: &no},
-	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpNameIn) (*mcp.CallToolResult, any, error) {
-		return callCommand(d, runRead, in.Name, "--json")
+	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpReadIn) (*mcp.CallToolResult, any, error) {
+		args := []string{in.Name, "--json"}
+		if in.Offset != 0 {
+			args = append(args, "--offset", strconv.Itoa(in.Offset))
+		}
+		if in.Since != "" {
+			args = append(args, "--since", in.Since)
+		}
+		return callCommand(d, runRead, args...)
 	})
 
 	mcp.AddTool(s, &mcp.Tool{

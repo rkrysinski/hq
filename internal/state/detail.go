@@ -2,8 +2,10 @@ package state
 
 import (
 	"encoding/json"
+	"errors"
 	"path/filepath"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 )
@@ -13,6 +15,10 @@ import (
 type Detail struct {
 	Reply string // the last reply in full, its lines kept, stripped (design §7.3)
 	Ask   *Ask   // what the latest event asks: an open dialog or a Notification; nil when nothing
+	// ReplyAt is when the reply was written: the time of the latest Stop
+	// event, by which a page of the reply is tied to its report (spec
+	// §4.1); zero when there is none.
+	ReplyAt time.Time
 }
 
 // Ask is what an agent is asked: the questions of a question dialog, the
@@ -40,15 +46,29 @@ type AskOption struct {
 }
 
 // ReadDetail returns the detail of agent id of the repository at root:
-// empty until the agent's first event.
+// empty until the agent's first event. A reply in a state file too large
+// to read is TooLarge, never nothing (#64).
 func ReadDetail(root, id string) Detail {
 	if !idRE.MatchString(id) {
 		return Detail{}
 	}
 	path := filepath.Join(Dir(root), id)
-	latest, _, _ := readData(path)
-	lastStop, _, _ := readData(path + ".stop")
-	return ParseDetail(latest, lastStop)
+	latest, info, err := readData(path)
+	lastStop, stopInfo, stopErr := readData(path + ".stop")
+	d := ParseDetail(latest, lastStop)
+	// The hook keeps every Stop it reports in .stop, so its time is the
+	// reply's; before one, a Stop could only be the state file itself.
+	if stopInfo == nil {
+		stopInfo, stopErr = info, err
+	}
+	if stopInfo != nil {
+		d.ReplyAt = stopInfo.ModTime()
+	}
+	var big tooLarge
+	if (errors.As(stopErr, &big) || errors.As(err, &big)) && d.Reply == "" {
+		d.Reply = TooLarge(big.size)
+	}
+	return d
 }
 
 // ParseDetail derives the detail from the latest event and the latest Stop

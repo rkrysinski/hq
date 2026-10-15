@@ -2,9 +2,12 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -157,7 +160,10 @@ func TestReadJSONHasWhatLsHasAndTheAgentInFull(t *testing.T) {
 		"pending":  `1`,
 		"worktree": `"/w/app"`,
 		"reply":    `"Line one.\nLine two."`,
-		"asks":     `{"tool":"Bash","description":"Create a file","command":"touch /tmp/x"}`,
+		// It fits one page: no next one.
+		"reply_size":  `19`,
+		"next_offset": `null`,
+		"asks":        `{"tool":"Bash","description":"Create a file","command":"touch /tmp/x"}`,
 	} {
 		var norm any
 		json.Unmarshal([]byte(want), &norm)
@@ -174,6 +180,112 @@ func TestReadJSONHasWhatLsHasAndTheAgentInFull(t *testing.T) {
 	}
 }
 
+// readJSON is hq read --json as its pages are read.
+type readJSON struct {
+	Reply      string `json:"reply"`
+	ReplySize  int    `json:"reply_size"`
+	NextOffset *int   `json:"next_offset"`
+	NextSince  string `json:"next_since"`
+}
+
+// longReply is a reply of 82k characters, as in #64, some of them more
+// than a byte long.
+func longReply() string {
+	return strings.Repeat("Recon: the API answers in 120 ms; zażółć gęślą jaźń. \n", 1500)
+}
+
+func TestReplyPageCutsAReplyIntoPagesOfWholeCharacters(t *testing.T) {
+	if page, next, err := replyPage("Short.", 0); page != "Short." || next != nil || err != nil {
+		t.Fatalf("short: %q %v %v", page, next, err)
+	}
+	if page, next, err := replyPage("", 0); page != "" || next != nil || err != nil {
+		t.Fatalf("none: %q %v %v", page, next, err)
+	}
+	reply := longReply()
+	var got strings.Builder
+	pages := 0
+	for offset := 0; ; pages++ {
+		page, next, err := replyPage(reply, offset)
+		if err != nil || len(page) > readPage || !utf8.ValidString(page) {
+			t.Fatalf("page at %d: %d bytes, %v", offset, len(page), err)
+		}
+		got.WriteString(page)
+		if next == nil {
+			break
+		}
+		offset = *next
+	}
+	if got.String() != reply || pages+1 != 3 {
+		t.Fatalf("%d pages make %d bytes of %d", pages+1, got.Len(), len(reply))
+	}
+	// An offset no page gave: past the end, or inside a character.
+	inside := strings.Index(reply, "ż") + 1
+	for _, offset := range []int{len(reply), len(reply) + 5, inside} {
+		if _, _, err := replyPage(reply, offset); err == nil {
+			t.Errorf("offset %d taken", offset)
+		}
+	}
+}
+
+func TestReadGivesALongReplyInPagesOfTheSameReply(t *testing.T) {
+	f := readFakes()
+	reply := longReply()
+	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
+	f.details["id-42"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
+	var got strings.Builder
+	args := []string{"read", "42", "--json"}
+	for pages := 1; ; pages++ {
+		code, out, errOut := f.run(args...)
+		var v readJSON
+		if code != 0 || json.Unmarshal([]byte(out), &v) != nil || v.ReplySize != len(reply) {
+			t.Fatalf("page %d %v: exit %d %q\n%.300s", pages, args, code, errOut, out)
+		}
+		got.WriteString(v.Reply)
+		if v.NextOffset == nil {
+			if pages != 3 || got.String() != reply {
+				t.Fatalf("%d pages make %d bytes of %d", pages, got.Len(), len(reply))
+			}
+			break
+		}
+		args = []string{"read", "42", "--json", "--offset", strconv.Itoa(*v.NextOffset), "--since", v.NextSince}
+		f.now = f.now.Add(time.Second)
+	}
+
+	// For a person: which bytes, and the command for the next page.
+	_, out, _ := f.run("read", "42")
+	since := lookedAt(f.now).Format(time.RFC3339Nano)
+	first, next, _ := replyPage(reply, 0)
+	if !strings.Contains(out, fmt.Sprintf("\nreply     bytes 0-%d of %d\n  Recon: ", len(first)-1, len(reply))) || !strings.HasSuffix(out, fmt.Sprintf("\n\nnext      hq read 42 --offset %d --since %s\n", *next, since)) {
+		t.Fatalf("text:\n%.200s\n...\n%s", out, out[len(out)-200:])
+	}
+	second, _, _ := replyPage(reply, *next)
+	last := *next + len(second)
+	_, out, _ = f.run("read", "42", "--offset", strconv.Itoa(last), "--since", since)
+	if !strings.Contains(out, fmt.Sprintf("\nreply     bytes %d-%d of %d\n", last, len(reply)-1, len(reply))) || strings.Contains(out, "\nnext ") {
+		t.Fatalf("last page:\n%.200s", out)
+	}
+
+	// The agent replied anew after the page before: the next page says so.
+	f.details["id-42"] = state.Detail{Reply: reply + " And one more thing.", ReplyAt: f.now}
+	code, out, errOut := f.run("read", "42", "--json", "--offset", strconv.Itoa(*next), "--since", lookedAt(f.now.Add(-time.Second)).Format(time.RFC3339Nano))
+	if code != ExitUsage || out != "" || !strings.Contains(errOut, "hq: 42's reply changed since ") || !strings.HasSuffix(errOut, ": read it again from its start, without --offset\n") {
+		t.Fatalf("changed: exit %d %q %q", code, out, errOut)
+	}
+	// A page needs the moment of the read before it, and an offset that read gave.
+	f.details["id-42"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
+	for args, want := range map[string]string{
+		"--offset 32768":             "hq: --offset needs --since: ",
+		"--offset x --since 10s":     "hq: --offset 'x' is not a place in the reply",
+		"--offset -1 --since 10s":    "hq: --offset '-1' is not a place in the reply",
+		"--offset 999999 --since 1s": fmt.Sprintf("hq: --offset 999999 is not where a page of the reply starts (it has %d bytes)", len(reply)),
+		"--since 1s --offset":        "hq: --offset needs a value",
+	} {
+		if code, _, errOut := f.run(append([]string{"read", "42"}, strings.Fields(args)...)...); code != ExitUsage || !strings.HasPrefix(errOut, want) {
+			t.Errorf("%s: exit %d %q", args, code, errOut)
+		}
+	}
+}
+
 func mustJSON(v any) string {
 	b, _ := json.Marshal(v)
 	return string(b)
@@ -186,7 +298,7 @@ func TestReadNeedsOneKnownAgent(t *testing.T) {
 		t.Fatalf("unknown: exit %d %q %q", code, out, errOut)
 	}
 	for _, args := range [][]string{{"read"}, {"read", "--json"}, {"read", "42", "43"}, {"read", "42", "-y"}} {
-		if code, _, errOut := f.run(args...); code != ExitUsage || errOut != "hq: usage: hq read NAME [--json]\n" {
+		if code, _, errOut := f.run(args...); code != ExitUsage || errOut != "hq: usage: hq read NAME [--offset N --since TIME] [--json]\n" {
 			t.Errorf("%v: exit %d %q", args, code, errOut)
 		}
 	}
