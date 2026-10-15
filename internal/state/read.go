@@ -17,11 +17,11 @@ import (
 // reply is read whole (#64).
 const maxFile = 16 << 20
 
-// tooLarge is the error of a regular file over maxFile: it is no state hq
+// tooLargeError is the error of a regular file over maxFile: it is no state hq
 // reads, but the agent's report all the same, which hq says (TooLarge).
-type tooLarge struct{ size int64 }
+type tooLargeError struct{ size int64 }
 
-func (e tooLarge) Error() string { return fmt.Sprintf("state file of %d bytes", e.size) }
+func (e tooLargeError) Error() string { return fmt.Sprintf("state file of %d bytes", e.size) }
 
 // TooLarge is what hq shows of a report too large to read: as the last
 // message and as the reply (spec §4.1, design §7.3).
@@ -120,7 +120,7 @@ func signature(path string) (sig [len(stateSuffixes)]fileSig) {
 // it is done, saying so, never starting with nothing (#64).
 func read(path string) (r Report, ok bool) {
 	latest, info, err := readData(path)
-	var big tooLarge
+	var big tooLargeError
 	switch {
 	case errors.As(err, &big):
 		return Report{State: Done, Last: TooLarge(big.size), Since: info.ModTime(), Latest: info.ModTime()}, true
@@ -156,8 +156,8 @@ func Remove(root, id string) error {
 	delete(parsed.m, path)
 	parsed.Unlock()
 	var errs []error
-	for _, p := range []string{path, path + ".stop", path + ".prev", path + keptSuffix, path + owedSuffix, path + supervisedSuffix, path + announcedSuffix} {
-		if err := os.Remove(p); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	for _, suffix := range append(stateSuffixes[:], supervisedSuffix, announcedSuffix) {
+		if err := os.Remove(path + suffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			errs = append(errs, err)
 		}
 	}
@@ -170,7 +170,7 @@ func Remove(root, id string) error {
 
 // readData reads a regular file of at most maxFile bytes, never following a
 // symbolic link, so a link planted in the repository cannot make hq read
-// and show another file. A larger regular file is a tooLarge error, with
+// and show another file. A larger regular file is a tooLargeError, with
 // its information.
 func readData(path string) ([]byte, os.FileInfo, error) {
 	info, err := os.Lstat(path)
@@ -181,7 +181,7 @@ func readData(path string) ([]byte, os.FileInfo, error) {
 		return nil, nil, errors.New("not a state file")
 	}
 	if info.Size() > maxFile {
-		return nil, info, tooLarge{info.Size()}
+		return nil, info, tooLargeError{info.Size()}
 	}
 	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
 	if err != nil {
@@ -196,7 +196,7 @@ func readData(path string) ([]byte, os.FileInfo, error) {
 		return nil, nil, err
 	}
 	if len(data) > maxFile {
-		return nil, info, tooLarge{max(info.Size(), int64(len(data)))}
+		return nil, info, tooLargeError{max(info.Size(), int64(len(data)))}
 	}
 	return data, info, nil
 }

@@ -64,8 +64,9 @@ func ReadDetail(root, id string) Detail {
 	if stopInfo != nil {
 		d.ReplyAt = stopInfo.ModTime()
 	}
-	var big tooLarge
-	if (errors.As(stopErr, &big) || errors.As(err, &big)) && d.Reply == "" {
+	var big tooLargeError
+	// The latest event too large is the reply itself, whatever came before.
+	if errors.As(err, &big) || (errors.As(stopErr, &big) && d.Reply == "") {
 		d.Reply = TooLarge(big.size)
 	}
 	return d

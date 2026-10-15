@@ -162,8 +162,11 @@ func replyPage(reply string, offset int) (page string, next *int, err error) {
 	if end >= len(reply) {
 		return reply[offset:], nil, nil
 	}
-	for !utf8.RuneStart(reply[end]) {
+	for end > offset && !utf8.RuneStart(reply[end]) {
 		end--
+	}
+	if end == offset { // no character starts in the page: never a page without progress
+		end = offset + readPage
 	}
 	return reply[offset:end], &end, nil
 }
