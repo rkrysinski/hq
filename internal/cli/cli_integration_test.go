@@ -100,14 +100,22 @@ const stateWait = 15 * time.Second
 
 func (h *realHQ) waitState(name, state string) lsRow {
 	h.t.Helper()
+	return h.waitRow(name, state, func(lsRow) bool { return true })
+}
+
+// waitRow waits until name shows state in a row that is as wanted: an agent
+// just started is done before its first prompt, with no reply and in the
+// repository's branch.
+func (h *realHQ) waitRow(name, state string, wanted func(lsRow) bool) lsRow {
+	h.t.Helper()
 	for deadline := time.Now().Add(stateWait); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
 		for _, r := range h.ls() {
-			if r.Name == name && r.State == state {
+			if r.Name == name && r.State == state && wanted(r) {
 				return r
 			}
 		}
 	}
-	h.t.Fatalf("%s never became %s: %+v", name, state, h.ls())
+	h.t.Fatalf("%s never became %s as wanted: %+v", name, state, h.ls())
 	return lsRow{}
 }
 
@@ -376,10 +384,7 @@ func TestALongReplyIsDoneReadInPagesAndTakesAMessage(t *testing.T) {
 	if code, _, errOut := h.run("new", "a", "long"); code != 0 {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
-	row := h.waitState("a", "done")
-	if !strings.HasPrefix(row.Last, "Line 0001 of the long reply") {
-		t.Fatalf("last %q", row.Last)
-	}
+	h.waitRow("a", "done", func(r lsRow) bool { return strings.HasPrefix(r.Last, "Line 0001 of the long reply") })
 	var reply strings.Builder
 	args := []string{"read", "a", "--json"}
 	for pages := 1; ; pages++ {
@@ -436,15 +441,8 @@ func TestAgentsInOneRepositoryAreToldApartByBranch(t *testing.T) {
 			t.Fatalf("new %s: exit %d: %s", name, code, errOut)
 		}
 	}
-	h.waitState("a", "done")
-	h.waitState("b", "done")
-	got := map[string]string{}
-	for _, r := range h.ls() {
-		got[r.Name] = r.Branch
-	}
-	if got["a"] != "feat/42-x" || got["b"] != "fix/7-y" {
-		t.Fatalf("branches %v", got)
-	}
+	h.waitRow("a", "done", func(r lsRow) bool { return r.Branch == "feat/42-x" })
+	h.waitRow("b", "done", func(r lsRow) bool { return r.Branch == "fix/7-y" })
 	// A later turn in the worktree keeps its branch.
 	h.typeIn("a", "hello")
 	h.waitReport("a", "done", "Done: hello")
