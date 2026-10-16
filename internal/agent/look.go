@@ -51,12 +51,6 @@ func settleScreens(as []Agent, now time.Time, store Store) {
 	var panes []string
 	for i := range as {
 		if as[i].unsettled(now) {
-			// A turn end hq saw stands without the screen; the screen may
-			// still show a dialog of Claude's own over it (#66). So does a
-			// dialog of the hooks' hq saw answered.
-			if !as[i].recall() {
-				as[i].recallAnswer()
-			}
 			panes = append(panes, as[i].Pane)
 		}
 	}
@@ -65,10 +59,11 @@ func settleScreens(as []Agent, now time.Time, store Store) {
 	}
 	screens, err := store.Screens(panes)
 	if err != nil {
-		// A dialog of Claude's own hq saw open stands too.
+		// What hq saw earlier stands without the screen: a turn end, a
+		// dialog of the hooks' answered, a dialog of Claude's own.
 		for i := range as {
 			if as[i].unsettled(now) {
-				as[i].recallDialog()
+				as[i].recallSeen()
 			}
 		}
 		return

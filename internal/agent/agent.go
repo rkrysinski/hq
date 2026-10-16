@@ -620,6 +620,18 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 	return record{"dialogseen", key + look + " ", key + look + " " + nanos(now)}
 }
 
+// recallSeen applies, for a look that cannot see the agent's screen, what
+// hq saw there earlier during its current report and recorded on its
+// window: a turn end (recall), or Claude at work after a dialog its hooks
+// reported (recallAnswer), and a dialog of Claude's own (recallDialog). A
+// look that sees the screen applies them as it settles it (settle).
+func (a *Agent) recallSeen() {
+	if !a.recall() {
+		a.recallAnswer()
+	}
+	a.recallDialog()
+}
+
 // recallDialog applies, for a look that cannot see the agent's screen, a
 // dialog of Claude's own that hq saw open there during its current report,
 // as recorded on its window, at an agent that waits at its prompt: it
