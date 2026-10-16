@@ -1,0 +1,30 @@
+
+ ▐▛███▛█   Claude Code v2.1.301
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   /…/a41f9452-666c-4138-8314-b0e3a20745cb/scratchpad/qa75-work
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  tmux detected · scroll with PgUp/PgDn · or add 'set -g mouse on' to ~/.tmux.conf for wheel scro…
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Try "refactor <filepath>"
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ master ?2 no upstream │ 5h ▕██▍░░░░░░░░░▏ 20% ◷ 17:00 │ $0.00
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+                                                                                       ◆ Tools ▾
