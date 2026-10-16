@@ -7,12 +7,8 @@ import (
 	"testing"
 )
 
-// The screens in testdata are Claude Code 2.1.283 in a tmux pane, as
-// capture-pane shows them (screen-declined-80 with its blank lines left out).
-// The -80 ones come from the v0.1.0 end-to-end test, the rest are 100x30.
-// The screen-fs ones are Claude Code 2.1.301 in an sbx sandbox with the
-// template's managed settings (#70): its fullscreen renderer, a status line
-// below the box, tool calls in cards; the narrow ones are 40x30.
+// The screens in testdata are real Claude Code panes as capture-pane shows
+// them; testdata/README.md says for each its version, setup and pane.
 func screen(t *testing.T, name string) string {
 	t.Helper()
 	b, err := os.ReadFile("testdata/screen-" + name + ".txt")
