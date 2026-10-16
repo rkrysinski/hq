@@ -1,0 +1,37 @@
+# Throwaway probe for #57: runs the branch test many times on both host
+# platforms, alone and under load. Not to be merged.
+name: Probe 57
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install tmux
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then brew install tmux; else sudo apt-get update -q && sudo apt-get install -yq tmux; fi
+          tmux -V
+      - name: Branch test, 100 runs in a row
+        run: go test -tags integration -count=100 -run '^TestAgentsInOneRepositoryAreToldApartByBranch$' ./internal/cli/
+      - name: Branch test, 4 x 25 runs side by side
+        shell: bash
+        run: |
+          go test -tags integration -c -o cli.test ./internal/cli/
+          cd internal/cli
+          for i in 1 2 3 4; do ../../cli.test -test.count=25 -test.run '^TestAgentsInOneRepositoryAreToldApartByBranch$' >../../load$i.log 2>&1 & pids+=($!); done
+          rc=0; for p in "${pids[@]}"; do wait $p || rc=1; done
+          cd ../..; for i in 1 2 3 4; do echo "== load $i"; tail -n 20 load$i.log; done
+          exit $rc
