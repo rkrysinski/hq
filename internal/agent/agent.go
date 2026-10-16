@@ -610,7 +610,7 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 	key := a.key() + " "
 	ask, ok := state.OwnDialog(screen)
 	if !ok {
-		if f := strings.Fields(a.dialogSeen); len(f) == 3 && f[0] == a.key() {
+		if _, _, open := recorded(a.dialogSeen, a.key()); open {
 			// Open for this report: closed now.
 			return record{"dialogseen", key + "- ", key + "-"}
 		}
@@ -644,15 +644,9 @@ func (a *Agent) recallSeen() {
 // needs input since hq first saw the dialog, rather than dropping back to
 // its hooks' state for a refresh. What the dialog asks is not recorded.
 func (a *Agent) recallDialog() {
-	f := strings.Fields(a.dialogSeen)
-	if len(f) != 3 || f[0] != a.key() || !a.waitsAtPrompt() {
-		return
+	if _, at, ok := recorded(a.dialogSeen, a.key()); ok && a.waitsAtPrompt() {
+		a.State, a.Since, a.dialog = state.NeedsInput, at, OwnDialog
 	}
-	n, err := strconv.ParseInt(f[2], 10, 64)
-	if err != nil {
-		return
-	}
-	a.State, a.Since, a.dialog = state.NeedsInput, time.Unix(0, n), OwnDialog
 }
 
 // seeAnswer applies the screen of an agent at a dialog its hooks reported:
@@ -667,10 +661,10 @@ func (a *Agent) recallDialog() {
 // report, so a later look at a screen that tells nothing keeps it working
 // (recallAnswer): the record to store as the answered option.
 func (a *Agent) seeAnswer(screen string, now time.Time) record {
-	if a.dialog == SubagentDialog || !state.AtWork(screen) {
+	if !a.atHooksDialog() || !state.AtWork(screen) {
 		return record{}
 	}
-	a.State, a.Last = state.Working, a.said
+	a.worksOn()
 	key := a.key() + " "
 	return record{"answered", key, key + nanos(now)}
 }
@@ -679,12 +673,21 @@ func (a *Agent) seeAnswer(screen string, now time.Time) record {
 // agent's hooks reported, during its current report (seeAnswer): it works,
 // since that report, with its turn's last message.
 func (a *Agent) recallAnswer() bool {
-	if a.State != state.NeedsInput || a.dialog == SubagentDialog || !strings.HasPrefix(a.answered, a.key()+" ") {
+	if !a.atHooksDialog() || !strings.HasPrefix(a.answered, a.key()+" ") {
 		return false
 	}
-	a.State, a.Last = state.Working, a.said
+	a.worksOn()
 	return true
 }
+
+// atHooksDialog reports whether the agent needs input at a dialog its
+// hooks reported, its own and not a subagent's: the one the screen may
+// close (seeAnswer).
+func (a Agent) atHooksDialog() bool { return a.State == state.NeedsInput && a.dialog == HooksDialog }
+
+// worksOn applies a dialog of its hooks' answered: the agent works, since
+// the dialog's report, with its turn's last message.
+func (a *Agent) worksOn() { a.State, a.Last = state.Working, a.said }
 
 // ownFingerprint names the dialog Claude shows of its own on the agent's
 // screen by its title and text: not by its options, which a list such as
@@ -719,15 +722,23 @@ func (a Agent) restedSince(fp string) (time.Time, bool) { return seenAt(a.restSe
 // "REPORT FINGERPRINT NANOS": its moment, when it is of the report key and
 // the fingerprint fp.
 func seenAt(stored, key, fp string) (time.Time, bool) {
+	got, at, ok := recorded(stored, key)
+	return at, ok && got == fp
+}
+
+// recorded reads the stored record of a screen hq first saw during the
+// report key, "REPORT FINGERPRINT NANOS": the fingerprint and the moment.
+// A record closed since ("REPORT -"), or of another report, is none.
+func recorded(stored, key string) (fp string, at time.Time, ok bool) {
 	f := strings.Fields(stored)
-	if len(f) != 3 || f[0] != key || f[1] != fp {
-		return time.Time{}, false
+	if len(f) != 3 || f[0] != key {
+		return "", time.Time{}, false
 	}
 	n, err := strconv.ParseInt(f[2], 10, 64)
 	if err != nil {
-		return time.Time{}, false
+		return "", time.Time{}, false
 	}
-	return time.Unix(0, n), true
+	return f[1], time.Unix(0, n), true
 }
 
 // fingerprint tells screens apart without keeping them.
