@@ -219,3 +219,25 @@ func TestARecordedDialogOfClaudesOwnStandsWhenTheCaptureFails(t *testing.T) {
 		}
 	}
 }
+
+// Only an agent at its prompt has its screen read for a dialog of Claude's
+// own: done, with a question, or working only on background work. A
+// dialog the hooks reported stays theirs, whatever else the report says,
+// and a record of one of Claude's own does not relabel it when a capture
+// fails.
+func TestADialogTheHooksReportedIsNeverReadAsOneOfClaudesOwn(t *testing.T) {
+	now := time.Unix(1000, 0)
+	asked := now.Add(-time.Minute)
+	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Background: true, Last: "MCP server “elicit” requests your input"}}
+	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-elicit-open")}}
+	a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), Sandboxes{}, now, s)[0]
+	if d := a.Dialog(); d.Whose != HooksDialog || !d.Since.Equal(asked) || len(s.options) != 0 {
+		t.Fatalf("seen: %+v %+v %v", a, d, s.options)
+	}
+	w := lookWindow("1")
+	w.Options["dialogseen"] = nanos(asked) + " 1234 " + nanos(asked.Add(time.Second))
+	failed := &fakeStore{captureErr: errors.New("tmux: no server")}
+	if d := Look([]tmux.Window{w}, reportsOf(rs), Sandboxes{}, now, failed)[0].Dialog(); d.Whose != HooksDialog || !d.Since.Equal(asked) {
+		t.Fatalf("failed capture: %+v", d)
+	}
+}

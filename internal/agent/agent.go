@@ -456,6 +456,15 @@ func (a Agent) unsettled(now time.Time) bool {
 // there, as for an agent that is done.
 func (a Agent) OnBackgroundWork() bool { return a.atPrompt && a.State == state.Working }
 
+// waitsAtPrompt reports whether the agent waits at its prompt, where Claude
+// may show a dialog of its own in place of the box (seeDialog): done or
+// with a question, by its hooks or by a turn end hq saw, or working only on
+// background work that Claude owes it no turn for. A dialog its hooks
+// reported is never one.
+func (a Agent) waitsAtPrompt() bool {
+	return a.State == state.Done || a.State == state.Question || a.OnBackgroundWork() && !a.owed
+}
+
 // OwnAsk is the dialog Claude shows in place of the agent's prompt box,
 // at the start of its session or after a turn, as settle read it off the
 // screen; nil when there is none. It is what the dialog verdict asks for a
@@ -523,13 +532,12 @@ const Rewound = "Interrupted"
 // agent's window, keyed by the report they overrule, so hq ls and the list
 // agree (see recall): the record to store there, as the turnend or the
 // restseen option, with no Value when there is nothing new to store. An
-// agent at its prompt, done or with a question, by its hooks or by a turn
-// end hq saw, or working only on background work, may show a dialog of
+// agent that waits at its prompt (waitsAtPrompt) may show a dialog of
 // Claude's own instead (seeDialog); nothing else on the screen of an agent
 // on background work counts.
 func (a *Agent) settle(screen string, now time.Time) record {
 	a.resting = false
-	if a.recall() || a.State == state.Done || a.State == state.Question || a.atPrompt && !a.owed {
+	if a.recall(); a.waitsAtPrompt() {
 		return a.seeDialog(screen, now)
 	}
 	a.recallAnswer()
@@ -619,7 +627,7 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 // its hooks' state for a refresh. What the dialog asks is not recorded.
 func (a *Agent) recallDialog() {
 	f := strings.Fields(a.dialogSeen)
-	if len(f) != 3 || f[0] != a.key() || !(a.State == state.Done || a.State == state.Question || a.OnBackgroundWork()) {
+	if len(f) != 3 || f[0] != a.key() || !a.waitsAtPrompt() {
 		return
 	}
 	n, err := strconv.ParseInt(f[2], 10, 64)
