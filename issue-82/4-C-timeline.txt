@@ -1,0 +1,13 @@
+16:13:04.588 trans user 423a82b5 Run exactly this bash command in the for
+16:13:04.592 hook  UserPromptSubmit 423a82b5 prompt=Run exactly this bash command in the for
+16:13:08.421 hook  PreToolUse 423a82b5 tool_name=Bash
+16:13:10.893 trans attach queued_command 423a82b5 Run exactly this bash command in the for
+16:13:10.898 hook  UserPromptSubmit 423a82b5 prompt=Run exactly this bash command in the for
+16:13:10.907 trans queue-enqueue 423a82b5 Run exactly this bash command in the for
+16:13:20.462 hook  PostToolUse 423a82b5 tool_name=Bash
+16:13:20.478 trans queue-remove 423a82b5 Run exactly this bash command in the for
+16:13:23.708 hook  PreToolUse 423a82b5 tool_name=Bash
+16:13:48.785 hook  PostToolUse 423a82b5 tool_name=Bash
+16:13:55.863 hook  Stop 423a82b5
+16:13:55.875 trans turn_duration 423a82b5
+16:13:59.927 hook  SubagentStop 423a82b5

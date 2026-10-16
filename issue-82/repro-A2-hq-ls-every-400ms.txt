@@ -1,0 +1,178 @@
+15:21:41.891 a1 ws master working 0s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:42.309 a1 ws master working 0s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:42.732 a1 ws master working 1s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:43.151 a1 ws master working 1s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:43.568 a1 ws master working 2s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:43.985 a1 ws master working 2s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:44.404 a1 ws master working 3s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:44.825 a1 ws master working 3s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:45.243 a1 ws master working 3s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:45.661 a1 ws master working 4s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:46.080 a1 ws master working 4s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:46.496 a1 ws master working 5s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:46.912 a1 ws master working 5s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:47.330 a1 ws master working 5s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:47.748 a1 ws master working 6s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:48.166 a1 ws master working 6s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:48.584 a1 ws master working 7s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:49.001 a1 ws master working 7s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:49.419 a1 ws master working 8s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:49.839 a1 ws master working 8s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:50.256 a1 ws master working 8s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:50.675 a1 ws master working 9s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:51.093 a1 ws master working 9s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:51.512 a1 ws master working 10s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:51.929 a1 ws master working 10s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:52.346 a1 ws master working 10s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:52.764 a1 ws master working 11s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:53.181 a1 ws master working 11s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:53.597 a1 ws master working 12s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:54.015 a1 ws master working 12s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:54.432 a1 ws master working 13s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:54.849 a1 ws master working 13s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:55.267 a1 ws master working 13s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:55.686 a1 ws master working 14s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:56.103 a1 ws master working 14s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:56.520 a1 ws master working 15s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:56.938 a1 ws master working 15s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:57.356 a1 ws master working 15s Both commands ran in the foreground and finished. **First c… | file=UserPromptSubmit side=.stop 
+15:21:57.775 a1 ws master done 0s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:21:58.191 a1 ws master done 0s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:21:58.609 a1 ws master done 0s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:21:59.027 a1 ws master done 1s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:21:59.445 a1 ws master done 1s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:21:59.863 a1 ws master done 2s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:00.281 a1 ws master done 2s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:00.699 a1 ws master done 3s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:01.118 a1 ws master done 3s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:01.535 a1 ws master done 3s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:01.952 a1 ws master done 4s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:02.370 a1 ws master done 4s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:02.788 a1 ws master done 5s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:03.206 a1 ws master done 5s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:03.625 a1 ws master done 6s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:04.042 a1 ws master done 6s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:04.459 a1 ws master done 6s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:04.877 a1 ws master done 7s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:05.294 a1 ws master done 7s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:05.711 a1 ws master done 8s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:06.130 a1 ws master done 8s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:06.548 a1 ws master done 8s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:06.965 a1 ws master done 9s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:07.382 a1 ws master done 9s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:07.798 a1 ws master done 10s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:08.215 a1 ws master done 10s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:08.634 a1 ws master done 11s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:09.053 a1 ws master done 11s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:09.469 a1 ws master done 11s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:09.887 a1 ws master done 12s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:10.303 a1 ws master done 12s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:10.721 a1 ws master done 13s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:11.140 a1 ws master done 13s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:11.556 a1 ws master done 13s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:11.973 a1 ws master done 14s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:12.393 a1 ws master done 14s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:12.812 a1 ws master done 15s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:13.231 a1 ws master done 15s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:13.649 a1 ws master done 16s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:14.068 a1 ws master done 16s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:14.485 a1 ws master done 16s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:14.903 a1 ws master done 17s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:15.322 a1 ws master done 17s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:15.740 a1 ws master done 18s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:16.161 a1 ws master done 18s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:16.580 a1 ws master done 18s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:16.997 a1 ws master done 19s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:17.417 a1 ws master done 19s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:17.837 a1 ws master done 20s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:18.256 a1 ws master done 20s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:18.676 a1 ws master done 21s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:19.096 a1 ws master done 21s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:19.513 a1 ws master done 21s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:19.931 a1 ws master done 22s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:20.352 a1 ws master done 22s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:20.770 a1 ws master done 23s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:21.189 a1 ws master done 23s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:21.608 a1 ws master done 23s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:22.025 a1 ws master done 24s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:22.441 a1 ws master done 24s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:22.862 a1 ws master done 25s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:23.280 a1 ws master done 25s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:23.696 a1 ws master done 26s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:24.116 a1 ws master done 26s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:24.534 a1 ws master done 26s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:24.951 a1 ws master done 27s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:25.369 a1 ws master done 27s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:25.791 a1 ws master done 28s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.stop 
+15:22:26.211 a1 ws master done 28s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.acted .stop 
+15:22:26.630 a1 ws master done 29s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.acted .stop 
+15:22:27.047 a1 ws master done 29s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.acted .stop 
+15:22:27.465 a1 ws master done 29s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.acted .stop 
+15:22:27.885 a1 ws master done 30s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.acted .stop 
+15:22:28.305 a1 ws master done 30s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.acted .stop 
+15:22:28.728 a1 ws master done 31s # The Last Light at Carrow Point For thirty-one years, Elia… | file=SessionStart/clear side=.acted .stop 
+15:22:29.146 a1 ws master done 0s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:29.561 a1 ws master done 0s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:29.978 a1 ws master done 0s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:30.398 a1 ws master done 1s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:30.813 a1 ws master done 1s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:31.233 a1 ws master done 2s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:31.653 a1 ws master done 2s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:32.070 a1 ws master done 2s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:32.493 a1 ws master done 3s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:32.913 a1 ws master done 3s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:33.332 a1 ws master done 4s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:33.751 a1 ws master done 4s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:34.169 a1 ws master done 5s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:34.587 a1 ws master done 5s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:35.005 a1 ws master done 5s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:35.423 a1 ws master done 6s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:35.841 a1 ws master done 6s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:36.258 a1 ws master done 7s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:36.676 a1 ws master done 7s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:37.094 a1 ws master done 8s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:37.511 a1 ws master done 8s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:37.929 a1 ws master done 8s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:38.350 a1 ws master done 9s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:38.771 a1 ws master done 9s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:39.189 a1 ws master done 10s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:39.608 a1 ws master done 10s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:40.025 a1 ws master done 10s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:40.444 a1 ws master done 11s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:40.860 a1 ws master done 11s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:41.283 a1 ws master done 12s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:41.701 a1 ws master done 12s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:42.120 a1 ws master done 13s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:42.538 a1 ws master done 13s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:42.954 a1 ws master done 13s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:43.372 a1 ws master done 14s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:43.794 a1 ws master done 14s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:44.214 a1 ws master done 15s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:44.632 a1 ws master done 15s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:45.050 a1 ws master done 15s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:45.468 a1 ws master done 16s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:45.887 a1 ws master done 16s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:46.317 a1 ws master done 17s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:46.734 a1 ws master done 17s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:47.154 a1 ws master done 18s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:47.574 a1 ws master done 18s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:47.991 a1 ws master done 18s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:48.413 a1 ws master done 19s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:48.836 a1 ws master done 19s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:49.257 a1 ws master done 20s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:49.676 a1 ws master done 20s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:50.094 a1 ws master done 21s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:50.514 a1 ws master done 21s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:50.940 a1 ws master done 21s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:51.366 a1 ws master done 22s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:51.787 a1 ws master done 22s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:52.210 a1 ws master done 23s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:52.626 a1 ws master done 23s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:53.044 a1 ws master done 23s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:53.467 a1 ws master done 24s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:53.886 a1 ws master done 24s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:54.307 a1 ws master done 25s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:54.728 a1 ws master done 25s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:55.148 a1 ws master done 26s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:55.566 a1 ws master done 26s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 
+15:22:55.984 a1 ws master done 26s I ran the command in the foreground and it finished normall… | file=Stop side=.stop 

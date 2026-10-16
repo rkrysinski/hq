@@ -1,0 +1,178 @@
+15:26:06.844 a1 ws master working 0s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:07.260 a1 ws master working 0s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:07.678 a1 ws master working 1s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:08.097 a1 ws master working 1s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:08.513 a1 ws master working 2s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:08.931 a1 ws master working 2s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:09.348 a1 ws master working 3s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:09.764 a1 ws master working 3s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:10.184 a1 ws master working 3s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:10.604 a1 ws master working 4s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:11.022 a1 ws master working 4s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:11.439 a1 ws master working 5s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:11.857 a1 ws master working 5s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:12.274 a1 ws master working 5s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:12.693 a1 ws master working 6s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:13.112 a1 ws master working 6s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:13.530 a1 ws master working 7s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:13.949 a1 ws master working 7s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:14.366 a1 ws master working 8s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:14.782 a1 ws master working 8s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:15.200 a1 ws master working 8s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:15.619 a1 ws master working 9s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:16.035 a1 ws master working 9s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:16.452 a1 ws master working 10s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:16.873 a1 ws master working 10s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:17.295 a1 ws master working 10s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:17.713 a1 ws master working 11s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:18.131 a1 ws master working 11s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.stop 
+15:26:18.548 a1 ws master working 12s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:18.971 a1 ws master working 12s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:19.389 a1 ws master working 13s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:19.806 a1 ws master working 13s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:20.222 a1 ws master working 13s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:20.640 a1 ws master working 14s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:21.059 a1 ws master working 14s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:21.478 a1 ws master working 15s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:21.895 a1 ws master working 15s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:22.313 a1 ws master working 15s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:22.729 a1 ws master working 16s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:23.147 a1 ws master working 16s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:23.565 a1 ws master working 17s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:23.983 a1 ws master working 17s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:24.402 a1 ws master working 18s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:24.818 a1 ws master working 18s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:25.236 a1 ws master working 18s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:25.653 a1 ws master working 19s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:26.072 a1 ws master working 19s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:26.494 a1 ws master working 20s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:26.912 a1 ws master working 20s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:27.329 a1 ws master working 20s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:27.746 a1 ws master working 21s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:28.164 a1 ws master working 21s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:28.582 a1 ws master working 22s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:29.001 a1 ws master working 22s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:29.419 a1 ws master working 23s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:29.836 a1 ws master working 23s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:30.254 a1 ws master working 23s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:30.671 a1 ws master working 24s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:31.089 a1 ws master working 24s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:31.512 a1 ws master working 25s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:31.932 a1 ws master working 25s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:32.354 a1 ws master working 26s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:32.770 a1 ws master working 26s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:33.188 a1 ws master working 26s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:33.607 a1 ws master working 27s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:34.029 a1 ws master working 27s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:34.448 a1 ws master working 28s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:34.866 a1 ws master working 28s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:35.285 a1 ws master working 28s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:35.704 a1 ws master working 29s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:36.129 a1 ws master working 29s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:36.547 a1 ws master working 30s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:36.964 a1 ws master working 30s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:37.383 a1 ws master working 31s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:37.801 a1 ws master working 31s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:38.219 a1 ws master working 31s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:38.638 a1 ws master working 32s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:39.057 a1 ws master working 32s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:39.476 a1 ws master working 33s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:39.895 a1 ws master working 33s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:40.313 a1 ws master working 33s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:40.730 a1 ws master working 34s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:41.150 a1 ws master working 34s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:41.568 a1 ws master working 35s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:41.985 a1 ws master working 35s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:42.404 a1 ws master working 36s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:42.820 a1 ws master working 36s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:43.237 a1 ws master working 36s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:43.656 a1 ws master working 37s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:44.075 a1 ws master working 37s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:44.494 a1 ws master working 38s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:44.912 a1 ws master working 38s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:45.365 a1 ws master working 39s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:45.800 a1 ws master working 39s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:46.232 a1 ws master working 39s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:46.649 a1 ws master working 40s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:47.071 a1 ws master working 40s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:47.488 a1 ws master working 41s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:47.904 a1 ws master working 41s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:48.322 a1 ws master working 41s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:48.741 a1 ws master working 42s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:49.158 a1 ws master working 42s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:49.574 a1 ws master working 43s I ran it again in the foreground and it finished normally, … | file=UserPromptSubmit side=.acted .stop 
+15:26:49.992 a1 ws master done 0s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:50.408 a1 ws master done 0s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:50.825 a1 ws master done 1s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:51.243 a1 ws master done 1s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:51.659 a1 ws master done 1s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:52.077 a1 ws master done 2s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:52.495 a1 ws master done 2s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:52.913 a1 ws master done 3s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:53.331 a1 ws master done 3s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:53.747 a1 ws master done 3s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:54.166 a1 ws master done 4s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:54.583 a1 ws master done 4s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:55.002 a1 ws master done 5s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:55.420 a1 ws master done 5s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:55.839 a1 ws master done 6s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:56.256 a1 ws master done 6s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:56.674 a1 ws master done 6s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:57.093 a1 ws master done 7s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:57.511 a1 ws master done 7s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:57.927 a1 ws master done 8s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:58.345 a1 ws master done 8s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:58.763 a1 ws master done 9s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:59.183 a1 ws master done 9s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:26:59.604 a1 ws master done 9s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:00.025 a1 ws master done 10s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:00.442 a1 ws master done 10s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:00.860 a1 ws master done 11s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:01.277 a1 ws master done 11s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:01.695 a1 ws master done 11s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:02.113 a1 ws master done 12s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:02.530 a1 ws master done 12s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:02.948 a1 ws master done 13s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:03.367 a1 ws master done 13s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:03.786 a1 ws master done 14s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:04.204 a1 ws master done 14s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:04.621 a1 ws master done 14s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:05.037 a1 ws master done 15s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:05.456 a1 ws master done 15s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:05.876 a1 ws master done 16s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:06.295 a1 ws master done 16s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:06.714 a1 ws master done 16s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:07.133 a1 ws master done 17s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:07.557 a1 ws master done 17s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:07.975 a1 ws master done 18s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:08.394 a1 ws master done 18s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:08.812 a1 ws master done 19s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:09.233 a1 ws master done 19s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:09.655 a1 ws master done 19s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:10.078 a1 ws master done 20s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:10.494 a1 ws master done 20s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:10.912 a1 ws master done 21s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:11.329 a1 ws master done 21s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:11.745 a1 ws master done 21s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:12.162 a1 ws master done 22s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:12.583 a1 ws master done 22s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:13.002 a1 ws master done 23s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:13.420 a1 ws master done 23s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:13.841 a1 ws master done 24s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:14.259 a1 ws master done 24s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:14.678 a1 ws master done 24s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:15.098 a1 ws master done 25s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:15.516 a1 ws master done 25s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:15.936 a1 ws master done 26s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:16.353 a1 ws master done 26s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:16.770 a1 ws master done 27s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:17.192 a1 ws master done 27s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:17.609 a1 ws master done 27s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:18.028 a1 ws master done 28s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:18.448 a1 ws master done 28s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:18.866 a1 ws master done 29s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:19.283 a1 ws master done 29s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:19.704 a1 ws master done 29s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:20.121 a1 ws master done 30s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:20.544 a1 ws master done 30s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 
+15:27:20.962 a1 ws master done 31s I ran both commands in the foreground, one after the other,… | file=Stop side=.stop 

@@ -1,0 +1,24 @@
+│ ONE                                                                         │
+│                                                                             │
+│ TWO                                                                         │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+✻ Cogitated for 6s · done 3:32 PM
+
+❯ Write a 400-word story about an owl. Use no tools.
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ Reply with only the word QUEUED.
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                    │
+│ QUEUED                                                                      │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+✻ Worked for 2s · done 3:33 PM
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ▐–◡–▌  Opus 5.5 high │ ctx ▕█░░░░░░░┆░░░░░░░▏ 6% │ master ?1 no upstream │ …
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+                                                                   ◆ Tools ▾
