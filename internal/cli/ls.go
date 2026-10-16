@@ -35,7 +35,7 @@ func runLs(env Env, d deps, args []string) error {
 		}
 	}
 	at := d.now()
-	as, err := look(d)
+	as, err := gatherAgents(d)
 	if err != nil {
 		return err
 	}
@@ -97,11 +97,11 @@ func newLsRow(d deps, a agent.Agent, now time.Time) lsRow {
 	}
 }
 
-// look gathers the agents as hq ls shows them, once tmux is known to be
+// gatherAgents gathers the agents as hq ls shows them, once tmux is known to be
 // fit. A working agent's screen at rest may be a turn the user rewound,
 // which it is once it stays so a while (design §3.4): it looks again then,
 // so a single look tells the turn's end at once, like the list.
-func look(d deps) ([]agent.Agent, error) {
+func gatherAgents(d deps) ([]agent.Agent, error) {
 	if err := checkTmux(d.tmux); err != nil {
 		return nil, err
 	}

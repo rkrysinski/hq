@@ -93,7 +93,7 @@ func runRead(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	as, err := look(d)
+	as, err := gatherAgents(d)
 	if err != nil {
 		return err
 	}

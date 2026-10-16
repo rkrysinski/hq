@@ -65,7 +65,7 @@ A turn whose every prompt came from the supervisor, through `hq mcp` (`new` with
 _Avoid_: silent turn, supervised agent, muted turn
 
 **Look**:
-One reading of every agent's state at a moment: what its hooks report, what sbx says of its sandbox, and what its screen shows that no hook reports, with the moments hq saw first kept on the agents' windows so that every hq process reads the same. `hq ls`, `hq read`, `hq wait`, `hq send`, the list and the chords each take a look; a screen at rest may need a second one.
+One reading of every agent's state at a moment: what its hooks report, what sbx says of its sandbox, and what its screen shows that no hook reports, read the same by every hq process. `hq ls`, `hq read`, `hq wait`, `hq send`, the list and the chords each take a look; a screen at rest may need a second one.
 _Avoid_: collection, refresh, poll, settling
 
 **Dialog verdict**:

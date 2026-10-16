@@ -330,7 +330,7 @@ func (a *Agent) keep(r record, stored string) {
 		a.answered = stored
 	case "dialogseen":
 		a.dialogSeen = stored
-		if at, ok := a.dialogSeenAt(a.ownLook()); ok {
+		if at, ok := a.dialogSeenAt(a.ownFingerprint()); ok {
 			a.Since = at
 		}
 	case "endseen":
@@ -581,11 +581,11 @@ func (a *Agent) settle(screen string, now time.Time) record {
 	if !rest {
 		return record{}
 	}
-	look := fingerprint(screen)
-	at, ok := a.restedSince(look)
+	fp := fingerprint(screen)
+	at, ok := a.restedSince(fp)
 	if !ok {
 		a.resting = again
-		return record{"restseen", key + look + " ", key + look + " " + nanos(now)}
+		return record{"restseen", key + fp + " ", key + fp + " " + nanos(now)}
 	}
 	if now.Sub(at) < RestDelay {
 		a.resting = again
@@ -616,13 +616,13 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 		return record{}
 	}
 	a.State, a.ownAsk, a.ownDialog, a.Last = state.NeedsInput, ask, true, ask.Questions[0].Question
-	look := a.ownLook()
-	if at, ok := a.dialogSeenAt(look); ok {
+	fp := a.ownFingerprint()
+	if at, ok := a.dialogSeenAt(fp); ok {
 		a.Since = at
 		return record{}
 	}
 	a.Since = now
-	return record{"dialogseen", key + look + " ", key + look + " " + nanos(now)}
+	return record{"dialogseen", key + fp + " ", key + fp + " " + nanos(now)}
 }
 
 // recallSeen applies, for a look that cannot see the agent's screen, what
@@ -685,23 +685,23 @@ func (a *Agent) recallAnswer() bool {
 	return true
 }
 
-// ownLook names the dialog Claude shows of its own on the agent's screen
-// by its title and text: not by its options, which a list such as the
-// picker of /model scrolls as the cursor moves.
-func (a Agent) ownLook() string {
+// ownFingerprint names the dialog Claude shows of its own on the agent's
+// screen by its title and text: not by its options, which a list such as
+// the picker of /model scrolls as the cursor moves.
+func (a Agent) ownFingerprint() string {
 	if a.ownAsk == nil {
 		return ""
 	}
 	return fingerprint(a.ownAsk.Questions[0].Question + "\n" + a.ownAsk.Description)
 }
 
-// dialogSeenAt is when hq first saw the dialog named look on the agent's
-// screen, during its current report.
-func (a Agent) dialogSeenAt(look string) (time.Time, bool) {
-	if look == "" {
+// dialogSeenAt is when hq first saw the dialog of fingerprint fp on the
+// agent's screen, during its current report.
+func (a Agent) dialogSeenAt(fp string) (time.Time, bool) {
+	if fp == "" {
 		return time.Time{}, false
 	}
-	return seenAt(a.dialogSeen, a.key(), look)
+	return seenAt(a.dialogSeen, a.key(), fp)
 }
 
 // Resting reports whether settle saw the agent's screen at rest in a way
@@ -710,15 +710,16 @@ func (a Agent) dialogSeenAt(look string) (time.Time, bool) {
 // Claude; but not yet for long enough.
 func (a Agent) Resting() bool { return a.resting }
 
-// restedSince is when hq first saw the agent's screen at rest looking as it
-// looks now (look), during its current report.
-func (a Agent) restedSince(look string) (time.Time, bool) { return seenAt(a.restSeen, a.key(), look) }
+// restedSince is when hq first saw the agent's screen at rest as it shows
+// now (its fingerprint fp), during its current report.
+func (a Agent) restedSince(fp string) (time.Time, bool) { return seenAt(a.restSeen, a.key(), fp) }
 
-// seenAt reads a record of a look hq first saw during a report, "REPORT
-// LOOK NANOS": its moment, when it is of the report key and the look.
-func seenAt(record, key, look string) (time.Time, bool) {
-	f := strings.Fields(record)
-	if len(f) != 3 || f[0] != key || f[1] != look {
+// seenAt reads the stored record of a screen hq first saw during a report,
+// "REPORT FINGERPRINT NANOS": its moment, when it is of the report key and
+// the fingerprint fp.
+func seenAt(stored, key, fp string) (time.Time, bool) {
+	f := strings.Fields(stored)
+	if len(f) != 3 || f[0] != key || f[1] != fp {
 		return time.Time{}, false
 	}
 	n, err := strconv.ParseInt(f[2], 10, 64)
