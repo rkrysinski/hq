@@ -206,7 +206,8 @@ func Parse(latest, lastStop, prev []byte) Report {
 // wrote it there too, the agent not working before: the agent works, at its
 // prompt, with that turn's message. Claude's wake-up for the closing turn
 // (a UserPromptSubmit) counts beside a report that says working: the agent
-// works on, since the same moment.
+// works on, since the same moment. A dialog reported beside such a Stop is
+// one of its subagents' (SubagentDialog).
 func (r Report) Kept(latest, kept, owed []byte, at time.Time) Report {
 	var p payload
 	if _, event := splitHeader(kept); json.Unmarshal(event, &p) != nil {
@@ -219,6 +220,12 @@ func (r Report) Kept(latest, kept, owed []byte, at time.Time) Report {
 		r.Owed = !p.busy(owed)
 	case p.Event == "UserPromptSubmit" && r.State == Working:
 		r.Woken = true
+	case p.Event == "Stop" && r.State == NeedsInput:
+		// A dialog reported after a turn that ended with background work
+		// running is a subagent's: the agent has no turn until Claude wakes
+		// it, and an MCP elicitation's Notification carries no agent_id.
+		r.SubagentDialog = true
+		return r
 	default:
 		return r
 	}

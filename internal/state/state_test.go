@@ -349,23 +349,42 @@ func TestAKeptTurnEndCountsOnlyBesideAReportItBelongsTo(t *testing.T) {
 	}
 }
 
-// A subagent's dialog carries the subagent's agent_id, as its tool events
-// do (design §3.4): the report says the dialog is the subagent's.
+// A subagent's permission prompt carries the subagent's agent_id, as its
+// tool events do: the report says the dialog is the subagent's. Its MCP
+// elicitation's Notification carries none, the same as the agent's own
+// (both seen with Claude Code 2.1.301, a background subagent calling an
+// MCP tool that elicits; paths shortened), so on its own it is the
+// agent's.
 func TestADialogASubagentOpensIsTheSubagents(t *testing.T) {
-	theirs := func(name string) []byte {
-		return []byte(strings.Replace(string(fixture(t, name)), `"hook_event_name"`, `"agent_id": "a93b12c53c72bb31d", "hook_event_name"`, 1))
+	if r := Parse(fixture(t, "dialog-subagent"), nil, nil); r.State != NeedsInput || !r.SubagentDialog || r.Last != "mcp__elicit__ask_color" {
+		t.Errorf("a subagent's permission prompt: %+v", r)
 	}
-	for _, name := range []string{"dialog-bash", "dialog-ask", "notification"} {
-		if r := Parse(theirs(name), nil, nil); r.State != NeedsInput || !r.SubagentDialog {
-			t.Errorf("%s of a subagent: %+v", name, r)
-		}
-		if r := Parse(fixture(t, name), nil, nil); r.SubagentDialog {
-			t.Errorf("%s of the agent: %+v", name, r)
+	for _, name := range []string{"dialog-bash", "dialog-ask", "notification", "notification-elicitation"} {
+		if r := Parse(fixture(t, name), nil, nil); r.State != NeedsInput || r.SubagentDialog {
+			t.Errorf("%s: %+v", name, r)
 		}
 	}
 	// A subagent's other events open no dialog.
 	if r := Parse(fixture(t, "post-tool-subagent"), nil, nil); r.SubagentDialog {
 		t.Errorf("a subagent's tool end: %+v", r)
+	}
+}
+
+// A dialog Claude's Notification reports after the agent's turn ended with
+// background work running (the Stop the hook keeps) is a subagent's: the
+// agent has no turn then, only its subagents work. Claude's own dialogs
+// there fire no hook (#70).
+func TestADialogNotifiedWhileTheAgentWaitsOnBackgroundWorkIsASubagents(t *testing.T) {
+	at := time.Unix(1000, 0)
+	notified := fixture(t, "notification-elicitation")
+	stop := fixture(t, "stop-background")
+	r := Parse(notified, stop, nil).Kept(notified, stop, nil, at)
+	if r.State != NeedsInput || !r.SubagentDialog || r.Background || r.Last != "Claude Code needs your input" || r.Said != "The tests are running in a subagent." {
+		t.Fatalf("notified on background work: %+v", r)
+	}
+	// Beside a wake-up the agent has a turn again: the dialog is its own.
+	if r := Parse(notified, stop, nil).Kept(notified, fixture(t, "prompt-wake"), nil, at); r.SubagentDialog {
+		t.Fatalf("notified after a wake-up: %+v", r)
 	}
 }
 
