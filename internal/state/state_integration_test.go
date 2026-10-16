@@ -6,10 +6,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -204,8 +207,9 @@ func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) 
 	if r, _ := state(); r.State != Working {
 		t.Fatalf("permission granted, tool failed: %+v", r)
 	}
-	// Only the state file, and the mark that a tool of the turn ended.
-	if got := files(t, root, id); len(got) != 2 || got[actedSuffix] != "" {
+	// Only the state file, and the mark that a tool of the turn ended,
+	// naming the turn.
+	if got := files(t, root, id); len(got) != 2 || got[actedSuffix] != "b4e5fe0f-6e79-4ac5-8c2c-b9181444b06f\n" {
 		t.Fatalf("left files behind: %v", got)
 	}
 }
@@ -241,7 +245,7 @@ func TestAToolOfItsOwnThatEndedMarksTheTurnActedOnUntilTheNextTurn(t *testing.T)
 	// Claude woken while it works goes on with the same turn.
 	fire(t, root, root, id, "prompt", wakeUp("t1"))
 	acted("a wake-up while working", true)
-	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	fire(t, root, root, id, "prompt", newTurn(fixture(t, "prompt")))
 	acted("the next prompt", false)
 	fire(t, root, root, id, "answer", failed)
 	acted("its own tool failed", true)
@@ -451,7 +455,7 @@ func TestRemoveDeletesThatAgentsFilesOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	outside := filepath.Join(dir, "..", "..", "keep")
-	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abc.on", "abc.owe", "abc.sup", "abc.next", "abc.acted", "abcd", "abcd.stop", "def", "../../keep"} {
+	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abc.on", "abc.owe", "abc.sup", "abc.next", "abc.acted", "abc.queued", "abcd", "abcd.stop", "def", "../../keep"} {
 		os.WriteFile(filepath.Join(dir, p), []byte("x"), 0o644)
 	}
 	if err := Remove(root, "abc"); err != nil {
@@ -762,6 +766,17 @@ func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefo
 			t.Errorf("%s: the turn end is still kept", tc.kind)
 		}
 	}
+}
+
+var turns atomic.Int64
+
+// newTurn is the payload of a prompt as one that starts a turn: Claude
+// gives each a prompt_id of its own, while one it queues while the agent
+// works carries the id of the turn at work (#82), as the fixtures that
+// share an id do.
+func newTurn(payload []byte) []byte {
+	id := fmt.Sprintf(`"prompt_id":"0000%04x-0000-4000-8000-000000000000"`, turns.Add(1))
+	return regexp.MustCompile(`"prompt_id"\s*:\s*"[^"]*"`).ReplaceAll(payload, []byte(id))
 }
 
 // turnEnd is a Stop with the tasks ids running in the background, and
@@ -1154,4 +1169,138 @@ func TestATaskOwedATurnThatNeverComesHoldsBackOneTurnEnd(t *testing.T) {
 	if out := notify("stop", turnEnd("finished")); out != done {
 		t.Fatalf("the closing turn printed %q", out)
 	}
+}
+
+// Claude Code runs the hook for a prompt typed while the agent works when
+// it queues the prompt, not when it takes it, and that payload carries the
+// prompt_id of the turn at work (#82). A turn that ends with the prompt
+// still queued is followed at once by the turn Claude takes it for, with
+// no hook of its own: the agent works on, since the turn end, on that
+// prompt. A /clear queued before it runs first, in between: the agent
+// works on in the new session. The fixtures are Claude Code 2.1.301's
+// (run A3 of #82).
+func TestAPromptQueuedWhileTheAgentWorksIsATurnOfItsOwnWhenTheTurnEndsWithIt(t *testing.T) {
+	for _, clear := range []bool{false, true} {
+		t.Run(fmt.Sprintf("clear=%v", clear), func(t *testing.T) { testAQueuedPromptsTurn(t, clear) })
+	}
+}
+
+func testAQueuedPromptsTurn(t *testing.T, clear bool) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	report := func(when string) Report {
+		t.Helper()
+		r, ok := Read(root, id)
+		if !ok {
+			t.Fatalf("%s: no report", when)
+		}
+		return r
+	}
+	const queued = "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+
+	fire(t, root, root, id, "prompt", fixture(t, "queued-prompt"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
+	before := time.Now()
+	time.Sleep(10 * time.Millisecond)
+	// The turn's end hands over to the queued prompt and notifies nobody.
+	if out := run(t, root, root, id, hook("stop", "[%s]"), fixture(t, "queued-stop")); out != "" {
+		t.Fatalf("the turn end before a queued prompt printed %q", out)
+	}
+	r := report("the turn end")
+	if r.State != Working || r.Prompt != queued || r.Last != "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer." || !r.Since.After(before) {
+		t.Fatalf("the turn end before a queued prompt: %+v", r)
+	}
+	if clear {
+		fire(t, root, root, id, "end", fixture(t, "queued-session-end-clear"))
+		if now := report("the queued /clear's end"); now != r {
+			t.Fatalf("the queued /clear's end: %+v, was %+v", now, r)
+		}
+		fire(t, root, root, id, "start", fixture(t, "queued-session-start-clear"))
+		now := report("the queued /clear's start")
+		if now.State != Working || now.Prompt != queued || now.SessionID != "168b94e0-a750-4edd-9f35-6e49d2b44c41" || now.Last != r.Last {
+			t.Fatalf("the queued /clear's start: %+v", now)
+		}
+	}
+	// The queued prompt's turn reports as any other.
+	fire(t, root, root, id, "answer", fixture(t, "queued-turn-tool-end"))
+	if r := report("its tool"); r.State != Working || r.Prompt != queued || !r.Acted {
+		t.Fatalf("its tool: %+v", r)
+	}
+	if out := run(t, root, root, id, hook("stop", "[%s]"), fixture(t, "queued-turn-stop")); out != `{"terminalSequence":"[Done: main]"}`+"\n" {
+		t.Fatalf("its turn end printed %q", out)
+	}
+	if r := report("its turn end"); r.State != Done || r.Last != "I ran the command in the foreground. It printed all 25 lines, one per second." {
+		t.Fatalf("its turn end: %+v", r)
+	}
+}
+
+// A prompt Claude has queued is taken into the turn at work at the next
+// end of a tool of the agent's own (#82): that turn's end is the agent's.
+// One the user typed while a turn ran that they then interrupted, which no
+// hook reports, is a turn of its own at once, under a prompt_id of its own:
+// its end is the agent's too.
+func TestAQueuedPromptClaudeTakesIntoTheTurnOrRunsAtOnceEndsWithItsTurn(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	inTurn := func(name string) []byte { // the payload, in the turn of queued-prompt
+		return bytes.Replace(fixture(t, name), []byte("f6babc86-be46-4229-afb6-d2051df9f374"), []byte("a5c44ac7-4166-41f7-96d0-9d535b9cdeb7"), 1)
+	}
+	ends := func(when string, stop []byte) {
+		t.Helper()
+		if out := run(t, root, root, id, hook("stop", "[%s]"), stop); out != `{"terminalSequence":"[Done: main]"}`+"\n" {
+			t.Fatalf("%s: the turn end printed %q", when, out)
+		}
+		if r, _ := Read(root, id); r.State != Done {
+			t.Fatalf("%s: %+v", when, r)
+		}
+	}
+
+	fire(t, root, root, id, "prompt", fixture(t, "queued-prompt"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
+	// A subagent's tool ending takes nothing into the agent's turn.
+	fire(t, root, root, id, "answer", bytes.Replace(inTurn("queued-turn-tool-end"), []byte(`"hook_event_name"`), []byte(`"agent_id":"a1","hook_event_name"`), 1))
+	fire(t, root, root, id, "answer", inTurn("queued-turn-tool-end"))
+	ends("taken into the turn", inTurn("queued-turn-stop"))
+
+	fire(t, root, root, id, "prompt", fixture(t, "queued-prompt"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
+	ends("interrupted, then run at once", fixture(t, "queued-turn-stop"))
+}
+
+// A prompt Claude queues starts no turn, so the turn at work keeps its
+// mark that Claude has acted on it (#77, #82); the turn Claude takes the
+// prompt for has not acted yet. In that turn, a prompt queued once a tool
+// of its own has ended is known by the id the tool's end carries, though
+// no prompt of that turn's id was reported: its end hands over again.
+func TestAQueuedPromptLeavesTheTurnAtWorkActedOnAndQueuesAgainInTheTurnItIsTakenFor(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	// The turn the queued prompt is taken for, and the payload in the turn
+	// of queued-prompt instead.
+	const next = "f6babc86-be46-4229-afb6-d2051df9f374"
+	inTurn := func(name string) []byte {
+		return bytes.Replace(fixture(t, name), []byte(next), []byte("a5c44ac7-4166-41f7-96d0-9d535b9cdeb7"), 1)
+	}
+	report := func(when string, state string, acted bool) {
+		t.Helper()
+		if r, _ := Read(root, id); r.State != state || r.Acted != acted {
+			t.Fatalf("%s: %+v, want %s, acted %v", when, r, state, acted)
+		}
+	}
+
+	fire(t, root, root, id, "prompt", fixture(t, "queued-prompt"))
+	fire(t, root, root, id, "answer", inTurn("queued-turn-tool-end"))
+	report("its tool", Working, true)
+	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
+	report("a prompt queued", Working, true)
+	fire(t, root, root, id, "stop", fixture(t, "queued-stop"))
+	report("the turn it is taken for", Working, false)
+
+	fire(t, root, root, id, "answer", fixture(t, "queued-turn-tool-end"))
+	report("that turn's tool", Working, true)
+	again := bytes.Replace(fixture(t, "queued-while-working"), []byte("a5c44ac7-4166-41f7-96d0-9d535b9cdeb7"), []byte(next), 1)
+	fire(t, root, root, id, "prompt", again)
+	report("a prompt queued in that turn", Working, true)
+	fire(t, root, root, id, "stop", fixture(t, "queued-turn-stop"))
+	report("the turn that one is taken for", Working, false)
 }

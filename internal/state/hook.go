@@ -49,11 +49,27 @@ import (
 // end, which the host sees by the agent at rest (design §3.4); a wake-up
 // that names no task, or a session's start or end, forgets them all. On
 // answer it first marks that Claude has acted on the turn when the tool is
-// the agent's own (.acted, Report.Acted), and adds to .owe the background
-// work the tool started, if any (hookAwk); the mark lasts until the next
-// prompt, stop (a kept one too) or session event, but a wake-up kept while
-// the agent works goes on with the same turn and leaves it, as does a stop
-// blocked to deliver messages.
+// the agent's own (.acted, Report.Acted, holding the turn's prompt_id), and
+// adds to .owe the background work the tool started, if any (hookAwk); the
+// mark lasts until the next prompt, stop (a kept one too) or session event,
+// but a wake-up kept while the agent works goes on with the same turn and
+// leaves it, as do a stop blocked to deliver messages and a prompt Claude
+// queues.
+//
+// Claude runs the prompt hook when it queues a prompt typed while the
+// agent works, with the prompt_id of the turn at work, and no hook when it
+// takes it (design §3.4, #82). Such a prompt (the state file says working,
+// and its prompt_id is the state file's or .acted's) is written as any
+// other and kept beside the state file (.queued). Claude takes it into the
+// turn at the next end of a tool of the agent's own, which drops it, or
+// right after the turn's Stop, when no tool of its own has ended since: a
+// Stop with the prompt_id of .queued hands over. It gives .stop and makes
+// the state file the queued prompt anew, so the agent works on it from
+// now, and notifies nobody. .queued stays, its prompt_id now .stop's, for
+// a /clear queued before the prompt, which Claude runs in between: its
+// SessionEnd leaves the state file alone, and its SessionStart writes the
+// queued prompt again under the new session's id. Any other prompt, stop
+// or session event drops .queued.
 //
 // It also knows whether the turn is a supervised turn (spec §5, design
 // §3.5): one whose every prompt came from the supervisor, whose end
@@ -91,6 +107,9 @@ works() { grep -Eq '` + workingEvent + `' "$f"; }
 theirs() { grep -q '` + dialogEvent + `' "$f" && grep -q '"agent_id"' "$f"; }
 owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" || rm -f "$t.o" "$f` + owedSuffix + `"; }
 put() { cp -f "$t" "$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
+turn() { K=get N=prompt_id awk "$A" "$1"; }
+queued() { n=$(turn "$f` + queuedSuffix + `") && [ -n "$n" ]; }
+taken() { queued && [ "$n" = "$(turn "$f.stop")" ]; }
 tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1"; }
 soon() { for m in "$i"/[0-9]*` + nowSuffix + `; do [ -f "$m" ] && return 0; done; return 1; }
 take() {
@@ -110,6 +129,9 @@ say() {
 case $1 in
 stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
     K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; k=$?; owe
+    queued && ! taken && [ "$n" = "$(turn "$t")" ] && {
+        put "$f.stop"; rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `"; cp -f "$f` + queuedSuffix + `" "$t.c" && mv -f "$t.c" "$f"; rm -f "$t" "$t.c"; exit 0; }
+    rm -f "$f` + queuedSuffix + `"
     [ $k = 0 ] && { rm -f "$f` + actedSuffix + `"; put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f"; rm -f "$t"; exit 0; } ;;
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
     if K=wake O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; then
@@ -119,15 +141,19 @@ prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","
         if mv -f "$f` + announcedSuffix + `" "$t.n"; then rm -f "$t.n"; [ "$u" ] || [ -f "$f` + supervisedSuffix + `" ] || [ -s "$f` + owedSuffix + `" ] || works || : >"$f` + supervisedSuffix + `"
         else rm -f "$f` + supervisedSuffix + `"; fi
         grep -v '^[!+]' "$f` + owedSuffix + `" >"$t.o"; owe
+        p=$(turn "$t") && [ -n "$p" ] && works && { [ "$p" = "$(turn "$f")" ] || [ "$p" = "$(cat "$f` + actedSuffix + `")" ]; } && q=1 && put "$f` + queuedSuffix + `"
     fi ;;
-answer) o=; grep -q '"agent_id"' "$t" || { o=1; : >"$f` + actedSuffix + `"; }
+answer) o=; grep -q '"agent_id"' "$t" || { o=1; turn "$t" >"$f` + actedSuffix + `"; rm -f "$f` + queuedSuffix + `"; }
     grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
     grep -q '` + toolEndEvent + `' "$t" && [ "$o" ] && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
     grep -q '` + dialogEvent + `' "$f" && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
 input) grep -q '` + dialogEvent + `' "$f" && { rm -f "$t"; exit 0; } ;;
+end) taken && grep -q '"reason"[[:blank:]]*:[[:blank:]]*"clear"' "$t" && { rm -f "$t"; exit 0; } ;;
+start) taken && grep -q '"source"[[:blank:]]*:[[:blank:]]*"clear"' "$t" && s=$(K=get N=session_id awk "$A" "$t") &&
+    S=$s K=session awk "$A" "$f` + queuedSuffix + `" >"$t.c" && mv -f "$t.c" "$t"; rm -f "$t.c" ;;
 resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; }; rm -f "$t.p" ;;
 esac
-case $1 in dialog | answer | input) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `" ;; esac
+case $1 in dialog | answer | input) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
 if mv -f "$t" "$f" && [ "$1" = stop ]; then
     cp -f "$f" "$t" && mv -f "$t" "$f.stop"
 fi
@@ -306,6 +332,12 @@ NR == 1 && K == "wake" {
         else if (x != "") print x
     }
     if (paid) print "+"
+    next
+}
+NR == 1 && K == "get" { print get($0, ENVIRON["N"]); next }
+NR == 1 && K == "session" {
+    if (ENVIRON["S"] ~ /^[0-9A-Za-z-]+$/) sub(/"session_id"[ \t\r\n]*:[ \t\r\n]*"[^"]*"/, "\"session_id\":\"" ENVIRON["S"] "\"")
+    printf "%s", $0
     next
 }
 NR == 1 && K == "tool" {
