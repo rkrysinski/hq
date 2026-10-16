@@ -524,7 +524,10 @@ const Rewound = "Interrupted"
 // rewind the turn instead, with no line and no hook: the working agent's
 // screen is then at rest (state.AtRest), and once it has stayed so,
 // unchanged, for RestDelay, the turn is done with Rewound as its last
-// message, since hq first saw it at rest. The same goes for an agent at
+// message, since hq first saw it at rest; not after a dialog of its hooks'
+// that the screen saw answered (recallAnswer), as Claude has acted on the
+// turn then, and the bare box closes no dialog of theirs (#70). The same
+// goes for an agent at
 // its prompt that Claude owes a turn, for background work that finished
 // together with other work (state.Report.Owed): the turn comes at once, so
 // a screen at rest for RestDelay (state.Idle) says it does not come, and
@@ -540,7 +543,7 @@ func (a *Agent) settle(screen string, now time.Time) record {
 	if a.recall(); a.waitsAtPrompt() {
 		return a.seeDialog(screen, now)
 	}
-	a.recallAnswer()
+	answered := a.recallAnswer()
 	key := a.key() + " "
 	// What the record says of the turn's last message, and what it is.
 	mark, last := Rewound, Rewound
@@ -568,7 +571,9 @@ func (a *Agent) settle(screen string, now time.Time) record {
 		if a.State == state.NeedsInput {
 			return a.seeAnswer(screen, now)
 		}
-		if a.State != state.Working {
+		// After a dialog Claude has acted on the turn, which only an early
+		// Esc rewinds: an answered agent's screen at rest is no rewind.
+		if a.State != state.Working || answered {
 			return record{}
 		}
 		rest, again = state.AtRest(screen, a.prompt)

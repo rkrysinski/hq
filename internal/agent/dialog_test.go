@@ -241,3 +241,25 @@ func TestADialogTheHooksReportedIsNeverReadAsOneOfClaudesOwn(t *testing.T) {
 		t.Fatalf("failed capture: %+v", d)
 	}
 }
+
+// An agent the screen saw answer a dialog of its hooks' works on until
+// they report again or Claude prints a line for a turn the user ended: a
+// screen at rest, unchanged for RestDelay, is no rewind (Claude has acted
+// on the turn, which only an early Esc rewinds), so the bare prompt box
+// closes nothing here either, as a reply streaming shows it (#70).
+func TestAnAnsweredDialogIsNoRewindAtTheBarePromptBox(t *testing.T) {
+	now := time.Unix(1000, 0)
+	asked := now.Add(-time.Minute)
+	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "MCP server “elicit” requests your input", Said: "Hi."}}
+	w := lookWindow("1")
+	w.Options["answered"] = nanos(asked) + " " + nanos(now)
+	for _, name := range []string{"fs-streaming", "fs-elicit-done"} {
+		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
+		for _, at := range []time.Time{now.Add(time.Second), now.Add(time.Second + RestDelay), now.Add(time.Hour)} {
+			a := Look([]tmux.Window{w}, reportsOf(rs), Sandboxes{}, at, s)[0]
+			if a.State != state.Working || !a.Since.Equal(asked) || a.Last != "Hi." || a.Resting() || len(s.options) != 0 {
+				t.Fatalf("%s at %v: %+v %v", name, at, a, s.options)
+			}
+		}
+	}
+}
