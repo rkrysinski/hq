@@ -1080,3 +1080,38 @@ func TestAnAgentOwedATurnThatDoesNotComeIsDoneOnceItsScreenStaysAtRest(t *testin
 		t.Fatalf("ended: %+v", as[0])
 	}
 }
+
+// Once Claude has acted on a turn (a tool of its own ended), no early Esc
+// rewinds it, so a screen at rest is no rewind: a working agent's screen
+// may show no spinner for a while and stay the same (#77). It ends only at
+// a tool the user cut short, which the sbx template marks × in the turn's
+// card with no Interrupted line; at rest for RestDelay like a rewind.
+func TestATurnClaudeHasActedOnEndsAtRestOnlyAtACutTool(t *testing.T) {
+	now := time.Unix(1000, 0)
+	asked := now.Add(-time.Minute)
+	rs := map[string]state.Report{"id1": {State: state.Working, Since: asked, Last: "earlier", Prompt: "Run the ticks.", Acted: true}}
+	w := lookWindow("1")
+	look := func(s *fakeStore, at time.Time) Agent {
+		t.Helper()
+		return Look([]tmux.Window{w}, reportsOf(rs), Sandboxes{}, at, s)[0]
+	}
+	for _, name := range []string{"fs-streaming", "fs-elicit-done", "fs-narrow-done", "fs-tool-failed-done"} {
+		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
+		for _, at := range []time.Time{now, now.Add(RestDelay), now.Add(time.Hour)} {
+			if a := look(s, at); a.State != state.Working || !a.Since.Equal(asked) || a.Resting() || len(s.options) != 0 {
+				t.Fatalf("%s at %v: %+v %v", name, at, a, s.options)
+			}
+		}
+	}
+	for _, name := range []string{"fs-esc-tool", "fs-esc-later-tool"} {
+		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
+		w.Options = lookWindow("1").Options
+		if a := look(s, now); a.State != state.Working || s.options["@1"]["restseen"] == "" {
+			t.Fatalf("%s first look: %+v %v", name, a, s.options)
+		}
+		w.Options["restseen"] = s.options["@1"]["restseen"]
+		if a := look(s, now.Add(RestDelay)); a.State != state.Done || a.Last != Rewound || !a.Since.Equal(now) {
+			t.Fatalf("%s at rest: %+v", name, a)
+		}
+	}
+}

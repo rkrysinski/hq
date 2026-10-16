@@ -11,6 +11,7 @@ A new capture is made with `tools/capture/` (its README says how) and gets a row
 - **D - 2.1.300, no sandbox.** Opus 5.5 (high effort). A Linux Docker sandbox, tmux 3.6, behind the stub `sbx`, a configuration directory of its own (PR #67). Replies are drawn in a `● Claude` card, as the `clean-view` mod draws them in E; which other settings applied is unknown. Edited: the cwd reads `$S/cc-work` in `screen-own-effort` and `screen-own-model` (the same on `qa-artifacts` `issue-66/`).
 - **E - 2.1.301, sbx template, fullscreen.** Opus 5.5 (high effort). An sbx sandbox with the template's managed settings (`/etc/claude-code/managed-settings.json`, not overridable): `"tui": "fullscreen"` (`tmux detected` hint above the box), a status line below the box, mods `clean-view` and `tools-pane` (tool calls in cards with Polish labels), and a `PermissionRequest` hook that approves every request. Private tmux server, cwd a throwaway git repository, the parent session's `CLAUDE*` variables unset, `--permission-mode bypassPermissions`. Pane 100x30, narrow 40x30. Captured for #70; the capture names are in parentheses in the table.
   - **E' -** the same with `--permission-mode default` and `--settings '{"disableAllHooks":true}'`: mods off, stock tool view; the managed approve hook still answers, so no prompt is drawn.
+  - **E'' -** the same Claude and managed settings run as an agent of hq's: hq from the checkout (`scripts/local-dev.sh`), the repository's stub `sbx` running the real `claude` (`SBX_STUB_CLAUDE`), hq's hooks injected, the agent's home window 80x24 (#77).
 
 ### Open
 
@@ -82,6 +83,13 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | screen-fs-background-at-prompt | 2.1.301 | E | 100x30 | main at its box, a background subagent listed below the footer (x2) | 04cc17a (#70, PR #72) |
 | screen-own-model-background | 2.1.301 | E | 100x30 | `/model` picker opened while a background subagent runs (x3) | 04cc17a (#70, PR #72) |
 | screen-fs-model-closed-background | 2.1.301 | E | 100x30 | that picker closed with Esc: box with the agents list (x4) | 04cc17a (#70, PR #72) |
+| screen-fs-esc-tool | 2.1.301 | E | 100x30 | Esc 11 s into a foreground Bash command, the turn's only tool: no `Interrupted` line, the card collapsed to `▸ 1 komenda · × · 7,7 s`, bare box | #77 |
+| screen-fs-later-tool-running | 2.1.301 | E | 100x30 | a second Bash command running after a first ended: card open (`▾ 2 komendy · ◓`), spinner labelled with its description | #77 |
+| screen-fs-esc-later-tool | 2.1.301 | E | 100x30 | Esc on that second command: the card collapsed to `▸ 2 komendy · × · 5,1 s`, no line, bare box | #77 |
+| screen-fs-esc-after-tool | 2.1.301 | E | 100x30 | Esc while Claude thinks after a Bash command ended: `⎿  Interrupted · What should Claude do instead?` below the card | #77 |
+| screen-fs-tool-failed-working | 2.1.301 | E | 100x30 | a Bash command failed, the turn goes on: card open and marked `×`, spinner below | #77 |
+| screen-fs-tool-failed-done | 2.1.301 | E | 100x30 | that turn done: card collapsed and marked `×`, the reply in a card below it | #77 |
+| screen-fs-tool-running-80 | 2.1.301 | E'' | 80x24 | a long silent foreground Bash command with no description (the command #77's agent ran), 33 s in: spinner labelled with the command, no timer | #77 |
 
 "old #n": issues and PRs of an earlier tracker (before 2026-09-29), cited so in the design and the commits; today's tracker reuses those numbers for other issues.
 

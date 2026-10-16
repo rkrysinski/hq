@@ -44,6 +44,7 @@ type Agent struct {
 	atPrompt   bool       // its turn ended with background work running: it works, at its prompt (see OnBackgroundWork)
 	owed       bool       // at its prompt with nothing running: Claude owes it a turn (see settle)
 	woken      bool       // it works on a turn Claude woke itself for (see settle)
+	acted      bool       // Claude has acted on the turn it works on: a tool of its own ended (see settle)
 	ownAsk     *state.Ask // the dialog Claude shows of its own on its screen, if any (see settle)
 	dialog     Whose      // whose dialog it is at while it needs input: its hooks', a subagent's, or Claude's own, seen (ownAsk) or recorded on its window (see recallDialog)
 	answered   string     // when hq first saw Claude at work after the dialog its hooks reported (see settle)
@@ -365,7 +366,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	if r.Latest.After(r.Since) {
 		a.reportAt = r.Latest
 	}
-	a.atPrompt, a.owed, a.woken = r.Background, r.Background && r.Owed, r.Woken
+	a.atPrompt, a.owed, a.woken, a.acted = r.Background, r.Background && r.Owed, r.Woken, r.Acted
 	a.lastStop = r.LastStop
 	a.dialog = NoDialog
 	switch {
@@ -578,6 +579,10 @@ func (a *Agent) settle(screen string, now time.Time) record {
 			return record{}
 		}
 		rest, again = state.AtRest(screen, a.prompt)
+		// Once Claude has acted on the turn no early Esc rewinds it, and a
+		// screen at work may still show no spinner (#77): only a tool the
+		// user cut short, which prints no line in the sbx template, ends it.
+		rest = rest && (!a.acted || state.ToolCut(screen))
 	}
 	if !rest {
 		return record{}

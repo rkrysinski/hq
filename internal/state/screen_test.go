@@ -402,3 +402,42 @@ func TestASpinnerLikeLineOfAReplyIsNotClaudeAtWork(t *testing.T) {
 		t.Error("the spinner above a tip: not at work")
 	}
 }
+
+func TestToolCutSeesAToolTheUserCutShortWithEsc(t *testing.T) {
+	// The sbx template prints no Interrupted line for an Esc while a tool
+	// runs, only the turn's card, collapsed, its summary marked × (#77):
+	// the turn's first tool, and a later one after an earlier ended.
+	for _, name := range []string{"fs-esc-tool", "fs-esc-later-tool"} {
+		if !ToolCut(screen(t, name)) {
+			t.Errorf("%s: not cut", name)
+		}
+	}
+}
+
+func TestToolCutIsNoToolAtWorkFailedOrFollowedByMore(t *testing.T) {
+	// A tool running (its card open, the spinner below, also in an 80
+	// column pane under hq); a command that failed while the turn goes on
+	// (× in the open card); the turn done after a failed command, its reply
+	// below the card; an Esc after the tool ended, which prints Interrupted;
+	// screens without the card.
+	for _, name := range []string{"fs-later-tool-running", "fs-tool-running-80", "fs-tool-failed-working", "fs-tool-failed-done", "fs-esc-after-tool", "fs-elicit-done", "fs-streaming", "fs-ask-esc", "interrupted"} {
+		if ToolCut(screen(t, name)) {
+			t.Errorf("%s: cut", name)
+		}
+	}
+}
+
+func TestACutToolIsAtRestAndEndedByNoLine(t *testing.T) {
+	for _, name := range []string{"fs-esc-tool", "fs-esc-later-tool"} {
+		s := screen(t, name)
+		if rest, _ := AtRest(s, ""); !rest {
+			t.Errorf("%s: not at rest", name)
+		}
+		if last, ok := EndedByUser(s); ok {
+			t.Errorf("%s: ended by user: %q", name, last)
+		}
+	}
+	if !AtWork(screen(t, "fs-later-tool-running")) || !AtWork(screen(t, "fs-tool-running-80")) {
+		t.Error("a tool running is not at work")
+	}
+}

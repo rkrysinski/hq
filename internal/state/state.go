@@ -50,6 +50,10 @@ type Report struct {
 	// background work finished: no prompt of the user's shows on its screen
 	// for it.
 	Woken bool
+	// Acted says that Claude has acted on the turn the agent works on: a
+	// tool of its own has ended in it (the hook's mark, .acted), so no
+	// early Esc rewinds it any more (design §3.4, #77).
+	Acted bool
 	// SubagentDialog says the dialog the agent needs input for is one of
 	// its subagents': the event that reported it carries the subagent's
 	// agent_id, as a subagent's tool events do (design §3.4).

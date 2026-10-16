@@ -204,9 +204,51 @@ func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) 
 	if r, _ := state(); r.State != Working {
 		t.Fatalf("permission granted, tool failed: %+v", r)
 	}
-	if entries, _ := os.ReadDir(Dir(root)); len(entries) != 1 {
-		t.Fatalf("left files behind: %v", entries)
+	// Only the state file, and the mark that a tool of the turn ended.
+	if got := files(t, root, id); len(got) != 2 || got[actedSuffix] != "" {
+		t.Fatalf("left files behind: %v", got)
 	}
+}
+
+// A tool of the agent's own that ended (PostToolUse or PostToolUseFailure
+// without an agent_id) tells hq that Claude has acted on the turn, which
+// no early Esc rewinds any more (#77): the hook marks it beside the state
+// file, without restarting the agent's time, until the next turn starts.
+// A subagent's tool marks nothing.
+func TestAToolOfItsOwnThatEndedMarksTheTurnActedOnUntilTheNextTurn(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	acted := func(when string, want bool) {
+		t.Helper()
+		r, ok := Read(root, id)
+		if !ok || r.Acted != want {
+			t.Fatalf("%s: acted %v, want %v (%+v)", when, r.Acted, want, r)
+		}
+	}
+	failed := bytes.Replace(toolEnd("Bash", "", `{"stdout":""}`), []byte(`"PostToolUse"`), []byte(`"PostToolUseFailure"`), 1)
+
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	acted("prompt", false)
+	fire(t, root, root, id, "answer", toolEnd("Bash", "a1", `{"stdout":"x"}`))
+	acted("a subagent's tool", false)
+	r, _ := Read(root, id)
+	fire(t, root, root, id, "answer", toolEnd("Bash", "", `{"stdout":"x"}`))
+	acted("its own tool", true)
+	if now, _ := Read(root, id); now.State != Working || !now.Since.Equal(r.Since) {
+		t.Fatalf("its own tool restarted the turn: %+v", now)
+	}
+	// Claude woken while it works goes on with the same turn.
+	fire(t, root, root, id, "prompt", wakeUp("t1"))
+	acted("a wake-up while working", true)
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	acted("the next prompt", false)
+	fire(t, root, root, id, "answer", failed)
+	acted("its own tool failed", true)
+	fire(t, root, root, id, "stop", fixture(t, "stop-done"))
+	acted("stop", false)
+	fire(t, root, root, id, "answer", toolEnd("Bash", "", `{"stdout":"x"}`))
+	fire(t, root, root, id, "start", fixture(t, "session-start"))
+	acted("a new session", false)
 }
 
 func TestAResumedSessionKeepsItsBranchWorktreeAndLastMessage(t *testing.T) {
@@ -398,7 +440,7 @@ func TestRemoveDeletesThatAgentsFilesOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	outside := filepath.Join(dir, "..", "..", "keep")
-	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abc.on", "abc.owe", "abc.sup", "abc.next", "abcd", "abcd.stop", "def", "../../keep"} {
+	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abc.on", "abc.owe", "abc.sup", "abc.next", "abc.acted", "abcd", "abcd.stop", "def", "../../keep"} {
 		os.WriteFile(filepath.Join(dir, p), []byte("x"), 0o644)
 	}
 	if err := Remove(root, "abc"); err != nil {

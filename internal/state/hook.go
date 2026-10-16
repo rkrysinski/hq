@@ -48,8 +48,11 @@ import (
 // task came in between, so a turn that never comes holds back one turn
 // end, which the host sees by the agent at rest (design §3.4); a wake-up
 // that names no task, or a session's start or end, forgets them all. On
-// answer it first adds to .owe the background work the tool started, if
-// any (hookAwk).
+// answer it first marks that Claude has acted on the turn when the tool is
+// the agent's own (.acted, Report.Acted), and adds to .owe the background
+// work the tool started, if any (hookAwk); the mark lasts until the next
+// prompt, stop or session event, but a wake-up kept while the agent works
+// goes on with the same turn and leaves it.
 //
 // It also knows whether the turn is a supervised turn (spec §5, design
 // §3.5): one whose every prompt came from the supervisor, whose end
@@ -116,13 +119,14 @@ prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","
         else rm -f "$f` + supervisedSuffix + `"; fi
         grep -v '^[!+]' "$f` + owedSuffix + `" >"$t.o"; owe
     fi ;;
-answer) grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
+answer) grep -q '"agent_id"' "$t" || : >"$f` + actedSuffix + `"
+    grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
     grep -q '` + toolEndEvent + `' "$t" && ! grep -q '"agent_id"' "$t" && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
     grep -q '` + dialogEvent + `' "$f" && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
 input) grep -q '` + dialogEvent + `' "$f" && { rm -f "$t"; exit 0; } ;;
 resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; }; rm -f "$t.p" ;;
 esac
-case $1 in dialog | answer | input) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `" ;; esac
+case $1 in dialog | answer | input) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `" ;; esac
 if mv -f "$t" "$f" && [ "$1" = stop ]; then
     cp -f "$f" "$t" && mv -f "$t" "$f.stop"
 fi
