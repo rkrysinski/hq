@@ -45,8 +45,7 @@ type Agent struct {
 	owed       bool       // at its prompt with nothing running: Claude owes it a turn (see settle)
 	woken      bool       // it works on a turn Claude woke itself for (see settle)
 	ownAsk     *state.Ask // the dialog Claude shows of its own on its screen, if any (see settle)
-	ownDialog  bool       // it is at a dialog of Claude's own: ownAsk, or one recorded on its window (see recallDialog)
-	subDialog  bool       // the dialog its hooks reported is one of its subagents' (see Dialog)
+	dialog     Whose      // whose dialog it is at while it needs input: its hooks', a subagent's, or Claude's own, seen (ownAsk) or recorded on its window (see recallDialog)
 	answered   string     // when hq first saw Claude at work after the dialog its hooks reported (see settle)
 	said       string     // its latest turn's last message, while a dialog's text stands in for it
 	dialogSeen string     // when hq first saw that dialog, as it read (see settle)
@@ -367,7 +366,15 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		a.reportAt = r.Latest
 	}
 	a.atPrompt, a.owed, a.woken = r.Background, r.Background && r.Owed, r.Woken
-	a.subDialog, a.said = r.SubagentDialog, r.Said
+	a.said = r.Said
+	a.dialog = NoDialog
+	switch {
+	case r.State != state.NeedsInput:
+	case r.SubagentDialog:
+		a.dialog = SubagentDialog
+	default:
+		a.dialog = HooksDialog
+	}
 	if r.State == state.Ended {
 		a.endedAt = r.Since
 	}
@@ -609,7 +616,7 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 		}
 		return record{}
 	}
-	a.State, a.ownAsk, a.ownDialog, a.Last = state.NeedsInput, ask, true, ask.Questions[0].Question
+	a.State, a.ownAsk, a.dialog, a.Last = state.NeedsInput, ask, OwnDialog, ask.Questions[0].Question
 	fp := a.ownFingerprint()
 	if at, ok := a.dialogSeenAt(fp); ok {
 		a.Since = at
@@ -645,7 +652,7 @@ func (a *Agent) recallDialog() {
 	if err != nil {
 		return
 	}
-	a.State, a.Since, a.ownDialog = state.NeedsInput, time.Unix(0, n), true
+	a.State, a.Since, a.dialog = state.NeedsInput, time.Unix(0, n), OwnDialog
 }
 
 // seeAnswer applies the screen of an agent at a dialog its hooks reported:
@@ -660,7 +667,7 @@ func (a *Agent) recallDialog() {
 // report, so a later look at a screen that tells nothing keeps it working
 // (recallAnswer): the record to store as the answered option.
 func (a *Agent) seeAnswer(screen string, now time.Time) record {
-	if a.subDialog || !state.AtWork(screen) {
+	if a.dialog == SubagentDialog || !state.AtWork(screen) {
 		return record{}
 	}
 	a.State, a.Last = state.Working, a.said
@@ -672,7 +679,7 @@ func (a *Agent) seeAnswer(screen string, now time.Time) record {
 // agent's hooks reported, during its current report (seeAnswer): it works,
 // since that report, with its turn's last message.
 func (a *Agent) recallAnswer() bool {
-	if a.State != state.NeedsInput || a.subDialog || !strings.HasPrefix(a.answered, a.key()+" ") {
+	if a.State != state.NeedsInput || a.dialog == SubagentDialog || !strings.HasPrefix(a.answered, a.key()+" ") {
 		return false
 	}
 	a.State, a.Last = state.Working, a.said

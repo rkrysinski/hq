@@ -53,13 +53,8 @@ func (d Dialog) Asks(reported *state.Ask) *state.Ask {
 
 // Dialog is the agent's dialog verdict.
 func (a Agent) Dialog() Dialog {
-	switch {
-	case a.State != state.NeedsInput:
+	if a.State != state.NeedsInput {
 		return Dialog{}
-	case a.ownDialog:
-		return Dialog{Whose: OwnDialog, Since: a.Since, own: a.ownAsk}
-	case a.subDialog:
-		return Dialog{Whose: SubagentDialog, Since: a.Since}
 	}
-	return Dialog{Whose: HooksDialog, Since: a.Since}
+	return Dialog{Whose: a.dialog, Since: a.Since, own: a.ownAsk}
 }
