@@ -38,8 +38,8 @@ func Look(ws []tmux.Window, read func(root, id string) (state.Report, bool), san
 	as := Collect(ws, read, sandboxes)
 	settleScreens(as, now, store)
 	for i := range as {
-		keepIn(store, &as[i], as[i].SeeEnd(now))
-		keepIn(store, &as[i], as[i].SeeWake())
+		keepIn(store, &as[i], as[i].seeEnd(now))
+		keepIn(store, &as[i], as[i].seeWake())
 	}
 	return as
 }
@@ -49,10 +49,10 @@ func Look(ws []tmux.Window, read func(root, id string) (state.Report, bool), san
 func settleScreens(as []Agent, now time.Time, store Store) {
 	var panes []string
 	for i := range as {
-		if as[i].Unsettled(now) {
+		if as[i].unsettled(now) {
 			// A turn end hq saw stands without the screen; the screen may
 			// still show a dialog of Claude's own over it (#66).
-			as[i].Recall()
+			as[i].recall()
 			panes = append(panes, as[i].Pane)
 		}
 	}
@@ -64,19 +64,19 @@ func settleScreens(as []Agent, now time.Time, store Store) {
 		return
 	}
 	for i := range as {
-		if s, ok := screens[as[i].Pane]; ok && as[i].Unsettled(now) {
-			keepIn(store, &as[i], as[i].Settle(s, now))
+		if s, ok := screens[as[i].Pane]; ok && as[i].unsettled(now) {
+			keepIn(store, &as[i], as[i].settle(s, now))
 		}
 	}
 }
 
 // keepIn offers r to the agent's window and applies what it holds then,
 // unless the write failed.
-func keepIn(store Store, a *Agent, r Record) {
+func keepIn(store Store, a *Agent, r record) {
 	if r.Value == "" {
 		return
 	}
 	if stored, err := store.KeepFirst(a.Window, r.Option, r.Key, r.Value); err == nil {
-		a.Keep(r, stored)
+		a.keep(r, stored)
 	}
 }
