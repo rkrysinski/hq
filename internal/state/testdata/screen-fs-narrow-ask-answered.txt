@@ -1,0 +1,30 @@
+│ ● Claude                            │
+│ You picked blue. The subagent       │
+│ didn't have AskUserQuestion, so it  │
+│ fell back to ask_color, and you     │
+│ chose blue in that form.            │
+╰─────────────────────────────────────╯
+
+✻ Cogitated for 43s · done 10:19 AM
+
+❯ Use your AskUserQuestion tool to ask
+  me to pick red or blue, then reply
+  with my choice.
+   ✓ Pytam … ━━━━━━━━━━━━━━━━━━━  6,2 s
+             ━
+
+● User answered Claude's questions:
+  ⎿  · Which color do you pick? → Red
+
+✽ Lollygagging… (2s · ↓ 113 tokens)
+  ⎿  Tip: Working on a plan or design
+     doc? Ask Claude to publish it as an
+     artifact — a polished web page you
+     can open in your browser.
+                      ● high · /effort
+────────────────────────────────────────
+❯ 
+────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░…
+  ⏵⏵ bypass permissions on (shift+tab
+                           ◆ Tools ▾

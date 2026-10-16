@@ -18,6 +18,12 @@
 //     "esc" (or a line with ESC in it) cancels the dialog, which ends the
 //     turn with no hook, as Claude Code 2.1.283 does; any other line answers
 //     it: PostToolUse, then the turn goes on;
+//   - a prompt containing "elicit" calls an MCP tool that opens an
+//     elicitation, which only Claude's Notification reports (kind
+//     elicitation_dialog); any line answers it, which fires no hook, and
+//     the tool works on, its description on the spinner and no "esc to
+//     interrupt" below the box, as Claude Code 2.1.301 draws it in a
+//     sandbox, until the next line lets the turn finish (#70);
 //   - a prompt containing "slow" works until a line comes: "esc" (or a line
 //     with ESC in it) interrupts the turn, which ends it with no hook, as
 //     Claude Code 2.1.283 does; any other line lets it finish;
@@ -396,6 +402,14 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 		}
 		time.Sleep(c.delay)
 	}
+	if strings.Contains(prompt, "elicit") {
+		c.fire("Notification", map[string]any{"message": elicitMessage, "notification_type": "elicitation_dialog"})
+		fmt.Print(elicitForm)
+		in.Scan()
+		fmt.Println("· elicit: ask_color… (1s · ↓ 86 tokens)")
+		promptBox("")
+		in.Scan()
+	}
 	if strings.Contains(prompt, "slow") {
 		fmt.Println("✻ Working…")
 		promptBox("esc to interrupt")
@@ -488,6 +502,23 @@ func (c *claude) subagents() (n int) {
 
 // question is what the fake's question dialog asks.
 const question = "Which colour do you pick?"
+
+// elicitMessage is the Notification's message for the fake's elicitation,
+// as Claude Code 2.1.301 sends it for any MCP elicitation.
+const elicitMessage = "Claude Code needs your input"
+
+// elicitForm is the elicitation as Claude Code 2.1.301 draws it in place of
+// its prompt box.
+const elicitForm = `
+────────────────────────────────────────────────────────────────
+ MCP server “elicit” requests your input
+
+ Pick a colour
+
+ ❯ Colour: (not set)
+   Accept
+   Decline
+`
 
 // startDialog is the dialog of Claude Code 2.1.285 as it draws it.
 const startDialog = `

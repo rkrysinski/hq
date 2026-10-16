@@ -10,6 +10,9 @@ import (
 // The screens in testdata are Claude Code 2.1.283 in a tmux pane, as
 // capture-pane shows them (screen-declined-80 with its blank lines left out).
 // The -80 ones come from the v0.1.0 end-to-end test, the rest are 100x30.
+// The screen-fs ones are Claude Code 2.1.301 in an sbx sandbox with the
+// template's managed settings (#70): its fullscreen renderer, a status line
+// below the box, tool calls in cards; the narrow ones are 40x30.
 func screen(t *testing.T, name string) string {
 	t.Helper()
 	b, err := os.ReadFile("testdata/screen-" + name + ".txt")
@@ -281,5 +284,125 @@ func TestIdleIsClaudeAtItsPromptBoxWhateverTheBoxHolds(t *testing.T) {
 	}
 	if Idle("") || Idle("● Done.\n") {
 		t.Error("no prompt box: idle")
+	}
+}
+
+// Claude at work shows it: the footer offers Esc to interrupt (Claude Code
+// 2.1.283), or its spinner shows above the box with any label, a tool's
+// description with spaces included (2.1.301, which drops the footer's hint).
+func TestAtWorkSeesClaudeAtWork(t *testing.T) {
+	for _, name := range []string{
+		"working", "streaming", "tool-running", "compacting", "declined-then-working", "interrupted-then-working", "narrow-working",
+		"fs-thinking", "fs-ask-answered-thinking", "fs-ask-answered-tool", "fs-ask-chat-working", "fs-elicit-answered", "fs-elicit-esc-tool", "fs-manual-tool", "fs-narrow-working", "fs-narrow-ask-answered",
+	} {
+		if !AtWork(screen(t, name)) {
+			t.Errorf("%s: not working", name)
+		}
+	}
+	// A screen captured with its styles reads as one without them.
+	if !AtWork(WithoutHints(screen(t, "styled-working"))) {
+		t.Error("styled-working: not working")
+	}
+}
+
+// A dialog, Claude at its prompt, and what cannot be told from it are not
+// Claude at work: a reply streaming in 2.1.301 shows no spinner, and a
+// narrow pane drops the footer's hint. A finished turn's line ("✻ Cooked
+// for 24s") and a main agent waiting ("✻ Waiting for 1 background agent to
+// finish") have no ellipsis.
+func TestAtWorkIsFalseForADialogAPromptAndAnUnclearScreen(t *testing.T) {
+	for _, name := range []string{
+		"dialog-open", "declined", "interrupted", "start-ready", "own-effort", "own-model", "narrow-streaming", "styled-done", "background-three",
+		"fs-start-ready", "fs-ask-open", "fs-ask-chat-done", "fs-ask-esc", "fs-elicit-open", "fs-elicit-done", "fs-subagent-elicit-open", "fs-subagent-elicit-answered",
+		"fs-streaming", "fs-narrow-ask-open", "fs-narrow-done", "fs-background-at-prompt", "own-model-background", "fs-model-closed-background",
+	} {
+		if AtWork(screen(t, name)) {
+			t.Errorf("%s: working", name)
+		}
+	}
+	rule := strings.Repeat("─", 40)
+	for name, s := range map[string]string{
+		"a finished turn":    "✻ Cooked for 24s · done 10:15 AM\n" + rule + "\n❯ \n" + rule + "\n  footer\n",
+		"waiting on a agent": "✻ Waiting for 1 background agent to finish\n" + rule + "\n❯ \n" + rule + "\n  footer\n",
+		"before the prompt":  "· Brewing…\n❯ say hi\n● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n",
+	} {
+		if AtWork(s) {
+			t.Errorf("%s: working", name)
+		}
+	}
+}
+
+// A tool at work after a dialog in Claude Code 2.1.301 labels the spinner
+// with its description, spaces and all: not Claude at rest (#70). Only a
+// reply streaming, which shows no spinner, still looks at rest.
+func TestIdleIsNotAToolAtWorkWithASpacedLabel(t *testing.T) {
+	for _, name := range []string{"fs-ask-answered-tool", "fs-elicit-answered", "fs-elicit-esc-tool", "fs-ask-chat-working"} {
+		if Idle(screen(t, name)) {
+			t.Errorf("%s: idle", name)
+		}
+		if ok, _ := AtRest(screen(t, name), ""); ok {
+			t.Errorf("%s: at rest", name)
+		}
+	}
+	for _, name := range []string{"fs-start-ready", "fs-ask-chat-done", "fs-elicit-done", "fs-streaming", "fs-narrow-done", "fs-background-at-prompt", "fs-subagent-elicit-answered"} {
+		if !Idle(screen(t, name)) {
+			t.Errorf("%s: not idle", name)
+		}
+	}
+}
+
+// Claude Code 2.1.301 prints the same line for "Chat about this" as for
+// Esc on a question dialog, and then writes a reply in the same turn: the
+// line is seen while it works and once it is done (#70).
+func TestEndedByUserSeesAQuestionLeftForAChat(t *testing.T) {
+	for _, name := range []string{"fs-ask-esc", "fs-ask-chat-working", "fs-ask-chat-done"} {
+		if last, ok := EndedByUser(screen(t, name)); !ok || last != "User declined to answer questions" {
+			t.Errorf("%s: %q %v", name, last, ok)
+		}
+	}
+	for _, name := range []string{"fs-ask-open", "fs-ask-answered-tool", "fs-elicit-answered", "fs-streaming"} {
+		if last, ok := EndedByUser(screen(t, name)); ok {
+			t.Errorf("%s: %q", name, last)
+		}
+	}
+}
+
+// Esc to interrupt counts only in the footer below the box: a turn at work
+// earlier on the screen, with a dialog drawn below it now, is not at work.
+func TestAtWorkLooksForEscToInterruptInTheFooterOnly(t *testing.T) {
+	rule := strings.Repeat("─", 40)
+	s := "❯ slow job\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on · esc to interrupt\n● Done.\n❯ needs input\n ☐ Colour\nWhich colour do you pick?\n❯ 1. Red\n  2. Blue\nEnter to select · ↑/↓ to navigate · Esc to cancel\n"
+	if AtWork(s) {
+		t.Fatal("a dialog below an earlier turn's footer: at work")
+	}
+}
+
+// Claude's spinner is the last thing it draws above its prompt box, at the
+// start of a line (only a tip, a todo list and the effort, all indented,
+// come below it): a line of its reply that looks like one, indented under
+// its bullet or above what Claude said after it, is not Claude at work, so
+// it neither closes a dialog nor keeps a rewind from being seen (#70).
+func TestASpinnerLikeLineOfAReplyIsNotClaudeAtWork(t *testing.T) {
+	rule := strings.Repeat("─", 40)
+	box := rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
+	for name, s := range map[string]string{
+		"a reply's list item":       "❯ plan it\n● The plan:\n  * Loading… the data\n  · step… two\n\n" + box,
+		"a reply's list item, last": "❯ plan it\n● The plan:\n  * Loading…\n" + box,
+		"said after it":             "❯ plan it\n· step… one\n● Done.\n" + box,
+	} {
+		if AtWork(s) {
+			t.Errorf("%s: at work", name)
+		}
+		if !Idle(s) {
+			t.Errorf("%s: not idle", name)
+		}
+		if ok, _ := AtRest(s, "plan it"); !ok {
+			t.Errorf("%s: not at rest", name)
+		}
+	}
+	// The spinner with a tip and the effort below it is.
+	s := "❯ plan it\n· Wait 8 seconds, then print ok… (6s · ↓ 161 tokens)\n  ⎿  Tip: Use Plan Mode\n     twice to enable.\n                         ● high · /effort\n" + box
+	if !AtWork(s) || Idle(s) {
+		t.Error("the spinner above a tip: not at work")
 	}
 }

@@ -1,0 +1,30 @@
+
+
+❯ Launch a general-purpose subagent in the background whose task is: run the Bash command  for i in
+  $(seq 60); do sleep 1; done; echo ok  in the foreground and return its output. Do not wait for
+  it; just tell me it started.
+    ✓ Uruchamiam agenta: Run 60-second sleep loop                   ━━━━━━━━━━━━━━━━━━━━      0,0 s
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                        │
+│ The subagent has started in the background. It's running the 60-second loop in its own          │
+│ foreground and will return the output. I'll pass that on when it finishes.                      │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Waiting for 1 background agent to finish
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Select model
+   Switch between Claude models. Your pick becomes the default for new sessions. For
+   other/previous model names, specify with --model.
+
+   ❯ 1.  Default (recommended) ✔  Opus 5.5 · Best for everyday, complex tasks
+     2.  Opus 5.5                 For complex work and everyday tasks
+     3.  Fable 5.1                For your toughest challenges
+     4.  Sonnet 5.5               Most efficient for simpler tasks
+     5.  Haiku 5.5                Fastest for quick answers
+   ↓ 6.  Haiku 4.5                Fastest for quick answers
+      … +7 models
+
+   ● High effort ←/→ to adjust
+
+   Enter to set as default · s to use this session only · Esc to cancel

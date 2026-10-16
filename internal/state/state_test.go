@@ -348,3 +348,60 @@ func TestAKeptTurnEndCountsOnlyBesideAReportItBelongsTo(t *testing.T) {
 		t.Errorf("an older hook's report: %+v", r)
 	}
 }
+
+// A subagent's permission prompt carries the subagent's agent_id, as its
+// tool events do: the report says the dialog is the subagent's. Its MCP
+// elicitation's Notification carries none, the same as the agent's own
+// (both seen with Claude Code 2.1.301, a background subagent calling an
+// MCP tool that elicits; paths shortened), so on its own it is the
+// agent's.
+func TestADialogASubagentOpensIsTheSubagents(t *testing.T) {
+	if r := Parse(fixture(t, "dialog-subagent"), nil, nil); r.State != NeedsInput || !r.SubagentDialog || r.Last != "mcp__elicit__ask_color" {
+		t.Errorf("a subagent's permission prompt: %+v", r)
+	}
+	for _, name := range []string{"dialog-bash", "dialog-ask", "notification", "notification-elicitation"} {
+		if r := Parse(fixture(t, name), nil, nil); r.State != NeedsInput || r.SubagentDialog {
+			t.Errorf("%s: %+v", name, r)
+		}
+	}
+	// A subagent's other events open no dialog.
+	if r := Parse(fixture(t, "post-tool-subagent"), nil, nil); r.SubagentDialog {
+		t.Errorf("a subagent's tool end: %+v", r)
+	}
+}
+
+// A dialog Claude's Notification reports after the agent's turn ended with
+// background work running (the Stop the hook keeps) is a subagent's: the
+// agent has no turn then, only its subagents work. Claude's own dialogs
+// there fire no hook (#70).
+func TestADialogNotifiedWhileTheAgentWaitsOnBackgroundWorkIsASubagents(t *testing.T) {
+	at := time.Unix(1000, 0)
+	notified := fixture(t, "notification-elicitation")
+	stop := fixture(t, "stop-background")
+	r := Parse(notified, stop, nil).Kept(notified, stop, nil, at)
+	if r.State != NeedsInput || !r.SubagentDialog || r.Background || r.Last != "Claude Code needs your input" || r.LastStop != "The tests are running in a subagent." {
+		t.Fatalf("notified on background work: %+v", r)
+	}
+	// Beside a wake-up the agent has a turn again: the dialog is its own.
+	if r := Parse(notified, stop, nil).Kept(notified, fixture(t, "prompt-wake"), nil, at); r.SubagentDialog {
+		t.Fatalf("notified after a wake-up: %+v", r)
+	}
+}
+
+// A dialog's text stands in for the last message while it is open; the
+// report keeps the latest Stop's message beside it, which shows again once
+// the dialog is answered and Claude works on (#70).
+func TestADialogKeepsTheLatestStopsMessageBesideItsText(t *testing.T) {
+	stop := fixture(t, "stop-done")
+	for _, name := range []string{"dialog-ask", "dialog-bash", "notification", "prompt"} {
+		if r := Parse(fixture(t, name), stop, nil); r.LastStop != "Hi. The tests pass and PR #58 is open." {
+			t.Errorf("%s: last stop %q", name, r.LastStop)
+		}
+	}
+	if r := Parse(fixture(t, "stop-question"), stop, nil); r.LastStop != r.Last || r.LastStop != "Should I also update the README?" {
+		t.Errorf("a Stop: last stop %q, last %q", r.LastStop, r.Last)
+	}
+	if r := Parse(fixture(t, "dialog-ask"), nil, nil); r.LastStop != "" {
+		t.Errorf("no Stop yet: last stop %q", r.LastStop)
+	}
+}

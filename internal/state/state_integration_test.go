@@ -512,6 +512,41 @@ func TestATurnEndingWhileASubagentRunsLeavesTheAgentWorkingAndNotifiesNobody(t *
 	}
 }
 
+// A subagent's MCP elicitation, while the agent waits on it at its prompt,
+// is reported by Claude's Notification only, with no agent_id (Claude Code
+// 2.1.301): the hook keeps the turn end beside it, so the report says the
+// dialog is the subagent's (#70). Claude's wake-up gives the agent its turn
+// back.
+func TestADialogNotifiedWhileTheAgentWaitsOnASubagentIsTheSubagents(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	read := func() Report {
+		t.Helper()
+		r, ok := Read(root, id)
+		if !ok {
+			t.Fatal("no report")
+		}
+		return r
+	}
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	fire(t, root, root, id, "stop", fixture(t, "stop-background"))
+	if out := run(t, root, root, id, hook("input", "[%s]"), fixture(t, "notification-elicitation")); out != `{"terminalSequence":"[Needs input: main]"}`+"\n" {
+		t.Fatalf("the Notification printed %q", out)
+	}
+	if r := read(); r.State != NeedsInput || !r.SubagentDialog || r.Last != "Claude Code needs your input" {
+		t.Fatalf("a subagent's elicitation: %+v", r)
+	}
+	fire(t, root, root, id, "prompt", fixture(t, "prompt-wake"))
+	if r := read(); r.State != Working || r.SubagentDialog {
+		t.Fatalf("woken: %+v", r)
+	}
+	// In a turn of its own, the same Notification is the agent's.
+	fire(t, root, root, id, "input", fixture(t, "notification-elicitation"))
+	if r := read(); r.State != NeedsInput || r.SubagentDialog {
+		t.Fatalf("the agent's own elicitation: %+v", r)
+	}
+}
+
 func TestOnlyRunningBackgroundWorkThatIsNoCommandOrWatchOfTheAgentsOwnKeepsATurnEndWorking(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	task := func(kind, status string) map[string]any {

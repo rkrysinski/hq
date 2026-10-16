@@ -1,0 +1,30 @@
+│ background instead. I'll reply once it completes.                                               │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Worked for 8s · done 10:07 AM
+
+● Background command "Wait 25 seconds then print a message" completed (exit code 0)
+╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                        │
+│ finished                                                                                        │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Churned for 2s · done 10:08 AM
+
+❯ Write a 250-word poem about wind, no tools.
+
+● What the Wind Knows
+
+  Before the dawn has found the hill,
+  the wind is up and walking still;
+  it combs the barley, bends the reed,
+  and scatters every dandelion seed.
+
+  It has no hands, yet turns the vane;
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5h ▕▌░░░░░░░░░░░▏ 4% …
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+                                                                                       ◆ Tools ▾

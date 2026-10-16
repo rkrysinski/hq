@@ -23,13 +23,16 @@ const (
 
 // Report is what an agent's state file says.
 type Report struct {
-	State     string
-	Since     time.Time // host modification time of the file (design §7.1)
-	Last      string    // the agent's last message, one line, stripped
-	SessionID string    // Claude's session id
-	Cwd       string    // where Claude works (a worktree or the repository), as the sandbox sees it
-	Branch    string    // the branch checked out in Cwd, empty when detached or unknown
-	Prompt    string    // while working since a prompt: the prompt, as the user sent it
+	State string
+	Since time.Time // host modification time of the file (design §7.1)
+	Last  string    // the agent's last message, one line, stripped
+	// LastStop is the latest Stop's message, one line, stripped: Last, unless
+	// an open dialog's text stands in for it.
+	LastStop  string
+	SessionID string // Claude's session id
+	Cwd       string // where Claude works (a worktree or the repository), as the sandbox sees it
+	Branch    string // the branch checked out in Cwd, empty when detached or unknown
+	Prompt    string // while working since a prompt: the prompt, as the user sent it
 	// Latest is the time of the agent's latest report: Since, or the later
 	// time of an event that left it working without restarting its time
 	// (Kept).
@@ -47,6 +50,10 @@ type Report struct {
 	// background work finished: no prompt of the user's shows on its screen
 	// for it.
 	Woken bool
+	// SubagentDialog says the dialog the agent needs input for is one of
+	// its subagents': the event that reported it carries the subagent's
+	// agent_id, as a subagent's tool events do (design §3.4).
+	SubagentDialog bool
 }
 
 // payload is the part of a Claude hook event hq reads.
@@ -58,6 +65,7 @@ type payload struct {
 	Message          string `json:"message"`
 	Prompt           string `json:"prompt"`
 	Source           string `json:"source"`
+	AgentID          string `json:"agent_id"`
 	ToolName         string `json:"tool_name"`
 	BackgroundTasks  []struct {
 		ID     string `json:"id"`
@@ -139,6 +147,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 	if _, lastStop = splitHeader(lastStop); json.Unmarshal(lastStop, &stop) == nil {
 		r.Last = Clean(stop.AssistantMessage)
 	}
+	r.LastStop = r.Last
 	switch p.Event {
 	case "UserPromptSubmit", "PostToolUse", "PostToolUseFailure":
 		// The hook keeps a tool's end only when it closes a dialog: the
@@ -147,18 +156,18 @@ func Parse(latest, lastStop, prev []byte) Report {
 		r.Prompt = p.Prompt
 		r.Woken = strings.HasPrefix(p.Prompt, wakePrefix)
 	case "PermissionRequest":
-		r.State = NeedsInput
+		r.State, r.SubagentDialog = NeedsInput, p.AgentID != ""
 		if m := p.dialogText(); m != "" {
 			r.Last = m
 		}
 	case "Stop":
 		r.Last = Clean(p.AssistantMessage)
-		r.State = Done
+		r.LastStop, r.State = r.Last, Done
 		if IsQuestion(p.AssistantMessage) {
 			r.State = Question
 		}
 	case "Notification":
-		r.State = NeedsInput
+		r.State, r.SubagentDialog = NeedsInput, p.AgentID != ""
 		if m := Clean(p.Message); m != "" {
 			r.Last = m
 		}
@@ -177,7 +186,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 		}
 		if p.Source == resumeSource {
 			if before := Parse(prev, lastStop, nil); before.State != Starting {
-				r.Branch, r.Cwd, r.Last = before.Branch, before.Cwd, before.Last
+				r.Branch, r.Cwd, r.Last, r.LastStop = before.Branch, before.Cwd, before.Last, before.LastStop
 			}
 		}
 	case "SessionEnd":
@@ -197,7 +206,8 @@ func Parse(latest, lastStop, prev []byte) Report {
 // wrote it there too, the agent not working before: the agent works, at its
 // prompt, with that turn's message. Claude's wake-up for the closing turn
 // (a UserPromptSubmit) counts beside a report that says working: the agent
-// works on, since the same moment.
+// works on, since the same moment. A dialog reported beside such a Stop is
+// one of its subagents' (SubagentDialog).
 func (r Report) Kept(latest, kept, owed []byte, at time.Time) Report {
 	var p payload
 	if _, event := splitHeader(kept); json.Unmarshal(event, &p) != nil {
@@ -206,9 +216,16 @@ func (r Report) Kept(latest, kept, owed []byte, at time.Time) Report {
 	switch {
 	case p.Event == "Stop" && (r.State == Working || bytes.Equal(kept, latest)):
 		r.State, r.Background, r.Last = Working, true, Clean(p.AssistantMessage)
+		r.LastStop = r.Last
 		r.Owed = !p.busy(owed)
 	case p.Event == "UserPromptSubmit" && r.State == Working:
 		r.Woken = true
+	case p.Event == "Stop" && r.State == NeedsInput:
+		// A dialog reported after a turn that ended with background work
+		// running is a subagent's: the agent has no turn until Claude wakes
+		// it, and an MCP elicitation's Notification carries no agent_id.
+		r.SubagentDialog = true
+		return r
 	default:
 		return r
 	}

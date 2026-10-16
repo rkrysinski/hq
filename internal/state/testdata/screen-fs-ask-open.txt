@@ -1,0 +1,30 @@
+
+ ▐▛███▛█   Claude Code v2.1.301
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   /…/a41f9452-666c-4138-8314-b0e3a20745cb/scratchpad/cap70-work
+
+
+❯ Use your AskUserQuestion tool to ask me to pick red or blue, then reply with my choice. Do not
+  edit any files.
+    ✓ Pytam Cię                                                     ━━━━━━━━━━━━━━━━━━━━      0,0 s
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ Color
+
+Which do you pick: red or blue?
+
+❯ 1. Red
+     Pick red
+  2. Blue
+     Pick blue
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+

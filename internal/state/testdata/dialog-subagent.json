@@ -1,0 +1,32 @@
+{
+  "session_id": "db9b1a94-ae3b-4a7a-921e-9ad2a5465fdf",
+  "transcript_path": "/home/agent/.claude/projects/-w-app/db9b1a94-ae3b-4a7a-921e-9ad2a5465fdf.jsonl",
+  "cwd": "/w/app",
+  "scratchpad_dir": "/tmp/claude-1000/-w-app/db9b1a94-ae3b-4a7a-921e-9ad2a5465fdf/scratchpad",
+  "prompt_id": "b8458798-c5df-42fd-a137-6ca904ad6f45",
+  "permission_mode": "default",
+  "agent_id": "a35b5880e6d11f23a",
+  "agent_type": "general-purpose",
+  "effort": {
+    "level": "high"
+  },
+  "hook_event_name": "PermissionRequest",
+  "tool_name": "mcp__elicit__ask_color",
+  "tool_input": {},
+  "permission_suggestions": [
+    {
+      "type": "addRules",
+      "rules": [
+        {
+          "toolName": "mcp__elicit__ask_color"
+        }
+      ],
+      "behavior": "allow",
+      "destination": "localSettings"
+    }
+  ],
+  "mcp_server": {
+    "name": "elicit",
+    "source": "dynamic"
+  }
+}

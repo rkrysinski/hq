@@ -140,24 +140,23 @@ func deliver(d deps, a agent.Agent, now bool) (string, error) {
 // a message (ADR 0012).
 func queued(a agent.Agent, now bool) string {
 	var when string
-	switch a.State {
-	case state.Working:
-		when = "is working, delivered when it stops"
-		if now {
-			when = "is working, delivered after its next tool call, or when it stops"
-		}
-	case state.NeedsInput:
-		if a.OwnAsk() != nil {
-			// A dialog of Claude's own, at its start or after a turn:
-			// closing it fires no hook, so nothing delivers the message
-			// until the next prompt (#29, #66).
-			return fmt.Sprintf("queued: %s waits at a dialog of Claude's own; once it is answered there (hq go %s), delivered with its next prompt", a.Name, a.Name)
-		}
+	switch dialog := a.Dialog(); {
+	case dialog.Whose == agent.OwnDialog:
+		// A dialog of Claude's own, at its start or after a turn: closing
+		// it fires no hook, so nothing delivers the message until the next
+		// prompt (#29, #66).
+		return fmt.Sprintf("queued: %s waits at a dialog of Claude's own; once it is answered there (hq go %s), delivered with its next prompt", a.Name, a.Name)
+	case dialog.Open():
 		when = "needs input, delivered once its dialog is closed, when it stops"
 		if now {
 			when = "needs input, delivered once its dialog is closed, after its next tool call"
 		}
-	case state.Ended:
+	case a.State == state.Working:
+		when = "is working, delivered when it stops"
+		if now {
+			when = "is working, delivered after its next tool call, or when it stops"
+		}
+	case a.State == state.Ended:
 		when = "has ended; delivered once it is relaunched"
 	default:
 		when = "is starting, delivered with its first prompt, or when it stops"

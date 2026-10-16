@@ -457,6 +457,32 @@ func TestAnAgentAtADialogClaudeOpensAfterItsTurnNeedsInput(t *testing.T) {
 	h.waitPane("a", "say hi")
 }
 
+// An MCP elicitation is reported only by Claude's Notification, and its
+// answer fires no hook: the screen shows Claude at work after it, which
+// closes the dialog. The agent works, hq wait does not return it, and a
+// message waits for its turn's end as for any agent at work (#70).
+func TestAnAnsweredElicitationIsClosedByTheScreen(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "elicit"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "needs input", "Claude Code needs your input")
+	before := time.Now().UTC().Format(time.RFC3339Nano)
+	h.typeIn("a", "red")
+	h.waitReport("a", "working", "")
+	if code, out, _ := h.run("read", "a"); code != 0 || strings.Contains(out, "\nasks\n") {
+		t.Fatalf("read: exit %d\n%s", code, out)
+	}
+	if code, out, _ := h.run("wait", "a", "--since", before, "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet\n") {
+		t.Fatalf("wait returned it: exit %d\n%s", code, out)
+	}
+	h.send("queued: a is working, delivered when it stops", "a", "then commit")
+	h.typeIn("a", "")
+	h.waitPane("a", "then commit")
+}
+
 func TestAgentsInOneRepositoryAreToldApartByBranch(t *testing.T) {
 	testutil.FakeClaude(t)
 	h := newRealHQ(t)
