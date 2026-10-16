@@ -465,12 +465,6 @@ func (a Agent) waitsAtPrompt() bool {
 	return a.State == state.Done || a.State == state.Question || a.OnBackgroundWork() && !a.owed
 }
 
-// OwnAsk is the dialog Claude shows in place of the agent's prompt box,
-// at the start of its session or after a turn, as settle read it off the
-// screen; nil when there is none. It is what the dialog verdict asks for a
-// dialog of Claude's own (Dialog).
-func (a Agent) OwnAsk() *state.Ask { return a.Dialog().Asks(nil) }
-
 // recall applies a turn end hq saw earlier on an unsettled agent: done,
 // with its last message, since hq first saw it, as long as no hook has
 // reported since. The screen is then not needed; it may have moved on, as

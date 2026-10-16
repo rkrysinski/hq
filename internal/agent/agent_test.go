@@ -772,19 +772,19 @@ func TestSettleSeesClaudesDialogAtTheStartOfASession(t *testing.T) {
 	start := state.Report{State: state.Done, Since: started}
 	a := FromWindows([]tmux.Window{w})[0]
 	a.Apply(start, true)
-	if a.OwnAsk() != nil || !a.unsettled(seen) || a.unsettled(started) {
+	if a.Dialog().Asks(nil) != nil || !a.unsettled(seen) || a.unsettled(started) {
 		t.Fatalf("a session just started is looked at once the report has settled: %+v", a)
 	}
 	if rec := a.settle(dialog, seen); rec.Option != "dialogseen" || rec.Value == "" || a.State != state.NeedsInput || a.Last != "Make auto mode your default permission mode?" || !a.Since.Equal(seen) {
 		t.Fatalf("dialog: %+v %+v", rec, a)
 	}
-	if ask := a.OwnAsk(); ask == nil || len(ask.Questions) != 1 || len(ask.Questions[0].Options) != 2 || ask.Questions[0].Options[1].Label != "No, keep bypass permissions" {
+	if ask := a.Dialog().Asks(nil); ask == nil || len(ask.Questions) != 1 || len(ask.Questions[0].Options) != 2 || ask.Questions[0].Options[1].Label != "No, keep bypass permissions" {
 		t.Fatalf("ask: %+v", ask)
 	}
 	// Answered: Claude waits at its prompt, done since it started.
 	b := FromWindows([]tmux.Window{w})[0]
 	b.Apply(start, true)
-	if rec := b.settle(ready, started.Add(time.Minute)); rec.Value != "" || b.State != state.Done || b.Last != "" || b.OwnAsk() != nil || !b.Since.Equal(started) {
+	if rec := b.settle(ready, started.Add(time.Minute)); rec.Value != "" || b.State != state.Done || b.Last != "" || b.Dialog().Asks(nil) != nil || !b.Since.Equal(started) {
 		t.Fatalf("ready: %+v %+v", rec, b)
 	}
 	// A resumed session keeps its last message while no dialog shows.
@@ -822,7 +822,7 @@ func TestSettleSeesClaudesDialogAfterATurn(t *testing.T) {
 	if rec.Option != "dialogseen" || rec.Value == "" || a.State != state.NeedsInput || a.Last != "Change effort level?" || !a.Since.Equal(seen) || a.Entered() != seen {
 		t.Fatalf("dialog: %+v %+v", rec, a)
 	}
-	if ask := a.OwnAsk(); ask == nil || ask.Questions[0].Options[0].Label != "Yes, switch to max" || ask.Description != "Your next response will be slower" {
+	if ask := a.Dialog().Asks(nil); ask == nil || ask.Questions[0].Options[0].Label != "Yes, switch to max" || ask.Description != "Your next response will be slower" {
 		t.Fatalf("ask: %+v", ask)
 	}
 	// Seen again later, the cursor moved, or a list of options scrolled:
@@ -846,7 +846,7 @@ func TestSettleSeesClaudesDialogAfterATurn(t *testing.T) {
 	// is closed, so a dialog opened again counts from when it is seen.
 	w.Options["dialogseen"] = c.dialogSeen
 	d, rec := look(ready, seen.Add(time.Minute))
-	if rec.Option != "dialogseen" || rec.Value == "" || d.State != state.Done || d.Last != "hi" || d.OwnAsk() != nil || !d.Since.Equal(done) {
+	if rec.Option != "dialogseen" || rec.Value == "" || d.State != state.Done || d.Last != "hi" || d.Dialog().Asks(nil) != nil || !d.Since.Equal(done) {
 		t.Fatalf("answered: %+v %+v", rec, d)
 	}
 	w.Options["dialogseen"] = rec.Value
