@@ -376,3 +376,33 @@ func TestAtWorkLooksForEscToInterruptInTheFooterOnly(t *testing.T) {
 		t.Fatal("a dialog below an earlier turn's footer: at work")
 	}
 }
+
+// Claude's spinner is the last thing it draws above its prompt box, at the
+// start of a line (only a tip, a todo list and the effort, all indented,
+// come below it): a line of its reply that looks like one, indented under
+// its bullet or above what Claude said after it, is not Claude at work, so
+// it neither closes a dialog nor keeps a rewind from being seen (#70).
+func TestASpinnerLikeLineOfAReplyIsNotClaudeAtWork(t *testing.T) {
+	rule := strings.Repeat("─", 40)
+	box := rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
+	for name, s := range map[string]string{
+		"a reply's list item":       "❯ plan it\n● The plan:\n  * Loading… the data\n  · step… two\n\n" + box,
+		"a reply's list item, last": "❯ plan it\n● The plan:\n  * Loading…\n" + box,
+		"said after it":             "❯ plan it\n· step… one\n● Done.\n" + box,
+	} {
+		if AtWork(s) {
+			t.Errorf("%s: at work", name)
+		}
+		if !Idle(s) {
+			t.Errorf("%s: not idle", name)
+		}
+		if ok, _ := AtRest(s, "plan it"); !ok {
+			t.Errorf("%s: not at rest", name)
+		}
+	}
+	// The spinner with a tip and the effort below it is.
+	s := "❯ plan it\n· Wait 8 seconds, then print ok… (6s · ↓ 161 tokens)\n  ⎿  Tip: Use Plan Mode\n     twice to enable.\n                         ● high · /effort\n" + box
+	if !AtWork(s) || Idle(s) {
+		t.Error("the spinner above a tip: not at work")
+	}
+}

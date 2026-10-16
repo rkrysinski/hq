@@ -3,6 +3,7 @@ package state
 import (
 	"regexp"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -103,13 +104,18 @@ func Idle(screen string) bool {
 	return ok && !b.spinning()
 }
 
-// spinning reports whether Claude's spinner shows above the box, since the
-// user's last prompt.
+// spinning reports whether Claude's spinner shows above the box: the last
+// line Claude starts at the left edge there, since the user's last prompt.
+// Below the spinner Claude draws only indented lines (a tip, its todo list,
+// the effort at the right), and the lines of a reply are indented under its
+// bullet or drawn in a card, so a reply's line that reads like a spinner
+// ("* Loading…") is not one (#70).
 func (b box) spinning() bool {
 	for i := b.upper - 1; i >= 0 && !strings.HasPrefix(b.lines[i], prompt); i-- {
-		if spinner.MatchString(b.lines[i]) {
-			return true
+		if b.raw[i] == "" || unicode.IsSpace([]rune(b.raw[i])[0]) {
+			continue
 		}
+		return spinner.MatchString(b.raw[i])
 	}
 	return false
 }
@@ -144,9 +150,10 @@ func PutBack(screen, reported string) bool {
 var spinner = regexp.MustCompile(`^[·✢✳✶✻✽*] .*…`)
 
 // box is Claude's prompt box found at the bottom of a screen: the screen's
-// lines, spaces collapsed, and the lines of its upper and lower rules.
+// lines, spaces collapsed, the same lines as drawn (raw), and the lines of
+// its upper and lower rules.
 type box struct {
-	lines        []string
+	lines, raw   []string
 	upper, lower int
 }
 
@@ -176,9 +183,10 @@ func promptBox(screen string) (box, bool) {
 // rule offers Esc to interrupt (esc).
 func findBox(screen string) (b box, ok, esc bool) {
 	// Claude puts a no-break space after its bullets; its indents vary.
-	lines := strings.Split(strings.ReplaceAll(screen, "\u00a0", " "), "\n")
-	for i := range lines {
-		lines[i] = strings.Join(strings.Fields(lines[i]), " ")
+	raw := strings.Split(strings.ReplaceAll(screen, "\u00a0", " "), "\n")
+	lines := make([]string, len(raw))
+	for i := range raw {
+		lines[i] = strings.Join(strings.Fields(raw[i]), " ")
 	}
 	// Below the footer Claude lists the agents while subagents run.
 	bottom := len(lines) - 1
@@ -213,7 +221,7 @@ func findBox(screen string) (b box, ok, esc bool) {
 	if upper < 0 || !strings.HasPrefix(lines[upper+1], prompt) {
 		return box{}, false, esc
 	}
-	return box{lines, upper, lower}, true, esc
+	return box{lines, raw, upper, lower}, true, esc
 }
 
 // prompt starts Claude's input line and every prompt the user sent.
