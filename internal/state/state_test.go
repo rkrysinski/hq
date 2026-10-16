@@ -379,7 +379,7 @@ func TestADialogNotifiedWhileTheAgentWaitsOnBackgroundWorkIsASubagents(t *testin
 	notified := fixture(t, "notification-elicitation")
 	stop := fixture(t, "stop-background")
 	r := Parse(notified, stop, nil).Kept(notified, stop, nil, at)
-	if r.State != NeedsInput || !r.SubagentDialog || r.Background || r.Last != "Claude Code needs your input" || r.Said != "The tests are running in a subagent." {
+	if r.State != NeedsInput || !r.SubagentDialog || r.Background || r.Last != "Claude Code needs your input" || r.LastStop != "The tests are running in a subagent." {
 		t.Fatalf("notified on background work: %+v", r)
 	}
 	// Beside a wake-up the agent has a turn again: the dialog is its own.
@@ -394,14 +394,14 @@ func TestADialogNotifiedWhileTheAgentWaitsOnBackgroundWorkIsASubagents(t *testin
 func TestADialogKeepsTheLatestStopsMessageBesideItsText(t *testing.T) {
 	stop := fixture(t, "stop-done")
 	for _, name := range []string{"dialog-ask", "dialog-bash", "notification", "prompt"} {
-		if r := Parse(fixture(t, name), stop, nil); r.Said != "Hi. The tests pass and PR #58 is open." {
-			t.Errorf("%s: said %q", name, r.Said)
+		if r := Parse(fixture(t, name), stop, nil); r.LastStop != "Hi. The tests pass and PR #58 is open." {
+			t.Errorf("%s: last stop %q", name, r.LastStop)
 		}
 	}
-	if r := Parse(fixture(t, "stop-question"), stop, nil); r.Said != r.Last || r.Said != "Should I also update the README?" {
-		t.Errorf("a Stop: said %q, last %q", r.Said, r.Last)
+	if r := Parse(fixture(t, "stop-question"), stop, nil); r.LastStop != r.Last || r.LastStop != "Should I also update the README?" {
+		t.Errorf("a Stop: last stop %q, last %q", r.LastStop, r.Last)
 	}
-	if r := Parse(fixture(t, "dialog-ask"), nil, nil); r.Said != "" {
-		t.Errorf("no Stop yet: said %q", r.Said)
+	if r := Parse(fixture(t, "dialog-ask"), nil, nil); r.LastStop != "" {
+		t.Errorf("no Stop yet: last stop %q", r.LastStop)
 	}
 }

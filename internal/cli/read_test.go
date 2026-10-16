@@ -397,7 +397,7 @@ func TestADialogAfterATurnTheUserEndedNeedsInput(t *testing.T) {
 // the message for a dialog (#70).
 func TestCommandsTakeADialogTheScreenClosedForGone(t *testing.T) {
 	f := readFakes()
-	f.states["id-42"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Minute), Last: "Claude Code needs your input", Said: "On it."}
+	f.states["id-42"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Minute), Last: "Claude Code needs your input", LastStop: "On it."}
 	f.details["id-42"] = state.Detail{Reply: "On it.", Ask: &state.Ask{Message: "Claude Code needs your input"}}
 	f.tmux.windows[1].Options["inbox"] = inboxHooks
 	f.tmux.windows[1].Pane = "%4"

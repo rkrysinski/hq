@@ -73,7 +73,7 @@ func capture(t *testing.T, name string) string {
 func TestADialogTheHooksReportedClosesWhenTheScreenShowsClaudeAtWork(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", Said: "Hi."}}
+	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", LastStop: "Hi."}}
 	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-elicit-answered")}}
 	as := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), Sandboxes{}, now, s)
 	if a := as[0]; a.State != state.Working || !a.Since.Equal(asked) || a.Last != "Hi." || a.Dialog().Open() || a.Entered() != asked {
@@ -124,7 +124,7 @@ func TestTheFirstLookToSeeADialogAnsweredKeepsItsRecord(t *testing.T) {
 func TestADialogTheHooksReportedStaysOpenOnAnUnclearScreen(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Red or blue?", Said: "Hi."}}
+	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Red or blue?", LastStop: "Hi."}}
 	for _, name := range []string{"fs-ask-open", "fs-streaming", "fs-start-ready", "fs-narrow-ask-open", "fs-narrow-done", "dialog-open"} {
 		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
 		a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), Sandboxes{}, now, s)[0]
@@ -250,7 +250,7 @@ func TestADialogTheHooksReportedIsNeverReadAsOneOfClaudesOwn(t *testing.T) {
 func TestAnAnsweredDialogIsNoRewindAtTheBarePromptBox(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", Said: "Hi."}}
+	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", LastStop: "Hi."}}
 	w := lookWindow("1")
 	w.Options["answered"] = nanos(asked) + " " + nanos(now)
 	for _, name := range []string{"fs-streaming", "fs-elicit-done"} {

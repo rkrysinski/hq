@@ -608,11 +608,11 @@ func TestKeepShowsTheRecordAnotherProcessStoredFirst(t *testing.T) {
 	a := FromWindows([]tmux.Window{{ID: "@1", Options: map[string]string{"id": "x"}}})[0]
 	a.Apply(state.Report{State: state.NeedsInput, Since: asked, Last: "Red or blue?"}, true)
 	r := a.settle(declined, now)
-	a.keep(r, r.Value)
+	a.adopt(r, r.Value)
 	if !a.Since.Equal(now) {
 		t.Fatalf("its own record: %+v", a)
 	}
-	a.keep(r, r.Key+nanos(earlier)+" User declined to answer questions")
+	a.adopt(r, r.Key+nanos(earlier)+" User declined to answer questions")
 	if a.State != state.Done || !a.Since.Equal(earlier) || a.Last != "User declined to answer questions" {
 		t.Fatalf("turnend: %+v", a)
 	}
@@ -624,7 +624,7 @@ func TestKeepShowsTheRecordAnotherProcessStoredFirst(t *testing.T) {
 	b.Apply(state.Report{State: state.Working, Since: asked}, true)
 	r = b.settle(box, now)
 	other := asked.Add(time.Second)
-	b.keep(r, r.Key+nanos(other))
+	b.adopt(r, r.Key+nanos(other))
 	if r := b.settle(box, other.Add(RestDelay)); r.Option != "turnend" || b.State != state.Done || !b.Since.Equal(other) {
 		t.Fatalf("restseen: %+v %+v", r, b)
 	}
@@ -633,7 +633,7 @@ func TestKeepShowsTheRecordAnotherProcessStoredFirst(t *testing.T) {
 	c := FromWindows([]tmux.Window{{ID: "@3", Options: map[string]string{"id": "z", "started": "900"}}})[0]
 	c.State = state.Ended
 	r = c.seeEnd(now)
-	c.keep(r, r.Key+nanos(earlier))
+	c.adopt(r, r.Key+nanos(earlier))
 	if !c.Since.Equal(earlier) {
 		t.Fatalf("endseen: %+v", c)
 	}
@@ -838,7 +838,7 @@ func TestSettleSeesClaudesDialogAfterATurn(t *testing.T) {
 	// Another hq process stored its moment first: that one counts.
 	w.Options["dialogseen"] = ""
 	c, rec := look(dialog, seen.Add(2*time.Second))
-	c.keep(rec, strings.Replace(rec.Value, nanos(seen.Add(2*time.Second)), nanos(seen), 1))
+	c.adopt(rec, strings.Replace(rec.Value, nanos(seen.Add(2*time.Second)), nanos(seen), 1))
 	if !c.Since.Equal(seen) || c.State != state.NeedsInput {
 		t.Fatalf("stored first elsewhere: %+v", c)
 	}
@@ -994,7 +994,7 @@ func TestATurnEndHqSawDoesNotOutliveClaudesWakeUp(t *testing.T) {
 	delete(w.Options, "wokeseen")
 	e := FromWindows([]tmux.Window{w})[0]
 	e.Apply(r, true)
-	if e.keep(e.seeWake(), first); !e.Since.Equal(time.Unix(1060, 0)) {
+	if e.adopt(e.seeWake(), first); !e.Since.Equal(time.Unix(1060, 0)) {
 		t.Fatalf("the record stored first: %+v", e)
 	}
 	// A wake-up with no turn the user ended before it changes nothing.

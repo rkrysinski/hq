@@ -39,8 +39,8 @@ func Look(ws []tmux.Window, read func(root, id string) (state.Report, bool), san
 	as := Collect(ws, read, sandboxes)
 	settleScreens(as, now, store)
 	for i := range as {
-		keepIn(store, &as[i], as[i].seeEnd(now))
-		keepIn(store, &as[i], as[i].seeWake())
+		offer(store, &as[i], as[i].seeEnd(now))
+		offer(store, &as[i], as[i].seeWake())
 	}
 	return as
 }
@@ -70,18 +70,18 @@ func settleScreens(as []Agent, now time.Time, store Store) {
 	}
 	for i := range as {
 		if s, ok := screens[as[i].Pane]; ok && as[i].unsettled(now) {
-			keepIn(store, &as[i], as[i].settle(s, now))
+			offer(store, &as[i], as[i].settle(s, now))
 		}
 	}
 }
 
-// keepIn offers r to the agent's window and applies what it holds then,
+// offer offers r to the agent's window and applies what it holds then,
 // unless the write failed.
-func keepIn(store Store, a *Agent, r record) {
+func offer(store Store, a *Agent, r record) {
 	if r.Value == "" {
 		return
 	}
 	if stored, err := store.KeepFirst(a.Window, r.Option, r.Key, r.Value); err == nil {
-		a.keep(r, stored)
+		a.adopt(r, stored)
 	}
 }

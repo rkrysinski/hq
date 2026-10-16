@@ -47,7 +47,7 @@ type Agent struct {
 	ownAsk     *state.Ask // the dialog Claude shows of its own on its screen, if any (see settle)
 	dialog     Whose      // whose dialog it is at while it needs input: its hooks', a subagent's, or Claude's own, seen (ownAsk) or recorded on its window (see recallDialog)
 	answered   string     // when hq first saw Claude at work after the dialog its hooks reported (see settle)
-	said       string     // its latest turn's last message, while a dialog's text stands in for it
+	lastStop   string     // its latest Stop's message, while a dialog's text stands in for it as Last
 	dialogSeen string     // when hq first saw that dialog, as it read (see settle)
 	started    string     // the start as stored, which keys endSeen
 	reportAt   time.Time  // the time of its session's last report; zero before its first
@@ -310,12 +310,12 @@ func (a Agent) endKey() string {
 // option Option (one of tmux.OptionKeys): Value, unless the option already
 // holds a value starting with Key, a record of the same thing that another
 // hq process stored first. The first record wins, so every process shows
-// the same moment (design §3.4); see keep.
+// the same moment (design §3.4); see adopt.
 type record struct{ Option, Key, Value string }
 
-// keep applies what the window holds after r was offered to it: stored,
+// adopt applies what the window holds after r was offered to it: stored,
 // which is r.Value, or the record another hq process stored first.
-func (a *Agent) keep(r record, stored string) {
+func (a *Agent) adopt(r record, stored string) {
 	if stored == r.Value {
 		return
 	}
@@ -366,7 +366,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		a.reportAt = r.Latest
 	}
 	a.atPrompt, a.owed, a.woken = r.Background, r.Background && r.Owed, r.Woken
-	a.said = r.Said
+	a.lastStop = r.LastStop
 	a.dialog = NoDialog
 	switch {
 	case r.State != state.NeedsInput:
@@ -689,7 +689,7 @@ func (a Agent) atHooksDialog() bool { return a.State == state.NeedsInput && a.di
 
 // worksOn applies a dialog of its hooks' answered: the agent works, since
 // the dialog's report, with its turn's last message.
-func (a *Agent) worksOn() { a.State, a.Last = state.Working, a.said }
+func (a *Agent) worksOn() { a.State, a.Last = state.Working, a.lastStop }
 
 // ownFingerprint names the dialog Claude shows of its own on the agent's
 // screen by its title and text: not by its options, which a list such as

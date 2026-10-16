@@ -26,9 +26,9 @@ type Report struct {
 	State string
 	Since time.Time // host modification time of the file (design §7.1)
 	Last  string    // the agent's last message, one line, stripped
-	// Said is the latest Stop's message, one line, stripped: Last, unless
+	// LastStop is the latest Stop's message, one line, stripped: Last, unless
 	// an open dialog's text stands in for it.
-	Said      string
+	LastStop  string
 	SessionID string // Claude's session id
 	Cwd       string // where Claude works (a worktree or the repository), as the sandbox sees it
 	Branch    string // the branch checked out in Cwd, empty when detached or unknown
@@ -147,7 +147,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 	if _, lastStop = splitHeader(lastStop); json.Unmarshal(lastStop, &stop) == nil {
 		r.Last = Clean(stop.AssistantMessage)
 	}
-	r.Said = r.Last
+	r.LastStop = r.Last
 	switch p.Event {
 	case "UserPromptSubmit", "PostToolUse", "PostToolUseFailure":
 		// The hook keeps a tool's end only when it closes a dialog: the
@@ -162,7 +162,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 		}
 	case "Stop":
 		r.Last = Clean(p.AssistantMessage)
-		r.Said, r.State = r.Last, Done
+		r.LastStop, r.State = r.Last, Done
 		if IsQuestion(p.AssistantMessage) {
 			r.State = Question
 		}
@@ -186,7 +186,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 		}
 		if p.Source == resumeSource {
 			if before := Parse(prev, lastStop, nil); before.State != Starting {
-				r.Branch, r.Cwd, r.Last, r.Said = before.Branch, before.Cwd, before.Last, before.Said
+				r.Branch, r.Cwd, r.Last, r.LastStop = before.Branch, before.Cwd, before.Last, before.LastStop
 			}
 		}
 	case "SessionEnd":
@@ -216,7 +216,7 @@ func (r Report) Kept(latest, kept, owed []byte, at time.Time) Report {
 	switch {
 	case p.Event == "Stop" && (r.State == Working || bytes.Equal(kept, latest)):
 		r.State, r.Background, r.Last = Working, true, Clean(p.AssistantMessage)
-		r.Said = r.Last
+		r.LastStop = r.Last
 		r.Owed = !p.busy(owed)
 	case p.Event == "UserPromptSubmit" && r.State == Working:
 		r.Woken = true
