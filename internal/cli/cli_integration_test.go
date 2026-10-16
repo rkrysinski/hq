@@ -76,13 +76,19 @@ func (h *realHQ) ls() []lsRow {
 	return ls.Agents
 }
 
+// stubPids is the file where the stub sbx records the pid of each session it
+// runs in sandbox, one a line.
+func stubPids(sandbox string) string {
+	return os.Getenv("SBX_STUB_DIR") + "/pids-" + sandbox
+}
+
 // waitSessions waits until the stub sbx has recorded n sessions in sandbox,
 // which it does a moment after tmux shows them running; a stop before that
 // would miss them.
 func (h *realHQ) waitSessions(sandbox string, n int) {
 	h.t.Helper()
 	for i := 0; i < 50; i++ {
-		b, _ := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/pids-" + sandbox)
+		b, _ := os.ReadFile(stubPids(sandbox))
 		if strings.Count(string(b), "\n") >= n {
 			return
 		}
@@ -574,19 +580,20 @@ func TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd(t *testing.T) {
 	// itself is killed, so no hook fires, and its session and pane end
 	// with it. Killing the pane's program instead would only hang Claude
 	// up, which ends it with a SessionEnd (#73).
-	pid, err := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/pids-claude-app")
-	if err != nil {
-		t.Fatal(err)
+	pids, err := os.ReadFile(stubPids("claude-app"))
+	if err != nil || len(strings.Fields(string(pids))) != 1 {
+		t.Fatalf("the stub's sessions: %q %v", pids, err)
 	}
 	crashed := time.Now()
-	if out, err := exec.Command("kill", "-KILL", strings.TrimSpace(string(pid))).CombinedOutput(); err != nil {
+	if out, err := exec.Command("kill", "-KILL", strings.TrimSpace(string(pids))).CombinedOutput(); err != nil {
 		t.Fatalf("kill: %v %s", err, out)
 	}
 	// AGE counts from the crash, not from the report: from the second tmux
 	// dates the pane's death to, or from when hq first saw the end. The
-	// row's since says where it counts from however late the test looks;
-	// AGE itself grows with that wait (#73).
-	if r := h.waitState("a", "ended"); r.Since.Before(crashed.Truncate(time.Second)) || r.Last != "Done: say hi" {
+	// row's since is where it counts from, the same however late the test
+	// looks; AGE is that wait plus up to a second tmux drops (#73).
+	r := h.waitState("a", "ended")
+	if r.Since.Before(crashed.Truncate(time.Second)) || r.Since.After(time.Now()) || r.Last != "Done: say hi" {
 		t.Fatalf("crashed at %s, ended row %+v", crashed.UTC().Format(time.StampMilli), r)
 	}
 }
@@ -742,7 +749,7 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 	if !ok || session.SessionID == "" {
 		t.Fatalf("a's session: %+v", session)
 	}
-	pidsFile := os.Getenv("SBX_STUB_DIR") + "/pids-claude-app"
+	pidsFile := stubPids("claude-app")
 	oldPids, _ := os.ReadFile(pidsFile)
 
 	if code, out, errOut := h.run("sandbox", "restart", "app"); code != ExitUsage || !strings.Contains(errOut, "add -y") {

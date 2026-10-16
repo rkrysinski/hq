@@ -125,7 +125,7 @@ func TestParseTreatsUnknownOrBrokenEventsAsStarting(t *testing.T) {
 // its SessionEnd) leaves a report the hook wrote with what it got: the
 // header and the start of the payload, or none of it. Its last known
 // message is still the latest Stop's (#73).
-func TestParseKeepsTheLastMessageOfABrokenEvent(t *testing.T) {
+func TestParseKeepsTheLastStopsMessageBeyondAnUnreadableEvent(t *testing.T) {
 	stop := append([]byte("branch main\n"), fixture(t, "stop-done")...)
 	for _, latest := range []string{"branch main\n", "branch main\n" + `{"session_id":"fa4e`} {
 		r := Parse([]byte(latest), stop, nil)
