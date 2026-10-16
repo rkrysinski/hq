@@ -526,9 +526,12 @@ const Rewound = "Interrupted"
 // rewind the turn instead, with no line and no hook: the working agent's
 // screen is then at rest (state.AtRest), and once it has stayed so,
 // unchanged, for RestDelay, the turn is done with Rewound as its last
-// message, since hq first saw it at rest; not after a dialog of its hooks'
-// that the screen saw answered (recallAnswer), as Claude has acted on the
-// turn then, and the bare box closes no dialog of theirs (#70). The same
+// message, since hq first saw it at rest. Not once Claude has acted on the
+// turn, which no early Esc rewinds: a tool of its own ended (its hooks'
+// mark, #77), or a dialog of its hooks' the screen saw answered
+// (recallAnswer), whose bare box closes no dialog of theirs (#70). Then a
+// screen at rest ends the turn only at a tool the user cut short
+// (state.ToolCut), the Esc that prints no line in the sbx template. The same
 // goes for an agent at
 // its prompt that Claude owes a turn, for background work that finished
 // together with other work (state.Report.Owed): the turn comes at once, so
@@ -573,16 +576,15 @@ func (a *Agent) settle(screen string, now time.Time) record {
 		if a.State == state.NeedsInput {
 			return a.seeAnswer(screen, now)
 		}
-		// After a dialog Claude has acted on the turn, which only an early
-		// Esc rewinds: an answered agent's screen at rest is no rewind.
-		if a.State != state.Working || answered {
+		if a.State != state.Working {
 			return record{}
 		}
 		rest, again = state.AtRest(screen, a.prompt)
-		// Once Claude has acted on the turn no early Esc rewinds it, and a
+		// Once Claude has acted on the turn (a tool of its own ended, or a
+		// dialog of its hooks' was answered) no early Esc rewinds it, and a
 		// screen at work may still show no spinner (#77): only a tool the
 		// user cut short, which prints no line in the sbx template, ends it.
-		rest = rest && (!a.acted || state.ToolCut(screen))
+		rest = rest && (!a.acted && !answered || state.ToolCut(screen))
 	}
 	if !rest {
 		return record{}

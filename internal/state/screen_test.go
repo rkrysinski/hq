@@ -406,8 +406,9 @@ func TestASpinnerLikeLineOfAReplyIsNotClaudeAtWork(t *testing.T) {
 func TestToolCutSeesAToolTheUserCutShortWithEsc(t *testing.T) {
 	// The sbx template prints no Interrupted line for an Esc while a tool
 	// runs, only the turn's card, collapsed, its summary marked × (#77):
-	// the turn's first tool, and a later one after an earlier ended.
-	for _, name := range []string{"fs-esc-tool", "fs-esc-later-tool"} {
+	// the turn's first tool, and a later one after an earlier ended (also
+	// in an 80 column pane under hq).
+	for _, name := range []string{"fs-esc-tool", "fs-esc-later-tool", "fs-esc-later-tool-80"} {
 		if !ToolCut(screen(t, name)) {
 			t.Errorf("%s: not cut", name)
 		}

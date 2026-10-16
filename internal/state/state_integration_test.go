@@ -221,8 +221,9 @@ func TestAToolOfItsOwnThatEndedMarksTheTurnActedOnUntilTheNextTurn(t *testing.T)
 	acted := func(when string, want bool) {
 		t.Helper()
 		r, ok := Read(root, id)
-		if !ok || r.Acted != want {
-			t.Fatalf("%s: acted %v, want %v (%+v)", when, r.Acted, want, r)
+		_, err := os.Lstat(filepath.Join(Dir(root), id+actedSuffix))
+		if !ok || r.Acted != want || (err == nil) != want {
+			t.Fatalf("%s: acted %v, mark %v, want %v (%+v)", when, r.Acted, err == nil, want, r)
 		}
 	}
 	failed := bytes.Replace(toolEnd("Bash", "", `{"stdout":""}`), []byte(`"PostToolUse"`), []byte(`"PostToolUseFailure"`), 1)
@@ -246,6 +247,16 @@ func TestAToolOfItsOwnThatEndedMarksTheTurnActedOnUntilTheNextTurn(t *testing.T)
 	acted("its own tool failed", true)
 	fire(t, root, root, id, "stop", fixture(t, "stop-done"))
 	acted("stop", false)
+	// A turn that ends while a subagent runs: its wake-up is a turn of its
+	// own.
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	fire(t, root, root, id, "answer", toolEnd("Agent", "", launched("a2")))
+	acted("a subagent launched", true)
+	fire(t, root, root, id, "stop", turnEnd("Waiting.", "a2"))
+	if r, _ := Read(root, id); r.State != Working || !r.Background {
+		t.Fatalf("kept stop: %+v", r)
+	}
+	acted("a kept stop", false)
 	fire(t, root, root, id, "answer", toolEnd("Bash", "", `{"stdout":"x"}`))
 	fire(t, root, root, id, "start", fixture(t, "session-start"))
 	acted("a new session", false)

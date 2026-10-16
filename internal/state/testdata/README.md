@@ -89,6 +89,7 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | screen-fs-esc-after-tool | 2.1.301 | E | 100x30 | Esc while Claude thinks after a Bash command ended: `⎿  Interrupted · What should Claude do instead?` below the card | #77 |
 | screen-fs-tool-failed-working | 2.1.301 | E | 100x30 | a Bash command failed, the turn goes on: card open and marked `×`, spinner below | #77 |
 | screen-fs-tool-failed-done | 2.1.301 | E | 100x30 | that turn done: card collapsed and marked `×`, the reply in a card below it | #77 |
+| screen-fs-esc-later-tool-80 | 2.1.301 | E'' | 80x24 | Esc on a second Bash command after a first ended (the QA run of #77): `▸ 2 komendy · × · 12 s`, no line, bare box | #77 |
 | screen-fs-tool-running-80 | 2.1.301 | E'' | 80x24 | a long silent foreground Bash command with no description (the command #77's agent ran), 33 s in: spinner labelled with the command, no timer | #77 |
 
 "old #n": issues and PRs of an earlier tracker (before 2026-09-29), cited so in the design and the commits; today's tracker reuses those numbers for other issues.

@@ -1114,4 +1114,15 @@ func TestATurnClaudeHasActedOnEndsAtRestOnlyAtACutTool(t *testing.T) {
 			t.Fatalf("%s at rest: %+v", name, a)
 		}
 	}
+	// The same after a dialog of its hooks' the screen saw answered, before
+	// the dialog's tool ended.
+	rs["id1"] = state.Report{State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", LastStop: "Hi."}
+	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-esc-tool")}}
+	w.Options = lookWindow("1").Options
+	w.Options["answered"] = nanos(asked) + " " + nanos(now.Add(-time.Second))
+	look(s, now)
+	w.Options["restseen"] = s.options["@1"]["restseen"]
+	if a := look(s, now.Add(RestDelay)); a.State != state.Done || a.Last != Rewound || !a.Since.Equal(now) {
+		t.Fatalf("answered, then cut: %+v %v", a, s.options)
+	}
 }

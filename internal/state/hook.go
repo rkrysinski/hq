@@ -51,8 +51,9 @@ import (
 // answer it first marks that Claude has acted on the turn when the tool is
 // the agent's own (.acted, Report.Acted), and adds to .owe the background
 // work the tool started, if any (hookAwk); the mark lasts until the next
-// prompt, stop or session event, but a wake-up kept while the agent works
-// goes on with the same turn and leaves it.
+// prompt, stop (a kept one too) or session event, but a wake-up kept while
+// the agent works goes on with the same turn and leaves it, as does a stop
+// blocked to deliver messages.
 //
 // It also knows whether the turn is a supervised turn (spec §5, design
 // §3.5): one whose every prompt came from the supervisor, whose end
@@ -109,7 +110,7 @@ say() {
 case $1 in
 stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
     K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; k=$?; owe
-    [ $k = 0 ] && { put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f"; rm -f "$t"; exit 0; } ;;
+    [ $k = 0 ] && { rm -f "$f` + actedSuffix + `"; put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f"; rm -f "$t"; exit 0; } ;;
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
     if K=wake O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; then
         owe
@@ -119,9 +120,9 @@ prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","
         else rm -f "$f` + supervisedSuffix + `"; fi
         grep -v '^[!+]' "$f` + owedSuffix + `" >"$t.o"; owe
     fi ;;
-answer) grep -q '"agent_id"' "$t" || : >"$f` + actedSuffix + `"
+answer) o=; grep -q '"agent_id"' "$t" || { o=1; : >"$f` + actedSuffix + `"; }
     grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
-    grep -q '` + toolEndEvent + `' "$t" && ! grep -q '"agent_id"' "$t" && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
+    grep -q '` + toolEndEvent + `' "$t" && [ "$o" ] && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
     grep -q '` + dialogEvent + `' "$f" && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
 input) grep -q '` + dialogEvent + `' "$f" && { rm -f "$t"; exit 0; } ;;
 resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; }; rm -f "$t.p" ;;
