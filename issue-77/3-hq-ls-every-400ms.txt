@@ -1,0 +1,124 @@
+Esc sent 16:55:10.620
+state files just before Esc:
+0850ef550c34
+0850ef550c34.stop
+0000 16:54:58.616 qa77  app   master  done   1m   Interrupted
+0001 16:54:59.035 qa77  app   master  working  0s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0002 16:54:59.456 qa77  app   master  working  0s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0003 16:54:59.874 qa77  app   master  working  1s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0004 16:55:00.291 qa77  app   master  working  1s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0005 16:55:00.708 qa77  app   master  working  2s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0006 16:55:01.123 qa77  app   master  working  2s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0007 16:55:01.544 qa77  app   master  working  2s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0008 16:55:01.960 qa77  app   master  working  3s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0009 16:55:02.376 qa77  app   master  working  3s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0010 16:55:02.797 qa77  app   master  working  4s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0011 16:55:03.216 qa77  app   master  working  4s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0012 16:55:03.632 qa77  app   master  working  5s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0013 16:55:04.052 qa77  app   master  working  5s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0014 16:55:04.470 qa77  app   master  working  5s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0015 16:55:04.888 qa77  app   master  working  6s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0016 16:55:05.310 qa77  app   master  working  6s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0017 16:55:05.732 qa77  app   master  working  7s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0018 16:55:06.152 qa77  app   master  working  7s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0019 16:55:06.568 qa77  app   master  working  7s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0020 16:55:06.986 qa77  app   master  working  8s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0021 16:55:07.407 qa77  app   master  working  8s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0022 16:55:07.829 qa77  app   master  working  9s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0023 16:55:08.246 qa77  app   master  working  9s   I ran all three commands. 1. **`ls -la`**: the directory is…
+0024 16:55:08.664 qa77  app   master  working  10s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0025 16:55:09.081 qa77  app   master  working  10s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0026 16:55:09.499 qa77  app   master  working  10s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0027 16:55:09.916 qa77  app   master  working  11s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0028 16:55:10.342 qa77  app   master  working  11s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0029 16:55:10.761 qa77  app   master  working  12s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0030 16:55:11.191 qa77  app   master  working  12s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0031 16:55:11.615 qa77  app   master  working  13s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0032 16:55:12.034 qa77  app   master  working  13s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0033 16:55:12.466 qa77  app   master  working  13s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0034 16:55:12.883 qa77  app   master  working  14s  I ran all three commands. 1. **`ls -la`**: the directory is…
+0035 16:55:13.300 qa77  app   master  done   2s   Interrupted
+0036 16:55:13.724 qa77  app   master  done   2s   Interrupted
+0037 16:55:14.147 qa77  app   master  done   2s   Interrupted
+0038 16:55:14.564 qa77  app   master  done   3s   Interrupted
+0039 16:55:14.984 qa77  app   master  done   3s   Interrupted
+0040 16:55:15.406 qa77  app   master  done   4s   Interrupted
+0041 16:55:15.828 qa77  app   master  done   4s   Interrupted
+0042 16:55:16.252 qa77  app   master  done   5s   Interrupted
+0043 16:55:16.669 qa77  app   master  done   5s   Interrupted
+0044 16:55:17.097 qa77  app   master  done   5s   Interrupted
+0045 16:55:17.527 qa77  app   master  done   6s   Interrupted
+0046 16:55:17.952 qa77  app   master  done   6s   Interrupted
+0047 16:55:18.373 qa77  app   master  done   7s   Interrupted
+0048 16:55:18.792 qa77  app   master  done   7s   Interrupted
+0049 16:55:19.213 qa77  app   master  done   8s   Interrupted
+0050 16:55:19.633 qa77  app   master  done   8s   Interrupted
+0051 16:55:20.051 qa77  app   master  done   8s   Interrupted
+0052 16:55:20.472 qa77  app   master  done   9s   Interrupted
+0053 16:55:20.888 qa77  app   master  done   9s   Interrupted
+0054 16:55:21.308 qa77  app   master  done   10s  Interrupted
+0055 16:55:21.728 qa77  app   master  done   10s  Interrupted
+0056 16:55:22.156 qa77  app   master  done   10s  Interrupted
+0057 16:55:22.586 qa77  app   master  done   11s  Interrupted
+0058 16:55:23.010 qa77  app   master  done   11s  Interrupted
+0059 16:55:23.447 qa77  app   master  done   12s  Interrupted
+0060 16:55:23.865 qa77  app   master  done   12s  Interrupted
+0061 16:55:24.285 qa77  app   master  done   13s  Interrupted
+0062 16:55:24.707 qa77  app   master  done   13s  Interrupted
+0063 16:55:25.132 qa77  app   master  done   13s  Interrupted
+0064 16:55:25.554 qa77  app   master  done   14s  Interrupted
+0065 16:55:25.973 qa77  app   master  done   14s  Interrupted
+0066 16:55:26.396 qa77  app   master  done   15s  Interrupted
+0067 16:55:26.815 qa77  app   master  done   15s  Interrupted
+0068 16:55:27.236 qa77  app   master  done   16s  Interrupted
+0069 16:55:27.662 qa77  app   master  done   16s  Interrupted
+0070 16:55:28.080 qa77  app   master  done   16s  Interrupted
+0071 16:55:28.500 qa77  app   master  done   17s  Interrupted
+0072 16:55:28.917 qa77  app   master  done   17s  Interrupted
+0073 16:55:29.332 qa77  app   master  done   18s  Interrupted
+0074 16:55:29.754 qa77  app   master  done   18s  Interrupted
+0075 16:55:30.182 qa77  app   master  done   18s  Interrupted
+0076 16:55:30.599 qa77  app   master  done   19s  Interrupted
+0077 16:55:31.023 qa77  app   master  done   19s  Interrupted
+0078 16:55:31.463 qa77  app   master  done   20s  Interrupted
+0079 16:55:31.884 qa77  app   master  done   20s  Interrupted
+0080 16:55:32.306 qa77  app   master  done   21s  Interrupted
+0081 16:55:32.730 qa77  app   master  done   21s  Interrupted
+0082 16:55:33.148 qa77  app   master  done   21s  Interrupted
+0083 16:55:33.565 qa77  app   master  done   22s  Interrupted
+0084 16:55:33.989 qa77  app   master  done   22s  Interrupted
+0085 16:55:34.405 qa77  app   master  done   23s  Interrupted
+0086 16:55:34.831 qa77  app   master  done   23s  Interrupted
+0087 16:55:35.259 qa77  app   master  done   24s  Interrupted
+0088 16:55:35.682 qa77  app   master  done   24s  Interrupted
+0089 16:55:36.106 qa77  app   master  done   24s  Interrupted
+0090 16:55:36.529 qa77  app   master  done   25s  Interrupted
+0091 16:55:36.970 qa77  app   master  done   25s  Interrupted
+0092 16:55:37.392 qa77  app   master  done   26s  Interrupted
+0093 16:55:37.814 qa77  app   master  done   26s  Interrupted
+0094 16:55:38.243 qa77  app   master  done   27s  Interrupted
+0095 16:55:38.660 qa77  app   master  done   27s  Interrupted
+0096 16:55:39.086 qa77  app   master  done   27s  Interrupted
+0097 16:55:39.505 qa77  app   master  done   28s  Interrupted
+0098 16:55:39.924 qa77  app   master  done   28s  Interrupted
+0099 16:55:40.344 qa77  app   master  done   29s  Interrupted
+0100 16:55:40.767 qa77  app   master  done   29s  Interrupted
+0101 16:55:41.186 qa77  app   master  done   29s  Interrupted
+0102 16:55:41.606 qa77  app   master  done   30s  Interrupted
+0103 16:55:42.025 qa77  app   master  done   30s  Interrupted
+0104 16:55:42.445 qa77  app   master  done   31s  Interrupted
+0105 16:55:42.862 qa77  app   master  done   31s  Interrupted
+0106 16:55:43.294 qa77  app   master  done   32s  Interrupted
+0107 16:55:43.715 qa77  app   master  done   32s  Interrupted
+0108 16:55:44.133 qa77  app   master  done   32s  Interrupted
+0109 16:55:44.551 qa77  app   master  done   33s  Interrupted
+0110 16:55:44.973 qa77  app   master  done   33s  Interrupted
+0111 16:55:45.398 qa77  app   master  done   34s  Interrupted
+0112 16:55:45.835 qa77  app   master  done   34s  Interrupted
+0113 16:55:46.257 qa77  app   master  done   35s  Interrupted
+0114 16:55:46.678 qa77  app   master  done   35s  Interrupted
+0115 16:55:47.098 qa77  app   master  done   35s  Interrupted
+0116 16:55:47.526 qa77  app   master  done   36s  Interrupted
+0117 16:55:47.944 qa77  app   master  done   36s  Interrupted
+0118 16:55:48.361 qa77  app   master  done   37s  Interrupted
+0119 16:55:48.779 qa77  app   master  done   37s  Interrupted
