@@ -659,7 +659,9 @@ func (a *Agent) recallDialog() {
 // pane, whose footer drops Esc to interrupt. A subagent's dialog closes by
 // its hooks only. The moment is kept on the agent's window, keyed by the
 // report, so a later look at a screen that tells nothing keeps it working
-// (recallAnswer): the record to store as the answered option.
+// (recallAnswer): the record to store as the answered option. Like every
+// first-wins record it holds the moment hq first saw it, "REPORT NANOS",
+// which says which look saw it first; the agent's time is the report's.
 func (a *Agent) seeAnswer(screen string, now time.Time) record {
 	if !a.atHooksDialog() || !state.AtWork(screen) {
 		return record{}
@@ -673,7 +675,7 @@ func (a *Agent) seeAnswer(screen string, now time.Time) record {
 // agent's hooks reported, during its current report (seeAnswer): it works,
 // since that report, with its turn's last message.
 func (a *Agent) recallAnswer() bool {
-	if !a.atHooksDialog() || !strings.HasPrefix(a.answered, a.key()+" ") {
+	if _, _, ok := recorded(a.answered, a.key()); !ok || !a.atHooksDialog() {
 		return false
 	}
 	a.worksOn()
@@ -726,19 +728,23 @@ func seenAt(stored, key, fp string) (time.Time, bool) {
 	return at, ok && got == fp
 }
 
-// recorded reads the stored record of a screen hq first saw during the
-// report key, "REPORT FINGERPRINT NANOS": the fingerprint and the moment.
-// A record closed since ("REPORT -"), or of another report, is none.
+// recorded reads the stored record of what hq first saw on a screen during
+// the report key, "REPORT [FINGERPRINT] NANOS": the screen's fingerprint,
+// "" for a record without one, and the moment. A record closed since
+// ("REPORT -"), or of another report, is none.
 func recorded(stored, key string) (fp string, at time.Time, ok bool) {
 	f := strings.Fields(stored)
-	if len(f) != 3 || f[0] != key {
+	if len(f) < 2 || len(f) > 3 || f[0] != key {
 		return "", time.Time{}, false
 	}
-	n, err := strconv.ParseInt(f[2], 10, 64)
+	n, err := strconv.ParseInt(f[len(f)-1], 10, 64)
 	if err != nil {
 		return "", time.Time{}, false
 	}
-	return f[1], time.Unix(0, n), true
+	if len(f) == 3 {
+		fp = f[1]
+	}
+	return fp, time.Unix(0, n), true
 }
 
 // fingerprint tells screens apart without keeping them.
