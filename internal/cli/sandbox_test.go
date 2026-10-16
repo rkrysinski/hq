@@ -278,10 +278,7 @@ func TestARelaunchedAgentsEndCountsFromItsPanesDeathNotFromTheRestart(t *testing
 	// sees (#104).
 	f.tmux.onSet = func(string, string) {
 		read := func(_, id string) (state.Report, bool) { r, ok := f.states[id]; return r, ok }
-		as := agent.Collect(f.tmux.windows, read, agent.Sandboxes{})
-		for i := range as {
-			keep(f.deps(), &as[i], as[i].SeeEnd(f.now))
-		}
+		agent.Look(f.tmux.windows, read, agent.Sandboxes{}, f.now, f.tmux)
 	}
 	if code, _, errOut := f.run("sandbox", "restart", "app", "-y"); code != 0 {
 		t.Fatalf("exit %d %q", code, errOut)

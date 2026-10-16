@@ -116,9 +116,9 @@ func look(d deps) ([]agent.Agent, error) {
 	return as, nil
 }
 
-// collect gathers the agents with their state from tmux, the state files and
-// sbx (design §5.1). When sbx fails or does not answer in time, the states
-// come from tmux and the hooks alone.
+// collect gathers the agents with their state from tmux, the state files,
+// sbx and their screens (design §5.1, agent.Look). When sbx fails or does
+// not answer in time, the states come from tmux and the hooks alone.
 func collect(d deps) ([]agent.Agent, error) {
 	return collectWith(d, runningSandboxes(d))
 }
@@ -130,7 +130,7 @@ func collectWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
 	if err != nil {
 		return nil, tmuxErr(err)
 	}
-	return seeEnds(d, settle(d, agent.Collect(ws, d.readState, running))), nil
+	return agent.Look(ws, d.readState, running, d.now(), d.tmux), nil
 }
 
 // runningSandboxes asks sbx which sandboxes run, noting when it asked; the
@@ -150,50 +150,6 @@ func runningSandboxes(d deps) agent.Sandboxes {
 	return agent.Sandboxes{Running: running, Asked: asked}
 }
 
-// settle looks at the screens of agents whose turn the user may have ended,
-// or that wait at their prompt, for what no hook reports, and records when
-// hq first saw it on their windows (design §3.4): the turn's end, the
-// screen at rest of a turn the user may have rewound, or a dialog of
-// Claude's own. When tmux cannot show the screens, the hooks' states
-// stand.
-func settle(d deps, as []agent.Agent) []agent.Agent {
-	now := d.now()
-	var panes []string
-	for i := range as {
-		if as[i].Unsettled(now) {
-			// A turn end hq saw stands without the screen; the screen may
-			// still show a dialog of Claude's own over it (#66).
-			as[i].Recall()
-			panes = append(panes, as[i].Pane)
-		}
-	}
-	if len(panes) == 0 {
-		return as
-	}
-	screens, err := d.tmux.Screens(panes)
-	if err != nil {
-		return as
-	}
-	for i := range as {
-		if s, ok := screens[as[i].Pane]; ok && as[i].Unsettled(now) {
-			keep(d, &as[i], as[i].Settle(s, now))
-		}
-	}
-	return as
-}
-
-// keep stores what hq saw on the agent's window, unless another hq process
-// stored its record of the same thing first, which the agent then shows,
-// so that every process shows the same moment (design §3.4).
-func keep(d deps, a *agent.Agent, r agent.Record) {
-	if r.Value == "" {
-		return
-	}
-	if stored, err := d.tmux.KeepFirst(a.Window, r.Option, r.Key, r.Value); err == nil {
-		a.Keep(r, stored)
-	}
-}
-
 // resting reports whether a working agent's screen is at rest in a way one
 // more look decides (agent.Resting), not yet for long enough.
 func resting(as []agent.Agent) bool {
@@ -203,18 +159,6 @@ func resting(as []agent.Agent) bool {
 		}
 	}
 	return false
-}
-
-// seeEnds records on their windows when hq first saw ended the agents
-// whose end nothing else dates, and when Claude woke those whose turn the
-// user had ended (design §3.4), so hq ls and the list agree.
-func seeEnds(d deps, as []agent.Agent) []agent.Agent {
-	now := d.now()
-	for i := range as {
-		keep(d, &as[i], as[i].SeeEnd(now))
-		keep(d, &as[i], as[i].SeeWake())
-	}
-	return as
 }
 
 // lastWidth is how much of the last message hq ls shows; --json has it all.
