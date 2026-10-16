@@ -1,0 +1,30 @@
+
+ ▐▛███▛█   Claude Code v2.1.301
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   /…/a41f9452-666c-4138-8314-b0e3a20745cb/scratchpad/cap70-work
+
+
+❯ Use your AskUserQuestion tool to ask me to pick red or blue, then reply with my choice. Do not
+  edit any files.
+    × Pytam Cię                                                     ━━━━━━━━━━━━━━━━━━━━       19 s
+
+● User declined to answer questions
+  ⎿  · Which do you pick: red or blue? (Red / Blue)
+
+
+
+
+
+
+
+
+
+
+* Garnishing… (4s · ↓ 115 tokens)
+                                                                                  ● high · /effort
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▐–◡–▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5h ▕▍░░░░░░░░░░░▏ 3% …
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+                                                                                       ◆ Tools ▾

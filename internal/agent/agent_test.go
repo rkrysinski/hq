@@ -891,6 +891,8 @@ func TestSettleSeesClaudesDialogAfterAQuestionAndATurnTheUserEnded(t *testing.T)
 	}
 }
 
+// Its screen is read only for a dialog of Claude's own (#70): at rest at
+// its prompt it is no turn end.
 func TestAnAgentWaitingForItsSubagentsWorksAtItsPromptAndItsScreenIsNotRead(t *testing.T) {
 	// Claude at its prompt, at rest, after a turn that ended by itself: the
 	// look of a rewind.
@@ -901,8 +903,13 @@ func TestAnAgentWaitingForItsSubagentsWorksAtItsPromptAndItsScreenIsNotRead(t *t
 	r := state.Report{State: state.Working, Since: prompted, Latest: ended, Background: true, Last: "Started.", Prompt: "run the tests"}
 	a := FromWindows([]tmux.Window{w})[0]
 	a.Apply(r, true)
-	if !a.OnBackgroundWork() || a.unsettled(ended.Add(time.Minute)) {
-		t.Fatalf("waiting %v, unsettled %v", a.OnBackgroundWork(), a.unsettled(ended.Add(time.Minute)))
+	if !a.OnBackgroundWork() {
+		t.Fatalf("waiting %v", a.OnBackgroundWork())
+	}
+	for _, at := range []time.Time{ended.Add(time.Minute), ended.Add(time.Hour)} {
+		if rec := a.settle(atRest, at); rec.Value != "" || !a.OnBackgroundWork() {
+			t.Fatalf("at rest: %+v %+v", rec, a)
+		}
 	}
 	// Working since the user's prompt, with the turn's message.
 	if a.State != state.Working || !a.Since.Equal(prompted) || a.Last != "Started." || !a.Entered().Equal(prompted) {

@@ -67,3 +67,7 @@ _Avoid_: silent turn, supervised agent, muted turn
 **Look**:
 One reading of every agent's state at a moment: what its hooks report, what sbx says of its sandbox, and what its screen shows that no hook reports, with the moments hq saw first kept on the agents' windows so that every hq process reads the same. `hq ls`, `hq read`, `hq wait`, `hq send`, the list and the chords each take a look; a screen at rest may need a second one.
 _Avoid_: collection, refresh, poll, settling
+
+**Dialog verdict**:
+Whether an agent is at a dialog, whose (the one its hooks reported, Claude's own, or a subagent's), since when, and what it asks, decided in one place from what the look saw; the agent needs input exactly while it is at one. The hooks open it; the agent's screen may close it only on clear evidence (Claude at work), and opens only Claude's own.
+_Avoid_: dialog state, open dialog flag, needs-input check

@@ -45,7 +45,10 @@ type Agent struct {
 	owed       bool       // at its prompt with nothing running: Claude owes it a turn (see settle)
 	woken      bool       // it works on a turn Claude woke itself for (see settle)
 	ownAsk     *state.Ask // the dialog Claude shows of its own on its screen, if any (see settle)
+	ownDialog  bool       // it is at a dialog of Claude's own: ownAsk, or one recorded on its window (see recallDialog)
 	subDialog  bool       // the dialog its hooks reported is one of its subagents' (see Dialog)
+	answered   string     // when hq first saw Claude at work after the dialog its hooks reported (see settle)
+	said       string     // its latest turn's last message, while a dialog's text stands in for it
 	dialogSeen string     // when hq first saw that dialog, as it read (see settle)
 	started    string     // the start as stored, which keys endSeen
 	reportAt   time.Time  // the time of its session's last report; zero before its first
@@ -115,7 +118,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if o["id"] == "" {
 			continue
 		}
-		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], restSeen: o["restseen"], dialogSeen: o["dialogseen"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting,
+		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], restSeen: o["restseen"], dialogSeen: o["dialogseen"], answered: o["answered"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting,
 			deadAt: w.DeadAt, started: o["started"], endSeen: o["endseen"], wokeSeen: o["wokeseen"]}
 		if a.Name == "" {
 			a.Name = w.Name
@@ -323,6 +326,8 @@ func (a *Agent) keep(r record, stored string) {
 		a.recallFor(strings.TrimSuffix(r.Key, " "))
 	case "restseen":
 		a.restSeen = stored
+	case "answered":
+		a.answered = stored
 	case "dialogseen":
 		a.dialogSeen = stored
 		if at, ok := a.dialogSeenAt(a.ownLook()); ok {
@@ -362,7 +367,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		a.reportAt = r.Latest
 	}
 	a.atPrompt, a.owed, a.woken = r.Background, r.Background && r.Owed, r.Woken
-	a.subDialog = r.SubagentDialog
+	a.subDialog, a.said = r.SubagentDialog, r.Said
 	if r.State == state.Ended {
 		a.endedAt = r.Since
 	}
@@ -431,16 +436,18 @@ const settleDelay = 500 * time.Millisecond
 
 // unsettled reports whether the agent's screen may show what no hook
 // reports (design §3.4): the agent runs, and its hooks said a moment ago
-// that it works or needs input, so the user may have ended its turn; or
-// that it waits at its prompt, done or with a question, where Claude may
-// show a dialog of its own (settle). An agent whose turn
-// ended with background work running (OnBackgroundWork) is not: its hooks reported
-// that end, and it rests at its prompt, as after a rewind, until Claude
-// wakes it. Unless none of that work runs any more and Claude only owes
-// the agent a turn for it: that turn comes within moments, or never, which
-// the screen tells (settle).
+// that it works, so the user may have ended its turn; or that it needs
+// input, so the user may have ended its turn or answered a dialog no hook
+// reports the end of; or that it waits at its prompt, done, with a
+// question, or working only on background work (OnBackgroundWork), where
+// Claude may show a dialog of its own (settle). An agent at its prompt
+// with background work running rests there, as after a rewind, until
+// Claude wakes it, so only a dialog of Claude's own is read off its screen;
+// unless none of that work runs any more and Claude only owes the agent a
+// turn for it: that turn comes within moments, or never, which the screen
+// tells (settle).
 func (a Agent) unsettled(now time.Time) bool {
-	return a.Alive && !a.ending && a.reported && (!a.atPrompt || a.owed) && a.State != state.Starting && a.State != state.Ended && now.Sub(a.reportAt) >= settleDelay
+	return a.Alive && !a.ending && a.reported && a.State != state.Starting && a.State != state.Ended && now.Sub(a.reportAt) >= settleDelay
 }
 
 // OnBackgroundWork reports whether the agent works only on background work
@@ -500,8 +507,10 @@ const ownLast = "="
 // that put the prompt back in the box, which Claude reports nowhere.
 const Rewound = "Interrupted"
 
-// settle applies the screen of an unsettled agent: a turn the user ended
-// is done, since hq first saw it. Claude prints a line for most such turns
+// settle applies the screen of an unsettled agent: a dialog its hooks
+// reported, of its own and not a subagent's, closes when the screen shows
+// Claude at work (seeAnswer); a turn the user ended is done, since hq first
+// saw it. Claude prints a line for most such turns
 // (state.EndedByUser), whose last message it shows. An early Esc may
 // rewind the turn instead, with no line and no hook: the working agent's
 // screen is then at rest (state.AtRest), and once it has stayed so,
@@ -515,12 +524,15 @@ const Rewound = "Interrupted"
 // agree (see recall): the record to store there, as the turnend or the
 // restseen option, with no Value when there is nothing new to store. An
 // agent at its prompt, done or with a question, by its hooks or by a turn
-// end hq saw, may show a dialog of Claude's own instead (seeDialog).
+// end hq saw, or working only on background work, may show a dialog of
+// Claude's own instead (seeDialog); nothing else on the screen of an agent
+// on background work counts.
 func (a *Agent) settle(screen string, now time.Time) record {
 	a.resting = false
-	if a.recall() || a.State == state.Done || a.State == state.Question {
+	if a.recall() || a.State == state.Done || a.State == state.Question || a.atPrompt && !a.owed {
 		return a.seeDialog(screen, now)
 	}
+	a.recallAnswer()
 	key := a.key() + " "
 	// What the record says of the turn's last message, and what it is.
 	mark, last := Rewound, Rewound
@@ -544,6 +556,9 @@ func (a *Agent) settle(screen string, now time.Time) record {
 		if said, ok := ended(screen); ok && !rewound {
 			a.State, a.Since, a.Last = state.Done, now, said
 			return record{"turnend", key, key + nanos(now) + " " + said}
+		}
+		if a.State == state.NeedsInput {
+			return a.seeAnswer(screen, now)
 		}
 		if a.State != state.Working {
 			return record{}
@@ -587,7 +602,7 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 		}
 		return record{}
 	}
-	a.State, a.ownAsk, a.Last = state.NeedsInput, ask, ask.Questions[0].Question
+	a.State, a.ownAsk, a.ownDialog, a.Last = state.NeedsInput, ask, true, ask.Questions[0].Question
 	look := a.ownLook()
 	if at, ok := a.dialogSeenAt(look); ok {
 		a.Since = at
@@ -595,6 +610,54 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 	}
 	a.Since = now
 	return record{"dialogseen", key + look + " ", key + look + " " + nanos(now)}
+}
+
+// recallDialog applies, for a look that cannot see the agent's screen, a
+// dialog of Claude's own that hq saw open there during its current report,
+// as recorded on its window, at an agent that waits at its prompt: it
+// needs input since hq first saw the dialog, rather than dropping back to
+// its hooks' state for a refresh. What the dialog asks is not recorded.
+func (a *Agent) recallDialog() {
+	f := strings.Fields(a.dialogSeen)
+	if len(f) != 3 || f[0] != a.key() || !(a.State == state.Done || a.State == state.Question || a.OnBackgroundWork()) {
+		return
+	}
+	n, err := strconv.ParseInt(f[2], 10, 64)
+	if err != nil {
+		return
+	}
+	a.State, a.Since, a.ownDialog = state.NeedsInput, time.Unix(0, n), true
+}
+
+// seeAnswer applies the screen of an agent at a dialog its hooks reported:
+// Claude at work there (state.AtWork) says the dialog was answered, as an
+// MCP elicitation's answer, which no hook reports, or a tool's end Claude
+// reports only when it ends (#70). The agent then works, since the
+// dialog's report, with its turn's last message, as after a dialog its
+// hooks saw answered. Anything else keeps the dialog open: the dialog
+// itself, the prompt box, which a reply streaming shows too, and a narrow
+// pane, whose footer drops Esc to interrupt. A subagent's dialog closes by
+// its hooks only. The moment is kept on the agent's window, keyed by the
+// report, so a later look at a screen that tells nothing keeps it working
+// (recallAnswer): the record to store as the answered option.
+func (a *Agent) seeAnswer(screen string, now time.Time) record {
+	if a.subDialog || !state.AtWork(screen) {
+		return record{}
+	}
+	a.State, a.Last = state.Working, a.said
+	key := a.key() + " "
+	return record{"answered", key, key + nanos(now)}
+}
+
+// recallAnswer applies Claude at work that hq saw after the dialog the
+// agent's hooks reported, during its current report (seeAnswer): it works,
+// since that report, with its turn's last message.
+func (a *Agent) recallAnswer() bool {
+	if a.State != state.NeedsInput || a.subDialog || !strings.HasPrefix(a.answered, a.key()+" ") {
+		return false
+	}
+	a.State, a.Last = state.Working, a.said
+	return true
 }
 
 // ownLook names the dialog Claude shows of its own on the agent's screen

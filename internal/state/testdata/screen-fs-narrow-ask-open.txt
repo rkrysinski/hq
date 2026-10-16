@@ -1,0 +1,30 @@
+╭─────────────────────────────────────╮
+│ ● Claude                            │
+│ You picked blue. The subagent       │
+│ didn't have AskUserQuestion, so it  │
+│ fell back to ask_color, and you     │
+│ chose blue in that form.            │
+╰─────────────────────────────────────╯
+
+✻ Cogitated for 43s · done 10:19 AM
+
+❯ Use your AskUserQuestion tool to ask
+  me to pick red or blue, then reply
+  with my choice.
+   ✓ Pytam … ━━━━━━━━━━━━━━━━━━━  0,0 s
+             ━
+────────────────────────────────────────
+ ☐ Color
+
+Which color do you pick?
+
+❯ 1. Red
+     Pick red
+  2. Blue
+     Pick blue
+  3. Type something.
+────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc
+to cancel

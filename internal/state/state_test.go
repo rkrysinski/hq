@@ -368,3 +368,21 @@ func TestADialogASubagentOpensIsTheSubagents(t *testing.T) {
 		t.Errorf("a subagent's tool end: %+v", r)
 	}
 }
+
+// A dialog's text stands in for the last message while it is open; the
+// report keeps the latest Stop's message beside it, which shows again once
+// the dialog is answered and Claude works on (#70).
+func TestADialogKeepsTheLatestStopsMessageBesideItsText(t *testing.T) {
+	stop := fixture(t, "stop-done")
+	for _, name := range []string{"dialog-ask", "dialog-bash", "notification", "prompt"} {
+		if r := Parse(fixture(t, name), stop, nil); r.Said != "Hi. The tests pass and PR #58 is open." {
+			t.Errorf("%s: said %q", name, r.Said)
+		}
+	}
+	if r := Parse(fixture(t, "stop-question"), stop, nil); r.Said != r.Last || r.Said != "Should I also update the README?" {
+		t.Errorf("a Stop: said %q, last %q", r.Said, r.Last)
+	}
+	if r := Parse(fixture(t, "dialog-ask"), nil, nil); r.Said != "" {
+		t.Errorf("no Stop yet: said %q", r.Said)
+	}
+}

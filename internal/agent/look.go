@@ -29,8 +29,9 @@ type Store interface {
 // same moment; a record another process stored first is the one applied.
 //
 // It never fails. When the capture fails, the hooks' states stand, and a
-// turn end hq saw earlier still applies; when a record cannot be written,
-// it is not applied, and the agent shows what this look saw.
+// turn end, a dialog answered or a dialog of Claude's own hq saw earlier
+// still applies; when a record cannot be written, it is not applied, and
+// the agent shows what this look saw.
 //
 // One look may not be enough: an agent Resting needs one more, RestDelay
 // later, which is the caller's to take.
@@ -51,8 +52,11 @@ func settleScreens(as []Agent, now time.Time, store Store) {
 	for i := range as {
 		if as[i].unsettled(now) {
 			// A turn end hq saw stands without the screen; the screen may
-			// still show a dialog of Claude's own over it (#66).
-			as[i].recall()
+			// still show a dialog of Claude's own over it (#66). So does a
+			// dialog of the hooks' hq saw answered.
+			if !as[i].recall() {
+				as[i].recallAnswer()
+			}
 			panes = append(panes, as[i].Pane)
 		}
 	}
@@ -61,6 +65,12 @@ func settleScreens(as []Agent, now time.Time, store Store) {
 	}
 	screens, err := store.Screens(panes)
 	if err != nil {
+		// A dialog of Claude's own hq saw open stands too.
+		for i := range as {
+			if as[i].unsettled(now) {
+				as[i].recallDialog()
+			}
+		}
 		return
 	}
 	for i := range as {

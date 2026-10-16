@@ -390,3 +390,61 @@ func TestADialogAfterATurnTheUserEndedNeedsInput(t *testing.T) {
 		t.Fatalf("answered: exit %d\n%s", code, out)
 	}
 }
+
+// A dialog the hooks reported, as an MCP elicitation reported only by
+// Claude's Notification, is closed by the screen once it shows Claude at
+// work: hq read shows no question any more, and hq send no longer holds
+// the message for a dialog (#70).
+func TestCommandsTakeADialogTheScreenClosedForGone(t *testing.T) {
+	f := readFakes()
+	f.states["id-42"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Minute), Last: "MCP server “elicit” requests your input", Said: "On it."}
+	f.details["id-42"] = state.Detail{Reply: "On it.", Ask: &state.Ask{Message: "MCP server “elicit” requests your input"}}
+	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.tmux.windows[1].Pane = "%4"
+	rule := strings.Repeat("─", 40)
+	box := rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
+	// Open, the form on the screen: the question shows, the message waits.
+	f.tmux.screens = map[string]string{"%4": "● On it.\n" + rule + "\n MCP server “elicit” requests your input\n\n Which colour?\n\n ❯ Colour: red\n   Accept\n   Decline\n"}
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 1m\n") || !strings.Contains(out, "\nasks\n  MCP server “elicit” requests your input\n") {
+		t.Fatalf("open:\n%s", out)
+	}
+	if _, out, _ := f.run("send", "42", "hi"); out != "queued: 42 needs input, delivered once its dialog is closed, when it stops\n" {
+		t.Fatalf("send open: %q", out)
+	}
+	// Answered, the tool at work under its spinner.
+	f.tmux.screens["%4"] = "● On it.\n· elicit: ask_color… (5s · ↓ 86 tokens)\n" + box
+	_, out, _ := f.run("read", "42")
+	if !strings.Contains(out, "state     working 1m\n") || strings.Contains(out, "\nasks\n") || strings.Contains(out, "\nlast ") {
+		t.Fatalf("answered:\n%s", out)
+	}
+	var v readView
+	if _, out, _ := f.run("read", "42", "--json"); json.Unmarshal([]byte(out), &v) != nil || v.Asks != nil || v.State != state.Working || v.Last != "On it." {
+		t.Fatalf("answered, json:\n%s", out)
+	}
+	if _, out, _ := f.run("send", "42", "hi"); out != "queued: 42 is working, delivered when it stops\n" {
+		t.Fatalf("send answered: %q", out)
+	}
+	// The reply streams, which shows no spinner: still working.
+	f.tmux.screens["%4"] = "● On it.\n● Red it is.\n" + box
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     working 1m\n") || strings.Contains(out, "\nasks\n") {
+		t.Fatalf("streaming:\n%s", out)
+	}
+}
+
+// A dialog of Claude's own opened at an agent working only on background
+// work, as /model, needs input: hq read shows what it asks and hq send
+// says the message waits for it (#70).
+func TestCommandsSeeClaudesDialogOnBackgroundWork(t *testing.T) {
+	f := readFakes()
+	f.states["id-42"] = state.Report{State: state.Working, Since: f.now.Add(-time.Hour), Latest: f.now.Add(-time.Minute), Background: true, Last: "It started."}
+	f.details["id-42"] = state.Detail{Reply: "It started."}
+	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.tmux.windows[1].Pane = "%4"
+	f.tmux.screens = map[string]string{"%4": "● It started.\n✻ Waiting for 1 background agent to finish\n" + strings.Repeat("▔", 40) + "\n   Select model\n   Switch between Claude models.\n\n   ❯ 1. Default (recommended)\n     2. Opus 5.5\n"}
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 0s\n") || !strings.Contains(out, "\nasks\n  Select model\n    1. Default (recommended)\n    2. Opus 5.5\n") {
+		t.Fatalf("read:\n%s", out)
+	}
+	if _, out, _ := f.run("send", "42", "hi"); out != "queued: 42 waits at a dialog of Claude's own; once it is answered there (hq go 42), delivered with its next prompt\n" {
+		t.Fatalf("send: %q", out)
+	}
+}

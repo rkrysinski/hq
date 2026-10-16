@@ -135,10 +135,13 @@ func PutBack(screen, reported string) bool {
 	return false
 }
 
-// spinner is the line Claude Code 2.1.283 animates above its prompt box
-// while a turn is at work, e.g. "✶ Brewing… (14s · ↓ 129 tokens)"; the
-// line a finished turn leaves there has no ellipsis ("✻ Baked for 2s").
-var spinner = regexp.MustCompile(`^[·✢✳✶✻✽*] \S+…`)
+// spinner is the line Claude Code animates above its prompt box while a
+// turn is at work, e.g. "✶ Brewing… (14s · ↓ 129 tokens)" (2.1.283), or,
+// while a tool runs, its description, "· elicit: ask_color… (5s ·
+// ↓ 86 tokens)" (2.1.301); the line a finished turn leaves there ("✻ Baked
+// for 2s"), and a main agent waiting ("✻ Waiting for 1 background agent
+// to finish"), have no ellipsis.
+var spinner = regexp.MustCompile(`^[·✢✳✶✻✽*] .*…`)
 
 // box is Claude's prompt box found at the bottom of a screen: the screen's
 // lines, spaces collapsed, and the lines of its upper and lower rules.
@@ -147,11 +150,31 @@ type box struct {
 	upper, lower int
 }
 
+// AtWork reports whether the screen of an agent's pane shows Claude at
+// work: the footer below its prompt box offers Esc to interrupt (Claude
+// Code 2.1.283), or its spinner shows above the box since the user's last
+// prompt, with any label (2.1.301 in a sandbox drops the footer's hint;
+// #70). A dialog shows neither. Neither does every turn at work: a reply
+// streaming shows no spinner in 2.1.301, and a narrow pane drops the
+// footer's hint, so a screen that is not at work says nothing for sure.
+func AtWork(screen string) bool {
+	b, ok, esc := findBox(screen)
+	return esc || ok && b.spinning()
+}
+
 // promptBox finds Claude's prompt box at the bottom of a screen with a
 // footer that does not offer Esc to interrupt: a rule, the input line
 // starting with ❯ (and its continuation lines), a rule, then only the
 // footer, and below it the list of agents while subagents run.
 func promptBox(screen string) (box, bool) {
+	b, ok, esc := findBox(screen)
+	return b, ok && !esc
+}
+
+// findBox finds Claude's prompt box at the bottom of a screen as promptBox
+// does, whatever its footer, and reports whether the footer below its lower
+// rule offers Esc to interrupt (esc).
+func findBox(screen string) (b box, ok, esc bool) {
 	// Claude puts a no-break space after its bullets; its indents vary.
 	lines := strings.Split(strings.ReplaceAll(screen, "\u00a0", " "), "\n")
 	for i := range lines {
@@ -173,9 +196,11 @@ func promptBox(screen string) (box, bool) {
 			footer++
 		}
 	}
-	for _, l := range lines[max(lower, 0):] {
-		if strings.Contains(l, working) {
-			return box{}, false
+	// Only a footer offers Esc to interrupt: with no rule below which it
+	// could be, there is no box either.
+	for i := lower; i >= 0 && i < len(lines); i++ {
+		if strings.Contains(lines[i], working) {
+			esc = true
 		}
 	}
 	upper := -1
@@ -186,9 +211,9 @@ func promptBox(screen string) (box, bool) {
 		}
 	}
 	if upper < 0 || !strings.HasPrefix(lines[upper+1], prompt) {
-		return box{}, false
+		return box{}, false, esc
 	}
-	return box{lines, upper, lower}, true
+	return box{lines, upper, lower}, true, esc
 }
 
 // prompt starts Claude's input line and every prompt the user sent.

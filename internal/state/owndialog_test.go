@@ -76,7 +76,10 @@ func TestOwnDialogReadsClaudesDialogAfterATurnOffTheScreen(t *testing.T) {
 }
 
 // No screen of Claude at its prompt box or at work is taken for a dialog of
-// its own, the dialog of a turn included, which the hooks report.
+// its own, the dialog of a turn included, which the hooks report. An MCP
+// elicitation, the agent's or a subagent's, is drawn as Claude's own are
+// (Claude Code 2.1.301, #70), and read as one: the hooks report it too,
+// which makes it theirs in the dialog verdict.
 func TestOwnDialogIsNoScreenOfATurn(t *testing.T) {
 	names, _ := filepath.Glob(filepath.Join("testdata", "screen-*.txt"))
 	if len(names) < 20 {
@@ -86,9 +89,21 @@ func TestOwnDialogIsNoScreenOfATurn(t *testing.T) {
 		b, _ := os.ReadFile(name)
 		_, ok := OwnDialog(WithoutHints(string(b)))
 		base := filepath.Base(name)
-		dialog := strings.HasPrefix(base, "screen-own-")
+		dialog := strings.HasPrefix(base, "screen-own-") || strings.HasSuffix(base, "elicit-open.txt")
 		if ok != dialog {
 			t.Errorf("%s: dialog %v, want %v", base, ok, dialog)
 		}
+	}
+}
+
+// /model opened while a subagent runs in the background (Claude Code
+// 2.1.301, #70): the picker hides the agents' list below the footer.
+func TestOwnDialogSeesTheModelPickerOverBackgroundWork(t *testing.T) {
+	ask, ok := OwnDialog(readScreen(t, "screen-own-model-background.txt"))
+	if !ok || ask.Questions[0].Question != "Select model" || ask.Questions[0].Options[1].Label != "Opus 5.5 For complex work and everyday tasks" {
+		t.Fatalf("model: %v %+v", ok, ask)
+	}
+	if _, ok := OwnDialog(readScreen(t, "screen-fs-model-closed-background.txt")); ok {
+		t.Fatal("closed with Esc: still a dialog")
 	}
 }

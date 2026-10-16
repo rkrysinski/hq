@@ -31,7 +31,7 @@ type Dialog struct {
 	// Since is when the dialog opened: its report's time for one the hooks
 	// reported, when hq first saw it for one of Claude's own.
 	Since time.Time
-	own   *state.Ask // what a dialog of Claude's own asks, as its screen showed it
+	own   *state.Ask // what a dialog of Claude's own asks, as its screen showed it; nil when this look did not see it
 }
 
 // Open reports whether the agent is at a dialog.
@@ -56,7 +56,7 @@ func (a Agent) Dialog() Dialog {
 	switch {
 	case a.State != state.NeedsInput:
 		return Dialog{}
-	case a.ownAsk != nil:
+	case a.ownDialog:
 		return Dialog{Whose: OwnDialog, Since: a.Since, own: a.ownAsk}
 	case a.subDialog:
 		return Dialog{Whose: SubagentDialog, Since: a.Since}
