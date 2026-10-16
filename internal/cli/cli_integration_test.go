@@ -570,19 +570,24 @@ func TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd(t *testing.T) {
 	}
 	h.waitReport("a", "done", "Done: say hi")
 	time.Sleep(3 * time.Second)
-	ws, _ := h.d.tmux.Windows()
-	a, _ := agent.Find(agent.FromWindows(ws), "a")
-	pid, err := exec.Command("tmux", "-u", "-L", h.socket, "display-message", "-p", "-t", a.Window, "#{pane_pid}").Output()
+	// Claude crashes without a word, 3 s after its report: the fake
+	// itself is killed, so no hook fires, and its session and pane end
+	// with it. Killing the pane's program instead would only hang Claude
+	// up, which ends it with a SessionEnd (#73).
+	pid, err := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/pids-claude-app")
 	if err != nil {
 		t.Fatal(err)
 	}
+	crashed := time.Now()
 	if out, err := exec.Command("kill", "-KILL", strings.TrimSpace(string(pid))).CombinedOutput(); err != nil {
 		t.Fatalf("kill: %v %s", err, out)
 	}
-	// Claude crashed without a word: AGE counts from the crash, not from
-	// the report 3 s before it (#73).
-	if r := h.waitState("a", "ended"); r.AgeSeconds > 1 || r.Last != "Done: say hi" {
-		t.Fatalf("ended row %+v", r)
+	// AGE counts from the crash, not from the report: from the second tmux
+	// dates the pane's death to, or from when hq first saw the end. The
+	// row's since says where it counts from however late the test looks;
+	// AGE itself grows with that wait (#73).
+	if r := h.waitState("a", "ended"); r.Since.Before(crashed.Truncate(time.Second)) || r.Last != "Done: say hi" {
+		t.Fatalf("crashed at %s, ended row %+v", crashed.UTC().Format(time.StampMilli), r)
 	}
 }
 

@@ -140,18 +140,21 @@ func (p payload) dialogText() string {
 // Parse derives the report from the latest event and the latest Stop event
 // (empty when there is none), which keeps the last message across events,
 // and the event before a resumed session started (empty when there is none).
+// A latest event it cannot read (a session cut off while it fed its hook
+// the event) is starting, with the branch and last message still known.
 func Parse(latest, lastStop, prev []byte) Report {
 	branch, latest := splitHeader(latest)
-	var p payload
-	if json.Unmarshal(latest, &p) != nil {
-		return Report{State: Starting}
-	}
-	r := Report{SessionID: Clean(p.SessionID), Cwd: p.Cwd, Branch: Clean(branch)}
+	r := Report{State: Starting, Branch: Clean(branch)}
 	var stop payload
 	if _, lastStop = splitHeader(lastStop); json.Unmarshal(lastStop, &stop) == nil {
 		r.Last = Clean(stop.AssistantMessage)
 	}
 	r.LastStop = r.Last
+	var p payload
+	if json.Unmarshal(latest, &p) != nil {
+		return r
+	}
+	r.SessionID, r.Cwd = Clean(p.SessionID), p.Cwd
 	switch p.Event {
 	case "UserPromptSubmit", "PostToolUse", "PostToolUseFailure":
 		// The hook keeps a tool's end only when it closes a dialog: the

@@ -102,6 +102,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -183,10 +184,17 @@ func main() {
 		c.env = append(c.env, k+"="+v)
 	}
 
+	// A signal ends the session, and its SessionEnd reaches the hooks whole
+	// before the fake exits, though its input ends meanwhile, as it does
+	// when its terminal hangs up: an exit while a hook still reads the
+	// event would leave the hook a part of it (#73).
+	var ending sync.Mutex
+	defer ending.Lock()
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGINT)
 	go func() {
 		<-sig
+		ending.Lock()
 		c.fire("SessionEnd", map[string]any{"reason": "other"})
 		fmt.Print(clearScreen + leaveAltScreen)
 		os.Exit(0)

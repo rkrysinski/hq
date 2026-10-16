@@ -31,10 +31,6 @@ go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.
   && go run ./tools/testgate coverage cover.out        # coverage threshold
 ```
 
-## Known flaky tests
-
-- `TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd` (`internal/cli/cli_integration_test.go`) fails now and then in a full integration run and passes when run again (#73). Rerun it alone once; a second failure is yours. Remove this entry when #73 closes.
-
 ## Thresholds
 
 `tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. CI (`.github/workflows/tests.yml`, on macOS and Ubuntu) runs the pyramid check, unit and integration tests with coverage, and the end-to-end journeys. Both thresholds only go up. The unit share's minimum follows the figure: a PR that raises the share raises the minimum in the same PR. The coverage minimum stays 0.5 points under CI's figure, rounded down to a tenth, so a PR that changes nothing about tests cannot fall under it: a PR that lifts the figure more than 0.5 points above the minimum raises the minimum to the figure less 0.5 (#42). Never lower one to get a PR through. A PR with a red CI job is not merged.
