@@ -16,6 +16,7 @@ One console for many Claude Code agents running in Docker Sandboxes (`sbx`) and 
 - WHAT, not HOW: the requirements describe behaviour and givens. Implementation choices (language, libraries, file formats, internal mechanics) belong to `docs/design/` and the implementation, never to the spec.
 - The givens in the spec (sbx sandboxes, tmux, iTerm2/Windows Terminal, Claude Code hooks and worktrees) are the platform; design with them, not against them.
 - Both platforms, identical behaviour; platform-specific code isolated, never scattered.
+- Screen rules (anything hq reads off Claude's screen) are settled only against real captures from the agents' own setup, in a spec, PRD or issue alike - see `tools/capture/README.md`.
 - Never use the em dash; use `-`.
 
 ## Agent skills
