@@ -104,6 +104,34 @@ func Idle(screen string) bool {
 	return ok && !b.spinning()
 }
 
+// ToolCut reports whether the screen of an agent's pane shows Claude at
+// its prompt box right after the user cut a tool short with Esc, as the
+// clean-view mod of the sbx template draws it (Claude Code 2.1.301, #77):
+// no Interrupted line, only the turn's card, the last thing Claude drew
+// at the left edge above the box, collapsed to its summary marked ×, as
+// "╭────╮ │ ● Claude │ │ ▸ 2 komendy · × · 5,1 s │ ╰────╯". A tool at work
+// keeps the card open with its spinner below it, and a command that failed
+// marks the open card × while the turn goes on; a turn that ended by
+// itself has its reply below the card.
+func ToolCut(screen string) bool {
+	b, ok := promptBox(screen)
+	if !ok {
+		return false
+	}
+	i := b.upper - 1
+	for i >= 0 && (b.raw[i] == "" || unicode.IsSpace([]rune(b.raw[i])[0])) {
+		i--
+	}
+	if i < 1 || !strings.HasPrefix(b.lines[i], "╰") {
+		return false
+	}
+	return cutSummary.MatchString(b.lines[i-1])
+}
+
+// cutSummary is the summary line of a clean-view card, spaces collapsed,
+// collapsed (▸) and marked × (ToolCut).
+var cutSummary = regexp.MustCompile(`^│ ▸ .+ · × · .+ │$`)
+
 // spinning reports whether Claude's spinner shows above the box: the last
 // line Claude starts at the left edge there, since the user's last prompt.
 // Below the spinner Claude draws only indented lines (a tip, its todo list,

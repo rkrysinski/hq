@@ -52,6 +52,10 @@ const supervisedSuffix = ".sup"
 // hook that the agent's next prompt is the supervisor's (Announce).
 const announcedSuffix = ".next"
 
+// actedSuffix names, beside an agent's state file, the hook's mark that a
+// tool of the agent's own has ended in its current turn (Report.Acted).
+const actedSuffix = ".acted"
+
 // Read returns the report of agent id of the repository at root; ok is false
 // until the agent's first event. It parses the agent's state files once
 // per change: while none of them changed in size or modification time it
@@ -80,7 +84,7 @@ func Read(root, id string) (r Report, ok bool) {
 
 // stateSuffixes are the files a report is parsed from: the state file
 // itself, then those beside it.
-var stateSuffixes = [...]string{"", ".stop", ".prev", keptSuffix, owedSuffix}
+var stateSuffixes = [...]string{"", ".stop", ".prev", keptSuffix, owedSuffix, actedSuffix}
 
 // fileSig is what tells that a file changed: its type, size and
 // modification time, as lstat gives them; zero when there is no file.
@@ -138,6 +142,9 @@ func read(path string) (r Report, ok bool) {
 	if kept, info, err := readData(path + keptSuffix); err == nil {
 		owed, _, _ := readData(path + owedSuffix)
 		r = r.Kept(latest, kept, owed, info.ModTime())
+	}
+	if _, _, err := readData(path + actedSuffix); err == nil {
+		r.Acted = r.State == Working
 	}
 	return r, true
 }

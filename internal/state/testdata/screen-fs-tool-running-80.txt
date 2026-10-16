@@ -1,0 +1,24 @@
+
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ The directory only holds .git, so next is the commit log.                   │
+│                                                                             │
+│ ▸ 1 komenda · ✓ · 0,0 s                                                     │
+╰─────────────────────────────────────────────────────────────────────────────╯
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ There's one commit; now I'll search the Claude binary for that setting.     │
+│                                                                             │
+│ ▾ 1 komenda · ◓ · 33 s                                                      │
+│  ▸ ◓B=$(readlink -f ~/.local/bin/claude); ls -la $B… ━━░░░░░░░░░░░░░  33 s  │
+│                                                        ░░░░░                │
+╰─────────────────────────────────────────────────────────────────────────────╯
+     (ctrl+b ctrl+b (twice) to run in background)
+
+· B=$(readlink -f ~/.local/bin/claude); ls -la $B; grep -a -o '.\{300\}…
+  ⎿  Tip: Run tasks in the cloud while you keep coding locally · clau.de/web
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5…
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+                                                                   ◆ Tools ▾
