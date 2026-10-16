@@ -20,43 +20,43 @@ import (
 
 // Agent is one agent: its home window and what hq stored on it.
 type Agent struct {
-	Window   string     `json:"-"`
-	Pane     string     `json:"-"` // the agent's own pane
-	ID       string     `json:"id"`
-	Name     string     `json:"name"`
-	RepoPath string     `json:"repo_path"`
-	Sandbox  string     `json:"sandbox"`
-	Started  time.Time  `json:"started"`
-	Alive    bool       `json:"-"` // the agent's pane's process runs
-	Docked   bool       `json:"-"` // its pane is in the dashboard's slot
-	New      bool       `json:"-"` // started with hq new, not yet reported (S2)
-	Inbox    bool       `json:"-"` // its hooks deliver messages (hq send, ADR 0012)
-	Hooks    int        `json:"-"` // the generation of its hooks, as hq stored it (see Supervisable)
-	ending   bool       // hq is taking the agent down (its sandbox restarting)
-	reported bool       // its session has reported, so its sandbox has run
-	turnEnd  string     // a turn the user ended, as hq first saw it (see Settle)
-	restSeen string     // when hq first saw its screen at rest, as it looked (see Settle)
-	resting  bool       // its screen is at rest, not yet for long enough (see Settle)
-	rested   bool       // its turn end was read off a screen at rest, decided RestDelay after its moment (see Entered)
-	prompt   string     // the prompt it works on, as its hooks reported it
-	deadAt   time.Time  // when its pane died, as tmux says; zero when unknown
-	endedAt  time.Time  // when its session reported its end
-	atStart  bool       // its latest report is its session's start
-	atPrompt bool       // its turn ended with background work running: it works, at its prompt (see OnBackgroundWork)
-	owed     bool       // at its prompt with nothing running: Claude owes it a turn (see Settle)
-	woken    bool       // it works on a turn Claude woke itself for (see Settle)
-	startAsk *state.Ask // the dialog its screen shows at the start, if any
-	started  string     // the start as stored, which keys endSeen
-	reportAt time.Time  // the time of its session's last report; zero before its first
-	endSeen  string     // when hq first saw it ended (see SeeEnd)
-	wokeSeen string     // when Claude woke it after a turn the user ended (see SeeWake)
-	wokeKey  string     // what keys that record now, if such a turn it is
-	wokeAt   time.Time  // the moment to record for it, when this look sees the wake-up
-	State    string     `json:"state"`
-	Since    time.Time  `json:"since"`
-	Branch   string     `json:"branch"`
-	Worktree string     `json:"worktree"` // where Claude works, as the sandbox sees it (for hq code, M4)
-	Last     string     `json:"last"`
+	Window     string     `json:"-"`
+	Pane       string     `json:"-"` // the agent's own pane
+	ID         string     `json:"id"`
+	Name       string     `json:"name"`
+	RepoPath   string     `json:"repo_path"`
+	Sandbox    string     `json:"sandbox"`
+	Started    time.Time  `json:"started"`
+	Alive      bool       `json:"-"` // the agent's pane's process runs
+	Docked     bool       `json:"-"` // its pane is in the dashboard's slot
+	New        bool       `json:"-"` // started with hq new, not yet reported (S2)
+	Inbox      bool       `json:"-"` // its hooks deliver messages (hq send, ADR 0012)
+	Hooks      int        `json:"-"` // the generation of its hooks, as hq stored it (see Supervisable)
+	ending     bool       // hq is taking the agent down (its sandbox restarting)
+	reported   bool       // its session has reported, so its sandbox has run
+	turnEnd    string     // a turn the user ended, as hq first saw it (see Settle)
+	restSeen   string     // when hq first saw its screen at rest, as it looked (see Settle)
+	resting    bool       // its screen is at rest, not yet for long enough (see Settle)
+	rested     bool       // its turn end was read off a screen at rest, decided RestDelay after its moment (see Entered)
+	prompt     string     // the prompt it works on, as its hooks reported it
+	deadAt     time.Time  // when its pane died, as tmux says; zero when unknown
+	endedAt    time.Time  // when its session reported its end
+	atPrompt   bool       // its turn ended with background work running: it works, at its prompt (see OnBackgroundWork)
+	owed       bool       // at its prompt with nothing running: Claude owes it a turn (see Settle)
+	woken      bool       // it works on a turn Claude woke itself for (see Settle)
+	ownAsk     *state.Ask // the dialog Claude shows of its own on its screen, if any (see Settle)
+	dialogSeen string     // when hq first saw that dialog, as it read (see Settle)
+	started    string     // the start as stored, which keys endSeen
+	reportAt   time.Time  // the time of its session's last report; zero before its first
+	endSeen    string     // when hq first saw it ended (see SeeEnd)
+	wokeSeen   string     // when Claude woke it after a turn the user ended (see SeeWake)
+	wokeKey    string     // what keys that record now, if such a turn it is
+	wokeAt     time.Time  // the moment to record for it, when this look sees the wake-up
+	State      string     `json:"state"`
+	Since      time.Time  `json:"since"`
+	Branch     string     `json:"branch"`
+	Worktree   string     `json:"worktree"` // where Claude works, as the sandbox sees it (for hq code, M4)
+	Last       string     `json:"last"`
 }
 
 // supervisingHooks is the generation of hooks from which they tell a
@@ -114,7 +114,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if o["id"] == "" {
 			continue
 		}
-		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], restSeen: o["restseen"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting,
+		a := Agent{Window: w.ID, Pane: w.Pane, turnEnd: o["turnend"], restSeen: o["restseen"], dialogSeen: o["dialogseen"], ID: o["id"], Name: o["name"], RepoPath: o["repo"], Sandbox: o["sandbox"], Alive: !w.PaneDead, Docked: w.Docked, ending: o["ending"] != "", State: state.Starting,
 			deadAt: w.DeadAt, started: o["started"], endSeen: o["endseen"], wokeSeen: o["wokeseen"]}
 		if a.Name == "" {
 			a.Name = w.Name
@@ -322,6 +322,11 @@ func (a *Agent) Keep(r Record, stored string) {
 		a.recall(strings.TrimSuffix(r.Key, " "))
 	case "restseen":
 		a.restSeen = stored
+	case "dialogseen":
+		a.dialogSeen = stored
+		if at, ok := a.dialogSeenAt(a.ownLook()); ok {
+			a.Since = at
+		}
 	case "endseen":
 		a.endSeen = stored
 		a.seen()
@@ -355,7 +360,6 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	if r.Latest.After(r.Since) {
 		a.reportAt = r.Latest
 	}
-	a.atStart = r.AtStart && r.State == state.Done
 	a.atPrompt, a.owed, a.woken = r.Background, r.Background && r.Owed, r.Woken
 	if r.State == state.Ended {
 		a.endedAt = r.Since
@@ -423,16 +427,18 @@ func (a Agent) SeeWake() Record {
 // for a moment the screen may lag behind the report.
 const settleDelay = 500 * time.Millisecond
 
-// Unsettled reports whether the agent's screen may show a turn that the
-// user ended, which no hook reports (design §3.4): the agent runs, and its
-// hooks said a moment ago that it works or needs input. An agent whose turn
+// Unsettled reports whether the agent's screen may show what no hook
+// reports (design §3.4): the agent runs, and its hooks said a moment ago
+// that it works or needs input, so the user may have ended its turn; or
+// that it waits at its prompt, done or with a question, where Claude may
+// show a dialog of its own (Settle). An agent whose turn
 // ended with background work running (OnBackgroundWork) is not: its hooks reported
 // that end, and it rests at its prompt, as after a rewind, until Claude
 // wakes it. Unless none of that work runs any more and Claude only owes
 // the agent a turn for it: that turn comes within moments, or never, which
 // the screen tells (Settle).
 func (a Agent) Unsettled(now time.Time) bool {
-	return a.Alive && !a.ending && a.reported && (!a.atPrompt || a.owed) && (a.State == state.Working || a.State == state.NeedsInput || a.atStart) && now.Sub(a.reportAt) >= settleDelay
+	return a.Alive && !a.ending && a.reported && (!a.atPrompt || a.owed) && a.State != state.Starting && a.State != state.Ended && now.Sub(a.reportAt) >= settleDelay
 }
 
 // OnBackgroundWork reports whether the agent works only on background work
@@ -441,10 +447,10 @@ func (a Agent) Unsettled(now time.Time) bool {
 // there, as for an agent that is done.
 func (a Agent) OnBackgroundWork() bool { return a.atPrompt && a.State == state.Working }
 
-// StartAsk is the dialog Claude shows in place of its prompt box at the
-// start of the agent's session, as Settle read it off the screen; nil when
-// there is none.
-func (a Agent) StartAsk() *state.Ask { return a.startAsk }
+// OwnAsk is the dialog Claude shows in place of the agent's prompt box,
+// at the start of its session or after a turn, as Settle read it off the
+// screen; nil when there is none.
+func (a Agent) OwnAsk() *state.Ask { return a.ownAsk }
 
 // Recall applies a turn end hq saw earlier on an Unsettled agent: done,
 // with its last message, since hq first saw it, as long as no hook has
@@ -504,22 +510,13 @@ const Rewound = "Interrupted"
 // the agent is done with its turn's message. Both moments are kept on the
 // agent's window, keyed by the report they overrule, so hq ls and the list
 // agree (see Recall): the record to store there, as the turnend or the
-// restseen option, with no Value when there is nothing new to store.
+// restseen option, with no Value when there is nothing new to store. An
+// agent at its prompt, done or with a question, by its hooks or by a turn
+// end hq saw, may show a dialog of Claude's own instead (seeDialog).
 func (a *Agent) Settle(screen string, now time.Time) Record {
 	a.resting = false
-	// A session that has just started may show a dialog of Claude's own
-	// before its prompt box, which no hook reports (#29): the agent needs
-	// input, for as long as the screen shows it. Nothing is stored: every
-	// hq process reads it off the same screen.
-	if a.atStart {
-		if ask, ok := state.StartDialog(screen); ok {
-			a.State, a.startAsk = state.NeedsInput, ask
-			a.Last = ask.Questions[0].Question
-		}
-		return Record{}
-	}
-	if a.Recall() {
-		return Record{}
+	if a.Recall() || a.State == state.Done || a.State == state.Question {
+		return a.seeDialog(screen, now)
 	}
 	key := a.key() + " "
 	// What the record says of the turn's last message, and what it is.
@@ -567,6 +564,55 @@ func (a *Agent) Settle(screen string, now time.Time) Record {
 	return Record{"turnend", key, key + nanos(at) + " " + mark}
 }
 
+// seeDialog applies the screen of an agent that waits at its prompt: a
+// dialog of Claude's own in place of its prompt box (state.OwnDialog),
+// which no hook reports, at the start of its session (#29) or opened after
+// a turn, as by /effort (#66). While the screen shows it, the agent needs
+// input, with the dialog's title as its last message, since hq first saw
+// that dialog during its current report. That moment is kept on its
+// window, so hq ls and the list agree and hq wait sees the agent arrive:
+// the record to store as the dialogseen option, keyed by the report and
+// the dialog's title and text. A look that finds the dialog
+// gone closes the record, so a dialog opened again counts anew.
+func (a *Agent) seeDialog(screen string, now time.Time) Record {
+	key := a.key() + " "
+	ask, ok := state.OwnDialog(screen)
+	if !ok {
+		if f := strings.Fields(a.dialogSeen); len(f) == 3 && f[0] == a.key() {
+			// Open for this report: closed now.
+			return Record{"dialogseen", key + "- ", key + "-"}
+		}
+		return Record{}
+	}
+	a.State, a.ownAsk, a.Last = state.NeedsInput, ask, ask.Questions[0].Question
+	look := a.ownLook()
+	if at, ok := a.dialogSeenAt(look); ok {
+		a.Since = at
+		return Record{}
+	}
+	a.Since = now
+	return Record{"dialogseen", key + look + " ", key + look + " " + nanos(now)}
+}
+
+// ownLook names the dialog Claude shows of its own on the agent's screen
+// by its title and text: not by its options, which a list such as the
+// picker of /model scrolls as the cursor moves.
+func (a Agent) ownLook() string {
+	if a.ownAsk == nil {
+		return ""
+	}
+	return fingerprint(a.ownAsk.Questions[0].Question + "\n" + a.ownAsk.Description)
+}
+
+// dialogSeenAt is when hq first saw the dialog named look on the agent's
+// screen, during its current report.
+func (a Agent) dialogSeenAt(look string) (time.Time, bool) {
+	if look == "" {
+		return time.Time{}, false
+	}
+	return seenAt(a.dialogSeen, a.key(), look)
+}
+
 // Resting reports whether Settle saw the agent's screen at rest in a way
 // that one more look, RestDelay later, decides: with its prompt put back
 // in the box, the look of a turn the user rewound, or owed a turn by
@@ -575,9 +621,13 @@ func (a Agent) Resting() bool { return a.resting }
 
 // restedSince is when hq first saw the agent's screen at rest looking as it
 // looks now (look), during its current report.
-func (a Agent) restedSince(look string) (time.Time, bool) {
-	f := strings.Fields(a.restSeen)
-	if len(f) != 3 || f[0] != a.key() || f[1] != look {
+func (a Agent) restedSince(look string) (time.Time, bool) { return seenAt(a.restSeen, a.key(), look) }
+
+// seenAt reads a record of a look hq first saw during a report, "REPORT
+// LOOK NANOS": its moment, when it is of the report key and the look.
+func seenAt(record, key, look string) (time.Time, bool) {
+	f := strings.Fields(record)
+	if len(f) != 3 || f[0] != key || f[1] != look {
 		return time.Time{}, false
 	}
 	n, err := strconv.ParseInt(f[2], 10, 64)

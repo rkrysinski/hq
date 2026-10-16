@@ -312,12 +312,12 @@ func TestReadNeedsOneKnownAgent(t *testing.T) {
 // and hq read take it from the screen (#29).
 func TestReadShowsClaudesDialogAtTheStartOfASession(t *testing.T) {
 	f := readFakes()
-	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), AtStart: true}
+	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute)}
 	f.tmux.windows[1].Pane = "%4"
 	rule := strings.Repeat("─", 40)
 	f.tmux.screens = map[string]string{"%4": rule + "\n Make auto mode your default permission mode?\n\n   Auto mode lets Claude handle permission prompts automatically.\n\n   ❯ Yes, set auto mode as my default permission mode\n     No, keep bypass permissions\n"}
 	code, out, errOut := f.run("read", "42")
-	want := "state     needs input 1m\npending   0\nlast      Make auto mode your default permission mode?\n\nasks\n  Make auto mode your default permission mode?\n    1. Yes, set auto mode as my default permission mode\n    2. No, keep bypass permissions\n\nreply     none\n"
+	want := "state     needs input 0s\npending   0\nlast      Make auto mode your default permission mode?\n\nasks\n  Make auto mode your default permission mode?\n    1. Yes, set auto mode as my default permission mode\n    2. No, keep bypass permissions\n\nreply     none\n"
 	if code != 0 || !strings.HasSuffix(out, want) {
 		t.Fatalf("exit %d %q\n%s", code, errOut, out)
 	}
@@ -332,5 +332,61 @@ func TestReadShowsClaudesDialogAtTheStartOfASession(t *testing.T) {
 	f.tmux.screens["%4"] = rule + "\n❯ \n" + rule + "\n  footer\n"
 	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     done 1m\n") || strings.Contains(out, "\nasks\n") {
 		t.Fatalf("answered:\n%s", out)
+	}
+}
+
+// A dialog Claude opens after a turn, as /effort does, comes from no hook
+// either: hq ls and hq read take it from the screen, from the moment hq
+// first saw it, and hq send says the message waits for it (#66).
+func TestCommandsSeeClaudesDialogAfterATurn(t *testing.T) {
+	f := readFakes()
+	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.details["id-42"] = state.Detail{Reply: "hi"}
+	f.tmux.windows[1].Pane = "%4"
+	rule := strings.Repeat("─", 40)
+	f.tmux.screens = map[string]string{"%4": "● hi\n" + strings.Repeat("▔", 40) + "\n   Change effort level?\n   Your next response will be slower and use more tokens\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"}
+	seen := f.now
+	if code, out, _ := f.run("ls"); code != 0 || !strings.Contains(out, "needs input  0s") || !strings.Contains(out, "Change effort level?") {
+		t.Fatalf("ls: exit %d\n%s", code, out)
+	}
+	f.now = f.now.Add(time.Minute)
+	code, out, errOut := f.run("read", "42")
+	want := "state     needs input 1m\npending   0\nlast      Change effort level?\n\nasks\n  Change effort level?\n    1. Yes, switch to max\n    2. No, go back\n\nreply\n  hi\n"
+	if code != 0 || !strings.HasSuffix(out, want) {
+		t.Fatalf("exit %d %q\n%s", code, errOut, out)
+	}
+	var v readView
+	if _, out, _ := f.run("read", "42", "--json"); json.Unmarshal([]byte(out), &v) != nil || v.Asks == nil || v.Asks.Description != "Your next response will be slower and use more tokens" || !v.Since.Equal(seen) {
+		t.Fatalf("json:\n%s", out)
+	}
+	if code, out, _ := f.run("send", "42", "say hi"); code != 0 || out != "queued: 42 waits at a dialog of Claude's own; once it is answered there (hq go 42), delivered with its next prompt\n" {
+		t.Fatalf("send: exit %d %q", code, out)
+	}
+	// Answered: at its prompt again, done since its turn, with its reply.
+	f.tmux.screens["%4"] = "● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n"
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     done 1h\n") || !strings.HasSuffix(out, "reply\n  hi\n") || strings.Contains(out, "\nasks\n") {
+		t.Fatalf("answered:\n%s", out)
+	}
+}
+
+// A turn the user ended, which hq recorded, leaves the agent at its prompt
+// as a finished turn does: a dialog Claude opens there needs input too
+// (#66).
+func TestADialogAfterATurnTheUserEndedNeedsInput(t *testing.T) {
+	f := readFakes()
+	since := f.now.Add(-time.Hour)
+	f.states["id-42"] = state.Report{State: state.Working, Since: since, Prompt: "go"}
+	f.tmux.windows[1].Pane = "%4"
+	f.tmux.windows[1].Options["turnend"] = strconv.FormatInt(since.UnixNano(), 10) + " " + strconv.FormatInt(since.Add(time.Minute).UnixNano(), 10) + " Interrupted"
+	f.tmux.screens = map[string]string{"%4": "⎿  Interrupted\n" + strings.Repeat("▔", 40) + "\n   Change effort level?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"}
+	if code, out, _ := f.run("ls"); code != 0 || !strings.Contains(out, "needs input") || !strings.Contains(out, "Change effort level?") {
+		t.Fatalf("ls: exit %d\n%s", code, out)
+	}
+	// Answered: done with the turn's end again.
+	rule := strings.Repeat("─", 40)
+	f.tmux.screens["%4"] = "⎿  Interrupted\n" + rule + "\n❯ \n" + rule + "\n  footer\n"
+	if code, out, _ := f.run("ls"); code != 0 || !strings.Contains(out, "done") || !strings.Contains(out, "Interrupted") {
+		t.Fatalf("answered: exit %d\n%s", code, out)
 	}
 }

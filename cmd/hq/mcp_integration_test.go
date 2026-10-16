@@ -107,6 +107,13 @@ func (s *supervisor) ok(tool string, args map[string]any) string {
 // returns name in state, and returns that row and the next since.
 func (s *supervisor) until(since, name, st string) (row, string) {
 	s.t.Helper()
+	return s.untilRow(since, name, st, func(row) bool { return true })
+}
+
+// untilRow is until for a row that is as wanted: an agent just started is
+// done before its first prompt, with no last message.
+func (s *supervisor) untilRow(since, name, st string, wanted func(row) bool) (row, string) {
+	s.t.Helper()
 	for i := 0; i < 8; i++ {
 		var w waited
 		out := s.ok("wait", map[string]any{"since": since, "timeout": 5})
@@ -115,7 +122,7 @@ func (s *supervisor) until(since, name, st string) (row, string) {
 		}
 		since = w.NextSince
 		for _, r := range w.Agents {
-			if r.Name == name && r.State == st {
+			if r.Name == name && r.State == st && wanted(r) {
 				return r, since
 			}
 		}
@@ -186,10 +193,7 @@ func TestMCPServerSupervisesAgentsOverStdio(t *testing.T) {
 	s.ok("new", map[string]any{"name": "b", "dir": lib, "prompt": "slow job"})
 
 	// Watch: a's turn ends; b is at work.
-	r, since := s.until("1m", "a", "done")
-	if r.Last != "Done: hello" {
-		t.Fatalf("a %+v", r)
-	}
+	_, since := s.untilRow("1m", "a", "done", func(r row) bool { return r.Last == "Done: hello" })
 	s.readUntil("b", "working")
 
 	// Ask b, which is at work: the message waits for its stop.
@@ -204,7 +208,7 @@ func TestMCPServerSupervisesAgentsOverStdio(t *testing.T) {
 	// returns the answer.
 	s.typeIn("b", "go on")
 	s.readUntil("b", "done")
-	r, since = s.until(sent, "b", "done")
+	r, since := s.until(sent, "b", "done")
 	if r.Last != "Answered: "+state.MessageLabel+"check the logs" || r.Pending != 0 {
 		t.Fatalf("b answered %+v", r)
 	}
@@ -290,9 +294,7 @@ func TestWorkTheSupervisorSentEndsWithoutANotification(t *testing.T) {
 	// message as its next prompt, and ends a turn with a question: its row
 	// changes as ever, and nobody is notified.
 	s.ok("new", map[string]any{"name": "a", "dir": app, "prompt": "hello"})
-	if r, _ := s.until("1m", "a", "done"); r.Last != "Done: hello" {
-		t.Fatalf("a %+v", r)
-	}
+	s.untilRow("1m", "a", "done", func(r row) bool { return r.Last == "Done: hello" })
 	if r, _ := s.until(typed("one more thing"), "a", "done"); r.Last != "Done: one more thing" {
 		t.Fatalf("a %+v", r)
 	}

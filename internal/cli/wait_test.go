@@ -251,3 +251,30 @@ func TestParseWaitReadsNamesAndOptions(t *testing.T) {
 		t.Fatalf("defaults: %+v", w)
 	}
 }
+
+// A dialog Claude opens after a turn, as /effort does, fires no hook: hq
+// wait returns the agent needs input from the moment a look first saw it
+// (#66).
+func TestWaitReturnsAnAgentAtADialogClaudeOpensAfterItsTurn(t *testing.T) {
+	f := newWaitFakes()
+	f.tmux.windows[1].Pane = "%1"
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	rule := strings.Repeat("─", 40)
+	f.tmux.screens = map[string]string{"%1": "● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n"}
+	var openedAt time.Time
+	f.after(10*time.Second, func() {
+		openedAt = f.now
+		f.tmux.screens["%1"] = "● hi\n" + strings.Repeat("▔", 40) + "\n   Change effort level?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"
+	})
+	code, out, errOut := f.run("wait", "a", "--json")
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	w := waitJSON(t, out)
+	if len(w.Agents) != 1 || w.Agents[0].Name != "a" || w.Agents[0].State != "needs input" || w.Agents[0].Last != "Change effort level?" {
+		t.Fatalf("agents: %+v", w.Agents)
+	}
+	if waited := f.now.Sub(openedAt); waited > time.Second {
+		t.Fatalf("returned %v after the dialog opened", waited)
+	}
+}

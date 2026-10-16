@@ -151,15 +151,19 @@ func runningSandboxes(d deps) agent.Sandboxes {
 }
 
 // settle looks at the screens of agents whose turn the user may have ended,
-// which no hook reports, and records when hq first saw it on their windows
-// (design §3.4): the turn's end, or the screen at rest of a turn the user
-// may have rewound. When tmux cannot show the screens, the hooks' states
+// or that wait at their prompt, for what no hook reports, and records when
+// hq first saw it on their windows (design §3.4): the turn's end, the
+// screen at rest of a turn the user may have rewound, or a dialog of
+// Claude's own. When tmux cannot show the screens, the hooks' states
 // stand.
 func settle(d deps, as []agent.Agent) []agent.Agent {
 	now := d.now()
 	var panes []string
 	for i := range as {
-		if as[i].Unsettled(now) && !as[i].Recall() {
+		if as[i].Unsettled(now) {
+			// A turn end hq saw stands without the screen; the screen may
+			// still show a dialog of Claude's own over it (#66).
+			as[i].Recall()
 			panes = append(panes, as[i].Pane)
 		}
 	}
