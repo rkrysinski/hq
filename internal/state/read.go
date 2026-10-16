@@ -57,9 +57,9 @@ const announcedSuffix = ".next"
 const actedSuffix = ".acted"
 
 // queuedSuffix names, beside an agent's state file, the hook's copy of a
-// prompt Claude has queued while the agent works, until Claude takes it:
-// into the turn at work, or as a turn of its own when that turn ends
-// (#82).
+// prompt Claude has queued while the agent works, until Claude takes it
+// into the turn at work, or, when it takes it as a turn of its own after
+// that turn's end, until that turn reports (#82).
 const queuedSuffix = ".queued"
 
 // Read returns the report of agent id of the repository at root; ok is false

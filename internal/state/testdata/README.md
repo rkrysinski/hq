@@ -110,15 +110,15 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | post-tool.json | PostToolUse | Bash ended | real, 2.1.283 in sbx (design changelog, old #135); paths `/w/app` | 2248770 (old #135) |
 | post-tool-subagent.json | PostToolUse | a background subagent's Bash ended (`agent_id`) | real, as post-tool.json | 2248770 (old #135) |
 | prompt.json | UserPromptSubmit | a prompt | unknown; normalized | 7c4c3ed (old #19) |
-| queued-prompt.json | UserPromptSubmit | a prompt that starts a turn (`prompt_id` `a5c44ac7…`) | real, 2.1.301, E'' (run A3 of #82); paths normalized, one line as Claude sends it | #82 |
-| queued-while-working.json | UserPromptSubmit | a prompt typed while that turn works, as Claude queues it: the same `prompt_id` | real, as queued-prompt.json | #82 |
-| queued-stop.json | Stop | that turn's end, the queued prompt still queued | real, as queued-prompt.json; the message shortened | #82 |
-| queued-session-end-clear.json | SessionEnd | `reason` `clear`, a `/clear` queued before the prompt, run right after that Stop | real, as queued-prompt.json | #82 |
-| queued-session-start-clear.json | SessionStart | `source` `clear`, a new `session_id`, no `prompt_id` | real, as queued-prompt.json | #82 |
-| queued-turn-tool-end.json | PostToolUse | the first tool's end in the turn Claude took the queued prompt for (`prompt_id` `f6babc86…`) | real, as queued-prompt.json; the output shortened | #82 |
-| queued-turn-stop.json | Stop | that turn's end | real, as queued-prompt.json; the message shortened | #82 |
 | prompt-pasted.json | UserPromptSubmit | a two-line pasted prompt | real, as post-tool.json | 2248770 (old #135) |
 | prompt-wake.json | UserPromptSubmit | Claude's wake-up for a finished subagent (`<task-notification>`) | unknown (PR #39 logged every hook with 2.1.291); normalized | 7cb35f8 (#38) |
+| queued-first.json | UserPromptSubmit | a prompt that starts a turn (`prompt_id` `a5c44ac7…`) | real, 2.1.301, E'' (run A3 of #82); paths normalized, one line as Claude sends it | #82 |
+| queued-while-working.json | UserPromptSubmit | a prompt typed while that turn works, as Claude queues it: the same `prompt_id` | real, as queued-first.json | #82 |
+| queued-stop.json | Stop | that turn's end, the queued prompt still queued | real, as queued-first.json; the message shortened | #82 |
+| queued-session-end-clear.json | SessionEnd | `reason` `clear`, a `/clear` queued before the prompt, run right after that Stop | real, as queued-first.json | #82 |
+| queued-session-start-clear.json | SessionStart | `source` `clear`, a new `session_id`, no `prompt_id` | real, as queued-first.json | #82 |
+| queued-turn-tool-end.json | PostToolUse | the first tool's end in the turn Claude took the queued prompt for (`prompt_id` `f6babc86…`) | real, as queued-first.json; the output shortened | #82 |
+| queued-turn-stop.json | Stop | that turn's end | real, as queued-first.json; the message shortened | #82 |
 | session-start.json | SessionStart | `source` `startup` | unknown; normalized | 3e80a9d (old #124) |
 | session-start-resume.json | SessionStart | `source` `resume`, in the repository | unknown; normalized | 3e80a9d (old #124) |
 | session-start-clear.json | SessionStart | `source` `clear` | unknown; normalized | 10a6bff (old #124) |

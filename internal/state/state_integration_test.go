@@ -768,14 +768,14 @@ func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefo
 	}
 }
 
-var turns atomic.Int64
+var promptIDs atomic.Int64
 
 // newTurn is the payload of a prompt as one that starts a turn: Claude
 // gives each a prompt_id of its own, while one it queues while the agent
 // works carries the id of the turn at work (#82), as the fixtures that
 // share an id do.
 func newTurn(payload []byte) []byte {
-	id := fmt.Sprintf(`"prompt_id":"0000%04x-0000-4000-8000-000000000000"`, turns.Add(1))
+	id := fmt.Sprintf(`"prompt_id":"0000%04x-0000-4000-8000-000000000000"`, promptIDs.Add(1))
 	return regexp.MustCompile(`"prompt_id"\s*:\s*"[^"]*"`).ReplaceAll(payload, []byte(id))
 }
 
@@ -1198,7 +1198,7 @@ func testAQueuedPromptsTurn(t *testing.T, clear bool) {
 	}
 	const queued = "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
 
-	fire(t, root, root, id, "prompt", fixture(t, "queued-prompt"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-first"))
 	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
 	before := time.Now()
 	time.Sleep(10 * time.Millisecond)
@@ -1234,6 +1234,20 @@ func testAQueuedPromptsTurn(t *testing.T, clear bool) {
 	}
 }
 
+// The prompt_ids of the queued-* fixtures: the turn at work, which
+// queued-first starts and in which queued-while-working is queued, and the
+// turn Claude takes that prompt for.
+const (
+	turnAtWork = "a5c44ac7-4166-41f7-96d0-9d535b9cdeb7"
+	turnTaken  = "f6babc86-be46-4229-afb6-d2051df9f374"
+)
+
+// inTurnAtWork is the queued-* fixture name as an event of the turn at
+// work.
+func inTurnAtWork(t *testing.T, name string) []byte {
+	return bytes.Replace(fixture(t, name), []byte(turnTaken), []byte(turnAtWork), 1)
+}
+
 // A prompt Claude has queued is taken into the turn at work at the next
 // end of a tool of the agent's own (#82): that turn's end is the agent's.
 // One the user typed while a turn ran that they then interrupted, which no
@@ -1242,9 +1256,6 @@ func testAQueuedPromptsTurn(t *testing.T, clear bool) {
 func TestAQueuedPromptClaudeTakesIntoTheTurnOrRunsAtOnceEndsWithItsTurn(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	inTurn := func(name string) []byte { // the payload, in the turn of queued-prompt
-		return bytes.Replace(fixture(t, name), []byte("f6babc86-be46-4229-afb6-d2051df9f374"), []byte("a5c44ac7-4166-41f7-96d0-9d535b9cdeb7"), 1)
-	}
 	ends := func(when string, stop []byte) {
 		t.Helper()
 		if out := run(t, root, root, id, hook("stop", "[%s]"), stop); out != `{"terminalSequence":"[Done: main]"}`+"\n" {
@@ -1255,14 +1266,14 @@ func TestAQueuedPromptClaudeTakesIntoTheTurnOrRunsAtOnceEndsWithItsTurn(t *testi
 		}
 	}
 
-	fire(t, root, root, id, "prompt", fixture(t, "queued-prompt"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-first"))
 	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
 	// A subagent's tool ending takes nothing into the agent's turn.
-	fire(t, root, root, id, "answer", bytes.Replace(inTurn("queued-turn-tool-end"), []byte(`"hook_event_name"`), []byte(`"agent_id":"a1","hook_event_name"`), 1))
-	fire(t, root, root, id, "answer", inTurn("queued-turn-tool-end"))
-	ends("taken into the turn", inTurn("queued-turn-stop"))
+	fire(t, root, root, id, "answer", bytes.Replace(inTurnAtWork(t, "queued-turn-tool-end"), []byte(`"hook_event_name"`), []byte(`"agent_id":"a1","hook_event_name"`), 1))
+	fire(t, root, root, id, "answer", inTurnAtWork(t, "queued-turn-tool-end"))
+	ends("taken into the turn", inTurnAtWork(t, "queued-turn-stop"))
 
-	fire(t, root, root, id, "prompt", fixture(t, "queued-prompt"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-first"))
 	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
 	ends("interrupted, then run at once", fixture(t, "queued-turn-stop"))
 }
@@ -1275,12 +1286,6 @@ func TestAQueuedPromptClaudeTakesIntoTheTurnOrRunsAtOnceEndsWithItsTurn(t *testi
 func TestAQueuedPromptLeavesTheTurnAtWorkActedOnAndQueuesAgainInTheTurnItIsTakenFor(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	// The turn the queued prompt is taken for, and the payload in the turn
-	// of queued-prompt instead.
-	const next = "f6babc86-be46-4229-afb6-d2051df9f374"
-	inTurn := func(name string) []byte {
-		return bytes.Replace(fixture(t, name), []byte(next), []byte("a5c44ac7-4166-41f7-96d0-9d535b9cdeb7"), 1)
-	}
 	report := func(when string, state string, acted bool) {
 		t.Helper()
 		if r, _ := Read(root, id); r.State != state || r.Acted != acted {
@@ -1288,8 +1293,8 @@ func TestAQueuedPromptLeavesTheTurnAtWorkActedOnAndQueuesAgainInTheTurnItIsTaken
 		}
 	}
 
-	fire(t, root, root, id, "prompt", fixture(t, "queued-prompt"))
-	fire(t, root, root, id, "answer", inTurn("queued-turn-tool-end"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-first"))
+	fire(t, root, root, id, "answer", inTurnAtWork(t, "queued-turn-tool-end"))
 	report("its tool", Working, true)
 	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
 	report("a prompt queued", Working, true)
@@ -1298,7 +1303,7 @@ func TestAQueuedPromptLeavesTheTurnAtWorkActedOnAndQueuesAgainInTheTurnItIsTaken
 
 	fire(t, root, root, id, "answer", fixture(t, "queued-turn-tool-end"))
 	report("that turn's tool", Working, true)
-	again := bytes.Replace(fixture(t, "queued-while-working"), []byte("a5c44ac7-4166-41f7-96d0-9d535b9cdeb7"), []byte(next), 1)
+	again := bytes.Replace(fixture(t, "queued-while-working"), []byte(turnAtWork), []byte(turnTaken), 1)
 	fire(t, root, root, id, "prompt", again)
 	report("a prompt queued in that turn", Working, true)
 	fire(t, root, root, id, "stop", fixture(t, "queued-turn-stop"))

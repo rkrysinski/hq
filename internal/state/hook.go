@@ -63,13 +63,15 @@ import (
 // other and kept beside the state file (.queued). Claude takes it into the
 // turn at the next end of a tool of the agent's own, which drops it, or
 // right after the turn's Stop, when no tool of its own has ended since: a
-// Stop with the prompt_id of .queued hands over. It gives .stop and makes
-// the state file the queued prompt anew, so the agent works on it from
-// now, and notifies nobody. .queued stays, its prompt_id now .stop's, for
-// a /clear queued before the prompt, which Claude runs in between: its
-// SessionEnd leaves the state file alone, and its SessionStart writes the
-// queued prompt again under the new session's id. Any other prompt, stop
-// or session event drops .queued.
+// Stop with the prompt_id of .queued hands over (a stop blocked to deliver
+// messages goes on with the same turn, and Claude takes nothing into it).
+// It gives .stop and makes the state file the queued prompt anew, so the
+// agent works on it from now, and notifies nobody. .queued stays, its
+// prompt_id now .stop's, for a /clear queued before the prompt, which
+// Claude runs in between: its SessionEnd leaves every file alone, and its
+// SessionStart writes the queued prompt again under the new session's id,
+// then forgets what a session's start forgets. Any other prompt, stop or
+// session event drops .queued.
 //
 // It also knows whether the turn is a supervised turn (spec §5, design
 // §3.5): one whose every prompt came from the supervisor, whose end
@@ -92,6 +94,7 @@ import (
 // message is unread (design §3.4, §7.1).
 const hookSource = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
 exec 2>/dev/null
+q=
 b=$(git branch --show-current)
 l=${b:-${PWD##*/}}
 cd "${CLAUDE_PROJECT_DIR:-.}"
@@ -106,8 +109,9 @@ A='` + hookAwk + `'
 works() { grep -Eq '` + workingEvent + `' "$f"; }
 theirs() { grep -q '` + dialogEvent + `' "$f" && grep -q '"agent_id"' "$f"; }
 owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" || rm -f "$t.o" "$f` + owedSuffix + `"; }
-put() { cp -f "$t" "$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
-turn() { K=get N=prompt_id awk "$A" "$1"; }
+put() { cp -f "${2:-$t}" "$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
+get() { K=get N=$1 awk "$A" "$2"; }
+turn() { get prompt_id "$1"; }
 queued() { n=$(turn "$f` + queuedSuffix + `") && [ -n "$n" ]; }
 taken() { queued && [ "$n" = "$(turn "$f.stop")" ]; }
 tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1"; }
@@ -130,7 +134,7 @@ case $1 in
 stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
     K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; k=$?; owe
     queued && ! taken && [ "$n" = "$(turn "$t")" ] && {
-        put "$f.stop"; rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `"; cp -f "$f` + queuedSuffix + `" "$t.c" && mv -f "$t.c" "$f"; rm -f "$t" "$t.c"; exit 0; }
+        put "$f.stop"; rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `"; put "$f" "$f` + queuedSuffix + `"; rm -f "$t"; exit 0; }
     rm -f "$f` + queuedSuffix + `"
     [ $k = 0 ] && { rm -f "$f` + actedSuffix + `"; put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f"; rm -f "$t"; exit 0; } ;;
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
@@ -148,9 +152,9 @@ answer) o=; grep -q '"agent_id"' "$t" || { o=1; turn "$t" >"$f` + actedSuffix + 
     grep -q '` + toolEndEvent + `' "$t" && [ "$o" ] && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
     grep -q '` + dialogEvent + `' "$f" && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
 input) grep -q '` + dialogEvent + `' "$f" && { rm -f "$t"; exit 0; } ;;
-end) taken && grep -q '"reason"[[:blank:]]*:[[:blank:]]*"clear"' "$t" && { rm -f "$t"; exit 0; } ;;
-start) taken && grep -q '"source"[[:blank:]]*:[[:blank:]]*"clear"' "$t" && s=$(K=get N=session_id awk "$A" "$t") &&
-    S=$s K=session awk "$A" "$f` + queuedSuffix + `" >"$t.c" && mv -f "$t.c" "$t"; rm -f "$t.c" ;;
+end) taken && grep -Eq '` + clearedSession + `' "$t" && { rm -f "$t"; exit 0; } ;;
+start) taken && grep -Eq '` + clearedSession + `' "$t" && sid=$(get session_id "$t") &&
+    S=$sid K=session awk "$A" "$f` + queuedSuffix + `" >"$t.c" && mv -f "$t.c" "$t"; rm -f "$t.c" ;;
 resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; }; rm -f "$t.p" ;;
 esac
 case $1 in dialog | answer | input) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
@@ -187,6 +191,10 @@ const (
 	startEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"SessionStart"`
 	resumed    = `"source"[[:blank:]]*:[[:blank:]]*"` + resumeSource + `"`
 )
+
+// clearedSession is what the hook's grep -E finds in the payload of the
+// SessionEnd and the SessionStart of /clear.
+const clearedSession = `"(reason|source)"[[:blank:]]*:[[:blank:]]*"clear"`
 
 // workingEvent is what the hook's grep -E finds in a state file that says
 // the agent works: its latest event is a prompt, or the end of the tool of
