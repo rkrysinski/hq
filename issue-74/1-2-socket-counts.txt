@@ -1,0 +1,40 @@
+== 1-before. dev (f3866cd), TMUX_TMPDIR=/tmp/hqqa.2sbpaf/dev
+TMUX_TMPDIR=/tmp/hqqa.2sbpaf/dev  socket dir: /tmp/hqqa.2sbpaf/dev/tmux-1000
+all hq-test-* files in it before: 0
+go test -tags=integration ./...: exit 0, 17 packages ok
+test binaries (pids): 17
+hq-test-<pid>-* of this run's pids, after: 78
+all hq-test-* files in it after: 78
+== 1. this branch (8c5fda9), TMUX_TMPDIR unset
+TMUX_TMPDIR=(unset)  socket dir: /tmp/tmux-1000
+all hq-test-* files in it before: 2177
+go test -tags=integration ./...: exit 1, 17 packages ok
+--- FAIL: TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd (3.60s)
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	79.022s
+FAIL
+test binaries (pids): 18
+hq-test-<pid>-* of this run's pids, after: 0
+all hq-test-* files in it after: 2256
+== 2. this branch, TMUX_TMPDIR=/tmp/hqqa.2sbpaf/br
+TMUX_TMPDIR=/tmp/hqqa.2sbpaf/br  socket dir: /tmp/hqqa.2sbpaf/br/tmux-1000
+all hq-test-* files in it before: 0
+go test -tags=integration ./...: exit 0, 18 packages ok
+test binaries (pids): 18
+hq-test-<pid>-* of this run's pids, after: 0
+all hq-test-* files in it after: 0
+   files left in /tmp/hqqa.2sbpaf/br/tmux-1000: 0
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
