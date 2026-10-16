@@ -42,7 +42,8 @@ func TmuxSocket(t *testing.T) string {
 // to exit and removes its socket file. tmux returns before the programs
 // exit, and one still starting (the stub sbx right after hq new) would write
 // into a directory the test's cleanup is removing. tmux 3.6 leaves the
-// socket file behind however its server ends (#74).
+// socket file behind however its server ends (#74), and gives its path only
+// while the server runs.
 func killServer(socket string) {
 	path := socketPath(socket)
 	out, _ := exec.Command("tmux", "-u", "-L", socket, "list-panes", "-a", "-F", "#{pane_pid}").Output()
