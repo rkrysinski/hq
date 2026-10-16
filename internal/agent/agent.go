@@ -45,6 +45,7 @@ type Agent struct {
 	owed       bool       // at its prompt with nothing running: Claude owes it a turn (see settle)
 	woken      bool       // it works on a turn Claude woke itself for (see settle)
 	ownAsk     *state.Ask // the dialog Claude shows of its own on its screen, if any (see settle)
+	subDialog  bool       // the dialog its hooks reported is one of its subagents' (see Dialog)
 	dialogSeen string     // when hq first saw that dialog, as it read (see settle)
 	started    string     // the start as stored, which keys endSeen
 	reportAt   time.Time  // the time of its session's last report; zero before its first
@@ -361,6 +362,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		a.reportAt = r.Latest
 	}
 	a.atPrompt, a.owed, a.woken = r.Background, r.Background && r.Owed, r.Woken
+	a.subDialog = r.SubagentDialog
 	if r.State == state.Ended {
 		a.endedAt = r.Since
 	}
@@ -449,8 +451,9 @@ func (a Agent) OnBackgroundWork() bool { return a.atPrompt && a.State == state.W
 
 // OwnAsk is the dialog Claude shows in place of the agent's prompt box,
 // at the start of its session or after a turn, as settle read it off the
-// screen; nil when there is none.
-func (a Agent) OwnAsk() *state.Ask { return a.ownAsk }
+// screen; nil when there is none. It is what the dialog verdict asks for a
+// dialog of Claude's own (Dialog).
+func (a Agent) OwnAsk() *state.Ask { return a.Dialog().Asks(nil) }
 
 // recall applies a turn end hq saw earlier on an unsettled agent: done,
 // with its last message, since hq first saw it, as long as no hook has

@@ -348,3 +348,23 @@ func TestAKeptTurnEndCountsOnlyBesideAReportItBelongsTo(t *testing.T) {
 		t.Errorf("an older hook's report: %+v", r)
 	}
 }
+
+// A subagent's dialog carries the subagent's agent_id, as its tool events
+// do (design §3.4): the report says the dialog is the subagent's.
+func TestADialogASubagentOpensIsTheSubagents(t *testing.T) {
+	theirs := func(name string) []byte {
+		return []byte(strings.Replace(string(fixture(t, name)), `"hook_event_name"`, `"agent_id": "a93b12c53c72bb31d", "hook_event_name"`, 1))
+	}
+	for _, name := range []string{"dialog-bash", "dialog-ask", "notification"} {
+		if r := Parse(theirs(name), nil, nil); r.State != NeedsInput || !r.SubagentDialog {
+			t.Errorf("%s of a subagent: %+v", name, r)
+		}
+		if r := Parse(fixture(t, name), nil, nil); r.SubagentDialog {
+			t.Errorf("%s of the agent: %+v", name, r)
+		}
+	}
+	// A subagent's other events open no dialog.
+	if r := Parse(fixture(t, "post-tool-subagent"), nil, nil); r.SubagentDialog {
+		t.Errorf("a subagent's tool end: %+v", r)
+	}
+}

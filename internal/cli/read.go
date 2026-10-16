@@ -105,12 +105,7 @@ func runRead(env Env, d deps, args []string) error {
 	if r.offset > 0 && replyChanged(det.ReplyAt, r.since) {
 		return usageErr("%s's reply changed since %s: read it again from its start, without --offset", a.Name, r.since.Format(time.RFC3339Nano))
 	}
-	if ask := a.OwnAsk(); ask != nil {
-		// A dialog of Claude's own, at its start or after a turn: no hook
-		// has reported it, so it comes from the screen (#29, #66).
-		det.Ask = ask
-	}
-	v, err := newReadView(newLsRow(d, a, d.now()), det, worktree(d, a), r.offset)
+	v, err := newReadView(newLsRow(d, a, d.now()), det, a.Dialog(), worktree(d, a), r.offset)
 	if err != nil {
 		return err
 	}
@@ -130,19 +125,20 @@ func replyChanged(replyAt, since time.Time) bool {
 }
 
 // newReadView joins the agent as hq ls shows it with what its state files
-// hold in full, its reply from offset. What it asks follows its state: an
-// open dialog's questions or permission while it needs input, the end of
-// its reply, where the question is, while it asks one.
-func newReadView(row lsRow, det state.Detail, worktree string, offset int) (readView, error) {
+// hold in full, its reply from offset. What it asks follows its state: what
+// the dialog it is at asks, as its dialog verdict says (the detail's for a
+// dialog its hooks reported, the screen's for one of Claude's own), the
+// end of its reply, where the question is, while it asks one.
+func newReadView(row lsRow, det state.Detail, dialog agent.Dialog, worktree string, offset int) (readView, error) {
 	page, next, err := replyPage(det.Reply, offset)
 	if err != nil {
 		return readView{}, err
 	}
 	v := readView{lsRow: row, Worktree: worktree, Reply: page, ReplySize: len(det.Reply), NextOffset: next, offset: offset, full: det.Reply}
-	switch row.State {
-	case state.NeedsInput:
-		v.Asks = det.Ask
-	case state.Question:
+	switch {
+	case dialog.Open():
+		v.Asks = dialog.Asks(det.Ask)
+	case row.State == state.Question:
 		if q := lastParagraph(det.Reply); q != "" {
 			v.Asks = &state.Ask{Message: q}
 		}

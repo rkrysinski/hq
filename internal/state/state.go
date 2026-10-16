@@ -47,6 +47,10 @@ type Report struct {
 	// background work finished: no prompt of the user's shows on its screen
 	// for it.
 	Woken bool
+	// SubagentDialog says the dialog the agent needs input for is one of
+	// its subagents': the event that reported it carries the subagent's
+	// agent_id, as a subagent's tool events do (design §3.4).
+	SubagentDialog bool
 }
 
 // payload is the part of a Claude hook event hq reads.
@@ -58,6 +62,7 @@ type payload struct {
 	Message          string `json:"message"`
 	Prompt           string `json:"prompt"`
 	Source           string `json:"source"`
+	AgentID          string `json:"agent_id"`
 	ToolName         string `json:"tool_name"`
 	BackgroundTasks  []struct {
 		ID     string `json:"id"`
@@ -147,7 +152,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 		r.Prompt = p.Prompt
 		r.Woken = strings.HasPrefix(p.Prompt, wakePrefix)
 	case "PermissionRequest":
-		r.State = NeedsInput
+		r.State, r.SubagentDialog = NeedsInput, p.AgentID != ""
 		if m := p.dialogText(); m != "" {
 			r.Last = m
 		}
@@ -158,7 +163,7 @@ func Parse(latest, lastStop, prev []byte) Report {
 			r.State = Question
 		}
 	case "Notification":
-		r.State = NeedsInput
+		r.State, r.SubagentDialog = NeedsInput, p.AgentID != ""
 		if m := Clean(p.Message); m != "" {
 			r.Last = m
 		}
