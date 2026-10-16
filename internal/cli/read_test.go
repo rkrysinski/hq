@@ -397,15 +397,15 @@ func TestADialogAfterATurnTheUserEndedNeedsInput(t *testing.T) {
 // the message for a dialog (#70).
 func TestCommandsTakeADialogTheScreenClosedForGone(t *testing.T) {
 	f := readFakes()
-	f.states["id-42"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Minute), Last: "MCP server “elicit” requests your input", Said: "On it."}
-	f.details["id-42"] = state.Detail{Reply: "On it.", Ask: &state.Ask{Message: "MCP server “elicit” requests your input"}}
+	f.states["id-42"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Minute), Last: "Claude Code needs your input", Said: "On it."}
+	f.details["id-42"] = state.Detail{Reply: "On it.", Ask: &state.Ask{Message: "Claude Code needs your input"}}
 	f.tmux.windows[1].Options["inbox"] = inboxHooks
 	f.tmux.windows[1].Pane = "%4"
 	rule := strings.Repeat("─", 40)
 	box := rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
 	// Open, the form on the screen: the question shows, the message waits.
 	f.tmux.screens = map[string]string{"%4": "● On it.\n" + rule + "\n MCP server “elicit” requests your input\n\n Which colour?\n\n ❯ Colour: red\n   Accept\n   Decline\n"}
-	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 1m\n") || !strings.Contains(out, "\nasks\n  MCP server “elicit” requests your input\n") {
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 1m\n") || !strings.Contains(out, "\nasks\n  Claude Code needs your input\n") {
 		t.Fatalf("open:\n%s", out)
 	}
 	if _, out, _ := f.run("send", "42", "hi"); out != "queued: 42 needs input, delivered once its dialog is closed, when it stops\n" {

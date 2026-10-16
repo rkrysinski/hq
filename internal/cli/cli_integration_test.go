@@ -468,7 +468,7 @@ func TestAnAnsweredElicitationIsClosedByTheScreen(t *testing.T) {
 	if code, _, errOut := h.run("new", "a", "elicit"); code != 0 {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
-	h.waitReport("a", "needs input", "MCP server “elicit” requests your input")
+	h.waitReport("a", "needs input", "Claude Code needs your input")
 	before := time.Now().UTC().Format(time.RFC3339Nano)
 	h.typeIn("a", "red")
 	h.waitReport("a", "working", "")

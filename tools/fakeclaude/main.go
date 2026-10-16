@@ -503,8 +503,9 @@ func (c *claude) subagents() (n int) {
 // question is what the fake's question dialog asks.
 const question = "Which colour do you pick?"
 
-// elicitMessage is the Notification's message for the fake's elicitation.
-const elicitMessage = "MCP server “elicit” requests your input"
+// elicitMessage is the Notification's message for the fake's elicitation,
+// as Claude Code 2.1.301 sends it for any MCP elicitation.
+const elicitMessage = "Claude Code needs your input"
 
 // elicitForm is the elicitation as Claude Code 2.1.301 draws it in place of
 // its prompt box.

@@ -73,7 +73,7 @@ func capture(t *testing.T, name string) string {
 func TestADialogTheHooksReportedClosesWhenTheScreenShowsClaudeAtWork(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "MCP server “elicit” requests your input", Said: "Hi."}}
+	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", Said: "Hi."}}
 	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-elicit-answered")}}
 	as := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), Sandboxes{}, now, s)
 	if a := as[0]; a.State != state.Working || !a.Since.Equal(asked) || a.Last != "Hi." || a.Dialog().Open() || a.Entered() != asked {
@@ -145,10 +145,10 @@ func TestADialogTheHooksReportedStaysOpenOnAnUnclearScreen(t *testing.T) {
 func TestADialogTheHooksReportedIsTheirsWhateverTheScreenLooksLike(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "MCP server “elicit” requests your input"}}
+	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input"}}
 	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-elicit-open")}}
 	a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), Sandboxes{}, now, s)[0]
-	reported := &state.Ask{Message: "MCP server “elicit” requests your input"}
+	reported := &state.Ask{Message: "Claude Code needs your input"}
 	if d := a.Dialog(); d.Whose != HooksDialog || !d.Since.Equal(asked) || d.Asks(reported) != reported || len(s.options) != 0 {
 		t.Fatalf("%+v %+v %v", a, d, s.options)
 	}
@@ -158,7 +158,7 @@ func TestADialogTheHooksReportedIsTheirsWhateverTheScreenLooksLike(t *testing.T)
 func TestASubagentsDialogStaysOpenWhateverTheScreenShows(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "MCP server “elicit” requests your input", SubagentDialog: true}}
+	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", SubagentDialog: true}}
 	for _, name := range []string{"fs-subagent-elicit-open", "fs-subagent-elicit-answered", "fs-elicit-answered", "fs-thinking"} {
 		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
 		a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), Sandboxes{}, now, s)[0]
@@ -228,7 +228,7 @@ func TestARecordedDialogOfClaudesOwnStandsWhenTheCaptureFails(t *testing.T) {
 func TestADialogTheHooksReportedIsNeverReadAsOneOfClaudesOwn(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Background: true, Last: "MCP server “elicit” requests your input"}}
+	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Background: true, Last: "Claude Code needs your input"}}
 	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-elicit-open")}}
 	a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), Sandboxes{}, now, s)[0]
 	if d := a.Dialog(); d.Whose != HooksDialog || !d.Since.Equal(asked) || len(s.options) != 0 {
@@ -250,7 +250,7 @@ func TestADialogTheHooksReportedIsNeverReadAsOneOfClaudesOwn(t *testing.T) {
 func TestAnAnsweredDialogIsNoRewindAtTheBarePromptBox(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "MCP server “elicit” requests your input", Said: "Hi."}}
+	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", Said: "Hi."}}
 	w := lookWindow("1")
 	w.Options["answered"] = nanos(asked) + " " + nanos(now)
 	for _, name := range []string{"fs-streaming", "fs-elicit-done"} {
