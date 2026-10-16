@@ -1,0 +1,8 @@
+after $ hq wait --since $T0 --timeout 5s
+NAME  REPO  BRANCH  STATE        AGE  LAST
+e     app   master  needs input  6s   Change effort level?
+b     app   master  needs input  25s  Which colour do you pick?
+c     app   master  done         6s   Interrupted
+a     app   master  done         30s  Done: hi
+next: hq wait --since 2026-10-16T10:20:06.162344089Z
+after $

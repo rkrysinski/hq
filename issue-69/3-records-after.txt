@@ -1,0 +1,7 @@
+== a
+== b
+== c
+@hq_turnend <nanos> <nanos> Interrupted"
+== d
+== e
+@hq_dialogseen <nanos> 37a314ac9668c5bd <nanos>"

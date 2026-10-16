@@ -1,0 +1,48 @@
+# at 264e15e, Linux arm64, go go1.26.0, tmux tmux 3.6
+$ go test -count=1 ./...
+ok  	github.com/rkrysinski/hq/internal/agent	0.002s
+ok  	github.com/rkrysinski/hq/internal/cli	0.061s
+ok  	github.com/rkrysinski/hq/internal/dash	8.316s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.003s
+ok  	github.com/rkrysinski/hq/internal/dialog	0.786s
+ok  	github.com/rkrysinski/hq/internal/gh	0.002s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.002s
+ok  	github.com/rkrysinski/hq/internal/platform	0.002s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.004s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.003s
+ok  	github.com/rkrysinski/hq/internal/state	0.024s
+ok  	github.com/rkrysinski/hq/internal/tmux	0.002s
+ok  	github.com/rkrysinski/hq/internal/update	0.002s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.002s
+$ go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./...
+ok  	github.com/rkrysinski/hq/cmd/hq	14.536s	
+ok  	github.com/rkrysinski/hq/internal/agent	0.009s	
+ok  	github.com/rkrysinski/hq/internal/cli	76.722s	
+ok  	github.com/rkrysinski/hq/internal/dash	8.008s	
+ok  	github.com/rkrysinski/hq/internal/desktop	0.018s	
+ok  	github.com/rkrysinski/hq/internal/dialog	0.749s	
+ok  	github.com/rkrysinski/hq/internal/gh	0.005s	
+ok  	github.com/rkrysinski/hq/internal/iterm	0.016s	
+ok  	github.com/rkrysinski/hq/internal/platform	0.034s	
+	github.com/rkrysinski/hq/internal/platform/platformtest		
+ok  	github.com/rkrysinski/hq/internal/prefs	0.032s	
+ok  	github.com/rkrysinski/hq/internal/proc	0.826s	
+ok  	github.com/rkrysinski/hq/internal/repo	0.039s	
+ok  	github.com/rkrysinski/hq/internal/sbx	0.087s	
+ok  	github.com/rkrysinski/hq/internal/state	3.119s	
+	github.com/rkrysinski/hq/internal/testutil		
+ok  	github.com/rkrysinski/hq/internal/tmux	14.430s	
+ok  	github.com/rkrysinski/hq/internal/update	0.412s	
+ok  	github.com/rkrysinski/hq/tools/testgate	0.007s	
+$ go run ./tools/testgate coverage cover.out
+coverage 94.28% (minimum 93.8%)
+$ go test -count=1 -tags e2e ./e2e/...
+ok  	github.com/rkrysinski/hq/e2e	16.753s
+$ go run ./tools/testgate pyramid
+unit 447, integration 137, e2e 3 (unit share 77%, minimum 50%)
+$ go test -count=1 -v -run "Look" ./internal/agent/
+--- PASS: TestTheLookCapturesTheScreensOfAllUnsettledAgentsInOneCall (0.00s)
+--- PASS: TestARecalledTurnEndStandsWhenTheLookCannotCaptureTheScreens (0.00s)
+--- PASS: TestTheLookKeepsWhatItSawFirstWinsAndShowsWhatTheWindowHolds (0.00s)
+--- PASS: TestTheLookSeesEndsAndWakeUpsAfterSettlingTheScreens (0.00s)
+ok  	github.com/rkrysinski/hq/internal/agent	0.002s
