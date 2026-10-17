@@ -1,0 +1,6 @@
+#!/bin/sh
+# claude without the sbx template's managed settings (/etc/claude-code hidden), as #89's setup F;
+# hq's and Claude Code's own environment from the host dropped, as in a sandbox.
+for v in $(env | sed -n 's/^\(\(CLAUDE\|HQ_\)[A-Za-z0-9_]*\)=.*/\1/p'); do [ "$v" = CLAUDE_ENV_FILE ] || unset "$v"; done
+[ -f /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/5efb3b68-4efc-4f9e-bb3d-e59adfeea699/scratchpad/qa/ctl-template ] && exec /home/agent/.local/bin/claude "$@" # the template setup as it is (#89 setup E)
+exec unshare -r -m sh -c 'mount --bind /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/5efb3b68-4efc-4f9e-bb3d-e59adfeea699/scratchpad/qa/empty /etc/claude-code && exec unshare --map-user=1000 --map-group=1000 /home/agent/.local/bin/claude "$@"' sh "$@"
