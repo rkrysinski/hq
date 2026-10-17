@@ -76,16 +76,16 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 				{Header: "Colour", Question: "Which colour?", Options: []state.AskOption{{Label: "Red", Description: "Pick red."}, {Label: "Blue"}}},
 				{Question: "Which sizes?", MultiSelect: true, Options: []state.AskOption{{Label: "S"}, {Label: "M"}}},
 			}}},
-			"last      Which colour?\n\nasks\n  Colour: Which colour?\n    1. Red - Pick red.\n    2. Blue\n  Which sizes? (any of)\n    1. S\n    2. M\n"},
+			"last      Which colour?\n\nasks      dialog ID\n  Colour: Which colour?\n    1. Red - Pick red.\n    2. Blue\n  Which sizes? (any of)\n    1. S\n    2. M\n"},
 		{"permission prompt", state.Report{State: state.NeedsInput, Last: "Bash: Create a file"},
 			state.Detail{Ask: &state.Ask{Tool: "Bash", Description: "Create a file", Command: "touch /tmp/x"}},
-			"last      Bash: Create a file\n\nasks\n  Bash: touch /tmp/x\n  Create a file\n"},
+			"last      Bash: Create a file\n\nasks      dialog ID\n  Bash: touch /tmp/x\n  Create a file\n"},
 		{"permission without a command", state.Report{State: state.NeedsInput, Last: "WebSearch: Look it up"},
 			state.Detail{Ask: &state.Ask{Tool: "WebSearch", Description: "Look it up"}},
-			"last      WebSearch: Look it up\n\nasks\n  WebSearch: Look it up\n"},
+			"last      WebSearch: Look it up\n\nasks      dialog ID\n  WebSearch: Look it up\n"},
 		{"notification", state.Report{State: state.NeedsInput, Last: "Claude needs your permission"},
 			state.Detail{Ask: &state.Ask{Message: "Claude needs your permission"}},
-			"last      Claude needs your permission\n\nasks\n  Claude needs your permission\n"},
+			"last      Claude needs your permission\n\nasks      dialog ID\n  Claude needs your permission\n"},
 		{"MCP form", state.Report{State: state.NeedsInput, Last: "Which color should I use?"},
 			state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{
 				{Name: "color", Title: "Color", Description: "Pick one", Type: "string", Required: true, Options: []state.AskFieldOption{{Value: "red"}, {Value: "blue"}}},
@@ -94,17 +94,17 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 				{Name: "size", Type: "integer", Required: true, Default: float64(1000000)},
 				{Name: "backup", Type: "boolean", Default: false, Description: "Keep a daily copy of every table, off site, for thirty days"},
 			}}},
-			"last      Which color should I use?\n\nasks\n  elicit asks: Which color should I use?\n" +
+			"last      Which color should I use?\n\nasks      dialog ID\n  elicit asks: Which color should I use?\n" +
 				"    color (Color, required): red | blue - Pick one\n    name (Name): text\n    engine: PostgreSQL | MySQL [default: PostgreSQL]\n" +
 				"    size (required): integer [default: 1000000]\n    backup: boolean [default: false] - Keep a daily copy of eve…\n"},
 		{"MCP URL", state.Report{State: state.NeedsInput, Last: "Sign in to the example service."},
 			state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Sign in to the example service.", URL: "https://example.com/sign-in?session=42"}},
-			"last      Sign in to the example service.\n\nasks\n  elicit asks: Sign in to the example service.\n    url: https://example.com/sign-in?session=42\n"},
+			"last      Sign in to the example service.\n\nasks      dialog ID\n  elicit asks: Sign in to the example service.\n    url: https://example.com/sign-in?session=42\n"},
 		// A URL is printed in full, however long: cut, it would hide where it
 		// sends the user.
 		{"MCP long URL", state.Report{State: state.NeedsInput, Last: "Sign in."},
 			state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Sign in.", URL: "https://auth.example.com/oauth/authorize?client_id=hq-agent&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&state=42"}},
-			"last      Sign in.\n\nasks\n  elicit asks: Sign in.\n    url: https://auth.example.com/oauth/authorize?client_id=hq-agent&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&state=42\n"},
+			"last      Sign in.\n\nasks      dialog ID\n  elicit asks: Sign in.\n    url: https://auth.example.com/oauth/authorize?client_id=hq-agent&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&state=42\n"},
 		{"question", state.Report{State: state.Question, Last: "Done. Shall I open the PR?"},
 			state.Detail{Reply: "Done.\n\nShall I open the PR?"},
 			"\nasks\n  Shall I open the PR?\n"}, // LAST is the reply, not repeated
@@ -117,7 +117,8 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 		head := "state     " + tc.report.State + " 1m\npending   0\n"
 		_, rest, _ := strings.Cut(out, head)
 		rest, _, _ = strings.Cut(rest, "\nreply")
-		if code != 0 || rest != strings.TrimSuffix(tc.want, "\n")+"\n" {
+		want := strings.Replace(tc.want, "dialog ID", "dialog "+state.DialogID(tc.report.Since), 1)
+		if code != 0 || rest != strings.TrimSuffix(want, "\n")+"\n" {
 			t.Errorf("%s: exit %d %q\n%s", tc.name, code, errOut, out)
 		}
 	}
@@ -125,7 +126,7 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 	f := readFakes()
 	f.states["id-42"] = state.Report{State: state.Working, Since: f.now}
 	f.details["id-42"] = state.Detail{Ask: &state.Ask{Message: "Claude needs your permission"}}
-	if _, out, _ := f.run("read", "42"); strings.Contains(out, "\nasks\n") {
+	if _, out, _ := f.run("read", "42"); strings.Contains(out, "\nasks") {
 		t.Fatalf("a working agent asks:\n%s", out)
 	}
 }
@@ -336,7 +337,7 @@ func TestReadShowsClaudesDialogAtTheStartOfASession(t *testing.T) {
 	rule := strings.Repeat("─", 40)
 	f.tmux.screens = map[string]string{"%4": rule + "\n Make auto mode your default permission mode?\n\n   Auto mode lets Claude handle permission prompts automatically.\n\n   ❯ Yes, set auto mode as my default permission mode\n     No, keep bypass permissions\n"}
 	code, out, errOut := f.run("read", "42")
-	want := "state     needs input 0s\npending   0\nlast      Make auto mode your default permission mode?\n\nasks\n  Make auto mode your default permission mode?\n    1. Yes, set auto mode as my default permission mode\n    2. No, keep bypass permissions\n\nreply     none\n"
+	want := "state     needs input 0s\npending   0\nlast      Make auto mode your default permission mode?\n\nasks      dialog " + state.DialogID(f.now) + "\n  Make auto mode your default permission mode?\n    1. Yes, set auto mode as my default permission mode\n    2. No, keep bypass permissions\n\nreply     none\n"
 	if code != 0 || !strings.HasSuffix(out, want) {
 		t.Fatalf("exit %d %q\n%s", code, errOut, out)
 	}
@@ -349,7 +350,7 @@ func TestReadShowsClaudesDialogAtTheStartOfASession(t *testing.T) {
 	}
 	// Answered: Claude at its prompt, done, asking nothing.
 	f.tmux.screens["%4"] = rule + "\n❯ \n" + rule + "\n  footer\n"
-	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     done 1m\n") || strings.Contains(out, "\nasks\n") {
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     done 1m\n") || strings.Contains(out, "\nasks") {
 		t.Fatalf("answered:\n%s", out)
 	}
 }
@@ -371,7 +372,7 @@ func TestCommandsSeeClaudesDialogAfterATurn(t *testing.T) {
 	}
 	f.now = f.now.Add(time.Minute)
 	code, out, errOut := f.run("read", "42")
-	want := "state     needs input 1m\npending   0\nlast      Change effort level?\n\nasks\n  Change effort level?\n    1. Yes, switch to max\n    2. No, go back\n\nreply\n  hi\n"
+	want := "state     needs input 1m\npending   0\nlast      Change effort level?\n\nasks      dialog " + state.DialogID(seen) + "\n  Change effort level?\n    1. Yes, switch to max\n    2. No, go back\n\nreply\n  hi\n"
 	if code != 0 || !strings.HasSuffix(out, want) {
 		t.Fatalf("exit %d %q\n%s", code, errOut, out)
 	}
@@ -384,7 +385,7 @@ func TestCommandsSeeClaudesDialogAfterATurn(t *testing.T) {
 	}
 	// Answered: at its prompt again, done since its turn, with its reply.
 	f.tmux.screens["%4"] = "● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n"
-	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     done 1h\n") || !strings.HasSuffix(out, "reply\n  hi\n") || strings.Contains(out, "\nasks\n") {
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     done 1h\n") || !strings.HasSuffix(out, "reply\n  hi\n") || strings.Contains(out, "\nasks") {
 		t.Fatalf("answered:\n%s", out)
 	}
 }
@@ -424,7 +425,7 @@ func TestCommandsTakeADialogTheScreenClosedForGone(t *testing.T) {
 	box := rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
 	// Open, the form on the screen: the question shows, the message waits.
 	f.tmux.screens = map[string]string{"%4": "● On it.\n" + rule + "\n MCP server “elicit” requests your input\n\n Which colour?\n\n ❯ Colour: red\n   Accept\n   Decline\n"}
-	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 1m\n") || !strings.Contains(out, "\nasks\n  Claude Code needs your input\n") {
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 1m\n") || !strings.Contains(out, "\nasks      dialog "+state.DialogID(f.now.Add(-time.Minute))+"\n  Claude Code needs your input\n") {
 		t.Fatalf("open:\n%s", out)
 	}
 	if _, out, _ := f.run("send", "42", "hi"); out != "queued: 42 needs input, delivered once its dialog is closed, when it stops\n" {
@@ -433,7 +434,7 @@ func TestCommandsTakeADialogTheScreenClosedForGone(t *testing.T) {
 	// Answered, the tool at work under its spinner.
 	f.tmux.screens["%4"] = "● On it.\n· elicit: ask_color… (5s · ↓ 86 tokens)\n" + box
 	_, out, _ := f.run("read", "42")
-	if !strings.Contains(out, "state     working 1m\n") || strings.Contains(out, "\nasks\n") || strings.Contains(out, "\nlast ") {
+	if !strings.Contains(out, "state     working 1m\n") || strings.Contains(out, "\nasks") || strings.Contains(out, "\nlast ") {
 		t.Fatalf("answered:\n%s", out)
 	}
 	var v readView
@@ -445,7 +446,7 @@ func TestCommandsTakeADialogTheScreenClosedForGone(t *testing.T) {
 	}
 	// The reply streams, which shows no spinner: still working.
 	f.tmux.screens["%4"] = "● On it.\n● Red it is.\n" + box
-	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     working 1m\n") || strings.Contains(out, "\nasks\n") {
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     working 1m\n") || strings.Contains(out, "\nasks") {
 		t.Fatalf("streaming:\n%s", out)
 	}
 }
@@ -460,7 +461,7 @@ func TestCommandsSeeClaudesDialogOnBackgroundWork(t *testing.T) {
 	f.tmux.windows[1].Options["inbox"] = inboxHooks
 	f.tmux.windows[1].Pane = "%4"
 	f.tmux.screens = map[string]string{"%4": "● It started.\n✻ Waiting for 1 background agent to finish\n" + strings.Repeat("▔", 40) + "\n   Select model\n   Switch between Claude models.\n\n   ❯ 1. Default (recommended)\n     2. Opus 5.5\n"}
-	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 0s\n") || !strings.Contains(out, "\nasks\n  Select model\n    1. Default (recommended)\n    2. Opus 5.5\n") {
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 0s\n") || !strings.Contains(out, "\nasks      dialog "+state.DialogID(f.now)+"\n  Select model\n    1. Default (recommended)\n    2. Opus 5.5\n") {
 		t.Fatalf("read:\n%s", out)
 	}
 	if _, out, _ := f.run("send", "42", "hi"); out != "queued: 42 waits at a dialog of Claude's own; once it is answered there (hq go 42), delivered with its next prompt\n" {

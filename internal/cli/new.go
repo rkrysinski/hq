@@ -86,8 +86,9 @@ func claudeArgs(name, id, resume, prompt string) []string {
 // inboxHooks is the inbox option of every agent hq starts or relaunches
 // from now on, the generation of its hooks: from 1 they deliver messages
 // (ADR 0012), from 2 they also tell a supervised turn (spec §5,
-// agent.Supervisable).
-const inboxHooks = "2"
+// agent.Supervisable), from 3 they hold on a question dialog for hq's
+// answer (hq answer, agent.Answerable).
+const inboxHooks = "3"
 
 func runNew(env Env, d deps, args []string) error {
 	cwd, err := d.getwd()

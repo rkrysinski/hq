@@ -80,6 +80,10 @@ _Avoid_: ask, prompt, question (the state)
 The user's choice for an open question dialog, given at the agent or through hq (`hq answer`).
 _Avoid_: message, reply, pick
 
+**Dialog id**:
+The six hex characters that name an agent's open dialog, taken from the moment it opened; an answer names it, so it never lands on a dialog that opened later.
+_Avoid_: question id, prompt id
+
 **Dialog verdict**:
 Whether an agent is at a dialog, whose (the one its hooks reported, Claude's own, or a subagent's), since when, and what it asks, decided in one place from what the look saw; the agent needs input exactly while it is at one. The hooks open it; the agent's screen may close it only on clear evidence (Claude at work), and opens only Claude's own.
 _Avoid_: dialog state, open dialog flag, needs-input check

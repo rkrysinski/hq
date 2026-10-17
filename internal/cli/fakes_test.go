@@ -483,6 +483,17 @@ type fakes struct {
 	announceErr error
 	removed     []string // "repo id" of each agent whose state files were removed
 
+	// questions is the question dialog each agent id's state file reports
+	// open (none: no question dialog); answerLeft the answer waiting in
+	// its inbox for the hook, until the hook takes it or hq takes it back
+	// (withdrawals counts those); leaveErr fails leaving it; got is what
+	// Claude reports it got once the dialog's tool ended.
+	questions   map[string]state.Questions
+	answerLeft  map[string][]byte
+	leaveErr    error
+	withdrawals int
+	got         map[string]map[string]string
+
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
 	// profiles counts the asks for the iTerm2 profile; profileWrote and
@@ -541,6 +552,10 @@ func newFakes() *fakes {
 		details: map[string]state.Detail{},
 
 		announced: map[string]bool{},
+
+		questions:  map[string]state.Questions{},
+		answerLeft: map[string][]byte{},
+		got:        map[string]map[string]string{},
 
 		releases: &fakeReleases{files: map[string]map[string][]byte{}},
 		exe:      "/nonexistent/hq",
@@ -690,6 +705,34 @@ func (f *fakes) deps() deps {
 			f.withdrawn = append(f.withdrawn, id)
 			delete(f.announced, id)
 			return nil
+		},
+
+		questions: func(_, id string) (state.Questions, error) {
+			q, ok := f.questions[id]
+			if !ok {
+				return q, errors.New("no question dialog")
+			}
+			return q, nil
+		},
+		leaveAnswer: func(_, id string, _ state.Questions, decision []byte) error {
+			if f.leaveErr != nil {
+				return f.leaveErr
+			}
+			f.answerLeft[id] = decision
+			return nil
+		},
+		answerTaken: func(_, id string, _ state.Questions) bool { return f.answerLeft[id] == nil },
+		withdrawAnswer: func(_, id string, _ state.Questions) bool {
+			if f.answerLeft[id] == nil {
+				return false
+			}
+			delete(f.answerLeft, id)
+			f.withdrawals++
+			return true
+		},
+		answersGot: func(_, id string) (map[string]string, bool) {
+			g, ok := f.got[id]
+			return g, ok
 		},
 
 		releases:   f.releases,

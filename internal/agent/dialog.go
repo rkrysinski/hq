@@ -37,6 +37,15 @@ type Dialog struct {
 // Open reports whether the agent is at a dialog.
 func (d Dialog) Open() bool { return d.Whose != NoDialog }
 
+// ID is the open dialog's id, of the moment it opened (state.DialogID),
+// which hq answer names the dialog by; empty when no dialog is open.
+func (d Dialog) ID() string {
+	if !d.Open() {
+		return ""
+	}
+	return state.DialogID(d.Since)
+}
+
 // Asks is what the open dialog asks: for one the hooks reported, reported,
 // what the detail of the agent's report holds (state.Detail.Ask, read only
 // by the caller that shows it); for one of Claude's own, what its screen

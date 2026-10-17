@@ -135,6 +135,17 @@ type deps struct {
 	postMessage  func(root, id string, m state.Message, now bool) error
 	takeMessages func(root, id string) ([]state.Message, error)
 	pending      func(root, id string) int
+	// questions reads the question dialog an agent's state file reports
+	// open; leaveAnswer leaves the answer to it in the agent's inbox for
+	// the hook that holds on it, answerTaken tells whether that hook took
+	// it, withdrawAnswer takes it back unless the hook took it first, and
+	// answersGot reads what Claude reports it got once the dialog's tool
+	// ended (hq answer, design §3.4, ADR 0013).
+	questions      func(root, id string) (state.Questions, error)
+	leaveAnswer    func(root, id string, q state.Questions, decision []byte) error
+	answerTaken    func(root, id string, q state.Questions) bool
+	withdrawAnswer func(root, id string, q state.Questions) bool
+	answersGot     func(root, id string) (map[string]string, bool)
 	// supervisor says the commands run for the supervisor, in hq mcp: the
 	// prompts and the messages they give agents are its own, not the
 	// user's, and a turn made only of them notifies nobody (spec §5).
@@ -253,8 +264,15 @@ func defaultDeps() deps {
 		postMessage: func(root, id string, m state.Message, now bool) error {
 			return state.Post(root, id, m, now, time.Now())
 		},
-		takeMessages:  state.Take,
-		pending:       state.Pending,
+		takeMessages: state.Take,
+		pending:      state.Pending,
+
+		questions:      state.ReadQuestions,
+		leaveAnswer:    state.LeaveAnswer,
+		answerTaken:    state.AnswerTaken,
+		withdrawAnswer: state.WithdrawAnswer,
+		answersGot:     state.ReadAnswers,
+
 		announce:      state.Announce,
 		announced:     state.Announced,
 		withdraw:      state.Withdraw,

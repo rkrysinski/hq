@@ -49,6 +49,7 @@ type row struct {
 	Pending int             `json:"pending"`
 	Reply   string          `json:"reply"`
 	Asks    json.RawMessage `json:"asks"`
+	Dialog  string          `json:"dialog"`
 }
 
 type waited struct {
@@ -361,6 +362,44 @@ func TestWorkTheSupervisorSentEndsWithoutANotification(t *testing.T) {
 		t.Fatalf("b %+v", r)
 	}
 	expect("hq send from a shell", "a Needs input: main|a Done: main|a Done: main|b Done: main|b Done: main")
+}
+
+// The supervisor answers an agent's question dialog on the user's word,
+// through the dialog's hook: the agent goes on, its turn still the
+// supervisor's, and the dialog notified the user once, as ever (#90).
+func TestTheSupervisorAnswersAQuestionDialogOnTheUsersWord(t *testing.T) {
+	record := filepath.Join(t.TempDir(), "notified")
+	t.Setenv("FAKE_CLAUDE_NOTIFIED", record)
+	t.Setenv("FAKE_CLAUDE_DELAY", "600ms")
+	s := newSupervisor(t)
+	app := testutil.GitRepo(t, "app")
+	s.ok("new", map[string]any{"name": "a", "dir": app, "prompt": "this needs input"})
+	s.until("1m", "a", "needs input")
+	r := s.read("a")
+	if len(r.Dialog) != 6 || !strings.Contains(string(r.Asks), "Which colour do you pick?") {
+		t.Fatalf("read %+v", r)
+	}
+	answers := []any{map[string]any{"options": []int{2}}}
+	if out, isErr := s.call("answer", map[string]any{"name": "a", "dialog": r.Dialog, "answers": answers}); !isErr || !strings.Contains(out, "ask the user what to pick") {
+		t.Fatalf("without the user's word: %v %q", isErr, out)
+	}
+	if got := s.read("a"); got.State != "needs input" || got.Dialog != r.Dialog {
+		t.Fatalf("answered without the user's word: %+v", got)
+	}
+	var res struct {
+		State     string `json:"state"`
+		NextSince string `json:"next_since"`
+	}
+	if out := s.ok("answer", map[string]any{"name": "a", "dialog": r.Dialog, "answers": answers, "confirmed": true}); json.Unmarshal([]byte(out), &res) != nil || res.State != "working" || res.NextSince == "" {
+		t.Fatalf("answer: %s", out)
+	}
+	if r, _ := s.until(res.NextSince, "a", "done"); r.Last != "Done: this needs input" {
+		t.Fatalf("a %+v", r)
+	}
+	b, _ := os.ReadFile(record)
+	if got := strings.Count(string(b), "\n"); got != 1 || !strings.Contains(string(b), "Needs input: main") {
+		t.Fatalf("notified %q", b)
+	}
 }
 
 // desktopConfig is where Claude Desktop keeps its configuration under home

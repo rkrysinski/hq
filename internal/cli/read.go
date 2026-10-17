@@ -31,6 +31,8 @@ type readView struct {
 	NextSince time.Time `json:"next_since"`
 	offset    int       // where the page starts in the reply
 	full      string    // the whole reply
+	// answerable says hq answer takes an answer to its dialog.
+	answerable bool
 }
 
 const readUsage = "hq read NAME [--offset N --since TIME] [--json]"
@@ -109,6 +111,7 @@ func runRead(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
+	v.answerable = answerable(a, det.Ask) == nil
 	v.NextSince = lookedAt(at)
 	if r.asJSON {
 		return writeJSON(env.Stdout, v)
@@ -186,8 +189,17 @@ func (v readView) write(w io.Writer) error {
 		field("last", orDash(v.Last))
 	}
 	if a := v.Asks; a != nil {
-		b.WriteString("\nasks\n")
+		if v.Dialog == "" {
+			b.WriteString("\nasks\n")
+		} else {
+			b.WriteString("\n")
+			field("asks", "dialog "+v.Dialog)
+		}
 		writeAsk(&b, a)
+		if v.answerable {
+			b.WriteString("\n")
+			field("answer", answerHint(v.Name, v.Dialog, a))
+		}
 	}
 	switch {
 	case v.Reply == "":
@@ -203,6 +215,21 @@ func (v readView) write(w io.Writer) error {
 	}
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// answerHint is the hq answer command for the question dialog a, with a
+// place for each answer: N for a question that takes one option, N,N for
+// one that takes several.
+func answerHint(name, dialog string, a *state.Ask) string {
+	line := "hq answer " + name + " --dialog " + dialog
+	for _, q := range a.Questions {
+		if q.MultiSelect {
+			line += " N,N"
+		} else {
+			line += " N"
+		}
+	}
+	return line
 }
 
 // writeAsk prints what the agent asks: each question with its numbered

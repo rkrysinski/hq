@@ -46,17 +46,20 @@ func TestFromWindowsKnowsTheDockedAgent(t *testing.T) {
 	}
 }
 
+// An agent's hooks tell a supervised turn from their second generation, and
+// hold on a question dialog for hq's answer from their third (#90).
 func TestAnAgentsHooksTellASupervisedTurnFromTheirSecondGeneration(t *testing.T) {
-	for inbox, want := range map[string]struct{ inbox, supervisable bool }{
-		"":  {false, false}, // started before hq send
-		"1": {true, false},  // started before supervised turns
-		"2": {true, true},
-		"3": {true, true},
-		"x": {true, false},
+	for inbox, want := range map[string]struct{ inbox, supervisable, answerable bool }{
+		"":  {false, false, false}, // started before hq send
+		"1": {true, false, false},  // started before supervised turns
+		"2": {true, true, false},   // started before hq answer
+		"3": {true, true, true},
+		"4": {true, true, true},
+		"x": {true, false, false},
 	} {
 		as := FromWindows([]tmux.Window{{ID: "@1", Name: "a", Options: map[string]string{"id": "x", "inbox": inbox}}})
-		if as[0].Inbox != want.inbox || as[0].Supervisable() != want.supervisable {
-			t.Errorf("inbox %q: delivers messages %v, tells a supervised turn %v", inbox, as[0].Inbox, as[0].Supervisable())
+		if a := as[0]; a.Inbox != want.inbox || a.Supervisable() != want.supervisable || a.Answerable() != want.answerable {
+			t.Errorf("inbox %q: delivers messages %v, tells a supervised turn %v, holds for an answer %v", inbox, a.Inbox, a.Supervisable(), a.Answerable())
 		}
 	}
 }
