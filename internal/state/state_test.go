@@ -210,6 +210,9 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	}
 	for event, args := range events {
 		m := s.Hooks[event]
+		if event == "PermissionRequest" {
+			m = m[:1]
+		}
 		if len(m) != 1 || len(m[0].Hooks) != 1 {
 			t.Fatalf("%s: %+v", event, m)
 		}
@@ -229,14 +232,36 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	if len(raw) > 24<<10 {
 		t.Errorf("settings of %d bytes", len(raw))
 	}
-	// The hook script has been kept within 8 KiB of the settings (design
-	// §3.4); a change that needs more says so here.
-	if len(hookScript) > 8<<10 {
+	// The hook script has been kept within a budget of the settings (design
+	// §3.4); a change that needs more says so here. 9 KiB since question
+	// dialogs are answered from hq (#90): the hold that takes the answer
+	// came on top of the elicitation's report (#100), well within the 24
+	// KiB of the settings.
+	if len(hookScript) > 9<<10 {
 		t.Errorf("hook script of %d bytes", len(hookScript))
 	}
 	for _, event := range []string{"PermissionRequest", "PostToolUse", "PostToolUseFailure"} {
 		if m := s.Hooks[event][0].Matcher; m != "" {
 			t.Errorf("%s: every tool, not %q", event, m)
+		}
+	}
+	// A question dialog's PermissionRequest has a hook of its own besides,
+	// which holds until hq answers or the dialog closes: Claude kills it
+	// only at its timeout, a day, past any user waiting at the dialog (#90).
+	pr := s.Hooks["PermissionRequest"]
+	if len(pr) != 2 || pr[1].Matcher != "AskUserQuestion" || len(pr[1].Hooks) != 1 {
+		t.Fatalf("PermissionRequest: %+v", pr)
+	}
+	if h := pr[1].Hooks[0]; h.Command != "sh" || h.Args[1] != `eval "$HQ_HOOK"` || strings.Join(h.Args[3:], " ") != "hold" || h.Timeout != 86400 {
+		t.Errorf("the question dialog's hook: %+v", h)
+	}
+	for event, m := range s.Hooks {
+		for _, g := range m {
+			for _, h := range g.Hooks {
+				if h.Timeout != 0 && strings.Join(h.Args[3:], " ") != "hold" {
+					t.Errorf("%s: a timeout of its own: %+v", event, h)
+				}
+			}
 		}
 	}
 }

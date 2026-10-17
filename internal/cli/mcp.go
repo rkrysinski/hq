@@ -11,6 +11,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rkrysinski/hq/internal/desktop"
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/version"
 )
 
@@ -102,7 +103,7 @@ const mcpInstructions = `hq runs Claude Code agents, each working on one task in
 - The user is not notified when work you sent finishes or asks a question: the end of a turn whose prompts all came from you (new with a prompt, send) raises no desktop notification, whether or not you are waiting, because its result is for you. So wait for the agents you gave work to, read their replies and tell the user what matters. A turn the user prompted themselves, or sent a message into, still notifies them.
 - To watch agents, call wait in a loop, each time with the next_since of the most recent result: it returns as soon as an agent is done, asks a question, needs input or ends, or returns no agents after its timeout; then call it again.
 - An agent done or in question with own_tasks: a shell command or watch of its own still runs, which it started and left running at its turn end. Claude takes another turn when one ends, so wait for it again if you need that result; a dev server may never end. The list is that turn end's and may be stale until its next turn end.
-- An agent that needs input has a dialog open (a permission, questions with options, or an MCP server's form). Never try to answer it, with send or otherwise: tell the user which agent waits and what it asks; they answer it in hq (go shows them the agent). hq notifies them of the dialog itself, also on a turn you started.
+- An agent that needs input has a dialog open (a permission, questions with options, or an MCP server's form; read gives them, with the dialog's id). Never answer a permission or any other dialog, with send or otherwise: tell the user which agent waits and what it asks; they answer it in hq (go shows them the agent). A question dialog (asks with questions) is the exception: answer it with answer, only on the user's word. Tell the user which agent asks what, and pass on what they pick, or your pick when they told you to choose for them; never on your own initiative. hq notifies them of the dialog itself, also on a turn you started.
 - kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.`
 
 // Tool inputs.
@@ -129,6 +130,17 @@ type (
 	mcpKillIn struct {
 		Name      string `json:"name" jsonschema:"the agent's name, as list shows it"`
 		Confirmed bool   `json:"confirmed,omitempty" jsonschema:"true only when the user has said, in this conversation, to end this agent; otherwise ask them first, naming the agent, and call kill again once they agree"`
+	}
+	mcpAnswerIn struct {
+		Name      string      `json:"name" jsonschema:"the agent's name, as list shows it"`
+		Dialog    string      `json:"dialog" jsonschema:"the open dialog's id, as read and list give it (dialog)"`
+		Answers   []mcpAnswer `json:"answers,omitempty" jsonschema:"one answer per question, in the dialog's order (the order read lists them)"`
+		Cancel    bool        `json:"cancel,omitempty" jsonschema:"cancel the dialog as Esc does instead of answering: the agent's turn ends"`
+		Confirmed bool        `json:"confirmed,omitempty" jsonschema:"true only when the user has said, in this conversation, what to pick, or told you to choose for them; otherwise ask them first, naming the agent and its question, and call answer again with their choice"`
+	}
+	mcpAnswer struct {
+		Options []int  `json:"options,omitempty" jsonschema:"the numbers of the options picked, from 1, as read lists them; several only where the question is multi_select"`
+		Text    string `json:"text,omitempty" jsonschema:"an answer in the user's own words, in place of the options"`
 	}
 	mcpSendIn struct {
 		Name string `json:"name" jsonschema:"the agent's name, as list shows it"`
@@ -168,7 +180,7 @@ func newMCPServer(d deps) *mcp.Server {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "list",
-		Description: "List every agent as JSON (agents), those that need the user first: name, repo, branch, state, since and age_seconds (in that state), last (its last message, one line), sandbox, pending (messages waiting for it), own_tasks (while it is done or in question: the shell commands and watches of its own still running at that turn end, each with its type, shell or monitor, and text, the command or the watch's description; [] when none) and asks (what it asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise); and next_since, the moment of the list, to pass to wait as since. " +
+		Description: "List every agent as JSON (agents), those that need the user first: name, repo, branch, state, since and age_seconds (in that state), last (its last message, one line), sandbox, pending (messages waiting for it), dialog (while it needs input: the open dialog's id, for answer), own_tasks (while it is done or in question: the shell commands and watches of its own still running at that turn end, each with its type, shell or monitor, and text, the command or the watch's description; [] when none) and asks (what it asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise); and next_since, the moment of the list, to pass to wait as since. " +
 			"States: starting, working, question (its reply ends with a question), needs input (a dialog is open), done (its turn ended), ended (its session is gone). " +
 			"This is where status comes from: never ask an agent for its status.",
 		Annotations: &mcp.ToolAnnotations{Title: "List agents", ReadOnlyHint: true, OpenWorldHint: &no},
@@ -178,7 +190,7 @@ func newMCPServer(d deps) *mcp.Server {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "read",
-		Description: "One agent in full, as JSON: what list gives, what it asks included (asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise), its worktree, its last reply, and next_since, the moment of the read, to pass to wait as since. " +
+		Description: "One agent in full, as JSON: what list gives, what it asks and the open dialog's id included (asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise), its worktree, its last reply, and next_since, the moment of the read, to pass to wait as since. " +
 			"A reply longer than 32 KiB comes in pages: reply is the page, reply_size the whole reply's size in bytes, and next_offset where the next page starts, null on the last page. " +
 			"To read on, call read again with offset set to next_offset and since set to this read's next_since; if the agent has replied anew in between, it says the reply changed: read it again from its start. " +
 			"Read an agent when wait returns it, and to see its answer to a message you sent. " +
@@ -222,7 +234,7 @@ func newMCPServer(d deps) *mcp.Server {
 			"With now, an agent at work gets it after its next tool call, within the running turn. " +
 			"It returns, as JSON, how the message goes (delivery: queued or delivered) and next_since, the moment before the message was left. The agent's answer is its next reply: wait for the agent with that next_since as since (it returns the answer even if the agent answered before wait was called), then read it. " +
 			"The user is not notified when a turn your message started finishes or asks a question, so wait for it and tell them. " +
-			"Never use it to answer an agent's dialog (needs input): tell the user instead.",
+			"Never use it to answer an agent's dialog (needs input): for a question dialog use answer, on the user's word; for any other, tell the user.",
 		Annotations: &mcp.ToolAnnotations{Title: "Send a message", DestructiveHint: &no, OpenWorldHint: &no},
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpSendIn) (*mcp.CallToolResult, any, error) {
 		args := []string{in.Name, in.Text, "--json"}
@@ -230,6 +242,35 @@ func newMCPServer(d deps) *mcp.Server {
 			args = append(args, "--now")
 		}
 		return callCommand(d, runSend, args...)
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name: "answer",
+		Description: "Answer an agent's question dialog (it needs input, and read's asks has questions with options), or cancel it as Esc does. " +
+			"Only on the user's word: without confirmed set to true it answers nothing and says to ask the user. Never on your own initiative: tell the user which agent asks what, and pass on what they pick; when they tell you to choose for them, whether you may pick your own recommendation is part of what they told you. " +
+			"Name the dialog by its id (read and list give it as dialog), so an answer never lands on a dialog that opened after you read; an answer for a dialog no longer open is refused with the agent's state. " +
+			"answers holds one entry per question in the dialog's order: options, the numbers read lists (several only for a multi_select question), or text, an answer in the user's words. " +
+			"Permission prompts, MCP elicitations and dialogs of Claude's own are refused: tell the user, who answers them at the agent (go shows it). " +
+			"It returns once the agent has left the dialog, as JSON: its state and next_since, the moment before the answer was left, to pass to wait as since.",
+		Annotations: &mcp.ToolAnnotations{Title: "Answer a question dialog", DestructiveHint: &no, OpenWorldHint: &no},
+	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpAnswerIn) (*mcp.CallToolResult, any, error) {
+		return callCommand(d, func(env Env, d deps, _ []string) error {
+			switch {
+			// The user's word comes with the call, as for kill: the
+			// supervisor never answers for them on its own.
+			case !in.Confirmed:
+				return usageErr("%s not answered: ask the user what to pick, naming the agent and its question, then call answer with confirmed set to true", in.Name)
+			case in.Cancel && len(in.Answers) > 0:
+				return usageErr("%s not answered: answers or cancel, not both", in.Name)
+			case !in.Cancel && len(in.Answers) == 0:
+				return usageErr("%s not answered: no answers; give one per question, or cancel", in.Name)
+			}
+			r := answerRequest{name: in.Name, dialog: in.Dialog, cancel: in.Cancel, asJSON: true}
+			for _, a := range in.Answers {
+				r.answers = append(r.answers, state.Answer{Options: a.Options, Text: a.Text})
+			}
+			return answer(env, d, r)
+		})
 	})
 
 	mcp.AddTool(s, &mcp.Tool{

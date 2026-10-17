@@ -102,9 +102,24 @@ import (
 // alone, so closing turns follow the turn that started the work. A
 // session's start or end removes it.
 //
-// It needs only sh, git, cat, mv, cp, mkdir, rm, grep and awk, sends its
-// own errors nowhere and always exits 0; it holds Claude back only while a
-// message is unread (design §3.4, §7.1).
+// On hold, the kind of a second hook on a question dialog's PermissionRequest
+// (AskUserQuestion), run beside the dialog's own, it writes nothing and
+// holds for hq's answer (hq answer, ADR 0013): once the state file is the
+// dialog's report, the same bytes as its own copy of the payload (the
+// dialog's hook may report it a moment later), it looks every 0.2 s for the
+// answer hq leaves in the inbox, named for that report by its cksum, takes
+// it by renaming it and prints it, a decision hq wrote whole, as its
+// output. It ends with no output once the state file is no longer the
+// dialog's (answered at the terminal, the session ended, a dialog's report
+// never coming), never taking an answer after that, at Claude's SIGTERM
+// (its timeout, the session's end), and at once for a subagent's dialog
+// (agent_id), which hq does not answer.
+//
+// It needs only sh, git, cat, mv, cp, mkdir, rm, grep, awk, sleep and
+// cksum, sends its own errors nowhere and always exits 0; it holds Claude
+// back only while a message is unread (design §3.4, §7.1): the hook of
+// kind hold waits while its dialog is open, which Claude still draws and
+// takes an answer at.
 const hookSource = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
 exec 2>/dev/null
 q=
@@ -147,7 +162,13 @@ say() {
     for m in "$c"/*; do [ -f "$m" ] && printf '%s%s' "$s" '` + MessageLabel + `' && cat "$m" && s='\n\n'; done
     rm -rf "$c"; printf '%s\n' "$2"
 }
+nap() { sleep .2 || sleep 1; }
+mine() { awk -v RS='\001' 'NR==FNR{p=$0;next}{s=$0==p}END{exit !s}' "$t" "$f"; }
 case $1 in
+hold) grep -q '"agent_id"' "$t" || { k=$(cksum <"$t") && a=$i/` + answerPrefix + `${k% *}.${k#* } && trap 'rm -f "$t"; exit 0' HUP TERM &&
+    { w=0; until mine || [ $((w+=1)) -gt 50 ]; do nap; done
+    while mine; do mv -f "$a" "$t" && cat "$t" && break; nap; done; }; }
+    rm -f "$t"; exit 0 ;;
 stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
     K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; k=$?; owe
     queued && ! taken && [ "$n" = "$(turn "$t")" ] && {
@@ -422,6 +443,7 @@ type hookCommand struct {
 	Type    string   `json:"type"`
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
+	Timeout int      `json:"timeout,omitempty"` // seconds; Claude's default when 0
 }
 
 type hookMatcher struct {
@@ -444,6 +466,18 @@ func hook(kind, notify string) hookCommand {
 	return hookCommand{Type: "command", Command: "sh", Args: args}
 }
 
+// holdTimeout is the timeout of the hook that holds on a question dialog
+// for hq's answer, in seconds: a day, which Claude honours (#89), so it
+// never ends the hold while a user may still answer through hq; at the
+// timeout Claude ends the hook and the dialog stays open.
+const holdTimeout = 86400
+
+// holding is h with the timeout of a hook that holds.
+func holding(h hookCommand) hookCommand {
+	h.Timeout = holdTimeout
+	return h
+}
+
 // inTmux tells Claude its terminal is tmux, which it is: sbx does not pass
 // TMUX into the sandbox. Claude then wraps a hook's notification sequence for
 // tmux passthrough; tmux drops the sequence unwrapped (design §3.5).
@@ -459,8 +493,11 @@ func Settings(name, id, notify string) string {
 	_ = enc.Encode(map[string]any{
 		"env": map[string]string{"HQ_AGENT": name, "HQ_ID": id, "TMUX": inTmux, hookEnv: hookScript},
 		"hooks": map[string][]hookMatcher{
-			"UserPromptSubmit":   {{Hooks: []hookCommand{hook("prompt", "")}}},
-			"PermissionRequest":  {{Hooks: []hookCommand{hook("dialog", notify)}}},
+			"UserPromptSubmit": {{Hooks: []hookCommand{hook("prompt", "")}}},
+			"PermissionRequest": {
+				{Hooks: []hookCommand{hook("dialog", notify)}},
+				{Matcher: AskTool, Hooks: []hookCommand{holding(hook("hold", ""))}},
+			},
 			"PostToolUse":        {{Hooks: []hookCommand{hook("answer", "")}}},
 			"PostToolUseFailure": {{Hooks: []hookCommand{hook("answer", "")}}},
 			"Stop":               {{Hooks: []hookCommand{hook("stop", notify)}}},
