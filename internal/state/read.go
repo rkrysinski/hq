@@ -43,7 +43,8 @@ const keptSuffix = ".on"
 
 // owedSuffix names, beside an agent's state file, the hook's own list of
 // the background work it follows: the tasks Claude still owes a turn for,
-// and the shell commands the agent's subagents started (hookAwk).
+// the shell commands the agent's subagents started, and the watches the
+// agent keeps with the Monitor tool (hookAwk).
 const owedSuffix = ".owe"
 
 // supervisedSuffix names, beside an agent's state file, the hook's mark

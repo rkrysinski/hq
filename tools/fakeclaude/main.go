@@ -40,7 +40,8 @@
 //     contains (PostToolUse of the Agent tool, its response saying
 //     async_launched), a background shell command when it contains
 //     "server", a watch of the agent's own when it contains "watch"
-//     (PostToolUse of the Monitor tool, its response naming the taskId),
+//     (PostToolUse of the Monitor tool, its response naming the taskId;
+//     listed as a shell, as Claude Code 2.1.302 lists a watch, #99),
 //     and publishes an artifact when it contains "publish" (PostToolUse of
 //     the Artifact tool), which arms a watch on it, as Claude Code 2.1.296
 //     does, that runs until the session ends:
@@ -62,7 +63,7 @@
 //     alone as running. Words after "detach" are the command (default
 //     "sleep 180"); the word "monitor" has it keep a watch with the
 //     Monitor tool instead (PostToolUse of the subagent's Monitor,
-//     taskId; a monitor task). The next "wake" with no subagent running
+//     taskId; listed as a shell). The next "wake" with no subagent running
 //     ends that command or watch, and the subagent, woken for it, reports
 //     again: the turn Claude wakes itself for, under the subagent's id;
 //   - the line "lose" is no prompt: a background subagent goes without
@@ -350,20 +351,23 @@ func (c *claude) detach(command string) {
 }
 
 // watch runs the Monitor tool for the subagent by (the agent itself when
-// empty), an until-loop on a file, and lists the watch as running; it
-// returns the watch's task id.
+// empty), an until-loop on a file, and lists the watch as running, as
+// Claude Code 2.1.302 does: a shell task, with a b-prefixed id as a Bash
+// command's, the watch's description and its command (#99). It returns the
+// watch's task id.
 func (c *claude) watch(by string) string {
+	const command = "until [ -f done ]; do sleep 5; done; echo done"
 	c.started++
-	task := fmt.Sprintf("m%08x", c.started)
+	task := fmt.Sprintf("b%08x", c.started)
 	p := map[string]any{"tool_name": "Monitor",
-		"tool_input":    map[string]any{"command": "until [ -f done ]; do sleep 5; done; echo done", "description": "Wait for the file", "timeout_ms": 300000},
+		"tool_input":    map[string]any{"command": command, "description": "Wait for the file", "timeout_ms": 300000},
 		"tool_use_id":   "toolu_fake",
 		"tool_response": map[string]any{"taskId": task, "timeoutMs": 300000, "persistent": false}}
 	if by != "" {
 		p["agent_id"], p["agent_type"] = by, "general-purpose"
 	}
 	c.fire("PostToolUse", p)
-	c.tasks = append(c.tasks, map[string]string{"id": task, "type": "monitor", "status": "running", "description": "Wait for the file"})
+	c.tasks = append(c.tasks, map[string]string{"id": task, "type": "shell", "status": "running", "description": "Wait for the file", "command": command})
 	return task
 }
 

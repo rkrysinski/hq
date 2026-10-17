@@ -1091,7 +1091,7 @@ func TestAShellCommandASubagentStartedKeepsItsAgentWorkingWhileItRuns(t *testing
 	if out := notify("stop", turnEnd("watching", "monitor:w1", "monitor:w2")); out != done {
 		t.Fatalf("the turn end with the agent's own watch printed %q", out)
 	}
-	if f := files(t, root, id); len(f) != 2 {
+	if f := files(t, root, id); len(f) != 3 || f[owedSuffix] != "=w2\n" {
 		t.Fatalf("files left: %v", f)
 	}
 
@@ -1102,6 +1102,149 @@ func TestAShellCommandASubagentStartedKeepsItsAgentWorkingWhileItRuns(t *testing
 	notify("prompt", fixture(t, "prompt"))
 	if out := notify("stop", turnEnd("done", "shell:d1")); out != done {
 		t.Fatalf("the turn of the session started over printed %q", out)
+	}
+}
+
+// The agent's own Monitor watch is marked in the hook's list (=ID) at the
+// tool's end, as only that tells it from a shell command in a Stop of Claude
+// Code 2.1.302 (#99). The mark is shown, never owed: the turn end that
+// leaves the watch running is the agent's end, and notifies. It lives as a
+// subagent's ~ID does: kept while a Stop lists its task running, dropped
+// at the first that does not, and with the rest by a wake-up that names no
+// task or a session's start or end.
+func TestTheAgentsOwnMonitorWatchIsMarkedAndNeverOwed(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	notify := func(kind string, payload []byte) string {
+		t.Helper()
+		return run(t, root, root, id, hook(kind, "[%s]"), payload)
+	}
+	owed := func(step, want string) {
+		t.Helper()
+		if f := files(t, root, id); f[owedSuffix] != want {
+			t.Fatalf("%s: owed %q, want %q", step, f[owedSuffix], want)
+		}
+	}
+	const (
+		done  = `{"terminalSequence":"[Done: main]"}` + "\n"
+		watch = "b46swdckt" // the task of post-tool-own-monitor
+	)
+
+	// The real tool's end (Claude Code 2.1.302); its Stop lists the watch
+	// as a shell. Done, notified, shown as a watch by its description.
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", fixture(t, "post-tool-own-monitor"))
+	owed("the watch started", "="+watch+"\n")
+	if out := notify("stop", turnEnd("watching", "shell:"+watch)); out != done {
+		t.Fatalf("the turn end with the agent's own watch printed %q", out)
+	}
+	owed("the turn end, the watch runs", "="+watch+"\n")
+	if r, _ := Read(root, id); r.State != Done || r.Owed || !reflect.DeepEqual(r.OwnTasks, []Task{{MonitorTask, "Wait"}}) {
+		t.Fatalf("the turn end with the agent's own watch: %+v", r)
+	}
+
+	// Beside it: a command of its own (nothing recorded), a workflow (owed,
+	// as before, though its response carries a taskId too), a subagent's
+	// watch (the real tool's end, ~ID). The user's prompt keeps the mark.
+	notify("prompt", fixture(t, "prompt"))
+	notify("answer", toolEnd("Bash", "", shellStarted("b2")))
+	notify("answer", toolEnd("Workflow", "", workflowLaunched("w3")))
+	notify("answer", fixture(t, "post-tool-subagent-monitor"))
+	owed("started beside it", "="+watch+"\nw3\n~b3ukv3517\n")
+	if out := notify("stop", turnEnd("started", "shell:"+watch, "shell:b2", "w3", "shell:b3ukv3517")); out != "" {
+		t.Fatalf("the turn end with the workflow running printed %q", out)
+	}
+	if r, _ := Read(root, id); r.State != Working || r.Owed || r.OwnTasks != nil {
+		t.Fatalf("the workflow and the subagent's watch run: %+v", r)
+	}
+	notify("prompt", wakeUp("w3"))
+	if out := notify("stop", turnEnd("finished", "shell:"+watch, "shell:b2")); out != done {
+		t.Fatalf("the closing turn printed %q", out)
+	}
+	owed("the closing turn", "="+watch+"\n")
+	if r, _ := Read(root, id); r.State != Done || !reflect.DeepEqual(r.OwnTasks, []Task{{MonitorTask, "Wait"}, {ShellTask, "./wait.sh 60"}}) {
+		t.Fatalf("a watch and a command of its own: %+v", r)
+	}
+
+	// The first Stop that does not list the watch running drops its mark.
+	notify("prompt", fixture(t, "prompt"))
+	if out := notify("stop", turnEnd("the watch ended")); out != done {
+		t.Fatalf("the turn end after the watch printed %q", out)
+	}
+	owed("the watch ended", "")
+
+	// A wake-up that names no task drops it with the rest, and so does a
+	// session's start or end.
+	for _, drop := range []struct {
+		kind    string
+		payload []byte
+	}{
+		{"prompt", []byte(`{"hook_event_name":"UserPromptSubmit","prompt":"<task-notification>\n<status>completed</status>\n</task-notification>"}`)},
+		{"start", fixture(t, "session-start-clear")},
+		{"end", fixture(t, "session-end")},
+	} {
+		notify("prompt", fixture(t, "prompt"))
+		notify("answer", fixture(t, "post-tool-own-monitor"))
+		owed(drop.kind+": the watch started", "="+watch+"\n")
+		notify(drop.kind, drop.payload)
+		owed(drop.kind, "")
+	}
+}
+
+// The hook's awk and the host read the same marks the same way: whatever
+// the hook's list, the hook keeps the agent working at a Stop exactly when
+// the host counts background work (busy), and the done it reports shows
+// the own tasks the host finds (ownTasks), the rest of the running tasks.
+// A mark of the agent's own watch (=ID) is kept while its task runs as an
+// own task, and changes nothing else (#99).
+func TestHookAndHostAgreeOnBackgroundWorkAndOwnTasksWhateverTheMarks(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	tasks := []string{
+		`{"id":"b1","type":"shell","status":"running","description":"Wait","command":"sleep 60"}`,
+		`{"id":"b1","type":"monitor","status":"running","description":"Wait"}`,
+		`{"id":"b1","type":"subagent","status":"running","description":"Tests"}`,
+		`{"id":"b1","type":"cron","status":"running"}`,
+		`{"id":"b1","type":"shell","status":"completed","command":"sleep 60"}`,
+		`{"id":"b1","type":"shell","status":"running","description":"live updates (auto-armed on publish)"}`,
+	}
+	lists := []string{"", "~b1\n", "=b1\n", "=b1\n~b1\n", "=b2\n", "=b1\n~b2\n"}
+	n := 0
+	for _, task := range tasks {
+		for _, list := range lists {
+			n++
+			id := fmt.Sprintf("0a1b2c3d4e%02x", n)
+			stop := []byte(`{"hook_event_name":"Stop","last_assistant_message":"Done.","background_tasks":[` + task + `]}`)
+			var p payload
+			if err := json.Unmarshal(stop, &p); err != nil {
+				t.Fatal(err)
+			}
+			fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+			if err := os.WriteFile(filepath.Join(Dir(root), id+owedSuffix), []byte(list), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			run(t, root, root, id, hook("stop", ""), stop)
+			r, _ := Read(root, id)
+			if busy := p.busy([]byte(list)); (r.State == Working) != busy || !reflect.DeepEqual(r.OwnTasks, p.ownTasks([]byte(list))) {
+				t.Errorf("%s with list %q: host busy %v own %+v, hook's report %+v", task, list, busy, p.ownTasks([]byte(list)), r)
+			}
+			// The list it keeps: the id of the work owed a turn, the mark
+			// of a subagent's command or watch still running, and the mark
+			// of the agent's own watch still running.
+			want, b1 := "", p.BackgroundTasks[0]
+			running, watch, theirs := b1.Status == "running", b1.Type == ShellTask || b1.Type == MonitorTask, strings.Contains(list, "~b1\n")
+			if running && !watch {
+				want += "b1\n"
+			}
+			if running && watch && theirs {
+				want += "~b1\n"
+			}
+			if running && watch && !theirs && strings.Contains(list, "=b1\n") {
+				want += "=b1\n"
+			}
+			if f := files(t, root, id); f[owedSuffix] != want {
+				t.Errorf("%s with list %q: kept %q, want %q", task, list, f[owedSuffix], want)
+			}
+		}
 	}
 }
 

@@ -88,8 +88,9 @@ import (
 // supervisor's. A prompt that is not Claude's own takes hq's word that it
 // is the supervisor's (.next, Announce) and sets the mark, unless something
 // of the user's may be under way: a message of theirs rides along,
-// background work is owed a turn (held back or not) or the state file says
-// working, with no mark there already. A prompt without that word, and any
+// background work is owed a turn (held back or not; a line of .owe but the
+// mark of the agent's own watch, =ID) or the state file says working, with
+// no mark there already. A prompt without that word, and any
 // message of the user's the hook delivers (one whose name lacks
 // supervisorSuffix), removes the mark. On stop it prints no notification
 // while the mark is there, and removes it when no turn is owed any more;
@@ -131,6 +132,7 @@ t=$f.$$
 A='` + hookAwk + `'
 works() { grep -Eq '` + workingEvent + `' "$f"; }
 theirs() { grep -q '` + dialogEvent + `' "$f" && grep -q '"agent_id"' "$f"; }
+owes() { grep -q '^[^=]' "$f` + owedSuffix + `"; }
 owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" || rm -f "$t.o" "$f` + owedSuffix + `"; }
 put() { cp -f "${2:-$t}" "$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
 get() { K=get N=$1 awk "$A" "$2"; }
@@ -172,7 +174,7 @@ prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","
         owe
         works && { mv -f "$t" "$f` + keptSuffix + `"; rm -f "$t"; exit 0; }
     else
-        if mv -f "$f` + announcedSuffix + `" "$t.n"; then rm -f "$t.n"; [ "$u" ] || [ -f "$f` + supervisedSuffix + `" ] || [ -s "$f` + owedSuffix + `" ] || works || : >"$f` + supervisedSuffix + `"
+        if mv -f "$f` + announcedSuffix + `" "$t.n"; then rm -f "$t.n"; [ "$u" ] || [ -f "$f` + supervisedSuffix + `" ] || owes || works || : >"$f` + supervisedSuffix + `"
         else rm -f "$f` + supervisedSuffix + `"; fi
         grep -v '^[!+]' "$f` + owedSuffix + `" >"$t.o"; owe
         p=$(turn "$t") && [ -n "$p" ] && works && { [ "$p" = "$(turn "$f")" ] || [ "$p" = "$(cat "$f` + actedSuffix + `")" ]; } && q=1 && put "$f` + queuedSuffix + `"
@@ -194,7 +196,7 @@ if mv -f "$t" "$f" && [ "$1" = stop ]; then
     cp -f "$f" "$t" && mv -f "$t" "$f.stop"
 fi
 rm -f "$t"
-[ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && { [ -s "$f` + owedSuffix + `" ] || rm -f "$f` + supervisedSuffix + `"; exit 0; }
+[ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && { owes || rm -f "$f` + supervisedSuffix + `"; exit 0; }
 case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$f" ;; esac
 exit 0`
 
@@ -235,7 +237,8 @@ const workingEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"(UserPromptSubm
 
 // startedEvent is what the hook's grep -E finds in the payload of a tool
 // that started background work: a subagent or a workflow (async_launched),
-// or a shell command or a watch a subagent started (its task id).
+// or a shell command or a watch a subagent started (its task id); and of
+// a watch the agent itself keeps with the Monitor tool (its taskId).
 const startedEvent = `async_launched|"(backgroundTaskId|taskId)"`
 
 // wakeEvent is what the hook's awk finds in the payload of the prompt
@@ -259,11 +262,14 @@ const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 // wakes the subagent for it, not the agent, so no turn is owed for it, and
 // the subagent, woken, is listed until it reports. That a subagent which
 // left a dev server running keeps the agent working is the price (design
-// §3.4). A task of any other type counts, seen or not: a new kind of
-// Claude's that is real work ending done early is the worse fault. busy
-// walks the list to its end,
-// reading the id, the type and the status of each task; text inside the
-// strings of a task, its description or command, is only ever data. Claude
+// §3.4). A watch the agent itself keeps with the Monitor tool (K=tool, kept
+// in O as =ID) never counts: the mark only lets hq show it as a watch, as
+// Claude Code 2.1.302 lists it as a shell (#99); it is kept while a Stop
+// lists it running as the agent's own, as ~ID is. A task of any other type
+// counts, seen or not: a new kind of Claude's that is real work ending done
+// early is the worse fault. busy walks the list to its end, reading the
+// id, the type and the status of each task; text inside the strings of a
+// task, its description or command, is only ever data. Claude
 // takes a turn for every task that ends (wakeEvent, naming its id), and
 // tasks that end together are gone from the list before the turns for the
 // later ones: so the ids of the tasks that run, less those Claude woke for,
@@ -288,7 +294,9 @@ const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 // starts (its events carry agent_id) is the subagent's: Claude wakes the
 // subagent for it, not the agent; of that, it prints the task id in the
 // tool's response, of a shell command (backgroundTaskId) or a watch (the
-// Monitor tool's taskId), as ~ID.
+// Monitor tool's taskId), as ~ID. Of the agent's own Monitor tool, told by
+// the tool's name (the Workflow tool's response has a taskId too), it
+// prints the watch's taskId as =ID, which owes nothing.
 //
 // Otherwise it prints the notification for the event in the state file: on
 // dialog and input "Needs input: <branch>", on stop "Question: <branch>"
@@ -331,7 +339,7 @@ function busy(s,    i, c, d, str, key, val, ty, st, id) {
             if (!d++) ty = st = val = id = ""
         } else if (c == "}" || c == "]") {
             if (!d--) return
-            if (!d && st == "running") { if (ty != "shell" && ty != "monitor") owed[id] = 1; else if (id in theirs) mine[id] = 1 }
+            if (!d && st == "running") { if (ty != "shell" && ty != "monitor") owed[id] = 1; else if (id in theirs) mine[id] = 1; else if (id in watch) watched[id] = 1 }
         } else if (d == 1 && (c == ":" || c == ",")) val = c == ":"
     }
 }
@@ -348,12 +356,14 @@ NR == 1 && K == "keep" {
         x = L[n]
         if (x == "+") paid = 1
         else if (sub(/^~/, "", x)) theirs[x]
+        else if (sub(/^=/, "", x)) watch[x]
         else if (sub(/^!/, "", x)) held[x]
         else was[x]
     }
     busy($0)
     for (i in owed) { if (i != "") print i; ends = 0 }
     for (i in mine) { if (i != "") print "~" i; ends = 0 }
+    for (i in watched) if (i != "") print "=" i
     for (i in was) if (i != "" && !(i in owed)) { print "!" i; ends = 0 }
     if (paid) for (i in held) if (i != "" && !(i in owed) && !(i in was)) { print "!" i; ends = 0 }
     if (question($0)) ends = 1
@@ -385,6 +395,7 @@ NR == 1 && K == "tool" {
     o = substr($0, RSTART)
     if (get($0, "agent_id") != "") { if ((x = get(o, "(backgroundTaskId|taskId)")) != "") print "~" x }
     else if (o ~ /"status"[ \t\r\n]*:[ \t\r\n]*"async_launched"/ && (x = get(o, "(agentId|taskId)")) != "") print x
+    else if (get($0, "tool_name") == "Monitor" && (x = get(o, "taskId")) != "") print "=" x
     next
 }
 NR == 1 {
