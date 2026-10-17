@@ -59,11 +59,11 @@ func TestParseQuestionsReadsTheDialogsQuestions(t *testing.T) {
 
 // An answer is an allow whose updated input is the tool's input with the
 // answers added, keyed by question text: a label, a list of labels for a
-// multi-select question, free text verbatim. What Claude reports for each
-// is that, a list joined with ", " (#89).
+// multi-select question, free text stripped as a message is. What Claude
+// reports for each is that, a list joined with ", " (#89).
 func TestTheDecisionCarriesTheAnswersInTheToolsInput(t *testing.T) {
 	q := questions(t, "dialog-ask-several")
-	decision, sent, err := q.Decision([]Answer{{Options: []int{2}}, {Options: []int{3, 1}}, {Text: " Gamma, <typed> & \"quoted\" "}})
+	decision, sent, err := q.Decision([]Answer{{Options: []int{2}}, {Options: []int{3, 1}}, {Text: " Gamma, \x1b[31m<typed> & \"quoted\" "}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestTheDecisionCarriesTheAnswersInTheToolsInput(t *testing.T) {
 	_ = json.Unmarshal(fixture(t, "dialog-ask-several"), &struct {
 		In *map[string]any `json:"tool_input"`
 	}{&in})
-	want := map[string]any{"Which color?": "Blue", "Which sizes?": []any{"Large", "Small"}, "Which name?": " Gamma, <typed> & \"quoted\" "}
+	want := map[string]any{"Which color?": "Blue", "Which sizes?": []any{"Large", "Small"}, "Which name?": "Gamma, <typed> & \"quoted\""}
 	if got := d.Decision.UpdatedInput["answers"]; !reflect.DeepEqual(got, want) {
 		t.Fatalf("answers %#v", got)
 	}
@@ -85,7 +85,7 @@ func TestTheDecisionCarriesTheAnswersInTheToolsInput(t *testing.T) {
 	if !strings.Contains(string(decision), "<typed> &") {
 		t.Errorf("escaped for HTML: %s", decision)
 	}
-	wantSent := map[string]string{"Which color?": "Blue", "Which sizes?": "Large, Small", "Which name?": " Gamma, <typed> & \"quoted\" "}
+	wantSent := map[string]string{"Which color?": "Blue", "Which sizes?": "Large, Small", "Which name?": "Gamma, <typed> & \"quoted\""}
 	if !reflect.DeepEqual(sent, wantSent) {
 		t.Fatalf("sent %#v", sent)
 	}

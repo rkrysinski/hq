@@ -123,7 +123,7 @@ type fullPayload struct {
 // tool a permission prompt is for with what it is about to do.
 func (p fullPayload) ask() *Ask {
 	a := &Ask{Tool: Clean(p.ToolName)}
-	if p.ToolName == askTool && len(p.Input.Questions) > 0 {
+	if p.ToolName == AskTool && len(p.Input.Questions) > 0 {
 		for _, q := range p.Input.Questions {
 			out := AskQuestion{Header: Clean(q.Header), Question: Clean(q.Question), MultiSelect: q.MultiSelect, Options: []AskOption{}}
 			for _, o := range q.Options {

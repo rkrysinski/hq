@@ -136,8 +136,9 @@ const (
 // has finished (design §3.4).
 const wakePrefix = "<task-notification>"
 
-// askTool is Claude's tool that asks the user questions in a dialog.
-const askTool = "AskUserQuestion"
+// AskTool is Claude's tool that asks the user questions in a dialog, the
+// question dialog hq answer answers.
+const AskTool = "AskUserQuestion"
 
 // busy reports whether the event, a Stop, lists background work that
 // still runs: a running task that is neither a shell command nor a watch
@@ -202,7 +203,7 @@ func (p payload) ownTasks(owed []byte) []Task {
 // about to do.
 func (p payload) dialogText() string {
 	in := p.ToolInput
-	if p.ToolName == askTool && len(in.Questions) > 0 {
+	if p.ToolName == AskTool && len(in.Questions) > 0 {
 		return Clean(in.Questions[0].Question)
 	}
 	for _, s := range []string{in.Description, in.Command, in.FilePath, in.URL} {

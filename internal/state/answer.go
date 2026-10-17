@@ -94,7 +94,7 @@ func ParseQuestions(latest []byte) (Questions, error) {
 		fullPayload
 		Input map[string]json.RawMessage `json:"tool_input"`
 	}
-	if json.Unmarshal(event, &p) != nil || p.Event != "PermissionRequest" || p.ToolName != askTool || p.AgentID != "" {
+	if json.Unmarshal(event, &p) != nil || p.Event != "PermissionRequest" || p.ToolName != AskTool || p.AgentID != "" {
 		return Questions{}, errors.New("no question dialog of the agent's own is open")
 	}
 	_ = json.Unmarshal(event, &p.fullPayload)
@@ -140,7 +140,7 @@ func cksum(data []byte) uint32 {
 // question, by its text: an allow whose updated input is the tool's input
 // with the answers added, keyed by question text, a label, a list of
 // labels for a multi-select question, which Claude reports joined with
-// ", ", or free text verbatim (#89). An answer that does not fit the
+// ", ", or free text, stripped as a message is (CleanMessage) (#89). An answer that does not fit the
 // dialog is refused whole.
 func (q Questions) Decision(answers []Answer) (decision []byte, sent map[string]string, err error) {
 	if len(answers) != len(q.raw) {
@@ -155,7 +155,9 @@ func (q Questions) Decision(answers []Answer) (decision []byte, sent map[string]
 		case len(a.Options) > 0 && a.Text != "":
 			return nil, nil, fmt.Errorf("%s: an option or text, not both", name)
 		case len(a.Options) == 0:
-			if strings.TrimSpace(a.Text) == "" {
+			// Stripped as a message is: it crosses into the sandbox.
+			a.Text = CleanMessage(a.Text)
+			if a.Text == "" {
 				return nil, nil, fmt.Errorf("%s: no answer", name)
 			}
 			if len(a.Text) > MaxMessage {
@@ -313,7 +315,7 @@ func ParseAnswers(latest []byte) (map[string]string, bool) {
 			Answers map[string]string `json:"answers"`
 		} `json:"tool_input"`
 	}
-	if json.Unmarshal(event, &p) != nil || p.Event != "PostToolUse" || p.ToolName != askTool {
+	if json.Unmarshal(event, &p) != nil || p.Event != "PostToolUse" || p.ToolName != AskTool {
 		return nil, false
 	}
 	if p.Input.Answers == nil {

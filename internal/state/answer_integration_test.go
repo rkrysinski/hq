@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"syscall"
 	"testing"
@@ -82,7 +83,7 @@ func TestTheQuestionDialogsHookPrintsTheAnswerHqLeaves(t *testing.T) {
 	q := openDialog(t, root, id, payload)
 
 	// Left before the hook looks: taken at its first look.
-	decision, _, err := q.Decision([]Answer{{Options: []int{2}}, {Options: []int{1, 3}}, {Text: "Gamma, typed by hq"}})
+	decision, sent, err := q.Decision([]Answer{{Options: []int{2}}, {Options: []int{1, 3}}, {Text: "Gamma, typed by hq"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,6 +99,16 @@ func TestTheQuestionDialogsHookPrintsTheAnswerHqLeaves(t *testing.T) {
 	if left, _ := filepath.Glob(filepath.Join(Dir(root), id+".*")); len(left) != 0 {
 		t.Fatalf("left beside the state file: %v", left)
 	}
+	// Claude reports the answers as #89 recorded them: what hq sent, as
+	// strings, the list joined.
+	fire(t, root, root, id, "answer", fixture(t, "answer-ask-hook"))
+	if got, ok := ReadAnswers(root, id); !ok || !reflect.DeepEqual(got, sent) {
+		t.Fatalf("Claude got %v, hq sent %v", got, sent)
+	}
+	if r, _ := Read(root, id); r.State != Working {
+		t.Fatalf("after the answer: %+v", r)
+	}
+	q = openDialog(t, root, id, payload)
 
 	// Left while it holds: taken within a second, the cancel too.
 	k = hold(t, root, root, id, payload)

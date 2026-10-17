@@ -26,9 +26,6 @@ const closeWait = 5 * time.Second
 // the dialog closed.
 const answerPoll = 100 * time.Millisecond
 
-// askTool is Claude's tool that asks the user questions in a dialog.
-const askTool = "AskUserQuestion"
-
 const answerUsage = "usage: hq answer NAME --dialog ID ANSWER... | --cancel [--json]"
 
 // answerRequest is an answer to an agent's question dialog, as hq answer
@@ -152,13 +149,18 @@ func answer(env Env, d deps, r answerRequest) error {
 		if now, err := findAgent(d, a.Name); err == nil && now.Dialog().ID() != open.ID() {
 			return usageErr("%s left the dialog before hq's answer reached it; nothing was answered from hq: it is %s", a.Name, now.State)
 		}
-		return usageErr("%s's dialog cannot be answered from hq: its hook no longer holds it; answer it at the agent (hq go %s)", a.Name, a.Name)
+		return usageErr("%s's dialog cannot be answered from hq: its hook no longer holds it; it is %s, answer it at the agent (hq go %s)", a.Name, a.State, a.Name)
 	}
 	now, got, err := awaitClosed(d, a, open)
 	if err != nil {
 		return err
 	}
-	if !r.cancel && got != nil {
+	if !r.cancel {
+		// Left without the end of its tool, the dialog took no answer:
+		// cancelled at the agent meanwhile, which no hook reports.
+		if got == nil {
+			return usageErr("%s left the dialog without taking hq's answer: it is %s; read it (hq read %s)", a.Name, now.State, a.Name)
+		}
 		if diff := answersDiffer(q, sent, got); diff != "" {
 			return usageErr("%s got other answers than hq sent: %s; it is %s", a.Name, diff, now.State)
 		}
@@ -197,7 +199,7 @@ func answerable(a agent.Agent, ask *state.Ask) error {
 		return usageErr("%s's dialog is one of its subagents' (%s), which hq does not answer; %s", a.Name, a.Last, at)
 	case ask == nil || ask.Tool == "":
 		return usageErr("%s is at a dialog hq does not answer (%s), such as an MCP elicitation; %s", a.Name, a.Last, at)
-	case ask.Tool != askTool || len(ask.Questions) == 0:
+	case ask.Tool != state.AskTool || len(ask.Questions) == 0:
 		return usageErr("%s is at a permission prompt (%s); permission prompts are answered at the agent (hq go %s)", a.Name, a.Last, a.Name)
 	}
 	return nil

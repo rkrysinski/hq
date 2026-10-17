@@ -471,7 +471,7 @@ func Settings(name, id, notify string) string {
 			"UserPromptSubmit": {{Hooks: []hookCommand{hook("prompt", "")}}},
 			"PermissionRequest": {
 				{Hooks: []hookCommand{hook("dialog", notify)}},
-				{Matcher: askTool, Hooks: []hookCommand{holding(hook("ask", ""))}},
+				{Matcher: AskTool, Hooks: []hookCommand{holding(hook("ask", ""))}},
 			},
 			"PostToolUse":        {{Hooks: []hookCommand{hook("answer", "")}}},
 			"PostToolUseFailure": {{Hooks: []hookCommand{hook("answer", "")}}},

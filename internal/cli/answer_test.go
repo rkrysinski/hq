@@ -283,7 +283,7 @@ func TestAnswerNotTakenIsTakenBackAndRefused(t *testing.T) {
 	f, id := askFakes(t, "dialog-ask")
 	start := f.now
 	code, _, errOut := f.run("answer", "a", "--dialog", id, "1")
-	if code != ExitUsage || errOut != "hq: a's dialog cannot be answered from hq: its hook no longer holds it; answer it at the agent (hq go a)\n" {
+	if code != ExitUsage || errOut != "hq: a's dialog cannot be answered from hq: its hook no longer holds it; it is needs input, answer it at the agent (hq go a)\n" {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 	if len(f.answerLeft) != 0 || f.withdrawals != 1 || f.now.Sub(start) < takeWait || f.now.Sub(start) > takeWait+time.Second {
@@ -372,5 +372,18 @@ func TestAnswerToAnAgentKilledMeanwhile(t *testing.T) {
 	}
 	if code, _, errOut := f.run("answer", "a", "--dialog", id, "1"); code != ExitNotFound || errOut != "hq: no agent 'a' (see hq ls)\n" {
 		t.Fatalf("exit %d %q", code, errOut)
+	}
+}
+
+// The dialog closed with no end of its tool: cancelled at the agent while
+// hq answered, the answer not taken as given. That is no success.
+func TestAnswerToADialogCancelledMeanwhileIsNoSuccess(t *testing.T) {
+	f, id := askFakes(t, "dialog-ask")
+	f.onSleep = func() {
+		delete(f.answerLeft, "id-a")
+		f.tmux.screens["%4"] = declinedScreen
+	}
+	if code, out, errOut := f.run("answer", "a", "--dialog", id, "1"); code != ExitUsage || out != "" || errOut != "hq: a left the dialog without taking hq's answer: it is done; read it (hq read a)\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
 }
