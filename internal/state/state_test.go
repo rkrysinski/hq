@@ -465,6 +465,7 @@ func TestADoneOrQuestionAtAStopListsTheAgentsOwnTasks(t *testing.T) {
 		{"a subagent's shell", shell, "~b1\n", nil},
 		{"a subagent's watch beside its own shell", shell + `, ` + strings.Replace(monitor, "m1", "m2", 1), "a1\n~m2\n", []Task{{"shell", "sleep 120"}}},
 		{"the artifact watch", artifact, ``, nil},
+		{"the artifact watch listed as a shell", strings.Replace(artifact, `"monitor"`, `"shell"`, 1), ``, nil},
 		{"an artifact watch described otherwise", strings.Replace(artifact, "(auto-armed on publish)", "(armed)", 1), ``, []Task{{"monitor", "live updates for artifact https://claude.ai/artifact/x (armed)"}}},
 		{"a shell that has ended", strings.Replace(shell, "running", "completed", 1), ``, nil},
 		{"a subagent", `{"id": "a1", "type": "subagent", "status": "running", "description": "Tests"}`, ``, nil},

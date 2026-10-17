@@ -420,7 +420,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 // report. Once hq overrules the report (its pane dead, its sandbox
 // stopped, a dialog of Claude's own open) there are none.
 func (a *Agent) keepOwnTasks() {
-	if a.State != state.Done && a.State != state.Question || !a.Since.Equal(a.ownAt) {
+	if (a.State != state.Done && a.State != state.Question) || !a.Since.Equal(a.ownAt) {
 		a.OwnTasks = nil
 	}
 }
@@ -435,7 +435,7 @@ func OwnPrefix(ts []state.Task) string {
 		n[t.Type]++
 	}
 	var out []string
-	for _, kind := range []string{"shell", "monitor"} {
+	for _, kind := range []string{state.ShellTask, state.MonitorTask} {
 		switch n[kind] {
 		case 0:
 		case 1:

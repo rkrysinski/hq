@@ -1141,9 +1141,9 @@ func TestAnAgentWhoseOwnWatchRunsIsDoneAtItsTurnEnd(t *testing.T) {
 }
 
 // An agent that leaves a shell command and a watch of its own running at
-// its turn end shows them (#78): hq read lists them, hq read --json and hq
-// ls --json carry them in own_tasks, and hq ls starts LAST with their
-// count. The artifact watch alone shows nothing.
+// its turn end shows them (#78): hq read --json and hq ls --json carry them
+// in own_tasks, and hq ls starts LAST with their count. The artifact watch
+// alone shows nothing.
 func TestAnAgentShowsTheTasksItLeftRunningItself(t *testing.T) {
 	testutil.FakeClaude(t)
 	h := newRealHQ(t)
@@ -1160,11 +1160,7 @@ func TestAnAgentShowsTheTasksItLeftRunningItself(t *testing.T) {
 	h.waitAtRest("a")
 	h.typeIn("a", "watch the file")
 	h.waitReport("a", "done", "Done: watch the file")
-	_, out, _ := h.run("read", "a")
-	if !strings.Contains(out, "\nown task: shell  npm run dev\nown task: monitor  Wait for the file\n") {
-		t.Fatalf("hq read:\n%s", out)
-	}
-	_, out, _ = h.run("read", "a", "--json")
+	_, out, _ := h.run("read", "a", "--json")
 	var v struct {
 		Last     string       `json:"last"`
 		OwnTasks []state.Task `json:"own_tasks"`

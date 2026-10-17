@@ -74,9 +74,16 @@ type Report struct {
 // or a watch (the Monitor tool) the agent itself started, running at the
 // turn end its state comes from.
 type Task struct {
-	Type string `json:"type"` // shell or monitor
+	Type string `json:"type"` // ShellTask or MonitorTask
 	Text string `json:"text"` // the command of a shell, the description of a watch, in full, stripped (design §7.3)
 }
+
+// The types of task an own task may be, as Claude names them in a Stop's
+// background_tasks: a shell command and a watch.
+const (
+	ShellTask   = "shell"
+	MonitorTask = "monitor"
+)
 
 // payload is the part of a Claude hook event hq reads.
 type payload struct {
@@ -90,13 +97,9 @@ type payload struct {
 	Source           string `json:"source"`
 	AgentID          string `json:"agent_id"`
 	ToolName         string `json:"tool_name"`
-	BackgroundTasks  []struct {
-		ID          string `json:"id"`
-		Type        string `json:"type"`
-		Status      string `json:"status"`
-		Description string `json:"description"`
-		Command     string `json:"command"`
-	} `json:"background_tasks"`
+
+	BackgroundTasks []backgroundTask `json:"background_tasks"`
+
 	ToolInput struct {
 		Questions   []struct{ Question string } `json:"questions"`
 		Description string                      `json:"description"`
@@ -104,6 +107,22 @@ type payload struct {
 		FilePath    string                      `json:"file_path"`
 		URL         string                      `json:"url"`
 	} `json:"tool_input"`
+}
+
+// backgroundTask is a task of a Stop's background_tasks.
+type backgroundTask struct {
+	ID          string `json:"id"`
+	Type        string `json:"type"`
+	Status      string `json:"status"`
+	Description string `json:"description"`
+	Command     string `json:"command"`
+}
+
+// own reports whether the task is one the agent itself started that still
+// runs: a shell command or a watch that no subagent of its started (theirs,
+// by id). Every other running task is background work (busy).
+func (t backgroundTask) own(theirs map[string]bool) bool {
+	return t.Status == "running" && (t.Type == ShellTask || t.Type == MonitorTask) && !theirs[t.ID]
 }
 
 // The SessionStart sources of a new session and of one started with
@@ -130,7 +149,7 @@ const askTool = "AskUserQuestion"
 func (p payload) busy(owed []byte) bool {
 	theirs := subagents(owed)
 	for _, t := range p.BackgroundTasks {
-		if t.Status == "running" && ((t.Type != "shell" && t.Type != "monitor") || theirs[t.ID]) {
+		if t.Status == "running" && !t.own(theirs) {
 			return true
 		}
 	}
@@ -152,27 +171,28 @@ func subagents(owed []byte) map[string]bool {
 
 // artifactWatch ends the description of the watch Claude arms when the
 // agent publishes an artifact, the only thing that tells it from a watch of
-// the agent's own in a Stop (seen with Claude Code 2.1.296, #62). Should
-// Claude describe it otherwise, it shows as an own task: no state depends
-// on it (design §3.4).
+// the agent's own in a Stop (seen with Claude Code 2.1.296 as a monitor
+// task, #62). It is looked for whatever the task's type: Claude Code 2.1.302
+// lists a Monitor tool's watch as a shell (#97), and may the artifact watch
+// too. Should Claude describe it otherwise, it shows as an own task: no
+// state depends on it (design §3.4).
 const artifactWatch = "(auto-armed on publish)"
 
 // ownTasks are the agent's own tasks the event, a Stop, lists: the
-// running shell commands and watches busy does not count, less the
-// artifact watch.
+// running tasks busy does not count, less the artifact watch, a shell by
+// its command and a watch by its description.
 func (p payload) ownTasks(owed []byte) []Task {
 	theirs := subagents(owed)
 	var ts []Task
 	for _, t := range p.BackgroundTasks {
-		if t.Status != "running" || theirs[t.ID] {
+		if !t.own(theirs) || strings.HasSuffix(strings.TrimSpace(t.Description), artifactWatch) {
 			continue
 		}
-		switch {
-		case t.Type == "shell":
-			ts = append(ts, Task{Type: t.Type, Text: CleanText(t.Command)})
-		case t.Type == "monitor" && !strings.HasSuffix(strings.TrimSpace(t.Description), artifactWatch):
-			ts = append(ts, Task{Type: t.Type, Text: CleanText(t.Description)})
+		text := t.Description
+		if t.Type == ShellTask {
+			text = t.Command
 		}
+		ts = append(ts, Task{Type: t.Type, Text: CleanText(text)})
 	}
 	return ts
 }

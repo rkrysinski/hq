@@ -182,7 +182,7 @@ func newMCPServer(d deps) *mcp.Server {
 			"A reply longer than 32 KiB comes in pages: reply is the page, reply_size the whole reply's size in bytes, and next_offset where the next page starts, null on the last page. " +
 			"To read on, call read again with offset set to next_offset and since set to this read's next_since; if the agent has replied anew in between, it says the reply changed: read it again from its start. " +
 			"Read an agent when wait returns it, and to see its answer to a message you sent. " +
-			"An agent done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends.",
+			"An agent done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
 		Annotations: &mcp.ToolAnnotations{Title: "Read an agent", ReadOnlyHint: true, OpenWorldHint: &no},
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpReadIn) (*mcp.CallToolResult, any, error) {
 		args := []string{in.Name, "--json"}
@@ -201,7 +201,7 @@ func newMCPServer(d deps) *mcp.Server {
 			"After timeout seconds (default and at most 50) it returns no agents, which is not an error. " +
 			"since is required: the next_since of the most recent list, read, send or wait result, so a change between that result and this call is not missed. " +
 			"To watch agents, call it in a loop, passing each result's next_since as the next call's since: no change is then missed or returned twice. React to the agents it returns (read them), then call it again. " +
-			"An agent returned done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end).",
+			"An agent returned done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
 		Annotations: &mcp.ToolAnnotations{Title: "Wait for agents", ReadOnlyHint: true, OpenWorldHint: &no},
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpWaitIn) (*mcp.CallToolResult, any, error) {
 		timeout := time.Duration(in.Timeout) * time.Second

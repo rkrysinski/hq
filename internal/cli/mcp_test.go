@@ -95,8 +95,8 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	// end (#78): the tools that return it say so, and the instructions too.
 	for name, want := range map[string]string{
 		"list": "own_tasks",
-		"read": "Claude takes another turn when one ends",
-		"wait": "Claude takes another turn when one ends, so wait for it again if you need that result",
+		"read": "Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale",
+		"wait": "Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale",
 	} {
 		if !strings.Contains(tools[name].Description, want) {
 			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)

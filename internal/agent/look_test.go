@@ -310,6 +310,13 @@ func TestTheLookShowsOwnTasksOnlyWhileTheStateIsTheTurnEnds(t *testing.T) {
 	if a := look(lookWindow("1"), done, dialog, Sandboxes{}); a.State != state.NeedsInput || a.OwnTasks != nil {
 		t.Errorf("a dialog of Claude's own: %s %+v", a.State, a.OwnTasks)
 	}
+	// A turn the user ended at the agent (Esc), read off its screen and
+	// recorded as @hq_turnend, is no turn end of the hooks': none, even
+	// should its report carry some.
+	working := state.Report{State: state.Working, Since: since, Latest: since, OwnTasks: own}
+	if a := look(lookWindow("1"), working, declinedScreen(), Sandboxes{}); a.State != state.Done || a.Last != declinedLine || a.OwnTasks != nil {
+		t.Errorf("a turn the user ended: %s %q %+v", a.State, a.Last, a.OwnTasks)
+	}
 	dead := lookWindow("1")
 	dead.PaneDead = true
 	if a := look(dead, done, ready, Sandboxes{}); a.State != state.Ended || a.OwnTasks != nil {
