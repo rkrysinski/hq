@@ -56,10 +56,16 @@ func (h hooked) notified(kind, payload string) string {
 // submitted.
 func (h hooked) supervisorPrompt() {
 	h.t.Helper()
+	h.supervisorPromptOf(fixture(h.t, "prompt"))
+}
+
+// supervisorPromptOf is the supervisor's prompt with the payload.
+func (h hooked) supervisorPromptOf(payload []byte) {
+	h.t.Helper()
 	if err := Announce(h.root, h.id); err != nil {
 		h.t.Fatal(err)
 	}
-	h.event("prompt", "prompt")
+	h.on("prompt", payload)
 }
 
 // message leaves a message for the agent, the supervisor's when supervisor.
@@ -448,17 +454,22 @@ func TestWorkOfTheUsersStillUnderWayKeepsTheSupervisorsTurnFromHidingItsEnd(t *t
 	}
 
 	// The supervisor's prompt reaches a turn of the user's that is at work
-	// (the user sent theirs in the moment hq typed): the turn stays theirs.
+	// (the user sent theirs in the moment hq typed): Claude queues it, and
+	// takes it when the user's turn ends (#82). The work stays theirs: the
+	// end of the turn it is taken for notifies.
 	h = agent()
 	h.event("prompt", "prompt")
 	h.supervisorPrompt()
-	if got := h.notified("stop", "stop-done"); got != doneNotice {
-		t.Fatalf("the supervisor's prompt in a turn of the user's at work: %q", got)
+	if got := h.notified("stop", "stop-done"); got != "" || h.state() != Working {
+		t.Fatalf("the user's turn end before the supervisor's queued prompt: notified %q, %s", got, h.state())
+	}
+	if got := h.notified("stop", "queued-turn-stop"); got != doneNotice {
+		t.Fatalf("the supervisor's prompt queued in a turn of the user's at work: %q", got)
 	}
 	// And so does one after a turn of the user's that they interrupted,
 	// which no hook reports: it notifies, once, rather than risk the above.
 	h.event("prompt", "prompt")
-	h.supervisorPrompt()
+	h.supervisorPromptOf(newTurn(fixture(t, "prompt")))
 	if got := h.notified("stop", "stop-done"); got != doneNotice {
 		t.Fatalf("the supervisor's prompt after a turn the user interrupted: %q", got)
 	}
