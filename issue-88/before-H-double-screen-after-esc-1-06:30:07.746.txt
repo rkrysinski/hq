@@ -1,0 +1,24 @@
+│ He had not asked again.                                                     │
+│                                                                             │
+│ What Maren had not told the Board, or Donal, or her sister who wrote every  │
+│ month from Dundee, was that the lamp did not entirely keep itself. Some     │
+│ nights, when the fog came in like wool and the wind found a note in the     │
+│ tower that sounded almost like a voice, the beam faltered. Not failed.      │
+│ Faltered. A hitch in its turning, a half-second of dark where light should  │
+│ be.                                                                         │
+│                                                                             │
+│ She had climbed up the first time it happened, heart loud, and found        │
+│ nothing wrong. The motor hummed. The bulb burned. She had stood with her    │
+│ hand fl                                                                     │
+╰─────────────────────────────────────────────────────────────────────────────╯
+  ⎿  Interrupted · What should Claude do instead?
+
+✻ Perusing…
+  ⎿  Tip: Use /feedback to help us improve!
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Fable 5.1 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream …
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                   ◆ Tools ▾

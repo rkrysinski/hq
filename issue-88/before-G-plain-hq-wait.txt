@@ -1,0 +1,18 @@
+06:29:29.967 hq wait started; returned 06:29:44.522
+{
+  "agents": [
+    {
+      "name": "a",
+      "repo": "work",
+      "repo_path": "/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/e59ce7a4-1418-44a7-9861-ccba53138f60/scratchpad/work",
+      "branch": "master",
+      "state": "done",
+      "since": "2026-10-17T06:29:44.26389034Z",
+      "age_seconds": 0,
+      "last": "Interrupted",
+      "sandbox": "claude-work",
+      "pending": 0
+    }
+  ],
+  "next_since": "2026-10-17T06:29:44.267284465Z"
+}

@@ -1,0 +1,24 @@
+│ her when she was nine: danger, danger, turn away.                           │
+│                                                                             │
+│ The seconds stretched out. Then the boat's engine coughed, and it swung     │
+│ wide toward open water.                                                     │
+│                                                                             │
+│ In the morning she opened the logbook and wrote one more entry in her       │
+│ careful hand.                                                               │
+│                                                                             │
+│ Sept 22: Light automated. Works fine. Still, someone should watch.          │
+│                                                                             │
+│ Then she put the kettle on and waited for dusk.                             │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+✻ Worked for 7s · done 6:53 AM
+
+❯ Write a 1200-word story about a lighthouse keeper. Use no tools.
+  ⎿  Interrupted · What should Claude do instead?
+
+────────────────────────────────────────────────────────────────────────────────
+❯ Reply with only the word QUEUED.
+────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                   ◆ Tools ▾

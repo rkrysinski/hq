@@ -1,0 +1,24 @@
+│ brass oil can on the windowsill, where he wouldn't have to look at it.      │
+│                                                                             │
+│ That spring he kept the logbook more carefully than ever. April 3rd: wind   │
+│ northeast, fog by midnight. Fishing boat Marguerite passed at 2:14, running │
+│ late. He wrote down every vessel, every change in the weather, and every    │
+│ star that broke through the clouds. He couldn't have said who he was        │
+│ writing for, but he kept writing.                                           │
+│                                                                             │
+│ On the last night of April a storm rolled in off the Atlantic, heavy and    │
+│ black. Around eleven the power failed across the whole coast, and the shiny │
+│ new automated system, installed only that week, went dark with it.          │
+│                                                                             │
+│ Elias didn't hesitate. He lit the old kerosene backup lamp, the             │
+╰─────────────────────────────────────────────────────────────────────────────╯
+  ⎿  Interrupted · What should Claude do instead?
+
+✽ Galloping…
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                   ◆ Tools ▾
