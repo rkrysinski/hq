@@ -1,10 +1,11 @@
 // Command elicit is a stdio MCP server for capturing Claude Code's screens
-// (tools/capture/README.md). Its one tool, ask_color, asks the user to pick
-// a color through an MCP elicitation (elicitation/create), then works on for
+// (tools/capture/README.md). Its tool ask_color asks the user to pick a
+// color through an MCP elicitation (elicitation/create), then works on for
 // -work before it returns, so the screen after the answer shows Claude at
 // work on the tool. It is how #70 captured an elicitation open, answered
-// and cancelled; tools/capture/capture.sh mcp builds it and writes the
-// --mcp-config for it.
+// and cancelled. Its tool open_url asks the same way in URL mode, sending
+// the user to a page (#100). tools/capture/capture.sh mcp builds it and
+// writes the --mcp-config for it.
 package main
 
 import (
@@ -104,9 +105,21 @@ func (s *server) handle(m message) {
 			"name":        "ask_color",
 			"description": "Asks the user to pick a color (via an elicitation form) and returns it.",
 			"inputSchema": map[string]any{"type": "object", "properties": map[string]any{}},
+		}, map[string]any{
+			"name":        "open_url",
+			"description": "Sends the user to a page (via a URL-mode elicitation) and returns whether they went.",
+			"inputSchema": map[string]any{"type": "object", "properties": map[string]any{}},
 		}}}})
 	case "tools/call":
-		go s.askColor(m.ID)
+		var p struct {
+			Name string `json:"name"`
+		}
+		_ = json.Unmarshal(m.Params, &p)
+		if p.Name == "open_url" {
+			go s.openURL(m.ID)
+		} else {
+			go s.askColor(m.ID)
+		}
 	default:
 		if m.ID != nil {
 			s.send(message{ID: m.ID, Result: map[string]any{}})
@@ -124,6 +137,19 @@ func (s *server) askColor(id json.RawMessage) {
 			}},
 			"required": []string{"color"},
 		},
+	})
+	time.Sleep(s.work)
+	s.send(message{ID: id, Result: map[string]any{"content": []any{map[string]any{
+		"type": "text", "text": "elicitation answer: " + string(answer),
+	}}}})
+}
+
+func (s *server) openURL(id json.RawMessage) {
+	answer := s.ask("elicitation/create", map[string]any{
+		"mode":          "url",
+		"message":       "Sign in to the example service.",
+		"url":           "https://example.com/sign-in?session=42",
+		"elicitationId": "elicit-url-1",
 	})
 	time.Sleep(s.work)
 	s.send(message{ID: id, Result: map[string]any{"content": []any{map[string]any{

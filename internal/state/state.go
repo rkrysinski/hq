@@ -4,6 +4,7 @@ package state
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"strings"
 	"time"
@@ -51,8 +52,9 @@ type Report struct {
 	// for it.
 	Woken bool
 	// Acted says that Claude has acted on the turn the agent works on: a
-	// tool of its own has ended in it (the hook's mark, .acted), so no
-	// early Esc rewinds it any more (design §3.4, #77).
+	// tool of its own has ended in it (the hook's mark, .acted), or an MCP
+	// elicitation it opened was answered, so no early Esc rewinds it any
+	// more (design §3.4, #77, #100).
 	Acted bool
 	// SubagentDialog says the dialog the agent needs input for is one of
 	// its subagents': the event that reported it carries the subagent's
@@ -97,6 +99,7 @@ type payload struct {
 	Source           string `json:"source"`
 	AgentID          string `json:"agent_id"`
 	ToolName         string `json:"tool_name"`
+	Server           string `json:"mcp_server_name"`
 
 	BackgroundTasks []backgroundTask `json:"background_tasks"`
 
@@ -254,6 +257,18 @@ func Parse(latest, lastStop, prev []byte) Report {
 		if m := p.dialogText(); m != "" {
 			r.Last = m
 		}
+	case "Elicitation":
+		// An MCP server's form, the agent's own or a subagent's: it carries
+		// no agent_id (Kept tells a subagent's).
+		r.State = NeedsInput
+		if m := cmp.Or(Clean(p.Message), Clean(p.Server)); m != "" {
+			r.Last = m
+		}
+	case "ElicitationResult":
+		// The form answered at the agent: the MCP tool has the answer and
+		// Claude works on, in a turn it has acted on, which no early Esc
+		// rewinds (#100).
+		r.State, r.Acted = Working, true
 	case "Stop":
 		r.Last = Clean(p.AssistantMessage)
 		r.LastStop, r.State = r.Last, Done
@@ -317,7 +332,8 @@ func (r Report) Kept(latest, kept, owed []byte, at time.Time) Report {
 	case p.Event == "Stop" && r.State == NeedsInput:
 		// A dialog reported after a turn that ended with background work
 		// running is a subagent's: the agent has no turn until Claude wakes
-		// it, and an MCP elicitation's Notification carries no agent_id.
+		// it, and an MCP elicitation carries no agent_id, neither its own
+		// event nor Claude's Notification for it (#89).
 		r.SubagentDialog = true
 		return r
 	default:

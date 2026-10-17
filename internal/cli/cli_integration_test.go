@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -464,30 +465,44 @@ func TestAnAgentAtADialogClaudeOpensAfterItsTurnNeedsInput(t *testing.T) {
 	h.waitPane("a", "say hi")
 }
 
-// An MCP elicitation is reported only by Claude's Notification, and its
-// answer fires no hook: the screen shows Claude at work after it, which
-// closes the dialog. The agent works, hq wait does not return it, and a
-// message waits for its turn's end as for any agent at work (#70).
-func TestAnAnsweredElicitationIsClosedByTheScreen(t *testing.T) {
+// An MCP elicitation is reported by its own hook as Claude draws the form
+// (#100): the agent needs input with one notification, hq read --json
+// shows the form's fields, and the answer given at the agent fires a hook
+// of its own that leaves the agent working: hq wait does not return it,
+// and a message waits for its turn's end as for any agent at work.
+func TestAnElicitationShowsItsFieldsAndItsAnswerLeavesTheAgentWorking(t *testing.T) {
+	record := filepath.Join(t.TempDir(), "notified")
+	t.Setenv("FAKE_CLAUDE_NOTIFIED", record)
 	testutil.FakeClaude(t)
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")
 	if code, _, errOut := h.run("new", "a", "elicit"); code != 0 {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
-	h.waitReport("a", "needs input", "Claude Code needs your input")
+	h.waitReport("a", "needs input", "Which color should I use?")
+	var v struct {
+		Asks *state.Ask `json:"asks"`
+	}
+	want := &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{
+		{Name: "color", Title: "Color", Description: "Pick one", Type: "string", Required: true, Options: []state.AskFieldOption{{Value: "red"}, {Value: "blue"}}},
+	}}
+	if code, out, _ := h.run("read", "a", "--json"); code != 0 || json.Unmarshal([]byte(out), &v) != nil || !reflect.DeepEqual(v.Asks, want) {
+		t.Fatalf("read: exit %d\n%s", code, out)
+	}
 	before := time.Now().UTC().Format(time.RFC3339Nano)
 	h.typeIn("a", "red")
 	h.waitReport("a", "working", "")
-	if code, out, _ := h.run("read", "a"); code != 0 || strings.Contains(out, "\nasks\n") {
-		t.Fatalf("read: exit %d\n%s", code, out)
-	}
 	if code, out, _ := h.run("wait", "a", "--since", before, "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet\n") {
 		t.Fatalf("wait returned it: exit %d\n%s", code, out)
 	}
 	h.send("queued: a is working, delivered when it stops", "a", "then commit")
 	h.typeIn("a", "")
 	h.waitPane("a", "then commit")
+	// One notification for the form, none from Claude's own Notification
+	// for it, which the fake sends seconds after it drew the form.
+	if b, _ := os.ReadFile(record); strings.Count(string(b), "Needs input") != 1 {
+		t.Fatalf("notified:\n%s", b)
+	}
 }
 
 func TestAgentsInOneRepositoryAreToldApartByBranch(t *testing.T) {
