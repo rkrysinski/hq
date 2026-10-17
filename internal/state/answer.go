@@ -16,7 +16,7 @@ import (
 )
 
 // An answer to a question dialog (AskUserQuestion) reaches Claude through
-// the dialog's own hook (design §3.4, ADR 0013): the hook of kind ask holds
+// the dialog's own hook (design §3.4, ADR 0013): the hook of kind hold waits
 // on the dialog's PermissionRequest, beside the hook that reports it, and
 // prints the answer hq leaves in the agent's inbox as its decision. hq
 // writes the decision whole, JSON-encoded, as it writes a message (ADR

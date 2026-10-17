@@ -24,11 +24,11 @@ type held struct {
 	done chan struct{}
 }
 
-// hold starts the hook of kind ask on payload, as run does, without
+// hold starts the hook of kind hold on payload, as run does, without
 // waiting for it.
 func hold(t *testing.T, cwd, project, id string, payload []byte) *held {
 	t.Helper()
-	h := hook("ask", "")
+	h := hook("hold", "")
 	k := &held{cmd: exec.Command(h.Command, h.Args...), done: make(chan struct{})}
 	k.cmd.Dir = cwd
 	k.cmd.Env = append(os.Environ(), "HQ_ID="+id, "CLAUDE_PROJECT_DIR="+project, hookEnv+"="+hookScript)

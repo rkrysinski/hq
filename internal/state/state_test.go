@@ -252,13 +252,13 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	if len(pr) != 2 || pr[1].Matcher != "AskUserQuestion" || len(pr[1].Hooks) != 1 {
 		t.Fatalf("PermissionRequest: %+v", pr)
 	}
-	if h := pr[1].Hooks[0]; h.Command != "sh" || h.Args[1] != `eval "$HQ_HOOK"` || strings.Join(h.Args[3:], " ") != "ask" || h.Timeout != 86400 {
+	if h := pr[1].Hooks[0]; h.Command != "sh" || h.Args[1] != `eval "$HQ_HOOK"` || strings.Join(h.Args[3:], " ") != "hold" || h.Timeout != 86400 {
 		t.Errorf("the question dialog's hook: %+v", h)
 	}
 	for event, m := range s.Hooks {
 		for _, g := range m {
 			for _, h := range g.Hooks {
-				if h.Timeout != 0 && strings.Join(h.Args[3:], " ") != "ask" {
+				if h.Timeout != 0 && strings.Join(h.Args[3:], " ") != "hold" {
 					t.Errorf("%s: a timeout of its own: %+v", event, h)
 				}
 			}

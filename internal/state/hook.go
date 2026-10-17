@@ -102,7 +102,7 @@ import (
 // alone, so closing turns follow the turn that started the work. A
 // session's start or end removes it.
 //
-// On ask, the kind of a second hook on a question dialog's PermissionRequest
+// On hold, the kind of a second hook on a question dialog's PermissionRequest
 // (AskUserQuestion), run beside the dialog's own, it writes nothing and
 // holds for hq's answer (hq answer, ADR 0013): once the state file is the
 // dialog's report, the same bytes as its own copy of the payload (the
@@ -118,8 +118,8 @@ import (
 // It needs only sh, git, cat, mv, cp, mkdir, rm, grep, awk, sleep and
 // cksum, sends its own errors nowhere and always exits 0; it holds Claude
 // back only while a message is unread (design §3.4, §7.1): the hook of
-// ask holds while its dialog is open, which Claude still draws and takes
-// an answer at.
+// kind hold waits while its dialog is open, which Claude still draws and
+// takes an answer at.
 const hookSource = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
 exec 2>/dev/null
 q=
@@ -165,7 +165,7 @@ say() {
 nap() { sleep .2 || sleep 1; }
 mine() { awk -v RS='\001' 'NR==FNR{p=$0;next}{s=$0==p}END{exit !s}' "$t" "$f"; }
 case $1 in
-ask) grep -q '"agent_id"' "$t" || { k=$(cksum <"$t") && a=$i/` + answerPrefix + `${k% *}.${k#* } && trap 'rm -f "$t"; exit 0' HUP TERM &&
+hold) grep -q '"agent_id"' "$t" || { k=$(cksum <"$t") && a=$i/` + answerPrefix + `${k% *}.${k#* } && trap 'rm -f "$t"; exit 0' HUP TERM &&
     { w=0; until mine || [ $((w+=1)) -gt 50 ]; do nap; done
     while mine; do mv -f "$a" "$t" && cat "$t" && break; nap; done; }; }
     rm -f "$t"; exit 0 ;;
@@ -496,7 +496,7 @@ func Settings(name, id, notify string) string {
 			"UserPromptSubmit": {{Hooks: []hookCommand{hook("prompt", "")}}},
 			"PermissionRequest": {
 				{Hooks: []hookCommand{hook("dialog", notify)}},
-				{Matcher: AskTool, Hooks: []hookCommand{holding(hook("ask", ""))}},
+				{Matcher: AskTool, Hooks: []hookCommand{holding(hook("hold", ""))}},
 			},
 			"PostToolUse":        {{Hooks: []hookCommand{hook("answer", "")}}},
 			"PostToolUseFailure": {{Hooks: []hookCommand{hook("answer", "")}}},
