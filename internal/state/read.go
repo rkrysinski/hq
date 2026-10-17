@@ -56,6 +56,12 @@ const announcedSuffix = ".next"
 // tool of the agent's own has ended in its current turn (Report.Acted).
 const actedSuffix = ".acted"
 
+// queuedSuffix names, beside an agent's state file, the hook's copy of a
+// prompt Claude has queued while the agent works, until Claude takes it
+// into the turn at work, or, when it takes it as a turn of its own after
+// that turn's end, until that turn reports (#82).
+const queuedSuffix = ".queued"
+
 // Read returns the report of agent id of the repository at root; ok is false
 // until the agent's first event. It parses the agent's state files once
 // per change: while none of them changed in size or modification time it
@@ -163,7 +169,7 @@ func Remove(root, id string) error {
 	delete(parsed.m, path)
 	parsed.Unlock()
 	var errs []error
-	for _, suffix := range append(stateSuffixes[:], supervisedSuffix, announcedSuffix) {
+	for _, suffix := range append(stateSuffixes[:], supervisedSuffix, announcedSuffix, queuedSuffix) {
 		if err := os.Remove(path + suffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			errs = append(errs, err)
 		}
