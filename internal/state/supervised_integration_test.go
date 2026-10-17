@@ -526,3 +526,36 @@ func TestAnnouncingNeverWritesThroughALinkTheSandboxPlanted(t *testing.T) {
 		t.Fatalf("files left: %v", left)
 	}
 }
+
+// The mark of the agent's own Monitor watch in the hook's list (=ID) is no
+// work owed a turn (#99): the turn ends notify as they did before the hook
+// kept it. A supervised turn that leaves the watch running ends silent and
+// owes nothing, so the turn Claude takes for the watch notifies; a turn of
+// the user's that left it running does not keep the supervisor's next
+// prompt from being supervised.
+func TestTheAgentsOwnWatchOwesNoTurnToWhoeverStartedIt(t *testing.T) {
+	agent := agents(t)
+	const watch = "b46swdckt" // the task of post-tool-own-monitor
+
+	h := agent()
+	h.supervisorPrompt()
+	h.event("answer", "post-tool-own-monitor")
+	if got := h.on("stop", turnEnd("watching", "shell:"+watch)).TerminalSequence; got != "" || h.state() != Done {
+		t.Fatalf("the supervised turn end with the watch running: notified %q, %s", got, h.state())
+	}
+	h.on("prompt", wakeUp(watch))
+	if got := h.on("stop", turnEnd("the file appeared")).TerminalSequence; got != doneNotice {
+		t.Fatalf("the turn Claude took for the watch: %q", got)
+	}
+
+	h = agent()
+	h.event("prompt", "prompt")
+	h.event("answer", "post-tool-own-monitor")
+	if got := h.on("stop", turnEnd("watching", "shell:"+watch)).TerminalSequence; got != doneNotice {
+		t.Fatalf("the user's turn end with the watch running: %q", got)
+	}
+	h.supervisorPrompt()
+	if got := h.on("stop", turnEnd("checked", "shell:"+watch)).TerminalSequence; got != "" {
+		t.Fatalf("the supervisor's turn while the user's watch runs: %q", got)
+	}
+}
