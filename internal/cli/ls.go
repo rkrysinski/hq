@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/state"
 )
 
 // lsRow is one agent as hq ls --json prints it.
@@ -22,6 +23,9 @@ type lsRow struct {
 	Last       string    `json:"last"`
 	Sandbox    string    `json:"sandbox"`
 	Pending    int       `json:"pending"` // messages waiting for it (hq send)
+	// OwnTasks are its own tasks at the turn end its done or question comes
+	// from (#78), in full; [] when none, never null.
+	OwnTasks []state.Task `json:"own_tasks"`
 }
 
 func runLs(env Env, d deps, args []string) error {
@@ -82,7 +86,9 @@ func writeTable(w io.Writer, rows []lsRow) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "NAME\tREPO\tBRANCH\tSTATE\tAGE\tLAST")
 	for _, r := range rows {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, agent.Age(time.Duration(r.AgeSeconds)*time.Second), orDash(truncate(r.Last, lastWidth)))
+		// LAST starts with the count of its own tasks, which --json lists.
+		last := agent.OwnPrefix(r.OwnTasks) + orDash(r.Last)
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, agent.Age(time.Duration(r.AgeSeconds)*time.Second), truncate(last, lastWidth))
 	}
 	return tw.Flush()
 }
@@ -93,7 +99,7 @@ func newLsRow(d deps, a agent.Agent, now time.Time) lsRow {
 	return lsRow{
 		Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
 		Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
-		Pending: d.pending(a.RepoPath, a.ID),
+		Pending: d.pending(a.RepoPath, a.ID), OwnTasks: append([]state.Task{}, a.OwnTasks...),
 	}
 }
 

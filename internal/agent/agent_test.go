@@ -1167,3 +1167,21 @@ func TestEndsTellsWhatIsLeftToEndInASandbox(t *testing.T) {
 		}
 	}
 }
+
+func TestOwnTasksAreCountedInClaudesFooterWording(t *testing.T) {
+	shell, monitor := state.Task{Type: "shell"}, state.Task{Type: "monitor"}
+	for _, tc := range []struct {
+		tasks []state.Task
+		want  string
+	}{
+		{nil, ""},
+		{[]state.Task{shell}, "1 shell · "},
+		{[]state.Task{shell, shell}, "2 shells · "},
+		{[]state.Task{monitor}, "1 monitor · "},
+		{[]state.Task{monitor, shell, monitor}, "1 shell, 2 monitors · "},
+	} {
+		if got := OwnPrefix(tc.tasks); got != tc.want {
+			t.Errorf("%+v: %q, want %q", tc.tasks, got, tc.want)
+		}
+	}
+}

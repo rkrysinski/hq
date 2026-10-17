@@ -50,6 +50,7 @@ func Look(ws []tmux.Window, read func(root, id string) (state.Report, bool), tak
 	for i := range as {
 		offer(store, &as[i], as[i].seeEnd(now))
 		offer(store, &as[i], as[i].seeWake())
+		as[i].keepOwnTasks()
 	}
 	return as
 }

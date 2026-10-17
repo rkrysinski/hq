@@ -2,6 +2,7 @@ package agent
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -281,5 +282,45 @@ func TestTheLookHandsOverToTheQueuedPromptClaudeTookAfterAnEsc(t *testing.T) {
 				t.Errorf("%s queued=%v: %+v, taken %v, records %v", name, r.Queued, a, taken, s.options)
 			}
 		}
+	}
+}
+
+// The look shows an agent's own tasks while it is done or has a question
+// from the turn end its hooks reported with them (#78): not once its pane
+// has died, its sandbox stopped or a dialog of Claude's own opened at its
+// prompt, nor from a report of its previous session.
+func TestTheLookShowsOwnTasksOnlyWhileTheStateIsTheTurnEnds(t *testing.T) {
+	now := time.Unix(1000, 0)
+	since := now.Add(-time.Minute)
+	own := []state.Task{{Type: "shell", Text: "sleep 120"}}
+	done := state.Report{State: state.Done, Since: since, Latest: since, Last: "Waiting for it.", OwnTasks: own}
+	ready := "● Waiting for it.\n" + lookRule + "\n❯ \n" + lookRule + "\n  footer\n"
+	dialog := "● Waiting for it.\n" + strings.Repeat("▔", 20) + "\n   Change effort level?\n   Your next response will be slower\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"
+	look := func(w tmux.Window, r state.Report, screen string, sandboxes Sandboxes) Agent {
+		s := &fakeStore{screens: map[string]string{w.Pane: screen}}
+		return Look([]tmux.Window{w}, reportsOf(map[string]state.Report{"id1": r}), nil, sandboxes, now, s)[0]
+	}
+	question := done
+	question.State = state.Question
+	for name, r := range map[string]state.Report{"done": done, "question": question} {
+		if a := look(lookWindow("1"), r, ready, Sandboxes{}); a.State != r.State || !reflect.DeepEqual(a.OwnTasks, own) {
+			t.Errorf("%s: %s %+v", name, a.State, a.OwnTasks)
+		}
+	}
+	if a := look(lookWindow("1"), done, dialog, Sandboxes{}); a.State != state.NeedsInput || a.OwnTasks != nil {
+		t.Errorf("a dialog of Claude's own: %s %+v", a.State, a.OwnTasks)
+	}
+	dead := lookWindow("1")
+	dead.PaneDead = true
+	if a := look(dead, done, ready, Sandboxes{}); a.State != state.Ended || a.OwnTasks != nil {
+		t.Errorf("dead pane: %s %+v", a.State, a.OwnTasks)
+	}
+	if a := look(lookWindow("1"), done, ready, Sandboxes{Running: map[string]bool{}, Asked: now}); a.State != state.Ended || a.OwnTasks != nil {
+		t.Errorf("sandbox stopped: %s %+v", a.State, a.OwnTasks)
+	}
+	relaunched := lookWindow("1")
+	relaunched.Options["started"] = "990"
+	if a := look(relaunched, done, ready, Sandboxes{}); a.OwnTasks != nil {
+		t.Errorf("a report of the session before: %s %+v", a.State, a.OwnTasks)
 	}
 }

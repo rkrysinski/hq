@@ -64,6 +64,18 @@ type Report struct {
 	// turn's Stop, which the hook reports, or after an Esc on the turn,
 	// which only the screen shows (design §3.4, #82, #88).
 	Queued bool
+	// OwnTasks are the agent's own tasks while it is done or has a question
+	// from its latest event, a Stop: what it left running itself at that
+	// turn end (Own); nil otherwise.
+	OwnTasks []Task
+}
+
+// Task is one of the agent's own tasks (#78): a background shell command
+// or a watch (the Monitor tool) the agent itself started, running at the
+// turn end its state comes from.
+type Task struct {
+	Type string `json:"type"` // shell or monitor
+	Text string `json:"text"` // the command of a shell, the description of a watch, in full, stripped (design §7.3)
 }
 
 // payload is the part of a Claude hook event hq reads.
@@ -79,9 +91,11 @@ type payload struct {
 	AgentID          string `json:"agent_id"`
 	ToolName         string `json:"tool_name"`
 	BackgroundTasks  []struct {
-		ID     string `json:"id"`
-		Type   string `json:"type"`
-		Status string `json:"status"`
+		ID          string `json:"id"`
+		Type        string `json:"type"`
+		Status      string `json:"status"`
+		Description string `json:"description"`
+		Command     string `json:"command"`
 	} `json:"background_tasks"`
 	ToolInput struct {
 		Questions   []struct{ Question string } `json:"questions"`
@@ -114,18 +128,53 @@ const askTool = "AskUserQuestion"
 // a line ~ID. It is the rule of the hook's awk, which decides (design
 // §3.4).
 func (p payload) busy(owed []byte) bool {
-	theirs := map[string]bool{}
-	for _, line := range strings.Split(string(owed), "\n") {
-		if id, ok := strings.CutPrefix(line, "~"); ok && id != "" {
-			theirs[id] = true
-		}
-	}
+	theirs := subagents(owed)
 	for _, t := range p.BackgroundTasks {
 		if t.Status == "running" && ((t.Type != "shell" && t.Type != "monitor") || theirs[t.ID]) {
 			return true
 		}
 	}
 	return false
+}
+
+// subagents are the ids of the shell commands and the watches the agent's
+// subagents started, as the hook's list (the .owe file) names them, on a
+// line ~ID each.
+func subagents(owed []byte) map[string]bool {
+	theirs := map[string]bool{}
+	for _, line := range strings.Split(string(owed), "\n") {
+		if id, ok := strings.CutPrefix(line, "~"); ok && id != "" {
+			theirs[id] = true
+		}
+	}
+	return theirs
+}
+
+// artifactWatch ends the description of the watch Claude arms when the
+// agent publishes an artifact, the only thing that tells it from a watch of
+// the agent's own in a Stop (seen with Claude Code 2.1.296, #62). Should
+// Claude describe it otherwise, it shows as an own task: no state depends
+// on it (design §3.4).
+const artifactWatch = "(auto-armed on publish)"
+
+// ownTasks are the agent's own tasks the event, a Stop, lists: the
+// running shell commands and watches busy does not count, less the
+// artifact watch.
+func (p payload) ownTasks(owed []byte) []Task {
+	theirs := subagents(owed)
+	var ts []Task
+	for _, t := range p.BackgroundTasks {
+		if t.Status != "running" || theirs[t.ID] {
+			continue
+		}
+		switch {
+		case t.Type == "shell":
+			ts = append(ts, Task{Type: t.Type, Text: CleanText(t.Command)})
+		case t.Type == "monitor" && !strings.HasSuffix(strings.TrimSpace(t.Description), artifactWatch):
+			ts = append(ts, Task{Type: t.Type, Text: CleanText(t.Description)})
+		}
+	}
+	return ts
 }
 
 // dialogText is what an open dialog shows as the last message: the first
@@ -245,6 +294,23 @@ func (r Report) Kept(latest, kept, owed []byte, at time.Time) Report {
 	}
 	if at.After(r.Latest) {
 		r.Latest = at
+	}
+	return r
+}
+
+// Own adds to the report of the state file latest the agent's own tasks
+// (owed is the hook's list of the background work it follows, the .owe
+// file): while it is done or has a question from latest, a Stop, what that
+// Stop lists running of its own. A turn end the hook kept leaves the report
+// working, and any other latest event has no turn end of its own, so their
+// list stays empty (#78).
+func (r Report) Own(latest, owed []byte) Report {
+	var p payload
+	if _, event := splitHeader(latest); json.Unmarshal(event, &p) != nil || p.Event != "Stop" {
+		return r
+	}
+	if r.State == Done || r.State == Question {
+		r.OwnTasks = p.ownTasks(owed)
 	}
 	return r
 }

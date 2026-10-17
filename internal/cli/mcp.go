@@ -101,6 +101,7 @@ const mcpInstructions = `hq runs Claude Code agents, each working on one task in
 - Every list, read, send and wait result carries next_since, the moment it was taken. Always pass the next_since of the most recent of them as wait's since: wait then returns every change after that moment, even one that happened before wait was called, and none twice. A wait from a later moment misses what happened in between, such as an agent that answered at once; to start watching with no result yet, call list first.
 - The user is not notified when work you sent finishes or asks a question: the end of a turn whose prompts all came from you (new with a prompt, send) raises no desktop notification, whether or not you are waiting, because its result is for you. So wait for the agents you gave work to, read their replies and tell the user what matters. A turn the user prompted themselves, or sent a message into, still notifies them.
 - To watch agents, call wait in a loop, each time with the next_since of the most recent result: it returns as soon as an agent is done, asks a question, needs input or ends, or returns no agents after its timeout; then call it again.
+- An agent done or in question with own_tasks: a shell command or watch of its own still runs, which it started and left running at its turn end. Claude takes another turn when one ends, so wait for it again if you need that result; a dev server may never end. The list is that turn end's and may be stale until its next turn end.
 - An agent that needs input has a dialog open (a permission, or questions with options). Never try to answer it, with send or otherwise: tell the user which agent waits and what it asks; they answer it in hq (go shows them the agent). hq notifies them of the dialog itself, also on a turn you started.
 - kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.`
 
@@ -167,7 +168,7 @@ func newMCPServer(d deps) *mcp.Server {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "list",
-		Description: "List every agent as JSON (agents), those that need the user first: name, repo, branch, state, since and age_seconds (in that state), last (its last message, one line), sandbox and pending (messages waiting for it); and next_since, the moment of the list, to pass to wait as since. " +
+		Description: "List every agent as JSON (agents), those that need the user first: name, repo, branch, state, since and age_seconds (in that state), last (its last message, one line), sandbox, pending (messages waiting for it) and own_tasks (while it is done or in question: the shell commands and watches of its own still running at that turn end, each with its type, shell or monitor, and text, the command or the watch's description; [] when none); and next_since, the moment of the list, to pass to wait as since. " +
 			"States: starting, working, question (its reply ends with a question), needs input (a dialog is open), done (its turn ended), ended (its session is gone). " +
 			"This is where status comes from: never ask an agent for its status.",
 		Annotations: &mcp.ToolAnnotations{Title: "List agents", ReadOnlyHint: true, OpenWorldHint: &no},
@@ -180,7 +181,8 @@ func newMCPServer(d deps) *mcp.Server {
 		Description: "One agent in full, as JSON: what list gives, its worktree, its last reply, what it asks (asks: the open dialog's questions and options while it needs input, the question while in question; null otherwise), and next_since, the moment of the read, to pass to wait as since. " +
 			"A reply longer than 32 KiB comes in pages: reply is the page, reply_size the whole reply's size in bytes, and next_offset where the next page starts, null on the last page. " +
 			"To read on, call read again with offset set to next_offset and since set to this read's next_since; if the agent has replied anew in between, it says the reply changed: read it again from its start. " +
-			"Read an agent when wait returns it, and to see its answer to a message you sent.",
+			"Read an agent when wait returns it, and to see its answer to a message you sent. " +
+			"An agent done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends.",
 		Annotations: &mcp.ToolAnnotations{Title: "Read an agent", ReadOnlyHint: true, OpenWorldHint: &no},
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpReadIn) (*mcp.CallToolResult, any, error) {
 		args := []string{in.Name, "--json"}
@@ -198,7 +200,8 @@ func newMCPServer(d deps) *mcp.Server {
 		Description: "Wait until one of the named agents (every agent when none is named) is done, asks a question, needs input or ends, and return those agents as list gives them, with next_since, as JSON. " +
 			"After timeout seconds (default and at most 50) it returns no agents, which is not an error. " +
 			"since is required: the next_since of the most recent list, read, send or wait result, so a change between that result and this call is not missed. " +
-			"To watch agents, call it in a loop, passing each result's next_since as the next call's since: no change is then missed or returned twice. React to the agents it returns (read them), then call it again.",
+			"To watch agents, call it in a loop, passing each result's next_since as the next call's since: no change is then missed or returned twice. React to the agents it returns (read them), then call it again. " +
+			"An agent returned done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end).",
 		Annotations: &mcp.ToolAnnotations{Title: "Wait for agents", ReadOnlyHint: true, OpenWorldHint: &no},
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpWaitIn) (*mcp.CallToolResult, any, error) {
 		timeout := time.Duration(in.Timeout) * time.Second

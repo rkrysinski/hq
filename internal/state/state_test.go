@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/json"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -306,7 +307,7 @@ func TestATurnEndWithBackgroundWorkKeptBesideAWorkingReportLeavesItWorking(t *te
 	}
 	// Nothing kept, or something unreadable: the report as it is.
 	for _, kept := range []string{"", "{", `{"hook_event_name":"SessionEnd"}`} {
-		if r := working.Kept(fixture(t, "prompt"), []byte(kept), nil, at); r != working {
+		if r := working.Kept(fixture(t, "prompt"), []byte(kept), nil, at); !reflect.DeepEqual(r, working) {
 			t.Errorf("kept %q: %+v", kept, r)
 		}
 	}
@@ -352,7 +353,7 @@ func TestAKeptTurnEndCountsOnlyBesideAReportItBelongsTo(t *testing.T) {
 	// A wake-up counts only while the report says working.
 	for _, latest := range []string{"stop-done", "dialog-ask", "session-start"} {
 		r := Parse(fixture(t, latest), nil, nil)
-		if got := r.Kept(fixture(t, latest), fixture(t, "prompt-wake"), nil, at); got != r {
+		if got := r.Kept(fixture(t, latest), fixture(t, "prompt-wake"), nil, at); !reflect.DeepEqual(got, r) {
 			t.Errorf("wake-up beside %s: %+v", latest, got)
 		}
 	}
@@ -435,5 +436,78 @@ func TestAQueuedPromptIsPendingUntilAStopOfItsTurnTakesIt(t *testing.T) {
 	}
 	if pending([]byte("branch main\nnot json"), nil) || pending(nil, nil) {
 		t.Error("an unreadable copy is pending")
+	}
+}
+
+// An agent done or with a question at a Stop shows its own tasks (#78): the
+// shell commands and the watches it started itself that the Stop lists
+// running, a shell by its command and a watch by its description, in full.
+// Not a subagent's (named ~ID in the hook's list), not the artifact watch
+// Claude arms on publish (its description says so), not a task that no
+// longer runs, and not a task of any other type, which is background work.
+func TestADoneOrQuestionAtAStopListsTheAgentsOwnTasks(t *testing.T) {
+	stop := func(tasks string) []byte {
+		return []byte(strings.Replace(string(fixture(t, "stop-done")), `"background_tasks": []`, `"background_tasks": [`+tasks+`]`, 1))
+	}
+	const (
+		shell    = `{"id": "b1", "type": "shell", "status": "running", "description": "Sleep", "command": "sleep 120"}`
+		monitor  = `{"id": "m1", "type": "monitor", "status": "running", "description": "Wait for CI on PR #58", "command": "gh pr checks 58 --watch"}`
+		artifact = `{"id": "w1", "type": "monitor", "status": "running", "description": "live updates for artifact https://claude.ai/artifact/x (auto-armed on publish)"}`
+	)
+	for _, tc := range []struct {
+		name, tasks, owed string
+		want              []Task
+	}{
+		{"nothing runs", ``, ``, nil},
+		{"a shell of its own", shell, ``, []Task{{"shell", "sleep 120"}}},
+		{"a watch of its own", monitor, ``, []Task{{"monitor", "Wait for CI on PR #58"}}},
+		{"both, in the Stop's order", monitor + `, ` + shell, `b0` + "\n", []Task{{"monitor", "Wait for CI on PR #58"}, {"shell", "sleep 120"}}},
+		{"a subagent's shell", shell, "~b1\n", nil},
+		{"a subagent's watch beside its own shell", shell + `, ` + strings.Replace(monitor, "m1", "m2", 1), "a1\n~m2\n", []Task{{"shell", "sleep 120"}}},
+		{"the artifact watch", artifact, ``, nil},
+		{"an artifact watch described otherwise", strings.Replace(artifact, "(auto-armed on publish)", "(armed)", 1), ``, []Task{{"monitor", "live updates for artifact https://claude.ai/artifact/x (armed)"}}},
+		{"a shell that has ended", strings.Replace(shell, "running", "completed", 1), ``, nil},
+		{"a subagent", `{"id": "a1", "type": "subagent", "status": "running", "description": "Tests"}`, ``, nil},
+		{"a multi-line command, kept whole", `{"id": "b1", "type": "shell", "status": "running", "command": "cd app &&\n\u001b[31mnpm test\u001b[0m"}`, ``, []Task{{"shell", "cd app &&\nnpm test"}}},
+	} {
+		latest := stop(tc.tasks)
+		r := Parse(latest, latest, nil).Own(latest, []byte(tc.owed))
+		if r.State != Done || !reflect.DeepEqual(r.OwnTasks, tc.want) {
+			t.Errorf("%s: %s %+v, want %+v", tc.name, r.State, r.OwnTasks, tc.want)
+		}
+	}
+	// Claude Code 2.1.302 lists a watch the agent keeps with the Monitor tool
+	// as a shell, with the watch's command: the Stop does not tell it from a
+	// command the agent started with Bash, so it shows as one (#97).
+	watch := fixture(t, "stop-own-monitor")
+	if r := Parse(watch, watch, nil).Own(watch, nil); r.State != Done || !reflect.DeepEqual(r.OwnTasks, []Task{{"shell", `f=/w/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"`}}) {
+		t.Errorf("a Monitor watch: %s %+v", r.State, r.OwnTasks)
+	}
+	question := fixture(t, "stop-background-question")
+	if r := Parse(question, question, nil).Own(question, nil); r.State != Question || !reflect.DeepEqual(r.OwnTasks, []Task{{"shell", "npm run dev"}}) {
+		t.Errorf("a question: %s %+v", r.State, r.OwnTasks)
+	}
+}
+
+// Own tasks are a turn end's: only a done or a question that the latest
+// event, a Stop, gives. A turn end the hook kept, as background work runs,
+// leaves the agent working with none; so does every other latest event,
+// though the latest Stop beside it still lists the task running.
+func TestOwnTasksAreOnlyThoseOfTheTurnEndTheStateComesFrom(t *testing.T) {
+	since := time.Unix(1000, 0)
+	shell := fixture(t, "stop-background-shell")
+	question := fixture(t, "stop-background-question")
+	for _, latest := range []string{"prompt", "prompt-wake", "answer-ask", "dialog-ask", "notification", "session-start", "session-start-clear", "session-start-resume", "session-end"} {
+		r := Parse(fixture(t, latest), shell, shell).Own(fixture(t, latest), nil)
+		if r.OwnTasks != nil {
+			t.Errorf("%s: %+v", latest, r.OwnTasks)
+		}
+	}
+	// The hook wrote the turn end with a subagent running as the report too:
+	// working, at its prompt.
+	r := Parse(question, question, nil)
+	r.Since, r.Latest = since, since
+	if r = r.Kept(question, question, nil, since.Add(time.Second)).Own(question, nil); r.State != Working || r.OwnTasks != nil {
+		t.Errorf("kept turn end: %s %+v", r.State, r.OwnTasks)
 	}
 }

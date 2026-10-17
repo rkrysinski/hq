@@ -1831,3 +1831,43 @@ func TestTheNewAgentDialogsAgentTakesTheCursorWithTheSlot(t *testing.T) {
 		t.Fatalf("cursor %q docked %q", m.cursor, f.dockedNow())
 	}
 }
+
+// A row whose agent left its own tasks running starts LAST with their
+// count, dim, before the message, and cut with it; where LAST is dropped
+// the count goes with it (#78).
+func TestARowWithOwnTasksStartsLastWithTheirCountDim(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(termenv.Ascii)
+	sleeper := ag("bok", state.Done, time.Minute, "Waiting for the background task to report back.")
+	sleeper.OwnTasks = []state.Task{{Type: "shell", Text: "sleep 120"}}
+	busy := ag("ci", state.Done, 2*time.Minute, strings.Repeat("words ", 40))
+	busy.OwnTasks = []state.Task{{Type: "shell", Text: "npm run dev"}, {Type: "monitor", Text: "Wait for CI"}}
+	f := &fakeSource{view: ViewAll, agents: []agent.Agent{ag("cur", state.Working, 0, "Editing"), sleeper, busy}}
+	m := started(f, 120, 10)
+	raw := strings.Split(m.View(), "\n")
+	row := map[string]int{}
+	for i, l := range lines(m) {
+		if f := strings.Fields(l); len(f) > 0 {
+			row[f[0]] = i
+		}
+	}
+	ls := lines(m)
+	// bok has the cursor, whose strip covers the tail of LAST.
+	if l := ls[row["bok"]]; !strings.Contains(l, "● done         1m    1 shell · Waiting for the backgrou") {
+		t.Fatalf("row %q", l)
+	}
+	if l := raw[row["ci"]]; !strings.Contains(l, cDim.Render("1 shell, 1 monitor · ")+strings.TrimSuffix(cText.Render("words"), "\x1b[0m")) {
+		t.Fatalf("not dim before the message: %q", l)
+	}
+	if l := ls[row["ci"]]; ansi.StringWidth(l) != 120 || !strings.Contains(l, "1 shell, 1 monitor · words") || !strings.HasSuffix(strings.TrimSpace(l), "…") {
+		t.Fatalf("long row (%d cells) %q", ansi.StringWidth(l), l)
+	}
+	if l := ls[row["cur"]]; strings.Contains(l, "·") {
+		t.Fatalf("an agent with none: %q", l)
+	}
+	for _, l := range lines(started(f, 99, 10)) {
+		if strings.Contains(l, "shell") {
+			t.Fatalf("narrow layout: %q", l)
+		}
+	}
+}

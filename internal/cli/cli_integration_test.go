@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -1137,4 +1138,49 @@ func TestAnAgentWhoseOwnWatchRunsIsDoneAtItsTurnEnd(t *testing.T) {
 	h.stillWaiting(ch)
 	h.typeIn("a", "wake")
 	h.only(h.waited(ch), "a", "done", "The background work is done, 0 still running.")
+}
+
+// An agent that leaves a shell command and a watch of its own running at
+// its turn end shows them (#78): hq read lists them, hq read --json and hq
+// ls --json carry them in own_tasks, and hq ls starts LAST with their
+// count. The artifact watch alone shows nothing.
+func TestAnAgentShowsTheTasksItLeftRunningItself(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	for _, name := range []string{"a", "b"} {
+		if code, _, errOut := h.run("new", name, "hello"); code != 0 {
+			t.Fatalf("new %s: %s", name, errOut)
+		}
+		h.waitReport(name, "done", "Done: hello")
+		h.waitAtRest(name)
+	}
+	h.typeIn("a", "start a server")
+	h.waitReport("a", "done", "Done: start a server")
+	h.waitAtRest("a")
+	h.typeIn("a", "watch the file")
+	h.waitReport("a", "done", "Done: watch the file")
+	_, out, _ := h.run("read", "a")
+	if !strings.Contains(out, "\nown task: shell  npm run dev\nown task: monitor  Wait for the file\n") {
+		t.Fatalf("hq read:\n%s", out)
+	}
+	_, out, _ = h.run("read", "a", "--json")
+	var v struct {
+		Last     string       `json:"last"`
+		OwnTasks []state.Task `json:"own_tasks"`
+	}
+	if err := json.Unmarshal([]byte(out), &v); err != nil || v.Last != "Done: watch the file" || !slices.Equal(v.OwnTasks, []state.Task{{Type: "shell", Text: "npm run dev"}, {Type: "monitor", Text: "Wait for the file"}}) {
+		t.Fatalf("hq read --json: %v %+v", err, v)
+	}
+	if _, out, _ = h.run("ls"); !strings.Contains(out, "1 shell, 1 monitor · Done: watch the file\n") {
+		t.Fatalf("hq ls:\n%s", out)
+	}
+
+	h.typeIn("b", "publish the report")
+	h.waitReport("b", "done", "Done: publish the report")
+	for _, r := range h.ls() {
+		if r.Name == "b" && (r.OwnTasks == nil || len(r.OwnTasks) != 0) {
+			t.Fatalf("the artifact watch: %+v", r)
+		}
+	}
 }

@@ -448,3 +448,42 @@ func TestCommandsSeeClaudesDialogOnBackgroundWork(t *testing.T) {
 		t.Fatalf("send: %q", out)
 	}
 }
+
+// hq read lists the agent's own tasks after its state, one line each, cut
+// as LAST is; --json has them in full in own_tasks, as hq ls --json (#78).
+func TestReadListsTheAgentsOwnTasks(t *testing.T) {
+	f := readFakes()
+	long := "until gh pr checks 58; do sleep 30; done && echo all green, and a long tail that hq read cuts"
+	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Waiting for the background task to report back.",
+		OwnTasks: []state.Task{{Type: "shell", Text: "sleep 120"}, {Type: "shell", Text: "cd app &&\n" + long}, {Type: "monitor", Text: "Wait for CI"}}}
+	f.details["id-42"] = state.Detail{Reply: "Waiting for the background task to report back."}
+	code, out, errOut := f.run("read", "42")
+	if code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	want := `name      42
+repo      app  /w/app
+branch    -
+worktree  /w/app
+sandbox   claude-x
+state     done 1m
+own task: shell  sleep 120
+own task: shell  ` + truncate("cd app && "+long, lastWidth) + `
+own task: monitor  Wait for CI
+pending   0
+
+reply
+  Waiting for the background task to report back.
+`
+	if out != want {
+		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+	_, out, _ = f.run("read", "42", "--json")
+	var v struct {
+		Last     string       `json:"last"`
+		OwnTasks []state.Task `json:"own_tasks"`
+	}
+	if err := json.Unmarshal([]byte(out), &v); err != nil || v.Last != "Waiting for the background task to report back." || len(v.OwnTasks) != 3 || v.OwnTasks[1].Text != "cd app &&\n"+long {
+		t.Fatalf("%v %+v", err, v)
+	}
+}

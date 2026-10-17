@@ -52,6 +52,10 @@ _Avoid_: pending tasks, children, jobs
 The turn Claude runs by itself when background work has finished; the one that ends with none running makes the agent `done`.
 _Avoid_: wake-up turn, follow-up, callback
 
+**Own task**:
+A background shell command or watch the agent itself started that still runs at the turn end its `done` or `question` comes from; Claude takes a turn of its own when it ends. Not background work, and the artifact watch Claude arms when the agent publishes an artifact is not one.
+_Avoid_: background work, job, pending task, running
+
 **Message**:
 Text the user leaves for an agent with `hq send`, delivered to it when it is ready; it waits in the agent's inbox until then.
 _Avoid_: feedback, note, mail

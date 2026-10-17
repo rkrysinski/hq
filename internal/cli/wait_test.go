@@ -278,3 +278,18 @@ func TestWaitReturnsAnAgentAtADialogClaudeOpensAfterItsTurn(t *testing.T) {
 		t.Fatalf("returned %v after the dialog opened", waited)
 	}
 }
+
+// An agent done with its own task running is returned as any done one,
+// with the task in own_tasks, so a supervisor knows another turn comes
+// (#78).
+func TestWaitReturnsADoneAgentWithItsOwnTasks(t *testing.T) {
+	f := newWaitFakes()
+	f.after(time.Second, func() {
+		f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Waiting for it.", OwnTasks: []state.Task{{Type: "shell", Text: "sleep 120"}}}
+	})
+	code, out, _ := f.run("wait", "--json")
+	if w := waitJSON(t, out); code != 0 || len(w.Agents) != 1 || w.Agents[0].State != state.Done || w.Agents[0].Last != "Waiting for it." ||
+		len(w.Agents[0].OwnTasks) != 1 || w.Agents[0].OwnTasks[0] != (state.Task{Type: "shell", Text: "sleep 120"}) {
+		t.Fatalf("%s", out)
+	}
+}
