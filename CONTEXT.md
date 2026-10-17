@@ -68,6 +68,14 @@ _Avoid_: silent turn, supervised agent, muted turn
 One reading of every agent's state at a moment: what its hooks report, what sbx says of its sandbox, and what its screen shows that no hook reports, read the same by every hq process. `hq ls`, `hq read`, `hq wait`, `hq send`, the list and the chords each take a look; a screen at rest may need a second one.
 _Avoid_: collection, refresh, poll, settling
 
+**Question dialog**:
+A dialog a tool opens to ask the user to pick or type an answer, as AskUserQuestion and an MCP elicitation do; its answer continues the agent's turn. A permission prompt and a dialog of Claude's own are not question dialogs.
+_Avoid_: ask, prompt, question (the state)
+
+**Answer**:
+The user's choice for an open question dialog, given at the agent or through hq (`hq answer`).
+_Avoid_: message, reply, pick
+
 **Dialog verdict**:
 Whether an agent is at a dialog, whose (the one its hooks reported, Claude's own, or a subagent's), since when, and what it asks, decided in one place from what the look saw; the agent needs input exactly while it is at one. The hooks open it; the agent's screen may close it only on clear evidence (Claude at work), and opens only Claude's own.
 _Avoid_: dialog state, open dialog flag, needs-input check
