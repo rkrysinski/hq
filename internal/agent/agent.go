@@ -550,20 +550,21 @@ const Rewound = "Interrupted"
 // the prompt (takeQueued, Look).
 func (a *Agent) settle(screen string, now time.Time) record {
 	a.resting = false
-	if a.recall(); a.waitsAtPrompt() {
-		return a.seeDialog(screen, now)
-	}
-	answered := a.recallAnswer()
 	// Claude at work right after a turn the user ended, with no prompt of
 	// the user's between, while a prompt waits in its queue: the user
 	// pressed Esc on the turn, which fires no hook, and Claude took the
 	// queued prompt at once (#88). The state is handed over to it (Look),
-	// not recorded; a woken agent's wake-up looks the same, and keeps its
-	// turn.
+	// not recorded, whatever a look in the moment between the Esc and the
+	// dequeue recorded of the line alone; a woken agent's wake-up looks the
+	// same, and keeps its turn.
 	if a.queued && !a.woken && a.State == state.Working && state.TookQueued(screen, a.prompt) {
 		a.takeQueued = true
 		return record{}
 	}
+	if a.recall(); a.waitsAtPrompt() {
+		return a.seeDialog(screen, now)
+	}
+	answered := a.recallAnswer()
 	key := a.key() + " "
 	// What the record says of the turn's last message, and what it is.
 	mark, last := Rewound, Rewound

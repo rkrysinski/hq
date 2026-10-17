@@ -87,12 +87,18 @@ const queuedHint = "ctrl+x ctrl+s to send now"
 
 // isUserEnd reports whether a trimmed line is one of userEnds.
 func isUserEnd(line string) bool {
+	_, ok := userEndOf(line)
+	return ok
+}
+
+// userEndOf is the line of userEnds a trimmed line is, if any.
+func userEndOf(line string) (struct{ prefix, last string }, bool) {
 	for _, e := range userEnds {
 		if strings.HasPrefix(line, e.prefix) {
-			return true
+			return e, true
 		}
 	}
-	return false
+	return struct{ prefix, last string }{}, false
 }
 
 // userEnd walks the screen from Claude's prompt box up to the user's last
@@ -104,10 +110,8 @@ func userEnd(screen string) (last string, found, busy bool) {
 		return "", false, false
 	}
 	for i := b.upper - 1; i >= 0 && !strings.HasPrefix(b.lines[i], prompt) && !isRule(b.lines[i]); i-- {
-		for _, e := range userEnds {
-			if strings.HasPrefix(b.lines[i], e.prefix) {
-				return e.last, true, busy
-			}
+		if e, ok := userEndOf(b.lines[i]); ok {
+			return e.last, true, busy
 		}
 		if claudes(b.raw[i], b.lines[i]) {
 			busy = true

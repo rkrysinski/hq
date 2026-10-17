@@ -1425,7 +1425,21 @@ func TestTakeQueuedMakesTheStateFileTheQueuedPromptDatedNow(t *testing.T) {
 	if err := TakeQueued(root, id); err == nil {
 		t.Fatal("handed over twice")
 	}
+	// An acted mark the hook wrote for the queued turn's own tool, a
+	// moment before, is that turn's: it stays.
+	fire(t, root, root, id, "prompt", fixture(t, "queued-first"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
+	if err := os.WriteFile(path+actedSuffix, []byte(turnTaken+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := TakeQueued(root, id); err != nil {
+		t.Fatal(err)
+	}
+	if r, _ := Read(root, id); !r.Acted || r.Queued || r.Prompt != queued {
+		t.Fatalf("the queued turn's own mark: %+v", r)
+	}
 
+	r, _ = Read(root, id)
 	if err := os.Symlink(filepath.Join(root, "secret"), path+queuedSuffix); err != nil {
 		t.Fatal(err)
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/rkrysinski/hq/internal/agent"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/desktop"
 	"github.com/rkrysinski/hq/internal/dialog"

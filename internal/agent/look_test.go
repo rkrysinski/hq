@@ -260,6 +260,18 @@ func TestTheLookHandsOverToTheQueuedPromptClaudeTookAfterAnEsc(t *testing.T) {
 	keeps("nothing queued, Claude at work below the line", "fs-queued-taken-thinking", settled, take)
 	keeps("no taker", "fs-queued-taken-thinking", pending, nil)
 	keeps("the hand-over failed", "fs-queued-taken-thinking", pending, func(string, string) error { return errors.New("gone") })
+	// A look in the moment between the Esc and the dequeue sees the line
+	// alone and records the turn's end; the next look, seeing Claude at
+	// work on the queued prompt, hands over all the same.
+	a, s := look("fs-esc-idle", pending, take)
+	w.Options["turnend"] = s.options["@1"]["turnend"]
+	if a.State != state.Done || w.Options["turnend"] == "" {
+		t.Fatalf("the line alone: %+v %v", a, s.options)
+	}
+	if a, _ := look("fs-queued-taken-thinking", pending, take); a.State != state.Working || !a.Since.Equal(now) || len(taken) != 1 {
+		t.Errorf("after the line alone was recorded: %+v, taken %v", a, taken)
+	}
+	delete(w.Options, "turnend")
 	// Claude idle below the line is the turn's end, queued copy or not: Esc
 	// twice, or the queued prompt pulled back into the box.
 	for _, r := range []state.Report{pending, settled} {

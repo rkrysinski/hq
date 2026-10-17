@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -184,20 +185,23 @@ func pending(queued, lastStop []byte) bool {
 // #88). The copy is renamed into place, never rewritten: of two hq
 // processes that see the same screen one hands over and the other finds
 // nothing queued, and a hook that has just taken the copy away (its Stop,
-// or a tool's end of its own) is not written over. It fails when nothing is
-// queued, or the copy is not a regular file (a planted link, design §7.3).
+// or a tool's end of its own) is not written over. The acted mark goes
+// only while it is the turn at work's (it holds that turn's prompt_id,
+// the copy's too): one the hook has just written for the queued turn's
+// own tool stays. It fails when nothing is queued, or the copy is not a
+// regular file (a planted link, design §7.3).
 func TakeQueued(root, id string) error {
 	if !idRE.MatchString(id) {
 		return errors.New("not an agent id")
 	}
 	path := filepath.Join(Dir(root), id)
-	info, err := os.Lstat(path + queuedSuffix)
+	queued, _, err := readData(path + queuedSuffix)
 	if err != nil {
 		return err
 	}
-	if !info.Mode().IsRegular() {
-		return errors.New("not a state file")
-	}
+	var q payload
+	_, event := splitHeader(queued)
+	_ = json.Unmarshal(event, &q)
 	now := time.Now()
 	if err := os.Chtimes(path+queuedSuffix, now, now); err != nil {
 		return err
@@ -205,8 +209,11 @@ func TakeQueued(root, id string) error {
 	if err := os.Rename(path+queuedSuffix, path); err != nil {
 		return err
 	}
-	for _, suffix := range []string{keptSuffix, actedSuffix} {
-		if err := os.Remove(path + suffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err := os.Remove(path + keptSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	if acted, _, err := readData(path + actedSuffix); err == nil && strings.TrimSpace(string(acted)) == q.PromptID {
+		if err := os.Remove(path + actedSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 	}
