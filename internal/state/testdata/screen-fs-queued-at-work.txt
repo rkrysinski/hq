@@ -1,0 +1,24 @@
+  Elias Morrow had kept the light at Harrow Point for thirty-one years, and in
+  all that time he had never once let it go dark.
+
+  The automation crew was due on Thursday. They would install the sensors, the
+  backup generators, the satellite uplink that would let someone in an office
+  two hundred miles inland confirm, with a glance at a screen, that the lamp was
+  turning. After that, Elias would be a line item in a budget review. A keeper
+  without a keep.
+
+  He climbed the hundred and twelve steps that evening as he always did, one
+  hand on the cold iron rail. The wind came hard off the water, carrying salt
+  and the smell of kelp rotting on the rocks below. At the top, he polished the
+  lens. He did not need to. The crew had cleaned it on their survey visit, and
+
+❯ Run exactly this bash command in the foreground and show me its output: for i
+  in $(seq 25); do echo tock $i; sleep 1; done
+  ctrl+x ctrl+s to send now
+
+────────────────────────────────────────────────────────────────────────────────
+❯ Press up to edit queued messages
+────────────────────────────────────────────────────────────────────────────────
+  ▐◑◡◑▌  Fable 5.1 medium │ master ✓ no upstream │ 5h ▕█▌░░░░░░░░░░▏ 12% ◷ 12…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                   ◆ Tools ▾

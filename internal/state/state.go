@@ -58,12 +58,19 @@ type Report struct {
 	// its subagents': the event that reported it carries the subagent's
 	// agent_id, as a subagent's tool events do (design §3.4).
 	SubagentDialog bool
+	// Queued says a prompt the user typed while the agent works waits in
+	// Claude's queue (the hook's copy, .queued, pending): Claude takes it
+	// into the turn at work, or runs it as a turn of its own after the
+	// turn's Stop, which the hook reports, or after an Esc on the turn,
+	// which only the screen shows (design §3.4, #82, #88).
+	Queued bool
 }
 
 // payload is the part of a Claude hook event hq reads.
 type payload struct {
 	Event            string `json:"hook_event_name"`
 	SessionID        string `json:"session_id"`
+	PromptID         string `json:"prompt_id"`
 	Cwd              string `json:"cwd"`
 	AssistantMessage string `json:"last_assistant_message"`
 	Message          string `json:"message"`

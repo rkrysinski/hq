@@ -130,7 +130,7 @@ func collectWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
 	if err != nil {
 		return nil, tmuxErr(err)
 	}
-	return agent.Look(ws, d.readState, running, d.now(), d.tmux), nil
+	return agent.Look(ws, d.readState, d.takeQueued, running, d.now(), d.tmux), nil
 }
 
 // runningSandboxes asks sbx which sandboxes run, noting when it asked; the

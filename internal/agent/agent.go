@@ -45,6 +45,8 @@ type Agent struct {
 	owed       bool       // at its prompt with nothing running: Claude owes it a turn (see settle)
 	woken      bool       // it works on a turn Claude woke itself for (see settle)
 	acted      bool       // Claude has acted on the turn it works on: a tool of its own ended (see settle)
+	queued     bool       // a prompt the user typed waits in Claude's queue, by its hooks (see settle)
+	takeQueued bool       // this look saw Claude take that prompt after an Esc: the state is handed over to it (see Look)
 	ownAsk     *state.Ask // the dialog Claude shows of its own on its screen, if any (see settle)
 	dialog     Whose      // whose dialog it is at while it needs input: its hooks', a subagent's, or Claude's own, seen (ownAsk) or recorded on its window (see recallDialog)
 	answered   string     // when hq first saw Claude at work after the dialog its hooks reported (see settle)
@@ -366,7 +368,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	if r.Latest.After(r.Since) {
 		a.reportAt = r.Latest
 	}
-	a.atPrompt, a.owed, a.woken, a.acted = r.Background, r.Background && r.Owed, r.Woken, r.Acted
+	a.atPrompt, a.owed, a.woken, a.acted, a.queued = r.Background, r.Background && r.Owed, r.Woken, r.Acted, r.Queued
 	a.lastStop = r.LastStop
 	a.dialog = NoDialog
 	switch {
@@ -542,13 +544,26 @@ const Rewound = "Interrupted"
 // restseen option, with no Value when there is nothing new to store. An
 // agent that waits at its prompt (waitsAtPrompt) may show a dialog of
 // Claude's own instead (seeDialog); nothing else on the screen of an agent
-// on background work counts.
+// on background work counts. Claude at work below the line of a turn the
+// user ended, with a prompt of the user's queued, is Claude on that prompt
+// (state.TookQueued, #88): no end, and the look hands the state over to
+// the prompt (takeQueued, Look).
 func (a *Agent) settle(screen string, now time.Time) record {
 	a.resting = false
 	if a.recall(); a.waitsAtPrompt() {
 		return a.seeDialog(screen, now)
 	}
 	answered := a.recallAnswer()
+	// Claude at work right after a turn the user ended, with no prompt of
+	// the user's between, while a prompt waits in its queue: the user
+	// pressed Esc on the turn, which fires no hook, and Claude took the
+	// queued prompt at once (#88). The state is handed over to it (Look),
+	// not recorded; a woken agent's wake-up looks the same, and keeps its
+	// turn.
+	if a.queued && !a.woken && a.State == state.Working && state.TookQueued(screen, a.prompt) {
+		a.takeQueued = true
+		return record{}
+	}
 	key := a.key() + " "
 	// What the record says of the turn's last message, and what it is.
 	mark, last := Rewound, Rewound
@@ -563,13 +578,7 @@ func (a *Agent) settle(screen string, now time.Time) record {
 		// A rewind right after a turn the user ended leaves that turn's line
 		// above the box: the rewind below tells that turn's end.
 		rewound := a.State == state.Working && state.PutBack(screen, a.prompt)
-		// A turn Claude woke itself for shows no prompt, so a line above the
-		// box may be an earlier turn's: it counts only as the last thing said.
-		ended := state.EndedByUser
-		if a.woken {
-			ended = state.EndedLast
-		}
-		if said, ok := ended(screen); ok && !rewound {
+		if said, ok := state.EndedByUser(screen); ok && !rewound {
 			a.State, a.Since, a.Last = state.Done, now, said
 			return record{"turnend", key, key + nanos(now) + " " + said}
 		}

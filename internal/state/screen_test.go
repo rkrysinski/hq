@@ -244,26 +244,6 @@ func TestThePromptBoxIsFoundAboveTheSubagentsClaudeListsBelowItsFooter(t *testin
 // screen-interrupted-then-woken is Claude Code 2.1.291 after a turn the user
 // interrupted while a subagent ran, and the turn Claude woke itself for when
 // the subagent finished (blank lines left out).
-func TestEndedLastTakesOnlyTheLastThingSaidForATurnTheUserEnded(t *testing.T) {
-	woken := screen(t, "interrupted-then-woken")
-	if last, ok := EndedByUser(woken); !ok || last != "Interrupted" {
-		t.Fatalf("no prompt shows between the interrupted turn and the woken one: %q %v", last, ok)
-	}
-	if last, ok := EndedLast(woken); ok {
-		t.Fatalf("an earlier turn's line read as the woken turn's end: %q", last)
-	}
-	// The line as the last thing said, Claude's effort shown above the box
-	// or not, is the turn's end.
-	for name, want := range map[string]string{
-		"interrupted": "Interrupted", "interrupted-80": "Interrupted", "permission-no": "Interrupted",
-		"permission-esc": "Interrupted", "declined": "User declined to answer questions",
-	} {
-		if last, ok := EndedLast(screen(t, name)); !ok || last != want {
-			t.Errorf("%s: %q %v", name, last, ok)
-		}
-	}
-}
-
 func TestIdleIsClaudeAtItsPromptBoxWhateverTheBoxHolds(t *testing.T) {
 	// After a turn; with a draft or Claude's suggestion in the box; with
 	// subagents listed below the footer.
@@ -348,15 +328,19 @@ func TestIdleIsNotAToolAtWorkWithASpacedLabel(t *testing.T) {
 }
 
 // Claude Code 2.1.301 prints the same line for "Chat about this" as for
-// Esc on a question dialog, and then writes a reply in the same turn: the
-// line is seen while it works and once it is done (#70).
+// Esc on a question dialog, and then writes a reply in the same turn (#70):
+// the line is the turn's end only while nothing of Claude's follows it;
+// with the reply under way or written below it, Claude went on (#88).
 func TestEndedByUserSeesAQuestionLeftForAChat(t *testing.T) {
-	for _, name := range []string{"fs-ask-esc", "fs-ask-chat-working", "fs-ask-chat-done"} {
-		if last, ok := EndedByUser(screen(t, name)); !ok || last != "User declined to answer questions" {
-			t.Errorf("%s: %q %v", name, last, ok)
+	if last, ok := EndedByUser(screen(t, "fs-ask-esc")); !ok || last != "User declined to answer questions" {
+		t.Errorf("fs-ask-esc: %q %v", last, ok)
+	}
+	for _, name := range []string{"fs-ask-chat-working", "fs-ask-chat-done"} {
+		if !TookQueued(screen(t, name), "anything") {
+			t.Errorf("%s: Claude's reply after the line not seen", name)
 		}
 	}
-	for _, name := range []string{"fs-ask-open", "fs-ask-answered-tool", "fs-elicit-answered", "fs-streaming"} {
+	for _, name := range []string{"fs-ask-chat-working", "fs-ask-chat-done", "fs-ask-open", "fs-ask-answered-tool", "fs-elicit-answered", "fs-streaming"} {
 		if last, ok := EndedByUser(screen(t, name)); ok {
 			t.Errorf("%s: %q", name, last)
 		}
@@ -440,5 +424,54 @@ func TestACutToolIsAtRestAndEndedByNoLine(t *testing.T) {
 	}
 	if !AtWork(screen(t, "fs-later-tool-running")) || !AtWork(screen(t, "fs-tool-running-80")) {
 		t.Error("a tool running is not at work")
+	}
+}
+
+// Claude at work right after a line of a turn the user ended, with no
+// prompt sent between: it took the prompt the user had queued (#88), or
+// woke itself for background work (#38). The line is then not this turn's
+// end (EndedByUser), and the screen says Claude took the queued prompt
+// (TookQueued), whether Claude Code drew that prompt as a ❯ line (the
+// turn interrupted while it thought) or not (while its reply streamed). A
+// prompt still queued is drawn as a ❯ line above the box with the hint to
+// send it now, so the line above it is an earlier turn's and it is not
+// taken; Claude idle below the line is the turn's end, Esc pressed once or
+// twice.
+func TestAnEndedTurnsLineIsNoEndWhileClaudeWorksBelowIt(t *testing.T) {
+	const queued = "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+	for _, name := range []string{"fs-queued-taken-thinking", "fs-queued-taken-streaming", "fs-queued-taken-shown-thinking", "fs-queued-taken-shown-tool", "interrupted-then-woken"} {
+		if last, ok := EndedByUser(screen(t, name)); ok {
+			t.Errorf("%s: read as ended by the user: %q", name, last)
+		}
+		if !TookQueued(screen(t, name), queued) {
+			t.Errorf("%s: Claude at work on the queued prompt not seen", name)
+		}
+	}
+	// Drawn as ❯, the prompt must be the queued one.
+	for _, name := range []string{"fs-queued-taken-shown-thinking", "fs-queued-taken-shown-tool"} {
+		if TookQueued(screen(t, name), "Reply with only the word QUEUED.") {
+			t.Errorf("%s: another prompt read as the queued one taken", name)
+		}
+	}
+	for name, want := range map[string]string{"fs-esc-idle": "Interrupted", "fs-esc-twice": "Interrupted", "fs-esc-after-tool": "Interrupted", "interrupted": "Interrupted", "declined": "User declined to answer questions"} {
+		if last, ok := EndedByUser(screen(t, name)); !ok || last != want {
+			t.Errorf("%s: %q %v", name, last, ok)
+		}
+		if TookQueued(screen(t, name), queued) {
+			t.Errorf("%s: Claude idle read as at work on the queued prompt", name)
+		}
+	}
+	for _, name := range []string{"fs-queued-at-work", "fs-queued-taken-tool", "fs-streaming", "fs-thinking", "fs-start-ready", "interrupted-then-working", "fs-ask-open"} {
+		if last, ok := EndedByUser(screen(t, name)); ok {
+			t.Errorf("%s: read as ended by the user: %q", name, last)
+		}
+		if TookQueued(screen(t, name), queued) {
+			t.Errorf("%s: read as Claude at work on the queued prompt", name)
+		}
+	}
+	// The queued prompt's line is the last prompt shown, so a screen at
+	// work is not at rest either (the box holds Claude's hint).
+	if ok, _ := AtRest(screen(t, "fs-queued-at-work"), queued); ok {
+		t.Error("a turn with a prompt queued read as at rest")
 	}
 }

@@ -20,37 +20,109 @@ var userEnds = []struct{ prefix, last string }{
 const working = "esc to interrupt"
 
 // EndedByUser reads the screen of an agent's pane and reports whether the
-// user ended Claude's turn there, and the last message to show
-// for it. It is true only when Claude waits at its prompt box (a rule, the
-// input line starting with ❯, a rule, then the footer at the bottom) and,
-// since the user's last prompt, has printed one of the lines of userEnds.
-// Anything else, a dialog or a turn at work (its footer offers Esc to
-// interrupt) included, is false.
-func EndedByUser(screen string) (last string, ok bool) { return endedByUser(screen, false) }
+// user ended Claude's turn there, and the last message to show for it. It
+// is true only when Claude waits at its prompt box (a rule, the input line
+// starting with ❯, a rule, then the footer at the bottom) and, since the
+// user's last prompt, has printed one of the lines of userEnds, with
+// nothing of its own below it: Claude at work below the line (a spinner, a
+// reply, a card) is on a turn that shows no prompt of its own, one it woke
+// itself for (design §3.4, #38) or took from its queue after the Esc
+// (TookQueued, #88), and the line is an earlier turn's. Anything else, a dialog or a turn at
+// work (its footer offers Esc to interrupt) included, is false.
+func EndedByUser(screen string) (last string, ok bool) {
+	last, found, busy := userEnd(screen)
+	return last, found && !busy
+}
 
-// EndedLast is EndedByUser for a turn Claude woke itself for, which shows
-// no prompt of the user's (design §3.4): the line counts only when Claude
-// has said nothing below it. A line of an earlier turn the user ended
-// stands above what the wake-up printed (● Agent "..." finished, then the
-// reply), and is not this turn's end.
-func EndedLast(screen string) (last string, ok bool) { return endedByUser(screen, true) }
-
-func endedByUser(screen string, lastSaid bool) (last string, ok bool) {
+// TookQueued reports whether the screen shows Claude at work on queued, a
+// prompt it took from its queue after the user interrupted the turn it was
+// queued in with Esc (#88). Claude Code 2.1.302 in the sbx template draws
+// that in one of two ways. While the reply of the interrupted turn was
+// streaming: the queued line above the box goes, and the queued turn's
+// spinner, then its reply, follow the Interrupted line with no prompt of
+// the user's between (a wake-up turn looks the same, #38; the hooks tell
+// the two apart). While the interrupted turn was still thinking (2.1.301
+// in the issue's run too): the prompt is drawn sent, as ❯ queued right
+// below the Interrupted line, with Claude at work below it. A prompt still
+// queued is drawn as a ❯ line right above the box too, with Claude's hint
+// to send it now under it (queuedHint) and nothing of Claude's below, so
+// neither way reads it as taken.
+func TookQueued(screen, queued string) bool {
 	b, ok := promptBox(screen)
 	if !ok {
-		return "", false
+		return false
+	}
+	// Up to the last prompt shown, or the ended turn's line: Claude at
+	// work below either.
+	busy := false
+	i := b.upper - 1
+	for ; i >= 0 && !strings.HasPrefix(b.lines[i], prompt) && !isRule(b.lines[i]); i-- {
+		if isUserEnd(b.lines[i]) {
+			return busy
+		}
+		if strings.Contains(b.lines[i], queuedHint) {
+			return false
+		}
+		if claudes(b.raw[i], b.lines[i]) {
+			busy = true
+		}
+	}
+	if i < 0 || !busy || !strings.HasPrefix(b.lines[i], prompt) {
+		return false
+	}
+	// The last prompt shown is the queued one (its first line: a long prompt
+	// wraps), sent right after the ended turn's line.
+	sent := strings.TrimSpace(strings.TrimPrefix(b.lines[i], prompt))
+	if sent == "" || !strings.HasPrefix(strings.Join(strings.Fields(queued), " "), sent) {
+		return false
+	}
+	for i--; i >= 0 && b.lines[i] == ""; i-- {
+	}
+	return i >= 0 && isUserEnd(b.lines[i])
+}
+
+// queuedHint is what Claude Code 2.1.302 writes under a prompt it has
+// queued, drawn as a ❯ line above the box.
+const queuedHint = "ctrl+x ctrl+s to send now"
+
+// isUserEnd reports whether a trimmed line is one of userEnds.
+func isUserEnd(line string) bool {
+	for _, e := range userEnds {
+		if strings.HasPrefix(line, e.prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// userEnd walks the screen from Claude's prompt box up to the user's last
+// prompt: the first line of userEnds met, as its last message, and
+// whether anything of Claude's stands between that line and the box.
+func userEnd(screen string) (last string, found, busy bool) {
+	b, ok := promptBox(screen)
+	if !ok {
+		return "", false, false
 	}
 	for i := b.upper - 1; i >= 0 && !strings.HasPrefix(b.lines[i], prompt) && !isRule(b.lines[i]); i-- {
 		for _, e := range userEnds {
 			if strings.HasPrefix(b.lines[i], e.prefix) {
-				return e.last, true
+				return e.last, true, busy
 			}
 		}
-		if lastSaid && said(b.lines[i]) {
-			return "", false
+		if claudes(b.raw[i], b.lines[i]) {
+			busy = true
 		}
 	}
-	return "", false
+	return "", false, false
+}
+
+// claudes reports whether a line is Claude at work or something it said: its
+// spinner, a bullet line (said) or a line of a card, as the clean-view mod
+// of the sbx template draws replies and tool calls (Claude Code 2.1.301).
+// Blank lines, the tip under the spinner and the effort shown at the right
+// above the box are not.
+func claudes(raw, line string) bool {
+	return spinner.MatchString(raw) || said(line) || strings.HasPrefix(line, "╭") || strings.HasPrefix(line, "│") || strings.HasPrefix(line, "╰")
 }
 
 // said reports whether a trimmed line starts something Claude said or did:

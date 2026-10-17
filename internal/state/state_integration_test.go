@@ -1309,3 +1309,130 @@ func TestAQueuedPromptLeavesTheTurnAtWorkActedOnAndQueuesAgainInTheTurnItIsTaken
 	fire(t, root, root, id, "stop", fixture(t, "queued-turn-stop"))
 	report("the turn that one is taken for", Working, false)
 }
+
+// The user interrupts a turn with a prompt queued behind it: Claude runs
+// the queued prompt at once as a turn of its own, with no hook until that
+// turn's first tool ends (#88). That tool's end carries a prompt_id that
+// is neither the turn at work's nor the queued prompt's, so the hook hands
+// over there: the state file becomes the queued prompt, dated now, and the
+// mark that Claude has acted on the turn is that turn's. A subagent's tool
+// hands over nothing, and nor does a tool of the turn Claude took the
+// prompt for at its Stop, whose prompt the state file already is.
+func TestAToolOfATurnTakenAfterAnEscHandsOverToTheQueuedPrompt(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	report := func(when string) Report {
+		t.Helper()
+		r, ok := Read(root, id)
+		if !ok {
+			t.Fatalf("%s: no report", when)
+		}
+		return r
+	}
+	const queued = "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+
+	fire(t, root, root, id, "prompt", fixture(t, "queued-first"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
+	// The queued prompt is written as any other (#82): the report is it,
+	// from when it was queued, with the copy pending beside it.
+	at := report("queued")
+	if at.State != Working || at.Prompt != queued || !at.Queued {
+		t.Fatalf("queued: %+v", at)
+	}
+	time.Sleep(10 * time.Millisecond)
+	fire(t, root, root, id, "answer", bytes.Replace(fixture(t, "queued-turn-tool-end"), []byte(`"hook_event_name"`), []byte(`"agent_id":"a1","hook_event_name"`), 1))
+	if r := report("a subagent's tool"); r != at {
+		t.Fatalf("a subagent's tool: %+v, was %+v", r, at)
+	}
+	before := time.Now()
+	time.Sleep(10 * time.Millisecond)
+	fire(t, root, root, id, "answer", fixture(t, "queued-turn-tool-end"))
+	r := report("the taken turn's tool")
+	if r.State != Working || r.Prompt != queued || !r.Acted || r.Queued || !r.Since.After(before) {
+		t.Fatalf("the taken turn's tool: %+v", r)
+	}
+	if _, err := os.Lstat(filepath.Join(Dir(root), id+queuedSuffix)); err == nil {
+		t.Fatal("the queued copy stayed after the hand-over")
+	}
+	if out := run(t, root, root, id, hook("stop", "[%s]"), fixture(t, "queued-turn-stop")); out != `{"terminalSequence":"[Done: main]"}`+"\n" {
+		t.Fatalf("its turn end printed %q", out)
+	}
+	if r := report("its turn end"); r.State != Done || r.Last != "I ran the command in the foreground. It printed all 25 lines, one per second." {
+		t.Fatalf("its turn end: %+v", r)
+	}
+
+	// Taken at the Stop (#82): the tool of that turn restarts nothing.
+	fire(t, root, root, id, "prompt", fixture(t, "queued-first"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
+	fire(t, root, root, id, "stop", fixture(t, "queued-stop"))
+	taken := report("taken at the Stop")
+	if taken.State != Working || taken.Prompt != queued || taken.Queued {
+		t.Fatalf("taken at the Stop: %+v", taken)
+	}
+	time.Sleep(10 * time.Millisecond)
+	fire(t, root, root, id, "answer", fixture(t, "queued-turn-tool-end"))
+	if r := report("that turn's tool"); r.State != Working || r.Prompt != queued || !r.Acted || !r.Since.Equal(taken.Since) {
+		t.Fatalf("that turn's tool: %+v, taken %+v", r, taken)
+	}
+}
+
+// hq hands over to a queued prompt itself when the agent's screen shows
+// Claude took it (#88): the queued copy becomes the state file, dated now,
+// and what the hook kept beside the file for the turn at work (.on,
+// .acted) goes with it. The copy is renamed, not rewritten, so two hq
+// processes hand over once between them, and a hook that has just taken
+// the copy away is not written over. A link planted as the copy is refused.
+func TestTakeQueuedMakesTheStateFileTheQueuedPromptDatedNow(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	path := filepath.Join(Dir(root), id)
+	const queued = "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+
+	if err := TakeQueued(root, id); err == nil {
+		t.Fatal("handed over with nothing queued")
+	}
+	fire(t, root, root, id, "prompt", fixture(t, "queued-first"))
+	fire(t, root, root, id, "answer", inTurnAtWork(t, "queued-turn-tool-end"))
+	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
+	if err := os.WriteFile(path+keptSuffix, wakeUp("t1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	want, err := os.ReadFile(path + queuedSuffix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r, _ := Read(root, id); !r.Queued || !r.Acted {
+		t.Fatalf("before: %+v", r)
+	}
+	before := time.Now()
+	time.Sleep(10 * time.Millisecond)
+	if err := TakeQueued(root, id); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(got, want) {
+		t.Fatalf("the state file is not the queued copy: %v %q", err, got)
+	}
+	for _, suffix := range []string{queuedSuffix, keptSuffix, actedSuffix} {
+		if _, err := os.Lstat(path + suffix); err == nil {
+			t.Errorf("%s stayed", suffix)
+		}
+	}
+	r, ok := Read(root, id)
+	if !ok || r.State != Working || r.Prompt != queued || r.Acted || r.Queued || !r.Since.After(before) || r.Last != "" {
+		t.Fatalf("after: %+v", r)
+	}
+	if err := TakeQueued(root, id); err == nil {
+		t.Fatal("handed over twice")
+	}
+
+	if err := os.Symlink(filepath.Join(root, "secret"), path+queuedSuffix); err != nil {
+		t.Fatal(err)
+	}
+	if err := TakeQueued(root, id); err == nil {
+		t.Fatal("followed a link planted as the queued copy")
+	}
+	if now, _ := Read(root, id); now.Prompt != queued || !now.Since.Equal(r.Since) {
+		t.Fatalf("the link changed the report: %+v", now)
+	}
+}

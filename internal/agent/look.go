@@ -18,6 +18,11 @@ type Store interface {
 	KeepFirst(window, option, prefix, value string) (string, error)
 }
 
+// A Taker hands an agent's state over to the prompt Claude took from its
+// queue after the user interrupted the turn it was queued in (#88), as
+// state.TakeQueued does; nil for a look that cannot (see settle).
+type Taker func(root, id string) error
+
 // Look is the look at the agents' screens: the agents of the home windows
 // ws, collected with what their state files report and sbx's answer
 // (Collect), then settled by what their screens show at now that no hook
@@ -27,6 +32,10 @@ type Store interface {
 // (a turn the user ended, a screen at rest, a dialog of Claude's own, an
 // end nothing dates, Claude's wake-up), so that every hq process shows the
 // same moment; a record another process stored first is the one applied.
+// One thing it saw goes to the agent's state files instead: Claude at work
+// on a prompt it took from its queue after an Esc, which take hands the
+// state over to, once for all processes, and the look reads the report
+// again (#88).
 //
 // It never fails. When the capture fails, the hooks' states stand, and a
 // turn end, a dialog answered or a dialog of Claude's own hq saw earlier
@@ -35,9 +44,9 @@ type Store interface {
 //
 // One look may not be enough: an agent Resting needs one more, RestDelay
 // later, which is the caller's to take.
-func Look(ws []tmux.Window, read func(root, id string) (state.Report, bool), sandboxes Sandboxes, now time.Time, store Store) []Agent {
+func Look(ws []tmux.Window, read func(root, id string) (state.Report, bool), take Taker, sandboxes Sandboxes, now time.Time, store Store) []Agent {
 	as := Collect(ws, read, sandboxes)
-	settleScreens(as, now, store)
+	settleScreens(as, read, take, now, store)
 	for i := range as {
 		offer(store, &as[i], as[i].seeEnd(now))
 		offer(store, &as[i], as[i].seeWake())
@@ -47,7 +56,7 @@ func Look(ws []tmux.Window, read func(root, id string) (state.Report, bool), san
 
 // settleScreens looks at the screens of the agents whose turn the user may
 // have ended, or that wait at their prompt, in one capture.
-func settleScreens(as []Agent, now time.Time, store Store) {
+func settleScreens(as []Agent, read func(root, id string) (state.Report, bool), take Taker, now time.Time, store Store) {
 	var panes []string
 	for i := range as {
 		if as[i].unsettled(now) {
@@ -70,9 +79,27 @@ func settleScreens(as []Agent, now time.Time, store Store) {
 	}
 	for i := range as {
 		if s, ok := screens[as[i].Pane]; ok && as[i].unsettled(now) {
-			offer(store, &as[i], as[i].settle(s, now))
+			r := as[i].settle(s, now)
+			if as[i].takeQueued {
+				as[i].handOver(read, take)
+				continue
+			}
+			offer(store, &as[i], r)
 		}
 	}
+}
+
+// handOver hands the agent's state over to the prompt Claude took from its
+// queue (settle, Taker) and applies the report that gives: working on it
+// since now. Without a taker, or when the hand-over fails (a hook has just
+// taken the copy away, another process got there first), the hooks' word
+// stands for this look.
+func (a *Agent) handOver(read func(root, id string) (state.Report, bool), take Taker) {
+	a.takeQueued = false
+	if take == nil || take(a.RepoPath, a.ID) != nil {
+		return
+	}
+	a.Apply(read(a.RepoPath, a.ID))
 }
 
 // offer offers r to the agent's window and applies what it holds then,

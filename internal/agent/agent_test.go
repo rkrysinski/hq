@@ -1093,7 +1093,7 @@ func TestATurnClaudeHasActedOnEndsAtRestOnlyAtACutTool(t *testing.T) {
 	w := lookWindow("1")
 	look := func(s *fakeStore, at time.Time) Agent {
 		t.Helper()
-		return Look([]tmux.Window{w}, reportsOf(rs), Sandboxes{}, at, s)[0]
+		return Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, at, s)[0]
 	}
 	for _, name := range []string{"fs-streaming", "fs-elicit-done", "fs-narrow-done", "fs-tool-failed-done"} {
 		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
