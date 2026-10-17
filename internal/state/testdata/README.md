@@ -12,6 +12,7 @@ A new capture is made with `tools/capture/` (its README says how) and gets a row
 - **E - 2.1.301, sbx template, fullscreen.** Opus 5.5 (high effort). An sbx sandbox with the template's managed settings (`/etc/claude-code/managed-settings.json`, not overridable): `"tui": "fullscreen"` (`tmux detected` hint above the box), a status line below the box, mods `clean-view` and `tools-pane` (tool calls in cards with Polish labels), and a `PermissionRequest` hook that approves every request. Private tmux server, cwd a throwaway git repository, the parent session's `CLAUDE*` variables unset, `--permission-mode bypassPermissions`. Pane 100x30, narrow 40x30. Captured for #70; the capture names are in parentheses in the table.
   - **E' -** the same with `--permission-mode default` and `--settings '{"disableAllHooks":true}'`: mods off, stock tool view; the managed approve hook still answers, so no prompt is drawn.
   - **E'' -** the same Claude and managed settings run as an agent of hq's: hq from the checkout (`scripts/local-dev.sh`), the repository's stub `sbx` running the real `claude` (`SBX_STUB_CLAUDE`), hq's hooks injected, the agent's home window 80x24 (#77).
+- **F - 2.1.302, the sbx sandbox without its template.** Opus 5.5 (high effort). E's sandbox with `/etc/claude-code` hidden (an empty directory mounted over it in a user and mount namespace), so no managed settings: classic view, no status line, no mods, no auto-approve hook; `--permission-mode bypassPermissions`. Private tmux server, cwd a throwaway git repository, pane 100x30. Captured for #89, with its hooks in `--settings`: every event logged, and a PermissionRequest and a PreToolUse hook for AskUserQuestion and an Elicitation hook that hold until an answer file appears and print it as their decision. #89's E captures are of 2.1.302 with the same `--settings`.
 
 ### Open
 
@@ -91,6 +92,20 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | screen-fs-tool-failed-done | 2.1.301 | E | 100x30 | that turn done: card collapsed and marked `×`, the reply in a card below it | #77 |
 | screen-fs-esc-later-tool-80 | 2.1.301 | E'' | 80x24 | Esc on a second Bash command after a first ended (the QA run of #77): `▸ 2 komendy · × · 12 s`, no line, bare box | #77 |
 | screen-fs-tool-running-80 | 2.1.301 | E'' | 80x24 | a long silent foreground Bash command with no description (the command #77's agent ran), 33 s in: spinner labelled with the command, no timer | #77 |
+| screen-fs-ask-several-open | 2.1.302 | E | 100x30 | AskUserQuestion with three questions open: tabs `☐ Color  ☐ Sizes  ☐ Name  ✔ Submit` above the first | #89 |
+| screen-fs-ask-multi-open | 2.1.302 | E | 100x30 | that dialog at its multi-select question: `[ ]` boxes, `Type something` as a box, `Next` | #89 |
+| screen-fs-ask-multi-picked | 2.1.302 | E | 100x30 | two options ticked and text typed in place of `Type something` (`[✔] XL`) | #89 |
+| screen-fs-ask-text-typed | 2.1.302 | E | 100x30 | free text typed in place of `Type something.` of a single-choice question | #89 |
+| screen-fs-ask-several-answered | 2.1.302 | E | 100x30 | the three answered at the terminal: `· Which sizes? → Small, Large, XL`, the reply, bare box | #89 |
+| screen-fs-ask-hook-ignored | 2.1.302 | E | 100x30 | AskUserQuestion still open 6.5 s after a held PermissionRequest hook printed an allow with the answers: the template's approve hook had answered first | #89 |
+| screen-fs-elicit-hook-running | 2.1.302 | E | 100x30 | an Elicitation hook holding: no form, the tool's card and `elicit: ask_color… (running Elicitation hooks… 1/2 · 8s …)` | #89 |
+| screen-fs-subagent-elicit-hook-running | 2.1.302 | E | 100x30 | a background subagent's elicitation while its hook holds: nothing of it shown, `Waiting for 1 background agent to finish`, the agents list | #89 |
+| screen-ask-hook-answered | 2.1.302 | F | 100x30 | AskUserQuestion answered by a PermissionRequest hook: `· Which color? → Blue`, `⎿  Allowed by PermissionRequest hook`, turn over | #89 |
+| screen-ask-hook-cancelled | 2.1.302 | F | 100x30 | cancelled by the hook (deny, `interrupt: true`): `User declined to answer questions`, turn over with no Stop hook | #89 |
+| screen-ask-hook-denied | 2.1.302 | F | 100x30 | denied by the hook without interrupt: `⎿  Error: hq: cancelled`, `⎿  Denied by PermissionRequest hook`, Claude's reply, turn over | #89 |
+| screen-ask-hook-timeout | 2.1.302 | F | 100x30 | AskUserQuestion 3 s after its PermissionRequest hook reached its `timeout` (10 s): open as before, no message | #89 |
+| screen-ask-pretooluse-running | 2.1.302 | F | 100x30 | a PreToolUse hook of AskUserQuestion holding: no dialog, spinner `(running PreToolUse hooks… 1/2 · 8s …)` | #89 |
+| screen-timeout-elicit-open | 2.1.302 | F | 100x30 | the MCP elicitation's form, drawn once its Elicitation hook reached its `timeout` (10 s) | #89 |
 
 "old #n": issues and PRs of an earlier tracker (before 2026-09-29), cited so in the design and the commits; today's tracker reuses those numbers for other issues.
 
@@ -101,10 +116,18 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | fixture | event | what it is | real or hand-made | source |
 |---|---|---|---|---|
 | answer-ask.json | PostToolUse | AskUserQuestion answered | unknown; normalized | 39924e5 (old #71) |
+| answer-ask-several.json | PostToolUse | AskUserQuestion with three questions answered at the terminal: a label, two labels and typed text of a multi-select joined with `, `, typed text | real, 2.1.302, E (#89); paths normalized | #89 |
+| answer-ask-hook.json | PostToolUse | the same three answered by a PermissionRequest hook (a label, a list of two labels, free text): the list arrives joined with `, ` | real, 2.1.302, F (#89); paths normalized | #89 |
 | answer-bash.json | PostToolUse | Bash (`sleep 60`, background) after its prompt | unknown; normalized | 39924e5 (old #71) |
 | dialog-ask.json | PermissionRequest | AskUserQuestion opening, `bypassPermissions` | unknown; normalized | 39924e5 (old #71) |
+| dialog-ask-several.json | PermissionRequest | AskUserQuestion with three questions, one of them `multiSelect` | real, 2.1.302, E (#89); paths normalized | #89 |
 | dialog-bash.json | PermissionRequest | Bash prompt, `default` mode, with `permission_suggestions` | unknown; normalized | 39924e5 (old #71) |
 | dialog-subagent.json | PermissionRequest | a background subagent's MCP tool (`agent_id`, `mcp__elicit__ask_color`) | real, 2.1.301, paths shortened; replaced an in-test edit that added `agent_id` to the agent's own fixtures | f2816b6 (#70) |
+| elicitation.json | Elicitation | the agent's own MCP elicitation (`mode` `form`, `requested_schema`; no `elicitation_id`) | real, 2.1.302, E (#89); paths normalized | #89 |
+| elicitation-subagent.json | Elicitation | a background subagent's: the same shape, no `agent_id`, the `prompt_id` of the main agent's turn that started the subagent | real, as elicitation.json | #89 |
+| elicitation-result-accept-subagent.json | ElicitationResult | that subagent's form accepted at the terminal (`action`, `content`; no `agent_id`) | real, 2.1.302, F (#89); paths normalized | #89 |
+| elicitation-result-decline.json | ElicitationResult | the agent's own form declined at the terminal | real, as elicitation.json | #89 |
+| elicitation-result-cancel.json | ElicitationResult | the agent's own form cancelled with Esc, drawn after its Elicitation hook timed out | real, as elicitation-result-accept-subagent.json | #89 |
 | notification-elicitation.json | Notification | `elicitation_dialog` of that subagent; carries no `agent_id` | real, 2.1.301, paths shortened | f2816b6 (#70) |
 | notification.json | Notification | `permission_prompt`, "Claude needs your permission" | unknown; normalized | 7c4c3ed (old #19) |
 | post-tool.json | PostToolUse | Bash ended | real, 2.1.283 in sbx (design changelog, old #135); paths `/w/app` | 2248770 (old #135) |
