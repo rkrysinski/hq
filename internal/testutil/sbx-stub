@@ -14,7 +14,8 @@
 set -eu
 d=${SBX_STUB_DIR:?SBX_STUB_DIR not set}
 mkdir -p "$d/sandboxes"
-[ -z "${SBX_STUB_LOG:-}" ] || printf '%s %s\n' "$(date +%H:%M:%S.%N 2>/dev/null || date +%H:%M:%S)" "$*" >>"$SBX_STUB_LOG"
+# perl, not date: BSD date (macOS) has no sub-second format.
+[ -z "${SBX_STUB_LOG:-}" ] || perl -MTime::HiRes=time -MPOSIX=strftime -e '$t = time; printf "%s.%06d %s\n", strftime("%H:%M:%S", localtime $t), ($t - int $t) * 1e6, "@ARGV"' -- "$@" >>"$SBX_STUB_LOG"
 
 # put NAME STATUS WORKSPACE writes a sandbox's file whole: written aside,
 # then renamed over it, so an `ls` running at the same time reads the old

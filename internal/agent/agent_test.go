@@ -1133,7 +1133,7 @@ func TestEndsTellsWhatIsLeftToEndInASandbox(t *testing.T) {
 	// session went with it, by the list's rule (its pane dead, or its
 	// report older than the answer); sbx exec would start the sandbox again
 	// (#87, #101). An agent starting in a sandbox that has not started yet
-	// (S2) has a session on its way: it is ended.
+	// (S2) has a session on its way, which hq kill must still end.
 	asked := time.Unix(200, 0)
 	reported := func(root, id string) (state.Report, bool) {
 		return state.Report{State: state.Done, Since: asked.Add(-time.Second), Latest: asked.Add(-time.Second)}, true
