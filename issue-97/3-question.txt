@@ -1,0 +1,30 @@
+$ hq ls; hq read a | grep -E '^(state|own task)|^asks' -A1
+NAME  REPO  BRANCH  STATE     AGE  LAST
+a     app   master  question  18s  1 shell · `sleep 400` is running in the background; should …
+state     question 18s
+own task: shell  sleep 400
+pending   0
+--
+asks
+  `sleep 400` is running in the background; should I let you know when it finishes?
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

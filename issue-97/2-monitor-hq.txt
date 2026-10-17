@@ -1,0 +1,30 @@
+$ hq ls; hq read a | grep -E '^(state|own task)'
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   master  done   1m   1 shell · I'm watching for `/tmp/claude-1000/-Users-romankr…
+state     done 1m
+own task: shell  f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-…
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

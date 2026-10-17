@@ -1,0 +1,1474 @@
+17:44:41.890 a done own=[] last=''
+17:44:42.306 a working own=[] last=''
+17:44:42.722 a working own=[] last=''
+17:44:43.143 a working own=[] last=''
+17:44:43.574 a working own=[] last=''
+17:44:44.004 a working own=[] last=''
+17:44:44.423 a working own=[] last=''
+17:44:44.844 a working own=[] last=''
+17:44:45.285 a working own=[] last=''
+17:44:45.703 a working own=[] last=''
+17:44:46.128 a working own=[] last=''
+17:44:46.551 a working own=[] last=''
+17:44:46.991 a working own=[] last=''
+17:44:47.412 a working own=[] last=''
+17:44:47.831 a working own=[] last=''
+17:44:48.255 a working own=[] last=''
+17:44:48.672 a working own=[] last=''
+17:44:49.092 a working own=[] last=''
+17:44:49.520 a working own=[] last=''
+17:44:49.942 a working own=[] last=''
+17:44:50.358 a working own=[] last=''
+17:44:50.777 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:51.201 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:51.624 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:52.044 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:52.462 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:52.888 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:53.325 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:53.754 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:54.185 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:54.611 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:55.040 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:55.461 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:55.913 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:56.337 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:56.765 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:57.204 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:57.630 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:58.051 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:58.473 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:58.905 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:59.334 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:44:59.759 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:00.187 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:00.614 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:01.033 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:01.450 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:01.869 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:02.308 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:02.733 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:03.170 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:03.606 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:04.047 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:04.471 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:04.901 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:05.330 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:05.782 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:06.205 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:06.633 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:07.057 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:07.478 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:07.902 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:08.347 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:08.792 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:09.216 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:09.655 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:10.104 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:10.529 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:10.957 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:11.385 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:11.810 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:12.251 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:12.687 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:13.127 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:13.554 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:13.972 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:14.393 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:14.827 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:15.264 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:15.698 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:16.134 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:16.555 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:16.976 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:17.397 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:17.818 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:18.255 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:18.686 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:19.121 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:19.548 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:19.965 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:20.398 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:20.821 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:21.247 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:21.678 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:22.118 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:22.548 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:22.971 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:23.395 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:23.817 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:24.244 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:24.673 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:25.097 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:25.516 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:25.931 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:26.347 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:26.777 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:27.212 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:27.648 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:28.069 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:28.489 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:28.915 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:29.346 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:29.780 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:30.222 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:30.638 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:31.053 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:31.473 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:31.900 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:32.328 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:32.771 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:33.209 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:33.646 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:34.069 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:34.486 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:34.901 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:35.323 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:35.753 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:36.187 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:36.608 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:37.035 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:37.454 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:37.886 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:38.335 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:38.764 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:39.197 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:39.613 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:40.027 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:40.445 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:40.883 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:41.302 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:41.734 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:42.167 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:42.605 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:43.040 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:43.462 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:43.891 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:44.330 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:44.768 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:45.208 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:45.638 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:46.056 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:46.473 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:46.898 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:47.331 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:47.752 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:48.168 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:48.585 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:49.011 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:49.436 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:49.862 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:50.297 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:50.746 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:51.162 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:51.582 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:52.013 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:52.437 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:52.870 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:53.293 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:53.713 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:54.134 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:54.551 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:54.967 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:55.391 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:55.819 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:56.245 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:56.664 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:57.100 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:57.517 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:57.939 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:58.365 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:58.789 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:59.211 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:45:59.635 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:00.063 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:00.484 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:00.913 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:01.343 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:01.768 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:02.194 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:02.616 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:03.035 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:03.458 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:03.893 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:04.326 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:04.756 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:05.173 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:05.590 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:06.016 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:06.461 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:06.897 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:07.320 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:07.745 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:08.175 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:08.593 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:09.010 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:09.425 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:09.840 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:10.257 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:10.676 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:11.104 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:11.521 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:11.953 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:12.386 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:12.808 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:13.231 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:13.654 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:14.079 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:14.507 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:14.922 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:15.347 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:15.778 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:16.202 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:16.618 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:17.036 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:17.467 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:17.891 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:18.312 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:18.732 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:19.155 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:19.576 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:19.993 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:20.417 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:20.849 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:21.289 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:21.727 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:22.148 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:22.572 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:22.992 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:23.423 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:23.859 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:24.278 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:24.714 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:25.149 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:25.581 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:26.004 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:26.421 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:26.857 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:27.295 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:27.725 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:28.155 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:28.590 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:29.012 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:29.441 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:29.907 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:30.333 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:30.764 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:31.194 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:31.612 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:32.030 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:32.475 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:32.944 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:33.365 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:33.789 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:34.208 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:34.625 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:35.051 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:35.467 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:35.895 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:36.329 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:36.750 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:37.172 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:37.595 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:38.016 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:38.436 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:38.876 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:39.309 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:39.743 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:40.166 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:40.613 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:41.032 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:41.481 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:41.898 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:42.319 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:42.746 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:43.181 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:43.620 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:44.047 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:44.480 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:44.905 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:45.332 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:45.753 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:46.174 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:46.606 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:47.039 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:47.469 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:47.903 a done own=['shell:sleep 120'] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:48.322 a working own=[] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:48.746 a working own=[] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:49.172 a working own=[] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:49.590 a working own=[] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:50.007 a working own=[] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:50.430 a working own=[] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:50.859 a working own=[] last="I started `sleep 120` in the background and I'm waiting for "
+17:46:51.279 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:51.693 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:52.125 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:52.554 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:52.971 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:53.398 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:53.822 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:54.247 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:54.667 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:55.096 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:55.531 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:55.964 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:56.403 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:56.835 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:57.269 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:57.688 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:58.113 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:58.549 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:58.973 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:59.408 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:46:59.840 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:00.259 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:00.685 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:01.104 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:01.537 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:01.981 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:02.411 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:02.831 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:03.250 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:03.667 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:04.091 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:04.527 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:04.943 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:05.362 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:05.781 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:06.217 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:06.647 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:07.077 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:07.515 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:07.940 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:08.383 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:08.808 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:09.243 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:09.661 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:10.120 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:10.544 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:10.986 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:11.410 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:11.839 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:12.266 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:12.686 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:13.110 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:13.556 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:13.990 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:14.418 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:14.861 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:15.299 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:15.729 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:16.161 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:16.588 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:17.007 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:17.430 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:17.859 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:18.283 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:18.701 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:19.121 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:19.546 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:19.980 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:20.396 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:20.822 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:21.247 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:21.679 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:22.109 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:22.536 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:22.979 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:23.411 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:23.847 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:24.270 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:24.691 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:25.127 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:25.552 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:25.991 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:26.411 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:26.838 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:27.284 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:27.714 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:28.134 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:28.565 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:28.998 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:29.443 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:29.890 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:30.311 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:30.735 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:31.161 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:31.582 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:32.018 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:32.440 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:32.860 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:33.280 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:33.702 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:34.124 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:34.569 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:34.988 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:35.410 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:35.837 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:36.284 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:36.710 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:37.134 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:37.579 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:38.009 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:38.461 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:38.892 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:39.319 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:39.745 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:40.172 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:40.610 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:41.039 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:41.469 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:41.887 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:42.323 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:42.749 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:43.170 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:43.612 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:44.050 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:44.474 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:44.909 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:45.337 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:45.758 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:46.181 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:46.613 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:47.038 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:47.480 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:47.909 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:48.338 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:48.765 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:49.190 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:49.616 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:50.066 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:50.497 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:50.915 a done own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:51.328 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:51.742 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:52.173 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:52.621 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:53.046 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:53.464 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:53.882 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:54.311 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:54.749 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:55.167 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:55.587 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:56.014 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:56.430 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:56.851 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:57.275 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:57.693 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:58.115 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:58.555 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:58.977 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:59.416 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:47:59.837 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:00.282 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:00.704 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:01.121 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:01.548 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:01.974 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:02.393 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:02.816 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:03.245 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:03.676 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:04.102 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:04.527 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:04.950 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:05.371 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:05.791 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:06.220 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:06.654 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:07.095 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:07.538 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:07.957 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:08.380 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:08.803 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:09.231 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:09.661 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:10.107 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:10.548 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:10.982 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:11.413 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:11.835 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:12.264 a working own=[] last='The background `sleep 120` finished normally (exit code 0).'
+17:48:12.681 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:13.113 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:13.550 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:13.976 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:14.414 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:14.846 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:15.283 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:15.701 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:16.130 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:16.551 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:16.969 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:17.393 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:17.810 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:18.235 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:18.659 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:19.099 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:19.534 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:19.969 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:20.417 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:20.839 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:21.274 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:21.691 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:22.114 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:22.545 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:22.966 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:23.392 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:23.816 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:24.245 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:24.685 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:25.125 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:25.566 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:25.998 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:26.421 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:26.845 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:27.270 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:27.694 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:28.131 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:28.576 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:29.003 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:29.421 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:29.850 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:30.272 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:30.696 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:31.134 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:31.588 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:32.017 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:32.452 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:32.877 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:33.320 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:33.753 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:34.175 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:34.621 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:35.046 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:35.463 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:35.884 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:36.311 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:36.728 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:37.149 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:37.584 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:38.020 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:38.445 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:38.882 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:39.319 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:39.752 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:40.176 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:40.616 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:41.051 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:41.478 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:41.901 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:42.335 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:42.756 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:43.175 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:43.613 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:44.048 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:44.471 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:44.894 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:45.316 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:45.735 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:46.168 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:46.582 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:47.005 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:47.433 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:47.855 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:48.285 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:48.724 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:49.160 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:49.600 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:50.031 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:50.454 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:50.875 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:51.299 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:51.725 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:52.150 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:52.593 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:53.029 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:53.449 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:53.864 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:54.293 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:54.732 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:55.176 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:55.608 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:56.030 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:56.465 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:56.885 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:57.301 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:57.742 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:58.178 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:58.614 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:59.043 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:59.474 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:48:59.905 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:00.330 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:00.761 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:01.196 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:01.630 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:02.056 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:02.490 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:02.930 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:03.363 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:03.783 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:04.208 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:04.646 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:05.094 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:05.517 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:05.945 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:06.388 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:06.822 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:07.254 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:07.697 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:08.136 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:08.569 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:08.992 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:09.426 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:09.850 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:10.277 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:10.706 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:11.122 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:11.538 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:11.962 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:12.392 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:12.828 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:13.276 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:13.716 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:14.151 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:14.569 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:14.990 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:15.432 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:15.869 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:16.310 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:16.755 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:17.183 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:17.613 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:18.044 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:18.470 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:18.887 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:19.310 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:19.748 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:20.204 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:20.624 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:21.043 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:21.476 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:21.900 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:22.319 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:22.733 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:23.146 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:23.566 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:23.980 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:24.397 a done own=['shell:f=/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"'] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:24.845 a working own=[] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:25.290 a working own=[] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:25.718 a working own=[] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:26.147 a working own=[] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:26.577 a working own=[] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:26.994 a working own=[] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:27.409 a working own=[] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:27.831 a working own=[] last="I'm watching for `/tmp/claude-1000/-Users-romankrysinski-wor"
+17:49:28.266 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:28.689 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:29.131 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:29.561 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:29.978 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:30.404 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:30.866 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:31.295 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:31.717 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:32.141 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:32.569 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:32.992 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:33.427 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:33.871 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:34.302 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:34.732 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:35.161 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:35.591 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:36.017 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:36.458 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:36.900 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:37.325 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:37.777 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:38.226 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:38.661 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:39.091 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:39.525 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:39.942 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:40.367 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:40.809 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:41.244 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:41.671 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:42.100 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:42.534 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:42.956 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:43.383 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:43.815 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:44.242 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:44.669 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:45.099 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:45.540 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:45.967 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:46.392 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:46.816 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:47.253 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:47.685 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:48.105 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:48.536 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:48.959 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:49.377 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:49.798 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:50.230 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:50.664 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:51.091 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:51.528 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:51.960 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:52.382 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:52.805 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:53.232 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:53.664 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:54.081 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:54.529 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:54.957 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:55.377 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:55.812 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:56.249 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:56.677 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:57.097 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:57.537 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:57.966 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:58.385 a done own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:58.801 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:59.232 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:49:59.661 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:00.078 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:00.520 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:00.940 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:01.367 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:01.796 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:02.317 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:02.766 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:03.236 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:03.653 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:04.074 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:04.497 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:04.929 a working own=[] last='The flag file `/tmp/claude-1000/-Users-romankrysinski-work-r'
+17:50:05.361 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:05.782 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:06.206 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:06.644 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:07.068 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:07.491 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:07.921 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:08.355 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:08.787 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:09.212 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:09.640 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:10.057 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:10.481 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:10.915 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:11.356 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:11.789 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:12.207 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:12.633 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:13.052 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:13.479 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:13.916 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:14.357 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:14.790 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:15.213 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:15.649 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:16.082 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:16.509 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:16.944 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:17.365 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:17.811 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:18.241 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:18.675 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:19.098 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:19.533 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:19.964 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:20.397 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:20.843 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:21.281 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:21.707 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:22.127 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:22.565 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:22.998 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:23.416 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:23.841 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:24.262 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:24.698 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:25.133 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:25.560 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:25.994 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:26.427 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:26.851 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:27.295 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:27.731 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:28.147 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:28.568 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:28.982 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:29.413 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:29.854 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:30.290 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:30.716 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:31.136 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:31.570 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:31.998 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:32.450 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:32.885 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:33.345 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:33.774 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:34.216 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:34.654 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:35.089 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:35.512 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:35.945 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:36.383 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:36.816 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:37.247 a question own=['shell:sleep 400'] last='`sleep 400` is running in the background; should I let you k'
+17:50:37.677 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:38.093 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:38.521 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:38.952 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:39.386 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:39.819 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:40.240 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:40.666 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:41.097 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:41.520 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:41.954 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:42.381 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:42.799 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:43.221 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:43.648 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:44.072 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:44.497 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:44.921 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:45.358 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:45.785 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:46.212 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:46.642 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:47.068 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:47.492 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:47.911 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:48.346 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:48.762 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:49.180 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:49.604 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:50.025 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:50.468 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:50.889 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:51.310 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:51.741 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:52.161 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:52.581 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:53.022 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:53.447 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:53.878 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:54.297 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:54.732 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:55.158 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:55.585 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:56.018 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:56.443 a working own=[] last='`sleep 400` is running in the background; should I let you k'
+17:50:56.868 a done own=['shell:sleep 400'] last='slept'
+17:50:57.285 a done own=['shell:sleep 400'] last='slept'
+17:50:57.712 a done own=['shell:sleep 400'] last='slept'
+17:50:58.139 a done own=['shell:sleep 400'] last='slept'
+17:50:58.572 a done own=['shell:sleep 400'] last='slept'
+17:50:59.014 a done own=['shell:sleep 400'] last='slept'
+17:50:59.452 a done own=['shell:sleep 400'] last='slept'
+17:50:59.875 a done own=['shell:sleep 400'] last='slept'
+17:51:00.304 a done own=['shell:sleep 400'] last='slept'
+17:51:00.723 a done own=['shell:sleep 400'] last='slept'
+17:51:01.139 a done own=['shell:sleep 400'] last='slept'
+17:51:01.559 a done own=['shell:sleep 400'] last='slept'
+17:51:02.007 a done own=['shell:sleep 400'] last='slept'
+17:51:02.448 a done own=['shell:sleep 400'] last='slept'
+17:51:02.886 a working own=[] last='slept'
+17:51:03.308 a working own=[] last='slept'
+17:51:03.731 a working own=[] last='slept'
+17:51:04.158 a working own=[] last='slept'
+17:51:04.576 a working own=[] last='slept'
+17:51:05.015 a working own=[] last='slept'
+17:51:05.439 a working own=[] last='slept'
+17:51:05.861 a working own=[] last='slept'
+17:51:06.285 a working own=[] last='slept'
+17:51:06.704 a working own=[] last='slept'
+17:51:07.122 a working own=[] last='slept'
+17:51:07.544 a working own=[] last='slept'
+17:51:07.961 a working own=[] last='slept'
+17:51:08.397 a working own=[] last='slept'
+17:51:08.823 a working own=[] last='slept'
+17:51:09.243 a working own=[] last='slept'
+17:51:09.670 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:10.084 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:10.516 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:10.960 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:11.393 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:11.833 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:12.256 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:12.682 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:13.112 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:13.537 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:13.980 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:14.409 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:14.829 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:15.257 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:15.687 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:16.108 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:16.530 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:16.953 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:17.388 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:17.822 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:18.249 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:18.678 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:19.113 a done own=['shell:sleep 400'] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:19.531 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:19.949 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:20.380 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:20.816 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:21.247 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:21.669 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:22.105 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:22.526 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:22.950 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:23.378 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:23.810 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:24.249 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:24.678 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:25.114 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:25.532 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:25.952 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:26.373 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:26.801 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:27.218 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:27.643 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:28.078 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:28.507 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:28.949 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:29.368 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:29.792 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:30.223 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:30.653 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:31.095 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:31.516 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:31.932 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:32.366 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:32.798 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:33.232 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:33.649 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:34.066 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:34.492 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:34.909 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:35.328 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:35.764 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:36.194 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:36.630 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:37.080 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:37.504 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:37.945 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:38.368 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:38.799 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:39.224 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:39.645 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:40.076 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:40.518 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:40.952 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:41.374 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:41.802 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:42.219 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:42.637 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:43.052 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:43.479 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:43.904 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:44.323 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:44.756 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:45.189 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:45.646 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:46.074 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:46.500 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:46.916 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:47.349 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:47.794 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:48.223 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:48.648 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:49.077 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:49.520 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:49.938 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:50.365 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:50.799 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:51.223 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:51.679 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:52.113 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:52.542 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:52.979 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:53.407 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:53.848 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:54.281 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:54.706 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:55.145 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:55.585 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:56.008 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:56.436 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:56.869 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:57.302 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:57.725 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:58.161 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:58.602 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:59.037 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:59.467 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:51:59.900 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:52:00.350 a done own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:52:00.787 a working own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:52:01.206 a working own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:52:01.642 a working own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:52:02.069 a working own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:52:02.492 a working own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:52:02.915 a working own=[] last="I couldn't run `sleep 30` in the foreground: the harness blo"
+17:52:03.331 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:03.761 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:04.183 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:04.622 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:05.062 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:05.488 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:05.909 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:06.343 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:06.773 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:07.221 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:07.654 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:08.088 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:08.511 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:08.940 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:09.364 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:09.793 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:10.222 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:10.670 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:11.100 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:11.519 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:11.942 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:12.380 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:12.802 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:13.251 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:13.687 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:14.110 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:14.531 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:14.958 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:15.389 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:15.814 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:16.263 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:16.695 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:17.133 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:17.550 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:17.985 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:18.411 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:18.839 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:19.284 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:19.713 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:20.139 a done own=['shell:sleep 400', 'shell:sleep 300'] last='started'
+17:52:20.569 a working own=[] last='started'
+17:52:20.984 a working own=[] last='started'
+17:52:21.410 a working own=[] last='started'
+17:52:21.841 a working own=[] last='started'
+17:52:22.283 a working own=[] last='started'
+17:52:22.738 a working own=[] last='started'
+17:52:23.163 a working own=[] last='started'
+17:52:23.589 a working own=[] last='started'
+17:52:24.008 a working own=[] last='started'
+17:52:24.429 a working own=[] last='started'
+17:52:24.866 a working own=[] last='started'
+17:52:25.287 a working own=[] last='started'
+17:52:25.724 a working own=[] last='started'
+17:52:26.148 a working own=[] last='started'
+17:52:26.583 a working own=[] last='started'
+17:52:27.000 a working own=[] last='started'
+17:52:27.423 a working own=[] last='started'
+17:52:27.851 a done own=[] last='Interrupted'
+17:52:28.288 a done own=[] last='Interrupted'
+17:52:28.741 a done own=[] last='Interrupted'
+17:52:29.172 a done own=[] last='Interrupted'
+17:52:29.607 a done own=[] last='Interrupted'
+17:52:30.024 a done own=[] last='Interrupted'
+17:52:30.442 a done own=[] last='Interrupted'
+17:52:30.864 a done own=[] last='Interrupted'
+17:52:31.307 a done own=[] last='Interrupted'
+17:52:31.743 a done own=[] last='Interrupted'
+17:52:32.167 a done own=[] last='Interrupted'
+17:52:32.597 a done own=[] last='Interrupted'
+17:52:33.027 a done own=[] last='Interrupted'
+17:52:33.447 a done own=[] last='Interrupted'
+17:52:33.884 a done own=[] last='Interrupted'
+17:52:34.312 a done own=[] last='Interrupted'
+17:52:34.739 a done own=[] last='Interrupted'
+17:52:35.183 a done own=[] last='Interrupted'
+17:52:35.611 a done own=[] last='Interrupted'
+17:52:36.026 a done own=[] last='Interrupted'
+17:52:36.453 a done own=[] last='Interrupted'
+17:52:36.896 a done own=[] last='Interrupted'
+17:52:37.332 a done own=[] last='Interrupted'
+17:52:37.761 a done own=[] last='Interrupted'
+17:52:38.188 a done own=[] last='Interrupted'
+17:52:38.615 a done own=[] last='Interrupted'
+17:52:39.037 a done own=[] last='Interrupted'
+17:52:39.456 a done own=[] last='Interrupted'
+17:52:39.879 a done own=[] last='Interrupted'
+17:52:40.313 a done own=[] last='Interrupted'
+17:52:40.734 a done own=[] last='Interrupted'
+17:52:41.175 a done own=[] last='Interrupted'
+17:52:41.608 a done own=[] last='Interrupted'
+17:52:42.033 a done own=[] last='Interrupted'
+17:52:42.464 a done own=[] last='Interrupted'
+17:52:42.904 a done own=[] last='Interrupted'
+17:52:43.332 a done own=[] last='Interrupted'
+17:52:43.756 a done own=[] last='Interrupted'
+17:52:44.197 a done own=[] last='Interrupted'
+17:52:44.622 a done own=[] last='Interrupted'
+17:52:45.041 a done own=[] last='Interrupted'
+17:52:45.464 a done own=[] last='Interrupted'
+17:52:45.892 a done own=[] last='Interrupted'
+17:52:46.327 a done own=[] last='Interrupted'
+17:52:46.756 a done own=[] last='Interrupted'
+17:52:47.193 a done own=[] last='Interrupted'
+17:52:47.629 a done own=[] last='Interrupted'
+17:52:48.061 a done own=[] last='Interrupted'
+17:52:48.484 a done own=[] last='Interrupted'
+17:52:48.918 a done own=[] last='Interrupted'
+17:52:49.339 a done own=[] last='Interrupted'
+17:52:49.758 a done own=[] last='Interrupted'
+17:52:50.180 a done own=[] last='Interrupted'
+17:52:50.609 a done own=[] last='Interrupted'
+17:52:51.024 a done own=[] last='Interrupted'
+17:52:51.439 a done own=[] last='Interrupted'
+17:52:51.869 a done own=[] last='Interrupted'
+17:52:52.284 a done own=[] last='Interrupted'
+17:52:52.700 a done own=[] last='Interrupted' | b starting own=[] last=''
+17:52:53.115 b done own=[] last='' | a done own=[] last='Interrupted'
+17:52:53.530 a done own=[] last='Interrupted' | b working own=[] last=''
+17:52:53.944 a done own=[] last='Interrupted' | b working own=[] last=''
+17:52:54.364 a done own=[] last='Interrupted' | b working own=[] last=''
+17:52:54.790 a done own=[] last='Interrupted' | b working own=[] last=''
+17:52:55.217 a done own=[] last='Interrupted' | b working own=[] last=''
+17:52:55.653 a done own=[] last='Interrupted' | b working own=[] last=''
+17:52:56.070 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:52:56.486 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:52:56.924 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:52:57.348 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:52:57.768 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:52:58.186 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:52:58.605 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:52:59.023 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:52:59.443 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:52:59.867 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:00.321 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:00.750 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:01.197 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:01.622 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:02.041 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:02.471 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:02.905 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:03.347 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:03.767 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:04.202 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:04.622 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:05.043 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:05.461 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:05.887 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:06.330 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:06.764 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:07.204 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:07.639 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:08.060 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:08.483 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:08.918 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:09.356 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:09.782 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:10.216 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:10.644 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:11.065 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:11.484 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:11.912 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:12.341 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:12.775 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:13.199 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:13.628 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:14.046 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:14.469 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:14.892 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:15.326 b done own=[] last='Hello there, friend!' | a done own=[] last='Interrupted'
+17:53:15.761 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:16.179 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:16.596 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:17.015 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:17.440 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:17.860 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:18.294 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:18.724 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:19.146 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:19.563 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:19.996 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:20.430 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:20.857 a done own=[] last='Interrupted' | b working own=[] last='Hello there, friend!'
+17:53:21.282 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:21.698 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:22.116 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:22.536 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:22.958 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:23.387 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:23.815 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:24.246 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:24.663 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:25.084 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:25.505 a done own=[] last='Interrupted' | b working own=[] last='subagent started'
+17:53:25.924 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:26.345 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:26.764 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:27.186 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:27.609 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:28.046 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:28.478 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:28.899 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:29.350 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:29.768 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:30.206 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:30.627 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:31.056 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:31.482 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:31.911 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:32.340 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:32.758 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:33.176 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:33.596 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:34.017 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:34.456 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:34.873 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:35.317 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:35.752 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:36.182 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:36.612 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:37.041 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:37.469 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:37.894 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:38.326 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:38.750 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:39.168 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:39.587 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:40.026 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:40.444 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:40.877 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:41.299 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:41.736 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:42.154 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:42.572 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:43.011 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:43.441 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:43.866 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:44.301 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:44.750 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:45.172 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:45.593 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:46.034 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:46.457 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:46.890 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:47.314 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:47.741 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:48.161 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:48.578 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:49.000 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:49.430 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:49.850 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:50.274 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:50.692 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:51.109 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:51.533 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:51.958 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:52.403 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:52.837 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:53.259 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:53.703 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:54.122 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:54.539 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:54.964 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:55.408 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:55.848 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:56.271 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:56.704 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:57.132 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:57.549 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:57.975 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:58.420 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:58.838 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:59.261 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:53:59.698 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:00.129 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:00.549 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:00.980 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:01.413 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:01.840 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:02.265 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:02.702 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:03.133 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:03.551 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:03.976 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:04.415 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:04.850 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:05.266 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:05.697 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:06.126 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:06.548 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:06.970 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:07.397 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:07.820 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:08.239 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:08.670 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:09.099 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:09.538 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:09.960 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:10.386 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:10.810 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:11.226 a done own=[] last='Interrupted' | b working own=[] last='The subagent reported "waiting". Its `sleep 45` is still run'
+17:54:11.647 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:12.067 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:12.505 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:12.939 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:13.375 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:13.808 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:14.232 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:14.656 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:15.086 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:15.526 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:15.958 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:16.391 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:16.808 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:17.225 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:17.653 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:18.088 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:18.519 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:18.945 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:19.405 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:19.834 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:20.255 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:20.684 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:21.117 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:21.545 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:21.973 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:22.410 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:22.841 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:23.262 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:23.688 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:24.116 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:24.536 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:24.971 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:25.415 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:25.835 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:26.263 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:26.699 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:27.125 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:27.544 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:27.971 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:28.396 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:28.833 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:29.262 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:29.711 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:30.132 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:30.551 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:30.973 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:31.393 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:31.815 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:32.232 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:32.661 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:33.115 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:33.540 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:33.970 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:34.401 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:34.832 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:35.257 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:35.684 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:36.142 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:36.560 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:36.977 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:37.394 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:37.818 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:38.237 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:38.655 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:39.075 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:39.509 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:39.930 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:40.360 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:40.813 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:41.242 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:41.669 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:42.112 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:42.547 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:42.968 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:43.390 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:43.814 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:44.231 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:44.663 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:45.098 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:45.525 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:45.945 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:46.366 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:46.798 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:47.239 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:47.669 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:48.111 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:48.547 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:48.973 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:49.401 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:49.835 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:50.253 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:50.670 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:51.093 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:51.519 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:51.936 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:52.364 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:52.798 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:53.221 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:53.640 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:54.076 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:54.506 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:54.923 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:55.343 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:55.790 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:56.207 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:56.631 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:57.065 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:57.481 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:57.903 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:58.336 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:58.779 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:59.204 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:54:59.645 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:00.069 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:00.497 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:00.921 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:01.348 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:01.769 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:02.198 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:02.622 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:03.052 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:03.486 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:03.902 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:04.321 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:04.739 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:05.173 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:05.593 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:06.013 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:06.440 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:06.857 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:07.279 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:07.702 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:08.134 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:08.551 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:08.982 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:09.440 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:09.866 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:10.289 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:10.723 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:11.153 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:11.580 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:12.004 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:12.449 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'
+17:55:12.881 b done own=[] last='The subagent finished and reported "slept" once its `sleep 4' | a done own=[] last='Interrupted'

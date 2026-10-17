@@ -1,0 +1,30 @@
+$ hqb read a
+name      a
+repo      app  /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchp
+ad/qa/app
+branch    master
+worktree  /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa
+/app
+sandbox   claude-app
+state     done 40s
+pending   0
+
+reply
+  I started `sleep 120` in the background and I'm waiting for it to finish.
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

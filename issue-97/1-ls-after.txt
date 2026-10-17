@@ -1,0 +1,30 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   master  done   35s  1 shell · I started `sleep 120` in the background and I'm w…
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

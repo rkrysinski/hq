@@ -1,0 +1,19 @@
+{
+  "agents": [
+    {
+      "name": "a",
+      "repo": "app",
+      "repo_path": "/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/app",
+      "branch": "master",
+      "state": "done",
+      "since": "2026-10-17T15:46:51.085177453Z",
+      "age_seconds": 0,
+      "last": "The background `sleep 120` finished normally (exit code 0).",
+      "sandbox": "claude-app",
+      "pending": 0,
+      "own_tasks": []
+    }
+  ],
+  "next_since": "2026-10-17T15:46:51.112886412Z"
+}
+wait2 returned 17:46:51

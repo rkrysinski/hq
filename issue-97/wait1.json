@@ -1,0 +1,24 @@
+{
+  "agents": [
+    {
+      "name": "a",
+      "repo": "app",
+      "repo_path": "/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/347fa2d1-3d5d-4abe-9c6e-5b19b7c0ba8d/scratchpad/qa/app",
+      "branch": "master",
+      "state": "done",
+      "since": "2026-10-17T15:44:50.594023688Z",
+      "age_seconds": 0,
+      "last": "I started `sleep 120` in the background and I'm waiting for it to finish.",
+      "sandbox": "claude-app",
+      "pending": 0,
+      "own_tasks": [
+        {
+          "type": "shell",
+          "text": "sleep 120"
+        }
+      ]
+    }
+  ],
+  "next_since": "2026-10-17T15:44:50.621622021Z"
+}
+wait1 returned 17:44:50
