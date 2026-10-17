@@ -38,13 +38,16 @@ func TmuxSocket(t *testing.T) string {
 	return name
 }
 
-// killServer ends a test's tmux server and waits for the programs in its
-// panes to exit: tmux returns before they do, and one still starting (the
-// stub sbx right after hq new) would write into a directory the test's
-// cleanup is removing.
+// killServer ends a test's tmux server, waits for the programs in its panes
+// to exit and removes its socket file. tmux returns before the programs
+// exit, and one still starting (the stub sbx right after hq new) would write
+// into a directory the test's cleanup is removing. tmux 3.6 leaves the
+// socket file behind however its server ends (#74), and gives its path only
+// while the server runs.
 func killServer(socket string) {
-	out, _ := exec.Command("tmux", "-L", socket, "list-panes", "-a", "-F", "#{pane_pid}").Output()
-	_ = exec.Command("tmux", "-L", socket, "kill-server").Run()
+	path := socketPath(socket)
+	out, _ := exec.Command("tmux", "-u", "-L", socket, "list-panes", "-a", "-F", "#{pane_pid}").Output()
+	_ = exec.Command("tmux", "-u", "-L", socket, "kill-server").Run()
 	for _, f := range strings.Fields(string(out)) {
 		pid, err := strconv.Atoi(f)
 		if err != nil {
@@ -54,6 +57,21 @@ func killServer(socket string) {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
+	_ = os.Remove(path)
+}
+
+// socketPath is the socket file of the server on socket: as tmux gives it
+// while the server runs, else where tmux puts it for a server it starts,
+// under $TMUX_TMPDIR or /tmp.
+func socketPath(socket string) string {
+	if out, err := exec.Command("tmux", "-u", "-L", socket, "display-message", "-p", "#{socket_path}").Output(); err == nil {
+		return strings.TrimSpace(string(out))
+	}
+	dir := os.Getenv("TMUX_TMPDIR")
+	if dir == "" {
+		dir = "/tmp"
+	}
+	return filepath.Join(dir, fmt.Sprintf("tmux-%d", os.Getuid()), socket)
 }
 
 // SbxStub returns the path of the stub sbx and its state directory, set in

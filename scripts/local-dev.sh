@@ -22,7 +22,10 @@ XDG_CONFIG_HOME="$ROOT/.local-dev/config"
 export GH_CONFIG_DIR XDG_CONFIG_HOME
 
 if [ "${1:-}" = --kill-server ]; then
+    path=$(tmux -L "$HQ_TMUX_SOCKET" display-message -p '#{socket_path}' 2>/dev/null || true)
     tmux -L "$HQ_TMUX_SOCKET" kill-server 2>/dev/null || true
+    # tmux 3.6 leaves the socket file behind (#74).
+    [ -z "$path" ] || rm -f "$path"
     echo "tmux server $HQ_TMUX_SOCKET ended"
     exit 0
 fi
