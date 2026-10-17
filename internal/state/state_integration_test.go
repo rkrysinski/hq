@@ -1230,15 +1230,15 @@ func TestHookAndHostAgreeOnBackgroundWorkAndOwnTasksWhateverTheMarks(t *testing.
 			// The list it keeps: the id of the work owed a turn, the mark
 			// of a subagent's command or watch still running, and the mark
 			// of the agent's own watch still running.
-			want, task := "", p.BackgroundTasks[0]
-			watch := task.Type == ShellTask || task.Type == MonitorTask
-			if task.Status == "running" && !watch {
+			want, b1 := "", p.BackgroundTasks[0]
+			running, watch, theirs := b1.Status == "running", b1.Type == ShellTask || b1.Type == MonitorTask, strings.Contains(list, "~b1\n")
+			if running && !watch {
 				want += "b1\n"
 			}
-			if task.Status == "running" && watch && strings.Contains(list, "~b1\n") {
+			if running && watch && theirs {
 				want += "~b1\n"
 			}
-			if strings.Contains(list, "=b1\n") && task.own(marked([]byte(list), subagentMark)) {
+			if running && watch && !theirs && strings.Contains(list, "=b1\n") {
 				want += "=b1\n"
 			}
 			if f := files(t, root, id); f[owedSuffix] != want {

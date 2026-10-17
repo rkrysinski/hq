@@ -225,6 +225,11 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	if len(raw) > 24<<10 {
 		t.Errorf("settings of %d bytes", len(raw))
 	}
+	// The hook script has been kept within 8 KiB of the settings (design
+	// §3.4); a change that needs more says so here.
+	if len(hookScript) > 8<<10 {
+		t.Errorf("hook script of %d bytes", len(hookScript))
+	}
 	for _, event := range []string{"PermissionRequest", "PostToolUse", "PostToolUseFailure"} {
 		if m := s.Hooks[event][0].Matcher; m != "" {
 			t.Errorf("%s: every tool, not %q", event, m)

@@ -317,7 +317,7 @@ function busy(s,    i, c, d, str, key, val, ty, st, id) {
             if (!d++) ty = st = val = id = ""
         } else if (c == "}" || c == "]") {
             if (!d--) return
-            if (!d && st == "running") { if (ty != "shell" && ty != "monitor") owed[id] = 1; else if (id in theirs) mine[id] = 1; else if (id in mon) ours[id] = 1 }
+            if (!d && st == "running") { if (ty != "shell" && ty != "monitor") owed[id] = 1; else if (id in theirs) mine[id] = 1; else if (id in watch) watched[id] = 1 }
         } else if (d == 1 && (c == ":" || c == ",")) val = c == ":"
     }
 }
@@ -334,14 +334,14 @@ NR == 1 && K == "keep" {
         x = L[n]
         if (x == "+") paid = 1
         else if (sub(/^~/, "", x)) theirs[x]
-        else if (sub(/^=/, "", x)) mon[x]
+        else if (sub(/^=/, "", x)) watch[x]
         else if (sub(/^!/, "", x)) held[x]
         else was[x]
     }
     busy($0)
     for (i in owed) { if (i != "") print i; ends = 0 }
     for (i in mine) { if (i != "") print "~" i; ends = 0 }
-    for (i in ours) if (i != "") print "=" i
+    for (i in watched) if (i != "") print "=" i
     for (i in was) if (i != "" && !(i in owed)) { print "!" i; ends = 0 }
     if (paid) for (i in held) if (i != "" && !(i in owed) && !(i in was)) { print "!" i; ends = 0 }
     if (question($0)) ends = 1
