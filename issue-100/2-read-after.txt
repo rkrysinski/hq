@@ -1,0 +1,40 @@
+name      a
+repo      app  /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/4b63ba50-22fe-45eb-b182-29b1150bd0e1/scratchp
+ad/qa/app
+branch    main
+worktree  /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/4b63ba50-22fe-45eb-b182-29b1150bd0e1/scratchpad/qa
+/app
+sandbox   claude-app
+state     needs input 11s
+pending   0
+last      Which color should I use?
+
+asks
+  elicit asks: Which color should I use?
+    color (Color, required): red | blue - Pick one
+
+reply     none
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

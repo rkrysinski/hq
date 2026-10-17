@@ -1,0 +1,16 @@
+20:58:30.151 
+20:58:30.579 a     app   -       starting  0s   -
+20:58:31.012 a     app   -       starting  0s   -
+20:58:31.446 a     app   main    done   0s   -
+20:58:31.891 a     app   main    working  0s   -
+20:58:32.307 a     app   main    working  0s   -
+20:58:32.719 a     app   main    working  0s   -
+20:58:33.141 a     app   main    working  1s   -
+20:58:33.559 a     app   main    working  1s   -
+20:58:33.993 a     app   main    working  2s   -
+20:58:34.409 a     app   main    working  2s   -
+20:58:34.835 a     app   main    working  3s   -
+20:58:35.256 a     app   main    working  3s   -
+20:58:35.676 a     app   main    working  3s   -
+20:58:36.095 a     app   main    working  4s   -
+20:58:36.518 a     app   main    needs input  0s   Which color should I use?

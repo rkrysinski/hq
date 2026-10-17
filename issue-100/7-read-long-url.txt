@@ -1,0 +1,16 @@
+name      u
+repo      app  /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/4b63ba50-22fe-45eb-b182-29b1150bd0e1/scratchp
+ad/qa/app
+branch    main
+worktree  /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/4b63ba50-22fe-45eb-b182-29b1150bd0e1/scratchpad/qa
+/app
+sandbox   claude-app
+state     needs input 0s
+pending   0
+last      Sign in to the example service.
+asks
+  elicit asks: Sign in to the example service.
+    url: https://auth.example.com/oauth/authorize?client_id=hq-agent&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&state=4
+2
+reply     none
+$

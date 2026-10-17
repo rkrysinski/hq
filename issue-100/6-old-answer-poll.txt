@@ -1,0 +1,22 @@
+20:57:50.337 Enter
+20:57:50.472 old   app   main    working  26s  -
+20:57:50.987 old   app   main    working  27s  -
+20:57:51.503 old   app   main    working  27s  -
+20:57:52.015 old   app   main    working  28s  -
+20:57:52.536 old   app   main    working  28s  -
+20:57:53.051 old   app   main    working  29s  -
+20:57:53.571 old   app   main    working  29s  -
+20:57:54.090 old   app   main    working  30s  -
+20:57:54.614 old   app   main    working  30s  -
+20:57:55.132 old   app   main    working  31s  -
+20:57:55.652 old   app   main    working  31s  -
+20:57:56.171 old   app   main    working  32s  -
+20:57:56.696 old   app   main    working  32s  -
+20:57:57.215 old   app   main    working  33s  -
+20:57:57.739 old   app   main    working  34s  -
+20:57:58.268 old   app   main    working  34s  -
+20:57:58.783 old   app   main    working  35s  -
+20:57:59.296 old   app   main    working  35s  -
+20:57:59.819 old   app   main    working  36s  -
+20:58:00.334 old   app   main    working  36s  -
+20:58:00.842 old   app   main    done   0s   You picked **red**.
