@@ -1,0 +1,4 @@
+$ go test -count=20 -tags integration -run 'TestAStoppedSandboxLeavesTheSessionReadable$' ./internal/cli/; tmux -L qa-87
+-term wait-for -S d2
+ok  	github.com/rkrysinski/hq/internal/cli	12.201s
+$
