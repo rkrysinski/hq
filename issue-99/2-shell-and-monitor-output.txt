@@ -1,0 +1,25 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   master  done   33s  1 shell, 1 monitor · `sleep 900` is running in the backgrou…
+
+$ hq read a
+name      a
+repo      app  /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app
+branch    master
+worktree  /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app
+sandbox   claude-app
+state     done 33s
+own task: monitor  qa flag1 watch
+own task: shell  sleep 900
+pending   0
+
+reply
+  `sleep 900` is running in the background, and the `flag1` watch is still going.
+$ cat .git/hq/agents/*.owe
+=bwnuqgymf
+
+# PostToolUse of Bash (raw)
+{"session_id":"294d9a61-1421-4d11-8359-c6345c64cab7","transcript_path":"/home/agent/.claude/projects/-tmp-claude-1000--Users-romankrysinski-work-repositories-hq-650898c1-5e5f-4d2a-8029-9b3d45b08dab-scratchpad-app/294d9a61-1421-4d11-8359-c6345c64cab7.jsonl","cwd":"/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app","scratchpad_dir":"/tmp/claude-1000/-tmp-claude-1000--Users-romankrysinski-work-repositories-hq-650898c1-5e5f-4d2a-8029-9b3d45b08dab-scratchpad-app/294d9a61-1421-4d11-8359-c6345c64cab7/scratchpad","prompt_id":"3dcc486d-6f92-4b72-8879-ac289b4ffa27","permission_mode":"bypassPermissions","effort":{"level":"high"},"hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"sleep 900","description":"Sleep for 15 minutes in the background","run_in_background":true},"tool_response":{"stdout":"","stderr":"","interrupted":false,"isImage":false,"noOutputExpected":false,"backgroundTaskId":"buk1xizsc"},"tool_use_id":"toolu_01BV22v8pasWCUpcuAnNUuM5","duration_ms":14}
+
+# Stop (raw)
+{"session_id":"294d9a61-1421-4d11-8359-c6345c64cab7","transcript_path":"/home/agent/.claude/projects/-tmp-claude-1000--Users-romankrysinski-work-repositories-hq-650898c1-5e5f-4d2a-8029-9b3d45b08dab-scratchpad-app/294d9a61-1421-4d11-8359-c6345c64cab7.jsonl","cwd":"/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app","scratchpad_dir":"/tmp/claude-1000/-tmp-claude-1000--Users-romankrysinski-work-repositories-hq-650898c1-5e5f-4d2a-8029-9b3d45b08dab-scratchpad-app/294d9a61-1421-4d11-8359-c6345c64cab7/scratchpad","prompt_id":"3dcc486d-6f92-4b72-8879-ac289b4ffa27","permission_mode":"bypassPermissions","effort":{"level":"high"},"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"`sleep 900` is running in the background, and the `flag1` watch is still going.","background_tasks":[{"id":"bwnuqgymf","type":"shell","status":"running","description":"qa flag1 watch","command":"until [ -e /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app/flag1 ]; do sleep 0.5; done; echo \"flag1 appeared\""},{"id":"buk1xizsc","type":"shell","status":"running","description":"Sleep for 15 minutes in the background","command":"sleep 900"}],"session_crons":[]}

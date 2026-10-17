@@ -1,0 +1,32 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE    AGE  LAST
+a     app   master  working  1m   The new subagent has started its `flag2` monitor and is wai…
+
+$ hq ls --json
+{
+  "agents": [
+    {
+      "name": "a",
+      "repo": "app",
+      "repo_path": "/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app",
+      "branch": "master",
+      "state": "working",
+      "since": "2026-10-17T18:16:22.127295157Z",
+      "age_seconds": 71,
+      "last": "The new subagent has started its `flag2` monitor and is waiting. `flag2` hasn't appeared yet, and the background `sleep 900` is still running.",
+      "sandbox": "claude-app",
+      "pending": 0,
+      "own_tasks": []
+    }
+  ],
+  "next_since": "2026-10-17T18:17:33.374997774Z"
+}
+$ cat .git/hq/agents/*.owe
+~bk8bbchm9
+
+# PostToolUse of the subagent's Monitor (raw)
+{"session_id":"294d9a61-1421-4d11-8359-c6345c64cab7","transcript_path":"/home/agent/.claude/projects/-tmp-claude-1000--Users-romankrysinski-work-repositories-hq-650898c1-5e5f-4d2a-8029-9b3d45b08dab-scratchpad-app/294d9a61-1421-4d11-8359-c6345c64cab7.jsonl","cwd":"/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app","scratchpad_dir":"/tmp/claude-1000/-tmp-claude-1000--Users-romankrysinski-work-repositories-hq-650898c1-5e5f-4d2a-8029-9b3d45b08dab-scratchpad-app/294d9a61-1421-4d11-8359-c6345c64cab7/scratchpad","prompt_id":"22ad4af0-9e42-430a-b584-c7594ef0792c","permission_mode":"bypassPermissions","agent_id":"a60bad2d4964a4558","agent_type":"general-purpose","effort":{"level":"high"},"hook_event_name":"PostToolUse","tool_name":"Monitor","tool_input":{"description":"qa flag2 subagent watch","timeout_ms":1800000,"command":"until [ -e /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app/flag2 ]; do sleep 0.5; done; echo \"flag2 appeared at $(date -u +%Y-%m-%dT%H:%M:%SZ)\""},"tool_response":{"taskId":"bk8bbchm9","timeoutMs":1800000,"persistent":false},"tool_use_id":"toolu_01Lu1SQvbDJC2mEVLCvzo23B","duration_ms":3}
+
+# Stops (raw)
+{"session_id":"294d9a61-1421-4d11-8359-c6345c64cab7","transcript_path":"/home/agent/.claude/projects/-tmp-claude-1000--Users-romankrysinski-work-repositories-hq-650898c1-5e5f-4d2a-8029-9b3d45b08dab-scratchpad-app/294d9a61-1421-4d11-8359-c6345c64cab7.jsonl","cwd":"/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app","scratchpad_dir":"/tmp/claude-1000/-tmp-claude-1000--Users-romankrysinski-work-repositories-hq-650898c1-5e5f-4d2a-8029-9b3d45b08dab-scratchpad-app/294d9a61-1421-4d11-8359-c6345c64cab7/scratchpad","prompt_id":"22ad4af0-9e42-430a-b584-c7594ef0792c","permission_mode":"bypassPermissions","effort":{"level":"high"},"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"I started a new background subagent that will watch for `flag2` and report once it appears.","background_tasks":[{"id":"buk1xizsc","type":"shell","status":"running","description":"Sleep for 15 minutes in the background","command":"sleep 900"},{"id":"a60bad2d4964a4558","type":"subagent","status":"running","description":"Watch for flag2 file","agent_type":"general-purpose"}],"session_crons":[]}
+{"session_id":"294d9a61-1421-4d11-8359-c6345c64cab7","transcript_path":"/home/agent/.claude/projects/-tmp-claude-1000--Users-romankrysinski-work-repositories-hq-650898c1-5e5f-4d2a-8029-9b3d45b08dab-scratchpad-app/294d9a61-1421-4d11-8359-c6345c64cab7.jsonl","cwd":"/tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app","scratchpad_dir":"/tmp/claude-1000/-tmp-claude-1000--Users-romankrysinski-work-repositories-hq-650898c1-5e5f-4d2a-8029-9b3d45b08dab-scratchpad-app/294d9a61-1421-4d11-8359-c6345c64cab7/scratchpad","prompt_id":"8d86f6cb-989b-4066-9502-5f6c2d947b41","permission_mode":"bypassPermissions","effort":{"level":"high"},"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"The new subagent has started its `flag2` monitor and is waiting. `flag2` hasn't appeared yet, and the background `sleep 900` is still running.","background_tasks":[{"id":"buk1xizsc","type":"shell","status":"running","description":"Sleep for 15 minutes in the background","command":"sleep 900"},{"id":"bk8bbchm9","type":"shell","status":"running","description":"qa flag2 subagent watch","command":"until [ -e /tmp/claude-1000/-Users-romankrysinski-work-repositories-hq/650898c1-5e5f-4d2a-8029-9b3d45b08dab/scratchpad/app/flag2 ]; do sleep 0.5; done; echo \"flag2 appeared at $(date -u +%Y-%m-%dT%H:%M:%SZ)\""}],"session_crons":[]}
