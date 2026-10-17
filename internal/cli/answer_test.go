@@ -314,6 +314,23 @@ func TestAnswerNotTakenIsTakenBackAndRefused(t *testing.T) {
 	}
 }
 
+// The dialog's tool may end between two looks of hq at the agent: hq
+// reads what Claude got after it sees the agent leave the dialog, so the
+// answer is never taken for one Claude closed otherwise.
+func TestAnswerClosedBetweenTwoLooksIsTheAnswer(t *testing.T) {
+	f, id := askFakes(t, "dialog-ask")
+	f.onSleep = func() { delete(f.answerLeft, "id-a") }
+	f.onGot = func() {
+		if f.answerLeft["id-a"] == nil && f.got["id-a"] == nil {
+			f.got["id-a"] = map[string]string{"Which colour do you pick: red or blue?": "Red"}
+			f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Last: "On it."}
+		}
+	}
+	if code, out, errOut := f.run("answer", "a", "--dialog", id, "1"); code != 0 || out != "answered: a is working\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+}
+
 // Taken, but the agent stays at the dialog for 5 s: a template whose
 // claude-approve still answers AskUserQuestion first (#89, case 3).
 func TestAnswerTakenButNotClosedNamesTheLikelyCause(t *testing.T) {

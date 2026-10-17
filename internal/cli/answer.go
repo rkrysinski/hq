@@ -226,11 +226,13 @@ func awaitTaken(d deps, a agent.Agent, q state.Questions) bool {
 // otherwise, or the agent moved on before hq looked).
 func awaitClosed(d deps, a agent.Agent, open agent.Dialog) (agent.Agent, map[string]string, error) {
 	for deadline := d.now().Add(closeWait); ; d.sleep(answerPoll) {
-		got, ok := d.answersGot(a.RepoPath, a.ID)
 		now, err := findAgent(d, a.Name)
 		if err != nil {
 			return now, nil, err
 		}
+		// Read after the agent: the tool's end that moved it off the dialog
+		// is then there to read, not yet to come.
+		got, ok := d.answersGot(a.RepoPath, a.ID)
 		if ok || now.Dialog().ID() != open.ID() {
 			if !ok {
 				got = nil
