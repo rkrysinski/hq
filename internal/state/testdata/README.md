@@ -106,6 +106,7 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | screen-fs-ask-multi-open | 2.1.302 | E''' | 100x30 | that dialog at its multi-select question: `[ ]` boxes, `Type something` as a box, `Next` | #89 |
 | screen-fs-ask-multi-picked | 2.1.302 | E''' | 100x30 | two options ticked and text typed in place of `Type something` (`[✔] XL`) | #89 |
 | screen-fs-ask-text-typed | 2.1.302 | E''' | 100x30 | free text typed in place of `Type something.` of a single-choice question | #89 |
+| screen-fs-ask-review | 2.1.302 | E''' | 100x30 | that dialog at its review step, the three answered: tabs `☒ Color  ☒ Sizes  ☒ Name  ✔ Submit`, `Review your answers`, `Ready to submit your answers?` with `Submit answers` / `Cancel`, no footer below them | #89 |
 | screen-fs-ask-several-answered | 2.1.302 | E''' | 100x30 | the three answered at the terminal: `· Which sizes? → Small, Large, XL`, the reply, bare box | #89 |
 | screen-fs-ask-hook-ignored | 2.1.302 | E''' | 100x30 | AskUserQuestion still open 6.5 s after a held PermissionRequest hook printed an allow with the answers: the template's approve hook had answered first | #89 |
 | screen-fs-elicit-hook-running | 2.1.302 | E''' | 100x30 | an Elicitation hook holding: no form, the tool's card and `elicit: ask_color… (running Elicitation hooks… 1/2 · 8s …)` | #89 |

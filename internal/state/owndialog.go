@@ -21,6 +21,10 @@ import (
 // rule, the input line and a rule: a screen that shows it has no dialog.
 // ask carries the title as its question, the options without their
 // numbers, and the text as its description.
+//
+// AskUserQuestion, a dialog of a turn, is drawn the same way under its
+// tabs, one per question: its review step after several questions (#94)
+// has no footer below its options, so the tabs tell it apart.
 func OwnDialog(screen string) (ask *Ask, ok bool) {
 	if _, box := promptBox(screen); box {
 		return nil, false
@@ -52,7 +56,7 @@ func OwnDialog(screen string) (ask *Ask, ok bool) {
 	for title < at && lines[title] == "" {
 		title++
 	}
-	if top < 0 || title >= at {
+	if top < 0 || title >= at || askTabs.MatchString(lines[title]) {
 		return nil, false
 	}
 	// The options: the lines around the marked one, up to a blank line.
@@ -91,6 +95,11 @@ func OwnDialog(screen string) (ask *Ask, ok bool) {
 // dialogTop starts the rule of ▔ Claude Code 2.1.300 draws above a dialog
 // it opens after a turn; the rule may carry a text after it.
 var dialogTop = strings.Repeat("▔", 8)
+
+// askTabs is the first line under the rule of AskUserQuestion: its
+// questions' tabs, each with a box ticked once answered (☐ Color, ☒ Color),
+// after an arrow when there are several (← ☐ Color ☐ Sizes ✔ Submit →).
+var askTabs = regexp.MustCompile(`^(?:← )?[☐☒] `)
 
 // optionMark is what precedes an option's label on its line: the arrow
 // that says the list scrolls on, and the option's number.
