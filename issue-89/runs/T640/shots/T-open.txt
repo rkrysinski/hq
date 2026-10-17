@@ -1,0 +1,30 @@
+ ▐▛███▛█   Claude Code v2.1.302
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   /…/5be29c0e-761b-4f5f-a874-a65b830ec0ef/scratchpad/spiket/wT
+
+
+❯ Use the AskUserQuestion tool once to ask me "Which planet?" with the options Mars and Venus
+  (single choice). After my answer, reply with one line quoting exactly the answer you received,
+  and do nothing else.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ Planet
+
+Which planet?
+
+❯ 1. Mars
+     The red planet
+  2. Venus
+     The second planet from the Sun
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+

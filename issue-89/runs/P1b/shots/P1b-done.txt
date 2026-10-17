@@ -1,0 +1,30 @@
+
+● User answered Claude's questions:
+  ⎿  · Which color? → Blue
+     · Which sizes? → Small, Large, XL
+     · Which name? → Gamma typed
+
+● "Which color?"="Blue"
+  "Which sizes?"="Small, Large, XL"
+  "Which name?"="Gamma typed"
+
+✻ Worked for 9s · done 6:33 AM
+
+❯ Use the AskUserQuestion tool once to ask me "Which bird?" with the options Crow and Owl (single
+  choice). After my answer, reply with one line quoting exactly the answer you received, and do
+  nothing else.
+
+● User answered Claude's questions:
+  ⎿  · Which bird? → Owl
+
+● "Which bird?"="Owl"
+
+✻ Crunched for 6s · done 6:33 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+
+
+

@@ -1,0 +1,15 @@
+1792219427.703792075 KEY p C3-prompt
+1792219427.708398325 KEY p C3-enter
+1792219427.723989992 hook UserPromptSubmit pid=930058 {}
+1792219429.605412285 act-start PreToolUse pid=930919
+1792219429.604154035 hook PreToolUse pid=930916 {"tool_name":"AskUserQuestion"}
+1792219429.610465201 act-none PreToolUse pid=930919
+1792219429.619708493 approve-start pid=930931
+1792219429.620745451 act-start PermissionRequest pid=930937
+1792219429.619090910 hook PermissionRequest pid=930934 {"tool_name":"AskUserQuestion"}
+1792219429.626301035 act-answer PermissionRequest pid=930937 {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","updatedInput":{"questions":[{"question":"Which tree?","header":"Tree","options":[{"label":"Oak","description":"Oak"},{"label":"Pine","description":"Pine"}],"multiSelect":false}],"answers":{"Which tree?":"Pine"}}}}}
+1792219429.632532326 hook PostToolUse pid=930955 {"tool_name":"AskUserQuestion"}
+1792219430.456133743 hook Stop pid=931265 {}
+1792219432.626967578 approve-allow pid=930931
+1792219432.909176786 hook SubagentStop pid=932438 {"agent_id":"a061242e763cbd40d"}
+1792219441.715476832 SHOT p C3-after

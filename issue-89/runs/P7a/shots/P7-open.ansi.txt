@@ -1,0 +1,30 @@
+
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once to ask me "Which sea?" with the options North and Baltic [39m
+  [38;5;231m(single choice). After my answer, reply with one line quoting exactly the answer you received, [39m
+  [38;5;231mand do nothing else.[39m
+[38;5;246m[49m  ⎿  [38;5;211mError: hq: cancelled[39m
+[38;5;246m  ⎿  Denied by [1mPermissionRequest[0m[38;5;246m hook[39m
+
+[38;5;231m●[39m I didn't get an answer. The question was cancelled with: [38;5;153mhq: cancelled[39m
+
+[38;5;246m✻[39m [38;5;246mWorked for 6s · done 6:31 AM[39m
+
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once, with three questions in that one call: "Which color?" with [39m
+  [38;5;231moptions Red and Blue (single choice); "Which sizes?" with options Small, Medium and Large [39m
+  [38;5;231m(multiSelect true); "Which name?" with options Alpha and Beta (single choice). After my answers, [39m
+  [38;5;231mreply with one line per question quoting exactly the answer you received, and do nothing else.[39m
+[38;5;246m[49m────────────────────────────────────────────────────────────────────────────────────────────────────
+← [38;5;16m[48;5;153m ☐ Color [39m[49m ☐ Sizes  ☐ Name  ✔ Submit  →
+
+[1m[38;5;231mWhich color?[0m
+
+[38;5;153m❯[39m [38;5;246m1.[39m [38;5;153mRed[39m
+     [38;5;246mChoose red[39m
+  [38;5;246m2.[39m Blue
+     [38;5;246mChoose[39m [38;5;246mblue[39m
+  [38;5;246m3.[39m [38;5;246mType[39m [38;5;246msomething.[39m
+[38;5;246m────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  4. Chat about this
+
+[38;5;246mEnter[39m [38;5;246mto[39m [38;5;246mselect[39m [38;5;246m·[39m [38;5;246mTab/Arrow[39m [38;5;246mkeys[39m [38;5;246mto[39m [38;5;246mnavigate[39m [38;5;246m·[39m [38;5;246mEsc[39m [38;5;246mto[39m [38;5;246mcancel[39m
+

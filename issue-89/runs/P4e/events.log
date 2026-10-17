@@ -1,0 +1,19 @@
+1792219049.507612270 KEY p P4e-prompt
+1792219049.511993062 KEY p P4e-enter
+1792219049.522447812 hook UserPromptSubmit pid=763462 {}
+1792219051.612993479 hook PreToolUse pid=764383 {"tool_name":"ToolSearch"}
+1792219051.626189438 hook PostToolUse pid=764388 {"tool_name":"ToolSearch"}
+1792219053.594818730 hook PreToolUse pid=765229 {"tool_name":"mcp__elicit__ask_color"}
+1792219053.611100355 act-start Elicitation pid=765237
+1792219053.609680522 hook Elicitation pid=765234 {"mcp_server_name":"elicit","mode":"form"}
+1792219058.520311316 SHOT p P4e-held
+1792219063.611465068 act-TERM Elicitation pid=765237
+1792219066.531134695 SHOT p P4e-after-timeout
+1792219069.621686821 hook Notification pid=780617 {"notification_type":"elicitation_dialog"}
+1792219075.786007908 KEY p P4e-esc
+1792219075.847486283 hook ElicitationResult pid=782523 {"mcp_server_name":"elicit","mode":"form","action":"cancel"}
+1792219075.863718199 hook Notification pid=782528 {"notification_type":"elicitation_response"}
+1792219095.880178001 hook PostToolUse pid=788158 {"tool_name":"mcp__elicit__ask_color"}
+1792219098.317532460 hook Stop pid=788997 {}
+1792219100.803057336 SHOT p P4e-done
+1792219101.104041503 hook SubagentStop pid=789790 {"agent_id":"a60617058df4dffec"}

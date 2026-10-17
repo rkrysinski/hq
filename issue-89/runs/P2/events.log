@@ -1,0 +1,19 @@
+1792218629.363753736 KEY p P2-prompt
+1792218629.368894820 KEY p P2-enter
+1792218629.379377611 hook UserPromptSubmit pid=594845 {}
+1792218631.963496988 act-start PreToolUse pid=595676
+1792218631.961742529 hook PreToolUse pid=595673 {"tool_name":"AskUserQuestion"}
+1792218631.970301821 act-none PreToolUse pid=595676
+1792218631.980364363 act-start PermissionRequest pid=595691
+1792218631.978931863 hook PermissionRequest pid=595688 {"tool_name":"AskUserQuestion"}
+1792218637.988130032 hook Notification pid=598085 {"notification_type":"permission_prompt"}
+1792218643.377456076 SHOT p P2-open
+1792218643.386229160 KEY p P2-terminal-answer-Enter
+1792218643.397673493 hook PostToolUse pid=600370 {"tool_name":"AskUserQuestion"}
+1792218643.893698410 SHOT p P2-answered-terminal
+1792218644.886011202 hook Stop pid=600884 {}
+1792218647.714611787 hook SubagentStop pid=602180 {"agent_id":"aac14aa6fb213e15f"}
+1792218649.903255413 SHOT p P2-done-terminal
+1792218654.793318957 DROP late answer Pear
+1792218654.815991332 act-answer PermissionRequest pid=595691 {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","updatedInput":{"questions":[{"question":"Which fruit?","header":"Fruit","options":[{"label":"Apple","description":"Choose apple"},{"label":"Pear","description":"Choose pear"}],"multiSelect":false}],"answers":{"Which fruit?":"Pear"}}}}}
+1792218659.797377543 SHOT p P2-after-late

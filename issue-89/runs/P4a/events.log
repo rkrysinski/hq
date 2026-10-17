@@ -1,0 +1,19 @@
+1792219009.932470710 hook SessionEnd pid=744877 {"reason":"other"}
+1792219010.665110668 hook SessionStart pid=745559 {"source":"startup"}
+1792219016.897544713 KEY p P4-prompt
+1792219016.903865046 KEY p P4-enter
+1792219016.937896963 hook UserPromptSubmit pid=750667 {}
+1792219020.585947548 act-start PreToolUse pid=751965
+1792219020.584714881 hook PreToolUse pid=751962 {"tool_name":"AskUserQuestion"}
+1792219020.590449715 act-none PreToolUse pid=751965
+1792219020.600150590 act-start PermissionRequest pid=751980
+1792219020.599127298 hook PermissionRequest pid=751977 {"tool_name":"AskUserQuestion"}
+1792219025.910955467 SHOT p P4-open-before-timeout
+1792219026.646553051 hook Notification pid=754379 {"notification_type":"permission_prompt"}
+1792219030.600529886 act-TERM PermissionRequest pid=751980
+1792219033.921536679 SHOT p P4-after-timeout
+1792219038.515430557 KEY p P4-terminal-2
+1792219038.528681932 hook PostToolUse pid=758885 {"tool_name":"AskUserQuestion"}
+1792219040.173136849 hook Stop pid=759832 {}
+1792219042.364845683 hook SubagentStop pid=760657 {"agent_id":"adb1d460b32b1ffc0"}
+1792219045.522743143 SHOT p P4-answered-after-timeout

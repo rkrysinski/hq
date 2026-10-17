@@ -1,0 +1,30 @@
+  ⎿  Allowed by PermissionRequest hook
+
+● "Which color?"="Blue"
+  "Which sizes?"="Small, Large"
+  "Which name?"="Gamma, typed by hq"
+
+✻ Crunched for 5s · done 6:32 AM
+
+❯ Use the AskUserQuestion tool once, with three questions in that one call: "Which color?" with
+  options Red and Blue (single choice); "Which sizes?" with options Small, Medium and Large
+  (multiSelect true); "Which name?" with options Alpha and Beta (single choice). After my answers,
+  reply with one line per question quoting exactly the answer you received, and do nothing else.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+←  ☒ Color  ☒ Sizes  ☐ Name  ✔ Submit  →
+
+Which sizes?
+
+  1. [✔] Small
+         Choose small
+  2. [ ] Medium
+         Choose medium
+  3. [✔] Large
+         Choose large
+❯ 4. [✔] XL
+     Next
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  5. Chat about this
+
+Enter to select · Tab/Arrow keys to navigate · Esc to cancel
+

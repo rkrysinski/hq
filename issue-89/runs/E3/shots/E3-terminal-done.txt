@@ -1,0 +1,30 @@
+
+ ▐▛███▛█   Claude Code v2.1.302
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   /…/5be29c0e-761b-4f5f-a874-a65b830ec0ef/scratchpad/spike/wE
+
+
+❯ Use the AskUserQuestion tool once to ask me "Which color?" with the options Red and Blue (single
+  choice). After my answer, reply with one line quoting exactly the answer you received, and do
+  nothing else.
+    ✓ Pytam Cię                                                     ━━━━━━━━━━━━━━━━━━━━       37 s
+
+● User answered Claude's questions:
+  ⎿  · Which color? → Blue
+╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                        │
+│ "Blue"                                                                                          │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Brewed for 3s · done 6:42 AM
+
+
+
+
+                                                                                  ● high · /effort
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5h ▕██▎░░░░░░░░░▏ 19%…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                                       ◆ Tools ▾

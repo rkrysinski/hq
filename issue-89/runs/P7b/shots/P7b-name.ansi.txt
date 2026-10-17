@@ -1,0 +1,30 @@
+[38;5;246m  ⎿  Allowed by [1mPermissionRequest[0m[38;5;246m hook[39m
+
+[38;5;231m●[39m "Which color?"="Blue"
+  "Which sizes?"="Small, Large"
+  "Which name?"="Gamma, typed by hq"
+
+[38;5;246m✻[39m [38;5;246mCrunched for 5s · done 6:32 AM[39m
+
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once, with three questions in that one call: "Which color?" with [39m
+  [38;5;231moptions Red and Blue (single choice); "Which sizes?" with options Small, Medium and Large [39m
+  [38;5;231m(multiSelect true); "Which name?" with options Alpha and Beta (single choice). After my answers, [39m
+  [38;5;231mreply with one line per question quoting exactly the answer you received, and do nothing else.[39m
+[38;5;246m[49m────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m←  ☒ Color  ☒ Sizes [38;5;16m[48;5;153m ☐ Name [39m[49m ✔ Submit  →
+
+[1m[38;5;231mWhich name?[0m
+
+[38;5;153m❯[39m [38;5;246m1.[39m [38;5;153mAlpha[39m
+     [38;5;246mChoose Alpha[39m
+  [38;5;246m2.[39m Beta
+     [38;5;246mChoose Beta[39m
+  [38;5;246m3. Type something.[39m
+[38;5;246m────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  4. Chat about this
+
+[38;5;246mEnter to select · Tab/Arrow keys to navigate · Esc to cancel[39m
+
+
+
+

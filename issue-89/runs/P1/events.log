@@ -1,0 +1,19 @@
+1792218563.664429288 hook SessionEnd pid=564497 {"reason":"other"}
+1792218564.385373164 hook SessionStart pid=565049 {"source":"startup"}
+1792218576.476985503 KEY p P1-prompt
+1792218576.481859795 KEY p P1-enter
+1792218576.507559378 hook UserPromptSubmit pid=570337 {}
+1792218579.738712796 act-start PreToolUse pid=571719
+1792218579.737409338 hook PreToolUse pid=571715 {"tool_name":"AskUserQuestion"}
+1792218579.745093921 act-none PreToolUse pid=571719
+1792218579.755361879 act-start PermissionRequest pid=571744
+1792218579.754105004 hook PermissionRequest pid=571741 {"tool_name":"AskUserQuestion"}
+1792218585.769643716 hook Notification pid=574741 {"notification_type":"permission_prompt"}
+1792218591.488684635 SHOT p P1-open
+1792218596.676836471 DROP answer Blue
+1792218596.753462221 act-answer PermissionRequest pid=571744 {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","updatedInput":{"questions":[{"question":"Which color?","header":"Color","options":[{"label":"Red","description":"Choose red"},{"label":"Blue","description":"Choose blue"}],"multiSelect":false}],"answers":{"Which color?":"Blue"}}}}}
+1792218596.763208096 hook PostToolUse pid=580104 {"tool_name":"AskUserQuestion"}
+1792218597.280515763 SHOT p P1-after06
+1792218598.934896389 hook Stop pid=581108 {}
+1792218601.836357265 hook SubagentStop pid=582609 {"agent_id":"a3e63ada13e1b6efa"}
+1792218607.288880976 SHOT p P1-done

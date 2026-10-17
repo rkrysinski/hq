@@ -1,0 +1,30 @@
+  ⎿  · Which color? → Blue
+
+● "Blue"
+
+✻ Worked for 3s · done 6:57 AM
+
+❯ Say hi in one word.
+
+● Hi
+
+✻ Worked for 1s · done 6:58 AM
+
+❯ Call the ask_color tool of the elicit MCP server once, then reply with its result in one line.
+
+● Calling elicit… (ctrl+o to expand)
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  MCP server “elicit” requests your input
+
+  Which color should I use?
+
+    ✔ Color: red
+        Pick one
+
+  ❯ Accept    Decline
+
+  Esc to cancel · ↑/↓ to navigate
+
+
+

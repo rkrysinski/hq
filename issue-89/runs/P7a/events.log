@@ -1,0 +1,17 @@
+1792218721.918375531 KEY p P7-prompt
+1792218721.924128572 KEY p P7-enter
+1792218721.935827906 hook UserPromptSubmit pid=631544 {}
+1792218725.522947366 act-start PreToolUse pid=633113
+1792218725.521847241 hook PreToolUse pid=633110 {"tool_name":"AskUserQuestion"}
+1792218725.527442324 act-none PreToolUse pid=633113
+1792218725.535110616 act-start PermissionRequest pid=633128
+1792218725.533779657 hook PermissionRequest pid=633125 {"tool_name":"AskUserQuestion"}
+1792218731.539886743 hook Notification pid=635513 {"notification_type":"permission_prompt"}
+1792218736.931326454 SHOT p P7-open
+1792218742.273827540 DROP 3 answers list+text
+1792218742.373069749 act-answer PermissionRequest pid=633128 {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","updatedInput":{"questions":[{"question":"Which color?","header":"Color","options":[{"label":"Red","description":"Choose red"},{"label":"Blue","description":"Choose blue"}],"multiSelect":false},{"question":"Which sizes?","header":"Sizes","options":[{"label":"Small","description":"Choose small"},{"label":"Medium","description":"Choose medium"},{"label":"Large","description":"Choose large"}],"multiSelect":true},{"question":"Which name?","header":"Name","options":[{"label":"Alpha","description":"Choose Alpha"},{"label":"Beta","description":"Choose Beta"}],"multiSelect":false}],"answers":{"Which color?":"Blue","Which sizes?":["Small","Large"],"Which name?":"Gamma, typed by hq"}}}}}
+1792218742.380072624 hook PostToolUse pid=639852 {"tool_name":"AskUserQuestion"}
+1792218742.778382457 SHOT p P7-05
+1792218743.860928416 hook Stop pid=640505 {}
+1792218748.755792252 hook SubagentStop pid=642443 {"agent_id":"a9fa930e1ba65b9e1"}
+1792218751.788315128 SHOT p P7-done

@@ -1,0 +1,30 @@
+ ▝▝   ▝▝   /…/5be29c0e-761b-4f5f-a874-a65b830ec0ef/scratchpad/spike/wP
+
+
+❯ Use the AskUserQuestion tool once to ask me "Which color?" with the options Red and Blue (single
+  choice). After my answer, reply with one line quoting exactly the answer you received, and do
+  nothing else.
+
+● User answered Claude's questions:
+  ⎿  · Which color? → Blue
+  ⎿  Allowed by PermissionRequest hook
+
+● "Which color?"="Blue"
+
+✻ Baked for 5s · done 6:29 AM
+
+❯ Use the AskUserQuestion tool once to ask me "Which fruit?" with the options Apple and Pear
+  (single choice). After my answer, reply with one line quoting exactly the answer you received,
+  and do nothing else.
+
+● User answered Claude's questions:
+  ⎿  · Which fruit? → Apple
+
+· Tomfoolering… (running PermissionRequest hooks… 1/2 · 3s · ↓ 131 tokens)
+  ⎿  Tip: Use /statusline to set up a custom status line that will display beneath the input box
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · esc to interrupt                ● high · /effort
+

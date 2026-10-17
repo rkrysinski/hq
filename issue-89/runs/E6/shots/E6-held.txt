@@ -1,0 +1,30 @@
+  ⎿  · Which color? → Blue
+     · Which sizes? → Small, Large, XL
+     · Which name? → Gamma typed
+╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                        │
+│ "Blue"                                                                                          │
+│ "Small, Large, XL"                                                                              │
+│ "Gamma typed"                                                                                   │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Worked for 1m 1s · done 6:46 AM
+
+❯ Call the ask_color tool of the elicit MCP server once, then reply with its result in one line.
+╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                        │
+│ ▾ 2 komendy · ◓ · 7,0 s                                                                         │
+│   ▸ ✓ Szukam narzędzia: select:mcp__elicit__ask_color          ━━━━━━━━━━━━━━━━━━━━      0,0 s  │
+│   ▸ ◓ elicit: ask_color                                        ━━░░░░░░░░░░░░░░░░░░      6,0 s  │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✽ elicit: ask_color… (running Elicitation hooks… 1/2 · 8s · ↓ 121 tokens)
+  ⎿  Tip: Use Plan Mode to prepare for a complex request before making changes. Press shift+tab
+     twice to enable.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▐–◡–▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5h ▕██▍░░░░░░░░░▏ 20%…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                                       ◆ Tools ▾

@@ -1,0 +1,30 @@
+
+❯ Use the AskUserQuestion tool once to ask me "Which bird?" with the options Crow and Owl (single
+  choice). After my answer, reply with one line quoting exactly the answer you received, and do
+  nothing else.
+
+● User answered Claude's questions:
+  ⎿  · Which bird? → Owl
+
+● "Which bird?"="Owl"
+
+✻ Crunched for 6s · done 6:33 AM
+
+❯ Use the AskUserQuestion tool once to ask me "Which stone?" with the options Granite and Basalt
+  (single choice). After my answer, reply with one line quoting exactly the answer you received,
+  and do nothing else.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ Stone
+
+Which stone?
+
+❯ 1. Granite
+     Choose granite
+  2. Basalt
+     Choose basalt
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+

@@ -1,0 +1,30 @@
+
+❯ Use the AskUserQuestion tool once to ask me "Which fruit?" with the options Apple and Pear
+  (single choice). After my answer, reply with one line quoting exactly the answer you received,
+  and do nothing else.
+
+● User answered Claude's questions:
+  ⎿  · Which fruit? → Apple
+
+● "Which fruit?"="Apple"
+
+✻ Worked for 4s · done 6:30 AM
+
+❯ Use the AskUserQuestion tool once to ask me "Which tree?" with the options Oak and Pine (single
+  choice). After my answer, reply with one line quoting exactly the answer you received, and do
+  nothing else.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ Tree
+
+Which tree?
+
+❯ 1. Oak
+     Choose oak
+  2. Pine
+     Choose pine
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
