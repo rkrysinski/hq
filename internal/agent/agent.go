@@ -164,6 +164,16 @@ func (s Sandboxes) stopped(a Agent) bool {
 	return s.Running != nil && !s.Running[a.Sandbox] && a.reported && !a.reportAt.After(s.Asked)
 }
 
+// Ends reports whether the answer leaves nothing of a to end in its
+// sandbox: the sandbox does not run (listed as not running, or not listed
+// at all) and a's session went with it, its pane dead or, while the pane
+// still runs, ended by the list's rule (stopped). sbx exec would start the
+// sandbox again (#101), so hq kill leaves such a sandbox alone (#87). When
+// sbx could not say, nothing is known to have ended.
+func (s Sandboxes) Ends(a Agent) bool {
+	return s.Running != nil && !s.Running[a.Sandbox] && (!a.Alive || s.stopped(a))
+}
+
 // Collect is the row model's collection, shared by hq ls and the list
 // program (design §3.8, §5.1): the agents of the home windows with what
 // their state files report, and ended when sbx lists their sandbox as not

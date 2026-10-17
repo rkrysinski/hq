@@ -8,10 +8,13 @@
 # running only once that file exists, as sbx takes a while to start one
 # before the session begins. `create` logs its arguments to creates.log,
 # and with SBX_STUB_CREATE_ERR set fails with that error, as sbx does for a
-# template or MCP server it cannot find.
+# template or MCP server it cannot find. With SBX_STUB_LOG set to a path,
+# every call is appended to that file with the time it came, to tell which
+# call changed a sandbox's status (#87).
 set -eu
 d=${SBX_STUB_DIR:?SBX_STUB_DIR not set}
 mkdir -p "$d/sandboxes"
+[ -z "${SBX_STUB_LOG:-}" ] || printf '%s %s\n' "$(date +%H:%M:%S.%N 2>/dev/null || date +%H:%M:%S)" "$*" >>"$SBX_STUB_LOG"
 
 # put NAME STATUS WORKSPACE writes a sandbox's file whole: written aside,
 # then renamed over it, so an `ls` running at the same time reads the old

@@ -191,6 +191,28 @@ func TestKillLeavesAStoppedSandboxAlone(t *testing.T) {
 	}
 }
 
+func TestKillLeavesAStoppedSandboxAloneWhileThePaneStillRuns(t *testing.T) {
+	// a's sandbox was stopped; the list shows a ended (its report is older
+	// than sbx's answer) while its pane still runs: sbx run has not returned
+	// yet. Nothing of a is left to end in the sandbox, and sbx exec would
+	// start it again (#87, #101): hq waits for the pane to go, no more.
+	f := killFakes()
+	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "stopped"}}
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: hello"}
+	f.onSleep = func() { f.tmux.windows[1].PaneDead = true } // sbx run returns
+	if code, out, _ := f.run("kill", "a", "-y"); code != 0 || out != "killed a; the sandbox stays\n" || f.names() != "hq b gone" || strings.Join(f.removed, ", ") != "/w/app id-a" {
+		t.Fatalf("exit %d %q windows %q removed %v", code, out, f.names(), f.removed)
+	}
+	if f.execs() != "" || f.sbx.sandboxes[0].Status != "stopped" {
+		t.Fatalf("execs %q, sandbox %v", f.execs(), f.sbx.sandboxes)
+	}
+	// b has not reported: its session may still be on its way into the
+	// sandbox, which sbx run is starting (S2). hq ends it there.
+	if code, _, _ := f.run("kill", "b", "-y"); code != 0 || f.execs() != `claude-x pkill -TERM -f HQ_ID":"id-b"` || f.names() != "hq gone" {
+		t.Fatalf("exit %d execs %q windows %q", code, f.execs(), f.names())
+	}
+}
+
 func TestKillRemovesTheWindowWhenTheSessionDoesNotEnd(t *testing.T) {
 	f := killFakes()
 	f.sbx.onExec = nil // Claude ignores SIGTERM

@@ -118,19 +118,19 @@ func plural(n int, word string) string {
 // Claude running inside the sandbox, so each session first gets SIGTERM
 // there, found by the HQ_ID in its settings argument, whatever its pane's
 // state: a pane can die (its host-side sbx run ended) while Claude lives on
-// in the sandbox. Only a sandbox that sbx lists as not running is left
-// alone: nothing runs in it, and sbx exec would start it again.
+// in the sandbox. Only an agent with nothing left to end in its sandbox is
+// left alone (agent.Sandboxes.Ends): sbx lists the sandbox as not running
+// and the session went with it, as the list shows it ended, whether or not
+// its pane has died yet (#87); sbx exec would start the sandbox again
+// (#101). sbx is asked once, with the agents' reports read after it, as the
+// list does.
 func endAgents(d deps, as []agent.Agent) error {
-	var stopped func(sandbox string) bool
+	sandboxes := runningSandboxes(d)
 	var orphans []agent.Agent // signalled sessions without a live pane
 	for _, a := range as {
-		if !a.Alive {
-			if stopped == nil {
-				stopped = stoppedSandboxes(d)
-			}
-			if stopped(a.Sandbox) {
-				continue
-			}
+		a.Apply(d.readState(a.RepoPath, a.ID))
+		if sandboxes.Ends(a) {
+			continue
 		}
 		// No match (the session already ended) fails, and is not an error.
 		err := d.sbx.Exec(a.Sandbox, "pkill", "-TERM", "-f", sessionPattern(a.ID))
@@ -144,21 +144,6 @@ func endAgents(d deps, as []agent.Agent) error {
 // sessionPattern finds an agent's Claude session among the sandbox's
 // processes (pkill and pgrep -f): the HQ_ID in its settings argument.
 func sessionPattern(id string) string { return `HQ_ID":"` + id + `"` }
-
-// stoppedSandboxes asks sbx once which sandboxes run and reports those known
-// not to: listed as not running, or not listed at all. When sbx cannot tell,
-// no sandbox is known to be stopped.
-func stoppedSandboxes(d deps) func(sandbox string) bool {
-	all, err := d.pollSandboxes()
-	if err != nil {
-		return func(string) bool { return false }
-	}
-	running := map[string]bool{}
-	for _, s := range all {
-		running[s.Name] = s.Running()
-	}
-	return func(sandbox string) bool { return !running[sandbox] }
-}
 
 // removeAgents waits up to endWait for the agents' sessions to exit, orphans
 // (sessions whose pane died) included, then removes their home windows and
