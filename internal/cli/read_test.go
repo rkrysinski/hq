@@ -91,12 +91,12 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 				{Name: "color", Title: "Color", Description: "Pick one", Type: "string", Required: true, Options: []state.AskFieldOption{{Value: "red"}, {Value: "blue"}}},
 				{Name: "name", Title: "Name", Type: "string"},
 				{Name: "engine", Type: "string", Options: []state.AskFieldOption{{Value: "pg", Title: "PostgreSQL"}, {Value: "my", Title: "MySQL"}}, Default: "pg"},
-				{Name: "size", Type: "integer", Required: true, Default: float64(3)},
+				{Name: "size", Type: "integer", Required: true, Default: float64(1000000)},
 				{Name: "backup", Type: "boolean", Default: false, Description: "Keep a daily copy of every table, off site, for thirty days"},
 			}}},
 			"last      Which color should I use?\n\nasks\n  elicit asks: Which color should I use?\n" +
 				"    color (Color, required): red | blue - Pick one\n    name (Name): text\n    engine: PostgreSQL | MySQL [default: PostgreSQL]\n" +
-				"    size (required): integer [default: 3]\n    backup: boolean [default: false] - Keep a daily copy of eve…\n"},
+				"    size (required): integer [default: 1000000]\n    backup: boolean [default: false] - Keep a daily copy of eve…\n"},
 		{"MCP URL", state.Report{State: state.NeedsInput, Last: "Sign in to the example service."},
 			state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Sign in to the example service.", URL: "https://example.com/sign-in?session=42"}},
 			"last      Sign in to the example service.\n\nasks\n  elicit asks: Sign in to the example service.\n    url: https://example.com/sign-in?session=42\n"},

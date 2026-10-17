@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"strconv"
@@ -104,7 +105,7 @@ func runRead(env Env, d deps, args []string) error {
 	if r.offset > 0 && replyChanged(det.ReplyAt, r.since) {
 		return usageErr("%s's reply changed since %s: read it again from its start, without --offset", a.Name, r.since.Format(time.RFC3339Nano))
 	}
-	v, err := newReadView(detailedLsRow(d, a, d.now(), det), det, worktree(d, a), r.offset)
+	v, err := newReadView(lsRowWithDetail(d, a, d.now(), det), det, worktree(d, a), r.offset)
 	if err != nil {
 		return err
 	}
@@ -250,7 +251,7 @@ func writeAsk(b *strings.Builder, a *state.Ask) {
 // each field of its form, or the page a URL-mode one sends the user to,
 // each line cut as LAST is.
 func writeForm(b *strings.Builder, a *state.Ask) {
-	line := func(indent, s string) { b.WriteString(indent + truncate(s, lastWidth) + "\n") }
+	line := func(pad, s string) { b.WriteString(pad + truncate(s, lastWidth) + "\n") }
 	line("  ", a.Server+" asks: "+a.Message)
 	for _, f := range a.Fields {
 		line("    ", fieldLine(f))
@@ -276,17 +277,9 @@ func fieldLine(f state.AskField) string {
 	if len(about) > 0 {
 		s += " (" + strings.Join(about, ", ") + ")"
 	}
-	shown := func(value string) string {
-		for _, o := range f.Options {
-			if o.Value == value && o.Title != "" {
-				return o.Title
-			}
-		}
-		return value
-	}
 	var opts []string
 	for _, o := range f.Options {
-		opts = append(opts, shown(o.Value))
+		opts = append(opts, cmp.Or(o.Title, o.Value))
 	}
 	switch {
 	case len(opts) > 0:
@@ -297,7 +290,16 @@ func fieldLine(f state.AskField) string {
 		s += ": " + f.Type
 	}
 	if f.Default != nil {
-		s += " [default: " + shown(fmt.Sprint(f.Default)) + "]"
+		def := fmt.Sprint(f.Default)
+		if n, ok := f.Default.(float64); ok {
+			def = strconv.FormatFloat(n, 'f', -1, 64) // 1000000, not 1e+06
+		}
+		for _, o := range f.Options {
+			if o.Value == def {
+				def = cmp.Or(o.Title, def)
+			}
+		}
+		s += " [default: " + def + "]"
 	}
 	if f.Description != "" {
 		s += " - " + f.Description

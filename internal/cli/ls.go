@@ -102,11 +102,11 @@ func newLsRow(d deps, a agent.Agent, now time.Time) lsRow {
 	if a.Dialog().Open() || a.State == state.Question {
 		det = d.readDetail(a.RepoPath, a.ID)
 	}
-	return detailedLsRow(d, a, now, det)
+	return lsRowWithDetail(d, a, now, det)
 }
 
-// detailedLsRow is newLsRow with the detail of a's report given (det).
-func detailedLsRow(d deps, a agent.Agent, now time.Time, det state.Detail) lsRow {
+// lsRowWithDetail is newLsRow with the detail of a's report given (det).
+func lsRowWithDetail(d deps, a agent.Agent, now time.Time, det state.Detail) lsRow {
 	return lsRow{
 		Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
 		Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
