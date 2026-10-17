@@ -29,6 +29,7 @@ type lsRow struct {
 	// OwnTasks are its own tasks at the turn end its done or question comes
 	// from (#78), in full; [] when none, never null.
 	OwnTasks []state.Task `json:"own_tasks"`
+	Asks     *state.Ask   `json:"asks"` // what the agent asks while question or needs input, else null
 }
 
 func runLs(env Env, d deps, args []string) error {
@@ -97,13 +98,39 @@ func writeTable(w io.Writer, rows []lsRow) error {
 }
 
 // newLsRow is agent a as hq ls --json shows it at now, with how many
-// messages wait for it.
+// messages wait for it and what it asks. Only an agent that may ask has
+// its detail read.
 func newLsRow(d deps, a agent.Agent, now time.Time) lsRow {
+	var det state.Detail
+	if a.Dialog().Open() || a.State == state.Question {
+		det = d.readDetail(a.RepoPath, a.ID)
+	}
+	return lsRowWithDetail(d, a, now, det)
+}
+
+// lsRowWithDetail is newLsRow with the detail of a's report given (det).
+func lsRowWithDetail(d deps, a agent.Agent, now time.Time, det state.Detail) lsRow {
 	return lsRow{
 		Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
 		Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
-		Pending: d.pending(a.RepoPath, a.ID), Dialog: a.Dialog().ID(), OwnTasks: append([]state.Task{}, a.OwnTasks...),
+		Pending: d.pending(a.RepoPath, a.ID), Dialog: a.Dialog().ID(), OwnTasks: append([]state.Task{}, a.OwnTasks...), Asks: asks(a, det),
 	}
+}
+
+// asks is what agent a asks, its report's detail det: what the dialog it is
+// at asks, as its dialog verdict says (the detail's for a dialog its hooks
+// reported, the screen's for one of Claude's own), the end of its reply,
+// where the question is, while it asks one; nil otherwise.
+func asks(a agent.Agent, det state.Detail) *state.Ask {
+	switch dialog := a.Dialog(); {
+	case dialog.Open():
+		return dialog.Asks(det.Ask)
+	case a.State == state.Question:
+		if q := lastParagraph(det.Reply); q != "" {
+			return &state.Ask{Message: q}
+		}
+	}
+	return nil
 }
 
 // gatherAgents gathers the agents as hq ls shows them, once tmux is known to be

@@ -234,6 +234,11 @@ func TestAnswerRefusesWhatHqDoesNotAnswer(t *testing.T) {
 		{name: "permission prompt", report: state.Report{State: state.NeedsInput, Last: "Bash: make test"},
 			detail: state.Detail{Ask: &state.Ask{Tool: "Bash", Command: "make test"}},
 			want:   "hq: a is at a permission prompt (Bash: make test); permission prompts are answered at the agent (hq go a)\n"},
+		{name: "MCP form", report: state.Report{State: state.NeedsInput, Last: "Which color should I use?"},
+			detail: state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{{Name: "color", Type: "string"}}}},
+			want:   "hq: a is at an MCP server's form (elicit: Which color should I use?), which hq does not answer; answer it at the agent (hq go a)\n"},
+		// An agent of hq 0.6.3 or older reports a form by Claude's own
+		// notification, which says nothing of it (#100).
 		{name: "elicitation", report: state.Report{State: state.NeedsInput, Last: "Claude Code needs your input"},
 			detail: state.Detail{Ask: &state.Ask{Message: "Claude Code needs your input"}},
 			want:   "hq: a is at a dialog hq does not answer (Claude Code needs your input), such as an MCP elicitation; answer it at the agent (hq go a)\n"},

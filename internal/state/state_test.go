@@ -185,11 +185,13 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	if s.Env["HQ_AGENT"] != "a" || s.Env["HQ_ID"] != "0123abcd" || s.Env["TMUX"] == "" || s.Env["HQ_HOOK"] != hookScript {
 		t.Fatalf("env %v", s.Env)
 	}
-	// Only Stop, a dialog and the attention Notifications notify, with the
-	// sequence; the end of any tool may close a dialog.
+	// Only Stop, a dialog (an MCP elicitation's too) and the attention
+	// Notifications notify, with the sequence; the end of any tool may close
+	// a dialog, and the answer to an elicitation's form closes it.
 	events := map[string]string{
 		"UserPromptSubmit": "prompt", "PermissionRequest": "dialog \\u0007", "PostToolUse": "answer", "PostToolUseFailure": "answer",
 		"Stop": "stop \\u0007", "Notification": "input \\u0007", "SessionEnd": "end",
+		"Elicitation": "dialog \\u0007", "ElicitationResult": "result",
 	}
 	// SessionStart: a new session or /clear starts, a resumed one resumes;
 	// never a compaction, which may come in the middle of a turn. Neither
@@ -219,7 +221,9 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 			t.Errorf("%s: %+v", event, h)
 		}
 	}
-	if s.Hooks["Notification"][0].Matcher != "permission_prompt|agent_needs_input|elicitation_dialog" {
+	// An MCP elicitation is reported by its own hook (#100), not by the
+	// Notification Claude sends for it.
+	if s.Hooks["Notification"][0].Matcher != "permission_prompt|agent_needs_input" {
 		t.Errorf("matcher %q", s.Hooks["Notification"][0].Matcher)
 	}
 	// The settings are one argument of sbx run (hq __session writes them out,
@@ -228,9 +232,12 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	if len(raw) > 24<<10 {
 		t.Errorf("settings of %d bytes", len(raw))
 	}
-	// The hook script has been kept within 8 KiB of the settings (design
-	// §3.4); a change that needs more says so here.
-	if len(hookScript) > 8<<10 {
+	// The hook script has been kept within a budget of the settings (design
+	// §3.4); a change that needs more says so here. 9 KiB since question
+	// dialogs are answered from hq (#90): the hold that takes the answer
+	// came on top of the elicitation's report (#100), well within the 24
+	// KiB of the settings.
+	if len(hookScript) > 9<<10 {
 		t.Errorf("hook script of %d bytes", len(hookScript))
 	}
 	for _, event := range []string{"PermissionRequest", "PostToolUse", "PostToolUseFailure"} {
@@ -427,6 +434,46 @@ func TestADialogNotifiedWhileTheAgentWaitsOnBackgroundWorkIsASubagents(t *testin
 	// Beside a wake-up the agent has a turn again: the dialog is its own.
 	if r := Parse(notified, stop, nil).Kept(notified, fixture(t, "prompt-wake"), nil, at); r.SubagentDialog {
 		t.Fatalf("notified after a wake-up: %+v", r)
+	}
+}
+
+// An MCP elicitation is reported by its own hook as it is drawn: the agent
+// needs input at once, with the form's message as its last, and is working
+// again once the form is answered at the agent, accepted, declined or
+// cancelled, with its turn's last message (#100). A turn whose form was
+// answered has been acted on: no early Esc rewinds it.
+func TestAnElicitationNeedsInputUntilItsFormIsAnswered(t *testing.T) {
+	stop := fixture(t, "stop-done")
+	for name, last := range map[string]string{"elicitation": "Which color should I use?", "elicitation-url": "Sign in to the example service."} {
+		if r := Parse(fixture(t, name), stop, nil); r.State != NeedsInput || r.Last != last || r.LastStop != "Hi. The tests pass and PR #58 is open." || r.SubagentDialog || r.Acted {
+			t.Errorf("%s: %+v", name, r)
+		}
+	}
+	for _, name := range []string{"elicitation-result-accept", "elicitation-result-decline", "elicitation-result-cancel", "elicitation-result-url-accept"} {
+		if r := Parse(fixture(t, name), stop, nil); r.State != Working || r.Last != "Hi. The tests pass and PR #58 is open." || !r.Acted || r.Prompt != "" {
+			t.Errorf("%s: %+v", name, r)
+		}
+	}
+	// An elicitation with no message says which server asks.
+	if r := Parse([]byte(`{"hook_event_name":"Elicitation","mcp_server_name":"elicit","mode":"form"}`), nil, nil); r.State != NeedsInput || r.Last != "elicit" {
+		t.Errorf("no message: %+v", r)
+	}
+}
+
+// A background subagent's elicitation carries nothing of the subagent's
+// (#89): reported after the agent's turn ended with the subagent running,
+// beside the turn end the hook keeps, it is the subagent's, as its
+// Notification was (#70); answered, the agent waits on its subagent again.
+func TestAnElicitationWhileTheAgentWaitsOnBackgroundWorkIsASubagents(t *testing.T) {
+	at := time.Unix(1000, 0)
+	stop := fixture(t, "stop-background")
+	elicited := fixture(t, "elicitation-subagent")
+	if r := Parse(elicited, stop, nil).Kept(elicited, stop, nil, at); r.State != NeedsInput || !r.SubagentDialog || r.Last != "Which color should I use?" {
+		t.Fatalf("a subagent's elicitation: %+v", r)
+	}
+	answered := fixture(t, "elicitation-result-accept-subagent")
+	if r := Parse(answered, stop, nil).Kept(answered, stop, nil, at); r.State != Working || !r.Background || r.SubagentDialog || r.Last != "The tests are running in a subagent." {
+		t.Fatalf("answered: %+v", r)
 	}
 }
 

@@ -20,7 +20,7 @@ tools/capture/capture.sh stop
 
 - `$work` is a scratch directory outside the repository (a fresh `git init` is enough). Claude asks once whether to trust it.
 - 100x30 is the size of most fixtures. Capture a narrow pane (40 columns) too when the rule must hold there.
-- `elicit` (built by `mcp`) has one tool, `ask_color`. It opens an MCP elicitation, then works on for 20 s after the answer, so the screen shows Claude at work on a tool. In the elicitation, `→` opens the field, `Space` picks, `←` and `↓` reach Accept.
+- `elicit` (built by `mcp`) has two tools. `ask_color` opens an MCP elicitation, then works on for 20 s after the answer, so the screen shows Claude at work on a tool. In the elicitation, `→` opens the field, `Space` picks, `←` and `↓` reach Accept. `open_url` opens a URL-mode one ("Call the open_url tool of the elicit MCP server once."), `Enter` accepting it, `→` reaching Decline.
 - Shoot each state the rule tells apart: the dialog open, just after the answer, a while later, the turn done.
 
 ## Then

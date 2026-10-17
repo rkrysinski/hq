@@ -197,6 +197,8 @@ func answerable(a agent.Agent, ask *state.Ask) error {
 		return usageErr("%s is at a dialog of Claude's own (%s), which hq does not answer; %s", a.Name, a.Last, at)
 	case dialog.Whose == agent.SubagentDialog:
 		return usageErr("%s's dialog is one of its subagents' (%s), which hq does not answer; %s", a.Name, a.Last, at)
+	case ask != nil && ask.Server != "":
+		return usageErr("%s is at an MCP server's form (%s: %s), which hq does not answer; %s", a.Name, ask.Server, a.Last, at)
 	case ask == nil || ask.Tool == "":
 		return usageErr("%s is at a dialog hq does not answer (%s), such as an MCP elicitation; %s", a.Name, a.Last, at)
 	case ask.Tool != state.AskTool || len(ask.Questions) == 0:

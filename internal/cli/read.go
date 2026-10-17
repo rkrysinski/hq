@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"strconv"
@@ -23,8 +24,7 @@ type readView struct {
 	ReplySize int    `json:"reply_size"` // the whole reply's size, in bytes
 	// NextOffset is where the reply's next page starts, for hq read
 	// --offset; null on its last page.
-	NextOffset *int       `json:"next_offset"`
-	Asks       *state.Ask `json:"asks"` // what the agent asks while question or needs input, else null
+	NextOffset *int `json:"next_offset"`
 	// NextSince is the moment of the look, for hq wait --since: what
 	// changes after it is returned by hq wait. hq read --since takes it
 	// too, to tell whether the reply's next page is of the same reply.
@@ -107,7 +107,7 @@ func runRead(env Env, d deps, args []string) error {
 	if r.offset > 0 && replyChanged(det.ReplyAt, r.since) {
 		return usageErr("%s's reply changed since %s: read it again from its start, without --offset", a.Name, r.since.Format(time.RFC3339Nano))
 	}
-	v, err := newReadView(newLsRow(d, a, d.now()), det, a.Dialog(), worktree(d, a), r.offset)
+	v, err := newReadView(lsRowWithDetail(d, a, d.now(), det), det, worktree(d, a), r.offset)
 	if err != nil {
 		return err
 	}
@@ -128,25 +128,13 @@ func replyChanged(replyAt, since time.Time) bool {
 }
 
 // newReadView joins the agent as hq ls shows it with what its state files
-// hold in full, its reply from offset. What it asks follows its state: what
-// the dialog it is at asks, as its dialog verdict says (the detail's for a
-// dialog its hooks reported, the screen's for one of Claude's own), the
-// end of its reply, where the question is, while it asks one.
-func newReadView(row lsRow, det state.Detail, dialog agent.Dialog, worktree string, offset int) (readView, error) {
+// hold in full, its reply from offset.
+func newReadView(row lsRow, det state.Detail, worktree string, offset int) (readView, error) {
 	page, next, err := replyPage(det.Reply, offset)
 	if err != nil {
 		return readView{}, err
 	}
-	v := readView{lsRow: row, Worktree: worktree, Reply: page, ReplySize: len(det.Reply), NextOffset: next, offset: offset, full: det.Reply}
-	switch {
-	case dialog.Open():
-		v.Asks = dialog.Asks(det.Ask)
-	case row.State == state.Question:
-		if q := lastParagraph(det.Reply); q != "" {
-			v.Asks = &state.Ask{Message: q}
-		}
-	}
-	return v, nil
+	return readView{lsRow: row, Worktree: worktree, Reply: page, ReplySize: len(det.Reply), NextOffset: next, offset: offset, full: det.Reply}, nil
 }
 
 // replyPage is the page of reply that starts at offset: at most readPage
@@ -245,8 +233,13 @@ func answerHint(name, dialog string, a *state.Ask) string {
 }
 
 // writeAsk prints what the agent asks: each question with its numbered
-// options, a permission's tool and what it would run, or the message.
+// options, a permission's tool and what it would run, an MCP elicitation's
+// form, or the message.
 func writeAsk(b *strings.Builder, a *state.Ask) {
+	if a.Server != "" {
+		writeForm(b, a)
+		return
+	}
 	for _, q := range a.Questions {
 		line := q.Question
 		if q.Header != "" {
@@ -279,6 +272,67 @@ func writeAsk(b *strings.Builder, a *state.Ask) {
 		return
 	}
 	b.WriteString(indent(a.Message) + "\n")
+}
+
+// writeForm prints an MCP elicitation (#100): which server asks what, then
+// each field of its form, or the page a URL-mode one sends the user to,
+// each line cut as LAST is but the URL, in full: cut, it would hide where
+// it sends the user.
+func writeForm(b *strings.Builder, a *state.Ask) {
+	line := func(pad, s string) { b.WriteString(pad + truncate(s, lastWidth) + "\n") }
+	line("  ", a.Server+" asks: "+a.Message)
+	for _, f := range a.Fields {
+		line("    ", fieldLine(f))
+	}
+	if a.URL != "" {
+		b.WriteString("    url: " + a.URL + "\n")
+	}
+}
+
+// fieldLine is a form's field on one line: its name, its title and whether
+// it is required, its options by their titles (or its type, for a free
+// field), its default and its description:
+// "color (Color, required): red | blue - Pick one".
+func fieldLine(f state.AskField) string {
+	var about []string
+	if f.Title != "" {
+		about = append(about, f.Title)
+	}
+	if f.Required {
+		about = append(about, "required")
+	}
+	s := f.Name
+	if len(about) > 0 {
+		s += " (" + strings.Join(about, ", ") + ")"
+	}
+	var opts []string
+	for _, o := range f.Options {
+		opts = append(opts, cmp.Or(o.Title, o.Value))
+	}
+	switch {
+	case len(opts) > 0:
+		s += ": " + strings.Join(opts, " | ")
+	case f.Type == "string":
+		s += ": text"
+	default:
+		s += ": " + f.Type
+	}
+	if f.Default != nil {
+		def := fmt.Sprint(f.Default)
+		if n, ok := f.Default.(float64); ok {
+			def = strconv.FormatFloat(n, 'f', -1, 64) // 1000000, not 1e+06
+		}
+		for _, o := range f.Options {
+			if o.Value == def {
+				def = cmp.Or(o.Title, def)
+			}
+		}
+		s += " [default: " + def + "]"
+	}
+	if f.Description != "" {
+		s += " - " + f.Description
+	}
+	return s
 }
 
 // indent sets text off by two spaces, blank lines left blank.

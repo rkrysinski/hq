@@ -25,11 +25,15 @@
 //     A hook still running when the dialog closes runs on until it ends,
 //     or the session does, which ends it with SIGTERM;
 //   - a prompt containing "elicit" calls an MCP tool that opens an
-//     elicitation, which only Claude's Notification reports (kind
-//     elicitation_dialog); any line answers it, which fires no hook, and
-//     the tool works on, its description on the spinner and no "esc to
-//     interrupt" below the box, as Claude Code 2.1.301 draws it in a
-//     sandbox, until the next line lets the turn finish (#70);
+//     elicitation, as Claude Code 2.1.302 does (#100): Elicitation with the
+//     form, the form drawn, Claude's Notification for it (kind
+//     elicitation_dialog) after the delay, then it waits for a line. "esc"
+//     (or a line with ESC in it) cancels the form, "decline" declines it,
+//     any other line accepts it with that line as its color: ElicitationResult,
+//     then the tool works on, its description on the spinner and no "esc
+//     to interrupt" below the box, as Claude Code 2.1.301 draws it in a
+//     sandbox (#70), until the next line ends the tool (PostToolUse) and
+//     lets the turn finish;
 //   - a prompt containing "slow" works until a line comes: "esc" (or a line
 //     with ESC in it) interrupts the turn, which ends it with no hook, as
 //     Claude Code 2.1.283 does; any other line lets it finish;
@@ -439,12 +443,25 @@ func (c *claude) turn(prompt string) {
 		time.Sleep(c.delay)
 	}
 	if strings.Contains(prompt, "elicit") {
-		c.fire("Notification", map[string]any{"message": elicitMessage, "notification_type": "elicitation_dialog"})
+		c.fire("Elicitation", map[string]any{"mcp_server_name": "elicit", "message": elicitMessage, "mode": "form", "requested_schema": elicitSchema})
 		fmt.Print(elicitForm)
-		c.line()
+		time.Sleep(c.delay)
+		c.fire("Notification", map[string]any{"message": "Claude Code needs your input", "notification_type": "elicitation_dialog"})
+		answer := c.line()
+		result := map[string]any{"mcp_server_name": "elicit", "mode": "form", "action": "accept"}
+		switch {
+		case strings.TrimSpace(answer) == "esc" || strings.Contains(answer, "\x1b"):
+			result["action"] = "cancel"
+		case strings.TrimSpace(answer) == "decline":
+			result["action"] = "decline"
+		default:
+			result["content"] = map[string]string{"color": answer}
+		}
+		c.fire("ElicitationResult", result)
 		fmt.Println("· elicit: ask_color… (1s · ↓ 86 tokens)")
 		promptBox("")
 		c.line()
+		c.fire("PostToolUse", map[string]any{"tool_name": "mcp__elicit__ask_color", "tool_input": map[string]any{}, "tool_use_id": "toolu_fake"})
 	}
 	if strings.Contains(prompt, "slow") {
 		fmt.Println("✻ Working…")
@@ -583,9 +600,13 @@ func (c *claude) subagents() (n int) {
 // question is what the fake's question dialog asks.
 const question = "Which colour do you pick?"
 
-// elicitMessage is the Notification's message for the fake's elicitation,
-// as Claude Code 2.1.301 sends it for any MCP elicitation.
-const elicitMessage = "Claude Code needs your input"
+// elicitMessage and elicitSchema are what the fake's elicitation asks: the
+// form of tools/capture/elicit's ask_color.
+const elicitMessage = "Which color should I use?"
+
+var elicitSchema = map[string]any{"type": "object", "required": []string{"color"}, "properties": map[string]any{
+	"color": map[string]any{"type": "string", "title": "Color", "description": "Pick one", "enum": []string{"red", "blue"}},
+}}
 
 // elicitForm is the elicitation as Claude Code 2.1.301 draws it in place of
 // its prompt box.
@@ -593,9 +614,9 @@ const elicitForm = `
 ────────────────────────────────────────────────────────────────
  MCP server “elicit” requests your input
 
- Pick a colour
+ Which color should I use?
 
- ❯ Colour: (not set)
+ ❯ Color: (not set)
    Accept
    Decline
 `

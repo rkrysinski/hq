@@ -97,6 +97,16 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	if want := "for a question dialog use answer, on the user's word"; !strings.Contains(tools["send"].Description, want) {
 		t.Errorf("send: no %q in %q", want, tools["send"].Description)
 	}
+	// What an agent asks is in list and read alike, an MCP server's form
+	// included, and the supervisor never answers it (#100).
+	for _, name := range []string{"list", "read"} {
+		if want := "an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to)"; !strings.Contains(tools[name].Description, want) {
+			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
+		}
+	}
+	if want := "a dialog open (a permission, questions with options, or an MCP server's form;"; !strings.Contains(mcpInstructions, want) {
+		t.Errorf("no %q in the instructions", want)
+	}
 	// An agent done with its own tasks running takes another turn when they
 	// end (#78): the tools that return it say so, and the instructions too.
 	for name, want := range map[string]string{
@@ -158,6 +168,20 @@ func TestMCPListAndReadGiveWhatHqLsAndHqReadPrint(t *testing.T) {
 	_, read, _ := f.run("read", "a", "--json")
 	if out, isErr := call(t, cs, "read", map[string]any{"name": "a"}); isErr || out != read || !strings.Contains(out, "All tests pass.") {
 		t.Fatalf("read %v:\n%s\nwant\n%s", isErr, out, read)
+	}
+	// What an MCP form asks, the same in both (#100).
+	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Second), Last: "Which color should I use?"}
+	f.details["id-a"] = state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{{Name: "color", Type: "string", Required: true}}}}
+	_, ls, _ = f.run("ls", "--json")
+	_, read, _ = f.run("read", "a", "--json")
+	for tool, want := range map[string]string{"list": ls, "read": read} {
+		args := map[string]any{"name": "a"}
+		if tool == "list" {
+			args = nil
+		}
+		if out, isErr := call(t, cs, tool, args); isErr || out != want || !strings.Contains(out, `"server": "elicit"`) || !strings.Contains(out, `"fields": [`) {
+			t.Fatalf("%s %v:\n%s\nwant\n%s", tool, isErr, out, want)
+		}
 	}
 	// Errors are the CLI's, as a tool error.
 	if out, isErr := call(t, cs, "read", map[string]any{"name": "nobody"}); !isErr || out != "hq: no agent 'nobody' (see hq ls)\n" {

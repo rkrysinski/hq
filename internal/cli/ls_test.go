@@ -143,6 +143,49 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 	}
 }
 
+// hq ls --json says what each agent asks, as hq read does: an MCP form's
+// server, message and fields while it needs input at one (#100), the
+// question while it has one, and null otherwise.
+func TestLsJSONSaysWhatEachAgentAsks(t *testing.T) {
+	f := newLsFakes()
+	f.tmux.windows = []tmux.Window{
+		agentWindow("@1", "a", "/w/app", f.now.Add(-5*time.Minute), false),
+		agentWindow("@2", "b", "/w/app", f.now.Add(-5*time.Minute), false),
+		agentWindow("@3", "c", "/w/app", f.now.Add(-5*time.Minute), false),
+	}
+	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Second), Last: "Which color should I use?"}
+	f.details["id-a"] = state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{
+		{Name: "color", Title: "Color", Description: "Pick one", Type: "string", Required: true, Options: []state.AskFieldOption{{Value: "red"}, {Value: "blue"}}},
+	}}}
+	f.states["id-b"] = state.Report{State: state.Question, Since: f.now.Add(-time.Minute), Last: "Done. Shall I open the PR?"}
+	f.details["id-b"] = state.Detail{Reply: "Done.\n\nShall I open the PR?"}
+	f.states["id-c"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Done."}
+	f.details["id-c"] = state.Detail{Reply: "Done.", Ask: &state.Ask{Message: "Claude needs your permission"}}
+	_, out, _ := f.run("ls", "--json")
+	var l struct {
+		Agents []struct {
+			Name string          `json:"name"`
+			Asks json.RawMessage `json:"asks"`
+		} `json:"agents"`
+	}
+	if err := json.Unmarshal([]byte(out), &l); err != nil || len(l.Agents) != 3 {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	want := map[string]string{
+		"a": `{"server":"elicit","message":"Which color should I use?","fields":[{"name":"color","title":"Color","description":"Pick one","type":"string","required":true,"options":[{"value":"red"},{"value":"blue"}]}]}`,
+		"b": `{"message":"Shall I open the PR?"}`,
+		"c": `null`,
+	}
+	for _, r := range l.Agents {
+		var got, norm any
+		_ = json.Unmarshal(r.Asks, &got)
+		_ = json.Unmarshal([]byte(want[r.Name]), &norm)
+		if mustJSON(got) != mustJSON(norm) {
+			t.Errorf("%s asks %s, want %s", r.Name, r.Asks, want[r.Name])
+		}
+	}
+}
+
 func TestLsCutsTheLastMessageToOneColumn(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now, false)}
