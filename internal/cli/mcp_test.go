@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -61,7 +62,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 		names = append(names, tl.Name)
 	}
 	slices.Sort(names)
-	if strings.Join(names, " ") != "go kill list new read send wait" {
+	if strings.Join(names, " ") != "answer go kill list new read send wait" {
 		t.Fatalf("tools %q; stop and sandbox are never offered", names)
 	}
 	for name, tl := range tools {
@@ -86,10 +87,15 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 		"wait": "since is required: the next_since of the most recent list, read, send or wait result",
 		"send": "wait for the agent with that next_since as since",
 		"kill": "without confirmed set to true it ends nothing",
+		// A question dialog is answered on the user's word only (#90).
+		"answer": "Only on the user's word: without confirmed set to true it answers nothing",
 	} {
 		if !strings.Contains(tools[name].Description, want) {
 			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
 		}
+	}
+	if want := "for a question dialog use answer, on the user's word"; !strings.Contains(tools["send"].Description, want) {
+		t.Errorf("send: no %q in %q", want, tools["send"].Description)
 	}
 	// An agent done with its own tasks running takes another turn when they
 	// end (#78): the tools that return it say so, and the instructions too.
@@ -123,13 +129,13 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("instructions have no %q", want)
 		}
 	}
-	for _, want := range []string{"Status comes from hq, never from asking an agent", "wait for the agent with send's next_since as since, then read it", "Always pass the next_since of the most recent of them as wait's since", "call list first", "Never try to answer it"} {
+	for _, want := range []string{"Status comes from hq, never from asking an agent", "wait for the agent with send's next_since as since, then read it", "Always pass the next_since of the most recent of them as wait's since", "call list first", "Never answer a permission or any other dialog", "answer it with answer, only on the user's word", "never on your own initiative"} {
 		if !strings.Contains(cs.InitializeResult().Instructions, want) {
 			t.Errorf("instructions have no %q", want)
 		}
 	}
 	// What each tool must be given.
-	for name, want := range map[string][]string{"new": {"name", "dir"}, "send": {"name", "text"}, "read": {"name"}, "go": {"name"}, "kill": {"name"}, "wait": {"since"}, "list": nil} {
+	for name, want := range map[string][]string{"new": {"name", "dir"}, "send": {"name", "text"}, "read": {"name"}, "go": {"name"}, "kill": {"name"}, "wait": {"since"}, "list": nil, "answer": {"name", "dialog"}} {
 		b, _ := json.Marshal(tools[name].InputSchema)
 		var schema struct{ Required []string }
 		_ = json.Unmarshal(b, &schema)
@@ -614,5 +620,46 @@ func TestTheWordForAPromptThatDidNotComeIsTakenBack(t *testing.T) {
 	start = f.now
 	if out, isErr := call(t, mcpSession(t, f), "send", map[string]any{"name": "a", "text": "open a PR"}); isErr || !strings.Contains(out, "delivered: typed into a") || len(f.withdrawn) != 0 || f.now.Sub(start) > time.Second {
 		t.Fatalf("%v %q withdrawn %v", isErr, out, f.withdrawn)
+	}
+}
+
+// The supervisor answers a question dialog only on the user's word: without
+// it nothing is left for the agent and it is told to ask the user (#90).
+// The answers are given whole, a text never taken for a number.
+func TestMCPAnswerAnswersOnlyOnTheUsersWord(t *testing.T) {
+	f, id := askFakes(t, "dialog-ask-several")
+	f.holding(nil)
+	cs := mcpSession(t, f)
+	answers := []any{map[string]any{"options": []int{2}}, map[string]any{"options": []int{1, 3}}, map[string]any{"text": "2"}}
+	for _, args := range []map[string]any{{"name": "a", "dialog": id, "answers": answers}, {"name": "a", "dialog": id, "answers": answers, "confirmed": false}} {
+		out, isErr := call(t, cs, "answer", args)
+		if !isErr || out != "hq: a not answered: ask the user what to pick, naming the agent and its question, then call answer with confirmed set to true\n" || len(f.answerLeft) != 0 || f.got["id-a"] != nil {
+			t.Fatalf("%v: %v %q", args, isErr, out)
+		}
+	}
+	out, isErr := call(t, cs, "answer", map[string]any{"name": "a", "dialog": id, "answers": answers, "confirmed": true})
+	var v struct {
+		State     string `json:"state"`
+		NextSince string `json:"next_since"`
+	}
+	if isErr || json.Unmarshal([]byte(out), &v) != nil || v.State != state.Working || v.NextSince == "" {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	if want := map[string]string{"Which color?": "Blue", "Which sizes?": "Small, Large", "Which name?": "2"}; !reflect.DeepEqual(f.got["id-a"], want) {
+		t.Fatalf("Claude got %v", f.got["id-a"])
+	}
+
+	// A cancel; an answer and a cancel at once is refused.
+	f, id = askFakes(t, "dialog-ask")
+	f.holding(nil)
+	cs = mcpSession(t, f)
+	if out, isErr := call(t, cs, "answer", map[string]any{"name": "a", "dialog": id, "cancel": true, "answers": []any{map[string]any{"options": []int{1}}}, "confirmed": true}); !isErr || !strings.Contains(out, "answers or cancel, not both") {
+		t.Fatalf("both: %v %q", isErr, out)
+	}
+	if out, isErr := call(t, cs, "answer", map[string]any{"name": "a", "dialog": id, "confirmed": true}); !isErr || !strings.Contains(out, "no answers") {
+		t.Fatalf("neither: %v %q", isErr, out)
+	}
+	if out, isErr := call(t, cs, "answer", map[string]any{"name": "a", "dialog": id, "cancel": true, "confirmed": true}); isErr || !strings.Contains(out, `"state": "done"`) {
+		t.Fatalf("cancel: %v %q", isErr, out)
 	}
 }

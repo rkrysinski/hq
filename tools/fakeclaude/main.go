@@ -13,11 +13,17 @@
 //     what hq once read of a state file (#64), and only its first line on
 //     the screen;
 //   - a prompt containing "input" first opens a question dialog, as
-//     AskUserQuestion does: PermissionRequest at once, Claude's late
-//     permission Notification after the delay, then it waits for a line.
-//     "esc" (or a line with ESC in it) cancels the dialog, which ends the
-//     turn with no hook, as Claude Code 2.1.283 does; any other line answers
-//     it: PostToolUse, then the turn goes on;
+//     AskUserQuestion does: PermissionRequest at once, its hooks run side
+//     by side, Claude's late permission Notification after the delay, then
+//     it waits for a line or a hook's decision, whichever comes first, as
+//     Claude Code 2.1.302 does (#89). "esc" (or a line with ESC in it)
+//     cancels the dialog, which ends the turn with no hook; any other line
+//     answers it, an option's number with its label, other text as typed;
+//     a hook's allow answers it with the answers of its updated input (a
+//     list of labels joined with ", "), a deny that interrupts cancels it.
+//     An answer fires PostToolUse with the answers, then the turn goes on.
+//     A hook still running when the dialog closes runs on until it ends,
+//     or the session does, which ends it with SIGTERM;
 //   - a prompt containing "elicit" calls an MCP tool that opens an
 //     elicitation, which only Claude's Notification reports (kind
 //     elicitation_dialog); any line answers it, which fires no hook, and
@@ -150,8 +156,11 @@ type claude struct {
 	cwd     string
 	delay   time.Duration
 	tasks   []map[string]string // the background work that runs
-	started int                 // how many background tasks it has started
-	owners  map[string]string   // the subagent that started each shell command or watch
+	lines   <-chan string       // the lines typed, a bracketed paste as one
+	hooksMu sync.Mutex
+	running map[*exec.Cmd]bool // hooks run aside that have not ended yet
+	started int                // how many background tasks it has started
+	owners  map[string]string  // the subagent that started each shell command or watch
 }
 
 func main() {
@@ -197,6 +206,7 @@ func main() {
 	go func() {
 		<-sig
 		endingSession.Lock()
+		c.endHooks()
 		c.fire("SessionEnd", map[string]any{"reason": "other"})
 		fmt.Print(clearScreen + leaveAltScreen)
 		os.Exit(0)
@@ -206,17 +216,25 @@ func main() {
 	c.fire("SessionStart", map[string]any{"source": source})
 	fmt.Print(enterAltScreen + bracketedPaste)
 	fmt.Println("fake claude: ready")
-	in := bufio.NewScanner(os.Stdin)
+	lines := make(chan string)
+	c.lines = lines
+	go func() {
+		in := bufio.NewScanner(os.Stdin)
+		for in.Scan() {
+			lines <- pasted(in)
+		}
+		close(lines)
+	}()
 	if os.Getenv("FAKE_CLAUDE_START_DIALOG") != "" {
 		fmt.Print(startDialog)
-		in.Scan()
+		c.line()
 		promptBox("")
 	}
 	if prompt != "" {
-		c.turn(prompt, in)
+		c.turn(prompt)
 	}
-	for in.Scan() {
-		line := strings.TrimSpace(pasted(in))
+	for typed := range c.lines {
+		line := strings.TrimSpace(typed)
 		switch line {
 		case "":
 		case "draft":
@@ -227,30 +245,34 @@ func main() {
 			// A slash command, no prompt: its dialog takes the box's place
 			// until it is answered; no hook fires.
 			fmt.Print(effortDialog)
-			in.Scan()
+			c.line()
 			fmt.Println("  ⎿  Kept effort level as high")
 			promptBox("")
 		case "/exit":
+			c.endHooks()
 			c.fire("SessionEnd", map[string]any{"reason": "prompt_input_exit"})
 			fmt.Print(leaveAltScreen)
 			return
 		default:
 			if words := strings.Fields(line); words[0] == "wake" {
-				c.wake(strings.Join(words[1:], " "), in)
+				c.wake(strings.Join(words[1:], " "))
 				continue
 			}
 			if words := strings.Fields(line); words[0] == "detach" {
-				c.detach(strings.Join(words[1:], " "), in)
+				c.detach(strings.Join(words[1:], " "))
 				continue
 			}
 			if line == "lose" {
 				c.finish()
 				continue
 			}
-			c.turn(line, in)
+			c.turn(line)
 		}
 	}
 }
+
+// line is the next line typed; "" once the input has ended.
+func (c *claude) line() string { return <-c.lines }
 
 // wakePrefix starts the prompt Claude gives itself when background work has
 // finished.
@@ -259,7 +281,7 @@ const wakePrefix = "<task-notification>"
 // wake finishes the background subagent started first, if any, and runs
 // the turn Claude wakes itself for; note is part of its prompt. With the
 // note "together" it finishes two at once and runs a turn for each.
-func (c *claude) wake(note string, in *bufio.Scanner) {
+func (c *claude) wake(note string) {
 	notes := []string{note}
 	if note == "together" {
 		notes = []string{"(one)", "(two)"}
@@ -271,7 +293,7 @@ func (c *claude) wake(note string, in *bufio.Scanner) {
 		}
 	}
 	for i, id := range done {
-		c.turn(wakePrefix+"\n<task-id>"+id+"</task-id>\n<status>completed</status>\n<summary>Agent \"Background work\" completed "+notes[i]+"</summary>\n</task-notification>", in)
+		c.turn(wakePrefix + "\n<task-id>" + id + "</task-id>\n<status>completed</status>\n<summary>Agent \"Background work\" completed " + notes[i] + "</summary>\n</task-notification>")
 	}
 }
 
@@ -300,7 +322,7 @@ func (c *claude) finish() (id string, ok bool) {
 // background, or keep a watch with the Monitor tool when command is
 // "monitor", and report: its turn ends, and Claude wakes itself for the
 // report with the command or the watch listed alone.
-func (c *claude) detach(command string, in *bufio.Scanner) {
+func (c *claude) detach(command string) {
 	if command == "" {
 		command = "sleep 180"
 	}
@@ -324,7 +346,7 @@ func (c *claude) detach(command string, in *bufio.Scanner) {
 		c.owners = map[string]string{}
 	}
 	c.owners[task] = id
-	c.turn(wakePrefix+"\n<task-id>"+id+"</task-id>\n<status>completed</status>\n<summary>Agent \"Background work\" completed (waits on "+command+")</summary>\n</task-notification>", in)
+	c.turn(wakePrefix + "\n<task-id>" + id + "</task-id>\n<status>completed</status>\n<summary>Agent \"Background work\" completed (waits on " + command + ")</summary>\n</task-notification>")
 }
 
 // watch runs the Monitor tool for the subagent by (the agent itself when
@@ -357,7 +379,7 @@ func (c *claude) publish() {
 	c.tasks = append(c.tasks, map[string]string{"id": fmt.Sprintf("w%08x", c.started), "type": "monitor", "status": "running", "description": "live updates for artifact https://claude.ai/artifact/" + id + " (auto-armed on publish)"})
 }
 
-func (c *claude) turn(prompt string, in *bufio.Scanner) {
+func (c *claude) turn(prompt string) {
 	var noted []string
 	if ctx := c.fire("UserPromptSubmit", map[string]any{"prompt": prompt}).context(); ctx != "" {
 		noted = append(noted, ctx)
@@ -397,17 +419,17 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	if strings.Contains(prompt, "input") {
 		ask := map[string]any{"questions": []map[string]any{{"question": question, "header": "Colour", "multiSelect": false,
 			"options": []map[string]string{{"label": "Red", "description": "Pick red."}, {"label": "Blue", "description": "Pick blue."}}}}}
-		c.fire("PermissionRequest", map[string]any{"tool_name": "AskUserQuestion", "tool_input": ask})
+		decided := c.fireAside("PermissionRequest", map[string]any{"tool_name": "AskUserQuestion", "tool_input": ask})
 		fmt.Println(" ☐ Colour\n" + question + "\n❯ 1. Red\n  2. Blue\nEnter to select · ↑/↓ to navigate · Esc to cancel")
-		time.Sleep(c.delay)
-		c.fire("Notification", map[string]any{"message": "Claude needs your permission", "notification_type": "permission_prompt"})
-		in.Scan()
-		if answer := in.Text(); strings.TrimSpace(answer) == "esc" || strings.Contains(answer, "\x1b") {
+		answers, how := c.awaitAnswer(decided)
+		if answers == nil {
 			fmt.Println("●\u00a0User declined to answer questions\n  ⎿  · " + question + " (Red / Blue)")
 			promptBox("")
 			return
 		}
-		if ctx := c.fire("PostToolUse", map[string]any{"tool_name": "AskUserQuestion", "tool_input": ask, "tool_use_id": "toolu_fake"}).context(); ctx != "" {
+		fmt.Println("● User answered Claude's questions:\n  ⎿  · " + question + " → " + answers[question] + how)
+		ask["answers"] = answers
+		if ctx := c.fire("PostToolUse", map[string]any{"tool_name": "AskUserQuestion", "tool_input": ask, "tool_response": ask, "tool_use_id": "toolu_fake"}).context(); ctx != "" {
 			noted = append(noted, ctx)
 		}
 		time.Sleep(c.delay)
@@ -415,16 +437,15 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 	if strings.Contains(prompt, "elicit") {
 		c.fire("Notification", map[string]any{"message": elicitMessage, "notification_type": "elicitation_dialog"})
 		fmt.Print(elicitForm)
-		in.Scan()
+		c.line()
 		fmt.Println("· elicit: ask_color… (1s · ↓ 86 tokens)")
 		promptBox("")
-		in.Scan()
+		c.line()
 	}
 	if strings.Contains(prompt, "slow") {
 		fmt.Println("✻ Working…")
 		promptBox("esc to interrupt")
-		in.Scan()
-		line := in.Text()
+		line := c.line()
 		if strings.TrimSpace(line) == "esc" || strings.Contains(line, "\x1b") {
 			fmt.Println("  ⎿  Interrupted · What should Claude do instead?")
 			promptBox("")
@@ -483,6 +504,51 @@ func (c *claude) turn(prompt string, in *bufio.Scanner) {
 		reply = "Answered: " + out.Reason
 	}
 	promptBox("")
+}
+
+// awaitAnswer waits for the question dialog to be answered: at the
+// terminal, by a line, or by the decision of one of its hooks (decided),
+// whichever comes first; Claude's late permission Notification comes after
+// the delay while it waits. It returns the answers, by question, and what
+// Claude prints below them, or nil when the dialog is cancelled.
+func (c *claude) awaitAnswer(decided <-chan output) (map[string]string, string) {
+	late := time.After(c.delay)
+	for {
+		select {
+		case <-late:
+			late = nil
+			c.fire("Notification", map[string]any{"message": "Claude needs your permission", "notification_type": "permission_prompt"})
+		case o := <-decided:
+			d := o.HookSpecificOutput.Decision
+			if d.Behavior != "allow" {
+				return nil, ""
+			}
+			answers := map[string]string{}
+			given, _ := d.UpdatedInput["answers"].(map[string]any)
+			for q, a := range given {
+				if labels, ok := a.([]any); ok {
+					var ss []string
+					for _, l := range labels {
+						ss = append(ss, fmt.Sprint(l))
+					}
+					a = strings.Join(ss, ", ")
+				}
+				answers[q] = fmt.Sprint(a)
+			}
+			return answers, "\n  ⎿  Allowed by PermissionRequest hook"
+		case typed := <-c.lines:
+			switch t := strings.TrimSpace(typed); {
+			case t == "esc" || strings.Contains(typed, "\x1b"):
+				return nil, ""
+			case t == "1":
+				return map[string]string{question: "Red"}, ""
+			case t == "2":
+				return map[string]string{question: "Blue"}, ""
+			default:
+				return map[string]string{question: t}, ""
+			}
+		}
+	}
 }
 
 // notified records a desktop notification a hook sent, where a test or QA
@@ -574,7 +640,14 @@ type output struct {
 	Decision           string
 	Reason             string
 	TerminalSequence   string
-	HookSpecificOutput struct{ AdditionalContext string }
+	HookSpecificOutput struct {
+		AdditionalContext string
+		Decision          struct { // a PermissionRequest's
+			Behavior     string
+			Interrupt    bool
+			UpdatedInput map[string]any
+		}
+	}
 }
 
 func (o output) context() string { return o.HookSpecificOutput.AdditionalContext }
@@ -582,6 +655,81 @@ func (o output) context() string { return o.HookSpecificOutput.AdditionalContext
 // fire runs the hooks registered for event with a Claude-like payload, and
 // returns what they told Claude on their standard output.
 func (c *claude) fire(event string, fields map[string]any) (o output) {
+	for _, cmd := range c.hooks(event, fields) {
+		out, _ := cmd.Output()
+		var got output
+		if json.Unmarshal(out, &got) == nil {
+			if got.Decision != "" {
+				o.Decision, o.Reason = got.Decision, got.Reason
+			}
+			if got.context() != "" {
+				o.HookSpecificOutput = got.HookSpecificOutput
+			}
+			if got.TerminalSequence != "" {
+				c.notified(got.TerminalSequence)
+			}
+		}
+	}
+	return o
+}
+
+// fireAside runs the hooks registered for event as fire does, but each in
+// a process of its own, side by side, without waiting for them, as Claude
+// Code runs a PermissionRequest's hooks (#89): it heeds each hook's
+// notification as the hook ends, and sends the first decision a hook gives
+// on the channel it returns. A hook still running when the session ends
+// is ended then (endHooks).
+func (c *claude) fireAside(event string, fields map[string]any) <-chan output {
+	decided := make(chan output, 1)
+	for _, cmd := range c.hooks(event, fields) {
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		if cmd.Start() != nil {
+			continue
+		}
+		c.hooksMu.Lock()
+		if c.running == nil {
+			c.running = map[*exec.Cmd]bool{}
+		}
+		c.running[cmd] = true
+		c.hooksMu.Unlock()
+		go func() {
+			_ = cmd.Wait()
+			c.hooksMu.Lock()
+			delete(c.running, cmd)
+			c.hooksMu.Unlock()
+			var got output
+			if json.Unmarshal(out.Bytes(), &got) != nil {
+				return
+			}
+			if got.TerminalSequence != "" {
+				c.notified(got.TerminalSequence)
+			}
+			if got.HookSpecificOutput.Decision.Behavior != "" {
+				select {
+				case decided <- got:
+				default:
+				}
+			}
+		}()
+	}
+	return decided
+}
+
+// endHooks ends the hooks run aside that still run, with SIGTERM, as Claude
+// Code does when the session ends (#89, case 2d).
+func (c *claude) endHooks() {
+	c.hooksMu.Lock()
+	defer c.hooksMu.Unlock()
+	for cmd := range c.running {
+		_ = cmd.Process.Signal(syscall.SIGTERM)
+	}
+}
+
+// hooks are the commands of the hooks registered for event, each with a
+// Claude-like payload on its standard input. A hook's matcher is matched
+// against the event's tool, its notification's kind or its source.
+func (c *claude) hooks(event string, fields map[string]any) []*exec.Cmd {
 	p := map[string]any{"session_id": c.session, "cwd": c.cwd, "permission_mode": "bypassPermissions", "hook_event_name": event}
 	for k, v := range fields {
 		p[k] = v
@@ -596,6 +744,10 @@ func (c *claude) fire(event string, fields map[string]any) (o output) {
 	if source, ok := fields["source"].(string); ok {
 		kind = source
 	}
+	if tool, ok := fields["tool_name"].(string); ok {
+		kind = tool
+	}
+	var cmds []*exec.Cmd
 	for _, m := range c.s.Hooks[event] {
 		if m.Matcher != "" {
 			if ok, _ := regexp.MatchString("^("+m.Matcher+")$", kind); !ok {
@@ -605,22 +757,10 @@ func (c *claude) fire(event string, fields map[string]any) (o output) {
 		for _, h := range m.Hooks {
 			cmd := exec.Command(h.Command, h.Args...)
 			cmd.Env, cmd.Dir, cmd.Stdin = c.env, c.cwd, bytes.NewReader(payload)
-			out, _ := cmd.Output()
-			var got output
-			if json.Unmarshal(out, &got) == nil {
-				if got.Decision != "" {
-					o.Decision, o.Reason = got.Decision, got.Reason
-				}
-				if got.context() != "" {
-					o.HookSpecificOutput = got.HookSpecificOutput
-				}
-				if got.TerminalSequence != "" {
-					c.notified(got.TerminalSequence)
-				}
-			}
+			cmds = append(cmds, cmd)
 		}
 	}
-	return o
+	return cmds
 }
 
 // longReply is the reply to a prompt containing "long": 1,000 numbered

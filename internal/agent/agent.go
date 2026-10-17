@@ -81,6 +81,15 @@ const supervisingHooks = 2
 // older hq do not: it notifies at every turn end until it is relaunched.
 func (a Agent) Supervisable() bool { return a.Hooks >= supervisingHooks }
 
+// answeringHooks is the generation of hooks from which they hold on a
+// question dialog for hq's answer (hq answer, design §3.4).
+const answeringHooks = 3
+
+// Answerable reports whether the agent's hooks take hq's answer to its
+// question dialog. Those of an agent started by an older hq do not, until
+// it is relaunched.
+func (a Agent) Answerable() bool { return a.Hooks >= answeringHooks }
+
 // Repo is the repository's display name.
 func (a Agent) Repo() string { return filepath.Base(a.RepoPath) }
 

@@ -38,7 +38,7 @@ hq creates a repository's sandbox the first time `hq new` runs there, with sbx's
 }
 ```
 
-`template` goes to `sbx create --template` and `staticMcp` to `--static-mcp`; either may be left out. `HQ_SBX_TEMPLATE` and `HQ_SBX_STATIC_MCP` (comma-separated) override them for one command. They apply only when hq creates a sandbox: one that exists, hq's or one you created by hand, is used as it is, so to change its image remove it (`hq sandbox rm REPO`) and let the next `hq new` create it again. hq neither pulls nor checks the image; when `sbx` refuses the image or a server, `hq new` shows sbx's error and the settings it used.
+`template` goes to `sbx create --template` and `staticMcp` to `--static-mcp`; either may be left out. `HQ_SBX_TEMPLATE` and `HQ_SBX_STATIC_MCP` (comma-separated) override them for one command. They apply only when hq creates a sandbox: one that exists, hq's or one you created by hand, is used as it is, so to change its image remove it (`hq sandbox rm REPO`) and let the next `hq new` create it again. hq neither pulls nor checks the image; when `sbx` refuses the image or a server, `hq new` shows sbx's error and the settings it used. `hq answer` needs an image whose own permission hook leaves question dialogs alone (the team's `sbx-image` from `claude-2.1.302-git-107ad47` on): in a sandbox created from an older one the agent ignores the answer and stays at the dialog, and `hq answer` says so.
 
 ### Windows
 
@@ -57,6 +57,7 @@ hq new NAME [DIR] [PROMPT]       # start an agent for the repository in DIR
 hq ls                            # list agents and their state
 hq go NAME                       # enter an agent's session
 hq send NAME TEXT                # leave a message, delivered when the agent is ready
+hq answer NAME --dialog ID N     # answer an agent's question dialog (hq read shows the id)
 hq kill NAME                     # end an agent's Claude session; the sandbox stays
 ```
 
@@ -81,7 +82,7 @@ Notifications come through the terminal the dashboard runs in, so they appear on
 
 ## Claude Desktop as supervisor
 
-Claude Desktop can start, watch and message your agents through hq's MCP tools (`new`, `list`, `read`, `wait`, `send`, `go`, `kill`). Set it up once, from the shell you run hq in (on Windows, in WSL):
+Claude Desktop can start, watch and message your agents through hq's MCP tools (`new`, `list`, `read`, `wait`, `send`, `answer`, `go`, `kill`). Set it up once, from the shell you run hq in (on Windows, in WSL):
 
 ```bash
 hq mcp install
@@ -89,7 +90,7 @@ hq mcp install
 
 Then quit and reopen Claude Desktop. This adds an `hq` entry to Claude Desktop's configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, on Windows `%APPDATA%\Claude\claude_desktop_config.json`, or the package's own folder under `%LOCALAPPDATA%\Packages\Claude_...` when Claude Desktop came from the Microsoft Store; there Claude Desktop starts hq through `wsl.exe`), keeping your other servers, with a copy of the file as it was next to it. It records hq's path and your `PATH`, so run it again after moving hq or changing where tmux, `sbx` or `gh` live; a second run with nothing changed does nothing. When Claude Desktop is not installed (its folder is not there) or the file cannot be edited safely, it changes nothing and prints the entry to add by hand.
 
-In a conversation, tell Claude what to do ("start 42 in ~/work/app on issue #42, and watch it"). It reads status from hq rather than asking the agents, asks an agent with a message answered when the agent stops, and leaves an agent's permission prompts and questions to you. Work it gave an agent (the prompt it started the agent with, a message it sent) raises no desktop notification when it finishes or asks a question, on any agent: Claude waits for it and tells you, and when it is not waiting you see the agent's state in the dashboard and ask it. What you prompt or send yourself (at the agent, `hq new`, `hq send`) notifies you as ever, and so does a dialog. An agent started by an older hq notifies at every turn end until it is relaunched (`hq sandbox restart`). Claude Desktop asks you before `kill`.
+In a conversation, tell Claude what to do ("start 42 in ~/work/app on issue #42, and watch it"). It reads status from hq rather than asking the agents, asks an agent with a message answered when the agent stops, and answers an agent's question dialog only when you tell it what to pick, or to choose for you; permission prompts and other dialogs it leaves to you. Work it gave an agent (the prompt it started the agent with, a message it sent) raises no desktop notification when it finishes or asks a question, on any agent: Claude waits for it and tells you, and when it is not waiting you see the agent's state in the dashboard and ask it. What you prompt or send yourself (at the agent, `hq new`, `hq send`) notifies you as ever, and so does a dialog. An agent started by an older hq notifies at every turn end until it is relaunched (`hq sandbox restart`). Claude Desktop asks you before `kill`.
 
 ## Uninstall
 

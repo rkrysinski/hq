@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -360,7 +361,7 @@ func TestReadShowsWhatTheAgentAsksAndItsWholeReply(t *testing.T) {
 	// A question dialog is open: hq read has every question with its options.
 	h.waitState("a", "needs input")
 	code, out, _ := h.run("read", "a")
-	if code != 0 || !strings.Contains(out, "\nasks\n  Colour: Which colour do you pick?\n    1. Red - Pick red.\n    2. Blue - Pick blue.\n") {
+	if code != 0 || !regexp.MustCompile(`\nasks      dialog [0-9a-f]{6}\n  Colour: Which colour do you pick\?\n    1\. Red - Pick red\.\n    2\. Blue - Pick blue\.\n`).MatchString(out) {
 		t.Fatalf("dialog:\n%s", out)
 	}
 	// Answered, the turn ends with a question: the reply in full, its lines
@@ -426,7 +427,7 @@ func TestAnAgentAtClaudesStartDialogNeedsInput(t *testing.T) {
 	}
 	h.waitReport("a", "needs input", "Make auto mode your default permission mode?")
 	code, out, _ := h.run("read", "a")
-	if code != 0 || !strings.Contains(out, "\nasks\n  Make auto mode your default permission mode?\n    1. Yes, set auto mode as my default permission mode\n    2. No, keep bypass permissions\n") {
+	if code != 0 || !strings.Contains(out, "\n  Make auto mode your default permission mode?\n    1. Yes, set auto mode as my default permission mode\n    2. No, keep bypass permissions\n") {
 		t.Fatalf("read:\n%s", out)
 	}
 	// A message sent meanwhile waits for the dialog.
