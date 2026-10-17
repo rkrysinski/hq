@@ -487,14 +487,12 @@ type fakes struct {
 	// open (none: no question dialog); answerLeft the answer waiting in
 	// its inbox for the hook, until the hook takes it or hq takes it back
 	// (withdrawals counts those); leaveErr fails leaving it; got is what
-	// Claude reports it got once the dialog's tool ended, onGot called
-	// after each look at it, e.g. to have the tool end right then.
+	// Claude reports it got once the dialog's tool ended.
 	questions   map[string]state.Questions
 	answerLeft  map[string][]byte
 	leaveErr    error
 	withdrawals int
 	got         map[string]map[string]string
-	onGot       func()
 
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
@@ -734,9 +732,6 @@ func (f *fakes) deps() deps {
 		},
 		answersGot: func(_, id string) (map[string]string, bool) {
 			g, ok := f.got[id]
-			if f.onGot != nil {
-				f.onGot()
-			}
 			return g, ok
 		},
 

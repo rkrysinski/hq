@@ -230,10 +230,10 @@ func awaitClosed(d deps, a agent.Agent, open agent.Dialog) (agent.Agent, map[str
 		if err != nil {
 			return now, nil, err
 		}
-		// Read after the agent: the tool's end that moved it off the dialog
-		// is then there to read, not yet to come.
-		got, ok := d.answersGot(a.RepoPath, a.ID)
-		if ok || now.Dialog().ID() != open.ID() {
+		if now.Dialog().ID() != open.ID() {
+			// Read after the look at the agent: the tool's end that moved it
+			// off the dialog is then there to read, not yet to come.
+			got, ok := d.answersGot(a.RepoPath, a.ID)
 			if !ok {
 				got = nil
 			}

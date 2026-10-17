@@ -314,15 +314,18 @@ func TestAnswerNotTakenIsTakenBackAndRefused(t *testing.T) {
 	}
 }
 
-// The dialog's tool may end between two looks of hq at the agent: hq
-// reads what Claude got after it sees the agent leave the dialog, so the
-// answer is never taken for one Claude closed otherwise.
-func TestAnswerClosedBetweenTwoLooksIsTheAnswer(t *testing.T) {
+// The dialog's tool may end between two looks of hq: hq reports the
+// agent as it was once it left the dialog, never as it was at the dialog,
+// and what Claude got as it read it after that look.
+func TestAnswerReportsTheAgentOnceItLeftTheDialog(t *testing.T) {
 	f, id := askFakes(t, "dialog-ask")
-	f.onSleep = func() { delete(f.answerLeft, "id-a") }
-	f.onGot = func() {
-		if f.answerLeft["id-a"] == nil && f.got["id-a"] == nil {
+	looks := 0
+	f.onSleep = func() {
+		switch looks++; looks {
+		case 1: // the hook takes the answer, and Claude's tool ends
+			delete(f.answerLeft, "id-a")
 			f.got["id-a"] = map[string]string{"Which colour do you pick: red or blue?": "Red"}
+		case 2: // hq sees the agent leave the dialog only now
 			f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Last: "On it."}
 		}
 	}
