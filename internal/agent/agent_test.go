@@ -1126,3 +1126,44 @@ func TestATurnClaudeHasActedOnEndsAtRestOnlyAtACutTool(t *testing.T) {
 		t.Fatalf("answered, then cut: %+v %v", a, s.options)
 	}
 }
+
+func TestEndsTellsWhatIsLeftToEndInASandbox(t *testing.T) {
+	// hq kill asks whether anything of an agent is left to end in its
+	// sandbox: nothing when the sandbox does not run and the agent's
+	// session went with it, by the list's rule (its pane dead, or its
+	// report older than the answer); sbx exec would start the sandbox again
+	// (#87, #101). An agent starting in a sandbox that has not started yet
+	// (S2) has a session on its way, which hq kill must still end.
+	asked := time.Unix(200, 0)
+	reported := func(root, id string) (state.Report, bool) {
+		return state.Report{State: state.Done, Since: asked.Add(-time.Second), Latest: asked.Add(-time.Second)}, true
+	}
+	none := func(root, id string) (state.Report, bool) { return state.Report{}, false }
+	live := tmux.Window{ID: "@1", Options: map[string]string{"id": "a", "sandbox": "claude-app", "started": "100"}}
+	dead := live
+	dead.PaneDead = true
+	stopped := Sandboxes{Running: map[string]bool{}, Asked: asked}
+	for _, c := range []struct {
+		name string
+		w    tmux.Window
+		read func(root, id string) (state.Report, bool)
+		s    Sandboxes
+		want bool
+	}{
+		{"live pane, reported, sandbox stopped", live, reported, stopped, true},
+		{"dead pane, sandbox stopped", dead, none, stopped, true},
+		{"dead pane, sandbox not listed at all", dead, none, Sandboxes{Running: map[string]bool{"claude-lib": true}, Asked: asked}, true},
+		{"live pane, never reported, sandbox not started (S2)", live, none, stopped, false},
+		{"live pane, reported after the answer", live, func(root, id string) (state.Report, bool) {
+			return state.Report{State: state.Done, Since: asked.Add(time.Millisecond)}, true
+		}, stopped, false},
+		{"live pane, reported, sandbox running", live, reported, Sandboxes{Running: map[string]bool{"claude-app": true}, Asked: asked}, false},
+		{"dead pane, sandbox running (an orphan)", dead, none, Sandboxes{Running: map[string]bool{"claude-app": true}, Asked: asked}, false},
+		{"sbx could not say", dead, reported, Sandboxes{}, false},
+	} {
+		a := Collect([]tmux.Window{c.w}, c.read, c.s)[0]
+		if got := c.s.Ends(a); got != c.want {
+			t.Errorf("%s: Ends %v, want %v", c.name, got, c.want)
+		}
+	}
+}

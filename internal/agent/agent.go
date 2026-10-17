@@ -163,7 +163,23 @@ type Sandboxes struct {
 // after the question proves the sandbox ran after it: the answer was taken
 // while the sandbox started, and the next one decides (#48).
 func (s Sandboxes) stopped(a Agent) bool {
-	return s.Running != nil && !s.Running[a.Sandbox] && a.reported && !a.reportAt.After(s.Asked)
+	return s.notRunning(a) && a.reported && !a.reportAt.After(s.Asked)
+}
+
+// notRunning reports whether sbx said that a's sandbox does not run: listed
+// as not running, or not listed at all.
+func (s Sandboxes) notRunning(a Agent) bool {
+	return s.Running != nil && !s.Running[a.Sandbox]
+}
+
+// Ends reports whether the answer leaves nothing of a to end in its
+// sandbox: the sandbox does not run (listed as not running, or not listed
+// at all) and a's session went with it, its pane dead or, while the pane
+// still runs, ended by the list's rule (stopped). sbx exec would start the
+// sandbox again (#101), so hq kill leaves such a sandbox alone (#87). When
+// sbx could not say, nothing is known to have ended.
+func (s Sandboxes) Ends(a Agent) bool {
+	return s.notRunning(a) && (!a.Alive || s.stopped(a))
 }
 
 // Collect is the row model's collection, shared by hq ls and the list

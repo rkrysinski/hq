@@ -190,8 +190,9 @@ type deps struct {
 // ghTimeout bounds gh pr list, which goes to GitHub.
 const ghTimeout = 30 * time.Second
 
-// sbxPollTimeout bounds sbx ls when it only tells which sandboxes run;
-// sbx ls usually answers within a second.
+// sbxPollTimeout bounds sbx ls when it only tells which sandboxes run, as
+// for the list and before a kill (endAgents); sbx ls usually answers within
+// a second.
 const sbxPollTimeout = 5 * time.Second
 
 func defaultDeps() deps {
