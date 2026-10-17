@@ -187,6 +187,10 @@ func (v readView) write(w io.Writer) error {
 	field("worktree", v.Worktree)
 	field("sandbox", v.Sandbox)
 	field("state", v.State+" "+agent.Age(time.Duration(v.AgeSeconds)*time.Second))
+	// What it left running itself, each on one line, cut as LAST is (#78).
+	for _, t := range v.OwnTasks {
+		field("own task:", t.Type+"  "+truncate(state.Clean(t.Text), lastWidth))
+	}
 	field("pending", strconv.Itoa(v.Pending)) // messages hq send left for it
 	// LAST says more than the reply when the turn ended without one (an
 	// interrupt), a dialog is open, or the session ended.

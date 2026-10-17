@@ -1,5 +1,5 @@
 {
-  "version": "2.19",
+  "version": "2.20",
   "children": [
     {
       "type": "frame",
@@ -879,9 +879,18 @@
                           "id": "u6K7l",
                           "name": "LAST",
                           "width": "fill_container",
-                          "gap": 6,
                           "alignItems": "center",
                           "children": [
+                            {
+                              "type": "text",
+                              "id": "H7qH3e",
+                              "name": "own tasks",
+                              "fill": "$fg-faint",
+                              "content": "1 shell · ",
+                              "fontFamily": "$mono",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            },
                             {
                               "type": "text",
                               "id": "XOw6y",

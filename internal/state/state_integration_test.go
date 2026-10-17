@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync/atomic"
@@ -1212,7 +1213,7 @@ func testAQueuedPromptsTurn(t *testing.T, clear bool) {
 	}
 	if clear {
 		fire(t, root, root, id, "end", fixture(t, "queued-session-end-clear"))
-		if now := report("the queued /clear's end"); now != r {
+		if now := report("the queued /clear's end"); !reflect.DeepEqual(now, r) {
 			t.Fatalf("the queued /clear's end: %+v, was %+v", now, r)
 		}
 		fire(t, root, root, id, "start", fixture(t, "queued-session-start-clear"))
@@ -1341,7 +1342,7 @@ func TestAToolOfATurnTakenAfterAnEscHandsOverToTheQueuedPrompt(t *testing.T) {
 	}
 	time.Sleep(10 * time.Millisecond)
 	fire(t, root, root, id, "answer", bytes.Replace(fixture(t, "queued-turn-tool-end"), []byte(`"hook_event_name"`), []byte(`"agent_id":"a1","hook_event_name"`), 1))
-	if r := report("a subagent's tool"); r != at {
+	if r := report("a subagent's tool"); !reflect.DeepEqual(r, at) {
 		t.Fatalf("a subagent's tool: %+v, was %+v", r, at)
 	}
 	before := time.Now()

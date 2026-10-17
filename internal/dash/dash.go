@@ -1237,7 +1237,9 @@ func (c columns) row(a agent.Agent, now time.Time, cursor bool, strip string) st
 		case "AGE":
 			cells = append(cells, paint(cDim, fit(agent.Age(max(0, now.Sub(a.Since))), col.w)))
 		case "LAST":
-			cells = append(cells, paint(lastStyle, fit(orDash(a.Last), col.w)))
+			// The count of its own tasks, dim, before the message (#78).
+			own := ansi.Truncate(agent.OwnPrefix(a.OwnTasks), col.w, "")
+			cells = append(cells, paint(cDim, own)+paint(lastStyle, fit(orDash(a.Last), col.w-ansi.StringWidth(own))))
 		}
 	}
 	left, right := paint(plain, margin), paint(plain, margin)

@@ -380,3 +380,46 @@ func TestLsShowsWhatAnotherHqStoredFirst(t *testing.T) {
 		t.Fatalf("later:\n%s", out)
 	}
 }
+
+// An agent done with its own tasks running starts LAST with their count,
+// cut with LAST to its column; --json keeps last the message alone and
+// lists them in own_tasks, [] when none (#78).
+func TestLsShowsAnAgentsOwnTasksBeforeItsLastMessage(t *testing.T) {
+	f := newLsFakes()
+	f.tmux.windows = []tmux.Window{
+		agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false),
+		agentWindow("@2", "b", "/w/app", f.now.Add(-time.Hour), false),
+		agentWindow("@3", "c", "/w/app", f.now.Add(-time.Hour), false),
+	}
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-2 * time.Minute), Last: "Waiting for the background task to report back.",
+		OwnTasks: []state.Task{{Type: "shell", Text: "sleep 120"}}}
+	f.states["id-b"] = state.Report{State: state.Question, Since: f.now.Add(-3 * time.Minute), Last: strings.Repeat("x", 100) + "?",
+		OwnTasks: []state.Task{{Type: "shell", Text: "npm run dev"}, {Type: "monitor", Text: "Wait for CI"}}}
+	f.states["id-c"] = state.Report{State: state.Done, Since: f.now.Add(-4 * time.Minute), Last: "PR #58 opened"}
+	_, out, _ := f.run("ls")
+	want := "NAME  REPO  BRANCH  STATE     AGE  LAST\n" +
+		"b     app   -       question  3m   1 shell, 1 monitor · " + strings.Repeat("x", 38) + "…\n" +
+		"a     app   -       done      2m   1 shell · Waiting for the background task to report back.\n" +
+		"c     app   -       done      4m   PR #58 opened\n"
+	if out != want {
+		t.Fatalf("got\n%s\nwant\n%s", out, want)
+	}
+	_, out, _ = f.run("ls", "--json")
+	var l struct {
+		Agents []struct {
+			Name     string       `json:"name"`
+			Last     string       `json:"last"`
+			OwnTasks []state.Task `json:"own_tasks"`
+		} `json:"agents"`
+	}
+	if err := json.Unmarshal([]byte(out), &l); err != nil || len(l.Agents) != 3 {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	a := l.Agents[1]
+	if a.Name != "a" || a.Last != "Waiting for the background task to report back." || len(a.OwnTasks) != 1 || a.OwnTasks[0] != (state.Task{Type: "shell", Text: "sleep 120"}) {
+		t.Fatalf("a: %+v", a)
+	}
+	if !strings.Contains(out, `"own_tasks": []`) || l.Agents[2].OwnTasks == nil {
+		t.Fatalf("c has none: an empty list, not null:\n%s", out)
+	}
+}

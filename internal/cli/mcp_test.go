@@ -91,6 +91,17 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
 		}
 	}
+	// An agent done with its own tasks running takes another turn when they
+	// end (#78): the tools that return it say so, and the instructions too.
+	for name, want := range map[string]string{
+		"list": "own_tasks",
+		"read": "Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale",
+		"wait": "Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale",
+	} {
+		if !strings.Contains(tools[name].Description, want) {
+			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
+		}
+	}
 	// The supervisor is told that the work it sends ends without a
 	// notification to the user (spec §5): where it starts work, and in its
 	// instructions.
@@ -103,6 +114,11 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 		}
 	}
 	for _, want := range []string{"The user is not notified when work you sent finishes or asks a question", "wait for the agents you gave work to, read their replies and tell the user", "hq notifies them of the dialog itself"} {
+		if !strings.Contains(cs.InitializeResult().Instructions, want) {
+			t.Errorf("instructions have no %q", want)
+		}
+	}
+	for _, want := range []string{"own_tasks: a shell command or watch of its own still runs", "Claude takes another turn when one ends, so wait for it again if you need that result", "a dev server may never end", "may be stale until its next turn end"} {
 		if !strings.Contains(cs.InitializeResult().Instructions, want) {
 			t.Errorf("instructions have no %q", want)
 		}

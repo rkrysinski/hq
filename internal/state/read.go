@@ -148,10 +148,11 @@ func read(path string) (r Report, ok bool) {
 	}
 	r.Since = info.ModTime()
 	r.Latest = r.Since
+	owed, _, _ := readData(path + owedSuffix)
 	if kept, info, err := readData(path + keptSuffix); err == nil {
-		owed, _, _ := readData(path + owedSuffix)
 		r = r.Kept(latest, kept, owed, info.ModTime())
 	}
+	r = r.Own(latest, owed)
 	if _, _, err := readData(path + actedSuffix); err == nil {
 		r.Acted = r.State == Working
 	}

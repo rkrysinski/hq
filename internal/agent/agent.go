@@ -58,11 +58,18 @@ type Agent struct {
 	wokeSeen   string     // when Claude woke it after a turn the user ended (see seeWake)
 	wokeKey    string     // what keys that record now, if such a turn it is
 	wokeAt     time.Time  // the moment to record for it, when this look sees the wake-up
+	ownAt      time.Time  // the time of the report OwnTasks came from (see keepOwnTasks)
 	State      string     `json:"state"`
 	Since      time.Time  `json:"since"`
 	Branch     string     `json:"branch"`
 	Worktree   string     `json:"worktree"` // where Claude works, as the sandbox sees it (for hq code, M4)
 	Last       string     `json:"last"`
+
+	// OwnTasks are its own tasks (#78): the shell commands and watches it
+	// left running itself at the turn end its done or question comes from,
+	// as its hooks reported them (state.Report.OwnTasks); none in any other
+	// state (see keepOwnTasks).
+	OwnTasks []state.Task `json:"-"`
 }
 
 // supervisingHooks is the generation of hooks from which they tell a
@@ -207,6 +214,7 @@ func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), 
 				as[i].Last = EndedLast
 			}
 		}
+		as[i].keepOwnTasks()
 	}
 	return as
 }
@@ -386,6 +394,7 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 	}
 	a.atPrompt, a.owed, a.woken, a.acted, a.queued = r.Background, r.Background && r.Owed, r.Woken, r.Acted, r.Queued
 	a.lastStop = r.LastStop
+	a.OwnTasks, a.ownAt = r.OwnTasks, r.Since
 	a.dialog = NoDialog
 	switch {
 	case r.State != state.NeedsInput:
@@ -404,6 +413,41 @@ func (a *Agent) Apply(r state.Report, ok bool) {
 		a.Since = r.Since
 	}
 	a.sinceWake(r)
+}
+
+// keepOwnTasks keeps the agent's own tasks only while its state is the
+// turn end its hooks reported them with: done or a question, since that
+// report. Once hq overrules the report (its pane dead, its sandbox
+// stopped, a dialog of Claude's own open) there are none.
+func (a *Agent) keepOwnTasks() {
+	if (a.State != state.Done && a.State != state.Question) || !a.Since.Equal(a.ownAt) {
+		a.OwnTasks = nil
+	}
+}
+
+// OwnPrefix is what LAST starts with for an agent with own tasks, in hq ls
+// and the list (#78): their count in the wording of Claude Code's footer
+// and a dot, "1 shell · ", "2 shells · ", "1 shell, 1 monitor · "; "" for
+// none.
+func OwnPrefix(ts []state.Task) string {
+	n := map[string]int{}
+	for _, t := range ts {
+		n[t.Type]++
+	}
+	var out []string
+	for _, kind := range []string{state.ShellTask, state.MonitorTask} {
+		switch n[kind] {
+		case 0:
+		case 1:
+			out = append(out, "1 "+kind)
+		default:
+			out = append(out, strconv.Itoa(n[kind])+" "+kind+"s")
+		}
+	}
+	if len(out) == 0 {
+		return ""
+	}
+	return strings.Join(out, ", ") + " · "
 }
 
 // sinceWake dates the work of an agent Claude woke after a turn the user
