@@ -30,10 +30,14 @@ func TestTheLookHandsOverOnTheRealStateFilesOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	queued := append([]byte("branch main\n"), payload...)
-	for _, name := range []string{id, id + ".queued", id + ".acted"} {
+	for _, name := range []string{id, id + ".queued"} {
 		if err := os.WriteFile(filepath.Join(dir, name), queued, 0o644); err != nil {
 			t.Fatal(err)
 		}
+	}
+	// The hook's mark that Claude acted on the turn at work: its prompt_id.
+	if err := os.WriteFile(filepath.Join(dir, id+".acted"), []byte("a5c44ac7-4166-41f7-96d0-9d535b9cdeb7\n"), 0o644); err != nil {
+		t.Fatal(err)
 	}
 	asked := time.Now().Add(-time.Minute)
 	if err := os.Chtimes(filepath.Join(dir, id), asked, asked); err != nil {
