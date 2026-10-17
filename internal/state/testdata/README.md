@@ -144,6 +144,8 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | notification.json | Notification | `permission_prompt`, "Claude needs your permission" | unknown; normalized | 7c4c3ed (old #19) |
 | post-tool.json | PostToolUse | Bash ended | real, 2.1.283 in sbx (design changelog, old #135); paths `/w/app` | 2248770 (old #135) |
 | post-tool-subagent.json | PostToolUse | a background subagent's Bash ended (`agent_id`) | real, as post-tool.json | 2248770 (old #135) |
+| post-tool-own-monitor.json | PostToolUse | the agent's own Monitor tool ended: `"tool_name":"Monitor"`, `"tool_response":{"taskId":...}` (no `agent_id`), the watch the Stop lists as a `shell` | real, 2.1.302, Opus 5.5 (high effort), G's managed settings, hq from the worktree of #99 (`qa-artifacts` `issue-99/`); paths normalized, printed with indentation | #99 |
+| post-tool-subagent-monitor.json | PostToolUse | a background subagent's Monitor tool ended (`agent_id`, `taskId`) | real, 2.1.302, Opus 5.5 (high effort), G's managed settings, hq from the worktree of #99 (`qa-artifacts` `issue-99/`); paths normalized, printed with indentation | #99 |
 | prompt.json | UserPromptSubmit | a prompt | unknown; normalized | 7c4c3ed (old #19) |
 | prompt-pasted.json | UserPromptSubmit | a two-line pasted prompt | real, as post-tool.json | 2248770 (old #135) |
 | prompt-wake.json | UserPromptSubmit | Claude's wake-up for a finished subagent (`<task-notification>`) | unknown (PR #39 logged every hook with 2.1.291); normalized | 7cb35f8 (#38) |
@@ -165,4 +167,5 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | stop-background.json | Stop | turn over with a background subagent running | unknown (as prompt-wake.json); normalized | 7cb35f8 (#38) |
 | stop-background-shell.json | Stop | turn over with only a background shell (`npm run dev`) running | unknown (as prompt-wake.json); normalized | 7cb35f8 (#38) |
 | stop-own-monitor.json | Stop | turn over with only a watch of the agent's own running, started with the Monitor tool (its PostToolUse said `taskId`): Claude lists it as type `shell`, with the Monitor's `description` and `command`, while its footer says `1 monitor` | real, 2.1.302, G's managed settings, hq from the worktree of #78 (`qa-artifacts` `issue-97/`); paths normalized | #97 |
+| stop-subagent-monitor.json | Stop | the turn Claude took for a subagent's interim report: the agent's own watch and the subagent's watch running, both listed as type `shell` | real, 2.1.302, Opus 5.5 (high effort), G's managed settings, hq from the worktree of #99 (`qa-artifacts` `issue-99/`); paths normalized, printed with indentation | #99 |
 | stop-background-question.json | Stop | turn over with a question while a shell and a subagent run | unknown (as prompt-wake.json); normalized | 7cb35f8 (#38) |

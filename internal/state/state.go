@@ -147,7 +147,7 @@ const askTool = "AskUserQuestion"
 // a line ~ID. It is the rule of the hook's awk, which decides (design
 // §3.4).
 func (p payload) busy(owed []byte) bool {
-	theirs := subagents(owed)
+	theirs := marked(owed, subagentMark)
 	for _, t := range p.BackgroundTasks {
 		if t.Status == "running" && !t.own(theirs) {
 			return true
@@ -156,17 +156,24 @@ func (p payload) busy(owed []byte) bool {
 	return false
 }
 
-// subagents are the ids of the shell commands and the watches the agent's
-// subagents started, as the hook's list (the .owe file) names them, on a
-// line ~ID each.
-func subagents(owed []byte) map[string]bool {
-	theirs := map[string]bool{}
+// The marks of the hook's list (the .owe file) beside the ids owed a turn:
+// a shell command or a watch one of the agent's subagents started (~ID),
+// and a watch the agent itself keeps with the Monitor tool (=ID), which
+// Claude Code 2.1.302 lists as a shell (#99). Neither is owed a turn.
+const (
+	subagentMark = "~"
+	monitorMark  = "="
+)
+
+// marked are the ids the hook's list names on a line of the mark each.
+func marked(owed []byte, mark string) map[string]bool {
+	ids := map[string]bool{}
 	for _, line := range strings.Split(string(owed), "\n") {
-		if id, ok := strings.CutPrefix(line, "~"); ok && id != "" {
-			theirs[id] = true
+		if id, ok := strings.CutPrefix(line, mark); ok && id != "" {
+			ids[id] = true
 		}
 	}
-	return theirs
+	return ids
 }
 
 // artifactWatch ends the description of the watch Claude arms when the
@@ -180,19 +187,23 @@ const artifactWatch = "(auto-armed on publish)"
 
 // ownTasks are the agent's own tasks the event, a Stop, lists: the
 // running tasks busy does not count, less the artifact watch, a shell by
-// its command and a watch by its description.
+// its command and a watch by its description. A task the hook's list marks
+// as the agent's own Monitor watch (=ID) is a watch whatever its type.
 func (p payload) ownTasks(owed []byte) []Task {
-	theirs := subagents(owed)
+	theirs, watches := marked(owed, subagentMark), marked(owed, monitorMark)
 	var ts []Task
 	for _, t := range p.BackgroundTasks {
 		if !t.own(theirs) || strings.HasSuffix(strings.TrimSpace(t.Description), artifactWatch) {
 			continue
 		}
-		text := t.Description
-		if t.Type == ShellTask {
+		kind, text := t.Type, t.Description
+		if watches[t.ID] {
+			kind = MonitorTask
+		}
+		if kind == ShellTask {
 			text = t.Command
 		}
-		ts = append(ts, Task{Type: t.Type, Text: CleanText(text)})
+		ts = append(ts, Task{Type: kind, Text: CleanText(text)})
 	}
 	return ts
 }

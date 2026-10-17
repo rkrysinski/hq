@@ -470,6 +470,10 @@ func TestADoneOrQuestionAtAStopListsTheAgentsOwnTasks(t *testing.T) {
 		{"a shell that has ended", strings.Replace(shell, "running", "completed", 1), ``, nil},
 		{"a subagent", `{"id": "a1", "type": "subagent", "status": "running", "description": "Tests"}`, ``, nil},
 		{"a multi-line command, kept whole", `{"id": "b1", "type": "shell", "status": "running", "command": "cd app &&\n\u001b[31mnpm test\u001b[0m"}`, ``, []Task{{"shell", "cd app &&\nnpm test"}}},
+		{"a shell its Monitor tool started", shell, "=b1\n", []Task{{"monitor", "Sleep"}}},
+		{"a watch of its own beside its shell", shell + `, ` + strings.Replace(shell, "b1", "b2", 1), "b0\n=b2\n~b3\n", []Task{{"shell", "sleep 120"}, {"monitor", "Sleep"}}},
+		{"the artifact watch marked", artifact, "=w1\n", nil},
+		{"a mark for another task", shell, "=b2\n", []Task{{"shell", "sleep 120"}}},
 	} {
 		latest := stop(tc.tasks)
 		r := Parse(latest, latest, nil).Own(latest, []byte(tc.owed))
@@ -478,15 +482,73 @@ func TestADoneOrQuestionAtAStopListsTheAgentsOwnTasks(t *testing.T) {
 		}
 	}
 	// Claude Code 2.1.302 lists a watch the agent keeps with the Monitor tool
-	// as a shell, with the watch's command: the Stop does not tell it from a
-	// command the agent started with Bash, so it shows as one (#97).
+	// as a shell, with the watch's command: only the hook's mark of the
+	// Monitor's taskId (=ID) tells it from a command the agent started with
+	// Bash (#99). Without the mark, as an older hook leaves it, it shows as
+	// a shell (#97).
 	watch := fixture(t, "stop-own-monitor")
-	if r := Parse(watch, watch, nil).Own(watch, nil); r.State != Done || !reflect.DeepEqual(r.OwnTasks, []Task{{"shell", `f=/w/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"`}}) {
+	if r := Parse(watch, watch, nil).Own(watch, []byte("=bdsevxlfh\n")); r.State != Done || !reflect.DeepEqual(r.OwnTasks, []Task{{"monitor", "qa/flag file appearance"}}) {
 		t.Errorf("a Monitor watch: %s %+v", r.State, r.OwnTasks)
+	}
+	if r := Parse(watch, watch, nil).Own(watch, nil); r.State != Done || !reflect.DeepEqual(r.OwnTasks, []Task{{"shell", `f=/w/flag; until [ -e "$f" ]; do sleep 0.5; done; echo "flag file appeared: $f"`}}) {
+		t.Errorf("a Monitor watch of an older hook: %s %+v", r.State, r.OwnTasks)
 	}
 	question := fixture(t, "stop-background-question")
 	if r := Parse(question, question, nil).Own(question, nil); r.State != Question || !reflect.DeepEqual(r.OwnTasks, []Task{{"shell", "npm run dev"}}) {
 		t.Errorf("a question: %s %+v", r.State, r.OwnTasks)
+	}
+}
+
+// The hook's list may mark a task as a subagent's (~ID) or as the agent's
+// own Monitor watch (=ID), alongside the ids owed a turn. Whatever the
+// marks, busy counts exactly the running tasks ownTasks leaves out (the
+// artifact watch aside, which is neither): the =ID mark changes only how
+// an own task is shown, never whether it is one (#99).
+func TestBusyAndOwnTasksSplitTheRunningTasksWhateverTheMarks(t *testing.T) {
+	tasks := []string{
+		`{"id": "b1", "type": "shell", "status": "running", "description": "Wait", "command": "sleep 60"}`,
+		`{"id": "b1", "type": "monitor", "status": "running", "description": "Wait"}`,
+		`{"id": "b1", "type": "subagent", "status": "running", "description": "Tests"}`,
+		`{"id": "b1", "type": "workflow", "status": "running", "name": "w"}`,
+		`{"id": "b1", "type": "cron", "status": "running"}`,
+		`{"id": "b1", "type": "shell", "status": "completed", "command": "sleep 60"}`,
+	}
+	lists := []string{"", "b1\n", "!b1\n", "~b1\n", "=b1\n", "=b1\n~b1\n", "=b2\n", "+\n=b1\nb2\n"}
+	for _, task := range tasks {
+		for _, list := range lists {
+			var p payload
+			if err := json.Unmarshal([]byte(`{"hook_event_name": "Stop", "background_tasks": [`+task+`]}`), &p); err != nil {
+				t.Fatal(err)
+			}
+			running := p.BackgroundTasks[0].Status == "running"
+			if own := len(p.ownTasks([]byte(list))) == 1; p.busy([]byte(list)) != (running && !own) {
+				t.Errorf("%s with list %q: busy %v, own tasks %+v", task, list, p.busy([]byte(list)), p.ownTasks([]byte(list)))
+			}
+		}
+	}
+	// The real Stop of a turn whose subagent waits on its Monitor watch,
+	// beside the agent's own (Claude Code 2.1.302, both listed as shells):
+	// the subagent's is work, the agent's own a watch shown by its
+	// description.
+	stop := fixture(t, "stop-subagent-monitor")
+	var p payload
+	if err := json.Unmarshal(stop, &p); err != nil {
+		t.Fatal(err)
+	}
+	owed := []byte("=b46swdckt\n~b3ukv3517\n")
+	if !p.busy(owed) || !reflect.DeepEqual(p.ownTasks(owed), []Task{{"monitor", "qa flag1 watch"}}) {
+		t.Errorf("a subagent's watch beside the agent's own: busy %v, own %+v", p.busy(owed), p.ownTasks(owed))
+	}
+	// A turn end the hook kept, as some id is still owed a turn, with the
+	// agent's own watch marked: the mark changes nothing of what is owed.
+	since := time.Unix(1000, 0)
+	working := Parse(fixture(t, "prompt"), nil, nil)
+	working.Since, working.Latest = since, since
+	watch := fixture(t, "stop-own-monitor")
+	for list, owed := range map[string]bool{"a1\n": true, "a1\n=bdsevxlfh\n": true, "~bdsevxlfh\n": false} {
+		if r := working.Kept(fixture(t, "prompt"), watch, []byte(list), since.Add(time.Second)); r.State != Working || r.Owed != owed {
+			t.Errorf("kept with list %q: %+v", list, r)
+		}
 	}
 }
 

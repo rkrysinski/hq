@@ -1,0 +1,27 @@
+{
+  "session_id": "294d9a61-1421-4d11-8359-c6345c64cab7",
+  "transcript_path": "/home/agent/.claude/projects/-w-app/294d9a61-1421-4d11-8359-c6345c64cab7.jsonl",
+  "cwd": "/w/app",
+  "scratchpad_dir": "/tmp/claude-1000/-w-app/294d9a61-1421-4d11-8359-c6345c64cab7/scratchpad",
+  "prompt_id": "c662f168-1a0e-463e-b384-6217db847006",
+  "permission_mode": "bypassPermissions",
+  "agent_id": "a7a9ff7d180d82064",
+  "agent_type": "general-purpose",
+  "effort": {
+    "level": "high"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Monitor",
+  "tool_input": {
+    "description": "qa flag2 subagent watch",
+    "timeout_ms": 1800000,
+    "command": "until [ -e /w/app/flag2 ]; do sleep 0.5; done; echo \"flag2 appeared at $(date -u +%H:%M:%SZ)\""
+  },
+  "tool_response": {
+    "taskId": "b3ukv3517",
+    "timeoutMs": 1800000,
+    "persistent": false
+  },
+  "tool_use_id": "toolu_01NFaCDKRSehQxdMfTbG1dbx",
+  "duration_ms": 4
+}
