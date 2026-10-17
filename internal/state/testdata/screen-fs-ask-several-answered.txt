@@ -1,0 +1,30 @@
+● User declined to answer questions
+  ⎿  · Which tree? (Oak / Pine)
+
+✻ Brewed for 1s · done 6:44 AM
+
+❯ Use the AskUserQuestion tool once, with three questions in that one call: "Which color?" with
+  options Red and Blue (single choice); "Which sizes?" with options Small, Medium and Large
+  (multiSelect true); "Which name?" with options Alpha and Beta (single choice). After my answers,
+  reply with one line per question quoting exactly the answer you received, and do nothing else.
+    ✓ Pytam Cię                                                     ━━━━━━━━━━━━━━━━━━━━       27 s
+
+● User answered Claude's questions:
+  ⎿  · Which color? → Blue
+     · Which sizes? → Small, Large, XL
+     · Which name? → Gamma typed
+╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                        │
+│ "Blue"                                                                                          │
+│ "Small, Large, XL"                                                                              │
+│ "Gamma typed"                                                                                   │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Worked for 1m 1s · done 6:46 AM
+                                                                                  ● high · /effort
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5h ▕██▍░░░░░░░░░▏ 20%…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                                       ◆ Tools ▾

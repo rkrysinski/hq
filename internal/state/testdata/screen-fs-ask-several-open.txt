@@ -1,0 +1,30 @@
+
+❯ Use the AskUserQuestion tool once to ask me "Which tree?" with the options Oak and Pine (single
+  choice). After my answer, reply with one line quoting exactly the answer you received, and do
+  nothing else.
+    ○ Pytam Cię                                                     ━━━━━━━━━━━━━━━━━━━━       25 s
+
+● User declined to answer questions
+  ⎿  · Which tree? (Oak / Pine)
+
+✻ Brewed for 1s · done 6:44 AM
+
+❯ Use the AskUserQuestion tool once, with three questions in that one call: "Which color?" with
+  options Red and Blue (single choice); "Which sizes?" with options Small, Medium and Large
+  (multiSelect true); "Which name?" with options Alpha and Beta (single choice). After my answers,
+  reply with one line per question quoting exactly the answer you received, and do nothing else.
+    ✓ Pytam Cię                                                     ━━━━━━━━━━━━━━━━━━━━      0,0 s
+────────────────────────────────────────────────────────────────────────────────────────────────────
+←  ☐ Color  ☐ Sizes  ☐ Name  ✔ Submit  →
+
+Which color?
+
+❯ 1. Red
+     Red
+  2. Blue
+     Blue
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · Tab/Arrow keys to navigate · Esc to cancel
