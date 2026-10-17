@@ -249,7 +249,8 @@ func writeAsk(b *strings.Builder, a *state.Ask) {
 
 // writeForm prints an MCP elicitation (#100): which server asks what, then
 // each field of its form, or the page a URL-mode one sends the user to,
-// each line cut as LAST is.
+// each line cut as LAST is but the URL, in full: cut, it would hide where
+// it sends the user.
 func writeForm(b *strings.Builder, a *state.Ask) {
 	line := func(pad, s string) { b.WriteString(pad + truncate(s, lastWidth) + "\n") }
 	line("  ", a.Server+" asks: "+a.Message)
@@ -257,7 +258,7 @@ func writeForm(b *strings.Builder, a *state.Ask) {
 		line("    ", fieldLine(f))
 	}
 	if a.URL != "" {
-		line("    ", "url: "+a.URL)
+		b.WriteString("    url: " + a.URL + "\n")
 	}
 }
 

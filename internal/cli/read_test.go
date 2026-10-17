@@ -100,6 +100,11 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 		{"MCP URL", state.Report{State: state.NeedsInput, Last: "Sign in to the example service."},
 			state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Sign in to the example service.", URL: "https://example.com/sign-in?session=42"}},
 			"last      Sign in to the example service.\n\nasks\n  elicit asks: Sign in to the example service.\n    url: https://example.com/sign-in?session=42\n"},
+		// A URL is printed in full, however long: cut, it would hide where it
+		// sends the user.
+		{"MCP long URL", state.Report{State: state.NeedsInput, Last: "Sign in."},
+			state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Sign in.", URL: "https://auth.example.com/oauth/authorize?client_id=hq-agent&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&state=42"}},
+			"last      Sign in.\n\nasks\n  elicit asks: Sign in.\n    url: https://auth.example.com/oauth/authorize?client_id=hq-agent&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&state=42\n"},
 		{"question", state.Report{State: state.Question, Last: "Done. Shall I open the PR?"},
 			state.Detail{Reply: "Done.\n\nShall I open the PR?"},
 			"\nasks\n  Shall I open the PR?\n"}, // LAST is the reply, not repeated

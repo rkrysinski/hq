@@ -27,6 +27,7 @@ type message struct {
 
 type server struct {
 	work    time.Duration
+	url     string
 	mu      sync.Mutex
 	out     *json.Encoder
 	next    int
@@ -35,8 +36,9 @@ type server struct {
 
 func main() {
 	work := flag.Duration("work", 20*time.Second, "how long the tool works on after the answer")
+	url := flag.String("url", "https://example.com/sign-in?session=42", "the page open_url sends the user to")
 	flag.Parse()
-	s := &server{work: *work, out: json.NewEncoder(os.Stdout), next: 1000, pending: map[string]chan json.RawMessage{}}
+	s := &server{work: *work, url: *url, out: json.NewEncoder(os.Stdout), next: 1000, pending: map[string]chan json.RawMessage{}}
 	in := bufio.NewScanner(os.Stdin)
 	in.Buffer(make([]byte, 1<<20), 1<<20)
 	for in.Scan() {
@@ -148,7 +150,7 @@ func (s *server) openURL(id json.RawMessage) {
 	answer := s.ask("elicitation/create", map[string]any{
 		"mode":          "url",
 		"message":       "Sign in to the example service.",
-		"url":           "https://example.com/sign-in?session=42",
+		"url":           s.url,
 		"elicitationId": "elicit-url-1",
 	})
 	time.Sleep(s.work)
