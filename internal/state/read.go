@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -8,8 +9,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"syscall"
+	"time"
 )
 
 // maxFile caps what hq reads from a state file (design §7.3): a bound
@@ -90,7 +93,7 @@ func Read(root, id string) (r Report, ok bool) {
 
 // stateSuffixes are the files a report is parsed from: the state file
 // itself, then those beside it.
-var stateSuffixes = [...]string{"", ".stop", ".prev", keptSuffix, owedSuffix, actedSuffix}
+var stateSuffixes = [...]string{"", ".stop", ".prev", keptSuffix, owedSuffix, actedSuffix, queuedSuffix}
 
 // fileSig is what tells that a file changed: its type, size and
 // modification time, as lstat gives them; zero when there is no file.
@@ -152,7 +155,69 @@ func read(path string) (r Report, ok bool) {
 	if _, _, err := readData(path + actedSuffix); err == nil {
 		r.Acted = r.State == Working
 	}
+	if queued, _, err := readData(path + queuedSuffix); err == nil {
+		r.Queued = r.State == Working && pending(queued, lastStop)
+	}
 	return r, true
+}
+
+// pending reports whether the prompt of the hook's queued copy still waits
+// in Claude's queue: Claude has not taken it at a Stop of the turn it was
+// queued in, which the hook tells by the Stop's prompt_id being the copy's
+// (the copy stays after that for a /clear queued before the prompt, #82).
+func pending(queued, lastStop []byte) bool {
+	var q, s payload
+	if _, queued = splitHeader(queued); json.Unmarshal(queued, &q) != nil || q.PromptID == "" {
+		return false
+	}
+	_, lastStop = splitHeader(lastStop)
+	_ = json.Unmarshal(lastStop, &s)
+	return q.PromptID != s.PromptID
+}
+
+// TakeQueued hands the state of agent id of the repository at root over to
+// the prompt Claude took from its queue, as the hook does at a Stop of the
+// turn it was queued in (#82): the hook's copy of the prompt becomes the
+// state file, dated now, so the agent works on it from now, and what the
+// hook kept beside the file for the turn at work (.on, .acted) goes. hq
+// does it when the screen shows Claude at work on the prompt after the
+// user interrupted the turn with Esc, which fires no hook (design §3.4,
+// #88). The copy is renamed into place, never rewritten: of two hq
+// processes that see the same screen one hands over and the other finds
+// nothing queued, and a hook that has just taken the copy away (its Stop,
+// or a tool's end of its own) is not written over. The acted mark goes
+// only while it is the turn at work's (it holds that turn's prompt_id,
+// the copy's too): one the hook has just written for the queued turn's
+// own tool stays. It fails when nothing is queued, or the copy is not a
+// regular file (a planted link, design §7.3).
+func TakeQueued(root, id string) error {
+	if !idRE.MatchString(id) {
+		return errors.New("not an agent id")
+	}
+	path := filepath.Join(Dir(root), id)
+	queued, _, err := readData(path + queuedSuffix)
+	if err != nil {
+		return err
+	}
+	var q payload
+	_, event := splitHeader(queued)
+	_ = json.Unmarshal(event, &q)
+	now := time.Now()
+	if err := os.Chtimes(path+queuedSuffix, now, now); err != nil {
+		return err
+	}
+	if err := os.Rename(path+queuedSuffix, path); err != nil {
+		return err
+	}
+	if err := os.Remove(path + keptSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	if acted, _, err := readData(path + actedSuffix); err == nil && strings.TrimSpace(string(acted)) == q.PromptID {
+		if err := os.Remove(path + actedSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+	return nil
 }
 
 // Remove deletes the state files and the inbox of agent id of the repository
@@ -169,7 +234,7 @@ func Remove(root, id string) error {
 	delete(parsed.m, path)
 	parsed.Unlock()
 	var errs []error
-	for _, suffix := range append(stateSuffixes[:], supervisedSuffix, announcedSuffix, queuedSuffix) {
+	for _, suffix := range append(stateSuffixes[:], supervisedSuffix, announcedSuffix) {
 		if err := os.Remove(path + suffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			errs = append(errs, err)
 		}

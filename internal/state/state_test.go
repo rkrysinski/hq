@@ -419,3 +419,21 @@ func TestADialogKeepsTheLatestStopsMessageBesideItsText(t *testing.T) {
 		t.Errorf("no Stop yet: last stop %q", r.LastStop)
 	}
 }
+
+// A prompt in the hook's queued copy is pending until Claude takes it:
+// the hook knows a taken one by the Stop it was taken at, which carries
+// the same prompt_id as the copy (#82), and hq reads it the same way (#88).
+func TestAQueuedPromptIsPendingUntilAStopOfItsTurnTakesIt(t *testing.T) {
+	queued := fixture(t, "queued-while-working")
+	if pending(queued, fixture(t, "queued-stop")) {
+		t.Error("pending after the Stop that took it")
+	}
+	for name, stop := range map[string][]byte{"no Stop": nil, "an earlier Stop": fixture(t, "stop-done"), "the taken turn's Stop": fixture(t, "queued-turn-stop")} {
+		if !pending(queued, stop) {
+			t.Errorf("%s: not pending", name)
+		}
+	}
+	if pending([]byte("branch main\nnot json"), nil) || pending(nil, nil) {
+		t.Error("an unreadable copy is pending")
+	}
+}

@@ -13,6 +13,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/desktop"
 	"github.com/rkrysinski/hq/internal/dialog"
@@ -120,6 +121,9 @@ type deps struct {
 	foreground func(argv []string) (int, error)
 	// readState reads an agent's state file (design §3.4).
 	readState func(root, id string) (state.Report, bool)
+	// takeQueued hands an agent's state over to the prompt Claude took
+	// from its queue after an Esc (design §3.4, #88).
+	takeQueued agent.Taker
 	// readDetail reads an agent's last reply in full and what it asks
 	// (design §3.4).
 	readDetail func(root, id string) state.Detail
@@ -243,6 +247,7 @@ func defaultDeps() deps {
 		foreground:  func(argv []string) (int, error) { return run.Foreground(argv[0], argv[1:]...) },
 
 		readState:   state.Read,
+		takeQueued:  state.TakeQueued,
 		readDetail:  state.ReadDetail,
 		removeState: state.Remove,
 		postMessage: func(root, id string, m state.Message, now bool) error {
