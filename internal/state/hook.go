@@ -12,10 +12,14 @@ import (
 // the branch checked out there as a header line, then the payload, to the
 // main repository's .git/hq/agents/$HQ_ID, replacing it in one step, and
 // keeps the latest Stop event beside it (.stop) for the last message. An
-// open dialog (the latest event is a PermissionRequest) decides two kinds:
-// answer (a tool ran) is written only when it closes that dialog, the same
-// tool having run, and input (Claude's Notification) only when no dialog is
-// open, so a dialog is reported once, when it opens (design §3.4). A resumed
+// open dialog (the latest event is a PermissionRequest, or an Elicitation:
+// an MCP server's form, which dialog reports too and decides nothing, so
+// Claude draws it) decides three kinds: answer (a tool ran) is written only
+// when it closes that dialog, the same tool having run (for a form, a tool
+// of its server: some other Elicitation hook answered it), input (Claude's
+// Notification) only when no dialog is open, so a dialog is reported once,
+// when it opens, and result (the form answered at the agent,
+// ElicitationResult) only when it closes a form (design §3.4, #100). A resumed
 // session (resume) first keeps the event before it (.prev) for the branch,
 // worktree and last message, unless that event is itself a resumed start,
 // which keeps the one it kept. On stop,
@@ -116,7 +120,9 @@ t=$f.$$
 { printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" || { rm -f "$t"; exit 0; }
 A='` + hookAwk + `'
 works() { grep -Eq '` + workingEvent + `' "$f"; }
-theirs() { grep -q '` + dialogEvent + `' "$f" && grep -q '"agent_id"' "$f"; }
+ask() { grep -Eq '` + dialogEvent + `' "$f"; }
+form() { grep -q '` + elicitEvent + `' "$f"; }
+theirs() { ask && grep -q '"agent_id"' "$f"; }
 owes() { grep -q '^[^=]' "$f` + owedSuffix + `"; }
 owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" || rm -f "$t.o" "$f` + owedSuffix + `"; }
 put() { cp -f "${2:-$t}" "$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
@@ -125,6 +131,7 @@ turn() { get prompt_id "$1"; }
 queued() { n=$(turn "$f` + queuedSuffix + `") && [ -n "$n" ]; }
 taken() { queued && [ "$n" = "$(turn "$f.stop")" ]; }
 tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1"; }
+mcp() { form && v=$(get mcp_server_name "$f") && case $(tool "$t") in *\"mcp__"$v"__*) ;; *) false ;; esac; }
 soon() { for m in "$i"/[0-9]*` + nowSuffix + `; do [ -f "$m" ] && return 0; done; return 1; }
 take() {
     u=; c=$i/.taken.$$
@@ -162,14 +169,15 @@ answer) o=; grep -q '"agent_id"' "$t" || { o=1; p=$(turn "$t")
         printf '%s\n' "$p" >"$f` + actedSuffix + `"; rm -f "$f` + queuedSuffix + `"; }
     grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
     grep -q '` + toolEndEvent + `' "$t" && [ "$o" ] && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
-    grep -q '` + dialogEvent + `' "$f" && [ "$(tool "$f")" = "$(tool "$t")" ] || { rm -f "$t"; exit 0; } ;;
-input) grep -q '` + dialogEvent + `' "$f" && { rm -f "$t"; exit 0; } ;;
+    ask && [ "$(tool "$f")" = "$(tool "$t")" ] || mcp || { rm -f "$t"; exit 0; } ;;
+input) ask && { rm -f "$t"; exit 0; } ;;
+result) form || { rm -f "$t"; exit 0; } ;;
 end) taken && grep -Eq '` + clearedSession + `' "$t" && { rm -f "$t"; exit 0; } ;;
 start) taken && grep -Eq '` + clearedSession + `' "$t" && sid=$(get session_id "$t") &&
     S=$sid K=session awk "$A" "$f` + queuedSuffix + `" >"$t.c" && mv -f "$t.c" "$t"; rm -f "$t.c" ;;
 resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; }; rm -f "$t.p" ;;
 esac
-case $1 in dialog | answer | input) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
+case $1 in dialog | answer | input | result) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
 if mv -f "$t" "$f" && [ "$1" = stop ]; then
     cp -f "$f" "$t" && mv -f "$t" "$f.stop"
 fi
@@ -189,9 +197,14 @@ var hookScript = func() string {
 	return strings.Join(lines, "\n")
 }()
 
-// dialogEvent is what the hook's grep finds in a state file whose latest
-// event opened a dialog: a PermissionRequest, with or without spaces.
-const dialogEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"PermissionRequest"`
+// dialogEvent is what the hook's grep -E finds in a state file whose
+// latest event opened a dialog: a PermissionRequest, or an MCP
+// elicitation's form (elicitEvent), with or without spaces.
+const dialogEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"(PermissionRequest|Elicitation)"`
+
+// elicitEvent is what the hook's grep finds in a state file whose latest
+// event is an MCP elicitation's form, drawn and not yet answered.
+const elicitEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"Elicitation"`
 
 // toolEndEvent is what the hook's grep finds in the payload of a tool that
 // ended successfully, whose result can carry messages (PostToolUse).
@@ -395,7 +408,9 @@ const branchHeader = "branch"
 // attentionNotifications are the Notification kinds that mean the agent
 // waits for the user (design §3.4). Claude sends them seconds after the
 // dialog appears; a dialog that fired PermissionRequest is reported by then.
-const attentionNotifications = "permission_prompt|agent_needs_input|elicitation_dialog"
+// An MCP elicitation's (elicitation_dialog, elicitation_url_dialog) is left
+// out: its own hook reports it as it is drawn (#100).
+const attentionNotifications = "permission_prompt|agent_needs_input"
 
 // newSessions are the SessionStart sources after which Claude waits at its
 // prompt for the user: a new session and one started over by /clear. A
@@ -454,7 +469,9 @@ func Settings(name, id, notify string) string {
 				{Matcher: newSessions, Hooks: []hookCommand{hook("start", "")}},
 				{Matcher: resumeSource, Hooks: []hookCommand{hook("resume", "")}},
 			},
-			"SessionEnd": {{Hooks: []hookCommand{hook("end", "")}}},
+			"SessionEnd":        {{Hooks: []hookCommand{hook("end", "")}}},
+			"Elicitation":       {{Hooks: []hookCommand{hook("dialog", notify)}}},
+			"ElicitationResult": {{Hooks: []hookCommand{hook("result", "")}}},
 		},
 	})
 	return strings.TrimSpace(b.String())

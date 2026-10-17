@@ -215,6 +215,96 @@ func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) 
 	}
 }
 
+// An MCP elicitation is reported by its own hook as Claude draws the form
+// (#100): needs input at once, one notification, and the hook decides
+// nothing, so the form is drawn as before. Claude's own Notification for
+// it changes nothing. The form answered at the agent (ElicitationResult:
+// accepted, declined or cancelled) closes it; so does the end of its MCP
+// tool, as when another Elicitation hook answered and no form was drawn.
+func TestAnElicitationIsReportedAtOnceAndClosedWhenItsFormIsAnswered(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	notify := func(kind string, payload []byte) string {
+		return run(t, root, root, id, hook(kind, "[%s]"), payload)
+	}
+	state := func() (Report, string) {
+		t.Helper()
+		r, ok := Read(root, id)
+		if !ok {
+			t.Fatal("no report")
+		}
+		b, _ := os.ReadFile(filepath.Join(Dir(root), id))
+		return r, string(b)
+	}
+	toolEnd := func(name string) []byte {
+		return bytes.Replace(fixture(t, "answer-bash"), []byte(`"Bash"`), []byte(`"`+name+`"`), 1)
+	}
+	for _, tc := range []struct{ elicited, answered, last string }{
+		{"elicitation", "elicitation-result-accept", "Which color should I use?"},
+		{"elicitation", "elicitation-result-decline", "Which color should I use?"},
+		{"elicitation", "elicitation-result-cancel", "Which color should I use?"},
+		{"elicitation-url", "elicitation-result-url-accept", "Sign in to the example service."},
+	} {
+		fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+		// No form open: the answer of one is not written.
+		_, before := state()
+		fire(t, root, root, id, "result", fixture(t, tc.answered))
+		if _, now := state(); now != before {
+			t.Fatalf("%s: written with no form open", tc.answered)
+		}
+		if out := notify("dialog", fixture(t, tc.elicited)); out != `{"terminalSequence":"[Needs input: main]"}`+"\n" {
+			t.Fatalf("%s printed %q", tc.elicited, out)
+		}
+		r, opened := state()
+		if r.State != NeedsInput || r.Last != tc.last {
+			t.Fatalf("%s: %+v", tc.elicited, r)
+		}
+		// Claude's Notification for it, and a tool of anything else ending,
+		// change nothing.
+		if out := notify("input", fixture(t, "notification-elicitation")); out != "" {
+			t.Fatalf("the late Notification printed %q", out)
+		}
+		notify("answer", fixture(t, "answer-bash"))
+		notify("answer", toolEnd("mcp__other__ask_color"))
+		if _, now := state(); now != opened {
+			t.Fatalf("%s: the report changed before the form was answered", tc.elicited)
+		}
+		fire(t, root, root, id, "result", fixture(t, tc.answered))
+		if r, _ := state(); r.State != Working || !r.Acted {
+			t.Fatalf("%s: %+v", tc.answered, r)
+		}
+	}
+	// Answered by something else: the end of its tool closes it, a tool of
+	// that server's, successfully or not.
+	for _, event := range []string{"PostToolUse", "PostToolUseFailure"} {
+		notify("dialog", fixture(t, "elicitation"))
+		fire(t, root, root, id, "answer", bytes.Replace(toolEnd("mcp__elicit__ask_color"), []byte(`"PostToolUse"`), []byte(`"`+event+`"`), 1))
+		if r, _ := state(); r.State != Working {
+			t.Fatalf("its tool ended (%s): %+v", event, r)
+		}
+	}
+}
+
+// A background subagent's elicitation, after the agent's turn ended with
+// the subagent running, is the subagent's, as its Notification was (#70);
+// answered, the agent waits on its subagent again, working.
+func TestAnElicitationWhileTheAgentWaitsOnASubagentIsTheSubagents(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	fire(t, root, root, id, "stop", fixture(t, "stop-background"))
+	if out := run(t, root, root, id, hook("dialog", "[%s]"), fixture(t, "elicitation-subagent")); out != `{"terminalSequence":"[Needs input: main]"}`+"\n" {
+		t.Fatalf("the elicitation printed %q", out)
+	}
+	if r, _ := Read(root, id); r.State != NeedsInput || !r.SubagentDialog || r.Last != "Which color should I use?" {
+		t.Fatalf("a subagent's elicitation: %+v", r)
+	}
+	fire(t, root, root, id, "result", fixture(t, "elicitation-result-accept-subagent"))
+	if r, _ := Read(root, id); r.State != Working || !r.Background || r.Last != "The tests are running in a subagent." {
+		t.Fatalf("answered: %+v", r)
+	}
+}
+
 // A tool of the agent's own that ended (PostToolUse or PostToolUseFailure
 // without an agent_id) tells hq that Claude has acted on the turn, which
 // no early Esc rewinds any more (#77): the hook marks it beside the state

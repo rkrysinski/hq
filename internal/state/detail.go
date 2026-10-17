@@ -1,9 +1,11 @@
 package state
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -22,13 +24,20 @@ type Detail struct {
 }
 
 // Ask is what an agent is asked: the questions of a question dialog, the
-// tool and command of a permission prompt, or a message.
+// tool and command of a permission prompt, the form of an MCP elicitation,
+// or a message.
 type Ask struct {
 	Tool        string        `json:"tool,omitempty"`
 	Description string        `json:"description,omitempty"`
 	Command     string        `json:"command,omitempty"` // the command, file or URL the tool would use
 	Questions   []AskQuestion `json:"questions,omitempty"`
-	Message     string        `json:"message,omitempty"`
+	// Server is the MCP server whose elicitation asks; Message is then its
+	// message, and Fields its form's fields, in the form's order, or URL the
+	// page a URL-mode one sends the user to (#100).
+	Server  string     `json:"server,omitempty"`
+	Message string     `json:"message,omitempty"`
+	Fields  []AskField `json:"fields,omitempty"`
+	URL     string     `json:"url,omitempty"`
 }
 
 // AskQuestion is one question of a question dialog (AskUserQuestion).
@@ -43,6 +52,24 @@ type AskQuestion struct {
 type AskOption struct {
 	Label       string `json:"label"`
 	Description string `json:"description,omitempty"`
+}
+
+// AskField is one field of an MCP elicitation's form.
+type AskField struct {
+	Name        string           `json:"name"`
+	Title       string           `json:"title,omitempty"`
+	Description string           `json:"description,omitempty"`
+	Type        string           `json:"type"` // string, number, integer or boolean
+	Required    bool             `json:"required,omitempty"`
+	Options     []AskFieldOption `json:"options,omitempty"` // none for a free field
+	Default     any              `json:"default,omitempty"` // a string, a number or a boolean
+}
+
+// AskFieldOption is one value an AskField offers, with the title the form
+// shows for it, if any.
+type AskFieldOption struct {
+	Value string `json:"value"`
+	Title string `json:"title,omitempty"`
 }
 
 // ReadDetail returns the detail of agent id of the repository at root:
@@ -90,6 +117,8 @@ func ParseDetail(latest, lastStop []byte) Detail {
 		d.Reply = CleanText(p.AssistantMessage)
 	case "PermissionRequest":
 		d.Ask = p.ask()
+	case "Elicitation":
+		d.Ask = p.elicitation()
 	case "Notification":
 		if m := Clean(p.Message); m != "" {
 			d.Ask = &Ask{Message: m}
@@ -102,7 +131,9 @@ func ParseDetail(latest, lastStop []byte) Detail {
 // tool_input shadows the payload's.
 type fullPayload struct {
 	payload
-	Input struct {
+	URL    string          `json:"url"`
+	Schema json.RawMessage `json:"requested_schema"`
+	Input  struct {
 		Description string `json:"description"`
 		Command     string `json:"command"`
 		FilePath    string `json:"file_path"`
@@ -142,6 +173,94 @@ func (p fullPayload) ask() *Ask {
 		}
 	}
 	return a
+}
+
+// elicitation is what an MCP elicitation asks: its server and message, and
+// the fields of its form, or the URL of a URL-mode one.
+func (p fullPayload) elicitation() *Ask {
+	return &Ask{Server: Clean(p.Server), Message: Clean(p.Message), Fields: fields(p.Schema), URL: Clean(p.URL)}
+}
+
+// fields are the fields of a form's schema (requested_schema), in the
+// order of its properties. A property hq cannot read in full, of another
+// type than a string, a number, an integer or a boolean (a list, a nested
+// object) or with an option that is no string, is left out; keywords it
+// does not know are ignored. A schema it cannot read gives none.
+func fields(schema json.RawMessage) []AskField {
+	var s struct {
+		Properties json.RawMessage `json:"properties"`
+		Required   []string        `json:"required"`
+	}
+	if json.Unmarshal(schema, &s) != nil {
+		return nil
+	}
+	names, props := ordered(s.Properties)
+	var fs []AskField
+	for _, name := range names {
+		var p struct {
+			Type        string   `json:"type"`
+			Title       string   `json:"title"`
+			Description string   `json:"description"`
+			Enum        []string `json:"enum"`
+			EnumNames   []string `json:"enumNames"`
+			OneOf       []struct {
+				Const string `json:"const"`
+				Title string `json:"title"`
+			} `json:"oneOf"`
+			Default any `json:"default"`
+		}
+		if json.Unmarshal(props[name], &p) != nil {
+			continue
+		}
+		switch p.Type {
+		case "string", "number", "integer", "boolean":
+		default:
+			continue
+		}
+		f := AskField{Name: Clean(name), Title: Clean(p.Title), Description: Clean(p.Description), Type: p.Type, Required: slices.Contains(s.Required, name)}
+		for i, v := range p.Enum {
+			o := AskFieldOption{Value: Clean(v)}
+			if len(p.EnumNames) == len(p.Enum) {
+				o.Title = Clean(p.EnumNames[i])
+			}
+			f.Options = append(f.Options, o)
+		}
+		for _, o := range p.OneOf {
+			f.Options = append(f.Options, AskFieldOption{Value: Clean(o.Const), Title: Clean(o.Title)})
+		}
+		switch v := p.Default.(type) {
+		case string:
+			f.Default = Clean(v)
+		case float64, bool:
+			f.Default = v
+		}
+		fs = append(fs, f)
+	}
+	return fs
+}
+
+// ordered are the keys of a JSON object in the order it gives them, with
+// their values; none when it is no object.
+func ordered(object json.RawMessage) ([]string, map[string]json.RawMessage) {
+	dec := json.NewDecoder(bytes.NewReader(object))
+	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
+		return nil, nil
+	}
+	var keys []string
+	values := map[string]json.RawMessage{}
+	for dec.More() {
+		t, err := dec.Token()
+		key, ok := t.(string)
+		var v json.RawMessage
+		if err != nil || !ok || dec.Decode(&v) != nil {
+			return nil, nil
+		}
+		if _, seen := values[key]; !seen {
+			keys = append(keys, key)
+		}
+		values[key] = v
+	}
+	return keys, values
 }
 
 // CleanText is Clean for text shown in full: its lines are kept, each
