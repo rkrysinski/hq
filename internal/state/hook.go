@@ -155,14 +155,13 @@ say() {
     for m in "$c"/*; do [ -f "$m" ] && printf '%s%s' "$s" '` + MessageLabel + `' && cat "$m" && s='\n\n'; done
     rm -rf "$c"; printf '%s\n' "$2"
 }
-nap() { sleep 0.2 || sleep 1; }
-mine() { awk 'BEGIN { RS = "\001" } NR == FNR { p = $0; next } { s = $0 == p } END { exit !s }' "$t" "$f"; }
+nap() { sleep .2 || sleep 1; }
+mine() { awk -v RS='\001' 'NR==FNR{p=$0;next}{s=$0==p}END{exit !s}' "$t" "$f"; }
 case $1 in
-ask) grep -q '"agent_id"' "$t" || { k=$(cksum <"$t" | awk '{ print $1 "." $2 }') && a=$i/` + answerPrefix + `$k &&
-    trap 'rm -f "$t" "$t.a"; exit 0' HUP INT TERM &&
-    { w=50; until mine; do [ $w -gt 0 ] && w=$((w - 1)) && nap || break; done
-    while mine; do [ -f "$a" ] && mv "$a" "$t.a" && { cat "$t.a" && echo; break; }; nap; done; }; }
-    rm -f "$t" "$t.a"; exit 0 ;;
+ask) grep -q '"agent_id"' "$t" || { k=$(cksum <"$t") && a=$i/` + answerPrefix + `${k% *}.${k#* } && trap 'rm -f "$t"; exit 0' HUP TERM &&
+    { w=0; until mine || [ $((w+=1)) -gt 50 ]; do nap; done
+    while mine; do mv -f "$a" "$t" && cat "$t" && break; nap; done; }; }
+    rm -f "$t"; exit 0 ;;
 stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
     K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; k=$?; owe
     queued && ! taken && [ "$n" = "$(turn "$t")" ] && {

@@ -249,7 +249,8 @@ func LeaveAnswer(root, id string, q Questions, decision []byte) error {
 	_, _ = rand.Read(r)
 	tmp := filepath.Join(dir, "."+q.name+"."+hex.EncodeToString(r))
 	defer os.Remove(tmp)
-	if err := os.WriteFile(tmp, decision, 0o644); err != nil {
+	// One line, as the hook prints it.
+	if err := os.WriteFile(tmp, append(decision, '\n'), 0o644); err != nil {
 		return err
 	}
 	if err := os.Link(tmp, filepath.Join(dir, q.name)); err != nil {
