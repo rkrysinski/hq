@@ -38,7 +38,14 @@ hq creates a repository's sandbox the first time `hq new` runs there, with sbx's
 }
 ```
 
-`template` goes to `sbx create --template` and `staticMcp` to `--static-mcp`; either may be left out. `HQ_SBX_TEMPLATE` and `HQ_SBX_STATIC_MCP` (comma-separated) override them for one command. They apply only when hq creates a sandbox: one that exists, hq's or one you created by hand, is used as it is, so to change its image remove it (`hq sandbox rm REPO`) and let the next `hq new` create it again. hq neither pulls nor checks the image; when `sbx` refuses the image or a server, `hq new` shows sbx's error and the settings it used. `hq answer` needs an image whose own permission hook leaves question dialogs alone (the team's `sbx-image` from `claude-2.1.302-git-107ad47` on): in a sandbox created from an older one the agent ignores the answer and stays at the dialog, and `hq answer` says so.
+`template` goes to `sbx create --template` and `staticMcp` to `--static-mcp`; either may be left out. `HQ_SBX_TEMPLATE` and `HQ_SBX_STATIC_MCP` (comma-separated) override them for one command. They apply only when hq creates a sandbox: one that exists, hq's or one you created by hand, is used as it is, so to change its image remove it (`hq sandbox rm REPO`) and let the next `hq new` create it again. hq neither pulls nor checks the image; when `sbx` refuses the image or a server, `hq new` shows sbx's error and the settings it used.
+
+#### Requirements on the sandbox template
+
+hq works with any template, with one condition for `hq answer`: the template's own hooks must not answer an AskUserQuestion dialog. Claude takes the first decisive answer of its `PermissionRequest` hooks, so a template hook that approves every request, AskUserQuestion included, answers first and Claude ignores hq's answer; such a hook has to stay silent for AskUserQuestion.
+
+- You can tell: `hq answer` exits 3 after 5 s, saying the agent took the answer but did not leave its dialog and that its sandbox's template may have such a hook. The dialog stays open; answer it at the agent (`hq go NAME`).
+- A sandbox keeps the template it was created with, so after the template is changed, recreate the sandbox (`hq sandbox rm REPO`, then `hq new`).
 
 ### Windows
 
