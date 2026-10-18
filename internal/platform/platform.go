@@ -37,10 +37,15 @@ type Platform interface {
 	// DesktopConfig is Claude Desktop's configuration file as hq sees it,
 	// home being the user's home directory (design §3.12).
 	DesktopConfig(home string) (string, error)
-	// DesktopServer is how Claude Desktop starts the MCP server that runs
-	// the hq at path hq with the environment env ("KEY=value"): the
-	// command, its arguments, and the environment Claude Desktop gives it.
-	DesktopServer(hq string, env []string) (command string, args []string, environment map[string]string)
+	// AppServer is how an app on the user's desktop (Claude Desktop, or
+	// Claude Code on Windows) starts the MCP server that runs hq's command
+	// line argv with the environment env ("KEY=value"): the command, its
+	// arguments, and the environment the app gives it.
+	AppServer(argv, env []string) (command string, args []string, environment map[string]string)
+	// WindowsCodeConfig is, on WSL, the user configuration file of Claude
+	// Code on Windows as hq sees it (design §3.12); ok is false on a
+	// platform with no Windows side.
+	WindowsCodeConfig() (path string, ok bool, err error)
 }
 
 // OverrideEnv names the variable that decides the platform instead of

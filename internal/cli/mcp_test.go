@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/rkrysinski/hq/internal/desktop"
+	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -21,9 +21,15 @@ import (
 func mcpSession(t *testing.T, f *fakes) *mcp.ClientSession {
 	t.Helper()
 	f.tty = false
+	return connect(t, newMCPServer(f.deps(), claudeDesktop))
+}
+
+// connect connects an MCP client in memory to an MCP server.
+func connect(t *testing.T, s *mcp.Server) *mcp.ClientSession {
+	t.Helper()
 	ctx := context.Background()
 	ct, st := mcp.NewInMemoryTransports()
-	ss, err := newMCPServer(f.deps()).Connect(ctx, st, nil)
+	ss, err := s.Connect(ctx, st, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,12 +295,50 @@ func TestMCPWaitNeverOutlastsClaudeDesktopsToolCall(t *testing.T) {
 		if out, _ := call(t, cs, "wait", args); len(waitJSON(t, out).Agents) != 0 {
 			t.Fatalf("%d: %s", timeout, out)
 		}
-		if took := f.now.Sub(start); took < maxWaitTimeout || took > maxWaitTimeout+time.Second {
+		if took := f.now.Sub(start); took < claudeDesktop.maxWait || took > claudeDesktop.maxWait+time.Second {
 			t.Errorf("timeout %d waited %v", timeout, took)
 		}
 	}
-	if maxWaitTimeout >= 60*time.Second {
+	if claudeDesktop.maxWait >= 60*time.Second {
 		t.Fatal("Claude Desktop gives a tool call 60 s")
+	}
+}
+
+// Claude Code gives a tool call as long as its entry says: one wait may
+// last an hour (#115).
+func TestMCPWaitForClaudeCodeMayLastAnHour(t *testing.T) {
+	for timeout, want := range map[int]time.Duration{0: DefaultWaitTimeout, 51: 51 * time.Second, 600: 10 * time.Minute, 3600: time.Hour, 7200: time.Hour} {
+		f := newWaitFakes()
+		f.tty = false
+		cs := connect(t, newMCPServer(f.deps(), claudeCode))
+		start := f.now
+		args := map[string]any{"since": "0s"}
+		if timeout != 0 {
+			args["timeout"] = timeout
+		}
+		if out, _ := call(t, cs, "wait", args); len(waitJSON(t, out).Agents) != 0 {
+			t.Fatalf("%d: %s", timeout, out)
+		}
+		if took := f.now.Sub(start); took < want || took > want+time.Second {
+			t.Errorf("timeout %d waited %v, want %v", timeout, took, want)
+		}
+	}
+}
+
+// The wait tool tells each client the most it waits.
+func TestMCPWaitSaysHowLongItMayWait(t *testing.T) {
+	for client, want := range map[mcpClient]string{
+		claudeDesktop: "After timeout seconds (default and at most 50) it returns no agents",
+		claudeCode:    "After timeout seconds (default 50, at most 3600) it returns no agents",
+	} {
+		res, err := connect(t, newMCPServer(newWaitFakes().deps(), client)).ListTools(context.Background(), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		i := slices.IndexFunc(res.Tools, func(tl *mcp.Tool) bool { return tl.Name == "wait" })
+		if !strings.Contains(res.Tools[i].Description, want) {
+			t.Errorf("%s: no %q in %q", client.name, want, res.Tools[i].Description)
+		}
 	}
 }
 
@@ -472,8 +516,11 @@ func TestToolResultOfAnErrorOfNoKind(t *testing.T) {
 
 func TestMCPServesOnlyAClient(t *testing.T) {
 	f := newFakes()
-	if code, _, errOut := f.run("mcp"); code != ExitUsage || f.served != nil || !strings.Contains(errOut, "hq mcp install") {
-		t.Fatalf("from a terminal: exit %d %q", code, errOut)
+	for _, args := range [][]string{{"mcp"}, {"mcp", "claude-code"}} {
+		if code, _, errOut := f.run(args...); code != ExitUsage || f.served != nil ||
+			errOut != "hq: hq mcp is started by an MCP client, not typed; add it to Claude Desktop with: hq mcp install, or to Claude Code with: hq mcp install claude-code\n" {
+			t.Fatalf("%q from a terminal: exit %d %q", args, code, errOut)
+		}
 	}
 	f.tty = false
 	if code, _, errOut := f.run("mcp"); code != 0 || f.served == nil {
@@ -483,11 +530,48 @@ func TestMCPServesOnlyAClient(t *testing.T) {
 	if code, _, errOut := f.run("mcp"); code != ExitEnvironment || errOut != "hq: mcp: broken pipe\n" {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
-	if code, _, errOut := f.run("mcp", "install", "now"); code != ExitUsage || errOut != "hq: unexpected argument 'now' (usage: hq mcp [install])\n" {
+	for _, args := range [][]string{{"mcp", "install", "now"}, {"mcp", "serve"}, {"mcp", "install", "claude-code", "now"}, {"mcp", "claude-code", "now"}} {
+		if code, _, errOut := f.run(args...); code != ExitUsage || errOut != "hq: unexpected argument '"+args[len(args)-1]+"' (usage: hq mcp [install] [claude-desktop|claude-code])\n" {
+			t.Fatalf("%q: exit %d %q", args, code, errOut)
+		}
+	}
+}
+
+// hq mcp serves the client its entry names: Claude Desktop when none is.
+func TestParseMCPNamesTheClient(t *testing.T) {
+	for _, tc := range []struct {
+		args    []string
+		install bool
+		client  mcpClient
+	}{
+		{nil, false, claudeDesktop},
+		{[]string{"claude-desktop"}, false, claudeDesktop},
+		{[]string{"claude-code"}, false, claudeCode},
+		{[]string{"install"}, true, claudeDesktop},
+		{[]string{"install", "claude-desktop"}, true, claudeDesktop},
+		{[]string{"install", "claude-code"}, true, claudeCode},
+	} {
+		if install, client, err := parseMCP(tc.args); err != nil || install != tc.install || client != tc.client {
+			t.Errorf("%q: %v %v %v", tc.args, install, client.name, err)
+		}
+	}
+	for _, args := range [][]string{{"claude-code", "install"}, {"code"}, {"install", "install"}} {
+		if _, _, err := parseMCP(args); asError(err).Code != ExitUsage {
+			t.Errorf("%q: %v", args, err)
+		}
+	}
+}
+
+// Served for Claude Code, hq's wait may last an hour.
+func TestMCPForClaudeCodeServesItsLongerWait(t *testing.T) {
+	f := newWaitFakes()
+	f.tty = false
+	if code, _, errOut := f.run("mcp", "claude-code"); code != 0 || f.served == nil {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
-	if code, _, errOut := f.run("mcp", "serve"); code != ExitUsage || errOut != "hq: unexpected argument 'serve' (usage: hq mcp [install])\n" {
-		t.Fatalf("exit %d %q", code, errOut)
+	start := f.now
+	if out, _ := call(t, connect(t, f.served), "wait", map[string]any{"since": "0s", "timeout": 600}); len(waitJSON(t, out).Agents) != 0 || f.now.Sub(start) < 10*time.Minute {
+		t.Fatalf("after %v: %s", f.now.Sub(start), out)
 	}
 }
 
@@ -496,7 +580,7 @@ func TestMCPInstallSetsHqUpInClaudeDesktop(t *testing.T) {
 	f.exe = "/Users/dev/.local/bin/hq"
 	f.desktop = "/Users/dev/Library/Application Support/Claude/claude_desktop_config.json"
 	f.env = map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET": "hq-dev", "HOME": "/Users/dev", "GITHUB_TOKEN": "secret"}
-	f.installResult = desktop.Result{Outcome: desktop.Added, Backup: f.desktop + ".hq-backup-20260927-120000"}
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Added, Backup: f.desktop + ".hq-backup-20260927-120000"}
 	code, out, errOut := f.run("mcp", "install")
 	want := "added hq to Claude Desktop (" + f.desktop + ")\nthe file as it was: " + f.desktop + ".hq-backup-20260927-120000\nquit and reopen Claude Desktop to load it\n"
 	if code != 0 || out != want {
@@ -506,13 +590,125 @@ func TestMCPInstallSetsHqUpInClaudeDesktop(t *testing.T) {
 	if s.Command != f.exe || !slices.Equal(s.Args, []string{"mcp"}) || len(s.Env) != 2 || s.Env["PATH"] != "/opt/homebrew/bin:/usr/bin" || s.Env["HQ_TMUX_SOCKET"] != "hq-dev" {
 		t.Fatalf("server %+v", s)
 	}
-	f.installResult = desktop.Result{Outcome: desktop.Unchanged}
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Unchanged}
 	if _, out, _ := f.run("mcp", "install"); out != "hq is already set up in Claude Desktop ("+f.desktop+")\n" {
 		t.Fatalf("again %q", out)
 	}
-	f.installResult = desktop.Result{Outcome: desktop.Updated, Backup: "/b"}
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Updated, Backup: "/b"}
 	if _, out, _ := f.run("mcp", "install"); out != "updated hq in Claude Desktop ("+f.desktop+")\nthe file as it was: /b\nquit and reopen Claude Desktop to load it\n" {
 		t.Fatalf("update %q", out)
+	}
+}
+
+func TestMCPInstallSetsHqUpInClaudeCode(t *testing.T) {
+	f := newFakes()
+	f.exe = "/Users/dev/.local/bin/hq"
+	f.desktop = "/Users/dev/Library/Application Support/Claude/claude_desktop_config.json"
+	f.env = map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET": "hq-dev", "HOME": "/home/dev", "GITHUB_TOKEN": "secret"}
+	path := "/home/dev/.claude.json"
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Added, Backup: path + ".hq-backup-20260927-120000"}
+	code, out, errOut := f.run("mcp", "install", "claude-code")
+	want := "added hq to Claude Code (" + path + ")\nthe file as it was: " + path + ".hq-backup-20260927-120000\nrestart Claude Code to load it\n"
+	if code != 0 || out != want {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	// The command and environment Claude Desktop's entry has, in the native
+	// form on every platform (Claude Code runs beside hq), and a tool call
+	// longer than the longest wait.
+	s := f.installed[0]
+	if !slices.Equal(f.installedIn, []mcpconfig.File{{Path: path, Lock: true}}) || s.Type != "stdio" || s.Command != f.exe || !slices.Equal(s.Args, []string{"mcp", "claude-code"}) ||
+		len(s.Env) != 2 || s.Env["PATH"] != "/opt/homebrew/bin:/usr/bin" || s.Env["HQ_TMUX_SOCKET"] != "hq-dev" || s.Timeout != 3660000 {
+		t.Fatalf("in %+v server %+v", f.installedIn, s)
+	}
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Unchanged}
+	if _, out, _ := f.run("mcp", "install", "claude-code"); out != "hq is already set up in Claude Code ("+path+")\n" {
+		t.Fatalf("again %q", out)
+	}
+	// Claude Code's configuration directory, when it is moved.
+	f.env["CLAUDE_CONFIG_DIR"] = "/cfg/claude"
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Updated, Backup: "/b"}
+	if _, out, _ := f.run("mcp", "install", "claude-code"); out != "updated hq in Claude Code (/cfg/claude/.claude.json)\nthe file as it was: /b\nrestart Claude Code to load it\n" || f.installedIn[2] != (mcpconfig.File{Path: "/cfg/claude/.claude.json", Lock: true}) {
+		t.Fatalf("update %q in %+v", out, f.installedIn)
+	}
+	// Claude Desktop's entry is as it was.
+	f.run("mcp", "install")
+	if s := f.installed[3]; f.installedIn[3] != (mcpconfig.File{Path: f.desktop, Create: true}) || s.Type != "" || s.Timeout != 0 || !slices.Equal(s.Args, []string{"mcp"}) {
+		t.Fatalf("in %+v server %+v", f.installedIn[3], s)
+	}
+}
+
+// On WSL hq also sets itself up for Claude Code on Windows, where that has
+// run: its entry starts hq as Claude Desktop's does (#115).
+func TestMCPInstallForClaudeCodeAlsoSetsUpClaudeCodeOnWindows(t *testing.T) {
+	f := newFakes()
+	f.exe = "/home/dev/.local/bin/hq"
+	f.env = map[string]string{"PATH": "/usr/bin"}
+	f.windowsCode = "/mnt/c/Users/dev/.claude.json"
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Added}
+	code, out, errOut := f.run("mcp", "install", "claude-code")
+	if code != 0 || out != "added hq to Claude Code (/home/dev/.claude.json)\nadded hq to Claude Code on Windows (/mnt/c/Users/dev/.claude.json)\nrestart Claude Code to load it\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if !slices.Equal(f.installedIn, []mcpconfig.File{{Path: "/home/dev/.claude.json", Lock: true}, {Path: f.windowsCode, Lock: true}}) {
+		t.Fatalf("in %+v", f.installedIn)
+	}
+	// The fake platform starts hq as macOS does; WSL's wsl.exe is the
+	// platform adapter's (its own tests).
+	if s := f.installed[1]; s.Type != "stdio" || s.Command != f.exe || !slices.Equal(s.Args, []string{"mcp", "claude-code"}) || s.Timeout != 3660000 {
+		t.Fatalf("server %+v", s)
+	}
+	// Only on Windows has Claude Code run: set up there, no error.
+	f.installErrs = map[string]error{"/home/dev/.claude.json": mcpconfig.ErrNoFile}
+	if code, out, errOut := f.run("mcp", "install", "claude-code"); code != 0 || out != "added hq to Claude Code on Windows (/mnt/c/Users/dev/.claude.json)\nrestart Claude Code to load it\n" {
+		t.Fatalf("Windows only: exit %d %q %q", code, out, errOut)
+	}
+	// Nowhere: both named.
+	f.installErrs[f.windowsCode] = mcpconfig.ErrNoFile
+	code, out, errOut = f.run("mcp", "install", "claude-code")
+	if code != ExitEnvironment || !strings.HasPrefix(out, "claude mcp add-json --scope user hq '") ||
+		errOut != "hq: Claude Code not found: there is no /home/dev/.claude.json nor /mnt/c/Users/dev/.claude.json; run claude once, then hq mcp install claude-code again (or run the command above)\n" {
+		t.Fatalf("nowhere: exit %d %q %q", code, out, errOut)
+	}
+	// Windows' file cannot be edited: the other is set up, Windows' entry
+	// printed to add by hand.
+	f.installErrs = map[string]error{f.windowsCode: errors.New("not valid JSON")}
+	code, out, errOut = f.run("mcp", "install", "claude-code")
+	var snippet map[string]map[string]mcpconfig.Server
+	entry, _ := strings.CutPrefix(out, "added hq to Claude Code (/home/dev/.claude.json)\n")
+	entry, _ = strings.CutSuffix(entry, "restart Claude Code to load it\n")
+	if code != ExitEnvironment || json.Unmarshal([]byte(entry), &snippet) != nil || snippet["mcpServers"]["hq"].Timeout != 3660000 ||
+		errOut != "hq: cannot edit /mnt/c/Users/dev/.claude.json safely (not valid JSON); add the entry above to its mcpServers by hand, then restart Claude Code\n" {
+		t.Fatalf("broken on Windows: exit %d %q %q", code, out, errOut)
+	}
+	// Windows cannot say where its Claude Code keeps it: the one beside hq.
+	f.installErrs, f.windowsCode, f.windowsCodeErr = nil, "", errors.New("cmd.exe: not found")
+	if code, out, _ := f.run("mcp", "install", "claude-code"); code != 0 || out != "added hq to Claude Code (/home/dev/.claude.json)\nrestart Claude Code to load it\n" {
+		t.Fatalf("no Windows: exit %d %q", code, out)
+	}
+}
+
+func TestMCPInstallForClaudeCodePrintsTheCommandWhenItCannotEditTheFile(t *testing.T) {
+	f := newFakes()
+	f.exe = "/Users/dev/.local/bin/hq"
+	f.env = map[string]string{"PATH": "/usr/bin"}
+	command := `claude mcp add-json --scope user hq '{"type":"stdio","command":"/Users/dev/.local/bin/hq","args":["mcp","claude-code"],"env":{"PATH":"/usr/bin"},"timeout":3660000}'` + "\n"
+	f.installErr = mcpconfig.ErrNoFile
+	code, out, errOut := f.run("mcp", "install", "claude-code")
+	if code != ExitEnvironment || out != command ||
+		errOut != "hq: Claude Code not found: there is no /home/dev/.claude.json; run claude once, then hq mcp install claude-code again (or run the command above)\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	f.installErr = errors.New("not valid JSON")
+	code, out, errOut = f.run("mcp", "install", "claude-code")
+	if code != ExitEnvironment || out != command || errOut != "hq: cannot edit /home/dev/.claude.json safely (not valid JSON); run the command above instead, then restart Claude Code\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	d := f.deps()
+	d.home = func() (string, error) { return "", errors.New("$HOME is not defined") }
+	var stdout strings.Builder
+	if err := runMCPInstall(Env{Stdout: &stdout}, d, claudeCode); asError(err).Code != ExitEnvironment || stdout.String() != command ||
+		asError(err).Msg != "cannot find Claude Code's configuration ($HOME is not defined); run the command above instead, then restart Claude Code" {
+		t.Fatalf("%v %q", err, stdout.String())
 	}
 }
 
@@ -523,13 +719,13 @@ func TestMCPInstallPrintsTheEntryWhenItCannotEditTheFile(t *testing.T) {
 	f.desktop = "/c.json"
 	f.installErr = errors.New("not valid JSON")
 	code, out, errOut := f.run("mcp", "install")
-	var snippet map[string]map[string]desktop.Server
+	var snippet map[string]map[string]mcpconfig.Server
 	if code != ExitEnvironment || json.Unmarshal([]byte(out), &snippet) != nil || snippet["mcpServers"]["hq"].Command != f.exe ||
 		errOut != "hq: cannot edit /c.json safely (not valid JSON); add the entry above to it by hand, then quit and reopen Claude Desktop\n" {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
 	f.desktop = "/Users/dev/Library/Application Support/Claude/claude_desktop_config.json"
-	f.installErr = desktop.ErrNoFolder
+	f.installErr = mcpconfig.ErrNoFolder
 	code, out, errOut = f.run("mcp", "install")
 	if code != ExitEnvironment || json.Unmarshal([]byte(out), &snippet) != nil || snippet["mcpServers"]["hq"].Command != f.exe ||
 		errOut != "hq: Claude Desktop not found: there is no /Users/dev/Library/Application Support/Claude; install Claude Desktop and open it once, then run hq mcp install again (or add the entry above to its configuration by hand)\n" {
@@ -542,7 +738,7 @@ func TestMCPInstallPrintsTheEntryWhenItCannotEditTheFile(t *testing.T) {
 	f.exe = ""
 	d := f.deps()
 	d.executable = func() (string, error) { return "", errors.New("no /proc") }
-	if err := runMCPInstall(Env{Stdout: new(strings.Builder)}, d); asError(err).Code != ExitEnvironment {
+	if err := runMCPInstall(Env{Stdout: new(strings.Builder)}, d, claudeDesktop); asError(err).Code != ExitEnvironment {
 		t.Fatalf("%v", err)
 	}
 }

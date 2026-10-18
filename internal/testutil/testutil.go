@@ -89,9 +89,9 @@ func SbxStub(t *testing.T) (bin, dir string) {
 }
 
 // WSLStubs puts the stub sbx on PATH as sbx.exe, the stub wslpath as
-// wslpath and the stub cmd.exe (it knows only %APPDATA%) as cmd.exe, as hq
-// finds them on WSL, has an hq the test starts run as on WSL whatever the
-// machine, and returns the stub sbx's state directory, set in SBX_STUB_DIR
+// wslpath and the stub cmd.exe (it knows only the folders hq asks for) as
+// cmd.exe, as hq finds them on WSL, has an hq the test starts run as on WSL
+// whatever the machine, and returns the stub sbx's state directory, set in SBX_STUB_DIR
 // for this test.
 func WSLStubs(t *testing.T) string {
 	t.Helper()
