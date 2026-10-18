@@ -240,7 +240,7 @@ func awaitClosed(d deps, a agent.Agent, open agent.Dialog) (agent.Agent, map[str
 			return now, got, nil
 		}
 		if !d.now().Before(deadline) {
-			return now, nil, envErr("%s took the answer but did not leave its dialog within %s: it is %s; its sandbox's template may have a claude-approve hook that still answers AskUserQuestion (recreate the sandbox from a newer image), or answer it at the agent (hq go %s)", a.Name, closeWait, now.State, a.Name)
+			return now, nil, envErr("%s took the answer but did not leave its dialog within %s: it is %s; its sandbox's template may have a PermissionRequest hook that answers AskUserQuestion by itself (recreate the sandbox from a template whose hooks leave AskUserQuestion alone), or answer it at the agent (hq go %s)", a.Name, closeWait, now.State, a.Name)
 		}
 	}
 }
