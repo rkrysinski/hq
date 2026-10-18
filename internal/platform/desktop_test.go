@@ -36,7 +36,7 @@ func (w *windows) Run(name string, args ...string) ([]byte, error) {
 	if name == "cmd.exe" {
 		return []byte(w.folders), w.err
 	}
-	if len(args) == 2 && strings.HasPrefix(args[1], `C:\Users\dev\AppData\`) {
+	if len(args) == 2 && strings.HasPrefix(args[1], `C:\Users\dev`) {
 		return []byte("/mnt/c/" + strings.ReplaceAll(strings.TrimPrefix(args[1], `C:\`), `\`, "/") + "\n"), nil
 	}
 	return nil, errors.New("wslpath: bad path")
@@ -100,18 +100,48 @@ func TestClaudeDesktopsConfigurationFromTheStoreIsInItsPackage(t *testing.T) {
 
 func TestClaudeDesktopStartsHq(t *testing.T) {
 	env := []string{"PATH=/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET=dev"}
-	cmd, args, e := Native{}.DesktopServer("/Users/dev/.local/bin/hq", env)
+	cmd, args, e := Native{}.AppServer([]string{"/Users/dev/.local/bin/hq", "mcp"}, env)
 	if cmd != "/Users/dev/.local/bin/hq" || !reflect.DeepEqual(args, []string{"mcp"}) ||
 		!reflect.DeepEqual(e, map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET": "dev"}) {
 		t.Fatalf("native %q %q %q", cmd, args, e)
 	}
-	cmd, args, e = WSL{Distro: "Ubuntu"}.DesktopServer("/home/dev/.local/bin/hq", env)
+	cmd, args, e = WSL{Distro: "Ubuntu"}.AppServer([]string{"/home/dev/.local/bin/hq", "mcp"}, env)
 	want := []string{"-d", "Ubuntu", "--exec", "/usr/bin/env", "PATH=/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET=dev", "/home/dev/.local/bin/hq", "mcp"}
 	if cmd != "wsl.exe" || !reflect.DeepEqual(args, want) || e != nil {
 		t.Fatalf("wsl %q %q %q", cmd, args, e)
 	}
 	// Without the distribution's name, wsl.exe's default one.
-	if _, args, _ := (WSL{}).DesktopServer("/hq", nil); !reflect.DeepEqual(args, []string{"--exec", "/usr/bin/env", "/hq", "mcp"}) {
+	if _, args, _ := (WSL{}).AppServer([]string{"/hq", "mcp"}, nil); !reflect.DeepEqual(args, []string{"--exec", "/usr/bin/env", "/hq", "mcp"}) {
 		t.Fatalf("default distribution %q", args)
+	}
+}
+
+// Claude Code on Windows reads .claude.json in %CLAUDE_CONFIG_DIR%, or in
+// the Windows user's profile (#115).
+func TestClaudeCodesConfigurationOnWindowsIsInTheProfile(t *testing.T) {
+	w := &windows{folders: "C:\\Users\\dev\r\n%CLAUDE_CONFIG_DIR%\r\n"}
+	got, ok, err := WSL{Run: w}.WindowsCodeConfig()
+	if err != nil || !ok || got != "/mnt/c/Users/dev/.claude.json" {
+		t.Fatalf("%q %v %v", got, ok, err)
+	}
+	if want := [][]string{{"cmd.exe", "/d", "/c", "echo %USERPROFILE%&echo %CLAUDE_CONFIG_DIR%"}, {"wslpath", "-u", `C:\Users\dev`}}; !reflect.DeepEqual(w.calls, want) {
+		t.Fatalf("calls %q", w.calls)
+	}
+	w = &windows{folders: "C:\\Users\\dev\r\nC:\\Users\\dev\\AppData\\claude\r\n"}
+	if got, _, err := (WSL{Run: w}).WindowsCodeConfig(); err != nil || got != "/mnt/c/Users/dev/AppData/claude/.claude.json" {
+		t.Fatalf("CLAUDE_CONFIG_DIR: %q %v", got, err)
+	}
+	for _, w := range []*windows{
+		{err: errors.New("cmd.exe: not found")},
+		{folders: "\r\n"},
+		{folders: "%USERPROFILE%\r\n%CLAUDE_CONFIG_DIR%\r\n"},
+		{folders: `D:\elsewhere`},
+	} {
+		if got, ok, err := (WSL{Run: w}).WindowsCodeConfig(); err == nil || !ok {
+			t.Errorf("%q: %q %v, want an error", w.folders, got, ok)
+		}
+	}
+	if _, ok, err := (Native{}).WindowsCodeConfig(); ok || err != nil {
+		t.Fatalf("native %v %v", ok, err)
 	}
 }

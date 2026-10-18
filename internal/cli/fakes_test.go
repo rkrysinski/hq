@@ -519,18 +519,22 @@ type fakes struct {
 	ranErr  error
 
 	// desktop is Claude Desktop's configuration file (desktopErr: it
-	// cannot be found); installed are the servers set up in a client's
-	// configuration, installedIn the files, each with whether it may be
-	// created, and installResult and installErr the answer; served is the
-	// MCP server run over stdio, serveErr how it ends.
-	desktop       string
-	desktopErr    error
-	installed     []mcpconfig.Server
-	installedIn   []string
-	installResult mcpconfig.Result
-	installErr    error
-	served        *mcp.Server
-	serveErr      error
+	// cannot be found), windowsCode Claude Code's on Windows (none when
+	// empty; windowsCodeErr: Windows cannot say); installed are the servers
+	// set up in a client's configuration, installedIn the files, and
+	// installResult and installErr the answer, installErrs a file's own;
+	// served is the MCP server run over stdio, serveErr how it ends.
+	desktop        string
+	desktopErr     error
+	windowsCode    string
+	windowsCodeErr error
+	installed      []mcpconfig.Server
+	installedIn    []mcpconfig.File
+	installResult  mcpconfig.Result
+	installErr     error
+	installErrs    map[string]error
+	served         *mcp.Server
+	serveErr       error
 }
 
 // supervisorMark ends, in the fakes' inbox, a message the supervisor sent.
@@ -773,13 +777,19 @@ func (f *fakes) deps() deps {
 
 		home:          func() (string, error) { return "/home/dev", nil },
 		desktopConfig: func() (string, error) { return f.desktop, f.desktopErr },
-		desktopServer: func(hq string, env []string) mcpconfig.Server {
-			cmd, args, e := platformtest.Fake{}.DesktopServer(hq, env)
+		windowsCodeConfig: func() (string, bool, error) {
+			return f.windowsCode, f.windowsCode != "" || f.windowsCodeErr != nil, f.windowsCodeErr
+		},
+		appServer: func(argv, env []string) mcpconfig.Server {
+			cmd, args, e := platformtest.Fake{}.AppServer(argv, env)
 			return mcpconfig.Server{Command: cmd, Args: args, Env: e}
 		},
-		installConfig: func(path string, s mcpconfig.Server, create bool) (mcpconfig.Result, error) {
+		installConfig: func(file mcpconfig.File, s mcpconfig.Server) (mcpconfig.Result, error) {
 			f.installed = append(f.installed, s)
-			f.installedIn = append(f.installedIn, path+map[bool]string{true: " create", false: " no create"}[create])
+			f.installedIn = append(f.installedIn, file)
+			if err, ok := f.installErrs[file.Path]; ok {
+				return mcpconfig.Result{}, err
+			}
 			return f.installResult, f.installErr
 		},
 		serveMCP: func(s *mcp.Server) error { f.served = s; return f.serveErr },

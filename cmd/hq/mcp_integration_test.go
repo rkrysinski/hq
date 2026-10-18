@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -773,18 +774,25 @@ func TestMCPInstallAddsHqToClaudeCodeOnceAndKeepsTheRest(t *testing.T) {
 	}
 }
 
-// Claude Code runs beside hq, in WSL on Windows: its entry is the one it
-// gets on macOS, hq itself with no wsl.exe (#115).
-func TestMCPInstallForClaudeCodeOnWSLIsTheSame(t *testing.T) {
+// On WSL hq sets itself up for Claude Code in WSL, with the entry it gets
+// on macOS, and for Claude Code on Windows once that has run, with an entry
+// that starts hq through wsl.exe as Claude Desktop's does (#115; the
+// Windows side is stubbed).
+func TestMCPInstallForClaudeCodeOnWSLAlsoSetsUpClaudeCodeOnWindows(t *testing.T) {
 	bin, _ := filepath.EvalSymlinks(buildHQ(t))
 	testutil.WSLStubs(t)
-	t.Setenv("WSL_STUB_ROOT", t.TempDir())
+	root := t.TempDir()
+	t.Setenv("WSL_STUB_ROOT", root)
 	home := t.TempDir()
 	path := filepath.Join(home, ".claude.json")
 	_ = os.WriteFile(path, []byte("{}"), 0o600)
-	out, errOut, err := installFor(t, bin, []string{"claude-code"}, "WSL_DISTRO_NAME=Stub", "HOME="+home, "CLAUDE_CONFIG_DIR=", "HQ_TMUX_SOCKET=", "XDG_CONFIG_HOME=", "TMUX_TMPDIR=")
-	if err != nil || !strings.HasPrefix(out, "added hq to Claude Code ("+path+")\n") {
+	env := []string{"WSL_DISTRO_NAME=Stub", "HOME=" + home, "CLAUDE_CONFIG_DIR=", "HQ_TMUX_SOCKET=", "XDG_CONFIG_HOME=", "TMUX_TMPDIR="}
+	out, errOut, err := installFor(t, bin, []string{"claude-code"}, env...)
+	if err != nil || out != "added hq to Claude Code ("+path+")\nthe file as it was: "+out[len("added hq to Claude Code ("+path+")\nthe file as it was: "):] {
 		t.Fatalf("%v %q %q", err, out, errOut)
+	}
+	if left, _ := os.ReadDir(root); len(left) != 0 {
+		t.Fatalf("Claude Code never ran on Windows: install created %v", left)
 	}
 	var c config
 	b, _ := os.ReadFile(path)
@@ -793,5 +801,28 @@ func TestMCPInstallForClaudeCodeOnWSLIsTheSame(t *testing.T) {
 	}
 	if hq := c.MCPServers["hq"]; hq.Command != bin || strings.Join(hq.Args, " ") != "mcp claude-code" || hq.Env["PATH"] != os.Getenv("PATH") {
 		t.Fatalf("hq %+v", hq)
+	}
+
+	windows := root + "/mnt/c/Users/stub/.claude.json"
+	_ = os.MkdirAll(filepath.Dir(windows), 0o700)
+	_ = os.WriteFile(windows, []byte(`{"numStartups": 4, "mcpServers": {"github": {"command": "cmd", "args": ["/c", "npx"]}}}`), 0o600)
+	out, errOut, err = installFor(t, bin, []string{"claude-code"}, env...)
+	if err != nil || !strings.HasPrefix(out, "hq is already set up in Claude Code ("+path+")\nadded hq to Claude Code on Windows ("+windows+")\nthe file as it was: ") || !strings.HasSuffix(out, "\nrestart Claude Code to load it\n") {
+		t.Fatalf("%v %q %q", err, out, errOut)
+	}
+	b, _ = os.ReadFile(windows)
+	c = config{}
+	if err := json.Unmarshal(b, &c); err != nil {
+		t.Fatalf("%v %s", err, b)
+	}
+	want := "-d Stub --exec /usr/bin/env PATH=" + os.Getenv("PATH") + " " + bin + " mcp claude-code"
+	if hq := c.MCPServers["hq"]; hq.Type != "stdio" || hq.Command != "wsl.exe" || strings.Join(hq.Args, " ") != want || hq.Env != nil || hq.Timeout != 3660000 {
+		t.Fatalf("hq on Windows %+v", hq)
+	}
+	if c.Startups != 4 || c.MCPServers["github"].Command != "cmd" {
+		t.Fatalf("the rest changed:\n%s", b)
+	}
+	if _, err := os.Stat(windows + ".lock"); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("the lock is left: %v", err)
 	}
 }

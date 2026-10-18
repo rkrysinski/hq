@@ -187,13 +187,15 @@ type deps struct {
 
 	// home is the user's home directory.
 	home func() (string, error)
-	// desktopConfig is Claude Desktop's configuration file, desktopServer
-	// how Claude Desktop starts the hq at a path with an environment, and
-	// installConfig sets hq up in an MCP client's configuration file, which
-	// it creates only when create allows it (hq mcp install, design §3.12).
-	desktopConfig func() (string, error)
-	desktopServer func(hq string, env []string) mcpconfig.Server
-	installConfig func(path string, s mcpconfig.Server, create bool) (mcpconfig.Result, error)
+	// desktopConfig is Claude Desktop's configuration file,
+	// windowsCodeConfig Claude Code's on Windows seen from WSL (ok false
+	// elsewhere), appServer how such an app starts hq's command line with an
+	// environment, and installConfig sets hq up in an MCP client's
+	// configuration file (hq mcp install, design §3.12).
+	desktopConfig     func() (string, error)
+	windowsCodeConfig func() (path string, ok bool, err error)
+	appServer         func(argv, env []string) mcpconfig.Server
+	installConfig     func(f mcpconfig.File, s mcpconfig.Server) (mcpconfig.Result, error)
 	// serveMCP runs an MCP server over stdin and stdout until the client
 	// closes them.
 	serveMCP func(*mcp.Server) error
@@ -307,12 +309,13 @@ func defaultDeps() deps {
 			}
 			return plat.DesktopConfig(home)
 		},
-		desktopServer: func(hq string, env []string) mcpconfig.Server {
-			cmd, args, e := plat.DesktopServer(hq, env)
+		windowsCodeConfig: plat.WindowsCodeConfig,
+		appServer: func(argv, env []string) mcpconfig.Server {
+			cmd, args, e := plat.AppServer(argv, env)
 			return mcpconfig.Server{Command: cmd, Args: args, Env: e}
 		},
-		installConfig: func(path string, s mcpconfig.Server, create bool) (mcpconfig.Result, error) {
-			return mcpconfig.Install(path, s, create, time.Now())
+		installConfig: func(f mcpconfig.File, s mcpconfig.Server) (mcpconfig.Result, error) {
+			return mcpconfig.Install(f, s, time.Now())
 		},
 		serveMCP: func(s *mcp.Server) error { return s.Run(context.Background(), &mcp.StdioTransport{}) },
 	}

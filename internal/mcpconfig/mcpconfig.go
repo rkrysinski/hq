@@ -119,50 +119,145 @@ var ErrNoFolder = errors.New("the configuration's folder is not there")
 // keeps its configuration elsewhere.
 var ErrNoFile = errors.New("the configuration file is not there")
 
-// Install sets hq up as s in the configuration file at path. A missing file
-// is created, when create allows it, in its folder (Claude Desktop's), which
-// itself is never created (ErrNoFolder); otherwise it is ErrNoFile. It
-// writes only when something changes: first a copy of the file next to it
-// (FILE.hq-backup-<time>), then the new file under a temporary name, moved
-// into place so the file is never half written. A link is followed, so a
-// configuration kept elsewhere is edited there. Any error leaves the file as
-// it was.
-func Install(path string, s Server, create bool, now time.Time) (Result, error) {
+// File is a client's configuration file and how the client keeps it.
+type File struct {
+	Path string
+	// Create lets Install create the file when it is missing, in its
+	// folder (Claude Desktop's); otherwise a missing file is ErrNoFile
+	// (Claude Code's).
+	Create bool
+	// Lock says the client writes the file holding the lock directory
+	// Path.lock, as proper-lockfile takes it (Claude Code's): Install holds
+	// it too while it reads and writes the file.
+	Lock bool
+}
+
+var (
+	// lockStale is how long a lock directory may go without its time
+	// refreshed before it is taken for abandoned: proper-lockfile's stale,
+	// which Claude Code keeps; a live holder refreshes it every 5 s.
+	lockStale = 10 * time.Second
+	// lockWait is how long Install waits for a lock a live holder keeps:
+	// Claude Code holds it for one save.
+	lockWait = 10 * time.Second
+	// beforeCommit runs before Install looks whether the file changed
+	// while it merged; the tests change the file there.
+	beforeCommit = func() {}
+)
+
+// mergeTries is how often Install merges, when the file keeps changing
+// while it does.
+const mergeTries = 5
+
+// Install sets hq up as s in the configuration file f. A missing file is
+// created, when f allows it, in its folder (Claude Desktop's), which itself
+// is never created (ErrNoFolder); otherwise it is ErrNoFile. It writes only
+// when something changes: the new file under a temporary name, a copy of
+// the file as it was next to it (FILE.hq-backup-<time>), then, when the
+// file is still as it was read, the new file moved into place, so it is
+// never half written; a file that changed meanwhile is merged again, so no
+// other writer's change is lost. A link is followed, so a configuration
+// kept elsewhere is edited there. Any error leaves the file as it was.
+func Install(f File, s Server, now time.Time) (Result, error) {
+	if f.Lock {
+		unlock, err := lock(f.Path + ".lock")
+		switch {
+		case (errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENOTDIR)) && f.Create:
+			return Result{}, ErrNoFolder
+		case errors.Is(err, os.ErrNotExist), errors.Is(err, syscall.ENOTDIR):
+			return Result{}, ErrNoFile
+		case err != nil:
+			return Result{}, err
+		}
+		defer unlock()
+	}
+	path := f.Path
 	if real, err := filepath.EvalSymlinks(path); err == nil {
 		path = real
 	}
+	for try := 1; ; try++ {
+		r, changed, err := install(path, f.Create, s, now)
+		if !changed {
+			return r, err
+		}
+		if try == mergeTries {
+			return Result{}, fmt.Errorf("%s kept changing while hq merged it", path)
+		}
+	}
+}
+
+// install is one merge of Install's: changed when the file changed between
+// its read and its move, which leaves the file to the other writer.
+func install(path string, create bool, s Server, now time.Time) (Result, bool, error) {
 	fi, err := os.Stat(path)
 	var old []byte
 	mode := os.FileMode(0o600)
 	switch {
 	case (errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENOTDIR)) && !create:
-		return Result{}, ErrNoFile
+		return Result{}, false, ErrNoFile
 	case errors.Is(err, os.ErrNotExist), errors.Is(err, syscall.ENOTDIR):
 		if dir, err := os.Stat(filepath.Dir(path)); err != nil || !dir.IsDir() {
-			return Result{}, ErrNoFolder
+			return Result{}, false, ErrNoFolder
 		}
 	case err != nil:
-		return Result{}, err
+		return Result{}, false, err
 	case !fi.Mode().IsRegular():
-		return Result{}, fmt.Errorf("%s is not a regular file", path)
+		return Result{}, false, fmt.Errorf("%s is not a regular file", path)
 	default:
 		if old, err = os.ReadFile(path); err != nil {
-			return Result{}, err
+			return Result{}, false, err
 		}
 		mode = fi.Mode().Perm()
 	}
 	out, outcome, err := Merge(old, s)
 	if err != nil || outcome == Unchanged {
-		return Result{Outcome: outcome}, err
+		return Result{Outcome: outcome}, false, err
 	}
+	tmp, err := writeTemp(path, out, mode)
+	if err != nil {
+		return Result{}, false, err
+	}
+	defer os.Remove(tmp)
 	r := Result{Outcome: outcome}
 	if fi != nil {
 		r.Backup = path + ".hq-backup-" + now.Format("20060102-150405")
 		if err := writeNew(r.Backup, old, mode); err != nil {
-			return Result{}, err
+			return Result{}, false, err
 		}
 	}
-	return r, replace(path, out, mode)
+	beforeCommit()
+	if cur, err := os.ReadFile(path); (err == nil) != (fi != nil) || !bytes.Equal(cur, old) {
+		if r.Backup != "" {
+			os.Remove(r.Backup)
+		}
+		return Result{}, true, nil
+	}
+	return r, false, os.Rename(tmp, path)
+}
+
+// lock takes the lock directory dir as proper-lockfile does: it makes it,
+// takes one left unrefreshed for lockStale for abandoned and makes it anew,
+// and waits up to lockWait for a live holder. The function it returns
+// gives the lock up.
+func lock(dir string) (func(), error) {
+	deadline := time.Now().Add(lockWait)
+	for {
+		err := os.Mkdir(dir, 0o777)
+		if err == nil {
+			return func() { os.Remove(dir) }, nil
+		}
+		if !errors.Is(err, os.ErrExist) {
+			return nil, err
+		}
+		if fi, err := os.Stat(dir); err == nil && time.Since(fi.ModTime()) > lockStale {
+			os.Remove(dir)
+			continue
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("%s is held: the client is saving the file; try again", dir)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 }
 
 // writeNew writes a file that must not exist yet.
@@ -178,14 +273,13 @@ func writeNew(path string, b []byte, mode os.FileMode) error {
 	return err
 }
 
-// replace writes b to path through a temporary file in the same directory
-// moved over it.
-func replace(path string, b []byte, mode os.FileMode) error {
+// writeTemp writes b to a temporary file in path's directory, to be moved
+// over path, and returns its name.
+func writeTemp(path string, b []byte, mode os.FileMode) (string, error) {
 	tmp, err := os.CreateTemp(filepath.Dir(path), ".hq-*.json")
 	if err != nil {
-		return err
+		return "", err
 	}
-	defer os.Remove(tmp.Name())
 	_, err = tmp.Write(b)
 	if err == nil {
 		err = tmp.Chmod(mode)
@@ -197,9 +291,10 @@ func replace(path string, b []byte, mode os.FileMode) error {
 		err = cerr
 	}
 	if err != nil {
-		return err
+		os.Remove(tmp.Name())
+		return "", err
 	}
-	return os.Rename(tmp.Name(), path)
+	return tmp.Name(), nil
 }
 
 // object is a JSON object's members in their order, values as they were
