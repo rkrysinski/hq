@@ -84,11 +84,20 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	for name, want := range map[string]string{
 		"list": "never ask an agent for its status",
 		"read": "what it asks",
-		"wait": "since is required: the next_since of the most recent list, read, send or wait result",
-		"send": "wait for the agent with that next_since as since",
+		// The watch's since comes from wait and list alone (#116).
+		"wait": "since is required: the next_since of your most recent wait or list result",
+		"send": "This next_since is for a wait on this agent alone, never your watch's since",
 		"kill": "without confirmed set to true it ends nothing",
 		// A question dialog is answered on the user's word only (#90).
 		"answer": "Only on the user's word: without confirmed set to true it answers nothing",
+	} {
+		if !strings.Contains(tools[name].Description, want) {
+			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
+		}
+	}
+	for name, want := range map[string]string{
+		"read":   "never pass it to wait as since, it is this agent's alone",
+		"answer": "for a wait on this agent alone, never your watch's since",
 	} {
 		if !strings.Contains(tools[name].Description, want) {
 			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
@@ -139,7 +148,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("instructions have no %q", want)
 		}
 	}
-	for _, want := range []string{"Status comes from hq, never from asking an agent", "wait for the agent with send's next_since as since, then read it", "Always pass the next_since of the most recent of them as wait's since", "call list first", "Never answer a permission or any other dialog", "answer it with answer, only on the user's word", "never on your own initiative"} {
+	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "Watch from one moment: the next_since of your most recent wait or list result", "Never take since from read, send or answer", "Name every agent you follow in each wait", "call list first", "Never answer a permission or any other dialog", "answer it with answer, only on the user's word", "never on your own initiative"} {
 		if !strings.Contains(cs.InitializeResult().Instructions, want) {
 			t.Errorf("instructions have no %q", want)
 		}
