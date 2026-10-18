@@ -334,14 +334,14 @@ func TestWaitReturnsAgentsThatFinishWithinALookOfEachOtherTogether(t *testing.T)
 func TestWaitKeepsAnAgentFoundByItsFirstHitThatMovesOnBeforeItReturns(t *testing.T) {
 	f := newWaitFakes()
 	at := f.now.Add(time.Second)
-	found := false
+	movedOn := false
 	f.onSleep = func() {
 		switch {
-		case f.states["id-a"].State == state.Working && !found && !f.now.Before(at):
+		case f.states["id-a"].State == state.Working && !movedOn && !f.now.Before(at):
 			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "a done"}
 		case f.states["id-a"].State == state.Done && !f.now.Before(at.Add(2*waitEvery)):
 			// The look after the hit: a message was typed in, a works.
-			found = true
+			movedOn = true
 			f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Last: "on it"}
 		}
 	}
