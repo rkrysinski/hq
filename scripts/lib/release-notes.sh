@@ -117,14 +117,22 @@ release_notes_section() {
     # Prints the body of the `## <heading>` section read from stdin: the lines
     # after that exact heading up to the next `## ` heading, with surrounding
     # blank lines trimmed. Prints nothing when the section is missing or empty.
-    # Carriage returns (bodies edited in the browser) are ignored.
+    # Carriage returns (bodies edited in the browser) are ignored. The Claude
+    # Code attribution footer (`Generated with [Claude Code]`, whatever emoji or
+    # link surrounds it) is left out, and so is a `---` rule it leaves at the
+    # end, so a section that ends the description does not carry it along.
     tr -d '\r' | awk -v heading="## $1" '
         $0 == heading { inside = 1; next }
         inside && /^## / { inside = 0 }
+        inside && index($0, "Generated with [Claude Code]") { footer_at = n; next }
         inside { lines[++n] = $0 }
         END {
-            first = 1; while (first <= n && lines[first] ~ /^[[:space:]]*$/) first++
-            last = n; while (last >= first && lines[last] ~ /^[[:space:]]*$/) last--
+            # A rule is trimmed only once nothing but blank lines follows it up
+            # to the footer: the one the footer leaves, not one of the section.
+            blank = "^[[:space:]]*$"; rule = "^[[:space:]]*---+[[:space:]]*$"
+            first = 1; while (first <= n && lines[first] ~ blank) first++
+            last = n
+            while (last >= first && (lines[last] ~ blank || (last <= footer_at && lines[last] ~ rule))) last--
             for (i = first; i <= last; i++) print lines[i]
         }
     '
