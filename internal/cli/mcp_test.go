@@ -616,9 +616,9 @@ func TestMCPInstallSetsHqUpInClaudeCode(t *testing.T) {
 	// form on every platform (Claude Code runs beside hq), and a tool call
 	// longer than the longest wait.
 	s := f.installed[0]
-	if !slices.Equal(f.installedIn, []string{path + " no create"}) || s.Type != "stdio" || s.Command != f.exe || !slices.Equal(s.Args, []string{"mcp", "claude-code"}) ||
+	if !slices.Equal(f.installedIn, []mcpconfig.File{{Path: path, Lock: true}}) || s.Type != "stdio" || s.Command != f.exe || !slices.Equal(s.Args, []string{"mcp", "claude-code"}) ||
 		len(s.Env) != 2 || s.Env["PATH"] != "/opt/homebrew/bin:/usr/bin" || s.Env["HQ_TMUX_SOCKET"] != "hq-dev" || s.Timeout != 3660000 {
-		t.Fatalf("in %q server %+v", f.installedIn, s)
+		t.Fatalf("in %+v server %+v", f.installedIn, s)
 	}
 	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Unchanged}
 	if _, out, _ := f.run("mcp", "install", "claude-code"); out != "hq is already set up in Claude Code ("+path+")\n" {
@@ -627,13 +627,63 @@ func TestMCPInstallSetsHqUpInClaudeCode(t *testing.T) {
 	// Claude Code's configuration directory, when it is moved.
 	f.env["CLAUDE_CONFIG_DIR"] = "/cfg/claude"
 	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Updated, Backup: "/b"}
-	if _, out, _ := f.run("mcp", "install", "claude-code"); out != "updated hq in Claude Code (/cfg/claude/.claude.json)\nthe file as it was: /b\nrestart Claude Code to load it\n" || f.installedIn[2] != "/cfg/claude/.claude.json no create" {
-		t.Fatalf("update %q in %q", out, f.installedIn)
+	if _, out, _ := f.run("mcp", "install", "claude-code"); out != "updated hq in Claude Code (/cfg/claude/.claude.json)\nthe file as it was: /b\nrestart Claude Code to load it\n" || f.installedIn[2] != (mcpconfig.File{Path: "/cfg/claude/.claude.json", Lock: true}) {
+		t.Fatalf("update %q in %+v", out, f.installedIn)
 	}
 	// Claude Desktop's entry is as it was.
 	f.run("mcp", "install")
-	if s := f.installed[3]; f.installedIn[3] != f.desktop+" create" || s.Type != "" || s.Timeout != 0 || !slices.Equal(s.Args, []string{"mcp"}) {
-		t.Fatalf("in %q server %+v", f.installedIn[3], s)
+	if s := f.installed[3]; f.installedIn[3] != (mcpconfig.File{Path: f.desktop, Create: true}) || s.Type != "" || s.Timeout != 0 || !slices.Equal(s.Args, []string{"mcp"}) {
+		t.Fatalf("in %+v server %+v", f.installedIn[3], s)
+	}
+}
+
+// On WSL hq also sets itself up for Claude Code on Windows, where that has
+// run: its entry starts hq as Claude Desktop's does (#115).
+func TestMCPInstallForClaudeCodeAlsoSetsUpClaudeCodeOnWindows(t *testing.T) {
+	f := newFakes()
+	f.exe = "/home/dev/.local/bin/hq"
+	f.env = map[string]string{"PATH": "/usr/bin"}
+	f.windowsCode = "/mnt/c/Users/dev/.claude.json"
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Added}
+	code, out, errOut := f.run("mcp", "install", "claude-code")
+	if code != 0 || out != "added hq to Claude Code (/home/dev/.claude.json)\nadded hq to Claude Code on Windows (/mnt/c/Users/dev/.claude.json)\nrestart Claude Code to load it\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if !slices.Equal(f.installedIn, []mcpconfig.File{{Path: "/home/dev/.claude.json", Lock: true}, {Path: f.windowsCode, Lock: true}}) {
+		t.Fatalf("in %+v", f.installedIn)
+	}
+	// The fake platform starts hq as macOS does; WSL's wsl.exe is the
+	// platform adapter's (its own tests).
+	if s := f.installed[1]; s.Type != "stdio" || s.Command != f.exe || !slices.Equal(s.Args, []string{"mcp", "claude-code"}) || s.Timeout != 3660000 {
+		t.Fatalf("server %+v", s)
+	}
+	// Only on Windows has Claude Code run: set up there, no error.
+	f.installErrs = map[string]error{"/home/dev/.claude.json": mcpconfig.ErrNoFile}
+	if code, out, errOut := f.run("mcp", "install", "claude-code"); code != 0 || out != "added hq to Claude Code on Windows (/mnt/c/Users/dev/.claude.json)\nrestart Claude Code to load it\n" {
+		t.Fatalf("Windows only: exit %d %q %q", code, out, errOut)
+	}
+	// Nowhere: both named.
+	f.installErrs[f.windowsCode] = mcpconfig.ErrNoFile
+	code, out, errOut = f.run("mcp", "install", "claude-code")
+	if code != ExitEnvironment || !strings.HasPrefix(out, "claude mcp add-json --scope user hq '") ||
+		errOut != "hq: Claude Code not found: there is no /home/dev/.claude.json nor /mnt/c/Users/dev/.claude.json; run claude once, then hq mcp install claude-code again (or run the command above)\n" {
+		t.Fatalf("nowhere: exit %d %q %q", code, out, errOut)
+	}
+	// Windows' file cannot be edited: the other is set up, Windows' entry
+	// printed to add by hand.
+	f.installErrs = map[string]error{f.windowsCode: errors.New("not valid JSON")}
+	code, out, errOut = f.run("mcp", "install", "claude-code")
+	var snippet map[string]map[string]mcpconfig.Server
+	entry, _ := strings.CutPrefix(out, "added hq to Claude Code (/home/dev/.claude.json)\n")
+	entry, _ = strings.CutSuffix(entry, "restart Claude Code to load it\n")
+	if code != ExitEnvironment || json.Unmarshal([]byte(entry), &snippet) != nil || snippet["mcpServers"]["hq"].Timeout != 3660000 ||
+		errOut != "hq: cannot edit /mnt/c/Users/dev/.claude.json safely (not valid JSON); add the entry above to its mcpServers by hand, then restart Claude Code\n" {
+		t.Fatalf("broken on Windows: exit %d %q %q", code, out, errOut)
+	}
+	// Windows cannot say where its Claude Code keeps it: the one beside hq.
+	f.installErrs, f.windowsCode, f.windowsCodeErr = nil, "", errors.New("cmd.exe: not found")
+	if code, out, _ := f.run("mcp", "install", "claude-code"); code != 0 || out != "added hq to Claude Code (/home/dev/.claude.json)\nrestart Claude Code to load it\n" {
+		t.Fatalf("no Windows: exit %d %q", code, out)
 	}
 }
 

@@ -80,69 +80,99 @@ func runMCP(env Env, d deps, args []string) error {
 	return nil
 }
 
-// mcpTarget is where hq mcp install sets hq up for a client, and what it
-// tells the user.
+// mcpTarget is a configuration file hq mcp install sets hq up in, and
+// what it tells the user about it.
 type mcpTarget struct {
-	path    string
-	server  mcpconfig.Server
-	create  bool   // the file may be created, in its folder
-	missing string // the folder, or the file, whose absence means the client is not there
+	title  string // the client, as the user knows it
+	file   mcpconfig.File
+	server mcpconfig.Server
+	// missing is the folder, or the file, whose absence means the client
+	// is not there.
+	missing string
 	// byHand is the entry, or the command that adds it, to print when hq
-	// cannot; fix tells the user to use it, install what to do when the
-	// client is not there, and load how the client loads hq.
-	byHand, fix, install, load string
+	// cannot set it up; fix tells the user to use it.
+	byHand, fix string
 }
 
-// desktopTarget is Claude Desktop's configuration, which the platform
+// mcpTargets are where hq mcp install sets hq up for a client, the remedy
+// when it is in none of them, and how the client loads hq.
+type mcpTargets struct {
+	targets       []mcpTarget
+	install, load string
+}
+
+// desktopTargets is Claude Desktop's configuration, which the platform
 // adapter finds, and the entry it starts hq with (design §3.10).
-func desktopTarget(d deps, exe string, vars []string) (mcpTarget, error) {
+func desktopTargets(d deps, exe string, vars []string) (mcpTargets, error) {
 	t := mcpTarget{
-		server:  d.desktopServer(exe, vars),
-		create:  true,
-		fix:     "add the entry above to it by hand, then quit and reopen Claude Desktop",
-		install: "install Claude Desktop and open it once, then run hq mcp install again (or add the entry above to its configuration by hand)",
-		load:    "quit and reopen Claude Desktop to load it",
+		title:  claudeDesktop.title,
+		server: d.appServer([]string{exe, "mcp"}, vars),
+		fix:    "add the entry above to it by hand, then quit and reopen Claude Desktop",
 	}
 	t.byHand = mcpconfig.Snippet(t.server)
 	path, err := d.desktopConfig()
-	t.path, t.missing = path, filepath.Dir(path)
-	return t, err
+	t.file, t.missing = mcpconfig.File{Path: path, Create: true}, filepath.Dir(path)
+	return mcpTargets{
+		targets: []mcpTarget{t},
+		install: "install Claude Desktop and open it once, then run hq mcp install again (or add the entry above to its configuration by hand)",
+		load:    "quit and reopen Claude Desktop to load it",
+	}, err
 }
 
-// codeTarget is Claude Code's user configuration, .claude.json in
-// CLAUDE_CONFIG_DIR or the home, and the entry it starts hq with: Claude
-// Code runs beside hq, so the entry is the same on every platform.
-func codeTarget(d deps, exe string, vars []string) (mcpTarget, error) {
+// codeTargets are Claude Code's user configuration, .claude.json in
+// CLAUDE_CONFIG_DIR or the home, with the entry that starts hq beside it,
+// the same on every platform; and on WSL also Claude Code's on Windows,
+// whose entry starts hq as Claude Desktop's does, unless Windows cannot be
+// asked where it is (design §3.12). Claude Code saves the file under its
+// lock, which hq takes too.
+func codeTargets(d deps, exe string, vars []string) (mcpTargets, error) {
+	ts := mcpTargets{
+		install: "run claude once, then hq mcp install claude-code again (or run the command above)",
+		load:    "restart Claude Code to load it",
+	}
+	argv := []string{exe, "mcp", claudeCode.name}
+	timeout := int((claudeCode.maxWait + time.Minute) / time.Millisecond)
 	env := map[string]string{}
 	for _, kv := range vars {
 		k, v, _ := strings.Cut(kv, "=")
 		env[k] = v
 	}
-	t := mcpTarget{
-		server: mcpconfig.Server{Type: "stdio", Command: exe, Args: []string{"mcp", claudeCode.name}, Env: env,
-			Timeout: int((claudeCode.maxWait + time.Minute) / time.Millisecond)},
-		fix:     "run the command above instead, then restart Claude Code",
-		install: "run claude once, then hq mcp install claude-code again (or run the command above)",
-		load:    "restart Claude Code to load it",
+	beside := mcpTarget{
+		title:  claudeCode.title,
+		server: mcpconfig.Server{Type: "stdio", Command: exe, Args: argv[1:], Env: env, Timeout: timeout},
+		fix:    "run the command above instead, then restart Claude Code",
 	}
-	t.byHand = mcpconfig.AddJSON(t.server)
+	beside.byHand = mcpconfig.AddJSON(beside.server)
+	ts.targets = append(ts.targets, beside)
 	dir := d.getenv("CLAUDE_CONFIG_DIR")
 	if dir == "" {
 		home, err := d.home()
 		if err != nil {
-			return t, err
+			return ts, err
 		}
 		dir = home
 	}
-	t.path = filepath.Join(dir, ".claude.json")
-	t.missing = t.path
-	return t, nil
+	path := filepath.Join(dir, ".claude.json")
+	ts.targets[0].file, ts.targets[0].missing = mcpconfig.File{Path: path, Lock: true}, path
+	if path, ok, err := d.windowsCodeConfig(); ok && err == nil {
+		windows := mcpTarget{
+			title:   claudeCode.title + " on Windows",
+			file:    mcpconfig.File{Path: path, Lock: true},
+			server:  d.appServer(argv, vars),
+			missing: path,
+			fix:     "add the entry above to its mcpServers by hand, then restart Claude Code",
+		}
+		windows.server.Type, windows.server.Timeout = "stdio", timeout
+		windows.byHand = mcpconfig.Snippet(windows.server)
+		ts.targets = append(ts.targets, windows)
+	}
+	return ts, nil
 }
 
-// runMCPInstall sets hq up in the client's configuration; when the client
-// is not there or the file cannot be edited safely, it changes nothing,
-// prints hq's entry, or the command that adds it, for the user to add and
-// fails with the reason.
+// runMCPInstall sets hq up in each configuration of the client it finds;
+// when the client is not there or a file cannot be edited safely, it
+// changes nothing there, prints hq's entry, or the command that adds it,
+// for the user to add and fails with the reason.
 func runMCPInstall(env Env, d deps, c mcpClient) error {
 	exe, err := d.executable()
 	if err != nil {
@@ -154,37 +184,54 @@ func runMCPInstall(env Env, d deps, c mcpClient) error {
 			vars = append(vars, k+"="+v)
 		}
 	}
-	target := desktopTarget
+	targets := desktopTargets
 	if c == claudeCode {
-		target = codeTarget
+		targets = codeTargets
 	}
-	t, err := target(d, exe, vars)
+	ts, err := targets(d, exe, vars)
 	if err != nil {
+		t := ts.targets[0]
 		fmt.Fprint(env.Stdout, t.byHand)
-		return envErr("cannot find %s's configuration (%v); %s", c.title, err, t.fix)
+		return envErr("cannot find %s's configuration (%v); %s", t.title, err, t.fix)
 	}
-	r, err := d.installConfig(t.path, t.server, t.create)
-	if errors.Is(err, mcpconfig.ErrNoFolder) || errors.Is(err, mcpconfig.ErrNoFile) {
-		fmt.Fprint(env.Stdout, t.byHand)
-		return envErr("%s not found: there is no %s; %s", c.title, t.missing, t.install)
+	var missing, failed []string
+	set, changed := false, false
+	for _, t := range ts.targets {
+		r, err := d.installConfig(t.file, t.server)
+		switch {
+		case errors.Is(err, mcpconfig.ErrNoFolder), errors.Is(err, mcpconfig.ErrNoFile):
+			missing = append(missing, t.missing)
+			continue
+		case err != nil:
+			fmt.Fprint(env.Stdout, t.byHand)
+			failed = append(failed, fmt.Sprintf("cannot edit %s safely (%v); %s", t.file.Path, err, t.fix))
+			continue
+		}
+		set = true
+		switch r.Outcome {
+		case mcpconfig.Unchanged:
+			fmt.Fprintf(env.Stdout, "hq is already set up in %s (%s)\n", t.title, t.file.Path)
+			continue
+		case mcpconfig.Added:
+			fmt.Fprintf(env.Stdout, "added hq to %s (%s)\n", t.title, t.file.Path)
+		default:
+			fmt.Fprintf(env.Stdout, "updated hq in %s (%s)\n", t.title, t.file.Path)
+		}
+		changed = true
+		if r.Backup != "" {
+			fmt.Fprintf(env.Stdout, "the file as it was: %s\n", r.Backup)
+		}
 	}
-	if err != nil {
-		fmt.Fprint(env.Stdout, t.byHand)
-		return envErr("cannot edit %s safely (%v); %s", t.path, err, t.fix)
+	if changed {
+		fmt.Fprintln(env.Stdout, ts.load)
 	}
-	switch r.Outcome {
-	case mcpconfig.Unchanged:
-		fmt.Fprintf(env.Stdout, "hq is already set up in %s (%s)\n", c.title, t.path)
-		return nil
-	case mcpconfig.Added:
-		fmt.Fprintf(env.Stdout, "added hq to %s (%s)\n", c.title, t.path)
-	default:
-		fmt.Fprintf(env.Stdout, "updated hq in %s (%s)\n", c.title, t.path)
+	switch {
+	case len(failed) > 0:
+		return envErr("%s", strings.Join(failed, "; "))
+	case !set:
+		fmt.Fprint(env.Stdout, ts.targets[0].byHand)
+		return envErr("%s not found: there is no %s; %s", c.title, strings.Join(missing, " nor "), ts.install)
 	}
-	if r.Backup != "" {
-		fmt.Fprintf(env.Stdout, "the file as it was: %s\n", r.Backup)
-	}
-	fmt.Fprintln(env.Stdout, t.load)
 	return nil
 }
 

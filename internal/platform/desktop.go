@@ -28,16 +28,19 @@ func nativeDesktopConfig(goos, home string) (string, error) {
 	return filepath.Join(home, ".config", "Claude", desktopFile), nil
 }
 
-// DesktopServer is hq itself, given the environment: a program started by
-// the Dock gets only the system's PATH, which has no tmux, sbx or gh.
-func (Native) DesktopServer(hq string, env []string) (string, []string, map[string]string) {
+// AppServer is hq itself, given the environment: a program started by the
+// Dock gets only the system's PATH, which has no tmux, sbx or gh.
+func (Native) AppServer(argv, env []string) (string, []string, map[string]string) {
 	m := map[string]string{}
 	for _, kv := range env {
 		k, v, _ := strings.Cut(kv, "=")
 		m[k] = v
 	}
-	return hq, []string{"mcp"}, m
+	return argv[0], argv[1:], m
 }
+
+// WindowsCodeConfig: there is no Windows side.
+func (Native) WindowsCodeConfig() (string, bool, error) { return "", false, nil }
 
 // storeConfigDirs is where Claude Desktop installed from the Microsoft
 // Store keeps its configuration, under %LOCALAPPDATA%: Windows gives a
@@ -78,15 +81,40 @@ func (w WSL) DesktopConfig(string) (string, error) {
 	return path.Join(dir, "Claude", desktopFile), nil
 }
 
-// DesktopServer is wsl.exe running hq in this distribution directly, with
-// no shell, its environment set by env(1): Windows starts wsl.exe, and an
+// AppServer is wsl.exe running hq in this distribution directly, with no
+// shell, its environment set by env(1): Windows starts wsl.exe, and an
 // environment given to it stays on the Windows side.
-func (w WSL) DesktopServer(hq string, env []string) (string, []string, map[string]string) {
+func (w WSL) AppServer(argv, env []string) (string, []string, map[string]string) {
 	var args []string
 	if w.Distro != "" {
 		args = append(args, "-d", w.Distro)
 	}
 	args = append(args, "--exec", "/usr/bin/env")
 	args = append(args, env...)
-	return "wsl.exe", append(args, hq, "mcp"), nil
+	return "wsl.exe", append(args, argv...), nil
+}
+
+// codeFile is the name of Claude Code's user configuration file.
+const codeFile = ".claude.json"
+
+// WindowsCodeConfig is .claude.json in the Windows user's
+// %CLAUDE_CONFIG_DIR% when that is set, as Claude Code on Windows reads it,
+// otherwise in %USERPROFILE%; WSL reaches it through cmd.exe and wslpath.
+func (w WSL) WindowsCodeConfig() (string, bool, error) {
+	out, err := w.Run.Run("cmd.exe", "/d", "/c", "echo %USERPROFILE%&echo %CLAUDE_CONFIG_DIR%")
+	if err != nil {
+		return "", true, err
+	}
+	profile, configDir, _ := strings.Cut(strings.ReplaceAll(string(out), "\r", ""), "\n")
+	dir := strings.TrimSpace(configDir)
+	if dir == "" || strings.Contains(dir, "%") {
+		dir = strings.TrimSpace(profile)
+	}
+	if dir == "" || strings.Contains(dir, "%") {
+		return "", true, errors.New("Windows gave no %USERPROFILE%")
+	}
+	if dir, err = w.wslpath("-u", dir); err != nil {
+		return "", true, err
+	}
+	return path.Join(dir, codeFile), true, nil
 }

@@ -36,10 +36,10 @@ func Contract(t *testing.T, p platform.Platform) {
 	if c, err := p.DesktopConfig("/home/dev"); err != nil || !strings.HasSuffix(c, "/Claude/claude_desktop_config.json") {
 		t.Errorf("Claude Desktop's configuration %q, %v", c, err)
 	}
-	cmd, args, env := p.DesktopServer("/opt/hq", []string{"PATH=/bin"})
+	cmd, args, env := p.AppServer([]string{"/opt/hq", "mcp", "claude-code"}, []string{"PATH=/bin"})
 	all := strings.Join(append(append([]string{cmd}, args...), env["PATH"]), " ")
-	if cmd == "" || len(args) == 0 || args[len(args)-1] != "mcp" || !strings.Contains(all, "/opt/hq") || !strings.Contains(all, "/bin") {
-		t.Errorf("Claude Desktop starts %q %q with %q", cmd, args, env)
+	if cmd == "" || len(args) < 2 || args[len(args)-2] != "mcp" || args[len(args)-1] != "claude-code" || !strings.Contains(all, "/opt/hq") || !strings.Contains(all, "/bin") {
+		t.Errorf("an app starts %q %q with %q", cmd, args, env)
 	}
 	for _, path := range []string{"/home/dev/app", "/Users/dev/work/hq", "/w/repo with space"} {
 		s, err := p.ToSbx(path)
@@ -90,14 +90,17 @@ func (Fake) DesktopConfig(home string) (string, error) {
 	return home + "/Claude/claude_desktop_config.json", nil
 }
 
-// DesktopServer starts hq directly with the environment given.
-func (Fake) DesktopServer(hq string, env []string) (string, []string, map[string]string) {
+// AppServer starts hq directly with the environment given.
+func (Fake) AppServer(argv, env []string) (string, []string, map[string]string) {
 	m := map[string]string{}
 	for _, kv := range env {
 		k, v, _ := strings.Cut(kv, "=")
 		m[k] = v
 	}
-	return hq, []string{"mcp"}, m
+	return argv[0], argv[1:], m
 }
+
+// WindowsCodeConfig: no Windows side, as on macOS.
+func (Fake) WindowsCodeConfig() (string, bool, error) { return "", false, nil }
 
 var _ platform.Platform = Fake{}
