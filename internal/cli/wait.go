@@ -122,8 +122,8 @@ func parseTimeout(s string) (time.Duration, error) {
 }
 
 // runWait returns as soon as an agent it waits on enters done, question,
-// needs input or ended after --since (spec §4.1, design §3.4), or at the
-// timeout with nothing. It looks as the list does, through the same
+// needs input or ended after --since (spec §4.1, design §3.4), with those
+// that do so by its next look, or at the timeout with nothing. It looks as the list does, through the same
 // collection (design §3.8), and leaves nothing running when it returns.
 func runWait(env Env, d deps, args []string) error {
 	start := d.now()
@@ -136,6 +136,7 @@ func runWait(env Env, d deps, args []string) error {
 	}
 	sbxs := &sbxPoll{ask: func() agent.Sandboxes { return runningSandboxes(d) }}
 	var seen map[string]agent.Agent // the agents waited on at the last look, by id
+	var found []agent.Agent         // what the first look with a hit returned
 	for first := true; ; first = false {
 		at := d.now()
 		as, err := collectWith(d, sbxs.running(at, first))
@@ -158,9 +159,17 @@ func runWait(env Env, d deps, args []string) error {
 		next := later(w.since, at.Add(-waitSettle))
 		hits := arrived(watched, w.since, next)
 		hits = append(hits, gone(seen, watched, d.now())...)
-		if len(hits) > 0 || (w.timeout > 0 && !d.now().Before(start.Add(w.timeout))) {
+		if found != nil {
+			hits = joined(found, hits)
 			agent.SortAttention(hits)
 			return printWait(env.Stdout, w, lsRows(d, hits), next)
+		}
+		if len(hits) > 0 {
+			// One look more, so agents that change together are returned
+			// together (#116).
+			found = hits
+		} else if w.timeout > 0 && !d.now().Before(start.Add(w.timeout)) {
+			return printWait(env.Stdout, w, lsRows(d, nil), next)
 		}
 		seen = map[string]agent.Agent{}
 		for _, a := range watched {
@@ -168,6 +177,19 @@ func runWait(env Env, d deps, args []string) error {
 		}
 		d.sleep(waitEvery)
 	}
+}
+
+// joined are the agents of the last look, and those of the look before it
+// that the last one no longer returns: one that has moved on still entered
+// its state after since.
+func joined(before, last []agent.Agent) []agent.Agent {
+	out := slices.Clone(last)
+	for _, a := range before {
+		if !slices.ContainsFunc(last, func(b agent.Agent) bool { return b.ID == a.ID }) {
+			out = append(out, a)
+		}
+	}
+	return out
 }
 
 // later is the later of two moments.

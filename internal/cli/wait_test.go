@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -130,7 +131,7 @@ func TestWaitSinceTheLastMomentReportsWhatChangedBetweenCalls(t *testing.T) {
 	start := f.now
 	code, out, _ = f.run("wait", "--since", first.NextSince.Format(time.RFC3339Nano), "--json")
 	second := waitJSON(t, out)
-	if code != 0 || len(second.Agents) != 1 || second.Agents[0].Name != "a" || second.Agents[0].State != state.Question || f.now != start {
+	if code != 0 || len(second.Agents) != 1 || second.Agents[0].Name != "a" || second.Agents[0].State != state.Question || f.now.Sub(start) > waitEvery {
 		t.Fatalf("second call: %s (took %v)", out, f.now.Sub(start))
 	}
 	// Reported once: the next call from its moment waits on.
@@ -291,5 +292,61 @@ func TestWaitReturnsADoneAgentWithItsOwnTasks(t *testing.T) {
 	if w := waitJSON(t, out); code != 0 || len(w.Agents) != 1 || w.Agents[0].State != state.Done || w.Agents[0].Last != "Waiting for it." ||
 		len(w.Agents[0].OwnTasks) != 1 || w.Agents[0].OwnTasks[0] != (state.Task{Type: "shell", Text: "sleep 120"}) {
 		t.Fatalf("%s", out)
+	}
+}
+
+// Two agents whose turns end within one look of each other come back in
+// the same call: wait looks once more after its first hit, so a supervisor
+// never waits on an agent that finished beside the one returned (#116).
+func TestWaitReturnsAgentsThatFinishWithinALookOfEachOtherTogether(t *testing.T) {
+	f := newWaitFakes()
+	at := f.now.Add(10 * time.Second)
+	f.onSleep = func() {
+		switch {
+		case f.states["id-a"].State == state.Working && !f.now.Before(at):
+			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "a done"}
+		case f.states["id-b"].State == state.Working && !f.now.Before(at.Add(waitEvery)):
+			// b's report lands a look later, dated within that look.
+			f.states["id-b"] = state.Report{State: state.Done, Since: f.now.Add(-waitEvery / 5), Last: "b done"}
+		}
+	}
+	code, out, _ := f.run("wait", "--json")
+	w := waitJSON(t, out)
+	var names []string
+	for _, a := range w.Agents {
+		names = append(names, a.Name)
+	}
+	if slices.Sort(names); code != 0 || strings.Join(names, " ") != "a b" {
+		t.Fatalf("want a and b, got %s", out)
+	}
+	if waited := f.now.Sub(at); waited > time.Second {
+		t.Fatalf("returned %v after a's turn ended", waited)
+	}
+	// Neither comes again from the call's moment.
+	code, out, _ = f.run("wait", "--since", w.NextSince.Format(time.RFC3339Nano), "--timeout", "2s", "--json")
+	if again := waitJSON(t, out); code != 0 || len(again.Agents) != 0 {
+		t.Fatalf("again: %s", out)
+	}
+}
+
+// An agent found by the first look is returned although it has moved on by
+// the look after it: it did enter its state after --since.
+func TestWaitKeepsAnAgentFoundByItsFirstHitThatMovesOnBeforeItReturns(t *testing.T) {
+	f := newWaitFakes()
+	at := f.now.Add(time.Second)
+	found := false
+	f.onSleep = func() {
+		switch {
+		case f.states["id-a"].State == state.Working && !found && !f.now.Before(at):
+			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "a done"}
+		case f.states["id-a"].State == state.Done && !f.now.Before(at.Add(2*waitEvery)):
+			// The look after the hit: a message was typed in, a works.
+			found = true
+			f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Last: "on it"}
+		}
+	}
+	code, out, _ := f.run("wait", "--json")
+	if w := waitJSON(t, out); code != 0 || len(w.Agents) != 1 || w.Agents[0].Name != "a" || w.Agents[0].State != state.Done || w.Agents[0].Last != "a done" {
+		t.Fatalf("want a done, got %s", out)
 	}
 }
