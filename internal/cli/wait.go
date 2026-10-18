@@ -123,8 +123,9 @@ func parseTimeout(s string) (time.Duration, error) {
 
 // runWait returns as soon as an agent it waits on enters done, question,
 // needs input or ended after --since (spec §4.1, design §3.4), with those
-// that do so by its next look, or at the timeout with nothing. It looks as the list does, through the same
-// collection (design §3.8), and leaves nothing running when it returns.
+// that do so by its next look, or at the timeout with nothing. It looks as
+// the list does, through the same collection (design §3.8), and leaves
+// nothing running when it returns.
 func runWait(env Env, d deps, args []string) error {
 	start := d.now()
 	w, err := parseWait(args, start)

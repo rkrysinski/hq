@@ -97,6 +97,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	}
 	for name, want := range map[string]string{
 		"read":   "never pass it to wait as since, it is this agent's alone",
+		"list":   "a wait from it returns only what changes after the list, so act on the agents it shows done, in question, needing input or ended",
 		"answer": "for a wait on this agent alone, never your watch's since",
 	} {
 		if !strings.Contains(tools[name].Description, want) {
@@ -148,7 +149,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("instructions have no %q", want)
 		}
 	}
-	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "Watch from one moment: the next_since of your most recent wait or list result", "Never take since from read, send or answer", "Name every agent you follow in each wait", "call list first", "Never answer a permission or any other dialog", "answer it with answer, only on the user's word", "never on your own initiative"} {
+	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "Watch from one moment: the next_since of your most recent wait or list result", "Never take since from read, send or answer", "Name every agent you follow in each wait", "act on the agents the list shows done, in question, needing input or ended", "call list first", "Never answer a permission or any other dialog", "answer it with answer, only on the user's word", "never on your own initiative"} {
 		if !strings.Contains(cs.InitializeResult().Instructions, want) {
 			t.Errorf("instructions have no %q", want)
 		}
