@@ -5,91 +5,233 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/rkrysinski/hq/internal/desktop"
+	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/version"
 )
 
-// maxWaitTimeout is the longest a wait tool call waits: Claude Desktop gives
-// a local MCP server's tool call 60 s and does not extend it for progress
-// notifications (design §3.12), so a longer wait would fail there instead
-// of returning "nothing yet".
-const maxWaitTimeout = DefaultWaitTimeout
+// mcpClient is an MCP client hq mcp serves and hq mcp install sets hq up
+// for (spec §4.1, design §3.12).
+type mcpClient struct {
+	name  string // as hq mcp takes it
+	title string // as the user knows it
+	// maxWait is the longest a wait tool call waits: within the time the
+	// client gives a tool call, so that a wait returns "nothing yet"
+	// instead of failing.
+	maxWait time.Duration
+}
 
-// desktopEnv are the variables hq mcp install passes on to Claude Desktop's
+var (
+	// Claude Desktop gives a local MCP server's tool call 60 s and does not
+	// extend it for progress notifications.
+	claudeDesktop = mcpClient{name: "claude-desktop", title: "Claude Desktop", maxWait: DefaultWaitTimeout}
+	// Claude Code gives a tool call the timeout of the server's entry,
+	// which hq mcp install sets a minute above maxWait.
+	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour}
+	mcpClients = []mcpClient{claudeDesktop, claudeCode}
+)
+
+const mcpUsage = "hq mcp [install] [claude-desktop|claude-code]"
+
+// mcpEnv are the variables hq mcp install passes on to the client's
 // hq when they are set: PATH, which finds tmux, sbx and gh, and those that
 // choose hq's tmux server and preferences.
-var desktopEnv = []string{"PATH", "HQ_TMUX_SOCKET", "TMUX_TMPDIR", "XDG_CONFIG_HOME"}
+var mcpEnv = []string{"PATH", "HQ_TMUX_SOCKET", "TMUX_TMPDIR", "XDG_CONFIG_HOME"}
+
+// parseMCP reads hq mcp's arguments: whether to install, and the client,
+// Claude Desktop when none is named.
+func parseMCP(args []string) (install bool, c mcpClient, err error) {
+	c = claudeDesktop
+	if len(args) > 0 && args[0] == "install" {
+		install, args = true, args[1:]
+	}
+	if len(args) > 0 {
+		if i := slices.IndexFunc(mcpClients, func(m mcpClient) bool { return m.name == args[0] }); i >= 0 {
+			c, args = mcpClients[i], args[1:]
+		}
+	}
+	if len(args) > 0 {
+		return false, c, usageErr("unexpected argument '%s' (usage: %s)", args[0], mcpUsage)
+	}
+	return install, c, nil
+}
 
 // runMCP serves hq's tools to an MCP client over stdio, or with install
-// adds hq to Claude Desktop (spec §4.1, design §3.12).
+// adds hq to the client (spec §4.1, design §3.12).
 func runMCP(env Env, d deps, args []string) error {
+	install, client, err := parseMCP(args)
 	switch {
-	case len(args) == 1 && args[0] == "install":
-		return runMCPInstall(env, d)
-	case len(args) != 0:
-		extra := args[0]
-		if extra == "install" {
-			extra = args[1]
-		}
-		return usageErr("unexpected argument '%s' (usage: hq mcp [install])", extra)
+	case err != nil:
+		return err
+	case install:
+		return runMCPInstall(env, d, client)
 	case d.canAsk(env.Stdin):
-		return usageErr("hq mcp is started by Claude Desktop, not typed; add it there with: hq mcp install")
+		return usageErr("hq mcp is started by an MCP client, not typed; add it to Claude Desktop with: hq mcp install, or to Claude Code with: hq mcp install claude-code")
 	}
-	if err := d.serveMCP(newMCPServer(d)); err != nil {
+	if err := d.serveMCP(newMCPServer(d, client)); err != nil {
 		return envErr("mcp: %v", err)
 	}
 	return nil
 }
 
-// runMCPInstall sets hq up in Claude Desktop's configuration; when Claude
-// Desktop's folder is not there or the file cannot be edited safely, it
-// changes nothing, prints hq's entry for the user to add and fails with the
-// reason.
-func runMCPInstall(env Env, d deps) error {
+// mcpTarget is a configuration file hq mcp install sets hq up in, and
+// what it tells the user about it.
+type mcpTarget struct {
+	title  string // the client, as the user knows it
+	file   mcpconfig.File
+	server mcpconfig.Server
+	// missing is the folder, or the file, whose absence means the client
+	// is not there.
+	missing string
+	// byHand is the entry, or the command that adds it, to print when hq
+	// cannot set it up; fix tells the user to use it.
+	byHand, fix string
+}
+
+// mcpTargets are where hq mcp install sets hq up for a client, the remedy
+// when it is in none of them, and how the client loads hq.
+type mcpTargets struct {
+	targets       []mcpTarget
+	install, load string
+}
+
+// desktopTargets is Claude Desktop's configuration, which the platform
+// adapter finds, and the entry it starts hq with (design §3.10).
+func desktopTargets(d deps, exe string, vars []string) (mcpTargets, error) {
+	t := mcpTarget{
+		title:  claudeDesktop.title,
+		server: d.appServer([]string{exe, "mcp"}, vars),
+		fix:    "add the entry above to it by hand, then quit and reopen Claude Desktop",
+	}
+	t.byHand = mcpconfig.Snippet(t.server)
+	path, err := d.desktopConfig()
+	t.file, t.missing = mcpconfig.File{Path: path, Create: true}, filepath.Dir(path)
+	return mcpTargets{
+		targets: []mcpTarget{t},
+		install: "install Claude Desktop and open it once, then run hq mcp install again (or add the entry above to its configuration by hand)",
+		load:    "quit and reopen Claude Desktop to load it",
+	}, err
+}
+
+// codeTargets are Claude Code's user configuration, .claude.json in
+// CLAUDE_CONFIG_DIR or the home, with the entry that starts hq beside it,
+// the same on every platform; and on WSL also Claude Code's on Windows,
+// whose entry starts hq as Claude Desktop's does, unless Windows cannot be
+// asked where it is (design §3.12). Claude Code saves the file under its
+// lock, which hq takes too.
+func codeTargets(d deps, exe string, vars []string) (mcpTargets, error) {
+	ts := mcpTargets{
+		install: "run claude once, then hq mcp install claude-code again (or run the command above)",
+		load:    "restart Claude Code to load it",
+	}
+	argv := []string{exe, "mcp", claudeCode.name}
+	timeout := int((claudeCode.maxWait + time.Minute) / time.Millisecond)
+	env := map[string]string{}
+	for _, kv := range vars {
+		k, v, _ := strings.Cut(kv, "=")
+		env[k] = v
+	}
+	beside := mcpTarget{
+		title:  claudeCode.title,
+		server: mcpconfig.Server{Type: "stdio", Command: exe, Args: argv[1:], Env: env, Timeout: timeout},
+		fix:    "run the command above instead, then restart Claude Code",
+	}
+	beside.byHand = mcpconfig.AddJSON(beside.server)
+	ts.targets = append(ts.targets, beside)
+	dir := d.getenv("CLAUDE_CONFIG_DIR")
+	if dir == "" {
+		home, err := d.home()
+		if err != nil {
+			return ts, err
+		}
+		dir = home
+	}
+	path := filepath.Join(dir, ".claude.json")
+	ts.targets[0].file, ts.targets[0].missing = mcpconfig.File{Path: path, Lock: true}, path
+	if path, ok, err := d.windowsCodeConfig(); ok && err == nil {
+		windows := mcpTarget{
+			title:   claudeCode.title + " on Windows",
+			file:    mcpconfig.File{Path: path, Lock: true},
+			server:  d.appServer(argv, vars),
+			missing: path,
+			fix:     "add the entry above to its mcpServers by hand, then restart Claude Code",
+		}
+		windows.server.Type, windows.server.Timeout = "stdio", timeout
+		windows.byHand = mcpconfig.Snippet(windows.server)
+		ts.targets = append(ts.targets, windows)
+	}
+	return ts, nil
+}
+
+// runMCPInstall sets hq up in each configuration of the client it finds;
+// when the client is not there or a file cannot be edited safely, it
+// changes nothing there, prints hq's entry, or the command that adds it,
+// for the user to add and fails with the reason.
+func runMCPInstall(env Env, d deps, c mcpClient) error {
 	exe, err := d.executable()
 	if err != nil {
 		return envErr("cannot find the running hq: %v", err)
 	}
 	var vars []string
-	for _, k := range desktopEnv {
+	for _, k := range mcpEnv {
 		if v := d.getenv(k); v != "" {
 			vars = append(vars, k+"="+v)
 		}
 	}
-	server := d.desktopServer(exe, vars)
-	path, err := d.desktopConfig()
+	targets := desktopTargets
+	if c == claudeCode {
+		targets = codeTargets
+	}
+	ts, err := targets(d, exe, vars)
 	if err != nil {
-		fmt.Fprint(env.Stdout, desktop.Snippet(server))
-		return envErr("cannot find Claude Desktop's configuration (%v); add the entry above to it by hand, then quit and reopen Claude Desktop", err)
+		t := ts.targets[0]
+		fmt.Fprint(env.Stdout, t.byHand)
+		return envErr("cannot find %s's configuration (%v); %s", t.title, err, t.fix)
 	}
-	r, err := d.installDesktop(path, server)
-	if errors.Is(err, desktop.ErrNoFolder) {
-		fmt.Fprint(env.Stdout, desktop.Snippet(server))
-		return envErr("Claude Desktop not found: there is no %s; install Claude Desktop and open it once, then run hq mcp install again (or add the entry above to its configuration by hand)", filepath.Dir(path))
+	var missing, failed []string
+	set, changed := false, false
+	for _, t := range ts.targets {
+		r, err := d.installConfig(t.file, t.server)
+		switch {
+		case errors.Is(err, mcpconfig.ErrNoFolder), errors.Is(err, mcpconfig.ErrNoFile):
+			missing = append(missing, t.missing)
+			continue
+		case err != nil:
+			fmt.Fprint(env.Stdout, t.byHand)
+			failed = append(failed, fmt.Sprintf("cannot edit %s safely (%v); %s", t.file.Path, err, t.fix))
+			continue
+		}
+		set = true
+		switch r.Outcome {
+		case mcpconfig.Unchanged:
+			fmt.Fprintf(env.Stdout, "hq is already set up in %s (%s)\n", t.title, t.file.Path)
+			continue
+		case mcpconfig.Added:
+			fmt.Fprintf(env.Stdout, "added hq to %s (%s)\n", t.title, t.file.Path)
+		default:
+			fmt.Fprintf(env.Stdout, "updated hq in %s (%s)\n", t.title, t.file.Path)
+		}
+		changed = true
+		if r.Backup != "" {
+			fmt.Fprintf(env.Stdout, "the file as it was: %s\n", r.Backup)
+		}
 	}
-	if err != nil {
-		fmt.Fprint(env.Stdout, desktop.Snippet(server))
-		return envErr("cannot edit %s safely (%v); add the entry above to it by hand, then quit and reopen Claude Desktop", path, err)
+	if changed {
+		fmt.Fprintln(env.Stdout, ts.load)
 	}
-	switch r.Outcome {
-	case desktop.Unchanged:
-		fmt.Fprintf(env.Stdout, "hq is already set up in Claude Desktop (%s)\n", path)
-		return nil
-	case desktop.Added:
-		fmt.Fprintf(env.Stdout, "added hq to Claude Desktop (%s)\n", path)
-	default:
-		fmt.Fprintf(env.Stdout, "updated hq in Claude Desktop (%s)\n", path)
+	switch {
+	case len(failed) > 0:
+		return envErr("%s", strings.Join(failed, "; "))
+	case !set:
+		fmt.Fprint(env.Stdout, ts.targets[0].byHand)
+		return envErr("%s not found: there is no %s; %s", c.title, strings.Join(missing, " nor "), ts.install)
 	}
-	if r.Backup != "" {
-		fmt.Fprintf(env.Stdout, "the file as it was: %s\n", r.Backup)
-	}
-	fmt.Fprintln(env.Stdout, "quit and reopen Claude Desktop to load it")
 	return nil
 }
 
@@ -125,7 +267,7 @@ type (
 	mcpWaitIn struct {
 		Names   []string `json:"names,omitempty" jsonschema:"the agents to wait for; every agent when empty"`
 		Since   string   `json:"since" jsonschema:"the next_since of your most recent wait or list result (e.g. 2026-09-28T10:25:01.25Z), never of read, send or answer, or a duration back from now (10m); wait returns what changed after it"`
-		Timeout int      `json:"timeout,omitempty" jsonschema:"seconds to wait before returning no agents; default and at most 50"`
+		Timeout int      `json:"timeout,omitempty" jsonschema:"seconds to wait before returning no agents; default 50, at most as the tool's description says"`
 	}
 	mcpKillIn struct {
 		Name      string `json:"name" jsonschema:"the agent's name, as list shows it"`
@@ -149,11 +291,12 @@ type (
 	}
 )
 
-// newMCPServer is hq's MCP server: each tool runs the CLI command of its
-// name, in this process, and returns what the command prints, or its error
-// line as a tool error (design §3.12). Its commands run from the user's
-// home: the directory Claude Desktop starts hq in means nothing to them.
-func newMCPServer(d deps) *mcp.Server {
+// newMCPServer is hq's MCP server for a client: each tool runs the CLI
+// command of its name, in this process, and returns what the command
+// prints, or its error line as a tool error (design §3.12). Its commands
+// run from the user's home: the directory the client starts hq in means
+// nothing to them.
+func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	d.getwd = d.home
 	// What its tools give agents is the supervisor's, not the user's.
 	d.supervisor = true
@@ -210,16 +353,17 @@ func newMCPServer(d deps) *mcp.Server {
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "wait",
 		Description: "Wait until one of the named agents (every agent when none is named) is done, asks a question, needs input or ends, and return it, with every other that does so within a moment of it, as list gives them, with next_since, as JSON. " +
-			"After timeout seconds (default and at most 50) it returns no agents, which is not an error. " +
+			"After timeout seconds (" + waitLimit(client) + ") it returns no agents, which is not an error. " +
 			"since is required: the next_since of your most recent wait or list result, so a change between that result and this call is not missed; never that of read, send or answer, which is one agent's and later than what the others did meanwhile. " +
 			"To watch agents, call it in a loop, passing each result's next_since as the next call's since and naming every agent you follow each time (or none, for every agent): no change is then missed or returned twice. React to the agents it returns (read them), then call it again. " +
 			"An agent returned done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
 		Annotations: &mcp.ToolAnnotations{Title: "Wait for agents", ReadOnlyHint: true, OpenWorldHint: &no},
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpWaitIn) (*mcp.CallToolResult, any, error) {
 		timeout := time.Duration(in.Timeout) * time.Second
-		if timeout <= 0 || timeout > maxWaitTimeout {
-			timeout = maxWaitTimeout
+		if timeout <= 0 {
+			timeout = DefaultWaitTimeout
 		}
+		timeout = min(timeout, client.maxWait)
 		if in.Since == "" {
 			return toolResult("", usageErr("since is required: the next_since of your most recent wait or list result; with none yet, call list first"))
 		}
@@ -299,6 +443,15 @@ func newMCPServer(d deps) *mcp.Server {
 		return callCommand(d, runKill, in.Name, "-y")
 	})
 	return s
+}
+
+// waitLimit is how long the wait tool waits for the client, as its
+// description gives it.
+func waitLimit(c mcpClient) string {
+	if c.maxWait == DefaultWaitTimeout {
+		return fmt.Sprintf("default and at most %d", int(c.maxWait.Seconds()))
+	}
+	return fmt.Sprintf("default %d, at most %d", int(DefaultWaitTimeout.Seconds()), int(c.maxWait.Seconds()))
 }
 
 // absDir is dir as hq new takes it from a tool: absolute, with ~/ the

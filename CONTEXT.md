@@ -61,7 +61,7 @@ Text the user leaves for an agent with `hq send`, delivered to it when it is rea
 _Avoid_: feedback, note, mail
 
 **Supervisor**:
-A Claude Desktop conversation that starts, watches and messages agents through hq's MCP tools (`hq mcp`); an MCP client, not an agent, with no row of its own.
+A conversation in Claude Desktop or Claude Code that starts, watches and messages agents through hq's MCP tools (`hq mcp`); an MCP client, not an agent, with no row of its own.
 _Avoid_: sup agent, orchestrator, manager
 
 **Supervised turn**:
