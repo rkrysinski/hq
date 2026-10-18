@@ -1,4 +1,4 @@
-package desktop
+package mcpconfig
 
 import (
 	"encoding/json"
@@ -108,6 +108,20 @@ func TestMergeLeavesEscapesAndNumbersAsTheyAre(t *testing.T) {
 	}
 }
 
+// Claude Code's entry says its type, as claude mcp add writes it, and how
+// long a tool call may run; Claude Desktop's says neither.
+func TestMergeWritesTypeAndTimeoutOnlyWhenGiven(t *testing.T) {
+	code := hq
+	code.Type, code.Timeout = "stdio", 3660000
+	out, _, err := Merge(nil, code)
+	if err != nil || !strings.Contains(string(out), `"type": "stdio",`) || !strings.Contains(string(out), `"timeout": 3660000`) {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if out, _, _ := Merge(nil, hq); strings.Contains(string(out), "type") || strings.Contains(string(out), "timeout") {
+		t.Fatalf("Claude Desktop's entry:\n%s", out)
+	}
+}
+
 func TestSnippetIsHqsEntryAlone(t *testing.T) {
 	s := Snippet(hq)
 	var got map[string]map[string]Server
@@ -116,5 +130,15 @@ func TestSnippetIsHqsEntryAlone(t *testing.T) {
 	}
 	if noEnv := Snippet(Server{Command: "wsl.exe", Args: []string{"--exec", "/hq", "mcp"}}); strings.Contains(noEnv, "env") {
 		t.Errorf("an empty environment is written:\n%s", noEnv)
+	}
+}
+
+// The command that adds hq to Claude Code by hand survives the shell: a
+// quote in a value is closed, escaped and reopened.
+func TestAddJSONIsOneShellWord(t *testing.T) {
+	s := Server{Type: "stdio", Command: "/home/o'neil/bin/hq", Args: []string{"mcp", "claude-code"}}
+	want := `claude mcp add-json --scope user hq '{"type":"stdio","command":"/home/o'\''neil/bin/hq","args":["mcp","claude-code"]}'` + "\n"
+	if got := AddJSON(s); got != want {
+		t.Fatalf("%s want\n%s", got, want)
 	}
 }

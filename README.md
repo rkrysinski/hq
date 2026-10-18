@@ -72,7 +72,7 @@ In the dashboard, agents that need you (a question, a permission prompt) come fi
 
 ## Notifications
 
-hq sends a desktop notification when an agent needs you or finishes: `Question: <branch>` when its reply ends with a question, `Needs input: <branch>` when it waits on a question dialog or a permission prompt, and `Done: <branch>` when it completes its turn. Each event notifies exactly once, whether or not the agent is the one open in the dashboard. Starting, working and ended agents never notify, and neither does a turn you end yourself (Esc, a refused permission) or a session that has just started. An agent whose turn ends while subagents it started in the background still run is not finished: it stays `working` and notifies once, when the turn Claude takes after the last of them ends. Work a [supervisor](#claude-desktop-as-supervisor) gave an agent does not notify you when it finishes or asks a question: that is for the supervisor, which tells you; a permission prompt or a question dialog still does, and so does any turn you prompted or sent a message into yourself.
+hq sends a desktop notification when an agent needs you or finishes: `Question: <branch>` when its reply ends with a question, `Needs input: <branch>` when it waits on a question dialog or a permission prompt, and `Done: <branch>` when it completes its turn. Each event notifies exactly once, whether or not the agent is the one open in the dashboard. Starting, working and ended agents never notify, and neither does a turn you end yourself (Esc, a refused permission) or a session that has just started. An agent whose turn ends while subagents it started in the background still run is not finished: it stays `working` and notifies once, when the turn Claude takes after the last of them ends. Work a [supervisor](#claude-desktop-or-claude-code-as-supervisor) gave an agent does not notify you when it finishes or asks a question: that is for the supervisor, which tells you; a permission prompt or a question dialog still does, and so does any turn you prompted or sent a message into yourself.
 
 Notifications come through the terminal the dashboard runs in, so they appear only while the dashboard is open in a terminal. After `q`, or with the window closed or detached, the agents keep working but nothing is shown, and missed events are not replayed; `hq` brings the dashboard and the notifications back.
 
@@ -87,9 +87,9 @@ Notifications come through the terminal the dashboard runs in, so they appear on
 
   `"bellStyle": "taskbar"` flashes without the sound. Without this setting nothing is shown on Windows when an agent needs you.
 
-## Claude Desktop as supervisor
+## Claude Desktop or Claude Code as supervisor
 
-Claude Desktop can start, watch and message your agents through hq's MCP tools (`new`, `list`, `read`, `wait`, `send`, `answer`, `go`, `kill`). Set it up once, from the shell you run hq in (on Windows, in WSL):
+Claude Desktop or Claude Code can start, watch and message your agents through hq's MCP tools (`new`, `list`, `read`, `wait`, `send`, `answer`, `go`, `kill`). For Claude Desktop, set it up once, from the shell you run hq in (on Windows, in WSL):
 
 ```bash
 hq mcp install
@@ -97,8 +97,16 @@ hq mcp install
 
 Then quit and reopen Claude Desktop. This adds an `hq` entry to Claude Desktop's configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, on Windows `%APPDATA%\Claude\claude_desktop_config.json`, or the package's own folder under `%LOCALAPPDATA%\Packages\Claude_...` when Claude Desktop came from the Microsoft Store; there Claude Desktop starts hq through `wsl.exe`), keeping your other servers, with a copy of the file as it was next to it. It records hq's path and your `PATH`, so run it again after moving hq or changing where tmux, `sbx` or `gh` live; a second run with nothing changed does nothing. When Claude Desktop is not installed (its folder is not there) or the file cannot be edited safely, it changes nothing and prints the entry to add by hand.
 
-In a conversation, tell Claude what to do ("start 42 in ~/work/app on issue #42, and watch it"). It reads status from hq rather than asking the agents, asks an agent with a message answered when the agent stops, and answers an agent's question dialog only when you tell it what to pick, or to choose for you; permission prompts and other dialogs it leaves to you. Work it gave an agent (the prompt it started the agent with, a message it sent) raises no desktop notification when it finishes or asks a question, on any agent: Claude waits for it and tells you, and when it is not waiting you see the agent's state in the dashboard and ask it. What you prompt or send yourself (at the agent, `hq new`, `hq send`) notifies you as ever, and so does a dialog. An agent started by an older hq notifies at every turn end until it is relaunched (`hq sandbox restart`). Claude Desktop asks you before `kill`.
+For Claude Code, running on the same machine as hq (on Windows, in WSL), set it up once from the same shell:
+
+```bash
+hq mcp install claude-code
+```
+
+Then restart Claude Code. This adds `hq` to Claude Code's user-scope servers, which every project sees (`~/.claude.json`, or `.claude.json` in `CLAUDE_CONFIG_DIR` when that is set; `claude mcp get hq` shows it), keeping your other servers, with a copy of the file as it was next to it. It records hq's path and your `PATH` as the Claude Desktop entry does. When Claude Code has never run there (no `.claude.json`) or the file cannot be edited safely, it changes nothing and prints the `claude mcp add-json` command that adds the entry by hand. Under Claude Code one `wait` may last up to an hour, where Claude Desktop's ends after 50 s (Claude Desktop gives a tool call 60 s); press Esc to interrupt a long one. A Claude Code inside a sandbox cannot reach hq.
+
+In a conversation, tell Claude what to do ("start 42 in ~/work/app on issue #42, and watch it"). It reads status from hq rather than asking the agents, asks an agent with a message answered when the agent stops, and answers an agent's question dialog only when you tell it what to pick, or to choose for you; permission prompts and other dialogs it leaves to you. Work it gave an agent (the prompt it started the agent with, a message it sent) raises no desktop notification when it finishes or asks a question, on any agent: Claude waits for it and tells you, and when it is not waiting you see the agent's state in the dashboard and ask it. What you prompt or send yourself (at the agent, `hq new`, `hq send`) notifies you as ever, and so does a dialog. An agent started by an older hq notifies at every turn end until it is relaunched (`hq sandbox restart`). `kill` ends an agent only when Claude passes on that you told it to; otherwise hq refuses it and Claude asks you.
 
 ## Uninstall
 
-Delete `~/.local/bin/hq`, the `hq` entry under `mcpServers` in Claude Desktop's configuration if you added it, `~/.config/hq` and, on macOS, `~/Library/Application Support/iTerm2/DynamicProfiles/hq.json`.
+Delete `~/.local/bin/hq`, the `hq` entry under `mcpServers` in Claude Desktop's configuration if you added it (in Claude Code: `claude mcp remove --scope user hq`), `~/.config/hq` and, on macOS, `~/Library/Application Support/iTerm2/DynamicProfiles/hq.json`.

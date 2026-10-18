@@ -60,6 +60,17 @@ type waited struct {
 
 func newSupervisor(t *testing.T) *supervisor {
 	t.Helper()
+	s := supervisorEnv(t)
+	cmd := exec.Command(s.bin, "mcp")
+	cmd.Env = s.env
+	s.connect(cmd)
+	return s
+}
+
+// supervisorEnv is a supervisor not yet connected: hq built, and the
+// environment it runs in, on the fake Claude and the stub sbx.
+func supervisorEnv(t *testing.T) *supervisor {
+	t.Helper()
 	testutil.FakeClaude(t)
 	stub, _ := testutil.SbxStub(t)
 	path := t.TempDir()
@@ -68,15 +79,19 @@ func newSupervisor(t *testing.T) *supervisor {
 	}
 	s := &supervisor{t: t, socket: testutil.TmuxSocket(t), bin: buildHQ(t)}
 	s.env = append(os.Environ(), "PATH="+path+string(os.PathListSeparator)+os.Getenv("PATH"), "HQ_TMUX_SOCKET="+s.socket, "HOME="+t.TempDir(), "TMUX=")
-	cmd := exec.Command(s.bin, "mcp")
-	cmd.Env = s.env
+	return s
+}
+
+// connect starts hq mcp with cmd and speaks to it over its stdin and
+// stdout.
+func (s *supervisor) connect(cmd *exec.Cmd) {
+	s.t.Helper()
 	cs, err := mcp.NewClient(&mcp.Implementation{Name: "supervisor", Version: "v0"}, nil).Connect(context.Background(), &mcp.CommandTransport{Command: cmd}, nil)
 	if err != nil {
-		t.Fatal(err)
+		s.t.Fatal(err)
 	}
 	s.cs = cs
-	t.Cleanup(func() { _ = cs.Close() })
-	return s
+	s.t.Cleanup(func() { _ = cs.Close() })
 }
 
 // call calls a tool; it fails the test when the tool fails, unless fail
@@ -473,6 +488,73 @@ func TestTheSupervisorAnswersAQuestionDialogOnTheUsersWord(t *testing.T) {
 	}
 }
 
+// Claude Code starts hq mcp from the entry hq mcp install wrote, over a
+// pipe, with its own environment and the entry's (#115): it supervises as
+// Claude Desktop does, and its wait may last longer than Claude Desktop's.
+func TestClaudeCodeSupervisesFromTheEntryHqMcpInstallWrote(t *testing.T) {
+	record := filepath.Join(t.TempDir(), "notified")
+	t.Setenv("FAKE_CLAUDE_NOTIFIED", record)
+	s := supervisorEnv(t)
+	dir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(dir, ".claude.json"), []byte(`{"numStartups": 3}`), 0o600)
+	cmd := exec.Command(s.bin, "mcp", "install", "claude-code")
+	cmd.Env = append(s.env, "CLAUDE_CONFIG_DIR="+dir, "HQ_PLATFORM=native")
+	if out, err := cmd.CombinedOutput(); err != nil || !strings.HasPrefix(string(out), "added hq to Claude Code") {
+		t.Fatalf("install: %v %s", err, out)
+	}
+	var c config
+	b, _ := os.ReadFile(filepath.Join(dir, ".claude.json"))
+	if err := json.Unmarshal(b, &c); err != nil {
+		t.Fatalf("%v %s", err, b)
+	}
+	entry := c.MCPServers["hq"]
+	cmd = exec.Command(entry.Command, entry.Args...)
+	cmd.Env = s.env
+	for k, v := range entry.Env {
+		cmd.Env = append(cmd.Env, k+"="+v)
+	}
+	s.connect(cmd)
+
+	tools, err := s.cs.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tl := range tools.Tools {
+		if tl.Name == "wait" && !strings.Contains(tl.Description, "(default 50, at most 3600)") {
+			t.Fatalf("wait: %s", tl.Description)
+		}
+	}
+	// A turn the supervisor started ends without a notification; a wait
+	// longer than Claude Desktop's returns as soon as it ends (an agent
+	// just started is done once before its first prompt).
+	app := testutil.GitRepo(t, "app")
+	s.ok("new", map[string]any{"name": "a", "dir": app, "prompt": "hello"})
+	since := "1m"
+	for done := false; !done; {
+		start := time.Now()
+		out := s.ok("wait", map[string]any{"since": since, "names": []string{"a"}, "timeout": 120})
+		var w waited
+		if json.Unmarshal([]byte(out), &w) != nil || len(w.Agents) != 1 || time.Since(start) > 30*time.Second {
+			t.Fatalf("wait after %v: %s", time.Since(start), out)
+		}
+		since, done = w.NextSince, w.Agents[0].Last == "Done: hello"
+	}
+	if b, _ := os.ReadFile(record); len(b) != 0 {
+		t.Fatalf("notified %q", b)
+	}
+	// What the user sends from a shell notifies them as ever.
+	s.shell("send", "a", "again")
+	s.untilRow(since, "a", "done", func(r row) bool { return r.Last == "Done: again" })
+	for i := 0; i < 50; i++ {
+		if b, _ := os.ReadFile(record); strings.Contains(string(b), "Done: main") {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	b, _ = os.ReadFile(record)
+	t.Fatalf("hq send from a shell: notified %q", b)
+}
+
 // desktopConfig is where Claude Desktop keeps its configuration under home
 // on this machine.
 func desktopConfig(home string) string {
@@ -484,16 +566,25 @@ func desktopConfig(home string) string {
 
 type config struct {
 	MCPServers map[string]struct {
+		Type    string            `json:"type"`
 		Command string            `json:"command"`
 		Args    []string          `json:"args"`
 		Env     map[string]string `json:"env"`
+		Timeout int               `json:"timeout"`
 	} `json:"mcpServers"`
 	Preferences map[string]any `json:"preferences"`
+	Startups    int            `json:"numStartups"`
 }
 
 func install(t *testing.T, bin string, env ...string) (string, string, error) {
 	t.Helper()
-	cmd := exec.Command(bin, "mcp", "install")
+	return installFor(t, bin, nil, env...)
+}
+
+// installFor runs hq mcp install with the client's name in args.
+func installFor(t *testing.T, bin string, args []string, env ...string) (string, string, error) {
+	t.Helper()
+	cmd := exec.Command(bin, append([]string{"mcp", "install"}, args...)...)
 	cmd.Env = append(os.Environ(), env...)
 	var out, errOut strings.Builder
 	cmd.Stdout, cmd.Stderr = &out, &errOut
@@ -617,5 +708,90 @@ func TestMCPInstallOnWSLStartsHqThroughWslExe(t *testing.T) {
 	}
 	if after, _ := os.ReadFile(path); string(after) != string(b) {
 		t.Fatal("store: the configuration in %APPDATA% changed")
+	}
+}
+
+func TestMCPInstallAddsHqToClaudeCodeOnceAndKeepsTheRest(t *testing.T) {
+	bin, _ := filepath.EvalSymlinks(buildHQ(t))
+	home, _ := filepath.EvalSymlinks(t.TempDir())
+	path := filepath.Join(home, ".claude.json")
+	code := []string{"claude-code"}
+	env := []string{"HOME=" + home, "PATH=/opt/tools/bin:/usr/bin:/bin", "HQ_TMUX_SOCKET=hq-dev", "XDG_CONFIG_HOME=", "TMUX_TMPDIR=", "CLAUDE_CONFIG_DIR=", "WSL_DISTRO_NAME=", "HQ_PLATFORM=native"}
+
+	// Claude Code never run: nothing created, the command printed.
+	out, errOut, err := installFor(t, bin, code, env...)
+	if err == nil || !strings.HasPrefix(out, "claude mcp add-json --scope user hq '{") || errOut != "hq: Claude Code not found: there is no "+path+"; run claude once, then hq mcp install claude-code again (or run the command above)\n" {
+		t.Fatalf("no file: %v %q %q", err, out, errOut)
+	}
+	if left, _ := os.ReadDir(home); len(left) != 0 {
+		t.Fatalf("no file: install created %v", left)
+	}
+
+	theirs := `{"numStartups": 7, "mcpServers": {"github": {"type": "stdio", "command": "npx", "env": {"GITHUB_TOKEN": "secret-123"}}}, "projects": {"/w/app": {"allowedTools": []}}}`
+	_ = os.WriteFile(path, []byte(theirs), 0o600)
+	out, errOut, err = installFor(t, bin, code, env...)
+	if err != nil || !strings.HasPrefix(out, "added hq to Claude Code ("+path+")\nthe file as it was: "+path+".hq-backup-") || !strings.HasSuffix(out, "\nrestart Claude Code to load it\n") {
+		t.Fatalf("%v %q %q", err, out, errOut)
+	}
+	var c config
+	b, _ := os.ReadFile(path)
+	if err := json.Unmarshal(b, &c); err != nil {
+		t.Fatal(err)
+	}
+	hq := c.MCPServers["hq"]
+	if hq.Type != "stdio" || hq.Command != bin || strings.Join(hq.Args, " ") != "mcp claude-code" || len(hq.Env) != 2 ||
+		hq.Env["PATH"] != "/opt/tools/bin:/usr/bin:/bin" || hq.Env["HQ_TMUX_SOCKET"] != "hq-dev" || hq.Timeout != 3660000 {
+		t.Fatalf("hq %+v", hq)
+	}
+	if c.MCPServers["github"].Env["GITHUB_TOKEN"] != "secret-123" || c.Startups != 7 || !strings.Contains(string(b), `"/w/app"`) {
+		t.Fatalf("the rest changed:\n%s", b)
+	}
+	out, _, err = installFor(t, bin, code, env...)
+	if err != nil || out != "hq is already set up in Claude Code ("+path+")\n" {
+		t.Fatalf("again: %v %q", err, out)
+	}
+	if after, _ := os.ReadFile(path); string(after) != string(b) {
+		t.Fatal("the second install wrote")
+	}
+
+	// Claude Code's configuration directory moved: the file there.
+	moved, _ := filepath.EvalSymlinks(t.TempDir())
+	_ = os.WriteFile(filepath.Join(moved, ".claude.json"), []byte("{}"), 0o600)
+	out, _, err = installFor(t, bin, code, append(env, "CLAUDE_CONFIG_DIR="+moved)...)
+	if err != nil || !strings.HasPrefix(out, "added hq to Claude Code ("+filepath.Join(moved, ".claude.json")+")\n") {
+		t.Fatalf("CLAUDE_CONFIG_DIR: %v %q", err, out)
+	}
+
+	// A file it cannot edit safely: left alone, the command printed.
+	_ = os.WriteFile(path, []byte("{broken"), 0o600)
+	out, errOut, err = installFor(t, bin, code, env...)
+	if err == nil || !strings.HasPrefix(out, "claude mcp add-json") || !strings.HasPrefix(errOut, "hq: cannot edit "+path+" safely") {
+		t.Fatalf("broken: %v %q %q", err, out, errOut)
+	}
+	if b, _ := os.ReadFile(path); string(b) != "{broken" {
+		t.Fatalf("changed %q", b)
+	}
+}
+
+// Claude Code runs beside hq, in WSL on Windows: its entry is the one it
+// gets on macOS, hq itself with no wsl.exe (#115).
+func TestMCPInstallForClaudeCodeOnWSLIsTheSame(t *testing.T) {
+	bin, _ := filepath.EvalSymlinks(buildHQ(t))
+	testutil.WSLStubs(t)
+	t.Setenv("WSL_STUB_ROOT", t.TempDir())
+	home := t.TempDir()
+	path := filepath.Join(home, ".claude.json")
+	_ = os.WriteFile(path, []byte("{}"), 0o600)
+	out, errOut, err := installFor(t, bin, []string{"claude-code"}, "WSL_DISTRO_NAME=Stub", "HOME="+home, "CLAUDE_CONFIG_DIR=", "HQ_TMUX_SOCKET=", "XDG_CONFIG_HOME=", "TMUX_TMPDIR=")
+	if err != nil || !strings.HasPrefix(out, "added hq to Claude Code ("+path+")\n") {
+		t.Fatalf("%v %q %q", err, out, errOut)
+	}
+	var c config
+	b, _ := os.ReadFile(path)
+	if err := json.Unmarshal(b, &c); err != nil {
+		t.Fatalf("%v %s", err, b)
+	}
+	if hq := c.MCPServers["hq"]; hq.Command != bin || strings.Join(hq.Args, " ") != "mcp claude-code" || hq.Env["PATH"] != os.Getenv("PATH") {
+		t.Fatalf("hq %+v", hq)
 	}
 }

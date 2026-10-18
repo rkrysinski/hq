@@ -15,10 +15,10 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
-	"github.com/rkrysinski/hq/internal/desktop"
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/iterm"
+	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -189,10 +189,11 @@ type deps struct {
 	home func() (string, error)
 	// desktopConfig is Claude Desktop's configuration file, desktopServer
 	// how Claude Desktop starts the hq at a path with an environment, and
-	// installDesktop sets it up in the file (hq mcp install, design §3.12).
-	desktopConfig  func() (string, error)
-	desktopServer  func(hq string, env []string) desktop.Server
-	installDesktop func(path string, s desktop.Server) (desktop.Result, error)
+	// installConfig sets hq up in an MCP client's configuration file, which
+	// it creates only when create allows it (hq mcp install, design §3.12).
+	desktopConfig func() (string, error)
+	desktopServer func(hq string, env []string) mcpconfig.Server
+	installConfig func(path string, s mcpconfig.Server, create bool) (mcpconfig.Result, error)
 	// serveMCP runs an MCP server over stdin and stdout until the client
 	// closes them.
 	serveMCP func(*mcp.Server) error
@@ -306,12 +307,12 @@ func defaultDeps() deps {
 			}
 			return plat.DesktopConfig(home)
 		},
-		desktopServer: func(hq string, env []string) desktop.Server {
+		desktopServer: func(hq string, env []string) mcpconfig.Server {
 			cmd, args, e := plat.DesktopServer(hq, env)
-			return desktop.Server{Command: cmd, Args: args, Env: e}
+			return mcpconfig.Server{Command: cmd, Args: args, Env: e}
 		},
-		installDesktop: func(path string, s desktop.Server) (desktop.Result, error) {
-			return desktop.Install(path, s, time.Now())
+		installConfig: func(path string, s mcpconfig.Server, create bool) (mcpconfig.Result, error) {
+			return mcpconfig.Install(path, s, create, time.Now())
 		},
 		serveMCP: func(s *mcp.Server) error { return s.Run(context.Background(), &mcp.StdioTransport{}) },
 	}
