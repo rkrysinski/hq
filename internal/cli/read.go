@@ -25,8 +25,9 @@ type readView struct {
 	// NextOffset is where the reply's next page starts, for hq read
 	// --offset; null on its last page.
 	NextOffset *int `json:"next_offset"`
-	// NextSince is the moment of the look, for hq wait --since: what
-	// changes after it is returned by hq wait. hq read --since takes it
+	// NextSince is the moment of the look, for hq wait NAME --since: what
+	// this agent does after it is returned by hq wait; another agent's
+	// change before it may not have been (#116). hq read --since takes it
 	// too, to tell whether the reply's next page is of the same reply.
 	NextSince time.Time `json:"next_since"`
 	offset    int       // where the page starts in the reply

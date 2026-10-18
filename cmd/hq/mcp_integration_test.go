@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -198,18 +199,18 @@ func TestMCPServerSupervisesAgentsOverStdio(t *testing.T) {
 	s.readUntil("b", "working")
 
 	// Ask b, which is at work: the message waits for its stop.
-	how, sent := s.send(map[string]any{"name": "b", "text": "check the logs"})
+	how, _ := s.send(map[string]any{"name": "b", "text": "check the logs"})
 	if how != "queued: b is working, delivered when it stops" {
 		t.Fatalf("send: %q", how)
 	}
 	if r := s.read("b"); r.State != "working" || r.Pending != 1 {
 		t.Fatalf("b %+v", r)
 	}
-	// b answers before wait is called: wait from send's next_since still
-	// returns the answer.
+	// b answers before wait is called: wait from the watch's since, the
+	// wait's before send, still returns the answer.
 	s.typeIn("b", "go on")
 	s.readUntil("b", "done")
-	r, since := s.until(sent, "b", "done")
+	r, since := s.until(since, "b", "done")
 	if r.Last != "Answered: "+state.MessageLabel+"check the logs" || r.Pending != 0 {
 		t.Fatalf("b answered %+v", r)
 	}
@@ -241,6 +242,76 @@ func TestMCPServerSupervisesAgentsOverStdio(t *testing.T) {
 	}
 	if out, isErr := s.call("read", map[string]any{"name": "a"}); !isErr || out != "hq: no agent 'a' (see hq ls)\n" {
 		t.Fatalf("read a killed agent: %v %q", isErr, out)
+	}
+}
+
+// Two agents whose turns end within one look of each other, watched as
+// the tools teach: wait in a loop, each from the next_since of the wait
+// before, with a read of what it returned in between. Both are returned,
+// each once; the owner's supervisor got one of two such agents and, taking
+// since from its read, never the other (#116).
+func TestASupervisorWatchingWithWaitGetsBothAgentsThatFinishTogether(t *testing.T) {
+	s := newSupervisor(t)
+	app, lib := testutil.GitRepo(t, "app"), testutil.GitRepo(t, "lib")
+	s.ok("new", map[string]any{"name": "a", "dir": app, "prompt": "slow job"})
+	s.ok("new", map[string]any{"name": "b", "dir": lib, "prompt": "slow job"})
+	s.readUntil("a", "working")
+	s.readUntil("b", "working")
+	var ls waited
+	if out := s.ok("list", nil); json.Unmarshal([]byte(out), &ls) != nil || ls.NextSince == "" {
+		t.Fatalf("list: %s", out)
+	}
+
+	// wait is running when both turns end, within one look of each other.
+	calls := make(chan string, 1)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		r, err := s.cs.CallTool(ctx, &mcp.CallToolParams{Name: "wait", Arguments: map[string]any{"since": ls.NextSince, "names": []string{"a", "b"}, "timeout": 30}})
+		if err != nil || r.IsError {
+			calls <- fmt.Sprintf("wait failed: %v %+v", err, r)
+			return
+		}
+		calls <- r.Content[0].(*mcp.TextContent).Text
+	}()
+	time.Sleep(time.Second)
+	s.typeIn("a", "go on")
+	time.Sleep(150 * time.Millisecond)
+	s.typeIn("b", "go on")
+
+	returned := map[string]int{}
+	since, out := "", ""
+	select {
+	case out = <-calls:
+	case <-time.After(45 * time.Second):
+		t.Fatal("wait did not return")
+	}
+	for i := 0; ; i++ {
+		var w waited
+		if err := json.Unmarshal([]byte(out), &w); err != nil {
+			t.Fatalf("wait: %v\n%s", err, out)
+		}
+		since = w.NextSince
+		for _, r := range w.Agents {
+			if r.State != "done" || r.Last != "Done: slow job" {
+				t.Fatalf("returned %+v", r)
+			}
+			returned[r.Name]++
+			// Read it, as after any wait: read's next_since is that
+			// agent's, not the watch's.
+			s.read(r.Name)
+		}
+		if len(returned) == 2 || i == 8 {
+			break
+		}
+		out = s.ok("wait", map[string]any{"since": since, "names": []string{"a", "b"}, "timeout": 5})
+	}
+	if returned["a"] != 1 || returned["b"] != 1 {
+		t.Fatalf("returned %v", returned)
+	}
+	// Each once: the loop goes on with nothing.
+	if out := s.ok("wait", map[string]any{"since": since, "names": []string{"a", "b"}, "timeout": 2}); !strings.Contains(out, `"agents": []`) {
+		t.Fatalf("again: %s", out)
 	}
 }
 
