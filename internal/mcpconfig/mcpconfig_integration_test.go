@@ -1,6 +1,6 @@
 //go:build integration
 
-package desktop
+package mcpconfig
 
 import (
 	"errors"
@@ -18,7 +18,7 @@ func TestInstallCreatesTheConfigurationWhenMissing(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	r, err := Install(path, hq, at)
+	r, err := Install(path, hq, true, at)
 	if err != nil || r.Outcome != Added || r.Backup != "" {
 		t.Fatalf("%+v %v", r, err)
 	}
@@ -37,18 +37,35 @@ func TestInstallCreatesNothingWithoutClaudeDesktopsFolder(t *testing.T) {
 		t.Fatal(err)
 	}
 	path := filepath.Join(support, "Claude", "claude_desktop_config.json")
-	if r, err := Install(path, hq, at); !errors.Is(err, ErrNoFolder) || r != (Result{}) {
+	if r, err := Install(path, hq, true, at); !errors.Is(err, ErrNoFolder) || r != (Result{}) {
 		t.Fatalf("%+v %v", r, err)
 	}
 	// A file where the folder would be is no folder either.
 	if err := os.WriteFile(filepath.Join(support, "Claude"), nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Install(path, hq, at); !errors.Is(err, ErrNoFolder) {
+	if _, err := Install(path, hq, true, at); !errors.Is(err, ErrNoFolder) {
 		t.Fatalf("%v", err)
 	}
 	if left, _ := os.ReadDir(support); len(left) != 1 || left[0].IsDir() {
 		t.Fatalf("install left %v", left)
+	}
+}
+
+// Claude Code writes its configuration at its first start: without it,
+// Claude Code was never run there, and nothing is created.
+func TestInstallCreatesNoFileItMayNot(t *testing.T) {
+	home := t.TempDir()
+	path := filepath.Join(home, ".claude.json")
+	if r, err := Install(path, hq, false, at); !errors.Is(err, ErrNoFile) || r != (Result{}) {
+		t.Fatalf("%+v %v", r, err)
+	}
+	if left, _ := os.ReadDir(home); len(left) != 0 {
+		t.Fatalf("install left %v", left)
+	}
+	_ = os.WriteFile(path, []byte(`{"numStartups": 3}`), 0o600)
+	if r, err := Install(path, hq, false, at); err != nil || r.Outcome != Added || r.Backup == "" {
+		t.Fatalf("%+v %v", r, err)
 	}
 }
 
@@ -58,7 +75,7 @@ func TestInstallBacksUpThenReplacesAndTheSecondRunChangesNothing(t *testing.T) {
 	if err := os.WriteFile(path, []byte(theirs), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	r, err := Install(path, hq, at)
+	r, err := Install(path, hq, true, at)
 	if err != nil || r.Outcome != Added || r.Backup != path+".hq-backup-20260928-102501" {
 		t.Fatalf("%+v %v", r, err)
 	}
@@ -72,7 +89,7 @@ func TestInstallBacksUpThenReplacesAndTheSecondRunChangesNothing(t *testing.T) {
 	if fi, _ := os.Stat(path); fi.Mode().Perm() != 0o644 {
 		t.Errorf("mode %v, want the file's own", fi.Mode())
 	}
-	r, err = Install(path, hq, at.Add(time.Minute))
+	r, err = Install(path, hq, true, at.Add(time.Minute))
 	if err != nil || r.Outcome != Unchanged || r.Backup != "" {
 		t.Fatalf("second run %+v %v", r, err)
 	}
@@ -93,7 +110,7 @@ func TestInstallEditsTheFileALinkPointsTo(t *testing.T) {
 	if err := os.Symlink(target, link); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Install(link, hq, at); err != nil {
+	if _, err := Install(link, hq, true, at); err != nil {
 		t.Fatal(err)
 	}
 	if fi, _ := os.Lstat(link); fi.Mode()&os.ModeSymlink == 0 {
@@ -108,7 +125,7 @@ func TestInstallLeavesAFileItCannotEditAsItWas(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "claude_desktop_config.json")
 	_ = os.WriteFile(path, []byte("{broken"), 0o600)
-	if _, err := Install(path, hq, at); err == nil {
+	if _, err := Install(path, hq, true, at); err == nil {
 		t.Fatal("no error")
 	}
 	if b, _ := os.ReadFile(path); string(b) != "{broken" {
@@ -118,17 +135,17 @@ func TestInstallLeavesAFileItCannotEditAsItWas(t *testing.T) {
 		t.Errorf("files left: %v", entries)
 	}
 	// A directory where the file should be.
-	if _, err := Install(dir, hq, at); err == nil {
+	if _, err := Install(dir, hq, true, at); err == nil {
 		t.Error("a directory is no error")
 	}
 	// A directory that cannot be written.
 	ro := filepath.Join(dir, "ro")
 	_ = os.Mkdir(ro, 0o500)
 	_ = os.WriteFile(filepath.Join(ro, "x.json"), []byte("{}"), 0o600)
-	if _, err := Install(filepath.Join(ro, "x.json"), hq, at); err == nil && os.Geteuid() != 0 {
+	if _, err := Install(filepath.Join(ro, "x.json"), hq, true, at); err == nil && os.Geteuid() != 0 {
 		t.Error("a read-only directory is no error")
 	}
-	if _, err := Install(filepath.Join(ro, "sub", "x.json"), hq, at); err == nil && os.Geteuid() != 0 {
+	if _, err := Install(filepath.Join(ro, "sub", "x.json"), hq, true, at); err == nil && os.Geteuid() != 0 {
 		t.Error("a directory that cannot be made is no error")
 	}
 }

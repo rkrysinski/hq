@@ -1,7 +1,7 @@
-// Package desktop adds hq's MCP server to Claude Desktop's configuration
-// file (hq mcp install, spec §11, design §3.12), keeping everything else in
-// it as it was.
-package desktop
+// Package mcpconfig adds hq's MCP server to an MCP client's configuration
+// file, Claude Desktop's or Claude Code's (hq mcp install, spec §11, design
+// §3.12), keeping everything else in it as it was.
+package mcpconfig
 
 import (
 	"bytes"
@@ -11,21 +11,26 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"syscall"
 	"time"
 )
 
-// Name is hq's key among Claude Desktop's MCP servers.
+// Name is hq's key among the client's MCP servers.
 const Name = "hq"
 
-// servers is the key of the MCP servers in Claude Desktop's configuration.
+// servers is the key of the MCP servers in the client's configuration.
 const servers = "mcpServers"
 
-// Server is how Claude Desktop starts an MCP server.
+// Server is how the client starts an MCP server: Claude Code's entry also
+// says its type, as claude mcp add writes it, and how long, in
+// milliseconds, a tool call may run.
 type Server struct {
+	Type    string            `json:"type,omitempty"`
 	Command string            `json:"command"`
 	Args    []string          `json:"args"`
 	Env     map[string]string `json:"env,omitempty"`
+	Timeout int               `json:"timeout,omitempty"`
 }
 
 // Outcome is what an install did to the configuration.
@@ -90,6 +95,13 @@ func Snippet(s Server) string {
 	return string(b) + "\n"
 }
 
+// AddJSON is the claude command that adds hq's entry to Claude Code's
+// user-scope servers, for the user to run by hand.
+func AddJSON(s Server) string {
+	b, _ := json.Marshal(s)
+	return "claude mcp add-json --scope user " + Name + " '" + strings.ReplaceAll(string(b), "'", `'\''`) + "'\n"
+}
+
 // Result is what Install did: the outcome, and the copy of the file as it
 // was before, when it changed an existing file.
 type Result struct {
@@ -100,16 +112,22 @@ type Result struct {
 // ErrNoFolder is Install finding no folder for the configuration file:
 // Claude Desktop creates it on its first start, so it is not installed, or
 // keeps its configuration elsewhere.
-var ErrNoFolder = errors.New("Claude Desktop's folder is not there")
+var ErrNoFolder = errors.New("the configuration's folder is not there")
 
-// Install sets hq up as s in the configuration file at path, created when
-// missing in Claude Desktop's folder; the folder itself is never created
-// (ErrNoFolder). It writes only when something changes: first a copy of the file
-// next to it (claude_desktop_config.json.hq-backup-<time>), then the new
-// file under a temporary name, moved into place so the file is never half
-// written. A link is followed, so a configuration kept elsewhere is edited
-// there. Any error leaves the file as it was.
-func Install(path string, s Server, now time.Time) (Result, error) {
+// ErrNoFile is Install finding no configuration file it may not create:
+// Claude Code writes it on its first start, so it was never run there, or
+// keeps its configuration elsewhere.
+var ErrNoFile = errors.New("the configuration file is not there")
+
+// Install sets hq up as s in the configuration file at path. A missing file
+// is created, when create allows it, in its folder (Claude Desktop's), which
+// itself is never created (ErrNoFolder); otherwise it is ErrNoFile. It
+// writes only when something changes: first a copy of the file next to it
+// (claude_desktop_config.json.hq-backup-<time>), then the new file under a
+// temporary name, moved into place so the file is never half written. A
+// link is followed, so a configuration kept elsewhere is edited there. Any
+// error leaves the file as it was.
+func Install(path string, s Server, create bool, now time.Time) (Result, error) {
 	if real, err := filepath.EvalSymlinks(path); err == nil {
 		path = real
 	}
@@ -117,6 +135,8 @@ func Install(path string, s Server, now time.Time) (Result, error) {
 	var old []byte
 	mode := os.FileMode(0o600)
 	switch {
+	case (errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENOTDIR)) && !create:
+		return Result{}, ErrNoFile
 	case errors.Is(err, os.ErrNotExist), errors.Is(err, syscall.ENOTDIR):
 		if dir, err := os.Stat(filepath.Dir(path)); err != nil || !dir.IsDir() {
 			return Result{}, ErrNoFolder

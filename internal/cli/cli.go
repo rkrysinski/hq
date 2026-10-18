@@ -41,7 +41,7 @@ func commands() []command {
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
 		{"sandbox", "rm|restart REPO|SANDBOX [-y]", "remove or restart a repository's sandbox", runSandbox},
-		{"mcp", "[install]", "serve these commands to Claude Desktop as tools; install adds hq to it", runMCP},
+		{"mcp", "[install] [claude-desktop|claude-code]", "serve these commands as tools to Claude Desktop or Claude Code; install adds hq to it", runMCP},
 		{"update", "", "replace hq with the latest release", runUpdate},
 		{"help", "", "show this help", runHelp},
 	}
