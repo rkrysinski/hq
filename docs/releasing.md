@@ -101,12 +101,12 @@ both of these sections (each runs to the next `## ` heading):
 The script collects them from every pull request in the release and places them
 in the notes' **Wdrożenie** part: *Przed wdrożeniem* first, *Po wdrożeniu* after
 it, each block headed by its pull request. The Claude Code attribution footer
-(`Generated with [Claude Code]`) is left out of a section's text, so keep it at
-the end of the description even after these sections. The console summary
-counts them (`prerequisites : N before deployment, M after`), so review them in
-the `--dry-run` output. A prerequisite missing from a merged pull request is fixed by
-editing that pull request's description and re-running the script; there is no
-separate list to maintain. A release with no prerequisites and no
+(`Generated with [Claude Code]`, with the `---` rule above it) is left out of a
+section's text, so keep it at the end of the description even after these
+sections. The console summary counts them (`prerequisites : N before
+deployment, M after`), so review them in the `--dry-run` output. A prerequisite
+missing from a merged pull request is fixed by editing that pull request's
+description and re-running the script; there is no separate list to maintain. A release with no prerequisites and no
 `docs/deployment.md` has no **Wdrożenie** part.
 
 The release also creates the milestone `vX.Y.Z`, puts every issue and pull

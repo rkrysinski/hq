@@ -124,12 +124,15 @@ release_notes_section() {
     tr -d '\r' | awk -v heading="## $1" '
         $0 == heading { inside = 1; next }
         inside && /^## / { inside = 0 }
-        inside && index($0, "Generated with [Claude Code]") { footer = 1; next }
+        inside && index($0, "Generated with [Claude Code]") { footer_at = n; next }
         inside { lines[++n] = $0 }
         END {
-            first = 1; while (first <= n && lines[first] ~ /^[[:space:]]*$/) first++
+            # A rule is trimmed only once nothing but blank lines follows it up
+            # to the footer: the one the footer leaves, not one of the section.
+            blank = "^[[:space:]]*$"; rule = "^[[:space:]]*---+[[:space:]]*$"
+            first = 1; while (first <= n && lines[first] ~ blank) first++
             last = n
-            while (last >= first && (lines[last] ~ /^[[:space:]]*$/ || (footer && lines[last] ~ /^[[:space:]]*---+[[:space:]]*$/))) last--
+            while (last >= first && (lines[last] ~ blank || (last <= footer_at && lines[last] ~ rule))) last--
             for (i = first; i <= last; i++) print lines[i]
         }
     '
