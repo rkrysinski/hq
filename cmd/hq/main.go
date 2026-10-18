@@ -11,3 +11,5 @@ import (
 func main() {
 	os.Exit(cli.Main(os.Args[1:], cli.Env{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr}))
 }
+
+// qa-108
