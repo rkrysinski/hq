@@ -1,11 +1,32 @@
 # Runs the test pyramid on every pull request and push to dev, on both host
 # platforms hq supports (WSL is Linux) - see docs/agents/testing.md.
+#
+# Skipped when every changed file is one nothing in the build, the tests,
+# tools/testgate or e2e reads (#108): Markdown anywhere and docs/ (no
+# //go:embed, no code reads them), .claude/ (no Go files; go vet, go test and
+# the pyramid gate skip it, and the tests' git repositories are temporary
+# ones) and .gitignore (CI builds a fresh checkout). Any other file in the
+# change runs the whole workflow. Remove a path from both lists the day code
+# reads it.
+# A skipped workflow reports no check at all: should dev ever require this
+# check, docs-only pull requests would wait on it forever, and the filter
+# must then move into a job that always runs and skips its steps.
 name: Tests
 
 on:
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.claude/**'
+      - '.gitignore'
   push:
     branches: [dev]
+    paths-ignore:   # pull_request's list again: actionlint rejects an anchor
+      - '**/*.md'
+      - 'docs/**'
+      - '.claude/**'
+      - '.gitignore'
 
 permissions:
   contents: read
