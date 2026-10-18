@@ -123,10 +123,10 @@ var ErrNoFile = errors.New("the configuration file is not there")
 // is created, when create allows it, in its folder (Claude Desktop's), which
 // itself is never created (ErrNoFolder); otherwise it is ErrNoFile. It
 // writes only when something changes: first a copy of the file next to it
-// (claude_desktop_config.json.hq-backup-<time>), then the new file under a
-// temporary name, moved into place so the file is never half written. A
-// link is followed, so a configuration kept elsewhere is edited there. Any
-// error leaves the file as it was.
+// (FILE.hq-backup-<time>), then the new file under a temporary name, moved
+// into place so the file is never half written. A link is followed, so a
+// configuration kept elsewhere is edited there. Any error leaves the file as
+// it was.
 func Install(path string, s Server, create bool, now time.Time) (Result, error) {
 	if real, err := filepath.EvalSymlinks(path); err == nil {
 		path = real
