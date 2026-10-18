@@ -95,3 +95,4 @@ In a conversation, tell Claude what to do ("start 42 in ~/work/app on issue #42,
 ## Uninstall
 
 Delete `~/.local/bin/hq`, the `hq` entry under `mcpServers` in Claude Desktop's configuration if you added it, `~/.config/hq` and, on macOS, `~/Library/Application Support/iTerm2/DynamicProfiles/hq.json`.
+
