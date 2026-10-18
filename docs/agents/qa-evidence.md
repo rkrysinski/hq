@@ -61,6 +61,6 @@ Link evidence pinned to `sha`. `<repo>` is this repository's `owner/name` (`gh r
 Before: ![...](...)  After: ![...](...)
 ```
 
-Below the check table, list the tests added per level (unit, integration, end-to-end); once hq has a pyramid check (`docs/agents/testing.md`), quote its output from before and after the change. Add a row for the CI run on the PR (every job green, with a link to the run); a red run blocks the merge.
+Below the check table, list the tests added per level (unit, integration, end-to-end); once hq has a pyramid check (`docs/agents/testing.md`), quote its output from before and after the change. Add a row for the CI run on the PR (every job green, with a link to the run); a red run blocks the merge. A PR that changes only files the Tests workflow skips (the header of `.github/workflows/tests.yml` lists them) has no run, and the row says so.
 
 Done when every check from the plan has a row, every linked file exists at `sha` (`gh api "repos/{owner}/{repo}/contents/issue-<n>/<file>?ref=<sha>"` succeeds), and each failure is explained. Failed checks also appear under the PR's deviations.
