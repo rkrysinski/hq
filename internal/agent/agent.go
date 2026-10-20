@@ -93,14 +93,20 @@ func (a Agent) Answerable() bool { return a.Hooks >= answeringHooks }
 // Repo is the repository's display name.
 func (a Agent) Repo() string { return filepath.Base(a.RepoPath) }
 
-var nameRE = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+var nameRE = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 // MaxName is the longest agent name, in characters (spec §4.2).
 const MaxName = 32
 
 // NameChars reports whether name is made of the characters a name may have:
-// letters, digits, - and _ (spec §4.2), and has at least one.
+// letters, digits, -, _ and . (spec §4.2), and has at least one.
 func NameChars(name string) bool { return nameRE.MatchString(name) }
+
+var letterOrDigitRE = regexp.MustCompile(`[A-Za-z0-9]`)
+
+// NameHasLetterOrDigit reports whether name has a letter or a digit, which
+// a name needs: dots, dashes and underscores alone make none (spec §4.2).
+func NameHasLetterOrDigit(name string) bool { return letterOrDigitRE.MatchString(name) }
 
 // NewID returns a fresh agent id.
 func NewID() string {

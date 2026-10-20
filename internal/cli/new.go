@@ -58,7 +58,9 @@ func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, erro
 func checkName(name string) error {
 	switch {
 	case !agent.NameChars(name):
-		return usageErr("invalid name '%s': use letters, digits, - and _", name)
+		return usageErr("invalid name '%s': use letters, digits, '-', '_' and '.'", name)
+	case !agent.NameHasLetterOrDigit(name):
+		return usageErr("invalid name '%s': it needs a letter or a digit", name)
 	case len(name) > agent.MaxName:
 		return usageErr("name '%s' is too long: at most %d characters", name, agent.MaxName)
 	}

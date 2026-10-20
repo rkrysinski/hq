@@ -119,7 +119,7 @@ func runHelp(env Env, _ deps, _ []string) error {
 		fmt.Fprintf(&b, "  %-32s %s\n", line, c.summary)
 	}
 	fmt.Fprintf(&b, "  %-32s %s\n", "hq --version", "print the version")
-	fmt.Fprintf(&b, "\nNAME: letters, digits, - and _, at most %d characters; taken until that agent is killed.\n", agent.MaxName)
+	fmt.Fprintf(&b, "\nNAME: letters, digits, '-', '_' and '.', at least one letter or digit, at most %d characters; taken until that agent is killed.\n", agent.MaxName)
 	fmt.Fprintf(&b, "hq wait also takes --since TIME (the moment it printed last, or 10m back) and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
 	b.WriteString("hq answer takes one ANSWER per question, in the dialog's order: an option's number, numbers joined with commas where several may be picked, or text; ID is the dialog's, as hq read shows it.\n")
 	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment.\n")

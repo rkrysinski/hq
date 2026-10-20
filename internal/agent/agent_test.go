@@ -11,9 +11,18 @@ import (
 )
 
 func TestNameChars(t *testing.T) {
-	for name, ok := range map[string]bool{"42": true, "bok-17": true, "a_b": true, strings.Repeat("a", 40): true, "": false, "a b": false, "a/b": false, "ą": false} {
+	for name, ok := range map[string]bool{"42": true, "bok-17": true, "a_b": true, strings.Repeat("a", 40): true, "": false, "a b": false, "a/b": false, "ą": false, "rel-1.10.5-213": true, "a:b": false} {
 		if NameChars(name) != ok {
 			t.Errorf("NameChars(%q) != %v", name, ok)
+		}
+	}
+}
+
+// Dots, dashes and underscores alone make no name (#119).
+func TestNameHasLetterOrDigit(t *testing.T) {
+	for name, ok := range map[string]bool{"42": true, "a": true, ".5": true, "rel-1.10.5-213": true, ".": false, "..": false, "-": false, "_": false, "_.-": false, "": false} {
+		if NameHasLetterOrDigit(name) != ok {
+			t.Errorf("NameHasLetterOrDigit(%q) != %v", name, ok)
 		}
 	}
 }
