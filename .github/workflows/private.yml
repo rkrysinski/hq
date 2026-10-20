@@ -3,15 +3,19 @@
 # comes back into the public text (#127). The patterns live only in the
 # repository secret HQ_PRIVATE_PATTERNS, one regular expression per line, so
 # the list does not leak; the gate prints file, line and pattern number,
-# never the text. Unlike tests.yml it runs for docs-only changes too, and on
-# a push to qa-artifacts it checks the evidence there - see
+# never the text. Unlike tests.yml it runs for docs-only changes too. Each
+# run also checks the QA evidence on qa-artifacts, which has no workflows of
+# its own (a push there runs none), and so does a daily run - see
 # docs/agents/testing.md.
 name: Private details
 
 on:
   pull_request:
   push:
-    branches: [dev, qa-artifacts]
+    branches: [dev]
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,23 +29,21 @@ jobs:
     env:
       HQ_PRIVATE_PATTERNS: ${{ secrets.HQ_PRIVATE_PATTERNS }}
     steps:
-      # The gate's code is dev's, also when the branch checked is qa-artifacts.
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.ref_name == 'qa-artifacts' && 'dev' || '' }}
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
       - name: The pattern list is set
+        id: list
         run: test -n "$HQ_PRIVATE_PATTERNS" || { echo "::error::secret HQ_PRIVATE_PATTERNS is not set"; exit 1; }
 
       - name: No private details in the tracked files
-        if: github.ref_name != 'qa-artifacts'
         run: go run ./tools/testgate private
 
       - name: No private details in the QA evidence
-        if: github.ref_name == 'qa-artifacts'
+        # Also when the tracked files failed, as long as there is a list.
+        if: always() && steps.list.outcome == 'success'
         run: |
           git fetch -q --depth=1 origin qa-artifacts
           git worktree add -q --detach "$RUNNER_TEMP/qa" FETCH_HEAD
