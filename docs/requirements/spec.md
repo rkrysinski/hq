@@ -51,7 +51,7 @@ All operations are available from any shell; the dashboard reflects them within 
 
 ### 4.2 Conventions
 
-- Names: letters, digits, `-`, `_`, `.`, at most 32 characters (`42`, `bok-17`, `rel-1.10.5-213`); unique among existing agents, running or `ended`. Reusable once the previous agent with that name is gone (killed). A name over the limit is refused with an error naming the limit.
+- Names: letters, digits, `-`, `_`, `.`, at least one letter or digit, at most 32 characters (`42`, `bok-17`, `rel-1.10.5-213`); unique among existing agents, running or `ended`. Reusable once the previous agent with that name is gone (killed). A name over the limit is refused with an error naming the limit.
 - Exit codes: `0` success, `1` usage or refused (duplicate name, `sandbox rm` with running agents), `2` not found (agent, repo, sandbox), `3` environment (tmux or sbx unavailable). Declining a confirmation is not an error: nothing changes and the exit code is `0`; with no terminal to confirm on and no `-y`, the command is refused (`1`).
 - Errors are one line on stderr, prefixed `hq:`, and name the remedy where there is one (`hq: no agent 'x' (see hq ls)`).
 - Every command works the same from inside the dashboard's own terminal and from any other shell.

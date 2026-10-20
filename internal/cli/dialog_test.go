@@ -116,6 +116,7 @@ func TestTheDialogsErrorsBelongToTheirFields(t *testing.T) {
 	}{
 		{"a", "/w/app", dialog.Name, "agent 'a' already exists (see hq ls; hq kill a frees the name)"},
 		{"bad name", "/w/app", dialog.Name, "invalid name 'bad name': use letters, digits, '-', '_' and '.'"},
+		{".", "/w/app", dialog.Name, "invalid name '.': it needs a letter or a digit"},
 		{strings.Repeat("b", 33), "/w/app", dialog.Name, "name '" + strings.Repeat("b", 33) + "' is too long: at most 32 characters"},
 		{"b", "/w/plain", dialog.Dir, "/w/plain is not in a git repository"},
 	} {

@@ -102,6 +102,12 @@ const MaxName = 32
 // letters, digits, -, _ and . (spec §4.2), and has at least one.
 func NameChars(name string) bool { return nameRE.MatchString(name) }
 
+var letterOrDigitRE = regexp.MustCompile(`[A-Za-z0-9]`)
+
+// NameHasLetterOrDigit reports whether name has a letter or a digit, which
+// a name needs: dots, dashes and underscores alone make none (spec §4.2).
+func NameHasLetterOrDigit(name string) bool { return letterOrDigitRE.MatchString(name) }
+
 // NewID returns a fresh agent id.
 func NewID() string {
 	b := make([]byte, 6)

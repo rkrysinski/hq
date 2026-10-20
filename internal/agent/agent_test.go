@@ -18,6 +18,15 @@ func TestNameChars(t *testing.T) {
 	}
 }
 
+// Dots, dashes and underscores alone make no name (#119).
+func TestNameHasLetterOrDigit(t *testing.T) {
+	for name, ok := range map[string]bool{"42": true, "a": true, ".5": true, "rel-1.10.5-213": true, ".": false, "..": false, "-": false, "_": false, "_.-": false, "": false} {
+		if NameHasLetterOrDigit(name) != ok {
+			t.Errorf("NameHasLetterOrDigit(%q) != %v", name, ok)
+		}
+	}
+}
+
 func TestAge(t *testing.T) {
 	for d, want := range map[time.Duration]string{3 * time.Second: "3s", 2 * time.Minute: "2m", 90 * time.Minute: "1h", 50 * time.Hour: "2d"} {
 		if got := Age(d); got != want {
