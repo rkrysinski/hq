@@ -49,7 +49,7 @@ type Agent struct {
 	takeQueued bool       // this look saw Claude take that prompt after an Esc: the state is handed over to it (see Look)
 	ownAsk     *state.Ask // the dialog Claude shows of its own on its screen, if any (see settle)
 	ownScrolls bool       // its list scrolls to options the screen does not show (state.OwnView)
-	ownPrint   string     // the fingerprint of the dialog of Claude's own it is at, seen or recalled (ownFingerprint)
+	ownFP      string     // the fingerprint of the dialog of Claude's own it is at, seen or recalled (ownFingerprint)
 	dialog     Whose      // whose dialog it is at while it needs input: its hooks', a subagent's, or Claude's own, seen (ownAsk) or recorded on its window (see recallDialog)
 	answered   string     // when hq first saw Claude at work after the dialog its hooks reported (see settle)
 	lastStop   string     // its latest Stop's message, while a dialog's text stands in for it as Last
@@ -706,7 +706,7 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 	}
 	a.State, a.ownAsk, a.ownScrolls, a.dialog, a.Last = state.NeedsInput, v.Ask, v.Scrolls, OwnDialog, v.Ask.Questions[0].Question
 	fp := ownFingerprint(a.ownAsk)
-	a.ownPrint = fp
+	a.ownFP = fp
 	if at, ok := a.dialogSeenAt(fp); ok {
 		a.Since = at
 		return record{}
@@ -734,7 +734,7 @@ func (a *Agent) recallSeen() {
 // its hooks' state for a refresh. What the dialog asks is not recorded.
 func (a *Agent) recallDialog() {
 	if fp, at, ok := recorded(a.dialogSeen, a.key()); ok && a.waitsAtPrompt() {
-		a.State, a.Since, a.dialog, a.ownPrint = state.NeedsInput, at, OwnDialog, fp
+		a.State, a.Since, a.dialog, a.ownFP = state.NeedsInput, at, OwnDialog, fp
 	}
 }
 

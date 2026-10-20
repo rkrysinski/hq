@@ -33,10 +33,10 @@ type Dialog struct {
 	Since time.Time
 	own   *state.Ask // what a dialog of Claude's own asks, as its screen showed it; nil when this look did not see it
 	// scrolls says the list of a dialog of Claude's own scrolls to options
-	// its screen did not show (state.OwnView); print names it as its record
-	// on the agent's window does (ownFingerprint).
-	scrolls bool
-	print   string
+	// its screen did not show (state.OwnView); fingerprint names it as its
+	// record on the agent's window does (ownFingerprint).
+	scrolls     bool
+	fingerprint string
 }
 
 // Open reports whether the agent is at a dialog.
@@ -75,7 +75,7 @@ func (d Dialog) Scrolls() bool { return d.Whose == OwnDialog && d.scrolls }
 // the agent's window names it (ownFingerprint), whether this look saw the
 // screen or recalled the record.
 func (d Dialog) Shows(v state.OwnView) bool {
-	return d.Whose == OwnDialog && d.print != "" && ownFingerprint(v.Ask) == d.print
+	return d.Whose == OwnDialog && d.fingerprint != "" && ownFingerprint(v.Ask) == d.fingerprint
 }
 
 // Dialog is the agent's dialog verdict.
@@ -83,5 +83,5 @@ func (a Agent) Dialog() Dialog {
 	if a.State != state.NeedsInput {
 		return Dialog{}
 	}
-	return Dialog{Whose: a.dialog, Since: a.Since, own: a.ownAsk, scrolls: a.ownScrolls, print: a.ownPrint}
+	return Dialog{Whose: a.dialog, Since: a.Since, own: a.ownAsk, scrolls: a.ownScrolls, fingerprint: a.ownFP}
 }

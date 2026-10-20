@@ -569,7 +569,7 @@ func TestAnswerToADialogOfClaudesOwnRefusedPressesNothing(t *testing.T) {
 		{name: "answered first", args: []string{"2"}, screen: func(*ownClaude) string { return emptyBox },
 			want: "hq: a left the dialog before hq's answer reached it; nothing was answered from hq: it is done\n"},
 		{name: "another dialog", args: []string{"2"}, screen: func(c *ownClaude) string { return readFixture(c.t, "screen-own-switch-model.txt") },
-			want: "hq: a's dialog changed meanwhile; read it again (hq read a)\n"},
+			want: "hq: a's dialog changed meanwhile; it needs input at another (Switch model?), read it again (hq read a)\n"},
 	} {
 		f, c, id := ownDialogFakes(t)
 		if tc.screen != nil {
@@ -606,7 +606,7 @@ func TestAnswerToADialogOfClaudesOwnPicksNothingWhenTheCursorGoesAstray(t *testi
 	f, c, id := ownDialogFakes(t)
 	c.afterKey = func(string) { f.tmux.screens["%4"] = readFixture(t, "screen-own-switch-model-down.txt") }
 	code, _, errOut := f.run("answer", "a", "--dialog", id, "2")
-	if code != ExitUsage || errOut != "hq: a's dialog changed while hq moved to option 2: nothing was picked; read it again (hq read a)\n" || strings.Join(c.pressed, " ") != "Down" {
+	if code != ExitUsage || errOut != "hq: a's dialog changed while hq moved to option 2: nothing was picked; it needs input at another (Switch model?), read it again (hq read a)\n" || strings.Join(c.pressed, " ") != "Down" {
 		t.Fatalf("changed: exit %d %q, pressed %v", code, errOut, c.pressed)
 	}
 

@@ -9,7 +9,7 @@ A list that scrolls past what its screen shows, the picker of `/model` with no n
 ## Considered Options
 
 - **Keep them the user's** (ADR 0013): the release supervisor sets `/model` and `/effort` on each agent before its first turn, where both take effect without a dialog; any later change needed a person at the agent.
-- **Set the level at launch** instead: Claude Code 2.1.304 takes `--effort` and `--model` for a session, which opens no dialog, but only at launch; a change later in the session still asks.
+- **Set the level at launch** instead: Claude Code 2.1.304 takes `--effort` and `--model` for a session, and keeps the level a change saves as the default for new sessions in its user settings (`modelSettings.<model>.effortLevel`, which a sandbox image could carry); neither opens a dialog, but both hold only from the session's start: a change later in the session still asks. No environment variable for the effort was found (the binary was searched; inconclusive, it may be packed).
 - **The option's digit**: one key, no `❯` to follow, but options past 9 have none, the start dialogs show no numbers, and the key acts before hq can see where it would land. The arrows, each seen to land, are checked before anything is picked.
 - **All the keys at once, then a capture**: Claude takes several keys in one `send-keys`, but an `Enter` sent with them would pick whatever the `❯` reached, a dialog that opened meanwhile included.
 
@@ -18,4 +18,6 @@ A list that scrolls past what its screen shows, the picker of `/model` with no n
 - hq types into the pane of an agent for a dialog: only the keys `Down`, `Up` and `Enter`, by their tmux names, never text, and only while a capture shows the dialog the user read. ADR 0013's answers through the hook are unchanged; permission prompts, MCP elicitations and a list of Claude's own that scrolls stay the user's, at the agent.
 - No hook is needed, so an agent launched by an older hq is answered too.
 - What Claude did with the option is not checked: no hook reports it. The option under the `❯` was checked before `Enter`; that the agent left the dialog is checked after it, within 5 s.
+- The id names the dialog by when hq first saw it during the agent's current report, and the record keys it by its title and text: a dialog answered at the agent and opened again the same, with no look of hq's in between, keeps its id, and an answer meant for the first lands on the second. It is the same question, and the same choice is then made.
+- The question at a session's start about the default permission mode is answered by the same rule, read on its 2.1.285 capture; with 2.1.304 it was not seen live in #120.
 - The rule rests on the screen: a Claude Code that draws these dialogs otherwise is caught by its captures (`tools/capture/`), as every screen rule is.

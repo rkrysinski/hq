@@ -311,7 +311,7 @@ func answerOwn(env Env, d deps, a agent.Agent, r answerRequest) error {
 		}
 		return usageErr("%s left the dialog before hq's answer reached it; nothing was answered from hq: it is %s", a.Name, now.State)
 	case !shown:
-		return usageErr("%s's dialog changed meanwhile; read it again (hq read %s)", a.Name, a.Name)
+		return changedErr(a, v, "meanwhile", "")
 	case v.Scrolls:
 		return scrollsErr(a)
 	}
@@ -337,6 +337,17 @@ func answerOwn(env Env, d deps, a agent.Agent, r answerRequest) error {
 	}
 	fmt.Fprintf(env.Stdout, "answered: %s is %s\n", a.Name, now.State)
 	return nil
+}
+
+// changedErr refuses the answer when the agent's screen shows another
+// dialog than the one named, v, or none: the agent's state then, and the
+// dialog in its place.
+func changedErr(a agent.Agent, v state.OwnView, when, picked string) error {
+	now := "it is at no dialog of Claude's own"
+	if v.Ask != nil {
+		now = "it needs input at another (" + v.Ask.Questions[0].Question + ")"
+	}
+	return usageErr("%s's dialog changed %s%s; %s, read it again (hq read %s)", a.Name, when, picked, now, a.Name)
 }
 
 // ownScreen looks at the agent's screen now: the dialog of Claude's own it
@@ -377,7 +388,7 @@ func moveTo(d deps, a agent.Agent, open agent.Dialog, v state.OwnView, pick int)
 				return err
 			}
 			if !shown {
-				return usageErr("%s's dialog changed while hq moved to option %d: nothing was picked; read it again (hq read %s)", a.Name, pick+1, a.Name)
+				return changedErr(a, v, fmt.Sprintf("while hq moved to option %d", pick+1), ": nothing was picked")
 			}
 			if v.Cursor != from {
 				break
@@ -394,8 +405,7 @@ func moveTo(d deps, a agent.Agent, open agent.Dialog, v state.OwnView, pick int)
 // for the agent to leave the open dialog of Claude's own: back as it was
 // before it, or at the dialog's next step; and returns the agent then.
 func awaitLeft(d deps, a agent.Agent, open agent.Dialog, pick int) (agent.Agent, error) {
-	for deadline := d.now().Add(closeWait); ; {
-		d.sleep(answerPoll)
+	for deadline := d.now().Add(closeWait); ; d.sleep(answerPoll) {
 		now, err := findAgent(d, a.Name)
 		if err != nil || now.Dialog().ID() != open.ID() {
 			return now, err
