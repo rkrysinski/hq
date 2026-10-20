@@ -71,6 +71,11 @@ func TestSessionWritesOutTheSettingsTheWindowRefersTo(t *testing.T) {
 	if !strings.Contains(f.ran[0][6], `"stop","[notify %s]"`) { // the platform's sequence (design §3.5)
 		t.Fatalf("no notification in settings %q", f.ran[0][6])
 	}
+	// A name with dots: the reference splits at the colon, never at a dot (#119).
+	f.ran = nil
+	if code, _, errOut := f.run(sessionCommand, "sbx", "--settings", "hq-settings:rel-1.10.5-213:0123456789ab"); code != ExitOK || len(f.ran) != 1 || f.ran[0][2] != state.Settings("rel-1.10.5-213", "0123456789ab", "[notify %s]") {
+		t.Fatalf("dotted name: exit %d %q, ran %q", code, errOut, f.ran)
+	}
 	f.ran = nil
 	if code, _, errOut := f.run(sessionCommand, "sbx", "--settings", "hq-settings:a"); code != ExitUsage || errOut != "hq: invalid settings reference 'hq-settings:a'\n" || f.ran != nil {
 		t.Fatalf("exit %d %q, ran %q", code, errOut, f.ran)

@@ -642,6 +642,46 @@ func TestKillEndsTheSessionAndFreesTheName(t *testing.T) {
 	}
 }
 
+// A release's agents carry the version in their names (#119): the dots are
+// no tmux target separators to hq, which targets the agent's window by its
+// id, so the name works wherever one is used.
+func TestADottedNameWorksWhereverANameIsUsed(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	const name = "rel-1.10.5-213"
+	if code, out, errOut := h.run("new", name, "input lines question"); code != 0 || !strings.Contains(out, "started "+name+" in app") {
+		t.Fatalf("new: exit %d %q %q", code, out, errOut)
+	}
+	if code, _, errOut := h.run("new", name); code != ExitUsage || !strings.Contains(errOut, "agent '"+name+"' already exists") {
+		t.Fatalf("duplicate: exit %d %q", code, errOut)
+	}
+	id := h.dialogOf(name)
+	if rows := h.ls(); len(rows) != 1 || rows[0].Name != name {
+		t.Fatalf("rows %+v", rows)
+	}
+	if out, err := exec.Command("tmux", "-u", "-L", h.socket, "list-windows", "-t", "hq", "-F", "#{window_name}").Output(); err != nil || !strings.Contains(string(out), name+"\n") {
+		t.Fatalf("windows %q %v", out, err)
+	}
+	if code, out, _ := h.run("read", name); code != 0 || !strings.Contains(out, "dialog "+id) {
+		t.Fatalf("read: exit %d\n%s", code, out)
+	}
+	waited := h.wait(name)
+	if code, out, errOut := h.run("answer", name, "--dialog", id, "1"); code != 0 || out != "answered: "+name+" is working\n" {
+		t.Fatalf("answer: exit %d %q %q", code, out, errOut)
+	}
+	h.only(h.waited(waited), name, "question", "Done on several lines. Shall I go on?")
+	h.waitAtRest(name)
+	h.send("delivered: typed into "+name+" as its next prompt", name, "hello")
+	h.waitReport(name, "done", "Done: hello")
+	if code, out, errOut := h.run("kill", name, "-y"); code != 0 || out != "killed "+name+"; the sandbox stays\n" {
+		t.Fatalf("kill: exit %d %q %q", code, out, errOut)
+	}
+	if rows := h.ls(); len(rows) != 0 {
+		t.Fatalf("rows after the kill %+v", rows)
+	}
+}
+
 func TestKillEndsASessionThatOutlivedItsPane(t *testing.T) {
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")

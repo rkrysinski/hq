@@ -251,7 +251,7 @@ const mcpInstructions = `hq runs Claude Code agents, each working on one task in
 // Tool inputs.
 type (
 	mcpNewIn struct {
-		Name   string `json:"name" jsonschema:"the agent's name: letters, digits, - and _, at most 32 characters, e.g. the issue number (42) or a slug (bok-17); free until that agent is killed"`
+		Name   string `json:"name" jsonschema:"the agent's name: letters, digits, '-', '_' and '.', at most 32 characters, e.g. the issue number (42), a slug (bok-17) or a release's version and issue (rel-1.10.5-213); free until that agent is killed"`
 		Dir    string `json:"dir" jsonschema:"the git repository to work in: an absolute path on the user's machine (~/ is their home), e.g. /Users/me/work/app"`
 		Prompt string `json:"prompt,omitempty" jsonschema:"the agent's first prompt: the task; without it the agent waits for a prompt (send one)"`
 	}
