@@ -142,7 +142,7 @@ func TestTheAnswersFileIsNamedForTheDialogsReport(t *testing.T) {
 		}
 	}
 	q := questions(t, "dialog-ask-several")
-	again, _ := ParseQuestions(append([]byte("branch main\n"), []byte(strings.Replace(string(fixture(t, "dialog-ask-several")), "292b", "392b", 1))...))
+	again, _ := ParseQuestions(append([]byte("branch main\n"), []byte(strings.Replace(string(fixture(t, "dialog-ask-several")), "prompt_id\":\"0000000a", "prompt_id\":\"1000000a", 1))...))
 	if q.name == again.name || !strings.HasPrefix(q.name, answerPrefix) {
 		t.Fatalf("%q %q", q.name, again.name)
 	}

@@ -1,7 +1,7 @@
 
  ▐▛███▛█   Claude Code v2.1.301
 ▝▜██████▀  Opus 5.5 with high effort · Claude Max
- ▝▝   ▝▝   /…/a41f9452-666c-4138-8314-b0e3a20745cb/scratchpad/cap70-work
+ ▝▝   ▝▝   /…/00000018-0000-4000-8000-000000000018/scratchpad/cap70-work
 
 
 ❯ Use your AskUserQuestion tool to ask me to pick red or blue, then reply with my choice. Do not

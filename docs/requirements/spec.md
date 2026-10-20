@@ -19,7 +19,7 @@ These are facts about the environment, not design choices. hq is designed with t
 
 ## 3. Concepts
 
-- **Agent**: one Claude Code session started through hq, identified by a short **name** (typically the issue number or a slug, e.g. `42`, `bok-17`). A name is taken while its agent exists, running or `ended`, until the agent is killed.
+- **Agent**: one Claude Code session started through hq, identified by a short **name** (typically the issue number or a slug, e.g. `42`, `book-17`). A name is taken while its agent exists, running or `ended`, until the agent is killed.
 - **Repo**: the repository the agent works in. **Worktree/branch**: where the agent actually works; the branch is the primary identifier in status output.
 - **State**: `starting`, `working`, `question`, `needs input`, `done`, `ended` (definitions in 5).
 - **Attention state**: `question` or `needs input` - the agent is waiting for the user.
@@ -51,7 +51,7 @@ All operations are available from any shell; the dashboard reflects them within 
 
 ### 4.2 Conventions
 
-- Names: letters, digits, `-`, `_`, `.`, at least one letter or digit, at most 32 characters (`42`, `bok-17`, `rel-1.10.5-213`); unique among existing agents, running or `ended`. Reusable once the previous agent with that name is gone (killed). A name over the limit is refused with an error naming the limit.
+- Names: letters, digits, `-`, `_`, `.`, at least one letter or digit, at most 32 characters (`42`, `book-17`, `rel-1.10.5-213`); unique among existing agents, running or `ended`. Reusable once the previous agent with that name is gone (killed). A name over the limit is refused with an error naming the limit.
 - Exit codes: `0` success, `1` usage or refused (duplicate name, `sandbox rm` with running agents), `2` not found (agent, repo, sandbox), `3` environment (tmux or sbx unavailable). Declining a confirmation is not an error: nothing changes and the exit code is `0`; with no terminal to confirm on and no `-y`, the command is refused (`1`).
 - Errors are one line on stderr, prefixed `hq:`, and name the remedy where there is one (`hq: no agent 'x' (see hq ls)`).
 - Every command works the same from inside the dashboard's own terminal and from any other shell.
@@ -153,7 +153,7 @@ All row actions work on any visible row in either view; an agent needs no pendin
 ### 6.3 Selecting
 
 - `↑/↓` move the cursor.
-- `/` then a name selects by prefix match, case-insensitive, shown in the footer as `/bo · 1 match: bok-17`; `Enter` docks the match, `Esc` clears. The `/` prefix keeps names from colliding with single-letter keys. Same names as `hq go NAME`, so the shortcut is stable across re-sorts.
+- `/` then a name selects by prefix match, case-insensitive, shown in the footer as `/bo · 1 match: book-17`; `Enter` docks the match, `Esc` clears. The `/` prefix keeps names from colliding with single-letter keys. Same names as `hq go NAME`, so the shortcut is stable across re-sorts.
 - Mouse: a click on a row moves the cursor there. A click on the row that is already the cursor row does nothing.
 
 The session slot follows the cursor: the row the cursor stops on is docked, and the keys stay in the list, so the user can look through the sessions row by row; `Enter` or `open` then moves the keys into the docked session. Holding `↓` docks only the row where the cursor stops, not every row it passes.
@@ -263,7 +263,7 @@ Creating worktrees or branches, managing pull requests, PR status per branch (le
 
 ### Manual test
 
-1. `hq new a ~/work/repositories/support-chatbot "say hi"`, `hq new b ~/work/repositories/support-chatbot "ask me one yes/no question and stop"`.
+1. `hq new a ~/work/app "say hi"`, `hq new b ~/work/app "ask me one yes/no question and stop"`.
 2. `hq`; expect `b` as `question` in the attention view; `a` to see `a` as `done` below it.
 3. `/a` then `Enter`; expect `a`'s session below, type a follow-up and see Claude answer there.
 4. From inside the session, dock the first agent needing attention; expect `b`.

@@ -227,13 +227,13 @@ func TestRowsInAttentionOrderWithCountsInTheHeader(t *testing.T) {
 		ag("spike", state.Ended, time.Hour, agent.EndedLast), // as Collect gives it
 		ag("43", state.Done, 11*time.Minute, "PR #58 opened"),
 		ag("42", state.NeedsInput, 2*time.Minute, "Which Entra tenant?"),
-		ag("bok", state.Question, 6*time.Minute, "Changelog too?"),
+		ag("book", state.Question, 6*time.Minute, "Changelog too?"),
 	}}
 	ls := lines(started(f, 140, 10))
 	if want := "  hq  5 agents · 2 need you · 1 done · 1 working  view: all"; !strings.HasPrefix(ls[0], want) {
 		t.Errorf("header %q, want prefix %q", ls[0], want)
 	}
-	for i, want := range []string{"42", "bok", "43", "idm", "spike"} {
+	for i, want := range []string{"42", "book", "43", "idm", "spike"} {
 		if f := strings.Fields(ls[3+i]); len(f) == 0 || f[0] != want {
 			t.Errorf("row %d %q, want %s first", i, ls[3+i], want)
 		}
@@ -1114,29 +1114,29 @@ func typed(m Model, text string) Model {
 }
 
 func TestSlashSelectsByName(t *testing.T) {
-	as := []agent.Agent{ag("bok-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, ""), ag("Bot", state.Working, 0, ""), ag("spike", state.Ended, 0, "")}
-	f := &fakeSource{agents: as, view: ViewAll} // 42 bok-17 Bot spike
+	as := []agent.Agent{ag("book-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, ""), ag("Bot", state.Working, 0, ""), ag("spike", state.Ended, 0, "")}
+	f := &fakeSource{agents: as, view: ViewAll} // 42 book-17 Bot spike
 	m := key(started(f, 120, 10), "/")
 	if got := fmt.Sprint(f.footer); got != "[{/ · type a name} {⏎ open} {esc cancel}]" {
 		t.Fatalf("footer %s", got)
 	}
-	// S3b: /bo matches two, case-insensitive; /bok one; the cursor follows.
+	// S3b: /bo matches two, case-insensitive; /book one; the cursor follows.
 	m = typed(m, "bo")
-	if m.cursor != "bok-17" || fmt.Sprint(f.footer[0]) != "{/bo · 2 matches: bok-17 Bot}" {
+	if m.cursor != "book-17" || fmt.Sprint(f.footer[0]) != "{/bo · 2 matches: book-17 Bot}" {
 		t.Fatalf("cursor %q footer %v", m.cursor, f.footer)
 	}
-	m = typed(m, "k")
-	if fmt.Sprint(f.footer[0]) != "{/bok · 1 match: bok-17}" {
+	m = typed(m, "ok")
+	if fmt.Sprint(f.footer[0]) != "{/book · 1 match: book-17}" {
 		t.Fatalf("footer %v", f.footer)
 	}
 	// Letters are the search's: k, n, q type into it.
 	m = typed(m, "q")
-	if fmt.Sprint(f.footer[0]) != "{/bokq · no match}" || m.cursor != "bok-17" || len(f.killed)+len(f.dialogs) != 0 {
+	if fmt.Sprint(f.footer[0]) != "{/bookq · no match}" || m.cursor != "book-17" || len(f.killed)+len(f.dialogs) != 0 {
 		t.Fatalf("footer %v cursor %q", f.footer, m.cursor)
 	}
 	m = key(m, "backspace")
 	m = key(m, "enter")
-	if strings.Join(f.docked, " ") != "bok-17" || m.searching || fmt.Sprint(f.footer[0]) != "{↑↓ /name select}" {
+	if strings.Join(f.docked, " ") != "book-17" || m.searching || fmt.Sprint(f.footer[0]) != "{↑↓ /name select}" {
 		t.Fatalf("docked %v searching %v footer %v", f.docked, m.searching, f.footer)
 	}
 	// Esc clears; Enter with no match docks nothing.
@@ -1152,9 +1152,9 @@ func TestSlashSelectsByName(t *testing.T) {
 
 // The footer reads as spec §6.3 shows it: what is typed, ` · `, the matches.
 func TestSearchFooterReadsAsTheSpec(t *testing.T) {
-	f := &fakeSource{agents: []agent.Agent{ag("bok-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, "")}, view: ViewAll}
+	f := &fakeSource{agents: []agent.Agent{ag("book-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, "")}, view: ViewAll}
 	typed(key(started(f, 120, 10), "/"), "bo")
-	if h := f.footer[0]; h.Key+" "+h.Label != "/bo · 1 match: bok-17" {
+	if h := f.footer[0]; h.Key+" "+h.Label != "/bo · 1 match: book-17" {
 		t.Fatalf("footer %v", f.footer)
 	}
 }
@@ -1747,10 +1747,10 @@ func TestAClickOnARowDocksItAtRest(t *testing.T) {
 }
 
 func TestSearchDocksTheMatchAtRestAndEnterMovesTheKeysThere(t *testing.T) {
-	as := []agent.Agent{ag("bok-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, ""), ag("Bot", state.Working, 0, "")}
-	f := &fakeSource{agents: as, view: ViewAll} // 42 bok-17 Bot
+	as := []agent.Agent{ag("book-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, ""), ag("Bot", state.Working, 0, "")}
+	f := &fakeSource{agents: as, view: ViewAll} // 42 book-17 Bot
 	m := rested(typed(key(started(f, 120, 10), "/"), "bo"))
-	if strings.Join(f.shown, " ") != "bok-17" || !m.searching {
+	if strings.Join(f.shown, " ") != "book-17" || !m.searching {
 		t.Fatalf("shown %v searching %v", f.shown, m.searching)
 	}
 	// Enter before the cursor rests: docked with the keys, once.
@@ -1758,7 +1758,7 @@ func TestSearchDocksTheMatchAtRestAndEnterMovesTheKeysThere(t *testing.T) {
 	m = key(key(m, "backspace"), "backspace")
 	m = typed(m, "ot")
 	m = rested(key(m, "enter"))
-	if strings.Join(f.docked, " ") != "Bot" || strings.Join(f.shown, " ") != "bok-17" {
+	if strings.Join(f.docked, " ") != "Bot" || strings.Join(f.shown, " ") != "book-17" {
 		t.Fatalf("docked %v shown %v", f.docked, f.shown)
 	}
 }
@@ -1858,7 +1858,7 @@ func TestTheNewAgentDialogsAgentTakesTheCursorWithTheSlot(t *testing.T) {
 func TestARowWithOwnTasksStartsLastWithTheirCountDim(t *testing.T) {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 	defer lipgloss.SetColorProfile(termenv.Ascii)
-	sleeper := ag("bok", state.Done, time.Minute, "Waiting for the background task to report back.")
+	sleeper := ag("book", state.Done, time.Minute, "Waiting for the background task to report back.")
 	sleeper.OwnTasks = []state.Task{{Type: "shell", Text: "sleep 120"}}
 	busy := ag("ci", state.Done, 2*time.Minute, strings.Repeat("words ", 40))
 	busy.OwnTasks = []state.Task{{Type: "shell", Text: "npm run dev"}, {Type: "monitor", Text: "Wait for CI"}}
@@ -1872,8 +1872,8 @@ func TestARowWithOwnTasksStartsLastWithTheirCountDim(t *testing.T) {
 		}
 	}
 	ls := lines(m)
-	// bok has the cursor, whose strip covers the tail of LAST.
-	if l := ls[row["bok"]]; !strings.Contains(l, "● done         1m    1 shell · Waiting for the backgrou") {
+	// book has the cursor, whose strip covers the tail of LAST.
+	if l := ls[row["book"]]; !strings.Contains(l, "● done         1m    1 shell · Waiting for the backgrou") {
 		t.Fatalf("row %q", l)
 	}
 	if l := raw[row["ci"]]; !strings.Contains(l, cDim.Render("1 shell, 1 monitor · ")+strings.TrimSuffix(cText.Render("words"), "\x1b[0m")) {

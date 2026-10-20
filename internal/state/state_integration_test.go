@@ -210,7 +210,7 @@ func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) 
 	}
 	// Only the state file, and the mark that a tool of the turn ended,
 	// naming the turn.
-	if got := files(t, root, id); len(got) != 2 || got[actedSuffix] != "b4e5fe0f-6e79-4ac5-8c2c-b9181444b06f\n" {
+	if got := files(t, root, id); len(got) != 2 || got[actedSuffix] != "0000001b-0000-4000-8000-00000000001b\n" {
 		t.Fatalf("left files behind: %v", got)
 	}
 }
@@ -1451,7 +1451,7 @@ func testAQueuedPromptsTurn(t *testing.T, clear bool) {
 		}
 		fire(t, root, root, id, "start", fixture(t, "queued-session-start-clear"))
 		now := report("the queued /clear's start")
-		if now.State != Working || now.Prompt != queued || now.SessionID != "168b94e0-a750-4edd-9f35-6e49d2b44c41" || now.Last != r.Last {
+		if now.State != Working || now.Prompt != queued || now.SessionID != "00000006-0000-4000-8000-000000000006" || now.Last != r.Last {
 			t.Fatalf("the queued /clear's start: %+v", now)
 		}
 	}
@@ -1472,8 +1472,8 @@ func testAQueuedPromptsTurn(t *testing.T, clear bool) {
 // queued-first starts and in which queued-while-working is queued, and the
 // turn Claude takes that prompt for.
 const (
-	turnAtWork = "a5c44ac7-4166-41f7-96d0-9d535b9cdeb7"
-	turnTaken  = "f6babc86-be46-4229-afb6-d2051df9f374"
+	turnAtWork = "00000019-0000-4000-8000-000000000019"
+	turnTaken  = "0000002b-0000-4000-8000-00000000002b"
 )
 
 // inTurnAtWork is the queued-* fixture name as an event of the turn at

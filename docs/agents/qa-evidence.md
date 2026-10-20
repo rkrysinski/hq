@@ -40,6 +40,8 @@ sha=$(git -C "$qa" rev-parse HEAD)
 git worktree remove --force "$qa"
 ```
 
+The repository is public, and so is the evidence: before the commit, run `go run ./tools/testgate private "$qa/issue-<n>"` (from the checkout, with `HQ_PRIVATE_PATTERNS` set, see `docs/agents/testing.md`) and look at every image yourself. Nothing on the branch may name a private organisation, repository or host, or a local user's path: run QA in a neutral directory, or replace such a detail with a placeholder in a `.txt` and render its image again. CI checks the branch after each push, which is too late to keep a detail out.
+
 Parallel agents push to the same branch; the retry loop rebases onto their commits, and separate `issue-<n>/` folders keep those rebases conflict-free. Take `sha` after the push succeeds.
 
 ## 5. Write the `## QA` section of the PR body

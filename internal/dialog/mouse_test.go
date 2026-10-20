@@ -116,7 +116,7 @@ func clickedConfirm(m Confirm, x, y int) (Confirm, bool) {
 
 func TestTheKillDialogsButtonsAndCrossAreClickable(t *testing.T) {
 	k := &kills{}
-	m := KillDialog("bok-17", "fix/17", k.kill)
+	m := KillDialog("book-17", "fix/17", k.kill)
 	x, y := find(t, m.View(), "No ⏎")
 	if _, quit := clickedConfirm(m, x, y); !quit || k.n != 0 {
 		t.Fatalf("No: quit %v, kills %d", quit, k.n)
