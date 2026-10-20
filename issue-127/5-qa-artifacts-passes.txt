@@ -1,0 +1,8 @@
+$ git -C ~/work/qa-artifacts log --oneline -1 --format="%h %s (%ad)" origin/qa-artifacts; git -C ~/work/qa-art
+ifacts rev-list --count origin/qa-artifacts; go run ./tools/testgate private ~/work/qa-artifacts; echo "exit $
+?"
+ebf83f8 QA evidence, rebuilt without private-environment details (#127) (Tue Oct 20 16:29:29 2026 +0200)
+1
+private: 10 patterns, 0 matching lines
+exit 0
+$

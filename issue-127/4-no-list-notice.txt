@@ -1,0 +1,4 @@
+$ env -u HQ_PRIVATE_PATTERNS go run ./tools/testgate private; echo "exit $?"
+private: HQ_PRIVATE_PATTERNS is not set, nothing checked
+exit 0
+$

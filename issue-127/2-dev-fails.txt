@@ -1,0 +1,11 @@
+$ cd ~/work/hq-dev; git log --oneline -1; ~/work/testgate private > ~/work/dev-gate.txt; echo "exit $?"; head
+-3 ~/work/dev-gate.txt; echo ...; grep -c matches ~/work/dev-gate.txt; cd ~/work/hq
+ddadcbe (HEAD, tag: v0.9.1, origin/main, origin/dev, origin/HEAD, dev) Merge pull request #126 from rkrysinski
+/issue-125-send-race
+exit 1
+private: 10 patterns, 96 matching lines
+FAIL: docs/adr/0009-hooks-injected-at-launch.md:7 matches private pattern 4
+FAIL: docs/adr/0010-hooks-send-notifications.md:3 matches private pattern 4
+...
+96
+$

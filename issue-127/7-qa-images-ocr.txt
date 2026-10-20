@@ -1,0 +1,6 @@
+$ echo "images: $(find ~/work/qa-artifacts/ -name "*.png" -not -path "*/.git/*" | wc -l), read by tesseract: $(find ~/wo
+rk/qa-ocr/ -name "*.txt" | wc -l)"; go run ./tools/testgate private ~/work/qa-ocr/; echo "exit $?"
+images: 313, read by tesseract: 313
+private: 10 patterns, 0 matching lines
+exit 0
+$

@@ -1,0 +1,5 @@
+$ grep -ciEf <(printf "%s\n" "$HQ_PRIVATE_PATTERNS") ~/work/dev-gate.txt; echo "lines of the gate output that
+repeat a pattern's text: $(grep -ciEf <(printf "%s\n" "$HQ_PRIVATE_PATTERNS") ~/work/dev-gate.txt)"
+0
+lines of the gate output that repeat a pattern's text: 0
+$
