@@ -368,10 +368,7 @@ func (c Client) StyledScreen(pane string) (string, error) {
 }
 
 // Submit presses Enter in a pane.
-func (c Client) Submit(pane string) error {
-	_, err := c.tmux("send-keys", "-t", pane, "Enter")
-	return err
-}
+func (c Client) Submit(pane string) error { return c.Press(pane, "Enter") }
 
 // Press presses one key in a pane, by its tmux name (Down, Up, Enter):
 // hq answer moves the cursor of a dialog of Claude's own with it (#120).
