@@ -478,7 +478,10 @@ type fakes struct {
 	// inbox is what waits for each agent id: the text, with " (supervisor)"
 	// when the supervisor sent it and " (now)" when sent with --now; postErr
 	// and takeErr fail posting and taking.
-	inbox   map[string][]string
+	inbox map[string][]string
+	// oldest is when the oldest message waiting for each agent id was sent
+	// (none: unknown, as for messages put in inbox directly).
+	oldest  map[string]time.Time
 	postErr error
 	takeErr error
 	// announced are the agent ids whose hooks were told that the next
@@ -563,6 +566,7 @@ func newFakes() *fakes {
 
 		states:  map[string]state.Report{},
 		inbox:   map[string][]string{},
+		oldest:  map[string]time.Time{},
 		details: map[string]state.Detail{},
 
 		announced: map[string]bool{},
@@ -691,6 +695,9 @@ func (f *fakes) deps() deps {
 			if now {
 				text += " (now)"
 			}
+			if len(f.inbox[id]) == 0 {
+				f.oldest[id] = f.now
+			}
 			f.inbox[id] = append(f.inbox[id], text)
 			return nil
 		},
@@ -704,9 +711,14 @@ func (f *fakes) deps() deps {
 				msgs = append(msgs, state.Message{Text: text, Supervisor: supervisor})
 			}
 			delete(f.inbox, id)
+			delete(f.oldest, id)
 			return msgs, nil
 		},
 		pending: func(_, id string) int { return len(f.inbox[id]) },
+		oldestMessage: func(_, id string) (time.Time, bool) {
+			at, ok := f.oldest[id]
+			return at, ok && len(f.inbox[id]) > 0
+		},
 		announce: func(_, id string) error {
 			if f.announceErr != nil {
 				return f.announceErr

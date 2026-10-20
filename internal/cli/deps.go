@@ -131,11 +131,12 @@ type deps struct {
 	// removeState deletes an agent's state files once it is gone (design §3.4).
 	removeState func(root, id string) error
 	// postMessage leaves a message in an agent's inbox, takeMessages takes
-	// what waits there for hq to type it in, and pending counts it (hq
-	// send, ADR 0012).
-	postMessage  func(root, id string, m state.Message, now bool) error
-	takeMessages func(root, id string) ([]state.Message, error)
-	pending      func(root, id string) int
+	// what waits there for hq to type it in, pending counts it, and
+	// oldestMessage says when the oldest of it was sent (hq send, ADR 0012).
+	postMessage   func(root, id string, m state.Message, now bool) error
+	takeMessages  func(root, id string) ([]state.Message, error)
+	pending       func(root, id string) int
+	oldestMessage func(root, id string) (time.Time, bool)
 	// questions reads the question dialog an agent's state file reports
 	// open; leaveAnswer leaves the answer to it in the agent's inbox for
 	// the hook that holds on it, answerTaken tells whether that hook took
@@ -268,8 +269,9 @@ func defaultDeps() deps {
 		postMessage: func(root, id string, m state.Message, now bool) error {
 			return state.Post(root, id, m, now, time.Now())
 		},
-		takeMessages: state.Take,
-		pending:      state.Pending,
+		takeMessages:  state.Take,
+		pending:       state.Pending,
+		oldestMessage: state.Oldest,
 
 		questions:      state.ReadQuestions,
 		leaveAnswer:    state.LeaveAnswer,

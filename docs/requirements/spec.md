@@ -102,11 +102,13 @@ Requirements:
 A message left with `hq send` reaches the agent when it is ready, depending on its state:
 
 - `working`: when the agent would finish its turn, it goes on with the message instead, and finishes after that. It stays `working` meanwhile; only the turn's final end notifies (once; not at all when the turn is a supervised turn and the message the supervisor's, 5). With `--now`, the message comes after the agent's next tool call, within the running turn, and the agent may change course; when no tool call comes, it goes when the agent would finish, as without.
-- `done` or `question`, nothing typed in its prompt box: it is entered as the agent's next prompt. With something typed there (the user writing), it waits and goes along with the next prompt sent from there.
+- `done` or `question`, nothing typed in its prompt box: it is entered as the agent's next prompt, once the agent has taken in what it was given last: messages sent one right after the other, such as `/model NAME` then `/effort LEVEL`, are entered one after the other. With something typed there (the user writing), it waits and goes along with the next prompt sent from there.
 - `working` only on background subagents (5, *Background work*): the agent sits at its prompt, so the message is entered as its next prompt at once, as for `done`, or waits for the next prompt sent from a box the user is typing in. The agent stays `working` if subagents still run when that turn ends.
 - `needs input`: it waits until the dialog is closed, then goes as above. A message never answers a dialog: a question dialog is answered with `hq answer` (4.1), and the message then goes as promised. At a dialog Claude Code itself shows in place of its prompt box (when a session starts, or after a turn), the message waits for the agent's next prompt after the user has answered the dialog, and `hq send` says so.
 - `starting`: it waits for the session to start, then goes as above.
 - `ended`: refused.
+
+A message that still waits for an agent at its prompt with nothing typed there (the user emptied the box without sending it, or Claude Code was still busy with a command entered just before) is entered as its next prompt the next time hq looks at the agents: the dashboard while it runs, `hq ls`, `hq read`, `hq wait`, and the supervisor's `list`, `read` and `wait`.
 
 Whose turn it is afterwards (5, *Supervised turns*): a message of the supervisor's entered as the agent's next prompt starts a supervised turn, unless a message of the user's is entered with it; one that reaches a running turn, or goes along with a prompt the user sends, leaves the turn whose it was; a message of the user's makes the turn it reaches theirs.
 

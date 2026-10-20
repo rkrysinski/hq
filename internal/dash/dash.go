@@ -62,6 +62,9 @@ type Source struct {
 	PullRequests func(repo string) (map[string]gh.PR, error)
 	// Browse opens a pull request in the browser (spec §6.4 pr).
 	Browse func(url string) error
+	// Deliver types in the messages left waiting for agents at their
+	// prompt, as a look found them (#125); it may take seconds.
+	Deliver func(as []agent.Agent)
 }
 
 // Sorts, cycled with s, and views, toggled with a (spec §6.2).
@@ -237,13 +240,14 @@ type (
 		running agent.Sandboxes
 		err     error
 	}
-	hintMsg    struct{ text string }
-	hourMsg    struct{}
-	actedMsg   struct{ err error } // a row action (dock, code) finished
-	closedMsg  struct{ err error } // a dialog closed
-	errGoneMsg struct{ seq int }   // the row action's error seq has shown long enough
-	prTickMsg  struct{}
-	prsMsg     struct {
+	hintMsg      struct{ text string }
+	deliveredMsg struct{} // a round of Source.Deliver finished
+	hourMsg      struct{}
+	actedMsg     struct{ err error } // a row action (dock, code) finished
+	closedMsg    struct{ err error } // a dialog closed
+	errGoneMsg   struct{ seq int }   // the row action's error seq has shown long enough
+	prTickMsg    struct{}
+	prsMsg       struct {
 		repo string
 		prs  map[string]gh.PR
 		err  error
@@ -309,6 +313,7 @@ type Model struct {
 	width, height int
 	ticks         int
 	polling       bool      // an sbx poll is under way
+	delivering    bool      // a round of Source.Deliver is under way
 	polled        time.Time // when sbx last answered
 	began         time.Time // when the list program started
 }
@@ -580,6 +585,20 @@ func (m *Model) poll() tea.Cmd {
 	}
 }
 
+// deliver delivers the messages left waiting for the agents as, one round
+// at a time: a look while a round is under way starts none.
+func (m *Model) deliver(as []agent.Agent) tea.Cmd {
+	if m.delivering || m.src.Deliver == nil {
+		return nil
+	}
+	m.delivering = true
+	deliver := m.src.Deliver
+	return func() tea.Msg {
+		deliver(as)
+		return deliveredMsg{}
+	}
+}
+
 func (m Model) checkUpdate() tea.Cmd {
 	return func() tea.Msg { return hintMsg{m.src.UpdateHint()} }
 }
@@ -617,7 +636,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 			dock := m.welcome()
 			m.arrange()
-			return m, tea.Batch(dock, m.askPRs(m.prsDue()))
+			return m, tea.Batch(dock, m.askPRs(m.prsDue()), m.deliver(msg.agents))
 		}
 	case prTickMsg:
 		var repos []string
@@ -635,6 +654,8 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		if m.prs != nil {
 			m.prs[msg.repo] = msg.prs
 		}
+	case deliveredMsg:
+		m.delivering = false
 	case runningMsg:
 		m.polling = false
 		// A failed or slow sbx leaves the states to tmux and the hooks.

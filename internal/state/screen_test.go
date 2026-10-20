@@ -191,6 +191,40 @@ func TestWithoutHintsReadsTheBoxAsEmptyUnderClaudesFaintHints(t *testing.T) {
 	}
 }
 
+func TestInBoxReadsWhatAPromptBoxHolds(t *testing.T) {
+	// Claude Code 2.1.304 right after hq sent /model (#125): the command
+	// still in the box, Enter not yet taken; then its panel in place of the
+	// box; then the box empty and at rest.
+	for name, want := range map[string]string{
+		"styled-model-in-box":         "/model claude-opus-5-5",
+		"styled-model-panel":          "",
+		"styled-model-settled":        "",
+		"styled-start-placeholder":    "",
+		"styled-working":              "",
+		"interrupted-prompt-restored": "Run the shell command sleep 20 and then reply with the word slept. Do not edit any files.",
+	} {
+		if got := BoxText(WithoutHints(screen(t, name))); got != want {
+			t.Errorf("%s: %q, want %q", name, got, want)
+		}
+	}
+	if got := BoxText("anything"); got != "" {
+		t.Errorf("no box: %q", got)
+	}
+}
+
+func TestAtRestTellsTheScreensRightAfterASlashCommand(t *testing.T) {
+	// The second of two sends in a row met one of the first two (#125).
+	for name, want := range map[string]bool{
+		"styled-model-in-box":  false,
+		"styled-model-panel":   false,
+		"styled-model-settled": true,
+	} {
+		if ok, _ := AtRest(WithoutHints(screen(t, name)), ""); ok != want {
+			t.Errorf("%s: at rest %v, want %v", name, ok, want)
+		}
+	}
+}
+
 func TestWithoutHintsKeepsWhatTheUserTyped(t *testing.T) {
 	rule := strings.Repeat("─", 30)
 	for styled, want := range map[string]string{

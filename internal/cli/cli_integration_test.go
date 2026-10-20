@@ -993,9 +993,20 @@ func TestSendDeliversEachMessageWhenTheAgentIsReady(t *testing.T) {
 	h.typeIn("a", "sent")
 	h.waitReport("a", "done", "Done: sent | "+label+"ride along")
 
-	// Killed with a message still waiting: the message goes with it.
+	// Left waiting at an empty box, as after a slash command, which fires no
+	// hook: the next look types it in (#125).
 	ws, _ := h.d.tmux.Windows()
 	a, _ := agent.Find(agent.FromWindows(ws), "a")
+	h.waitAtRest("a")
+	if err := state.Post(r, a.ID, state.Message{Text: "left waiting"}, false, time.Now().Add(-time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if rows := h.ls(); rows[0].Pending != 0 {
+		t.Fatalf("pending %+v", rows)
+	}
+	h.waitReport("a", "done", "Done: left waiting")
+
+	// Killed with a message still waiting: the message goes with it.
 	h.typeIn("a", "slow end")
 	h.waitState("a", "working")
 	h.send("queued: a is working, delivered when it stops", "a", "never read")

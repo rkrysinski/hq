@@ -278,6 +278,7 @@ func listSource(d deps, pane string) dash.Source {
 		},
 		PullRequests: d.pullRequests,
 		Browse:       d.browse,
+		Deliver:      func(as []agent.Agent) { deliverWaiting(d, as) },
 		Running: func() (agent.Sandboxes, error) {
 			asked := d.now() // before the question, as runningSandboxes
 			sbs, err := d.pollSandboxes()
