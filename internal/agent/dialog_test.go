@@ -266,3 +266,35 @@ func TestAnAnsweredDialogIsNoRewindAtTheBarePromptBox(t *testing.T) {
 		}
 	}
 }
+
+// hq answer moves the cursor of a dialog of Claude's own to an option
+// (#120): the verdict tells a fresh screen of the same dialog, the cursor
+// moved, from another dialog or none, and says when its list scrolls, as
+// the picker of /model does, which hq does not answer.
+func TestTheVerdictOfADialogOfClaudesOwnKnowsItsScreen(t *testing.T) {
+	now := time.Unix(1000, 0)
+	rs := map[string]state.Report{"id1": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}, "id2": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}}
+	s := &fakeStore{screens: map[string]string{"%1": capture(t, "own-effort-low"), "%2": capture(t, "own-model-2304")}}
+	as := Look([]tmux.Window{lookWindow("1"), lookWindow("2")}, reportsOf(rs), nil, Sandboxes{}, now, s)
+	effort, model := as[0].Dialog(), as[1].Dialog()
+	if effort.Whose != OwnDialog || effort.Scrolls() || model.Whose != OwnDialog || !model.Scrolls() {
+		t.Fatalf("effort %+v, model %+v", effort, model)
+	}
+	for name, want := range map[string]bool{"own-effort-low": true, "own-effort-low-down": true, "own-switch-model": false, "own-model-2304": false, "effort-low-set": false} {
+		v, _ := state.ViewOwnDialog(capture(t, name))
+		if got := effort.Shows(v); got != want {
+			t.Errorf("%s: shows the effort dialog %v, want %v", name, got, want)
+		}
+	}
+	// A look that did not see the screen knows the dialog by its record,
+	// which names it by the same fingerprint.
+	w := lookWindow("1")
+	w.Options["dialogseen"] = s.options["@1"]["dialogseen"]
+	failed := &fakeStore{captureErr: errors.New("tmux: no server")}
+	recalled := Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, now.Add(time.Second), failed)[0].Dialog()
+	v, _ := state.ViewOwnDialog(capture(t, "own-effort-low"))
+	other, _ := state.ViewOwnDialog(capture(t, "own-switch-model"))
+	if recalled.Whose != OwnDialog || !recalled.Shows(v) || recalled.Shows(other) || (Dialog{}).Shows(v) {
+		t.Fatalf("recalled: %+v", recalled)
+	}
+}
