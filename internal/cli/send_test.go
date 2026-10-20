@@ -371,9 +371,9 @@ func TestSendReturnsOnceClaudeTookWhatItTypedIn(t *testing.T) {
 	}
 }
 
-// staleFakes has agent a done at its empty prompt, with a message that has
+// waitingFakes has agent a done at its empty prompt, with a message that has
 // waited a minute in its inbox.
-func staleFakes() *fakes {
+func waitingFakes() *fakes {
 	f := sendFakes(state.Done)
 	f.inbox["id-a"] = []string{"/effort medium"}
 	f.oldest["id-a"] = f.now.Add(-time.Minute)
@@ -382,7 +382,7 @@ func staleFakes() *fakes {
 
 func TestAMessageLeftWaitingForAnAgentAtItsPromptIsTypedInWhenHqLooks(t *testing.T) {
 	for _, args := range [][]string{{"ls"}, {"ls", "--json"}, {"read", "a"}, {"wait", "a", "--timeout", "1s"}} {
-		f := staleFakes()
+		f := waitingFakes()
 		if code, _, errOut := f.run(args...); code != 0 {
 			t.Fatalf("%v: exit %d %q", args, code, errOut)
 		}
@@ -391,7 +391,7 @@ func TestAMessageLeftWaitingForAnAgentAtItsPromptIsTypedInWhenHqLooks(t *testing
 		}
 	}
 	// So does the list's.
-	f := staleFakes()
+	f := waitingFakes()
 	src := listSource(f.deps(), "%1")
 	as, err := src.Agents(agent.Sandboxes{})
 	if err != nil {
@@ -414,7 +414,7 @@ func TestAMessageLeftWaitingIsTypedInOnlyAtAnEmptyBoxAtRest(t *testing.T) {
 		"panel":     func(f *fakes) { f.tmux.screens["%4"] = panel },
 		"no inbox":  func(f *fakes) { f.tmux.windows[1].Options["inbox"] = "" },
 	} {
-		f := staleFakes()
+		f := waitingFakes()
 		change(f)
 		start := f.now
 		if code, _, errOut := f.run("ls"); code != 0 {

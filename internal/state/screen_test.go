@@ -203,11 +203,11 @@ func TestInBoxReadsWhatAPromptBoxHolds(t *testing.T) {
 		"styled-working":              "",
 		"interrupted-prompt-restored": "Run the shell command sleep 20 and then reply with the word slept. Do not edit any files.",
 	} {
-		if got := InBox(WithoutHints(screen(t, name))); got != want {
+		if got := BoxText(WithoutHints(screen(t, name))); got != want {
 			t.Errorf("%s: %q, want %q", name, got, want)
 		}
 	}
-	if got := InBox("anything"); got != "" {
+	if got := BoxText("anything"); got != "" {
 		t.Errorf("no box: %q", got)
 	}
 }
