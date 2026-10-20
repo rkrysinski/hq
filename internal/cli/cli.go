@@ -37,7 +37,7 @@ func commands() []command {
 		{"go", "NAME", "enter that agent's session", runGo},
 		{"code", "NAME", "open VS Code on that agent's worktree", runCode},
 		{"send", "NAME TEXT [--now]", "leave a message for that agent, delivered when it is ready", runSend},
-		{"answer", "NAME --dialog ID ANSWER...|--cancel", "answer that agent's question dialog, or cancel it", runAnswer},
+		{"answer", "NAME --dialog ID ANSWER...|--cancel", "answer that agent's question dialog, or cancel it; or pick an option of a dialog of Claude's own", runAnswer},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
 		{"sandbox", "rm|restart REPO|SANDBOX [-y]", "remove or restart a repository's sandbox", runSandbox},
@@ -121,7 +121,7 @@ func runHelp(env Env, _ deps, _ []string) error {
 	fmt.Fprintf(&b, "  %-32s %s\n", "hq --version", "print the version")
 	fmt.Fprintf(&b, "\nNAME: letters, digits, '-', '_' and '.', at least one letter or digit, at most %d characters; taken until that agent is killed.\n", agent.MaxName)
 	fmt.Fprintf(&b, "hq wait also takes --since TIME (the moment it printed last, or 10m back) and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
-	b.WriteString("hq answer takes one ANSWER per question, in the dialog's order: an option's number, numbers joined with commas where several may be picked, or text; ID is the dialog's, as hq read shows it.\n")
+	b.WriteString("hq answer takes one ANSWER per question, in the dialog's order: an option's number, numbers joined with commas where several may be picked, or text; a dialog of Claude's own (as /effort opens) takes one option's number; ID is the dialog's, as hq read shows it.\n")
 	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment.\n")
 	_, err := io.WriteString(env.Stdout, b.String())
 	return err

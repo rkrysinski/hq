@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -245,9 +246,9 @@ func TestAnswerRefusesWhatHqDoesNotAnswer(t *testing.T) {
 		{name: "subagent", report: state.Report{State: state.NeedsInput, Last: "Which colour?", SubagentDialog: true},
 			detail: state.Detail{Ask: &state.Ask{Tool: "AskUserQuestion", Questions: []state.AskQuestion{{Question: "Which colour?"}}}},
 			want:   "hq: a's dialog is one of its subagents' (Which colour?), which hq does not answer; answer it at the agent (hq go a)\n"},
-		{name: "Claude's own", report: state.Report{State: state.Done, Last: "hi"},
-			screen: "● hi\n" + strings.Repeat("▔", 40) + "\n   Change effort level?\n   Your next response will be slower\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n",
-			want:   "hq: a is at a dialog of Claude's own (Change effort level?), which hq does not answer; answer it at the agent (hq go a)\n"},
+		{name: "Claude's own list that scrolls", report: state.Report{State: state.Done, Last: "hi"},
+			screen: "● hi\n" + strings.Repeat("▔", 40) + "\n   Select model\n   Switch between Claude models.\n\n   ❯ 1. Default (recommended)\n   ↓ 2. Opus 5.5\n      … +3 models\n",
+			want:   "hq: a is at a dialog of Claude's own whose list scrolls (Select model), which hq does not answer; answer it at the agent (hq go a)\n"},
 		{name: "working", report: state.Report{State: state.Working},
 			want: "hq: a is at no dialog: it is working\n"},
 		{name: "question", report: state.Report{State: state.Question, Last: "Shall I?"},
@@ -410,5 +411,247 @@ func TestAnswerToADialogCancelledMeanwhileIsNoSuccess(t *testing.T) {
 	}
 	if code, out, errOut := f.run("answer", "a", "--dialog", id, "1"); code != ExitUsage || out != "" || errOut != "hq: a left the dialog without taking hq's answer: it is done; read it (hq read a)\n" {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+}
+
+// ownClaude is Claude Code 2.1.304 at its own effort dialog after a turn
+// (screen-own-effort-low): it takes the keys hq presses in the agent's
+// pane and draws what they did by hq's next sleep, as Claude redraws
+// within 0.1 s. Down and Up move the ❯, wrapping round at the ends; Enter
+// picks the option the ❯ is on and draws the box again. A key pressed
+// before the last one was drawn fails the test: hq presses one at a time.
+type ownClaude struct {
+	t        *testing.T
+	f        *fakes
+	cursor   int
+	picked   int      // the option Enter picked; -1 until then
+	pending  string   // the key not drawn yet
+	drop     bool     // keys move nothing
+	pressed  []string // the keys, in order
+	afterKey func(key string)
+}
+
+func ownDialogFakes(t *testing.T) (*fakes, *ownClaude, string) {
+	t.Helper()
+	f := sendFakes(state.Done)
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "hi"}
+	c := &ownClaude{t: t, f: f, picked: -1}
+	f.tmux.screens["%4"] = c.screen()
+	f.tmux.onPress = func(pane, key string) {
+		if pane != "%4" {
+			t.Errorf("key %s pressed in pane %s", key, pane)
+		}
+		if c.pending != "" {
+			t.Errorf("%s pressed before %s was drawn", key, c.pending)
+		}
+		c.pending, c.pressed = key, append(c.pressed, key)
+	}
+	f.onSleep = c.draw
+	_, ls, _ := f.run("ls", "--json")
+	i := strings.Index(ls, `"dialog": "`)
+	if i < 0 {
+		t.Fatalf("no dialog:\n%s", ls)
+	}
+	return f, c, ls[i+11 : i+17]
+}
+
+// draw draws what the key pressed last did.
+func (c *ownClaude) draw() {
+	key := c.pending
+	c.pending = ""
+	switch {
+	case key == "" || c.picked >= 0 || c.drop:
+		return
+	case key == "Down":
+		c.cursor = (c.cursor + 1) % 2 // of two options
+	case key == "Up":
+		c.cursor = (c.cursor + 2 - 1) % 2
+	case key == "Enter":
+		c.picked = c.cursor
+	default:
+		c.t.Errorf("key %q", key)
+	}
+	c.f.tmux.screens["%4"] = c.screen()
+	if c.afterKey != nil {
+		c.afterKey(key)
+	}
+}
+
+func (c *ownClaude) screen() string {
+	switch c.picked {
+	case 0:
+		return readFixture(c.t, "screen-effort-low-set.txt")
+	case 1:
+		return "  ⎿  Kept effort level as high\n" + emptyBox
+	}
+	s := readFixture(c.t, "screen-own-effort-low.txt")
+	if c.cursor == 1 {
+		s = strings.Replace(strings.Replace(s, "❯ 1. Yes", "  1. Yes", 1), "  2. No", "❯ 2. No", 1)
+	}
+	return s
+}
+
+func readFixture(t *testing.T, name string) string {
+	t.Helper()
+	b, err := os.ReadFile("../state/testdata/" + name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+// A dialog of Claude's own fires no hook, so hq answers it with keys
+// (#120): the ❯ moved to the option, each key once Claude has drawn the
+// last, then Enter; it returns once the dialog is gone, the agent back as
+// it was before it.
+func TestAnswerPicksAnOptionOfADialogOfClaudesOwnWithKeys(t *testing.T) {
+	for _, tc := range []struct {
+		from, option int
+		keys         string
+	}{
+		{0, 2, "Down Enter"},
+		{0, 1, "Enter"},
+		{1, 1, "Up Enter"},
+	} {
+		f, c, id := ownDialogFakes(t)
+		if tc.from == 1 {
+			c.cursor = 1
+			f.tmux.screens["%4"] = c.screen()
+		}
+		code, out, errOut := f.run("answer", "a", "--dialog", id, strconv.Itoa(tc.option))
+		if code != 0 || out != "answered: a is done\n" {
+			t.Errorf("%+v: exit %d %q %q", tc, code, out, errOut)
+		}
+		if got := strings.Join(c.pressed, " "); got != tc.keys || c.picked != tc.option-1 {
+			t.Errorf("%+v: pressed %q, picked %d", tc, got, c.picked)
+		}
+		// Nothing for a hook: none holds on such a dialog.
+		if len(f.answerLeft) != 0 || len(f.tmux.pasted) != 0 {
+			t.Errorf("%+v: left %v, pasted %v", tc, f.answerLeft, f.tmux.pasted)
+		}
+	}
+	// --json: the state, and the moment before the first key, for hq wait.
+	f, _, id := ownDialogFakes(t)
+	before := f.now
+	_, out, _ := f.run("answer", "a", "--dialog", id, "2", "--json")
+	var got answerOutput
+	if err := json.Unmarshal([]byte(out), &got); err != nil || got.State != state.Done || got.NextSince.After(before) || before.Sub(got.NextSince) > time.Second {
+		t.Fatalf("json %q: %+v %v", out, got, err)
+	}
+	// An agent started by an older hq has no hooks hq needs for it.
+	f, c, id := ownDialogFakes(t)
+	f.tmux.windows[1].Options["inbox"] = "2"
+	if code, out, errOut := f.run("answer", "a", "--dialog", id, "2"); code != 0 || out != "answered: a is done\n" || c.picked != 1 {
+		t.Fatalf("older hq: exit %d %q %q", code, out, errOut)
+	}
+}
+
+// Nothing is pressed for an answer that does not fit the dialog, nor for a
+// dialog the screen no longer shows: answered at the agent first, or
+// another dialog in its place.
+func TestAnswerToADialogOfClaudesOwnRefusedPressesNothing(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		args   []string
+		screen func(c *ownClaude) string // what the screen shows once hq looked at the agent
+		want   string
+	}{
+		{name: "text", args: []string{"yes"},
+			want: "hq: a not answered: Change effort level? takes an option's number, not text: it is a dialog of Claude's own\n"},
+		{name: "unknown option", args: []string{"3"},
+			want: "hq: a not answered: Change effort level? has no option 3: it has 2\n"},
+		{name: "several options", args: []string{"1,2"},
+			want: "hq: a not answered: Change effort level? takes one option, 2 given\n"},
+		{name: "two answers", args: []string{"1", "2"},
+			want: "hq: a not answered: the dialog has 1 question, 2 answers given: one per question, in its order\n"},
+		{name: "cancel", args: []string{"--cancel"},
+			want: "hq: a not answered: a dialog of Claude's own is answered with one of its options, not cancelled\n"},
+		{name: "answered first", args: []string{"2"}, screen: func(*ownClaude) string { return emptyBox },
+			want: "hq: a left the dialog before hq's answer reached it; nothing was answered from hq: it is done\n"},
+		{name: "another dialog", args: []string{"2"}, screen: func(c *ownClaude) string { return readFixture(c.t, "screen-own-switch-model.txt") },
+			want: "hq: a's dialog changed meanwhile; it needs input at another (Switch model?), read it again (hq read a)\n"},
+	} {
+		f, c, id := ownDialogFakes(t)
+		if tc.screen != nil {
+			looks := 0
+			f.tmux.onScreens = func() {
+				if looks++; looks == 1 {
+					f.tmux.screens["%4"] = tc.screen(c)
+				}
+			}
+		}
+		code, _, errOut := f.run(append([]string{"answer", "a", "--dialog", id}, tc.args...)...)
+		if code != ExitUsage || errOut != tc.want {
+			t.Errorf("%s: exit %d %q, want %q", tc.name, code, errOut, tc.want)
+		}
+		if len(c.pressed) != 0 {
+			t.Errorf("%s: pressed %v", tc.name, c.pressed)
+		}
+	}
+	// A list that scrolls past the screen, the picker of /model: its
+	// options' numbers are not those of the whole list.
+	f, c, _ := ownDialogFakes(t)
+	f.tmux.screens["%4"] = readFixture(t, "screen-own-model-2304.txt")
+	_, ls, _ := f.run("ls", "--json")
+	id := ls[strings.Index(ls, `"dialog": "`)+11:][:6]
+	code, _, errOut := f.run("answer", "a", "--dialog", id, "4")
+	if code != ExitUsage || errOut != "hq: a is at a dialog of Claude's own whose list scrolls (Select model), which hq does not answer; answer it at the agent (hq go a)\n" || len(c.pressed) != 0 {
+		t.Fatalf("model picker: exit %d %q, pressed %v", code, errOut, c.pressed)
+	}
+}
+
+// Enter is pressed only on the option asked for: when the dialog changes
+// while hq moves the ❯, or the ❯ does not move, nothing is picked.
+func TestAnswerToADialogOfClaudesOwnPicksNothingWhenTheCursorGoesAstray(t *testing.T) {
+	f, c, id := ownDialogFakes(t)
+	c.afterKey = func(string) { f.tmux.screens["%4"] = readFixture(t, "screen-own-switch-model-down.txt") }
+	code, _, errOut := f.run("answer", "a", "--dialog", id, "2")
+	if code != ExitUsage || errOut != "hq: a's dialog changed while hq moved to option 2: nothing was picked; it needs input at another (Switch model?), read it again (hq read a)\n" || strings.Join(c.pressed, " ") != "Down" {
+		t.Fatalf("changed: exit %d %q, pressed %v", code, errOut, c.pressed)
+	}
+
+	f, c, id = ownDialogFakes(t)
+	c.drop = true
+	start := f.now
+	code, _, errOut = f.run("answer", "a", "--dialog", id, "2")
+	if code != ExitEnvironment || errOut != "hq: a's dialog did not move to option 2 within 2s: nothing was picked; answer it at the agent (hq go a)\n" || strings.Join(c.pressed, " ") != "Down" {
+		t.Fatalf("stuck: exit %d %q, pressed %v", code, errOut, c.pressed)
+	}
+	if f.now.Sub(start) < keyWait || f.now.Sub(start) > keyWait+time.Second {
+		t.Fatalf("stuck after %s", f.now.Sub(start))
+	}
+}
+
+// Enter pressed, the dialog still open after 5 s: hq says so, with the
+// agent's state.
+func TestAnswerToADialogOfClaudesOwnThatStaysOpenFails(t *testing.T) {
+	f, c, id := ownDialogFakes(t)
+	c.afterKey = func(key string) {
+		if key == "Enter" {
+			c.picked = -1
+			f.tmux.screens["%4"] = c.screen()
+		}
+	}
+	start := f.now
+	code, _, errOut := f.run("answer", "a", "--dialog", id, "1")
+	if code != ExitEnvironment || errOut != "hq: a did not leave its dialog within 5s of picking option 1: it is needs input; answer it at the agent (hq go a)\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if f.now.Sub(start) < closeWait || f.now.Sub(start) > closeWait+time.Second {
+		t.Fatalf("after %s", f.now.Sub(start))
+	}
+}
+
+// hq read gives the command that answers a dialog of Claude's own, but
+// not for a list that scrolls.
+func TestReadGivesTheAnswerCommandForADialogOfClaudesOwn(t *testing.T) {
+	f, _, id := ownDialogFakes(t)
+	_, out, _ := f.run("read", "a")
+	if !strings.Contains(out, "\nanswer    hq answer a --dialog "+id+" N\n") || !strings.Contains(out, "    2. No, go back\n") {
+		t.Fatalf("read:\n%s", out)
+	}
+	f.tmux.screens["%4"] = readFixture(t, "screen-own-model-2304.txt")
+	if _, out, _ := f.run("read", "a"); strings.Contains(out, "\nanswer ") || !strings.Contains(out, "Select model") {
+		t.Fatalf("model picker:\n%s", out)
 	}
 }

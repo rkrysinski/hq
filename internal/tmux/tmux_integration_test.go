@@ -591,3 +591,43 @@ func TestStyledScreenKeepsTheStyles(t *testing.T) {
 		t.Fatal("a pane that is gone is an error")
 	}
 }
+
+// hq answer moves the cursor of a dialog of Claude's own with Press, one
+// key at a time (#120): each reaches the program in its pane as the
+// terminal sends it.
+func TestPressSendsOneKeyAsTheTerminalSendsIt(t *testing.T) {
+	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	got := filepath.Join(dir, "got")
+	// dd a byte at a time: the cat of uutils takes only the first key on a
+	// raw terminal.
+	id, err := c.NewWindow("w", dir, nil, []string{"sh", "-c", `stty raw -echo; echo ready; exec dd bs=1 2>/dev/null >>"$0"`, got})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Start(id); err != nil {
+		t.Fatal(err)
+	}
+	ws, _ := c.Windows()
+	pane := ws[len(ws)-1].Pane
+	eventually(t, "the program", func() bool {
+		s, _ := c.Screens([]string{pane})
+		return strings.Contains(s[pane], "ready")
+	})
+	for _, key := range []string{"Down", "Up", "Enter"} {
+		if err := c.Press(pane, key); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want := "\x1b[B\x1b[A\r"
+	var b []byte
+	if !waitFor(func() bool { b, _ = os.ReadFile(got); return len(b) >= len(want) }) || string(b) != want {
+		t.Fatalf("got %q", b)
+	}
+	if err := c.Press("%999", "Down"); err == nil {
+		t.Fatal("a pane that is gone is an error")
+	}
+}

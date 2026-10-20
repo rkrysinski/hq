@@ -114,7 +114,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	if schema, _ := json.Marshal(tools["new"].InputSchema); !strings.Contains(string(schema), "letters, digits, '-', '_' and '.', at least one letter or digit") || !strings.Contains(string(schema), "rel-1.10.5-213") {
 		t.Errorf("new: the name's characters not named in %s", schema)
 	}
-	if want := "for a question dialog use answer, on the user's word"; !strings.Contains(tools["send"].Description, want) {
+	if want := "for a question dialog or a dialog of Claude Code's own use answer, on the user's word"; !strings.Contains(tools["send"].Description, want) {
 		t.Errorf("send: no %q in %q", want, tools["send"].Description)
 	}
 	// What an agent asks is in list and read alike, an MCP server's form
@@ -124,7 +124,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
 		}
 	}
-	if want := "a dialog open (a permission, questions with options, or an MCP server's form;"; !strings.Contains(mcpInstructions, want) {
+	if want := "a dialog open (a permission, questions with options, an MCP server's form, or a dialog of Claude Code's own such as Change effort level? after /effort;"; !strings.Contains(mcpInstructions, want) {
 		t.Errorf("no %q in the instructions", want)
 	}
 	// An agent done with its own tasks running takes another turn when they
@@ -159,7 +159,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("instructions have no %q", want)
 		}
 	}
-	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "Watch from one moment: the next_since of your most recent wait or list result", "Never take since from read, send or answer", "Name every agent you follow in each wait", "act on the agents the list shows done, in question, needing input or ended", "call list first", "Never answer a permission or any other dialog", "answer it with answer, only on the user's word", "never on your own initiative"} {
+	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "Watch from one moment: the next_since of your most recent wait or list result", "Never take since from read, send or answer", "Name every agent you follow in each wait", "act on the agents the list shows done, in question, needing input or ended", "call list first", "Never answer a permission or any other dialog", "answer them with answer, only on the user's word", "send /model with the model's name instead", "never on your own initiative"} {
 		if !strings.Contains(cs.InitializeResult().Instructions, want) {
 			t.Errorf("instructions have no %q", want)
 		}
@@ -901,5 +901,34 @@ func TestMCPAnswerAnswersOnlyOnTheUsersWord(t *testing.T) {
 	}
 	if out, isErr := call(t, cs, "answer", map[string]any{"name": "a", "dialog": id, "cancel": true, "confirmed": true}); isErr || !strings.Contains(out, `"state": "done"`) {
 		t.Fatalf("cancel: %v %q", isErr, out)
+	}
+}
+
+// The supervisor picks an option of a dialog of Claude's own on the user's
+// word too (#120): without it nothing is pressed; the answer tool says
+// which of Claude's own it answers.
+func TestMCPAnswerPicksAnOptionOfADialogOfClaudesOwnOnTheUsersWord(t *testing.T) {
+	f, c, id := ownDialogFakes(t)
+	cs := mcpSession(t, f)
+	tools := map[string]*mcp.Tool{}
+	ls, err := cs.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range ls.Tools {
+		tools[tool.Name] = tool
+	}
+	for _, want := range []string{"Change effort level? after /effort, Switch model? after /model with a name", "a dialog of Claude Code's own takes one option, no text and no cancel", "the picker of /model: send /model with the model's name instead"} {
+		if !strings.Contains(tools["answer"].Description, want) {
+			t.Errorf("answer: no %q", want)
+		}
+	}
+	answers := []any{map[string]any{"options": []int{2}}}
+	if out, isErr := call(t, cs, "answer", map[string]any{"name": "a", "dialog": id, "answers": answers}); !isErr || !strings.Contains(out, "ask the user what to pick") || len(c.pressed) != 0 {
+		t.Fatalf("unconfirmed: %v %q, pressed %v", isErr, out, c.pressed)
+	}
+	out, isErr := call(t, cs, "answer", map[string]any{"name": "a", "dialog": id, "answers": answers, "confirmed": true})
+	if isErr || !strings.Contains(out, `"state": "done"`) || c.picked != 1 {
+		t.Fatalf("confirmed: %v %q, picked %d", isErr, out, c.picked)
 	}
 }

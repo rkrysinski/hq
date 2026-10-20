@@ -13,7 +13,7 @@
 
 ## Consequences
 
-- hq types nothing into a dialog: an answer reaches Claude only as a hook's decision. Permission prompts, MCP elicitations and dialogs of Claude's own stay the user's, at the agent.
+- hq types nothing into a dialog: an answer reaches Claude only as a hook's decision. Permission prompts, MCP elicitations and dialogs of Claude's own stay the user's, at the agent. Amended by [ADR 0014](0014-dialogs-of-claudes-own-are-answered-with-keys.md): a dialog of Claude's own, which fires no hook, is answered with keys, once a capture shows the dialog the user read; a list of Claude's own that scrolls stays the user's.
 - One more kind of file crosses into the sandbox besides messages: the answer, a decision hq encodes on the host from the dialog's own questions and the user's choice (labels, or free text stripped and capped as a message is). The hook never evaluates it.
 - A hook may hold for as long as a dialog is open, up to a day; it does not hold Claude back, since the dialog stays answerable at the terminal, and it polls a file a few times a second. Claude does not stop it when the dialog closes (#89, case 2d), so it watches the state file and ends by itself; an answer is named for the dialog's report, so the hook of another dialog never takes it.
 - "The file was taken" is not "the answer landed": `hq answer` waits for the dialog to close and compares what Claude reports it got with what was sent. A dialog that does not close names the likely cause, a template whose own PermissionRequest hook answers AskUserQuestion.

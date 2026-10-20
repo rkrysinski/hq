@@ -45,6 +45,7 @@ type Tmux interface {
 	StyledScreen(pane string) (string, error)
 	Paste(pane, text string) error
 	Submit(pane string) error
+	Press(pane, key string) error
 	LastScreen(pane string) (string, error)
 	KillWindow(id string) error
 	SocketPath() (string, error)
