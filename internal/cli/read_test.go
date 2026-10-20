@@ -337,7 +337,7 @@ func TestReadShowsClaudesDialogAtTheStartOfASession(t *testing.T) {
 	rule := strings.Repeat("─", 40)
 	f.tmux.screens = map[string]string{"%4": rule + "\n Make auto mode your default permission mode?\n\n   Auto mode lets Claude handle permission prompts automatically.\n\n   ❯ Yes, set auto mode as my default permission mode\n     No, keep bypass permissions\n"}
 	code, out, errOut := f.run("read", "42")
-	want := "state     needs input 0s\npending   0\nlast      Make auto mode your default permission mode?\n\nasks      dialog " + state.DialogID(f.now) + "\n  Make auto mode your default permission mode?\n    1. Yes, set auto mode as my default permission mode\n    2. No, keep bypass permissions\n\nreply     none\n"
+	want := "state     needs input 0s\npending   0\nlast      Make auto mode your default permission mode?\n\nasks      dialog " + state.DialogID(f.now) + "\n  Make auto mode your default permission mode?\n    1. Yes, set auto mode as my default permission mode\n    2. No, keep bypass permissions\n\nanswer    hq answer 42 --dialog " + state.DialogID(f.now) + " N\n\nreply     none\n"
 	if code != 0 || !strings.HasSuffix(out, want) {
 		t.Fatalf("exit %d %q\n%s", code, errOut, out)
 	}
@@ -372,7 +372,7 @@ func TestCommandsSeeClaudesDialogAfterATurn(t *testing.T) {
 	}
 	f.now = f.now.Add(time.Minute)
 	code, out, errOut := f.run("read", "42")
-	want := "state     needs input 1m\npending   0\nlast      Change effort level?\n\nasks      dialog " + state.DialogID(seen) + "\n  Change effort level?\n    1. Yes, switch to max\n    2. No, go back\n\nreply\n  hi\n"
+	want := "state     needs input 1m\npending   0\nlast      Change effort level?\n\nasks      dialog " + state.DialogID(seen) + "\n  Change effort level?\n    1. Yes, switch to max\n    2. No, go back\n\nanswer    hq answer 42 --dialog " + state.DialogID(seen) + " N\n\nreply\n  hi\n"
 	if code != 0 || !strings.HasSuffix(out, want) {
 		t.Fatalf("exit %d %q\n%s", code, errOut, out)
 	}

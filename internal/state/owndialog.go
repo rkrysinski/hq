@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -26,8 +27,26 @@ import (
 // tabs, one per question: its review step after several questions (#94)
 // has no footer below its options, so the tabs tell it apart.
 func OwnDialog(screen string) (ask *Ask, ok bool) {
+	v, ok := ViewOwnDialog(screen)
+	return v.Ask, ok
+}
+
+// OwnView is a dialog of Claude's own as one screen shows it (OwnDialog):
+// what it asks, the option its cursor is on, by its index in the options,
+// and whether its list scrolls to options the screen does not show, as
+// the picker of /model does (a ↓ or ↑ before an option, "… +3 models"
+// below them). hq answer moves the cursor to an option and presses Enter
+// (#120).
+type OwnView struct {
+	Ask     *Ask
+	Cursor  int
+	Scrolls bool
+}
+
+// ViewOwnDialog is OwnDialog with where the dialog's cursor is.
+func ViewOwnDialog(screen string) (OwnView, bool) {
 	if _, box := promptBox(screen); box {
-		return nil, false
+		return OwnView{}, false
 	}
 	lines := strings.Split(strings.ReplaceAll(screen, "\u00a0", " "), "\n")
 	for i := range lines {
@@ -43,7 +62,7 @@ func OwnDialog(screen string) (ask *Ask, ok bool) {
 		}
 	}
 	if at < 0 {
-		return nil, false
+		return OwnView{}, false
 	}
 	top := -1
 	for i := at - 1; i >= 0; i-- {
@@ -57,7 +76,7 @@ func OwnDialog(screen string) (ask *Ask, ok bool) {
 		title++
 	}
 	if top < 0 || title >= at || askTabs.MatchString(lines[title]) {
-		return nil, false
+		return OwnView{}, false
 	}
 	// The options: the lines around the marked one, up to a blank line.
 	first, last := at, at
@@ -68,20 +87,27 @@ func OwnDialog(screen string) (ask *Ask, ok bool) {
 		last++
 	}
 	if last == first {
-		return nil, false
+		return OwnView{}, false
 	}
 	for _, l := range lines[last+1:] {
 		if isRule(l) || strings.Contains(l, working) {
-			return nil, false
+			return OwnView{}, false
 		}
 	}
 	q := AskQuestion{Question: Clean(lines[title]), Options: []AskOption{}}
-	for _, l := range lines[first : last+1] {
-		l = optionMark.ReplaceAllString(strings.TrimPrefix(l, prompt), "")
-		// "… +3 models": more options the list scrolls to.
-		if !strings.HasPrefix(l, "…") {
-			q.Options = append(q.Options, AskOption{Label: Clean(l)})
+	v := OwnView{}
+	for i, l := range lines[first : last+1] {
+		l = strings.TrimPrefix(l, prompt)
+		if i == at-first {
+			v.Cursor = len(q.Options)
 		}
+		v.Scrolls = v.Scrolls || scrollMark.MatchString(l)
+		// "… +3 models": more options the list scrolls to.
+		if strings.HasPrefix(l, "…") {
+			v.Scrolls = true
+			continue
+		}
+		q.Options = append(q.Options, AskOption{Label: Clean(optionMark.ReplaceAllString(l, ""))})
 	}
 	var text []string
 	for _, l := range lines[title+1 : first] {
@@ -89,7 +115,28 @@ func OwnDialog(screen string) (ask *Ask, ok bool) {
 			text = append(text, l)
 		}
 	}
-	return &Ask{Description: Clean(strings.Join(text, " ")), Questions: []AskQuestion{q}}, true
+	v.Ask = &Ask{Description: Clean(strings.Join(text, " ")), Questions: []AskQuestion{q}}
+	return v, true
+}
+
+// Pick is the option of the dialog answers picks, by its index: the
+// dialog asks one question and takes one of its options, by its number as
+// hq read lists them. An answer that does not fit is refused, as
+// Questions.Decision refuses one.
+func (v OwnView) Pick(answers []Answer) (int, error) {
+	if len(answers) != 1 {
+		return 0, fmt.Errorf("the dialog has 1 question, %s given: one per question, in its order", count(len(answers), "answer"))
+	}
+	q, a := v.Ask.Questions[0], answers[0]
+	switch {
+	case len(a.Options) == 0 || a.Text != "":
+		return 0, fmt.Errorf("%s takes an option's number, not text: it is a dialog of Claude's own", q.Question)
+	case len(a.Options) > 1:
+		return 0, fmt.Errorf("%s takes one option, %d given", q.Question, len(a.Options))
+	case a.Options[0] < 1 || a.Options[0] > len(q.Options):
+		return 0, fmt.Errorf("%s has no option %d: it has %d", q.Question, a.Options[0], len(q.Options))
+	}
+	return a.Options[0] - 1, nil
 }
 
 // dialogTop starts the rule of ▔ Claude Code 2.1.300 draws above a dialog
@@ -104,3 +151,6 @@ var askTabs = regexp.MustCompile(`^(?:← )?[☐☒] `)
 // optionMark is what precedes an option's label on its line: the arrow
 // that says the list scrolls on, and the option's number.
 var optionMark = regexp.MustCompile(`^ ?(?:[↑↓] )?(?:\d+\. )?`)
+
+// scrollMark is the arrow before an option that says the list scrolls on.
+var scrollMark = regexp.MustCompile(`^ ?[↑↓] `)

@@ -1,0 +1,40 @@
+
+ ▐▛███▛█   Claude Code v2.1.304
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   /…/-Users-romankrysinski-work-repositories-hq/9bc6efb4-adaa-4d67-80a8-652438081ab7/scratchpad/probe
+
+  Updated to latest.
+  code.claude.com/docs/en/changelog for details
+
+
+❯ Reply with the single word: hi
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                                            │
+│ hi                                                                                                                  │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Cogitated for 1s · done 5:21 AM
+
+❯ /effort medium
+  ⎿  Kept effort level as high
+
+❯ /effort low
+  ⎿  Kept effort level as high
+
+❯ /model sonnet
+  ⎿  Kept model as Opus 5.5
+
+
+
+
+
+
+
+
+                                                                                                      ● high · /effort
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5h ▕█▉░░░░░░░░░░▏ 16% ◷ 09:10 │ $0.17
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                                                           ◆ Tools ▾
