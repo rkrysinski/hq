@@ -144,6 +144,7 @@ func runWait(env Env, d deps, args []string) error {
 		if err != nil {
 			return err
 		}
+		deliverStale(d, as)
 		if first {
 			for _, n := range w.names {
 				if _, ok := agent.Find(as, n); !ok {

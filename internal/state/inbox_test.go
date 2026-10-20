@@ -103,6 +103,23 @@ func TestAMessageNameSaysWhoSentItAndStillAsksForNow(t *testing.T) {
 	}
 }
 
+func TestAMessageNameSaysWhenItWasSent(t *testing.T) {
+	at := time.Date(2026, 10, 20, 12, 0, 0, 7, time.UTC)
+	for _, n := range []string{messageName(at, "0a0b0c0d", false, false), messageName(at, "0a0b0c0d", true, true)} {
+		if got, ok := sentAt(n); !ok || !got.Equal(at) {
+			t.Errorf("%q: %v %v", n, got, ok)
+		}
+	}
+	for _, n := range []string{"", "12x-0a0b0c0d", "-0a0b0c0d"} {
+		if _, ok := sentAt(n); ok {
+			t.Errorf("%q has a time", n)
+		}
+	}
+	if _, ok := Oldest("/w/app", "../x"); ok {
+		t.Error("not an agent id")
+	}
+}
+
 func TestAMessageFitsWhatHqReadsBack(t *testing.T) {
 	// The worst case: every byte escaped as \u00XX would be 6x, but
 	// CleanMessage leaves only newlines and tabs, 2 bytes each.

@@ -137,6 +137,29 @@ func TestPostTakeAndRemoveKeepTheOrderAndLeaveNothing(t *testing.T) {
 	}
 }
 
+func TestOldestIsWhenTheFirstMessageWaitingWasSent(t *testing.T) {
+	root := t.TempDir()
+	const id = "0a1b2c3d"
+	if _, ok := Oldest(root, id); ok {
+		t.Fatal("a time with no inbox")
+	}
+	at := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
+	for _, sent := range []time.Time{at.Add(time.Second), at, at.Add(time.Minute)} {
+		if err := Post(root, id, Message{Text: "hi"}, false, sent); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got, ok := Oldest(root, id); !ok || !got.Equal(at) {
+		t.Fatalf("oldest %v %v", got, ok)
+	}
+	if _, err := Take(root, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := Oldest(root, id); ok {
+		t.Fatal("a time once taken")
+	}
+}
+
 func TestHookBlocksTheStopWithTheMessagesAndStaysQuiet(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"

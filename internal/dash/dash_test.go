@@ -48,6 +48,8 @@ type fakeSource struct {
 	asked      []string // repositories gh was asked about, in order
 	browsed    []string // URLs opened
 
+	delivered []string // the agents given to Deliver, by name, a round per entry
+
 	collects, polls, layouts int
 	seen                     []agent.Sandboxes // sbx's answer as given to Agents
 	footer                   []Hint
@@ -113,6 +115,13 @@ func (f *fakeSource) source() Source {
 			return f.prs[repo], f.prErr
 		},
 		Browse: func(url string) error { f.browsed = append(f.browsed, url); return nil },
+		Deliver: func(as []agent.Agent) {
+			var names []string
+			for _, a := range as {
+				names = append(names, a.Name)
+			}
+			f.delivered = append(f.delivered, strings.Join(names, " "))
+		},
 	}
 }
 
@@ -1880,5 +1889,27 @@ func TestARowWithOwnTasksStartsLastWithTheirCountDim(t *testing.T) {
 		if strings.Contains(l, "shell") {
 			t.Fatalf("narrow layout: %q", l)
 		}
+	}
+}
+
+func TestEachLookDeliversTheMessagesLeftWaitingOneRoundAtATime(t *testing.T) {
+	as := []agent.Agent{ag("a", state.Done, 0, ""), ag("b", state.Working, 0, "")}
+	f := &fakeSource{agents: as, view: ViewAll}
+	m := started(f, 120, 10)
+	f.delivered = nil
+	m, cmd := update(m, agentsMsg{agents: as})
+	// While a round is under way, the next look starts none.
+	m = do(update(m, agentsMsg{agents: as}))
+	if len(f.delivered) != 0 {
+		t.Fatalf("a second round: %q", f.delivered)
+	}
+	m = do(m, cmd)
+	if strings.Join(f.delivered, "|") != "a b" {
+		t.Fatalf("delivered %q", f.delivered)
+	}
+	// Once it is over, the next look starts the next.
+	_ = do(update(m, agentsMsg{agents: as}))
+	if len(f.delivered) != 2 {
+		t.Fatalf("delivered %q", f.delivered)
 	}
 }

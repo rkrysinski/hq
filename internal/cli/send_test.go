@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -283,5 +284,161 @@ func TestSendToAnAgentWaitingForItsSubagentsTypesItInAsItsNextPrompt(t *testing.
 	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ ", "❯ a draft", 1)
 	if code, out, _ := f.run("send", "a", "hi"); code != 0 || out != "queued: a has something in its prompt box, delivered with its next prompt\n" || len(f.tmux.pasted) != 0 {
 		t.Fatalf("typing: exit %d %q", code, out)
+	}
+}
+
+// slashScreens are Claude Code 2.1.304 right after hq sent /model (#125):
+// the command still in the box, its panel in place of the box, then the
+// box empty and at rest.
+func slashScreens(t *testing.T) (inBox, panel, settled string) {
+	return readFixture(t, "screen-styled-model-in-box.txt"), readFixture(t, "screen-styled-model-panel.txt"), readFixture(t, "screen-styled-model-settled.txt")
+}
+
+func TestSendRightAfterASlashCommandWaitsForTheBoxToSettle(t *testing.T) {
+	inBox, panel, settled := slashScreens(t)
+	f := sendFakes(state.Done)
+	f.tmux.screens["%4"] = inBox
+	start := f.now
+	var settledAt, submittedAt time.Time
+	f.onSleep = func() {
+		switch since := f.now.Sub(start); {
+		case since >= 2500*time.Millisecond:
+			if settledAt.IsZero() {
+				settledAt = f.now
+			}
+			f.tmux.screens["%4"] = settled
+		case since >= 400*time.Millisecond:
+			f.tmux.screens["%4"] = panel
+		}
+	}
+	took := f.tmux.onSubmit
+	f.tmux.onSubmit = func() { submittedAt = f.now; took() }
+	code, out, errOut := f.run("send", "a", "/effort medium")
+	if code != 0 || out != "delivered: typed into a as its next prompt\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if got := strings.Join(f.tmux.pasted, "|"); got != "%4 /effort medium" || len(f.inbox["id-a"]) != 0 {
+		t.Fatalf("pasted %q inbox %v", got, f.inbox)
+	}
+	if settledAt.IsZero() || submittedAt.Before(settledAt) {
+		t.Fatalf("typed at %v, the box settled at %v", submittedAt.Sub(start), settledAt.Sub(start))
+	}
+	// A box that never settles keeps the message for the next prompt, once
+	// hq send has waited for it a while.
+	f = sendFakes(state.Done)
+	f.tmux.screens["%4"] = inBox
+	start = f.now
+	code, out, _ = f.run("send", "a", "/effort medium")
+	if code != 0 || out != "queued: a has something in its prompt box, delivered with its next prompt\n" || len(f.tmux.pasted) != 0 {
+		t.Fatalf("exit %d %q pasted %v", code, out, f.tmux.pasted)
+	}
+	if waited := f.now.Sub(start); waited < boxWait || waited > boxWait+time.Second {
+		t.Fatalf("waited %v", waited)
+	}
+}
+
+func TestSendReturnsOnceClaudeTookWhatItTypedIn(t *testing.T) {
+	inBox, panel, _ := slashScreens(t)
+	f := sendFakes(state.Done)
+	var takenAt time.Time
+	f.tmux.onSubmit = func() { f.tmux.screens["%4"] = inBox }
+	f.onSleep = func() {
+		if len(f.tmux.submitted) > 0 && f.tmux.screens["%4"] == inBox {
+			if takenAt.IsZero() {
+				takenAt = f.now.Add(400 * time.Millisecond)
+			} else if !f.now.Before(takenAt) {
+				f.tmux.screens["%4"] = panel
+			}
+		}
+	}
+	code, out, _ := f.run("send", "a", "/model claude-opus-5-5")
+	if code != 0 || out != "delivered: typed into a as its next prompt\n" {
+		t.Fatalf("exit %d %q", code, out)
+	}
+	// So the next send meets the command's panel, not the command.
+	if f.tmux.screens["%4"] != panel || f.now.Sub(takenAt) > time.Second {
+		t.Fatalf("returned %v after Claude took it", f.now.Sub(takenAt))
+	}
+	// Not taken within a while: delivered all the same.
+	f = sendFakes(state.Done)
+	f.tmux.onSubmit = func() { f.tmux.screens["%4"] = inBox }
+	start := f.now
+	if code, out, _ := f.run("send", "a", "/model claude-opus-5-5"); code != 0 || out != "delivered: typed into a as its next prompt\n" {
+		t.Fatalf("exit %d %q", code, out)
+	}
+	if waited := f.now.Sub(start); waited < leaveWait || waited > leaveWait+boxWait {
+		t.Fatalf("waited %v", waited)
+	}
+}
+
+// staleFakes has agent a done at its empty prompt, with a message that has
+// waited a minute in its inbox.
+func staleFakes() *fakes {
+	f := sendFakes(state.Done)
+	f.inbox["id-a"] = []string{"/effort medium"}
+	f.oldest["id-a"] = f.now.Add(-time.Minute)
+	return f
+}
+
+func TestAMessageLeftWaitingForAnAgentAtItsPromptIsTypedInWhenHqLooks(t *testing.T) {
+	for _, args := range [][]string{{"ls"}, {"ls", "--json"}, {"read", "a"}, {"wait", "a", "--timeout", "1s"}} {
+		f := staleFakes()
+		if code, _, errOut := f.run(args...); code != 0 {
+			t.Fatalf("%v: exit %d %q", args, code, errOut)
+		}
+		if got := strings.Join(f.tmux.pasted, "|"); got != "%4 /effort medium" || strings.Join(f.tmux.submitted, " ") != "%4" || len(f.inbox["id-a"]) != 0 {
+			t.Fatalf("%v: pasted %q submitted %v inbox %v", args, got, f.tmux.submitted, f.inbox)
+		}
+	}
+	// So does the list's.
+	f := staleFakes()
+	src := listSource(f.deps(), "%1")
+	as, err := src.Agents(agent.Sandboxes{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	src.Deliver(as)
+	if got := strings.Join(f.tmux.pasted, "|"); got != "%4 /effort medium" || len(f.inbox["id-a"]) != 0 {
+		t.Fatalf("list: pasted %q inbox %v", got, f.inbox)
+	}
+}
+
+func TestAMessageLeftWaitingIsTypedInOnlyAtAnEmptyBoxAtRest(t *testing.T) {
+	inBox, panel, _ := slashScreens(t)
+	for name, change := range map[string]func(f *fakes){
+		// hq send is still on it.
+		"just sent": func(f *fakes) { f.oldest["id-a"] = f.now.Add(-time.Second) },
+		"working":   func(f *fakes) { f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second)} },
+		"typing":    func(f *fakes) { f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1) },
+		"in box":    func(f *fakes) { f.tmux.screens["%4"] = inBox },
+		"panel":     func(f *fakes) { f.tmux.screens["%4"] = panel },
+		"no inbox":  func(f *fakes) { f.tmux.windows[1].Options["inbox"] = "" },
+	} {
+		f := staleFakes()
+		change(f)
+		start := f.now
+		if code, _, errOut := f.run("ls"); code != 0 {
+			t.Fatalf("%s: exit %d %q", name, code, errOut)
+		}
+		if len(f.tmux.pasted) != 0 || len(f.inbox["id-a"]) != 1 {
+			t.Fatalf("%s: pasted %v inbox %v", name, f.tmux.pasted, f.inbox)
+		}
+		// One look, not hq send's wait.
+		if waited := f.now.Sub(start); waited >= boxWait {
+			t.Fatalf("%s: waited %v", name, waited)
+		}
+	}
+}
+
+func TestSendDoesNotTypeIntoABoxClaudeIsAboutToRedraw(t *testing.T) {
+	// A prompt just taken: the box empty, no spinner yet, for one look;
+	// then Claude at work on it, its hooks not yet reported.
+	f := sendFakes(state.Done)
+	f.onSleep = func() {
+		f.tmux.screens["%4"] = strings.Replace(emptyBox, "● Tests pass.\n", "● Tests pass.\n\n✶ Brewing… (1s)\n", 1)
+	}
+	code, out, _ := f.run("send", "a", "hi")
+	if code != 0 || out != "queued: a has something in its prompt box, delivered with its next prompt\n" || len(f.tmux.pasted) != 0 {
+		t.Fatalf("exit %d %q pasted %v", code, out, f.tmux.pasted)
 	}
 }
