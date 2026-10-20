@@ -99,8 +99,7 @@ var nameRE = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 const MaxName = 32
 
 // NameChars reports whether name is made of the characters a name may have:
-// letters, digits, -, _ and . (spec §4.2), and has at least one. A dot is
-// no tmux target separator to hq: it targets windows by id, never by name.
+// letters, digits, -, _ and . (spec §4.2), and has at least one.
 func NameChars(name string) bool { return nameRE.MatchString(name) }
 
 // NewID returns a fresh agent id.

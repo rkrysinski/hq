@@ -90,6 +90,10 @@ func TestTheDialogStartsAgentsAsHqNewDoes(t *testing.T) {
 			t.Fatalf("%s: docked %q keys %v", dir, f.tmux.docked, f.tmux.dockKeys)
 		}
 	}
+	// A release's name, its version and all (#119).
+	if err := start("rel-1.10.5-qa", "/w/app", ""); err != nil || f.tmux.windows[len(f.tmux.windows)-1].Name != "rel-1.10.5-qa" {
+		t.Fatalf("a release's name: %v", err)
+	}
 	// A failure to dock leaves the agent started, the dialog closing.
 	f.tmux.dockErr = errors.New("tmux gone")
 	if err := start("b1", "/w/app", ""); err != nil {
@@ -123,10 +127,6 @@ func TestTheDialogsErrorsBelongToTheirFields(t *testing.T) {
 	}
 	if len(f.tmux.windows) != before {
 		t.Fatal("a window was created")
-	}
-	// A release's name, its version and all, is no error (#119).
-	if err := start("rel-1.10.5-qa", "/w/app", ""); err != nil || f.tmux.windows[len(f.tmux.windows)-1].Name != "rel-1.10.5-qa" {
-		t.Fatalf("a release's name: %v", err)
 	}
 	f.sbx.createErr = errors.New("daemon not running")
 	var fe dialog.FieldError
