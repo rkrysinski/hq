@@ -1,0 +1,34 @@
+  hq  1 agent · 1 need you  view: attention                                                                Wed 16:13
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ a       cc-work     master        ● needs input  42s   Make auto mode your default perm  ⏎ open   c code   k kill  │
+
+
+
+
+
+
+─┬ ▸ a · master · claude-cc-work                                                                                    ┬─
+ │ ▐▛███▛█   Claude Code v2.1.285                                                                                   │
+ │▝▜██████▀  Opus 5.5 · API Usage Billing                                                                           │
+ │ ▝▝   ▝▝   $S/cc-work           │
+ │                                                                                                                  │
+ │  Get to finished work sooner with Opus 5.5. Switch anytime with /model.                                          │
+ │                                                                                                                  │
+ │──────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │ Make auto mode your default permission mode?                                                                     │
+ │                                                                                                                  │
+ │   Auto mode lets Claude handle permission prompts automatically. Claude checks each tool call for risky          │
+ │   actions and prompt injection before executing, runs the ones it assesses as lower-risk, and blocks the rest.   │
+ │                                                                                                                  │
+ │   ❯ Yes, set auto mode as my default permission mode                                                             │
+ │     No, keep bypass permissions                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+ │                                                                                                                  │
+─┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit

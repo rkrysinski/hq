@@ -1,0 +1,15 @@
+1792219462.685626884 KEY e E5-prompt
+1792219462.690674259 KEY e E5-enter
+1792219462.712615300 hook UserPromptSubmit pid=944222 {}
+1792219464.642641010 act-start PreToolUse pid=945096
+1792219464.641376218 hook PreToolUse pid=945093 {"tool_name":"AskUserQuestion"}
+1792219464.647688343 act-none PreToolUse pid=945096
+1792219464.668049968 act-start PermissionRequest pid=945114
+1792219464.667117760 hook PermissionRequest pid=945111 {"tool_name":"AskUserQuestion"}
+1792219470.664649221 hook Notification pid=947174 {"notification_type":"permission_prompt"}
+1792219474.696566556 DROP deny interrupt
+1792219474.803919056 act-answer PermissionRequest pid=945114 {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"hq: cancelled","interrupt":true}}}
+1792219479.701217434 SHOT e E5-after
+1792219489.893071188 KEY e E5-esc
+1792219490.466629772 hook Notification pid=953373 {"notification_type":"idle_prompt"}
+1792219492.899705398 SHOT e E5-esc-done

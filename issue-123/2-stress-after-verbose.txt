@@ -1,0 +1,162 @@
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (3.08s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.81s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.49s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.51s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.83s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.51s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.84s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.64s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.91s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.56s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.82s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.91s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.52s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.83s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.52s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.51s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.91s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.90s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.52s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.90s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.88s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.51s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.76s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.54s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.88s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.53s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.92s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.53s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.90s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.88s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (3.27s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.90s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.51s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.88s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.39s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.62s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.88s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.49s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.88s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.87s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.92s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.51s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.50s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.87s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.49s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.91s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.51s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.81s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.40s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.90s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.69s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.89s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.49s)
+=== RUN   TestAnswerFromTheCLIClosesTheDialogThroughItsHook
+--- PASS: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.90s)
+=== RUN   TestKillAndStopRemoveTheirAgentsStateFiles
+--- PASS: TestKillAndStopRemoveTheirAgentsStateFiles (1.49s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/cli	176.670s

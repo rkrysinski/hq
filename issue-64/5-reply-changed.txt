@@ -1,0 +1,9 @@
+reply     bytes 0-32767 of 82022
+next      hq read big --offset 32768 --since 2026-10-15T12:26:28.990909765Z
+delivered: typed into big as its next prompt
+NAME  REPO  BRANCH  STATE  AGE  LAST
+big   book   main    done   1s   Line 0001 of the long reply, a recon report, pasted verbati…
+$ hq read big --offset 32768 --since 2026-10-15T12:26:28.990909765Z; echo "exit $?"
+hq: big's reply changed since 2026-10-15T12:26:28.990909765Z: read it again from its start, without --offset
+exit 1
+$ 

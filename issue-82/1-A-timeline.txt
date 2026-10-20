@@ -1,0 +1,19 @@
+16:09:58.371 trans user 3bc5bf70 Write a 400-word story about a lighthous
+16:09:58.376 hook  UserPromptSubmit 3bc5bf70 prompt=Write a 400-word story about a lighthous
+16:10:04.842 trans queue-enqueue 3bc5bf70 None
+16:10:06.655 hook  UserPromptSubmit 3bc5bf70 prompt=Run exactly this bash command in the for
+16:10:06.663 trans queue-enqueue 3bc5bf70 Run exactly this bash command in the for
+16:10:25.923 hook  Stop 3bc5bf70
+16:10:25.935 trans turn_duration 3bc5bf70
+16:10:25.947 trans queue-dequeue 3bc5bf70 None
+16:10:25.954 trans user 423a82b5 <command-name>/clear</command-name>     
+16:10:25.958 hook  SessionEnd 3bc5bf70
+16:10:25.969 trans user 423a82b5 <local-command-caveat>The command below 
+16:10:25.974 hook  SessionStart 423a82b5 source=clear
+16:10:25.982 trans queue-dequeue 423a82b5 None
+16:10:26.017 trans user 423a82b5 Run exactly this bash command in the for
+16:10:29.479 hook  PreToolUse 423a82b5 tool_name=Bash
+16:10:54.571 hook  PostToolUse 423a82b5 tool_name=Bash
+16:10:58.584 hook  Stop 423a82b5
+16:10:58.595 trans turn_duration 423a82b5
+16:11:02.627 hook  SubagentStop 423a82b5

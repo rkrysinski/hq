@@ -1,0 +1,14 @@
+  hq  2 agents · 2 done  view: attention                                                 Tue 17:14
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+
+                                nothing needs you - press a for all
+
+
+─┬ ▸ placeholder
+ │hq: nothing docked - select an agent above or press n                                           │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ⏎ open  c code  p pr  k kill  n new  / name  q quit

@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "hq": {
+      "type": "stdio",
+      "command": "…/qa/bin/hq",
+      "args": [
+        "mcp",
+        "claude-code"
+      ],
+      "env": {
+        "HQ_TMUX_SOCKET": "qa115",
+        "PATH": "…/qa/bin:…/qa/bin-before2:…/qa/bin:…/qa/bin-before2:/home/agent/.local/bin:/home/agent/.local/bin:/usr/local/share/npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      },
+      "timeout": 3660000
+    }
+  }
+}

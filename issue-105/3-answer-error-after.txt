@@ -1,0 +1,8 @@
+$ time hq answer a --dialog 36ff48 1; echo "exit $?"
+hq: a took the answer but did not leave its dialog within 5s: it is needs input; its sandbox's template may have a PermissionRequest hook that answers AskUserQu
+estion by itself (recreate the sandbox from a template whose hooks leave AskUserQuestion alone), or answer it at the agent (hq go a)
+real	0m5.289s
+user	0m0.392s
+sys	0m0.140s
+exit 3
+$

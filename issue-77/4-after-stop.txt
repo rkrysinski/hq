@@ -1,0 +1,5 @@
+NAME  REPO  BRANCH  STATE  AGE  LAST
+qa77  app   master  done   1m   I ran all three commands. 1. **`ls -la`**: the directory is…
+0850ef550c34
+0850ef550c34.stop
+$

@@ -1,0 +1,26 @@
+# hq go with no terminal (stdin not a terminal), dashboard open
+$ hq go g1 </dev/null
+docked g1 in the open dashboard
+[exit code: 0]
+
+# hq send: long messages (spec limit 8 KiB)
+$ hq send g1 <3000 characters>
+delivered: typed into g1 as its next prompt
+  agent replied to a prompt of 3000 characters; reply ends with 'xxxx END' ; state done
+$ hq send g1 <8000 characters>
+delivered: typed into g1 as its next prompt
+  agent replied to a prompt of 3000 characters; reply ends with 'xxxx END' ; state done
+# 3000 characters arrive whole. 8000 are typed into the session (visible in the pane) but never submitted:
+# the stand-in Claude reads its terminal line by line, and a Linux terminal line holds at most 4095 characters,
+# so this is a limit of the stand-in, not evidence against hq. Needs a real Claude session to check.
+
+# hq send with a long message of many lines (the shape the failing tmux paste test uses), three sizes, on this WSL 1
+$ hq send p1 <20 lines, 1799 characters>
+delivered: typed into p1 as its next prompt
+  the agent was prompted with 1799 characters, 20 of 20 lines; state done
+$ hq send p1 <45 lines, 4049 characters>
+delivered: typed into p1 as its next prompt
+  the agent was prompted with 4049 characters, 45 of 45 lines; state done
+$ hq send p1 <85 lines, 7649 characters>
+delivered: typed into p1 as its next prompt
+  the agent was prompted with 7649 characters, 85 of 85 lines; state done

@@ -1,0 +1,31 @@
+$ hold-lock ~/.claude.json 3 & claude --debug-file ~/debug.log mcp add-json --scope user github '{"command":"npx"}'; wait; grep -o 'Failed to save config with lock.*' ~/d
+ebug.log
+[1] 928971
+lock given up at 10:09:13.352
+Added stdio MCP server github to user config
+[1]+  Done                       hold-lock ~/.claude.json 3
+Failed to save config with lock: Error: Lock file is already being held
+Failed to save config with lock: Error: Lock file is already being held
+Failed to save config with lock: Error: Lock file is already being held
+Failed to save config with lock: Error: Lock file is already being held
+Failed to save config with lock: Error: Lock file is already being held
+Failed to save config with lock: Error: Lock file is already being held
+Failed to save config with lock: Error: Lock file is already being held
+Failed to save config with lock: Error: Lock file is already being held
+Failed to save config with lock: Error: Lock file is already being held
+$ hold-lock ~/.claude.json 2 & date +%T.%N | cut -c1-12; hq mcp install claude-code 2>&1 | short; date +%T.%N | cut -c1-12; wait
+[1] 930050
+10:09:16.333
+lock given up at 10:09:18.356
+added hq to Claude Code (…/qa/home3/.claude.json)
+the file as it was: …/qa/home3/.claude.json.hq-backup-20261018-080916
+restart Claude Code to load it
+[1]+  Done                       hold-lock ~/.claude.json 2
+10:09:18.374
+$ ls -A ~; jq -c '.mcpServers|keys' ~/.claude.json
+.claude.json  .claude.json.hq-backup-20261018-080916  backups  debug.log  latest
+["github","hq"]
+$
+
+github: npx  - ✘ Failed to connect — MCP server "github" connection timed out after 30000ms
+hq: …/qa/bin/hq mcp claude-code - ✔ Connected

@@ -1,0 +1,9 @@
+# stress.sh HQ DIR: Claude Code saves 12 servers while hq rewrites the same .claude.json in a loop; prints what was lost.
+$ for r in 1 2 3; do stress.sh $(which hq-old) ~/old$r; done 2>&1 | short; for r in 1 2 3; do stress.sh $(which hq-new) ~/new$r; done 2>&1 | short
+hq-old: hq runs 3065, hq errors , servers kept 7 of 12, lost: s2 s4 s6 s9 s11
+hq-old: hq runs 3397, hq errors , servers kept 8 of 12, lost: s2 s4 s8 s9
+hq-old: hq runs 3291, hq errors , servers kept 7 of 12, lost: s2 s4 s6 s8 s12
+hq-new: hq runs 3994, hq errors , servers kept 12 of 12, lost:
+hq-new: hq runs 3485, hq errors , servers kept 12 of 12, lost:
+hq-new: hq runs 3326, hq errors , servers kept 12 of 12, lost:
+$

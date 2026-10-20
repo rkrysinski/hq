@@ -1,0 +1,9 @@
+Throwaway probe run https://github.com/rkrysinski/hq/actions/runs/39009738855 (branch deleted after the run)
+go test -count=20 -v -tags integration -run 'TestAStoppedSandboxLeavesTheSessionReadable$' ./internal/cli/
+
+repeat (macos-latest, dev) pass 20 fail 0 exit 0
+repeat (macos-latest, dev) ok  	github.com/rkrysinski/hq/internal/cli	22.878s
+repeat (macos-latest, fix) pass 20 fail 0 exit 0
+repeat (macos-latest, fix) ok  	github.com/rkrysinski/hq/internal/cli	25.480s
+repeat (ubuntu-latest, fix) pass 20 fail 0 exit 0
+repeat (ubuntu-latest, fix) ok  	github.com/rkrysinski/hq/internal/cli	17.705s

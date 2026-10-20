@@ -1,0 +1,5 @@
+$ hq-before answer a --dialog 8424d3 1; echo "exit $?"
+hq: a took the answer but did not leave its dialog within 5s: it is needs input; its sandbox's template may have a claude-approve hook that still answers AskUse
+rQuestion (recreate the sandbox from a newer image), or answer it at the agent (hq go a)
+exit 3
+$

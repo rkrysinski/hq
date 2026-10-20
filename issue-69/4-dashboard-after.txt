@@ -1,0 +1,40 @@
+  hq  5 agents · 2 need you · 2 done · 1 working  view: attention                                                                                    Fri 10:20
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ e       app         master        ● needs input  6s    Change effort level?                                                        ⏎ open   c code   k kill  │
+  b       app         master        ● needs input  39s   Which colour do you pick?
+  nothing else needs you · 3 more agents hidden · press a to show all
+
+
+
+
+─┬ ▸ e · master · claude-app
+ │                                                                                                                                                            │
+ │claude in claude-app: hello                                                                                                                                 │
+ │fake claude: ready                                                                                                                                          │
+ │❯ hello                                                                                                                                                     │
+ │● Done: hello                                                                                                                                               │
+ │────────────────────────────────────────                                                                                                                    │
+ │❯                                                                                                                                                           │
+ │────────────────────────────────────────                                                                                                                    │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                                                             │
+ │/effort max                                                                                                                                                 │
+ │                                                                                                                                                            │
+ │▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔                                                                                            │
+ │   Change effort level?                                                                                                                                     │
+ │   Your next response will be slower and use more tokens                                                                                                    │
+ │                                                                                                                                                            │
+ │   This conversation is cached for the current effort level. Switching to max means the full history gets re-read on your next message.                     │
+ │                                                                                                                                                            │
+ │   ❯ 1. Yes, switch to max                                                                                                                                  │
+ │     2. No, go back                                                                                                                                         │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit

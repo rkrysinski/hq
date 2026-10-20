@@ -1,0 +1,11 @@
+$ scripts/local-dev.sh read a | grep pending
+pending   0
+$ scripts/local-dev.sh send a '/effort max'
+delivered: typed into a as its next prompt
+$ scripts/local-dev.sh ls
+NAME  REPO     BRANCH  STATE        AGE  LAST
+a     cc-work  master  needs input  0s   Change effort level?
+$ scripts/local-dev.sh ls
+NAME  REPO     BRANCH  STATE  AGE  LAST
+a     cc-work  master  done   39s  hi `/effort max` isn't taking effect. Both times it replied…
+$

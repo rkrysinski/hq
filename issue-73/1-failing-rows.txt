@@ -1,0 +1,29 @@
+# Reproduction on dev (f3866cd) with a diagnostic added to the test: 12 test binaries at once, -test.count=10 each
+# 8 of 120 runs failed; every failure is the message half, AGE 0.
+
+--- FAIL: TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd (3.58s)
+    cli_integration_test.go:588: DIAG files
+        == ef921bc392d8
+        branch main
+        
+        == ef921bc392d8.stop
+        branch main
+        {"background_tasks":[],"cwd":"/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd3600116920/002/app","hook_event_name":"Stop","last_assistant_message":"Done: say hi","permission_mode":"bypassPermissions","session_id":"00000046-0000-4000-8000-000000000046","stop_hook_active":false}
+    cli_integration_test.go:589: DIAG killed 15:29:41.674 seen 15:29:41.685 ended row {Name:a Repo:app RepoPath:/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd3600116920/002/app Branch: State:ended Since:2026-10-16 15:29:41.671125566 +0000 UTC AgeSeconds:0 Last:[session ended] Sandbox:claude-app Pending:0} panes "0:\n1:1792164581\n"
+FAIL
+--- FAIL: TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd (3.59s)
+    cli_integration_test.go:588: DIAG files
+        == 8b2de713ddf8
+        branch main
+        
+        == 8b2de713ddf8.stop
+...
+
+    cli_integration_test.go:589: DIAG killed 15:29:41.674 seen 15:29:41.685 ended row {Name:a Repo:app RepoPath:/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd3600116920/002/app Branch: State:ended Since:2026-10-16 15:29:41.671125566 +0000 UTC AgeSeconds:0 Last:[session ended] Sandbox:claude-app Pending:0} panes "0:\n1:1792164581\n"
+    cli_integration_test.go:589: DIAG killed 15:29:41.741 seen 15:29:41.750 ended row {Name:a Repo:app RepoPath:/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd3560743806/002/app Branch: State:ended Since:2026-10-16 15:29:41.739125566 +0000 UTC AgeSeconds:0 Last:[session ended] Sandbox:claude-app Pending:0} panes "0:\n1:1792164581\n"
+    cli_integration_test.go:589: DIAG killed 15:29:56.086 seen 15:29:56.094 ended row {Name:a Repo:app RepoPath:/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd3628161191/002/app Branch: State:ended Since:2026-10-16 15:29:56.085007364 +0000 UTC AgeSeconds:0 Last:[session ended] Sandbox:claude-app Pending:0} panes "0:\n1:1792164596\n"
+    cli_integration_test.go:589: DIAG killed 15:29:59.672 seen 15:29:59.681 ended row {Name:a Repo:app RepoPath:/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd2562974590/002/app Branch: State:ended Since:2026-10-16 15:29:59.671125574 +0000 UTC AgeSeconds:0 Last:[session ended] Sandbox:claude-app Pending:0} panes "0:\n1:1792164599\n"
+    cli_integration_test.go:589: DIAG killed 15:30:06.841 seen 15:30:06.850 ended row {Name:a Repo:app RepoPath:/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd3989104249/002/app Branch: State:ended Since:2026-10-16 15:30:06.839125578 +0000 UTC AgeSeconds:0 Last:[session ended] Sandbox:claude-app Pending:0} panes "0:\n1:1792164606\n"
+    cli_integration_test.go:589: DIAG killed 15:29:56.057 seen 15:29:56.070 ended row {Name:a Repo:app RepoPath:/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd1003643162/002/app Branch: State:ended Since:2026-10-16 15:29:56.055125573 +0000 UTC AgeSeconds:0 Last:[session ended] Sandbox:claude-app Pending:0} panes "0:\n1:1792164596\n"
+    cli_integration_test.go:589: DIAG killed 15:29:59.646 seen 15:29:59.655 ended row {Name:a Repo:app RepoPath:/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd176110369/002/app Branch: State:ended Since:2026-10-16 15:29:59.647294158 +0000 UTC AgeSeconds:0 Last:[session ended] Sandbox:claude-app Pending:0} panes "0:\n1:1792164599\n"
+    cli_integration_test.go:589: DIAG killed 15:29:34.544 seen 15:29:34.552 ended row {Name:a Repo:app RepoPath:/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd3595064545/002/app Branch: State:ended Since:2026-10-16 15:29:34.539125562 +0000 UTC AgeSeconds:0 Last:[session ended] Sandbox:claude-app Pending:0} panes "0:\n1:1792164574\n"

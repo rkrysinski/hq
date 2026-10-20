@@ -1,0 +1,8 @@
+NAME  REPO  BRANCH  STATE     AGE  LAST
+big   book   -       starting  1m   -
+pending   1
+reply     none
+queued: big is starting, delivered with its first prompt, or when it stops
+nothing yet
+next: hq wait big --since 2026-10-15T12:23:58.91428986Z
+$ 

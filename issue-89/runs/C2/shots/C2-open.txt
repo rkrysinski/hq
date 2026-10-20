@@ -1,0 +1,30 @@
+ ▝▝   ▝▝   /…/0000001d-0000-4000-8000-00000000001d/scratchpad/spike/wP
+
+
+❯ Use the AskUserQuestion tool once to ask me "Which color?" with the options Red and Blue (single
+  choice). After my answer, reply with one line quoting exactly the answer you received, and do
+  nothing else.
+
+● User declined to answer questions
+  ⎿  · Which color? (Red / Blue)
+
+✻ Baked for 1s · done 6:43 AM
+
+❯ Use the AskUserQuestion tool once to ask me "Which fruit?" with the options Apple and Pear
+  (single choice). After my answer, reply with one line quoting exactly the answer you received,
+  and do nothing else.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ Fruit
+
+Which fruit?
+
+❯ 1. Apple
+     Apple
+  2. Pear
+     Pear
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+

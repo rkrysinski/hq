@@ -1,0 +1,13 @@
+10:09:56 hq ls: a1 repo main working 3s Done: start one background subagent
+10:09:57 typed in a1: detach sleep 180
+10:09:58 hq wait a1 returned: NAME  REPO  BRANCH  STATE  AGE  LAST
+a1    repo  main    done   0s   The subagent waits on sleep 180.
+next: hq wait a1 --since 2026-10-10T08:09:58.171249203Z
+10:09:59 hq ls: a1 repo main done 1s The subagent waits on sleep 180.
+10:10:02 typed in a1: wake
+10:10:04 hq ls: a1 repo main done 1s The background work is done, 0 still running.
+10:10:12 typed in a2: detach python3 -m http.server
+10:10:14 hq ls: a2 repo main done 1s The subagent waits on python3 -m http.server.
+10:10:17 typed in a2: wake
+10:10:19 hq ls: a2 repo main done 1s The background work is done, 0 still running.
+10:10:27 hq ls: a3 repo main done 3s Done: start a server

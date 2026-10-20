@@ -1,0 +1,30 @@
+
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once to ask me "Which fruit?" with the options Apple and Pear [39m
+  [38;5;231m(single choice). After my answer, reply with one line quoting exactly the answer you received, [39m
+  [38;5;231mand do nothing else.[39m
+
+[38;5;246m[49m● [39mUser answered Claude's questions:
+[38;5;246m [39m [38;5;246m⎿[39m [38;5;246m · Which fruit? → Apple[39m
+
+[38;5;231m●[39m "Which fruit?"="Apple"
+
+[38;5;246m✻[39m [38;5;246mWorked for 4s · done 6:30 AM[39m
+
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once to ask me "Which tree?" with the options Oak and Pine (single [39m
+  [38;5;231mchoice). After my answer, reply with one line quoting exactly the answer you received, and do [39m
+  [38;5;231mnothing else.[39m
+
+[38;5;246m[49m● [39mUser declined to answer questions
+[38;5;246m  ⎿  · Which tree? (Oak / Pine)[39m
+
+[38;5;246m✻[39m [38;5;246mCogitated for 2s · done 6:31 AM[39m
+
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m❯ 
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  [38;5;211m⏵⏵ bypass permissions on[38;5;246m (shift+tab to cycle)[39m                                   [38;5;246m● high · /effort[39m
+
+
+
+
+

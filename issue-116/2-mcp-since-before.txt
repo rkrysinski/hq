@@ -1,0 +1,44 @@
+# instructions
+  hq delivers it when the agent is ready, without interrupting it; its answer is its next reply: wait for 
+  the agent with send's next_since as since, then read it.
+  - Every list, read, send and wait result carries next_since, the moment it was taken.
+  Always pass the next_since of the most recent of them as wait's since: wait then returns every change 
+  after that moment, even one that happened before wait was called, and none twice.
+  - To watch agents, call wait in a loop, each time with the next_since of the most recent result: it 
+  returns as soon as an agent is done, asks a question, needs input or ends, or returns no agents after 
+  its timeout; then call it again.
+# wait
+  Wait until one of the named agents (every agent when none is named) is done, asks a question, needs 
+  input or ends, and return those agents as list gives them, with next_since, as JSON.
+  since is required: the next_since of the most recent list, read, send or wait result, so a change 
+  between that result and this call is not missed.
+  To watch agents, call it in a loop, passing each result's next_since as the next call's since: no 
+  change is then missed or returned twice.
+  the next_since of the most recent list, read, send or wait result (e.g.
+# read
+  One agent in full, as JSON: what list gives, what it asks and the open dialog's id included (asks: 
+  while it needs input the open dialog's questions and options, a permission's tool and command, or an 
+  MCP server's form (server, message and fields: each with its name, title, type, whether it is required, 
+  options and default; or the url it sends the user to); the question while in question; null otherwise), 
+  its worktree, its last reply, and next_since, the moment of the read, to pass to wait as since.
+  To read on, call read again with offset set to next_offset and since set to this read's next_since; if 
+  the agent has replied anew in between, it says the reply changed: read it again from its start.
+  with offset: the next_since of the read that gave that next_offset, so the page is of the same reply 
+# send
+  It returns, as JSON, how the message goes (delivery: queued or delivered) and next_since, the moment 
+  before the message was left.
+  The agent's answer is its next reply: wait for the agent with that next_since as since (it returns the 
+  answer even if the agent answered before wait was called), then read it.
+# answer
+  It returns once the agent has left the dialog, as JSON: its state and next_since, the moment before the 
+  answer was left, to pass to wait as since.
+# list
+  List every agent as JSON (agents), those that need the user first: name, repo, branch, state, since and 
+  age_seconds (in that state), last (its last message, one line), sandbox, pending (messages waiting for 
+  it), dialog (while it needs input: the open dialog's id, for answer), own_tasks (while it is done or in 
+  question: the shell commands and watches of its own still running at that turn end, each with its type, 
+  shell or monitor, and text, the command or the watch's description; [] when none) and asks (what it 
+  asks: while it needs input the open dialog's questions and options, a permission's tool and command, or 
+  an MCP server's form (server, message and fields: each with its name, title, type, whether it is 
+  required, options and default; or the url it sends the user to); the question while in question; null 
+  otherwise); and next_since, the moment of the list, to pass to wait as since.

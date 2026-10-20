@@ -1,0 +1,8 @@
+$ gh pr view 110 --json title,baseRefName,headRefName,files
+{"base":"issue-108-skip-docs-ci","files":["README.md"],"head":"qa-108-md","title":"QA #108: md-only change (throwaway, do not merge)"}
+
+$ gh pr checks 110
+no checks reported on the 'qa-108-md' branch
+
+$ gh run list --workflow Tests --branch qa-108-md
+[]

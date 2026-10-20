@@ -1,0 +1,23 @@
+PASS 1 Po wdrożeniu + footer -> two bullets
+PASS 2 Przed wdrożeniem + footer -> two bullets
+PASS 3 footer then ## Other -> two bullets, no Other
+PASS 4a section holding only the footer -> empty
+PASS 5 rule + footer -> rule trimmed too
+PASS 6 CRLF body + footer -> two bullets
+PASS 7 footer without emoji, other URL -> dropped
+PASS 8 no footer: inner rule kept
+PASS 9 no footer: trailing rule kept as before
+PASS 10 heading must match exactly
+PASS 12 footer mid-section: author's own trailing rule kept
+PASS 13 two rules + footer -> both trimmed
+PASS 14 rule + footer only -> empty
+PASS 4b only-footer PR gets no block
+PASS 11a before.md identical with/without footer
+PASS 11b after.md identical with/without footer
+--- after.md with footer:
+**With footer (#2)**
+
+- one
+- two
+
+passed 16, failed 0

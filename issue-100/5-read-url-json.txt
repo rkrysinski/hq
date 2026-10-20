@@ -1,0 +1,23 @@
+{
+  "name": "a",
+  "repo": "app",
+  "repo_path": "/tmp/claude-1000/-home-dev-work-repositories-hq/00000018-0000-4000-8000-000000000018/scratchpad/qa/app",
+  "branch": "main",
+  "state": "needs input",
+  "since": "2026-10-17T19:00:33.758080505Z",
+  "age_seconds": 5,
+  "last": "Sign in to the example service.",
+  "sandbox": "claude-app",
+  "pending": 0,
+  "own_tasks": [],
+  "asks": {
+    "server": "elicit",
+    "message": "Sign in to the example service.",
+    "url": "https://example.com/sign-in?session=42"
+  },
+  "worktree": "/tmp/claude-1000/-home-dev-work-repositories-hq/00000018-0000-4000-8000-000000000018/scratchpad/qa/app",
+  "reply": "I called it again, and no color came back because the color prompt was cancelled. The only color picked so far is **red**, from the first call.",
+  "reply_size": 143,
+  "next_offset": null,
+  "next_since": "2026-10-17T19:00:39.258369799Z"
+}

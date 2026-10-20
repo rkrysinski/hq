@@ -1,0 +1,26 @@
+$ git grep -niF -e claude-approve -e <tag> -e <org>; echo "exit $?"
+exit 1
+
+$ git grep -nF sbx-image
+README.md:35:    "template": "ghcr.io/<org>/sbx-image:latest",
+internal/cli/cli_integration_test.go:238:	if err := os.WriteFile(file, []byte(`{"sandbox":{"template":"sbx-image:local","staticMcp":["pencil"]}}`), 0o644); err != nil {
+internal/cli/cli_integration_test.go:247:	if !strings.HasPrefix(string(log), "--quiet --template sbx-image:local --static-mcp pencil claude F:") {
+internal/cli/cli_integration_test.go:252:	t.Setenv("SBX_STUB_CREATE_ERR", "template sbx-image:local not found")
+internal/cli/cli_integration_test.go:254:	if want := "error: template sbx-image:local not found; created with sandbox.template sbx-image:local, sandbox.staticMcp pencil (" + file + ")\n"; code != ExitEnvironment || !strings.HasSuffix(errOut, want) {
+internal/cli/new_test.go:146:		{"from the file", prefs.Sandbox{Template: "sbx-image:local", StaticMCP: []string{"pencil", " ", "docs "}}, nil,
+internal/cli/new_test.go:147:			sbx.Options{Template: "sbx-image:local", StaticMCP: []string{"pencil", "docs"}}},
+internal/cli/new_test.go:148:		{"the environment wins", prefs.Sandbox{Template: "sbx-image:local", StaticMCP: []string{"pencil"}},
+internal/cli/new_test.go:173:	f.prefs.Sandbox = prefs.Sandbox{Template: "sbx-image:local"}
+internal/cli/new_test.go:184:	f.env["HQ_SBX_TEMPLATE"] = "sbx-image:gone"
+internal/cli/new_test.go:188:	want := "hq: sbx: error: image not found; created with sandbox.template sbx-image:gone (HQ_SBX_TEMPLATE), sandbox.staticMcp pencil (/home/u/.config/hq/preferences.json)\n"
+internal/cli/new_test.go:194:	f.prefs.Sandbox.Template = "sbx-image:local"
+internal/cli/new_test.go:196:	if want := "hq: sbx: error: image not found; created with sandbox.template sbx-image:local, sandbox.staticMcp pencil (/home/u/.config/hq/preferences.json)\n"; errOut != want {
+internal/prefs/prefs_test.go:89:	if err := os.WriteFile(path, []byte(`{"sandbox":{"template":"sbx-image:local","staticMcp":["pencil","docs"],"later":1},"sort":"repo"}`), 0o644); err != nil {
+internal/prefs/prefs_test.go:93:	if p.Sandbox.Template != "sbx-image:local" || strings.Join(p.Sandbox.StaticMCP, ",") != "pencil,docs" {
+internal/prefs/prefs_test.go:104:	if q := Load(path); q.Sandbox.Template != "sbx-image:local" || len(q.Sandbox.StaticMCP) != 2 {
+internal/sbx/sbx_integration_test.go:41:	if err := c.Create("/w/app", Options{Template: "sbx-image:local", StaticMCP: []string{"pencil", "docs"}}); err != nil {
+internal/sbx/sbx_integration_test.go:45:	if got := strings.TrimSpace(string(log)); got != `--quiet --template sbx-image:local --static-mcp pencil,docs claude F:\w\app` {
+internal/sbx/sbx_integration_test.go:51:	t.Setenv("SBX_STUB_CREATE_ERR", "image sbx-image:gone not found")
+internal/sbx/sbx_integration_test.go:52:	err := c.Create("/w/lib", Options{Template: "sbx-image:gone"})
+internal/sbx/sbx_integration_test.go:53:	if err == nil || !strings.HasSuffix(err.Error(), ": error: image sbx-image:gone not found") {
+internal/sbx/sbx_test.go:97:		{"template", Options{Template: "sbx-image:local"}, []string{"--template", "sbx-image:local"}},

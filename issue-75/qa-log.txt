@@ -1,0 +1,21 @@
+# QA for #75: tools/capture/capture.sh driven with the real Claude Code 2.1.301
+# (sbx sandbox, the template's managed settings), CAPTURE_SOCKET=qa75-cap.
+$ tools/capture/capture.sh mcp $W
+.../qa75-work/mcp.json
+$ cat $W/mcp.json
+{"mcpServers":{"elicit":{"type":"stdio","command":".../qa75-work/elicit"}}}
+$ tools/capture/capture.sh start main 100x30 $W --permission-mode bypassPermissions --mcp-config $W/mcp.json
+$ tools/capture/capture.sh shot main 1-trust          # trust dialog of a fresh dir
+$ tools/capture/capture.sh keys main Down Enter
+$ tools/capture/capture.sh shot main 2-ready          # empty box
+$ tools/capture/capture.sh keys main -l "Call the ask_color tool of the elicit MCP server once, then tell me the answer in one line."
+$ tools/capture/capture.sh keys main Enter
+$ tools/capture/capture.sh shot main 3-elicit-open    # "MCP server “elicit” requests your input"
+$ tools/capture/capture.sh keys main Right; ... Space; ... Left; ... Down; ... Enter   # pick red, Accept
+$ tools/capture/capture.sh shot main 4-elicit-answered  # spinner "✻ elicit: ask_color… (7s ·", tool works on 20 s
+$ tools/capture/capture.sh shot main 5-turn-done      # reply "You picked red.", bare box
+$ tools/capture/capture.sh stop
+$ ls /tmp/tmux-1000/qa75-cap
+ls: cannot access '/tmp/tmux-1000/qa75-cap': No such file or directory
+$ ps -eo pid,args | grep '[q]a75-work/elicit'
+(none: the MCP server ended with claude)

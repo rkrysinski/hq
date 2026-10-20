@@ -1,0 +1,18 @@
+06:29:59.421 hq wait started; returned 06:30:07.850
+{
+  "agents": [
+    {
+      "name": "a",
+      "repo": "work",
+      "repo_path": "/tmp/claude-1000/-home-dev-work-repositories-hq/00000042-0000-4000-8000-000000000042/scratchpad/work",
+      "branch": "master",
+      "state": "done",
+      "since": "2026-10-17T06:30:07.591808893Z",
+      "age_seconds": 0,
+      "last": "Interrupted",
+      "sandbox": "claude-work",
+      "pending": 0
+    }
+  ],
+  "next_since": "2026-10-17T06:30:07.594957351Z"
+}

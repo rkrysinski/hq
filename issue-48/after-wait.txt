@@ -1,0 +1,14 @@
+$ # the sandbox takes until 0.3 s after hq wait began to start (stub sbx)
+$ hq new a . "hello"; (sleep 0.3; touch $SBX_STUB_BOOT) & hq wait --since 1m; sleep 1; hq ls; echo finis
+hed
+creating a sandbox for app (first time only; log in to Claude when the session asks)
+started a in app (sandbox claude-app); enter it with: hq go a
+[1] 799196
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   main    done   0s   Done: hello
+next: hq wait --since 2026-10-06T15:57:16.255976204Z
+[1]+  Done                       ( sleep 0.3; touch $SBX_STUB_BOOT )
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   main    done   1s   Done: hello
+finished
+$

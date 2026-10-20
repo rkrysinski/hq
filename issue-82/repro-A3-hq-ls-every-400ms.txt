@@ -1,0 +1,179 @@
+15:34:16.236 a1 ws master working 0s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:16.652 a1 ws master working 0s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:17.070 a1 ws master working 1s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:17.487 a1 ws master working 1s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:17.912 a1 ws master working 2s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:18.333 a1 ws master working 2s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:18.751 a1 ws master working 3s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:19.170 a1 ws master working 3s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:19.586 a1 ws master working 3s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:20.005 a1 ws master working 4s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:20.423 a1 ws master working 4s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:20.843 a1 ws master working 5s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:21.265 a1 ws master working 5s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:21.682 a1 ws master working 5s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:22.102 a1 ws master working 6s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:22.521 a1 ws master working 6s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:22.940 a1 ws master working 7s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:23.359 a1 ws master working 7s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:23.781 a1 ws master working 8s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:24.199 a1 ws master working 8s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:24.618 a1 ws master working 8s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:25.036 a1 ws master working 9s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:25.455 a1 ws master working 9s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:25.873 a1 ws master working 10s QUEUED | file=UserPromptSubmit side=.stop 
+15:34:26.289 a1 ws master done 0s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:26.706 a1 ws master done 0s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:27.128 a1 ws master done 1s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:27.545 a1 ws master done 1s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:27.970 a1 ws master done 1s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:28.388 a1 ws master done 2s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:28.813 a1 ws master done 2s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:29.231 a1 ws master done 3s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:29.647 a1 ws master done 3s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:30.071 a1 ws master done 4s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:30.489 a1 ws master done 4s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:30.906 a1 ws master done 4s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:31.325 a1 ws master done 5s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:31.743 a1 ws master done 5s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:32.164 a1 ws master done 6s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:32.585 a1 ws master done 6s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:33.005 a1 ws master done 6s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:33.423 a1 ws master done 7s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:33.842 a1 ws master done 7s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:34.261 a1 ws master done 8s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:34.677 a1 ws master done 8s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:35.103 a1 ws master done 9s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:35.524 a1 ws master done 9s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:35.942 a1 ws master done 9s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:36.364 a1 ws master done 10s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:36.781 a1 ws master done 10s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:37.198 a1 ws master done 11s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:37.616 a1 ws master done 11s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:38.035 a1 ws master done 12s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:38.453 a1 ws master done 12s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:38.870 a1 ws master done 12s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:39.287 a1 ws master done 13s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:39.705 a1 ws master done 13s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:40.127 a1 ws master done 14s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:40.544 a1 ws master done 14s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:40.965 a1 ws master done 14s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:41.384 a1 ws master done 15s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:41.802 a1 ws master done 15s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:42.224 a1 ws master done 16s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:42.643 a1 ws master done 16s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:43.061 a1 ws master done 17s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:43.479 a1 ws master done 17s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:43.896 a1 ws master done 17s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:44.317 a1 ws master done 18s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:44.737 a1 ws master done 18s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:45.156 a1 ws master done 19s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:45.576 a1 ws master done 19s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:45.994 a1 ws master done 19s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:46.412 a1 ws master done 20s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:46.830 a1 ws master done 20s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:47.254 a1 ws master done 21s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:47.671 a1 ws master done 21s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:48.089 a1 ws master done 22s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:48.511 a1 ws master done 22s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:48.930 a1 ws master done 22s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:49.348 a1 ws master done 23s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:49.769 a1 ws master done 23s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:50.217 a1 ws master done 24s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:50.671 a1 ws master done 24s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:51.094 a1 ws master done 25s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:51.515 a1 ws master done 25s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:51.936 a1 ws master done 25s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:52.354 a1 ws master done 26s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:52.774 a1 ws master done 26s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:53.201 a1 ws master done 27s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:53.619 a1 ws master done 27s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.stop 
+15:34:54.036 a1 ws master done 28s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.acted .stop 
+15:34:54.452 a1 ws master done 28s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.acted .stop 
+15:34:54.870 a1 ws master done 28s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.acted .stop 
+15:34:55.294 a1 ws master done 29s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.acted .stop 
+15:34:55.713 a1 ws master done 29s **The Song That Came Back** For eleven years, the whale san… | file=SessionStart/clear side=.acted .stop 
+15:34:56.129 a1 ws master done 0s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:34:56.546 a1 ws master done 0s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:34:56.967 a1 ws master done 0s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:34:57.386 a1 ws master done 1s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:34:57.802 a1 ws master done 1s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:34:58.220 a1 ws master done 2s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:34:58.637 a1 ws master done 2s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:34:59.060 a1 ws master done 2s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:34:59.478 a1 ws master done 3s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:34:59.896 a1 ws master done 3s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:00.314 a1 ws master done 4s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:00.734 a1 ws master done 4s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:01.151 a1 ws master done 5s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:01.568 a1 ws master done 5s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:01.991 a1 ws master done 5s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:02.409 a1 ws master done 6s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:02.831 a1 ws master done 6s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:03.258 a1 ws master done 7s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:03.673 a1 ws master done 7s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:04.098 a1 ws master done 8s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:04.515 a1 ws master done 8s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:04.932 a1 ws master done 8s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:05.349 a1 ws master done 9s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:05.770 a1 ws master done 9s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:06.192 a1 ws master done 10s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:06.612 a1 ws master done 10s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:07.033 a1 ws master done 10s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:07.452 a1 ws master done 11s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:07.870 a1 ws master done 11s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:08.289 a1 ws master done 12s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:08.705 a1 ws master done 12s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:09.127 a1 ws master done 13s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:09.546 a1 ws master done 13s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:09.965 a1 ws master done 13s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:10.384 a1 ws master done 14s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:10.804 a1 ws master done 14s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:11.225 a1 ws master done 15s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:11.645 a1 ws master done 15s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:12.062 a1 ws master done 15s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:12.478 a1 ws master done 16s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:12.894 a1 ws master done 16s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:13.322 a1 ws master done 17s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:13.743 a1 ws master done 17s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:14.159 a1 ws master done 18s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:14.580 a1 ws master done 18s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:14.998 a1 ws master done 18s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:15.417 a1 ws master done 19s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:15.835 a1 ws master done 19s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:16.253 a1 ws master done 20s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:16.671 a1 ws master done 20s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:17.091 a1 ws master done 21s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:17.510 a1 ws master done 21s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:17.927 a1 ws master done 21s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:18.355 a1 ws master done 22s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:18.773 a1 ws master done 22s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:19.189 a1 ws master done 23s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:19.606 a1 ws master done 23s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:20.023 a1 ws master done 23s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:20.441 a1 ws master done 24s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:20.863 a1 ws master done 24s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:21.282 a1 ws master done 25s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:21.709 a1 ws master done 25s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:22.130 a1 ws master done 26s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:22.549 a1 ws master done 26s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:22.964 a1 ws master done 26s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:23.382 a1 ws master done 27s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:23.802 a1 ws master done 27s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:24.229 a1 ws master done 28s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:24.647 a1 ws master done 28s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:25.067 a1 ws master done 28s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:25.485 a1 ws master done 29s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:25.902 a1 ws master done 29s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:26.322 a1 ws master done 30s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:26.740 a1 ws master done 30s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:27.161 a1 ws master done 31s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:27.587 a1 ws master done 31s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:28.006 a1 ws master done 31s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:28.426 a1 ws master done 32s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:28.844 a1 ws master done 32s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:29.272 a1 ws master done 33s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:29.689 a1 ws master done 33s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:30.107 a1 ws master done 34s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:30.525 a1 ws master done 34s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 
+15:35:30.947 a1 ws master done 34s I ran the command in the foreground. It printed all 25 line… | file=Stop side=.stop 

@@ -1,0 +1,30 @@
+
+❯ Use the AskUserQuestion tool once to ask me "Which color?" with the options Red and Blue (single
+  choice). After my answer, reply with one line quoting exactly the answer you received, and do
+  nothing else.
+
+● User answered Claude's questions:
+  ⎿  · Which color? → Blue
+  ⎿  Allowed by PermissionRequest hook
+
+● "Which color?"="Blue"
+
+✻ Baked for 5s · done 6:29 AM
+
+❯ Use the AskUserQuestion tool once to ask me "Which fruit?" with the options Apple and Pear
+  (single choice). After my answer, reply with one line quoting exactly the answer you received,
+  and do nothing else.
+
+● User answered Claude's questions:
+  ⎿  · Which fruit? → Apple
+
+● "Which fruit?"="Apple"
+
+✻ Worked for 4s · done 6:30 AM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)                                   ● high · /effort
+
+

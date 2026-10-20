@@ -1,0 +1,11 @@
+# only the dashboard runs: no hq ls, read or wait
+$ hq send a1 "Reply with the single word: ping again"   # a draft in the box
+queued: a1 has something in its prompt box, delivered with its next prompt
+# 15:49:04 draft deleted; a1's inbox: 1 message
+# 15:49:07 a1's inbox empty: the dashboard typed it in
+# a1's pane:
+│ ● Claude                                                                                                        │
+│ ping                                                                                                            │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✻ Baked for 1s · done 1:49 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

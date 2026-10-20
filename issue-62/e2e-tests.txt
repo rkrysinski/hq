@@ -1,0 +1,2 @@
+ok  	github.com/rkrysinski/hq/e2e	21.298s
+exit 0

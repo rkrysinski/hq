@@ -1,0 +1,36 @@
+--- FAIL: TestDashboardFollowsAgentsQuitsAndComesBack (19.66s)
+    journey_e2e_test.go:327: never: hq go a
+    journey_e2e_test.go:204:   hq  1 agent · 1 done  view: all                                                                            Wed 15:15
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         6s    Done: once more              ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+        
+FAIL
+FAIL	github.com/rkrysinski/hq/e2e	19.768s
+FAIL

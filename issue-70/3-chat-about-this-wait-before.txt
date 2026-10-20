@@ -1,0 +1,4 @@
+NAME  REPO  BRANCH  STATE  AGE  LAST
+chat  app   master  done   0s   User declined to answer questions
+next: hq wait chat --since 2026-10-16T11:04:46.588793284Z
+before $

@@ -1,0 +1,23 @@
+1792218918.140035041 KEY p P6-decline-prompt
+1792218918.145986707 KEY p P6-decline-enter
+1792218918.157442207 hook UserPromptSubmit pid=709997 {}
+1792218920.213692542 hook PreToolUse pid=710840 {"tool_name":"mcp__elicit__ask_color"}
+1792218920.227172417 act-start Elicitation pid=710848
+1792218920.225993958 hook Elicitation pid=710845 {"mcp_server_name":"elicit","mode":"form"}
+1792218920.232164833 act-answer Elicitation pid=710848 {"hookSpecificOutput":{"hookEventName":"Elicitation","action":"decline"}}
+1792218940.250072176 hook PostToolUse pid=718436 {"tool_name":"mcp__elicit__ask_color"}
+1792218942.497193844 hook Stop pid=719257 {}
+1792218946.704213804 hook SubagentStop pid=720772 {"agent_id":"abfea5e6a7fa1cdc8"}
+1792218958.154496435 SHOT p P6-decline-done
+1792218958.163108518 KEY p P6-cancel-prompt
+1792218958.169195227 KEY p P6-cancel-enter
+1792218958.181551310 hook UserPromptSubmit pid=725118 {}
+1792218961.137941311 hook PreToolUse pid=726233 {"tool_name":"mcp__elicit__ask_color"}
+1792218961.158587020 act-start Elicitation pid=726241
+1792218961.157418436 hook Elicitation pid=726238 {"mcp_server_name":"elicit","mode":"form"}
+1792218961.165090020 act-answer Elicitation pid=726241 {"hookSpecificOutput":{"hookEventName":"Elicitation","action":"cancel"}}
+1792218981.174963321 hook PostToolUse pid=733781 {"tool_name":"mcp__elicit__ask_color"}
+1792218983.812540822 hook Stop pid=734709 {}
+1792218987.58200949 hook PreToolUse pid=736000 {"tool_name":"mcp__elicit__ask_color","agent_id":"a1ed7d7d8d31a270b"}
+1792218990.848443242 hook SubagentStop pid=737400 {"agent_id":"a1ed7d7d8d31a270b"}
+1792218998.179592121 SHOT p P6-cancel-done

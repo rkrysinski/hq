@@ -1,0 +1,24 @@
+$ date -u +%T.%N; hq wait a --timeout 110; date -u +%T.%N
+06:59:02.667280220
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     work  master  done   0s   I ran the command in the foreground and it took about 25 se…
+next: hq wait a --since 2026-10-17T06:59:43.180709364Z
+06:59:43.434024198
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

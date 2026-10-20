@@ -1,0 +1,8 @@
+# reviewer's own check: the fix taken out of Start (send-keys to the window, as before)
+    --- FAIL: TestAnAgentDockedBeforeItIsReleasedStillStarts/Show (6.19s)
+        dash_integration_test.go:1164: timed out waiting for the docked agent's program to start
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	12.518s
+FAIL
+# with the fix, 3 runs
+ok  	github.com/rkrysinski/hq/internal/tmux	3.485s

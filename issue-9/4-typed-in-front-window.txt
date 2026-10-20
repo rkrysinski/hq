@@ -1,0 +1,3 @@
+# hq go typed in a second Windows Terminal window that is in front
+typed 'hq go a' in window qa9-shell2; foreground after: hq - agents
+typed 'hq go b' in window qa9-shell2; foreground after: hq - agents

@@ -1,0 +1,18 @@
+# TestDashboardFollowsAgentsQuitsAndComesBack, 20 runs each, counted by where it failed
+dev (4e99339):
+      2 journey_e2e_test.go:258: never: a docked
+      1 journey_e2e_test.go:327: never: hq go a
+     17 ok
+this branch:
+      1     journey_e2e_test.go:327: never: hq go a
+      1     journey_e2e_test.go:401: never: c docked
+     18 ok  
+
+# More runs, to place the two failures that are left:
+this branch, 30 more runs: no failure at :401
+dev (4e99339), 34 more runs:
+      2 journey_e2e_test.go:327: never: hq go a
+      1 journey_e2e_test.go:401: never: c docked
+     31 ok
+# So :327 and :401 fail on dev too and are not this change. ":258 never: a docked", the failure of #33:
+# dev 5 of 66 runs in all (2/6, 1/6 on v0.3.1, 2/20, 0/34); this branch 0 of 50.

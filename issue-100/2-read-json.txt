@@ -1,0 +1,39 @@
+{
+  "name": "a",
+  "repo": "app",
+  "repo_path": "/tmp/claude-1000/-home-dev-work-repositories-hq/00000018-0000-4000-8000-000000000018/scratchpad/qa/app",
+  "branch": "main",
+  "state": "needs input",
+  "since": "2026-10-17T18:58:36.284523574Z",
+  "age_seconds": 15,
+  "last": "Which color should I use?",
+  "sandbox": "claude-app",
+  "pending": 0,
+  "own_tasks": [],
+  "asks": {
+    "server": "elicit",
+    "message": "Which color should I use?",
+    "fields": [
+      {
+        "name": "color",
+        "title": "Color",
+        "description": "Pick one",
+        "type": "string",
+        "required": true,
+        "options": [
+          {
+            "value": "red"
+          },
+          {
+            "value": "blue"
+          }
+        ]
+      }
+    ]
+  },
+  "worktree": "/tmp/claude-1000/-home-dev-work-repositories-hq/00000018-0000-4000-8000-000000000018/scratchpad/qa/app",
+  "reply": "",
+  "reply_size": 0,
+  "next_offset": null,
+  "next_since": "2026-10-17T18:58:51.266039539Z"
+}

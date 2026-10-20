@@ -1,0 +1,40 @@
+$ TMUX= hq go rel-1.10.5-213
+hq: docked rel-1.10.5-213 in the open dashboard; could not bring its window to the front: osascript: exec: "osascript": executable
+ file not found in $PATH
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

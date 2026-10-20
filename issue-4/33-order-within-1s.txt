@@ -1,0 +1,19 @@
+# §10: three agents in two repos (one needs input, one done, one working): list order, and how fast the dashboard follows
+# Real hq v0.3.0 dashboard in Windows Terminal (all view, attention sort); sandbox layer and Claude are stand-ins.
+# The list pane is polled every ~30 ms; 'since' is the moment hq records for the state.
+y            done          shown at once (the row was already done from the session start)
+      list: y=done  
+z            working       shown  0.28 s after the agent entered that state (hq ls --json "since")
+      list: y=done  z=working  
+x            needs input   shown  0.20 s after the agent entered that state (hq ls --json "since")
+      list: x=needs input  y=done  z=working  
+y            question      shown  0.42 s after the agent entered that state
+      list: x=needs input  y=question  z=working  
+y            done          shown  0.22 s after the agent entered that state
+      list: x=needs input  y=done  z=working  
+
+$ hq ls
+NAME  REPO     BRANCH  STATE        AGE  LAST
+x     wslrepo  main    needs input  4s   Which colour do you pick?
+y     wslrepo  main    done         0s   Done: say more
+z     winrepo  main    working      6s   -

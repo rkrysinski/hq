@@ -1,0 +1,17 @@
+$ export SBX_STUB_CLAUDE=$S/realclau
+de/claude; claude --version
+2.1.285 (Claude Code)
+$ hq new a cc-work
+creating a sandbox for cc-work (first time only; log in to Claude when the session asks)
+started a in cc-work (sandbox claude-cc-work); enter it with: hq go a
+$ hq ls
+NAME  REPO     BRANCH  STATE  AGE  LAST
+a     cc-work  master  done   6s   -
+$ hq read a | sed -n '/^state/,$p'
+state     done 10s
+pending   0
+
+reply     none
+$ hq send a 'say hi'
+queued: a has something in its prompt box, delivered with its next prompt
+$

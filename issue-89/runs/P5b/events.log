@@ -1,0 +1,16 @@
+1792218691.811805600 KEY p P5b-prompt
+1792218691.817075308 KEY p P5b-enter
+1792218691.827512808 hook UserPromptSubmit pid=619893 {}
+1792218696.201871727 act-start PreToolUse pid=621641
+1792218696.200482310 hook PreToolUse pid=621638 {"tool_name":"AskUserQuestion"}
+1792218696.207671393 act-none PreToolUse pid=621641
+1792218696.217927602 act-start PermissionRequest pid=621656
+1792218696.216600227 hook PermissionRequest pid=621653 {"tool_name":"AskUserQuestion"}
+1792218702.227941188 hook Notification pid=624048 {"notification_type":"permission_prompt"}
+1792218703.824482647 SHOT p P5b-open
+1792218703.833216939 DROP deny no interrupt
+1792218703.912270689 act-answer PermissionRequest pid=621656 {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"hq: cancelled"}}}
+1792218704.339339439 SHOT p P5b-05
+1792218705.794628856 hook Stop pid=625513 {}
+1792218709.413652066 hook SubagentStop pid=626904 {"agent_id":"a3b6c2a167a9a1044"}
+1792218712.351383068 SHOT p P5b-done

@@ -1,0 +1,2 @@
+fixed product, PATH=shim:$PATH go test -count=1 -tags e2e ./e2e/... -run TestDashboardFollowsAgentsQuitsAndComesBack (shim as in 3-...)
+ok  	github.com/rkrysinski/hq/e2e	22.599s

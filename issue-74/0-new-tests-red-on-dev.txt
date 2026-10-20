@@ -1,0 +1,9 @@
+--- FAIL: TestATestsTmuxServerAndItsSocketFileAreGoneWhenItEnds (0.11s)
+    testutil_integration_test.go:95: socket file /tmp/tmux-1000/hq-test-343557-1 left behind: <nil>
+--- FAIL: TestATestsSocketFileIsGoneWhenItsServerAlreadyEnded (0.32s)
+    testutil_integration_test.go:103: socket file /tmp/tmux-1000/hq-test-343557-2 left behind: <nil>
+--- FAIL: TestATestsSocketFileIsGoneUnderTmuxTmpdir (0.11s)
+    testutil_integration_test.go:110: socket file /tmp/hq1003349821/tmux-1000/hq-test-343557-3 left behind: <nil>
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/testutil	0.553s
+FAIL

@@ -1,0 +1,45 @@
+# Second run: real sbx.exe taken off PATH
+$ go test -tags e2e -v ./e2e/...
+=== RUN   TestInstallThenUpdate
+--- PASS: TestInstallThenUpdate (32.57s)
+=== RUN   TestStartSeeEnterKill
+    journey_e2e_test.go:114: new: exit 3 "hq: sbx not found; install Docker Sandboxes\n"
+--- FAIL: TestStartSeeEnterKill (2.89s)
+=== RUN   TestDashboardFollowsAgentsQuitsAndComesBack
+    journey_e2e_test.go:256: never: a new, starting
+    journey_e2e_test.go:204:   hq  0 agents  view: attention                                                                              Wed 08:35
+        
+          TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+        
+                             ╭──────────────────────────────────────────────────────────────────────────╮
+                             │                                New agent                               × │
+                             │ ──────────────────────────────────────────────────────────────────────── │
+                             │                                                                          │
+                             │         ╭──────────────────────────────────────────────────────────────╮ │
+                             │ name    │ a                                                            │ │
+        ─┬ ▸ placeholder     │         ╰──────────────────────────────────────────────────────────────╯ │                     ┬─
+         │hq: nothing docked │         ╭──────────────────────────────────────────────────────────────╮ │                     │
+         │                   │ dir     │ /tmp/TestDashboardFollowsAgentsQuitsAndComesBack3136378531/0 │ │                     │
+         │                   │         │ 07/app                                                       │ │                     │
+         │                   │         ╰──────────────────────────────────────────────────────────────╯ │                     │
+         │                   │         ╭──────────────────────────────────────────────────────────────╮ │                     │
+         │                   │ prompt  │ say hi                                                       │ │                     │
+         │                   │         ╰──────────────────────────────────────────────────────────────╯ │                     │
+         │                   │ dir defaults to the cursor row's repo · Tab next field · Esc cancel      │                     │
+         │                   │ sbx not found; install Docker Sandboxes                                  │                     │
+         │                   │                                                                          │                     │
+         │                   │                           Start ⏎       Cancel                           │                     │
+         │                   │                                                                          │                     │
+         │                   ╰──────────────────────────────────────────────────────────────────────────╯                     │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit
+        
+--- FAIL: TestDashboardFollowsAgentsQuitsAndComesBack (10.17s)
+FAIL
+FAIL	github.com/rkrysinski/hq/e2e	46.145s
+FAIL
+[exit code: 1]

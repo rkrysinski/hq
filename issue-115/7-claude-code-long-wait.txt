@@ -1,0 +1,10 @@
+$ echo 'Call the hq list tool. Then call the hq wait tool once, with since set to the next_since of list and timeout 75. Reply in three lines only: list next_since, the n
+umber of agents wait returned, wait next_since.' | (time env -u CLAUDE_CONFIG_DIR HOME=/home/agent claude -p --strict-mcp-config --mcp-config ~/hq-entry.json --allowedToo
+ls mcp__hq__list,mcp__hq__wait) 2>&1 | short
+2026-10-18T07:42:00.548381276Z
+0
+2026-10-18T07:43:16.95955752Z
+real	1m21.731s
+user	0m3.048s
+sys	0m0.738s
+$

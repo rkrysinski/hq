@@ -1,0 +1,25 @@
+$ go test ./...
+ok  	github.com/rkrysinski/hq/internal/agent	0.158s
+ok  	github.com/rkrysinski/hq/internal/cli	(cached)
+ok  	github.com/rkrysinski/hq/internal/dash	8.929s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.178s
+ok  	github.com/rkrysinski/hq/internal/dialog	1.338s
+ok  	github.com/rkrysinski/hq/internal/gh	0.193s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.204s
+ok  	github.com/rkrysinski/hq/internal/platform	0.192s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.184s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.147s
+ok  	github.com/rkrysinski/hq/internal/state	0.286s
+ok  	github.com/rkrysinski/hq/internal/tmux	0.049s
+ok  	github.com/rkrysinski/hq/internal/update	0.101s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.066s
+
+$ go test -count=1 -tags integration ./cmd/hq ./internal/cli
+ok  	github.com/rkrysinski/hq/cmd/hq	25.186s
+--- FAIL: TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox (14.97s)
+    cli_integration_test.go:564: b never became starting: [{Name:b Repo:app RepoPath:/tmp/TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox3591666419/002/app Branch:main State:done Since:2026-09-30 12:33:31.2916981 +0000 UTC AgeSeconds:11 Last: Sandbox:claude-app Pending:0} {Name:a Repo:app R
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	102.615s
+FAIL
+
+unit 400, integration 107, e2e 3 (unit share 79%, minimum 50%)

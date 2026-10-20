@@ -1,0 +1,46 @@
+$ hq ls --json
+{
+  "agents": [
+    {
+      "name": "a",
+      "repo": "app",
+      "repo_path": "/tmp/claude-1000/-home-dev-work-repositories-hq/00000021-0000-4000-8000-000000000021/scratchpad/app",
+      "branch": "master",
+      "state": "done",
+      "since": "2026-10-17T18:13:33.202976868Z",
+      "age_seconds": 56,
+      "last": "The previous `flag1` watch stopped when the last session ended, so I started a new one that runs for up to 30 minutes.",
+      "sandbox": "claude-app",
+      "pending": 0,
+      "own_tasks": [
+        {
+          "type": "monitor",
+          "text": "qa flag1 watch"
+        }
+      ]
+    }
+  ],
+  "next_since": "2026-10-17T18:14:29.717148104Z"
+}
+
+$ hq read a
+name      a
+repo      app  /tmp/claude-1000/-home-dev-work-repositories-hq/00000021-0000-4000-8000-000000000021/scratchpad/app
+branch    master
+worktree  /tmp/claude-1000/-home-dev-work-repositories-hq/00000021-0000-4000-8000-000000000021/scratchpad/app
+sandbox   claude-app
+state     done 56s
+own task: monitor  qa flag1 watch
+pending   0
+
+reply
+  The previous `flag1` watch stopped when the last session ended, so I started a new one that runs for up to 30 minutes.
+
+$ cat .git/hq/agents/*.owe
+=bwnuqgymf
+
+# PostToolUse of the Monitor tool (raw)
+{"session_id":"0000000f-0000-4000-8000-00000000000f","transcript_path":"/home/agent/.claude/projects/-tmp-claude-1000--home-dev-work-repositories-hq-00000021-0000-4000-8000-000000000021-scratchpad-app/0000000f-0000-4000-8000-00000000000f.jsonl","cwd":"/tmp/claude-1000/-home-dev-work-repositories-hq/00000021-0000-4000-8000-000000000021/scratchpad/app","scratchpad_dir":"/tmp/claude-1000/-tmp-claude-1000--home-dev-work-repositories-hq-00000021-0000-4000-8000-000000000021-scratchpad-app/0000000f-0000-4000-8000-00000000000f/scratchpad","prompt_id":"00000015-0000-4000-8000-000000000015","permission_mode":"bypassPermissions","effort":{"level":"high"},"hook_event_name":"PostToolUse","tool_name":"Monitor","tool_input":{"description":"qa flag1 watch","timeout_ms":1800000,"command":"until [ -e /tmp/claude-1000/-home-dev-work-repositories-hq/00000021-0000-4000-8000-000000000021/scratchpad/app/flag1 ]; do sleep 0.5; done; echo \"flag1 appeared\""},"tool_response":{"taskId":"bwnuqgymf","timeoutMs":1800000,"persistent":false},"tool_use_id":"toolu_01EkDFzyKEZRDMJZ5LeeH4dS","duration_ms":25}
+
+# Stop (raw)
+{"session_id":"0000000f-0000-4000-8000-00000000000f","transcript_path":"/home/agent/.claude/projects/-tmp-claude-1000--home-dev-work-repositories-hq-00000021-0000-4000-8000-000000000021-scratchpad-app/0000000f-0000-4000-8000-00000000000f.jsonl","cwd":"/tmp/claude-1000/-home-dev-work-repositories-hq/00000021-0000-4000-8000-000000000021/scratchpad/app","scratchpad_dir":"/tmp/claude-1000/-tmp-claude-1000--home-dev-work-repositories-hq-00000021-0000-4000-8000-000000000021-scratchpad-app/0000000f-0000-4000-8000-00000000000f/scratchpad","prompt_id":"00000015-0000-4000-8000-000000000015","permission_mode":"bypassPermissions","effort":{"level":"high"},"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"The previous `flag1` watch stopped when the last session ended, so I started a new one that runs for up to 30 minutes.","background_tasks":[{"id":"bwnuqgymf","type":"shell","status":"running","description":"qa flag1 watch","command":"until [ -e /tmp/claude-1000/-home-dev-work-repositories-hq/00000021-0000-4000-8000-000000000021/scratchpad/app/flag1 ]; do sleep 0.5; done; echo \"flag1 appeared\""}],"session_crons":[]}

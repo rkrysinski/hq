@@ -1,0 +1,6 @@
+NAME    REPO  BRANCH  STATE        AGE  LAST
+narrow  app   master  needs input  20s  Claude Code needs your input
+chat    app   master  done         47s  You declined the question again without picking a color, so…
+ask     app   master  done         1m   You picked **red**. The 30-second command finished and prin…
+elicit  app   master  done         2m   The color is **red**.
+before $

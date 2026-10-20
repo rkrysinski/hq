@@ -1,0 +1,27 @@
+
+
+✻ Baked for 11s · done 7:00 PM
+
+❯ Call the open_url tool of the elicit MCP server once.
+╭────────────────────────╮
+│ ● Claude               │
+│ ▸ 1 komenda · ✓ · 19 s │
+╰────────────────────────╯
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ I called open_url once and the prompt was accepted, which means you went to the page.                           │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Brewed for 11s · done 7:00 PM
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  MCP server “elicit” — waiting for completion
+
+  Sign in to the example service.
+
+  https://example.com/sign-in?session=42
+
+  Waiting for the server to confirm completion…
+
+  ❯ Reopen URL    Skip confirmation
+
+  Esc to cancel · ←/→ to switch

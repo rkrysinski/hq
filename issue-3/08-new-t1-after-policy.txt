@@ -1,0 +1,22 @@
+$ cd /mnt/c && sbx.exe policy init balanced
+Global network policy initialized to "balanced".
+[exit code: 0]
+
+$ timeout 400 hq new t1 ~/hq-qa/repos/wslrepo 'say hi'
+creating a sandbox for wslrepo (first time only; log in to Claude when the session asks)
+hq: sbx.exe: WARN: mcp gateway teardown
+[exit code: 3]
+
+$ hq ls
+[exit code: 0]
+
+$ tmux ls; tmux list-windows -a -F '#{session_name}:#{window_index} #{window_name} dead=#{pane_dead} cmd=#{pane_current_command}'
+error connecting to /tmp/tmux-1000/default (No such file or directory)
+error connecting to /tmp/tmux-1000/default (No such file or directory)
+[exit code: 1]
+
+$ cd /mnt/c && sbx.exe ls
+No sandboxes found.
+Launch one: sbx run claude
+[exit code: 0]
+

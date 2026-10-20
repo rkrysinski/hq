@@ -1,0 +1,20 @@
+diff --git a/internal/agent/agent.go b/internal/agent/agent.go
+index 353825e..4761794 100644
+--- a/internal/agent/agent.go
++++ b/internal/agent/agent.go
+@@ -213,7 +213,7 @@ func (a *Agent) endTime() {
+ 	case !a.endedAt.IsZero():
+ 		a.Since = a.endedAt
+ 	case a.seen():
+-	case !a.deadAt.IsZero() && a.deadAt.After(a.Since):
++	case false && !a.deadAt.IsZero() && a.deadAt.After(a.Since): // broken on purpose (#73 QA)
+ 		a.Since = a.deadAt
+ 	}
+ }
+
+$ go test -count=1 -tags integration -run TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd ./internal/cli/
+--- FAIL: TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd (3.72s)
+    cli_integration_test.go:597: crashed at Oct 16 16:03:15.025, ended row {Name:a Repo:app RepoPath:/tmp/TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd2339551320/002/app Branch:main State:ended Since:2026-10-16 16:03:12.011016399 +0000 UTC AgeSeconds:3 Last:Done: say hi Sandbox:claude-app Pending:0}
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	3.719s
+FAIL

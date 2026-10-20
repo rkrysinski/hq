@@ -1,0 +1,145 @@
+15:28:27.123 a1 ws master working 0s started
+15:28:27.536 a1 ws master working 0s started
+15:28:27.946 a1 ws master working 0s started
+15:28:28.359 a1 ws master working 1s started
+15:28:28.772 a1 ws master working 1s started
+15:28:29.186 a1 ws master working 2s started
+15:28:29.600 a1 ws master working 2s started
+15:28:30.013 a1 ws master working 2s started
+15:28:30.426 a1 ws master working 3s started
+15:28:30.840 a1 ws master working 3s started
+15:28:31.252 a1 ws master working 4s started
+15:28:31.665 a1 ws master working 4s started
+15:28:32.078 a1 ws master working 4s started
+15:28:32.492 a1 ws master working 5s started
+15:28:32.903 a1 ws master working 5s started
+15:28:33.314 a1 ws master working 6s started
+15:28:33.729 a1 ws master working 6s started
+15:28:34.142 a1 ws master working 7s started
+15:28:34.554 a1 ws master working 7s started
+15:28:34.966 a1 ws master working 7s started
+15:28:35.379 a1 ws master working 8s started
+15:28:35.791 a1 ws master working 8s started
+15:28:36.205 a1 ws master working 9s started
+15:28:36.618 a1 ws master working 9s started
+15:28:37.031 a1 ws master working 9s started
+15:28:37.442 a1 ws master working 10s started
+15:28:37.856 a1 ws master working 10s started
+15:28:38.268 a1 ws master working 11s started
+15:28:38.683 a1 ws master working 11s started
+15:28:39.097 a1 ws master working 11s started
+15:28:39.509 a1 ws master working 12s started
+15:28:39.922 a1 ws master working 12s started
+15:28:40.334 a1 ws master working 13s started
+15:28:40.746 a1 ws master working 13s started
+15:28:41.158 a1 ws master working 14s started
+15:28:41.570 a1 ws master working 14s started
+15:28:41.982 a1 ws master working 14s started
+15:28:42.394 a1 ws master working 15s started
+15:28:42.807 a1 ws master working 15s started
+15:28:43.219 a1 ws master working 16s started
+15:28:43.635 a1 ws master working 16s started
+15:28:44.090 a1 ws master working 16s started
+15:28:44.502 a1 ws master working 17s started
+15:28:44.915 a1 ws master working 17s started
+15:28:45.327 a1 ws master working 18s started
+15:28:45.740 a1 ws master working 18s started
+15:28:46.153 a1 ws master working 19s started
+15:28:46.565 a1 ws master working 19s started
+15:28:46.977 a1 ws master done 0s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:47.389 a1 ws master done 0s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:47.801 a1 ws master done 1s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:48.214 a1 ws master done 1s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:48.626 a1 ws master done 2s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:49.038 a1 ws master done 2s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:49.450 a1 ws master done 2s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:49.863 a1 ws master done 3s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:50.280 a1 ws master done 3s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:50.694 a1 ws master done 4s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:51.106 a1 ws master done 4s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:51.519 a1 ws master done 4s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:51.932 a1 ws master done 5s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:52.345 a1 ws master done 5s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:52.757 a1 ws master done 6s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:53.169 a1 ws master done 6s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:53.582 a1 ws master done 6s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:53.995 a1 ws master done 7s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:54.406 a1 ws master done 7s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:54.820 a1 ws master done 8s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:55.233 a1 ws master done 8s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:55.647 a1 ws master done 9s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:56.060 a1 ws master done 9s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:56.474 a1 ws master done 9s **The Art of Waiting** The kettle has not boiled. I watch i
+15:28:56.886 a1 ws master done 10s **The Art of Waiting** The kettle has not boiled. I watch 
+15:28:57.301 a1 ws master done 10s **The Art of Waiting** The kettle has not boiled. I watch 
+15:28:57.715 a1 ws master done 11s **The Art of Waiting** The kettle has not boiled. I watch 
+15:28:58.128 a1 ws master done 11s **The Art of Waiting** The kettle has not boiled. I watch 
+15:28:58.541 a1 ws master done 11s **The Art of Waiting** The kettle has not boiled. I watch 
+15:28:58.953 a1 ws master done 12s **The Art of Waiting** The kettle has not boiled. I watch 
+15:28:59.365 a1 ws master done 12s **The Art of Waiting** The kettle has not boiled. I watch 
+15:28:59.780 a1 ws master done 13s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:00.192 a1 ws master done 13s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:00.605 a1 ws master done 14s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:01.017 a1 ws master done 14s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:01.428 a1 ws master done 14s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:01.840 a1 ws master done 15s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:02.253 a1 ws master done 15s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:02.666 a1 ws master done 16s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:03.080 a1 ws master done 16s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:03.493 a1 ws master done 16s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:03.907 a1 ws master done 17s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:04.320 a1 ws master done 17s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:04.733 a1 ws master done 18s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:05.155 a1 ws master done 18s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:05.577 a1 ws master done 18s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:05.989 a1 ws master done 19s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:06.403 a1 ws master done 19s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:06.817 a1 ws master done 20s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:07.233 a1 ws master done 20s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:07.648 a1 ws master done 21s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:08.061 a1 ws master done 21s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:08.477 a1 ws master done 21s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:08.889 a1 ws master done 22s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:09.301 a1 ws master done 22s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:09.715 a1 ws master done 23s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:10.129 a1 ws master done 23s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:10.543 a1 ws master done 23s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:10.956 a1 ws master done 24s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:11.368 a1 ws master done 24s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:11.781 a1 ws master done 25s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:12.194 a1 ws master done 25s **The Art of Waiting** The kettle has not boiled. I watch 
+15:29:12.609 a1 ws master done 0s I ran it in the foreground and it finished normally, about 
+15:29:13.021 a1 ws master done 0s I ran it in the foreground and it finished normally, about 
+15:29:13.433 a1 ws master done 1s I ran it in the foreground and it finished normally, about 
+15:29:13.847 a1 ws master done 1s I ran it in the foreground and it finished normally, about 
+15:29:14.263 a1 ws master done 1s I ran it in the foreground and it finished normally, about 
+15:29:14.677 a1 ws master done 2s I ran it in the foreground and it finished normally, about 
+15:29:15.095 a1 ws master done 2s I ran it in the foreground and it finished normally, about 
+15:29:15.511 a1 ws master done 3s I ran it in the foreground and it finished normally, about 
+15:29:15.925 a1 ws master done 3s I ran it in the foreground and it finished normally, about 
+15:29:16.339 a1 ws master done 4s I ran it in the foreground and it finished normally, about 
+15:29:16.755 a1 ws master done 4s I ran it in the foreground and it finished normally, about 
+15:29:17.170 a1 ws master done 4s I ran it in the foreground and it finished normally, about 
+15:29:17.613 a1 ws master done 5s I ran it in the foreground and it finished normally, about 
+15:29:18.051 a1 ws master done 5s I ran it in the foreground and it finished normally, about 
+15:29:18.468 a1 ws master done 6s I ran it in the foreground and it finished normally, about 
+15:29:18.885 a1 ws master done 6s I ran it in the foreground and it finished normally, about 
+15:29:19.298 a1 ws master done 6s I ran it in the foreground and it finished normally, about 
+15:29:19.720 a1 ws master done 7s I ran it in the foreground and it finished normally, about 
+15:29:20.136 a1 ws master done 7s I ran it in the foreground and it finished normally, about 
+15:29:20.548 a1 ws master done 8s I ran it in the foreground and it finished normally, about 
+15:29:20.960 a1 ws master done 8s I ran it in the foreground and it finished normally, about 
+15:29:21.372 a1 ws master done 9s I ran it in the foreground and it finished normally, about 
+15:29:21.786 a1 ws master done 9s I ran it in the foreground and it finished normally, about 
+15:29:22.197 a1 ws master done 9s I ran it in the foreground and it finished normally, about 
+15:29:22.609 a1 ws master done 10s I ran it in the foreground and it finished normally, about
+15:29:23.021 a1 ws master done 10s I ran it in the foreground and it finished normally, about
+15:29:23.432 a1 ws master done 11s I ran it in the foreground and it finished normally, about
+15:29:23.844 a1 ws master done 11s I ran it in the foreground and it finished normally, about
+15:29:24.256 a1 ws master done 11s I ran it in the foreground and it finished normally, about
+15:29:24.668 a1 ws master done 12s I ran it in the foreground and it finished normally, about
+15:29:25.080 a1 ws master done 12s I ran it in the foreground and it finished normally, about
+15:29:25.491 a1 ws master done 13s I ran it in the foreground and it finished normally, about
+15:29:25.904 a1 ws master done 13s I ran it in the foreground and it finished normally, about
+15:29:26.316 a1 ws master done 13s I ran it in the foreground and it finished normally, about
+15:29:26.729 a1 ws master done 14s I ran it in the foreground and it finished normally, about

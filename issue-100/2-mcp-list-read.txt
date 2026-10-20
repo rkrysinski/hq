@@ -1,0 +1,42 @@
+list: isError=False asks={
+  "server": "elicit",
+  "message": "Which color should I use?",
+  "fields": [
+    {
+      "name": "color",
+      "title": "Color",
+      "description": "Pick one",
+      "type": "string",
+      "required": true,
+      "options": [
+        {
+          "value": "red"
+        },
+        {
+          "value": "blue"
+        }
+      ]
+    }
+  ]
+}
+read: isError=False asks={
+  "server": "elicit",
+  "message": "Which color should I use?",
+  "fields": [
+    {
+      "name": "color",
+      "title": "Color",
+      "description": "Pick one",
+      "type": "string",
+      "required": true,
+      "options": [
+        {
+          "value": "red"
+        },
+        {
+          "value": "blue"
+        }
+      ]
+    }
+  ]
+}

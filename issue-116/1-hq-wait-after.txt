@@ -1,0 +1,16 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE    AGE  LAST
+b     lib   master  working  0s   -
+a     app   master  working  0s   -
+
+# a's and b's turns end 150 ms apart while hq wait runs
+$ hq wait a b --since 2026-10-18T07:41:42.792941434Z
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     lib   master  done   0s   Done: slow job
+a     app   master  done   0s   Done: slow job
+next: hq wait a b --since 2026-10-18T07:41:44.341198018Z
+
+# the next call, from its moment: nothing more
+$ hq wait a b --since 2026-10-18T07:41:44.341198018Z --timeout 2s
+nothing yet
+next: hq wait a b --since 2026-10-18T07:41:46.412955019Z

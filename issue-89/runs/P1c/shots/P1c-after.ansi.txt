@@ -1,0 +1,30 @@
+
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once to ask me "Which bird?" with the options Crow and Owl (single [39m
+  [38;5;231mchoice). After my answer, reply with one line quoting exactly the answer you received, and do [39m
+  [38;5;231mnothing else.[39m
+[49m
+[38;5;246m● [39mUser answered Claude's questions:
+[38;5;246m  ⎿  · Which bird? → Owl[39m
+
+[38;5;231m●[39m "Which bird?"="Owl"
+
+[38;5;246m✻[39m [38;5;246mCrunched for 6s · done 6:33 AM[39m
+
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once to ask me "Which stone?" with the options Granite and Basalt [39m
+  [38;5;231m(single choice). After my answer, reply with one line quoting exactly the answer you received, [39m
+  [38;5;231mand do nothing else.[39m
+[38;5;246m[49m────────────────────────────────────────────────────────────────────────────────────────────────────
+[38;5;16m[48;5;153m ☐ Stone [39m[49m
+
+[1m[38;5;231mWhich stone?[0m
+
+[38;5;153m❯[39m [38;5;246m1.[39m [38;5;153mGranite[39m
+     [38;5;246mChoose granite[39m
+  [38;5;246m2.[39m Basalt
+     [38;5;246mChoose[39m [38;5;246mbasalt[39m
+  [38;5;246m3.[39m [38;5;246mType[39m [38;5;246msomething.[39m
+[38;5;246m────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  4. Chat about this
+
+[38;5;246mEnter[39m [38;5;246mto[39m [38;5;246mselect[39m [38;5;246m·[39m [38;5;246m↑/↓[39m [38;5;246mto[39m [38;5;246mnavigate[39m [38;5;246m·[39m [38;5;246mEsc[39m [38;5;246mto[39m [38;5;246mcancel[39m
+

@@ -1,0 +1,19 @@
+14:22:11 hq ls: a1 repo main done 3s Done: say hi
+14:22:12 typed in a1: publish the report
+14:22:17 hq ls: a1 repo main working 5s Done: publish the report
+14:22:31 hq wait a1 returned: nothing yet
+next: hq wait a1 --since 2026-10-13T12:22:31.657157589Z
+14:22:49 hq ls: a1 repo main working 36s Done: publish the report
+14:22:51 hq wait a1 again: nothing yet
+14:22:51 typed in a1: a question
+14:22:53 hq ls: a1 repo main question 1s Shall I go on?
+14:22:56 typed in a1: go on
+14:22:58 hq ls: a1 repo main working 2s Done: go on
+14:23:06 hq ls: a2 repo main working 3s Done: watch the file
+14:23:13 typed in a3: detach monitor
+14:23:18 hq ls: a3 repo main working 8s The subagent waits on monitor.
+14:23:22 typed in a3: wake
+14:23:26 hq ls: a3 repo main done 2s The background work is done, 0 still running.
+14:23:34 typed in a4: detach sleep 180
+14:23:39 hq ls: a4 repo main working 8s The subagent waits on sleep 180.
+14:23:43 hq ls: a5 repo main done 3s Done: start a server

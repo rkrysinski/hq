@@ -1,0 +1,40 @@
+  hq  5 agents · 2 need you · 2 done · 1 working  view: all                                                                                          Fri 10:20
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  e       app         master        ● needs input  17s   Change effort level?
+  b       app         master        ● needs input  51s   Which colour do you pick?
+│ c       app         master        ● done         31s   Interrupted                                                                 ⏎ open   c code   k kill  │
+  a       app         master        ● done         56s   Done: hi
+  d       app         master        ● working      43s   Done: background research
+
+
+─┬ ▸ c · master · claude-app
+ │                                                                                                                                                            │
+ │claude in claude-app: slow work                                                                                                                             │
+ │fake claude: ready                                                                                                                                          │
+ │❯ slow work                                                                                                                                                 │
+ │✻ Working…                                                                                                                                                  │
+ │────────────────────────────────────────                                                                                                                    │
+ │❯                                                                                                                                                           │
+ │────────────────────────────────────────                                                                                                                    │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle) · esc to interrupt                                                                                          │
+ │esc                                                                                                                                                         │
+ │  ⎿  Interrupted · What should Claude do instead?                                                                                                           │
+ │────────────────────────────────────────                                                                                                                    │
+ │❯                                                                                                                                                           │
+ │────────────────────────────────────────                                                                                                                    │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                                                             │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new

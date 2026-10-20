@@ -1,0 +1,40 @@
+name      old
+repo      app  /tmp/claude-1000/-home-dev-work-repositories-hq/00000018-0000-4000-8000-000000000018/scratchp
+ad/qa/app
+branch    main
+worktree  /tmp/claude-1000/-home-dev-work-repositories-hq/00000018-0000-4000-8000-000000000018/scratchpad/qa
+/app
+sandbox   claude-app
+state     needs input 10s
+pending   0
+last      Claude Code needs your input
+
+asks
+  Claude Code needs your input
+
+reply     none
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

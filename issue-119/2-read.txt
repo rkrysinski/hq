@@ -1,0 +1,17 @@
+$ hq read rel-1.10.5-213 | grep -v -e '^repo' -e '^/app' -e '^worktree'
+name      rel-1.10.5-213
+branch    master
+sandbox   claude-app
+state     needs input 22s
+pending   0
+last      Which colour do you pick?
+
+asks      dialog fd1c5c
+  Colour: Which colour do you pick?
+    1. Red - Pick red.
+    2. Blue - Pick blue.
+
+answer    hq answer rel-1.10.5-213 --dialog fd1c5c N
+
+reply     none
+$

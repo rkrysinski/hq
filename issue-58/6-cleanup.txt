@@ -1,0 +1,30 @@
+$ for a in a b c e; do hq kill -y $a; done; hq ls
+killed a; the sandbox stays
+killed b; the sandbox stays
+killed c; the sandbox stays
+killed e; the sandbox stays
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

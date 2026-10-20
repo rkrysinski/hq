@@ -1,0 +1,11 @@
+$ rm ~/.claude.json*; hq mcp install claude-code 2>&1 | short; echo exit ${PIPESTATUS[0]}
+hq is already set up in Claude Code on Windows (…/qa/win/mnt/c/Users/stub/.claude.json)
+exit 0
+$ rm $WSL_STUB_ROOT/mnt/c/Users/stub/.claude.json*; hq mcp install claude-code 2>&1 >/dev/null | short; echo exit ${PIPESTATUS[0]}
+hq: Claude Code not found: there is no …/qa/wsl/home/.claude.json nor …/qa/win/mnt/c/Users/stub/.claude.json; run claude once, then hq mcp install claude-code again (or r
+un the command above)
+exit 3
+$ ls -A ~ $WSL_STUB_ROOT/mnt/c/Users/stub
+/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/win/mnt/c/Users/stub:
+/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/wsl/home:
+$

@@ -1,0 +1,26 @@
+== 1-again. this branch, TMUX_TMPDIR unset
+TMUX_TMPDIR=(unset)  socket dir: /tmp/tmux-1000
+all hq-test-* files in it before: 2347
+go test -tags=integration ./...: exit 0, 18 packages ok
+test binaries (pids): 18
+hq-test-<pid>-* of this run's pids, after: 0
+all hq-test-* files in it after: 2425
+== 3. a test that never starts a server
+=== RUN   TestATestThatNeverStartsAServerCleansUpWithoutError
+=== RUN   TestATestThatNeverStartsAServerCleansUpWithoutError/no_server
+--- PASS: TestATestThatNeverStartsAServerCleansUpWithoutError (0.00s)
+    --- PASS: TestATestThatNeverStartsAServerCleansUpWithoutError/no_server (0.00s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/testutil	0.006s
+== 4. end-to-end journeys (TmuxSocket's other users)
+TMUX_TMPDIR=(unset)  socket dir: /tmp/tmux-1000
+all hq-test-* files in it before: 2425
+go test -tags=e2e ./...: exit 0, 15 packages ok
+test binaries (pids): 15
+hq-test-<pid>-* of this run's pids, after: 0
+all hq-test-* files in it after: 2427
+== 5. scripts/local-dev.sh --kill-server
+srw-rw---- /tmp/tmux-1000/hq-dev-3904591658
+tmux server hq-dev-3904591658 ended
+ls: cannot access '/tmp/tmux-1000/hq-dev-3904591658': No such file or directory
+$

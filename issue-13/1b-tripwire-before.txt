@@ -1,0 +1,17 @@
+# dev (bef8c6a), with the tripwire sbx.exe on PATH where the real one is: the tests the issue names
+$ go test -count=1 -tags integration ./cmd/hq -run "TestMCPServerSupervisesAgentsOverStdio"
+--- FAIL: TestMCPServerSupervisesAgentsOverStdio (2.20s)
+    mcp_integration_test.go:177: new map[dir:/tmp/TestMCPServerSupervisesAgentsOverStdio1586020454/005/app name:a prompt:hello]: hq: sbx.exe: error: tripwire: a test called the real sbx.exe
+FAIL
+FAIL	github.com/rkrysinski/hq/cmd/hq	2.291s
+FAIL
+$ go test -count=1 -tags e2e ./e2e/... -run "TestStartSeeEnterKill"
+--- FAIL: TestStartSeeEnterKill (2.19s)
+    journey_e2e_test.go:114: new: exit 3 "hq: sbx.exe: error: tripwire: a test called the real sbx.exe\n"
+FAIL
+FAIL	github.com/rkrysinski/hq/e2e	2.299s
+FAIL
+
+calls of sbx.exe by these tests: 2
+  sbx.exe ls --json
+  sbx.exe ls --json

@@ -1,0 +1,9 @@
+# hq after #73: a's Claude was cut off while it fed its SessionEnd hook,
+# which stored the branch line alone, then crashed
+$ cat .git/hq/agents/71c33d455026
+branch main
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   main    ended  1s   Done: say hi
+
+

@@ -1,0 +1,13 @@
+$ hq help | grep mcp
+  hq mcp [install] [claude-desktop|claude-code] serve these commands as tools to Claude Desktop or Claude Code; install adds hq to it
+$ ls -A ~
+$ hq mcp install claude-code; echo exit $?
+claude mcp add-json --scope user hq '{"type":"stdio","command":"/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpa
+d/qa/bin/hq","args":["mcp","claude-code"],"env":{"HQ_TMUX_SOCKET":"qa115","PATH":"/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-0000
+ec24ffef/scratchpad/qa/bin:/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/bin-before2:/home/agent/.local/b
+in:/home/agent/.local/bin:/usr/local/share/npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},"timeout":3660000}'
+hq: Claude Code not found: there is no /tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/home/.claude.json; r
+un claude once, then hq mcp install claude-code again (or run the command above)
+exit 3
+$ ls -A ~
+$

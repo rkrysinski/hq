@@ -1,0 +1,22 @@
+20:59:54.075 Enter (decline)
+20:59:54.210 a     app   main    working  0s   The color is **red**.
+20:59:56.253 a     app   main    working  2s   The color is **red**.
+20:59:56.675 a     app   main    working  2s   The color is **red**.
+20:59:57.090 a     app   main    working  3s   The color is **red**.
+20:59:57.516 a     app   main    working  3s   The color is **red**.
+20:59:57.938 a     app   main    working  3s   The color is **red**.
+20:59:58.363 a     app   main    working  4s   The color is **red**.
+20:59:58.787 a     app   main    working  4s   The color is **red**.
+20:59:59.212 a     app   main    working  5s   The color is **red**.
+20:59:59.630 a     app   main    working  5s   The color is **red**.
+21:00:00.058 a     app   main    working  5s   The color is **red**.
+21:00:00.478 a     app   main    working  6s   The color is **red**.
+21:00:00.896 a     app   main    working  6s   The color is **red**.
+21:00:01.318 a     app   main    working  7s   The color is **red**.
+21:00:01.737 a     app   main    working  7s   The color is **red**.
+21:00:02.172 a     app   main    working  8s   The color is **red**.
+21:00:02.601 a     app   main    working  8s   The color is **red**.
+21:00:03.027 a     app   main    working  8s   The color is **red**.
+21:00:03.467 a     app   main    working  9s   The color is **red**.
+21:00:03.885 a     app   main    working  9s   The color is **red**.
+21:00:04.308 a     app   main    done   0s   I called it a second time, but no color came back this time…

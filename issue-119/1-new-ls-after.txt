@@ -1,0 +1,9 @@
+$ hq new rel-1.10.5-213 'input lines question'; hq new rel-1.10.5-qa; hq new 'rel:1'; hq new 'rel/1'; sleep 3; hq ls
+started rel-1.10.5-213 in app (sandbox claude-app); enter it with: hq go rel-1.10.5-213
+started rel-1.10.5-qa in app (sandbox claude-app); enter it with: hq go rel-1.10.5-qa
+hq: invalid name 'rel:1': use letters, digits, '-', '_' and '.'
+hq: invalid name 'rel/1': use letters, digits, '-', '_' and '.'
+NAME            REPO  BRANCH  STATE        AGE  LAST
+rel-1.10.5-213  app   master  needs input  3s   Which colour do you pick?
+rel-1.10.5-qa   app   master  done         3s   -
+$

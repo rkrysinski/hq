@@ -1,0 +1,59 @@
+repository : rkrysinski/hq
+range      : v0.6.3..v0.7.0
+mode       : dry run (no writes)
+
+prerequisites : 0 before deployment, 1 after (from pull request sections)
+
+would update release v0.7.0 with:
+  <!-- generated -->
+  
+  <a name="nowe-funkcje"></a>
+  ## Nowe funkcje
+  
+  - hq answer and the MCP answer tool: AskUserQuestion answered on the user's word (#90)
+  - Show the agent's own tasks at a done or question (hq read, hq ls, dashboard, supervisor) (#97)
+  - Show a Monitor watch of the agent's own as a monitor, by its description (#99)
+  - Report an MCP elicitation: needs input at once, hq read shows its fields (#100)
+  
+  <a name="poprawki"></a>
+  ## Poprawki
+  
+  - The screen reader takes AskUserQuestion's review step for a dialog of Claude's own (#94)
+  
+  <a name="wdrozenie"></a>
+  ## Wdrożenie
+  
+  <a name="polecenie"></a>
+  
+  <a name="po-wdrozeniu"></a>
+  ### Po wdrożeniu
+  
+  Do zrobienia na produkcji po wdrożeniu:
+  
+  **Answer an agent's question dialog from hq (#90) (#103)**
+  
+  - Odtwórz sandboxy z obrazu szablonu `ghcr.io/<org>/sbx-image:<tag>` (lub nowszego), w którym `claude-approve` nie odpowiada już na AskUserQuestion: `sbx rm <sandbox>`, potem `sbx run --template ghcr.io/<org>/sbx-image:<tag> ...` i `/login` w nowym sandboxie. W sandboxie ze starego obrazu `hq answer` kończy się po 5 s błędem wskazującym na claude-approve, a dialog trzeba odebrać przy agencie.
+  - Uruchom agentów ponownie (`hq kill NAME` i `hq new`, albo `hq sandbox restart REPO`): hq odpowiada tylko agentom uruchomionym z hookami generacji 3. Starszych odrzuca z informacją, że trzeba ich uruchomić ponownie.
+  - Sprawdzenie na odtworzonym sandboksie z szablonem jeszcze się nie odbyło (QA nr 10). Po odtworzeniu: poproś agenta o pytanie przez AskUserQuestion, odczytaj id (`hq read NAME`) i odpowiedz `hq answer NAME --dialog ID 1`. Oczekiwane: `answered: NAME is working`, a odpowiedź agenta wymienia wybraną opcję.
+  
+  <!-- /generated -->
+
+milestone v0.7.0 already exists (#12)
+  #90 already in milestone v0.7.0
+  #94 already in milestone v0.7.0
+  #96 already in milestone v0.7.0
+  #97 already in milestone v0.7.0
+  #98 already in milestone v0.7.0
+  #99 already in milestone v0.7.0
+  #100 already in milestone v0.7.0
+  #101 already in milestone v0.7.0
+  #102 already in milestone v0.7.0
+  #103 already in milestone v0.7.0
+  #90 already has the v0.7.0 comment
+  #94 already has the v0.7.0 comment
+  #97 already has the v0.7.0 comment
+  #99 already has the v0.7.0 comment
+  #100 already has the v0.7.0 comment
+would close milestone v0.7.0
+
+https://github.com/rkrysinski/hq/releases/tag/v0.7.0

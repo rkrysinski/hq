@@ -1,0 +1,11 @@
+$ hq new a . "$p12 (12 KiB)"; echo "exit $?"; sleep 3; hq ls
+creating a sandbox for app (first time only; log in to Claude when the session asks)
+started a in app (sandbox claude-app); enter it with: hq go a
+exit 0
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   main    done   2s   Done: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…
+$ hq new b . "$p17 (17 KiB)"; echo "exit $?"; echo finished
+hq: the prompt is 1455 bytes too long for tmux; shorten it, or send the rest with hq send once the agent runs
+exit 1
+finished
+$

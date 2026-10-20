@@ -1,0 +1,18 @@
+# Same stress (12 x 10 runs of the original test, which kills the pane program) with each fix alone
+# fakeclaude fix alone (hq Parse as on dev):
+fakeonly: 0 failed of 120
+# hq Parse fix alone (fakeclaude as on dev), twice:
+hqonly: 0 failed of 120
+hqonly2: 0 failed of 120
+# Both fixes with the reworked test:
+after: 0 failed of 120
+
+# stress.sh
+#!/bin/sh
+# stress.sh TAG: runs the test 12 x 10 at once, tallies failures
+S=/tmp/claude-1000/-home-dev-work-repositories-hq/0000001b-0000-4000-8000-00000000001b/scratchpad
+cd /home/dev/work/repositories/hq/.claude/worktrees/issue-73-killed-age-flake/internal/cli
+go test -c -tags integration -o $S/cli-$1.test . || exit 1
+for j in $(seq 1 12); do $S/cli-$1.test -test.run 'TestAnAgentKilledLongAfterItsLastReportCountsFromItsEnd' -test.count=10 > $S/$1-$j.log 2>&1 & done; wait
+echo "$1: $(cat $S/$1-*.log | grep -c '^--- FAIL') failed of 120"
+grep -h "DIAG killed" $S/$1-*.log | head -3

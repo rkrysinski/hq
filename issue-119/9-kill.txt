@@ -1,0 +1,5 @@
+$ hq kill rel-1.10.5-213 -y; hq kill rel-1.10.5-qa -y; hq kill rel-1.10.5-214 -y; hq ls
+killed rel-1.10.5-213; the sandbox stays
+killed rel-1.10.5-qa; the sandbox stays
+killed rel-1.10.5-214; the sandbox stays
+$

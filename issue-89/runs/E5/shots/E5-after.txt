@@ -1,0 +1,30 @@
+
+    ✓ Pytam Cię                                                     ━━━━━━━━━━━━━━━━━━━━       37 s
+
+● User answered Claude's questions:
+  ⎿  · Which color? → Blue
+╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                        │
+│ "Blue"                                                                                          │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Brewed for 3s · done 6:42 AM
+
+❯ Use the AskUserQuestion tool once to ask me "Which tree?" with the options Oak and Pine (single
+  choice). After my answer, reply with one line quoting exactly the answer you received, and do
+  nothing else.
+    ✓ Pytam Cię                                                     ━━━━━━━━━━━━━━━━━━━━      0,0 s
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ Tree
+
+Which tree?
+
+❯ 1. Oak
+     Oak
+  2. Pine
+     Pine
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel

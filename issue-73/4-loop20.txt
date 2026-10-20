@@ -1,0 +1,34 @@
+# 20 consecutive full integration runs on fe317a3, Linux arm64, tmux 3.6, go 1.26.0
+# each: go test -count=1 -tags integration -coverpkg=./internal/... ./...
+
+#!/bin/sh
+cd /home/dev/work/repositories/hq/.claude/worktrees/issue-73-killed-age-flake
+S=/tmp/claude-1000/-home-dev-work-repositories-hq/0000001b-0000-4000-8000-00000000001b/scratchpad
+pass=0; fail=0
+for i in $(seq 1 20); do
+  if go test -count=1 -tags integration -coverpkg=./internal/... ./... > $S/full-$i.log 2>&1; then pass=$((pass+1)); r=pass; else fail=$((fail+1)); r=FAIL; fi
+  printf 'run %2d: suite %s%s\n' $i $r "$(grep -h -- "--- FAIL" $S/full-$i.log | head -1)"
+done
+echo "tally: $pass passed, $fail failed of 20"
+
+run  1: suite pass
+run  2: suite pass
+run  3: suite pass
+run  4: suite pass
+run  5: suite pass
+run  6: suite pass
+run  7: suite pass
+run  8: suite pass
+run  9: suite pass
+run 10: suite pass
+run 11: suite pass
+run 12: suite pass
+run 13: suite pass
+run 14: suite pass
+run 15: suite pass
+run 16: suite pass
+run 17: suite pass
+run 18: suite pass
+run 19: suite pass
+run 20: suite pass
+tally: 20 passed, 0 failed of 20

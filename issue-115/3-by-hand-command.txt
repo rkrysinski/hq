@@ -1,0 +1,12 @@
+$ hq mcp install claude-code 2>/dev/null | sh
+Added stdio MCP server hq to user config
+$ claude mcp get hq | head -8
+hq:
+  Scope: User config (available in all your projects)
+  Status: ✔ Connected
+  Type: stdio
+  Command: /tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/bin/hq
+  Args: mcp claude-code
+  Environment:
+    HQ_TMUX_SOCKET=qa115
+$

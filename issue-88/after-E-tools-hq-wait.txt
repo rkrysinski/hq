@@ -1,0 +1,24 @@
+$ date -u +%T.%N; hq wait a --timeout 110; date -u +%T.%N
+07:06:10.242269174
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     work  master  done   0s   The command ran in the foreground and printed all 25 lines:…
+next: hq wait a --since 2026-10-17T07:06:51.043936277Z
+07:06:51.297745360
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

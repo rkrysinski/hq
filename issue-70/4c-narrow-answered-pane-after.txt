@@ -1,0 +1,30 @@
+
+           Claude Code v2.1.301
+ ▐▛███▛█   Opus 5.5 with high effort
+▝▜██████▀  Claude Max
+ ▝▝   ▝▝   /…/qa70/repo-after/app
+
+
+❯ Call the ask_color tool from the
+  elicit MCP server, then reply with
+  the color it returns.
+╭─────────────────────────────────────╮
+│ ● Claude                            │
+│ ▾ 2 komendy · ◒ · 55 s              │
+│  ▸✓Szukam narzędzi… ━━━━━━━━━━0,0   │
+│                     ━━━━━━━━━━s     │
+│  ▸◒ elicit: a… ░░░░░░░░░░░░░░ 52 s  │
+│                ░░░░░░               │
+╰─────────────────────────────────────╯
+
+
+
+
+✻ elicit: ask_color… (19s)
+
+────────────────────────────────────────
+❯ 
+────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░…
+  ⏵⏵ bypass permissions on (shift+tab
+                           ◆ Tools ▾

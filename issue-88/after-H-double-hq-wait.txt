@@ -1,0 +1,24 @@
+$ date -u +%T.%N; hq wait a --timeout 110; date -u +%T.%N
+06:55:29.219685202
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     work  master  done   2s   Interrupted
+next: hq wait a --since 2026-10-17T06:55:44.540650667Z
+06:55:44.795239584
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

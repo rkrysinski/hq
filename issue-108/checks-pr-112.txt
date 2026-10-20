@@ -1,0 +1,9 @@
+$ gh pr view 112 --json title,baseRefName,headRefName,files
+{"base":"issue-108-skip-docs-ci","files":["README.md","cmd/hq/main.go"],"head":"qa-108-mix","title":"QA #108: mix-only change (throwaway, do not merge)"}
+
+$ gh pr checks 112
+tests (macos-latest)	pass	3m40s	https://github.com/rkrysinski/hq/actions/runs/39100180968/job/117594684246	
+tests (ubuntu-latest)	pass	2m51s	https://github.com/rkrysinski/hq/actions/runs/39100180968/job/117594684393	
+
+$ gh run list --workflow Tests --branch qa-108-mix
+[{"conclusion":"success","databaseId":39100180968,"event":"pull_request","url":"https://github.com/rkrysinski/hq/actions/runs/39100180968"}]

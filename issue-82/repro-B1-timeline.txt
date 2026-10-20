@@ -1,0 +1,14 @@
+15:23:13.382 trans user 05589085 Write a 500-word story about a lighthous
+15:23:13.386 hook  UserPromptSubmit 05589085 prompt=Write a 500-word story about a lighthous
+15:23:19.692 hook  UserPromptSubmit 05589085 prompt=Run exactly this bash command in the for
+15:23:19.701 trans queue-enqueue 05589085 Run exactly this bash command in the for
+15:23:36.895 hook  Stop 05589085
+15:23:36.907 trans turn_duration 05589085
+15:23:36.919 trans queue-dequeue 05589085 None
+15:23:36.928 trans user 05589085 Run exactly this bash command in the for
+15:23:39.731 hook  SubagentStop 05589085
+15:23:40.248 hook  PreToolUse 05589085 tool_name=Bash
+15:24:05.683 hook  PostToolUse 05589085 tool_name=Bash
+15:24:08.144 hook  Stop 05589085
+15:24:08.156 trans turn_duration 05589085
+15:24:11.676 hook  SubagentStop 05589085

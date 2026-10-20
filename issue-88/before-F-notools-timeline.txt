@@ -1,0 +1,15 @@
+06:59:02.691 trans user  Write a 400-word story about a lighthous
+06:59:08.693 trans queue-enqueue  Run exactly this bash command in the for
+06:59:10.744 trans queue-dequeue  
+06:59:10.756 trans user  Run exactly this bash command in the for
+06:59:52.745 drive send busy prompt
+06:59:52.761 trans user  Write a 400-word story about a lighthous
+06:59:52.766 hook  UserPromptSubmit   7338e3d8 "prompt":"Write a 400-word story about a lighthous
+06:59:58.754 drive type queued prompt
+06:59:58.767 hook  UserPromptSubmit   7338e3d8 "prompt":"Reply with only the word QUEUED.
+06:59:58.775 trans queue-enqueue  Reply with only the word QUEUED.
+07:00:00.762 drive Esc
+07:00:00.831 trans queue-dequeue  
+07:00:00.841 trans user  Reply with only the word QUEUED.
+07:00:03.525 hook  Stop               6597230b 
+07:00:26.631 drive end

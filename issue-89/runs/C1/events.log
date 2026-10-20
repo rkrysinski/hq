@@ -1,0 +1,16 @@
+1792219370.500390590 hook SessionStart pid=905665 {"source":"startup"}
+1792219376.636536759 KEY p C1-prompt
+1792219376.642002301 KEY p C1-enter
+1792219376.677584509 hook UserPromptSubmit pid=908760 {}
+1792219378.629710260 act-start PreToolUse pid=909762
+1792219378.627977427 hook PreToolUse pid=909759 {"tool_name":"AskUserQuestion"}
+1792219378.636042677 act-none PreToolUse pid=909762
+1792219378.658857010 approve-start pid=909775
+1792219378.657968385 hook PermissionRequest pid=909776 {"tool_name":"AskUserQuestion"}
+1792219378.660389427 approve-allow pid=909775
+1792219378.674760469 act-start PermissionRequest pid=909778
+1792219384.685961680 hook Notification pid=912556 {"notification_type":"permission_prompt"}
+1792219388.654148348 DROP answer Blue
+1792219388.665786807 act-answer PermissionRequest pid=909778 {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","updatedInput":{"questions":[{"question":"Which color?","header":"Color","options":[{"label":"Red","description":"Red"},{"label":"Blue","description":"Blue"}],"multiSelect":false}],"answers":{"Which color?":"Blue"}}}}}
+1792219393.658913268 SHOT p C1-after
+1792219400.412769229 KEY p C1-esc

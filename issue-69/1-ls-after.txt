@@ -1,0 +1,8 @@
+after $ hq ls
+NAME  REPO  BRANCH  STATE        AGE  LAST
+e     app   master  needs input  0s   Change effort level?
+b     app   master  needs input  19s  Which colour do you pick?
+c     app   master  done         0s   Interrupted
+a     app   master  done         24s  Done: hi
+d     app   master  working      11s  Done: background research
+after $

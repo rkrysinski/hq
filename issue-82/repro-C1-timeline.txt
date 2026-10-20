@@ -1,0 +1,8 @@
+15:26:00.420 hook  UserPromptSubmit 05589085 prompt=Run exactly this bash command in the for
+15:26:03.119 hook  PreToolUse 05589085 tool_name=Bash
+15:26:06.339 hook  UserPromptSubmit 05589085 prompt=Run exactly this bash command in the for
+15:26:18.173 hook  PostToolUse 05589085 tool_name=Bash
+15:26:20.877 hook  PreToolUse 05589085 tool_name=Bash
+15:26:45.943 hook  PostToolUse 05589085 tool_name=Bash
+15:26:49.772 hook  Stop 05589085
+15:26:53.307 hook  SubagentStop 05589085

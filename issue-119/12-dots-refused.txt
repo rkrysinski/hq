@@ -1,0 +1,9 @@
+$ hq new .; hq new ..; hq new _._; hq new rel-1.10.5-213; hq ls; hq kill rel-1.10.5-213 -y
+hq: invalid name '.': it needs a letter or a digit
+hq: invalid name '..': it needs a letter or a digit
+hq: invalid name '_._': it needs a letter or a digit
+started rel-1.10.5-213 in app (sandbox claude-app); enter it with: hq go rel-1.10.5-213
+NAME            REPO  BRANCH  STATE     AGE  LAST
+rel-1.10.5-213  app   -       starting  0s   -
+killed rel-1.10.5-213; the sandbox stays
+$

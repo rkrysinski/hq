@@ -1,0 +1,34 @@
+delivered: typed into a as its next prompt
+NAME  REPO  BRANCH  STATE        AGE  LAST
+a     repo  master  needs input  0s   Change effort level?
+state     needs input 0s
+pending   0
+last      Change effort level?
+
+asks      dialog 2f74bc
+  Change effort level?
+    1. Yes, switch to medium
+    2. No, go back
+
+answer    hq answer a --dialog 2f74bc N
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

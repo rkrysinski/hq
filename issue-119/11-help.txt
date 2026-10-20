@@ -1,0 +1,3 @@
+$ hq help | grep '^NAME'
+NAME: letters, digits, '-', '_' and '.', at least one letter or digit, at most 32 characters; taken until that agent is killed.
+$

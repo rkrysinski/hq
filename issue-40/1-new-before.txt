@@ -1,0 +1,9 @@
+$ hq new a . "$p12 (12 KiB)"; echo "exit $?"; sleep 3; hq ls
+creating a sandbox for app (first time only; log in to Claude when the session asks)
+hq: tmux: command too long
+exit 3
+$ hq new b . "$p17 (17 KiB)"; echo "exit $?"; echo finished
+hq: tmux: command too long
+exit 3
+finished
+$

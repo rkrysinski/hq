@@ -1,0 +1,46 @@
+unfixed product (7d0ba23 + test changes), PATH=shim:$PATH go test -count=1 -tags e2e ./e2e/... -run TestDashboardFollowsAgentsQuitsAndComesBack
+#!/bin/sh
+# Widens the window between hq new making the agent's window and releasing
+# its program (tmux send-keys -t @WINDOW Enter): that one call waits 1.5 s.
+prev2= prev=
+for a; do
+  if [ "$prev2" = send-keys ] && [ "$prev" = -t ] && [ "$a" != "${a#@}" ]; then sleep 1.5; fi
+  prev2=$prev; prev=$a
+done
+exec /usr/bin/tmux "$@"
+--- FAIL: TestDashboardFollowsAgentsQuitsAndComesBack (13.95s)
+    journey_e2e_test.go:258: never: a docked
+    journey_e2e_test.go:204:   hq  1 agent  view: attention                                                                               Wed 16:34
+        
+          TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+        │ a new   app         -             ● starting     7s    -                                   ⏎ open   c code   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · claude-app                                                                                                   ┬─
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+        
+FAIL
+FAIL	github.com/rkrysinski/hq/e2e	14.058s
+FAIL

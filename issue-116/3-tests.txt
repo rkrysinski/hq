@@ -1,0 +1,39 @@
+$ go test -count=1 -tags integration ./cmd/hq/ -run "TestASupervisorWatchingWithWaitGetsBothAgentsThatFinishTogether|TestMCPServerSupervisesAgentsOverStdio" -v
+=== RUN   TestMCPServerSupervisesAgentsOverStdio
+--- PASS: TestMCPServerSupervisesAgentsOverStdio (3.85s)
+=== RUN   TestASupervisorWatchingWithWaitGetsBothAgentsThatFinishTogether
+--- PASS: TestASupervisorWatchingWithWaitGetsBothAgentsThatFinishTogether (4.41s)
+PASS
+ok  	github.com/rkrysinski/hq/cmd/hq	8.267s
+
+$ go test -count=1 ./internal/cli/ -run "TestWait|TestMCP" -v | grep -E "^(--- |ok|FAIL)"
+--- PASS: TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol (0.00s)
+--- PASS: TestMCPListAndReadGiveWhatHqLsAndHqReadPrint (0.00s)
+--- PASS: TestMCPReadGivesALongReplyInPages (0.01s)
+--- PASS: TestMCPWaitInALoopWithSinceReturnsEachChangeOnce (0.00s)
+--- PASS: TestMCPWaitNeverOutlastsClaudeDesktopsToolCall (0.01s)
+--- PASS: TestMCPSendLeavesTheMessageAsHqSendDoes (0.00s)
+--- PASS: TestMCPWaitFromSendsNextSinceReturnsAnAnswerGivenBeforeWaitWasCalled (0.00s)
+--- PASS: TestMCPNewStartsAnAgentInTheRepositoryGiven (0.00s)
+--- PASS: TestMCPGoDocksTheAgentAndShowsTheDashboardWhereItIsOpen (0.00s)
+--- PASS: TestMCPKillEndsTheAgentOnlyOnTheUsersWord (0.00s)
+--- PASS: TestMCPToolsReportAMissingTmux (0.00s)
+--- PASS: TestMCPServesOnlyAClient (0.00s)
+--- PASS: TestMCPInstallSetsHqUpInClaudeDesktop (0.00s)
+--- PASS: TestMCPInstallPrintsTheEntryWhenItCannotEditTheFile (0.00s)
+--- PASS: TestMCPSendTypesInAPromptOfTheSupervisors (0.00s)
+--- PASS: TestMCPAnswerAnswersOnlyOnTheUsersWord (0.00s)
+--- PASS: TestWaitReturnsAnAgentThatTurnsDoneWithItsRowAndTheNextSince (0.00s)
+--- PASS: TestWaitNeverReturnsAnAgentEndedOnAnAnswerOfSbxOlderThanItsReport (0.00s)
+--- PASS: TestWaitDoesNotReturnAnAgentAlreadyDoneWhenItStartsAndTimesOutWithNothing (0.00s)
+--- PASS: TestWaitSinceTheLastMomentReportsWhatChangedBetweenCalls (0.00s)
+--- PASS: TestWaitReportsAStateEnteredJustBeforeItsMomentInTheNextCall (0.00s)
+--- PASS: TestWaitOnNamedAgentsIgnoresTheOthers (0.00s)
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAsEnded (0.00s)
+--- PASS: TestWaitReturnsEachStateThatNeedsAttention (0.00s)
+--- PASS: TestWaitRefusesBadArguments (0.00s)
+--- PASS: TestWaitReturnsAnAgentAtADialogClaudeOpensAfterItsTurn (0.00s)
+--- PASS: TestWaitReturnsADoneAgentWithItsOwnTasks (0.00s)
+--- PASS: TestWaitReturnsAgentsThatFinishWithinALookOfEachOtherTogether (0.00s)
+--- PASS: TestWaitKeepsAnAgentFoundByItsFirstHitThatMovesOnBeforeItReturns (0.00s)
+ok  	github.com/rkrysinski/hq/internal/cli	0.047s

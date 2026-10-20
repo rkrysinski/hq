@@ -1,0 +1,34 @@
+# hq update: install an older release, then update
+$ curl -fsSL https://github.com/rkrysinski/hq/releases/latest/download/install.sh | HQ_VERSION=v0.2.8 sh
+curl: (22) The requested URL returned error: 404
+hq install: could not download hq-linux-arm64 of v0.2.8 from https://github.com/rkrysinski/hq/releases
+[exit code: 1]
+
+$ hq --version
+hq v0.3.0
+[exit code: 0]
+
+$ hq ls
+[exit code: 0]
+
+$ hq update
+hq v0.3.0 is up to date (latest release v0.3.0)
+[exit code: 0]
+
+$ hq --version
+hq v0.3.0
+[exit code: 0]
+
+$ hq update
+hq v0.3.0 is up to date (latest release v0.3.0)
+[exit code: 0]
+
+$ cat ~/.config/hq/preferences.json
+{
+  "latest_release": "v0.3.0",
+  "sort": "attention",
+  "update_checked": 1790751286,
+  "view": "all"
+}
+[exit code: 0]
+

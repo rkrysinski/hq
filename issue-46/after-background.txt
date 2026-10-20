@@ -1,0 +1,9 @@
+supervisor send(name="a", text="background check")
+  delivered: typed into a as its next prompt
+  -> a is working: 'Done: background check'
+  desktop notifications sent: none
+user types at a: 'wake'
+  -> a is done: 'The background work is done, 0 still running.'
+  desktop notifications sent: none
+-- end of background --
+$

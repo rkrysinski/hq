@@ -1,0 +1,30 @@
+$ hq ls --json | grep -A3 -E '"last"|own_tasks'; hq ls
+      "last": "The background `sleep 120` finished normally (exit code 0).",
+      "sandbox": "claude-app",
+      "pending": 0,
+      "own_tasks": []
+    }
+  ],
+  "next_since": "2026-10-17T15:47:46.458854938Z"
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   master  done   55s  The background `sleep 120` finished normally (exit code 0).
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

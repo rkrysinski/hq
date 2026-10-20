@@ -1,0 +1,7 @@
+$ hq new a . "hello" >/dev/null; sleep 2; hq ls; sbx stop claude-app; sleep 2; hq ls; echo finished
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   main    done   1s   Done: hello
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   main    ended  2s   Done: hello
+finished
+$

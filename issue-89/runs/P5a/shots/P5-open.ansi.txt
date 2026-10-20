@@ -1,0 +1,30 @@
+
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once to ask me "Which fruit?" with the options Apple and Pear [39m
+  [38;5;231m(single choice). After my answer, reply with one line quoting exactly the answer you received, [39m
+  [38;5;231mand do nothing else.[39m
+
+[38;5;246m[49m● [39mUser answered Claude's questions:
+[38;5;246m [39m [38;5;246m⎿[39m [38;5;246m · Which fruit? → Apple[39m
+
+[38;5;231m●[39m "Which fruit?"="Apple"
+
+[38;5;246m✻[39m [38;5;246mWorked for 4s · done 6:30 AM[39m
+
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once to ask me "Which tree?" with the options Oak and Pine (single [39m
+  [38;5;231mchoice). After my answer, reply with one line quoting exactly the answer you received, and do [39m
+  [38;5;231mnothing else.[39m
+[38;5;246m[49m────────────────────────────────────────────────────────────────────────────────────────────────────
+[38;5;16m[48;5;153m ☐ Tree [39m[49m
+
+[1m[38;5;231mWhich tree?[0m
+
+[38;5;153m❯[39m [38;5;246m1.[39m [38;5;153mOak[39m
+     [38;5;246mChoose oak[39m
+  [38;5;246m2.[39m Pine
+     [38;5;246mChoose pine[39m
+  [38;5;246m3.[39m [38;5;246mType[39m [38;5;246msomething.[39m
+[38;5;246m────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  4. Chat about this
+
+[38;5;246mEnter[39m [38;5;246mto[39m [38;5;246mselect[39m [38;5;246m·[39m [38;5;246m↑/↓[39m [38;5;246mto[39m [38;5;246mnavigate[39m [38;5;246m·[39m [38;5;246mEsc[39m [38;5;246mto[39m [38;5;246mcancel[39m
+

@@ -1,0 +1,16 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   master  done   49s  1 shell · `flag1` has appeared, and the `flag1` watch has e…
+
+$ hq read a | grep "own task"
+own task: shell  sleep 900
+$ ls .git/hq/agents/
+3b7992c1119b
+3b7992c1119b.prev
+3b7992c1119b.stop
+
+# wake-up (raw)
+{"session_id":"0000000f-0000-4000-8000-00000000000f","transcript_path":"/home/agent/.claude/projects/-tmp-claude-1000--home-dev-work-repositories-hq-00000021-0000-4000-8000-000000000021-scratchpad-app/0000000f-0000-4000-8000-00000000000f.jsonl","cwd":"/tmp/claude-1000/-home-dev-work-repositories-hq/00000021-0000-4000-8000-000000000021/scratchpad/app","scratchpad_dir":"/tmp/claude-1000/-tmp-claude-1000--home-dev-work-repositories-hq-00000021-0000-4000-8000-000000000021-scratchpad-app/0000000f-0000-4000-8000-00000000000f/scratchpad","prompt_id":"00000027-0000-4000-8000-000000000027","permission_mode":"bypassPermissions","hook_event_name":"UserPromptSubmit","prompt":"<task-notification>\n<task-id>bwnuqgymf</task-id>\n<tool-use-id>toolu_01EkDFzyKEZRDMJZ5LeeH4dS</tool-use-id>\n<output-file>/tmp/claude-1000/-tmp-claude-1000--home-dev-work-repositories-hq-00000021-0000-4000-8000-000000000021-scratchpad-app/0000000f-0000-4000-8000-00000000000f/tasks/bwnuqgymf.output</output-file>\n<status>completed</status>\n<summary>Monitor \"qa flag1 watch\" stream ended</summary>\n<event>flag1 appeared</event>\n</task-notification>"}
+
+# Stop (raw)
+{"session_id":"0000000f-0000-4000-8000-00000000000f","transcript_path":"/home/agent/.claude/projects/-tmp-claude-1000--home-dev-work-repositories-hq-00000021-0000-4000-8000-000000000021-scratchpad-app/0000000f-0000-4000-8000-00000000000f.jsonl","cwd":"/tmp/claude-1000/-home-dev-work-repositories-hq/00000021-0000-4000-8000-000000000021/scratchpad/app","scratchpad_dir":"/tmp/claude-1000/-tmp-claude-1000--home-dev-work-repositories-hq-00000021-0000-4000-8000-000000000021-scratchpad-app/0000000f-0000-4000-8000-00000000000f/scratchpad","prompt_id":"00000027-0000-4000-8000-000000000027","permission_mode":"bypassPermissions","effort":{"level":"high"},"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"`flag1` has appeared, and the `flag1` watch has ended. The background `sleep 900` is still running.","background_tasks":[{"id":"buk1xizsc","type":"shell","status":"running","description":"Sleep for 15 minutes in the background","command":"sleep 900"}],"session_crons":[]}

@@ -1,0 +1,31 @@
+$ hq mcp install claude-code; echo exit $?
+added hq to Claude Code (/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/home/.claude.json)
+the file as it was: /tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/home/.claude.json.hq-backup-20261018-07
+3830
+restart Claude Code to load it
+exit 0
+$ hq mcp install claude-code; echo exit $?
+hq is already set up in Claude Code (/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/home/.claude.json)
+exit 0
+$ ls -A ~ | grep claude.json
+.claude.json
+.claude.json.hq-backup-20261018-073830
+$ diff <(jq -S . ~/.claude.json.hq-backup-*) <(jq -S . ~/.claude.json) | cut -c1-120
+14a15,27
+>     },
+>     "hq": {
+>       "args": [
+>         "mcp",
+>         "claude-code"
+>       ],
+>       "command": "/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scr
+>       "env": {
+>         "HQ_TMUX_SOCKET": "qa115",
+>         "PATH": "/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scra
+>       },
+>       "timeout": 3660000,
+>       "type": "stdio"
+$ claude mcp list 2>&1 | grep -v '^Checking' | cut -c1-120
+github: npx -y @modelcontextprotocol/server-github - ✔ Connected
+hq: /tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/bin/h
+$

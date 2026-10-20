@@ -1,0 +1,24 @@
+
+ ▐▛███▛█   Claude Code v2.1.300
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   /…/00000039-0000-4000-8000-000000000039/scratchpad/cc-work
+
+
+❯ Reply with the single word: hi
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                    │
+│ hi                                                                          │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+✻ Churned for 9s · done 1:52 PM
+
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Change effort level?
+   Your next response will be slower and use more tokens
+
+   This conversation is cached for the current effort level. Switching to max
+   means the full history gets re-read on your next message.
+
+   ❯ 1. Yes, switch to max
+     2. No, go back
+

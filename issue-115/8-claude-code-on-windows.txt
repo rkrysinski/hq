@@ -1,0 +1,30 @@
+$ hq mcp install claude-code 2>&1 | short; echo exit ${PIPESTATUS[0]}
+added hq to Claude Code (…/qa/wsl/home/.claude.json)
+the file as it was: …/qa/wsl/home/.claude.json.hq-backup-20261018-080836
+added hq to Claude Code on Windows (…/qa/win/mnt/c/Users/stub/.claude.json)
+the file as it was: …/qa/win/mnt/c/Users/stub/.claude.json.hq-backup-20261018-080836
+restart Claude Code to load it
+exit 0
+$ jq -c '.mcpServers.hq | {type, command, args: .args[-3:], timeout}' ~/.claude.json | short
+{"type":"stdio","command":"…/qa/bin/hq","args":["mcp","claude-code"],"timeout":3660000}
+$ jq '.mcpServers.hq' $WSL_STUB_ROOT/mnt/c/Users/stub/.claude.json | short
+{
+  "type": "stdio",
+  "command": "wsl.exe",
+  "args": [
+    "-d",
+    "Ubuntu",
+    "--exec",
+    "/usr/bin/env",
+    "PATH=…/qa/stubs:…/qa/bin:…/qa/bin-before2:/home/agent/.local/bin:/home/agent/.local/bin:/usr/local/share/npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr
+/bin:/sbin:/bin",
+    "HQ_TMUX_SOCKET=qa115",
+    "…/qa/bin/hq",
+    "mcp",
+    "claude-code"
+  ],
+  "timeout": 3660000
+}
+$ jq -c '{numStartups, servers: (.mcpServers|keys)}' $WSL_STUB_ROOT/mnt/c/Users/stub/.claude.json
+{"numStartups":4,"servers":["github","hq"]}
+$

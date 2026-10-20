@@ -1,0 +1,4 @@
+NAME  REPO     BRANCH  STATE  AGE  LAST
+a     cc-work  master  done   1m   -
+killed a; the sandbox stays
+$

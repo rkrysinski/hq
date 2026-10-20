@@ -1,0 +1,14 @@
+== tmux 3.4 (built from source), kernel 7.0.12
+n=12360 ch=x br=1 -> 12285
+n=5000 mode=keys -> 4095
+== tmux 3.6a (built from source), kernel 7.0.12
+n=12360 ch=x br=1 -> 12285
+n=5000 mode=keys -> 4095
+== tmux 3.6b (built from source), kernel 7.0.12
+n=12360 ch=x br=1 -> 12285
+n=5000 mode=keys -> 4095
+== tmux 3.7c (built from source), kernel 7.0.12
+n=12360 ch=x br=1 -> 12285
+n=5000 mode=keys -> 4095
+== without tmux (Python writes to the pty master)
+12360 -> 12360

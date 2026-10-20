@@ -1,0 +1,10 @@
+$ CLAUDE_CONFIG_DIR=/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/broken hq mcp install claude-code 2>&1
+>/dev/null | short; cat /tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/broken/.claude.json
+hq: cannot edit …/qa/broken/.claude.json safely (not valid JSON); run the command above instead, then restart Claude Code
+{"numStartups": 2
+$ CLAUDE_CONFIG_DIR=/tmp/claude-1000/-home-dev-work-repositories-hq/00000040-0000-4000-8000-000000000040/scratchpad/qa/cfgdir hq mcp install claude-code 2>&1
+| short
+added hq to Claude Code (…/qa/cfgdir/.claude.json)
+the file as it was: …/qa/cfgdir/.claude.json.hq-backup-20261018-073929
+restart Claude Code to load it
+$

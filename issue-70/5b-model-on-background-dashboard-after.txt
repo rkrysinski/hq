@@ -1,0 +1,42 @@
+  hq  5 agents · 1 need you · 4 done  view: attention                                                                                      Fri 11:12
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ bg      app         master        ● needs input  12s   Select model                                                      ⏎ open   c code   k kill  │
+  nothing else needs you · 4 more agents hidden · press a to show all
+
+
+
+
+
+─┬ ▸ bg · master · claude-app
+ │ ▝▝   ▝▝   /tmp/claude-1000/-home-dev-work-repositories-hq/00000031-0000-4000-8000-000000000031/scratchpad/qa70/repo-after/app        │
+ │                                                                                                                                                  │
+ │                                                                                                                                                  │
+ │❯ Launch a general-purpose subagent in the background whose task is: run the Bash command  for i in $(seq 150); do sleep 1; done; echo ok  in the │
+ │  foreground and return its output. Do not wait for it; just tell me it started.                                                                  │
+ │    ✓ Uruchamiam agenta: Run 150s sleep loop                                                                      ━━━━━━━━━━━━━━━━━━━━      0,1 s │
+ │  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)                                                                                          │
+ │╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮ │
+ ││ ● Claude                                                                                                                                      │ │
+ ││ I've started a background agent that runs the 150-second loop in the foreground and will return its output. I'll let you know when it         │ │
+ ││ finishes.                                                                                                                                     │ │
+ │╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ │
+ │                                                                                                                                                  │
+ │✻ Waiting for 1 background agent to finish                                                                                                        │
+ │▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔│
+ │   Select model                                                                                                                                   │
+ │   Switch between Claude models. Your pick becomes the default for new sessions. For other/previous model names, specify with --model.            │
+ │                                                                                                                                                  │
+ │   ❯ 1.  Default (recommended) ✔  Opus 5.5 · Best for everyday, complex tasks                                                                     │
+ │     2.  Opus 5.5                 For complex work and everyday tasks                                                                             │
+ │     3.  Fable 5.1                For your toughest challenges                                                                                    │
+ │     4.  Sonnet 5.5               Most efficient for simpler tasks                                                                                │
+ │     5.  Haiku 5.5                Fastest for quick answers                                                                                       │
+ │   ↓ 6.  Haiku 4.5                Fastest for quick answers                                                                                       │
+ │      … +7 models                                                                                                                                 │
+ │                                                                                                                                                  │
+ │   ● High effort ←/→ to adjust                                                                                                                    │
+ │                                                                                                                                                  │
+ │   Enter to set as default · s to use this session only · Esc to cancel                                                                           │
+─┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit

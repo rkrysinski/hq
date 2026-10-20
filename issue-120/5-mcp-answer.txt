@@ -1,0 +1,32 @@
+delivered: typed into a as its next prompt
+NAME  REPO  BRANCH  STATE        AGE  LAST
+a     repo  master  needs input  0s   Change effort level?
+dialog 9c7274
+call 1: hq: a not answered: ask the user what to pick, naming the agent and its question, then call answer with confirmed set to t
+rue
+call 2: {
+  "state": "done",
+  "next_since": "2026-10-20T05:41:39.74648105Z"
+}
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  master  done   58s  hi
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

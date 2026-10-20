@@ -1,0 +1,20 @@
+1792219123.409510722 KEY t trust
+1792219123.820853681 KEY t trust
+1792219124.395705264 hook SessionStart pid=796816 {"source":"startup"}
+1792219130.841060184 KEY t T-prompt
+1792219130.850322934 KEY t T-enter
+1792219130.883356392 hook UserPromptSubmit pid=798734 {}
+1792219136.51929561 act-start PreToolUse pid=800257
+1792219136.50603978 hook PreToolUse pid=800254 {"tool_name":"AskUserQuestion"}
+1792219136.56861561 act-none PreToolUse pid=800257
+1792219136.66150645 act-start PermissionRequest pid=800308
+1792219136.64521061 hook PermissionRequest pid=800303 {"tool_name":"AskUserQuestion"}
+1792219142.73022439 hook Notification pid=802187 {"notification_type":"permission_prompt"}
+1792219144.867349232 SHOT t T-open
+1792219776.664387575 SHOT t T-at640
+1792219776.674473492 DROP Venus at 640s
+1792219776.749781784 act-answer PermissionRequest pid=800308 {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","updatedInput":{"questions":[{"question":"Which planet?","header":"Planet","options":[{"label":"Mars","description":"The red planet"},{"label":"Venus","description":"The second planet from the Sun"}],"multiSelect":false}],"answers":{"Which planet?":"Venus"}}}}}
+1792219776.772191825 hook PostToolUse pid=1063846 {"tool_name":"AskUserQuestion"}
+1792219786.678771830 SHOT t T-done
+1792219788.965907164 hook Stop pid=1068525 {}
+1792219792.101680416 hook SubagentStop pid=1069653 {"agent_id":"a5b9edf6fdacc3d39"}

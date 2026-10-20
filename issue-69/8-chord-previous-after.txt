@@ -1,0 +1,40 @@
+  hq  5 agents · 2 need you · 2 done · 1 working  view: all                                                                                          Fri 10:20
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  e       app         master        ● needs input  21s   Change effort level?
+│ b       app         master        ● needs input  54s   Which colour do you pick?                                                   ⏎ open   c code   k kill  │
+  c       app         master        ● done         35s   Interrupted
+  a       app         master        ● done         59s   Done: hi
+  d       app         master        ● working      47s   Done: background research
+
+
+─┬ ▸ b · master · claude-app
+ │                                                                                                                                                            │
+ │claude in claude-app: a question for input                                                                                                                  │
+ │fake claude: ready                                                                                                                                          │
+ │❯ a question for input                                                                                                                                      │
+ │ ☐ Colour                                                                                                                                                   │
+ │Which colour do you pick?                                                                                                                                   │
+ │❯ 1. Red                                                                                                                                                    │
+ │  2. Blue                                                                                                                                                   │
+ │Enter to select · ↑/↓ to navigate · Esc to cancel                                                                                                           │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new

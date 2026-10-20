@@ -1,0 +1,24 @@
+│ tock 20                                                                     │
+│ tock 21                                                                     │
+│ tock 22                                                                     │
+│ tock 23                                                                     │
+│ tock 24                                                                     │
+│ tock 25                                                                     │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+✻ Crunched for 32s · done 7:06 AM
+
+❯ Write a 400-word story about a lighthouse keeper. Use no tools.
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ Reply with only the word QUEUED.
+
+✢ Infusing… (0s · thought for 6s)
+  ⎿  Tip: Share Claude Code and earn €10 in usage credits · /passes
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                   ◆ Tools ▾

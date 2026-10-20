@@ -1,0 +1,13 @@
+1792218836.155228377 KEY p P1c-prompt
+1792218836.159731252 KEY p P1c-enter
+1792218836.169640835 hook UserPromptSubmit pid=677858 {}
+1792218839.443684337 act-start PreToolUse pid=679150
+1792218839.441977087 hook PreToolUse pid=679147 {"tool_name":"AskUserQuestion"}
+1792218845.169809631 SHOT p P1c-held
+1792218854.78452677 act-none PreToolUse pid=679150
+1792218854.88659052 act-start PermissionRequest pid=685144
+1792218854.87088260 hook PermissionRequest pid=685141 {"tool_name":"AskUserQuestion"}
+1792218859.178998513 SHOT p P1c-after
+1792218859.196509888 act-TERM PermissionRequest pid=685144
+1792218860.94341888 hook Notification pid=687569 {"notification_type":"permission_prompt"}
+1792218863.850725098 KEY p P1c-esc

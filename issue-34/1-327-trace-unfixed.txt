@@ -1,0 +1,525 @@
+=== RUN   TestDashboardFollowsAgentsQuitsAndComesBack
+    journey_e2e_test.go:328: DBG before detach
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=2 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+          hq  1 agent · 1 done  view: all                                                                            Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         1s    Done: more please            ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │fake claude: ready                                                                                                  │
+         │❯ say hi                                                                                                            │
+         │more please                                                                                                         │
+         │● Done: say hi                                                                                                      │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+    journey_e2e_test.go:328: DBG after detach
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=2 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+    journey_e2e_test.go:328: DBG after go a 0
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=2 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    journey_e2e_test.go:328: DBG after go a 1
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=2 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    journey_e2e_test.go:328: DBG after go a 2
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=3 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    journey_e2e_test.go:328: DBG after go a 3
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=7 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+          hq  1 agent · 1 working  view: all                                                                         Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● working      1s    Done: more please            ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+    journey_e2e_test.go:328: DBG after go a 4
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=7 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+          hq  1 agent · 1 done  view: all                                                                            Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         0s    Done: once more              ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+    journey_e2e_test.go:328: DBG after go a 5
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=7 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+          hq  1 agent · 1 done  view: all                                                                            Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         0s    Done: once more              ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+    journey_e2e_test.go:328: DBG after go a 6
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=7 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+          hq  1 agent · 1 done  view: all                                                                            Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         0s    Done: once more              ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+    journey_e2e_test.go:328: DBG after go a 7
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=7 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+          hq  1 agent · 1 done  view: all                                                                            Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         0s    Done: once more              ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+    journey_e2e_test.go:328: DBG after go a 8
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=7 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+          hq  1 agent · 1 done  view: all                                                                            Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         0s    Done: once more              ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+    journey_e2e_test.go:328: DBG after go a 9
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=7 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+          hq  1 agent · 1 done  view: all                                                                            Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         1s    Done: once more              ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+    journey_e2e_test.go:328: DBG after go a 10
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=7 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+          hq  1 agent · 1 done  view: all                                                                            Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         1s    Done: once more              ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+    journey_e2e_test.go:328: DBG after go a 11
+        @0 120x29 %1 list 120x10 alt=1 hist=0 dead=0 pid=246 cmd=sh
+        @0 120x29 %2 spacer 1x17 alt=0 hist=0 dead=0 pid=260 cmd=hq
+        @0 120x29 %4  116x17 alt=0 hist=7 dead=0 pid=390 cmd=hq
+        @0 120x29 %3 spacer 1x17 alt=0 hist=0 dead=0 pid=276 cmd=hq
+        @1 116x17 %0 slot 116x17 alt=0 hist=0 dead=0 pid=231 cmd=hq
+        
+          hq  1 agent · 1 done  view: all                                                                            Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         1s    Done: once more              ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+    journey_e2e_test.go:339: never: hq go a
+    journey_e2e_test.go:205:   hq  1 agent · 1 done  view: all                                                                            Wed 16:04
+        
+          TAB     REPO ▾      BRANCH        STATE          AGE   LAST
+        │ a       app         main          ● done         7s    Done: once more              ⏎ open   c code   p pr   k kill  │
+        
+        
+        
+        
+        
+        
+        ─┬ ▸ a · main · claude-app                                                                                            ┬─
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │❯ more please                                                                                                       │
+         │● Done: more please                                                                                                 │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │once more                                                                                                           │
+         │❯ once more                                                                                                         │
+         │● Done: once more                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │❯                                                                                                                   │
+         │────────────────────────────────────────                                                                            │
+         │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+         │                                                                                                                    │
+        ─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+         alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
+        
+--- FAIL: TestDashboardFollowsAgentsQuitsAndComesBack (18.61s)
+FAIL
+FAIL	github.com/rkrysinski/hq/e2e	18.723s
+FAIL

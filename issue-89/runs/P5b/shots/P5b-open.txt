@@ -1,0 +1,30 @@
+
+✻ Worked for 4s · done 6:30 AM
+
+❯ Use the AskUserQuestion tool once to ask me "Which tree?" with the options Oak and Pine (single
+  choice). After my answer, reply with one line quoting exactly the answer you received, and do
+  nothing else.
+
+● User declined to answer questions
+  ⎿  · Which tree? (Oak / Pine)
+
+✻ Cogitated for 2s · done 6:31 AM
+
+❯ Use the AskUserQuestion tool once to ask me "Which sea?" with the options North and Baltic
+  (single choice). After my answer, reply with one line quoting exactly the answer you received,
+  and do nothing else.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ Sea
+
+Which sea?
+
+❯ 1. North
+     Choose the North Sea
+  2. Baltic
+     Choose the Baltic Sea
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+

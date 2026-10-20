@@ -1,0 +1,6 @@
+read {"name": "big"} -> page 1: 32768 bytes, reply_size 82022, next_offset 32768
+read {"name": "big", "offset": 32768, "since": "2026-10-15T12:27:30.032300419Z"} -> page 2: 32768 bytes, reply_size 82022, next_offset 65536
+read {"name": "big", "offset": 65536, "since": "2026-10-15T12:27:30.045111627Z"} -> page 3: 16486 bytes, reply_size 82022, next_offset null
+joined pages 82022 characters, state file reply 17825792 characters, identical: False
+read {offset without since} -> isError True: hq: --offset needs --since: the next_since of the read that gave the offset, so its page is of the same reply
+$ 

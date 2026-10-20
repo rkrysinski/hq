@@ -1,0 +1,25 @@
+20:59:23.966 Enter (accept red)
+20:59:24.098 a     app   main    working  0s   -
+20:59:24.516 a     app   main    working  0s   -
+20:59:24.951 a     app   main    working  0s   -
+20:59:25.372 a     app   main    working  1s   -
+20:59:25.793 a     app   main    working  1s   -
+20:59:26.212 a     app   main    working  2s   -
+20:59:26.632 a     app   main    working  2s   -
+20:59:27.053 a     app   main    working  3s   -
+20:59:27.478 a     app   main    working  3s   -
+20:59:27.902 a     app   main    working  3s   -
+20:59:28.335 a     app   main    working  4s   -
+20:59:28.751 a     app   main    working  4s   -
+20:59:29.174 a     app   main    working  5s   -
+20:59:29.598 a     app   main    working  5s   -
+20:59:30.019 a     app   main    working  6s   -
+20:59:30.443 a     app   main    working  6s   -
+20:59:30.863 a     app   main    working  6s   -
+20:59:31.285 a     app   main    working  7s   -
+20:59:31.711 a     app   main    working  7s   -
+20:59:32.131 a     app   main    working  8s   -
+20:59:32.548 a     app   main    working  8s   -
+20:59:32.974 a     app   main    working  9s   -
+20:59:33.435 a     app   main    working  9s   -
+20:59:33.850 a     app   main    done   0s   The color is **red**.

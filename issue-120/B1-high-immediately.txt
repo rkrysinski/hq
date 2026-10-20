@@ -1,0 +1,34 @@
+delivered: typed into a as its next prompt
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  master  done   58s  hi
+state     done 58s
+pending   0
+
+reply
+  hi
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

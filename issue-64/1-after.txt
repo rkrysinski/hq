@@ -1,0 +1,19 @@
+NAME  REPO  BRANCH  STATE  AGE  LAST
+big   book   main    done   5s   Line 0001 of the long reply, a recon report, pasted verbati…
+total 168
+-rw-r--r-- 1 agent agent 83353 Oct 15 14:24 6410e2d8070f
+-rw-r--r-- 1 agent agent 83353 Oct 15 14:24 6410e2d8070f.stop
+name      big
+repo      book  /tmp/claude-1000/-home-dev-work-repositories-hq/00000043-0000-4000-8000-000000000043/scratchpad/qa/repo/book
+branch    main
+worktree  /tmp/claude-1000/-home-dev-work-repositories-hq/00000043-0000-4000-8000-000000000043/scratchpad/qa/repo/book
+sandbox   claude-book
+state     done 5s
+pending   0
+reply     bytes 0-32767 of 82022
+  Line 0001 of the long reply, a recon report, pasted verbatim into the turn's end.
+  Line 0002 of the long reply, a recon report, pasted verbatim into the turn's end.
+  Line 0003 of the long reply, a recon report, pasted verbatim into the turn's end.
+  Line 0004 of the long reply, a recon report, pasted verbatim into the turn's end.
+  Line 0005 of the long reply, a recon report, pasted verbatim into the turn's end.
+$ 

@@ -1,0 +1,17 @@
+name      a
+repo      app  /tmp/claude-1000/-home-dev-work-repositories-hq/00000018-0000-4000-8000-000000000018/scratchp
+ad/qa/app
+branch    main
+worktree  /tmp/claude-1000/-home-dev-work-repositories-hq/00000018-0000-4000-8000-000000000018/scratchpad/qa
+/app
+sandbox   claude-app
+state     needs input 13s
+pending   0
+last      Which color should I use?
+asks
+  elicit asks: Which color should I use?
+    color (Color, required): red | blue - Pick one
+reply
+  I started a background subagent. It will wait 15 seconds and then call `ask_color` once. I'll tell you the color when
+it reports back.
+$

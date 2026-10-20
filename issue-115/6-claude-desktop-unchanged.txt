@@ -1,0 +1,15 @@
+$ cd ~; HOME=~/d1 hq-before mcp install 2>&1 | short
+added hq to Claude Desktop (…/qa/home/d1/.config/Claude/claude_desktop_config.json)
+the file as it was: …/qa/d1/.config/Claude/claude_desktop_config.json.hq-backup-20261018-073939
+quit and reopen Claude Desktop to load it
+$ HOME=~/d2 hq mcp install 2>&1 | short
+added hq to Claude Desktop (…/qa/home/d2/.config/Claude/claude_desktop_config.json)
+the file as it was: …/qa/d2/.config/Claude/claude_desktop_config.json.hq-backup-20261018-073940
+quit and reopen Claude Desktop to load it
+$ HOME=~/d2 hq mcp install claude-desktop 2>&1 | short
+hq is already set up in Claude Desktop (…/qa/home/d2/.config/Claude/claude_desktop_config.json)
+$ diff <(sed 's#bin-before2/hq-before#bin/hq#' d1/.config/Claude/claude_desktop_config.json) d2/.config/Claude/claude_desktop_config.json && echo same entry
+same entry
+$ jq -c .mcpServers.hq.args d2/.config/Claude/claude_desktop_config.json
+["mcp"]
+$

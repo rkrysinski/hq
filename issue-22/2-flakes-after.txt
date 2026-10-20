@@ -1,0 +1,14 @@
+# this branch: the same five tests, 12 runs
+$ go test -count=12 -tags integration ./internal/tmux -run "<the five tests>"
+ok  	github.com/rkrysinski/hq/internal/tmux	36.823s
+
+$ go test -count=4 -tags integration ./internal/tmux   # the whole package, 4 runs
+ok  	github.com/rkrysinski/hq/internal/tmux	99.647s
+
+$ go test -count=2 -tags integration ./internal/cli ./internal/state ./cmd/hq
+ok  	github.com/rkrysinski/hq/internal/cli	174.480s
+ok  	github.com/rkrysinski/hq/internal/state	55.223s
+ok  	github.com/rkrysinski/hq/cmd/hq	64.353s
+
+$ go test -count=3 -tags e2e ./e2e/...
+ok  	github.com/rkrysinski/hq/e2e	92.090s

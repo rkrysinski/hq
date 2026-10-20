@@ -1,0 +1,8 @@
+NAME    REPO  BRANCH  STATE        AGE  LAST
+bg      app   master  needs input  0s   Select model
+narrow  app   master  done         15s  The color is **red**.
+chat    app   master  done         1m   You chose to clarify instead of answering, so I haven't rec…
+ask     app   master  done         2m   You picked **red**. The 30-second command finished and prin…
+elicit  app   master  done         2m   The `ask_color` tool returned **red**.
+queued: bg waits at a dialog of Claude's own; once it is answered there (hq go bg), delivered with its next prompt
+after $

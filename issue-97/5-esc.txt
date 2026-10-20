@@ -1,0 +1,30 @@
+$ hq ls; hq read a | grep -E '^(state|own task|last)'
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   master  done   18s  Interrupted
+state     done 18s
+last      Interrupted
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

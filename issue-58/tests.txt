@@ -1,0 +1,4 @@
+EXIT 0
+coverage 94.24% (minimum 93.7%)
+ok  	github.com/rkrysinski/hq/e2e	16.892s
+EXIT 0

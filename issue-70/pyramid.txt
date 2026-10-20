@@ -1,0 +1,4 @@
+## before (issue-68-dialog-verdict 264e15e)
+unit 447, integration 137, e2e 3 (unit share 77%, minimum 50%)
+## after (04cc17a)
+unit 465, integration 138, e2e 3 (unit share 77%, minimum 50%)

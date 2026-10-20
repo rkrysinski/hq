@@ -1,0 +1,30 @@
+[38;5;246m  ⎿  · Which color? → Blue[39m
+
+[38;5;231m●[39m "Blue"
+
+[38;5;246m✻[39m [38;5;246mWorked for 3s · done 6:57 AM[39m
+
+[38;5;246m[48;5;237m❯ [38;5;231mSay hi in one word.[39m
+
+[38;5;231m[49m●[39m Hi
+
+[38;5;246m✻[39m [38;5;246mWorked for 1s · done 6:58 AM[39m
+
+[38;5;246m[48;5;237m❯ [38;5;231mCall the ask_color tool of the elicit MCP server once, then reply with its result in one line.[39m
+
+[38;5;246m[49m●[39m Calling elicit… [38;5;246m(ctrl+o to expand)[39m
+
+[38;5;153m────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  [1m[38;5;153mMCP server “elicit” requests your input[0m
+
+  [38;5;246mWhich color should I use?[39m
+
+  [38;5;114m [39m [38;5;246m✔[39m Color: red
+        [38;5;246mPick one[39m
+
+  [38;5;114m❯[1m Accept  [0m[38;5;211m [38;5;246m Decline[39m
+
+  [3m[38;5;246mEsc to cancel · ↑/↓ to navigate[0m
+
+
+

@@ -1,0 +1,5 @@
+$ hq send b1 "/model claude-opus-5-5"; hq send b1 "/effort medium"
+delivered: typed into b1 as its next prompt
+queued: b1 has something in its prompt box, delivered with its next prompt
+$ hq ls --json  (8 s later)
+{"name":"b1","state":"done","pending":1,"last":""}

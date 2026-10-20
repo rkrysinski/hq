@@ -1,0 +1,9 @@
+> winget install -h Docker.sbx
+Found Docker Sandboxes [Docker.sbx] Version 0.46.0
+This application is licensed to you by its owner.
+Microsoft is not responsible for, nor does it grant any licenses to, third-party packages.
+Downloading https://github.com/docker/sbx-releases/releases/download/v0.46.0/DockerSandboxes.msi
+Successfully verified installer hash
+Starting package install...
+Successfully installed
+[exit code: 0]

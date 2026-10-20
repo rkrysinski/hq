@@ -1,0 +1,24 @@
+│ tock 17                                                                     │
+│ tock 18                                                                     │
+│ tock 19                                                                     │
+│ tock 20                                                                     │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+✻ Cogitated for 25s · done 3:29 PM
+
+❯ Write a 400-word story about a fox. Use no tools.
+
+❯ Reply with only the word ONE.
+
+❯ Reply with only the word TWO.
+  ctrl+x ctrl+s to send now
+
+✶ Determining… (7s · thinking with high effort)
+  ⎿  Tip: Use /voice to enable push-to-talk dictation
+
+────────────────────────────────────────────────────────────────────────────────
+❯ Press up to edit queued messages
+────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ?1 no upstream │ …
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+                                                                   ◆ Tools ▾

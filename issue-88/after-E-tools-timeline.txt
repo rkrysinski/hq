@@ -1,0 +1,13 @@
+07:06:10.235 drive send busy prompt
+07:06:10.270 trans user  Write a 400-word story about a lighthous
+07:06:10.275 hook  UserPromptSubmit   3504cbf6 "prompt":"Write a 400-word story about a lighthous
+07:06:16.243 drive type queued prompt
+07:06:16.263 hook  UserPromptSubmit   3504cbf6 "prompt":"Run exactly this bash command in the for
+07:06:16.272 trans queue-enqueue  Run exactly this bash command in the for
+07:06:18.252 drive Esc
+07:06:18.323 trans queue-dequeue  
+07:06:18.334 trans user  Run exactly this bash command in the for
+07:06:23.000 hook  PreToolUse         3d32f4c4 "tool_name":"Bash"
+07:06:48.154 hook  PostToolUse        3d32f4c4 "tool_name":"Bash"
+07:06:51.023 hook  Stop               3d32f4c4 
+07:06:59.455 drive end

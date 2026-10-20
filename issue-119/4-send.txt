@@ -1,0 +1,6 @@
+$ hq send rel-1.10.5-213 hello; sleep 3; hq ls
+delivered: typed into rel-1.10.5-213 as its next prompt
+NAME            REPO  BRANCH  STATE  AGE  LAST
+rel-1.10.5-213  app   master  done   2s   Done: hello
+rel-1.10.5-qa   app   master  done   45s  -
+$

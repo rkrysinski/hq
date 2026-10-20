@@ -1,0 +1,4 @@
+tools/call new #3: "started rel-1.10.5-mcp in app (sandbox claude-app); enter it with: hq go rel-1.10.5-mcp\n" isError=False
+tools/call new #4: "hq: invalid name 'rel:1': use letters, digits, '-', '_' and '.'\n" isError=True
+tools/call new #5: "hq: invalid name '..': it needs a letter or a digit\n" isError=True
+tools/list new.name: the agent's name: letters, digits, '-', '_' and '.', at least one letter or digit, at most 32 characters, e.g. the issue number (42), a slug (book-17) or a release's version and issue (rel-1.10.5-213); free until that agent is killed

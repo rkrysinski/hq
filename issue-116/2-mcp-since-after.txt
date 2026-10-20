@@ -1,0 +1,56 @@
+# instructions
+  - Watch from one moment: the next_since of your most recent wait or list result.
+  Always pass it as wait's since: wait then returns every change after that moment, even one that 
+  happened before wait was called, such as an agent that answered your message at once, and none twice.
+  Never take since from read, send or answer: their next_since is that one agent's, later than what the 
+  others did meanwhile, so a wait from it misses that.
+  Name every agent you follow in each wait (or none, for every agent): a wait's next_since stands for the 
+  agents it waited on.
+  A wait from a list's next_since returns only what changes after the list, so act on the agents the list 
+  shows done, in question, needing input or ended as on those a wait returns.
+  - To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list 
+  result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other 
+  that does so within a moment of it, or returns no agents after its timeout; then call it again.
+# wait
+  Wait until one of the named agents (every agent when none is named) is done, asks a question, needs 
+  input or ends, and return it, with every other that does so within a moment of it, as list gives them, 
+  with next_since, as JSON.
+  since is required: the next_since of your most recent wait or list result, so a change between that 
+  result and this call is not missed; never that of read, send or answer, which is one agent's and later 
+  than what the others did meanwhile.
+  To watch agents, call it in a loop, passing each result's next_since as the next call's since and 
+  naming every agent you follow each time (or none, for every agent): no change is then missed or 
+  returned twice.
+  the next_since of your most recent wait or list result (e.g.
+# read
+  One agent in full, as JSON: what list gives, what it asks and the open dialog's id included (asks: 
+  while it needs input the open dialog's questions and options, a permission's tool and command, or an 
+  MCP server's form (server, message and fields: each with its name, title, type, whether it is required, 
+  options and default; or the url it sends the user to); the question while in question; null otherwise), 
+  its worktree, its last reply, and next_since, the moment of the read, for its next page (below): never 
+  pass it to wait as since, it is this agent's alone.
+  To read on, call read again with offset set to next_offset and since set to this read's next_since; if 
+  the agent has replied anew in between, it says the reply changed: read it again from its start.
+  with offset: the next_since of the read that gave that next_offset, so the page is of the same reply 
+# send
+  It returns, as JSON, how the message goes (delivery: queued or delivered) and next_since, the moment 
+  before the message was left.
+  The agent's answer is its next reply: your next wait, from your watch's since (the next_since of your 
+  most recent wait or list result), returns the agent when it answers, even if it answered before wait 
+  was called; then read it.
+  This next_since is for a wait on this agent alone, never your watch's since.
+# answer
+  It returns once the agent has left the dialog, as JSON: its state and next_since, the moment before the 
+  answer was left: for a wait on this agent alone, never your watch's since.
+# list
+  List every agent as JSON (agents), those that need the user first: name, repo, branch, state, since and 
+  age_seconds (in that state), last (its last message, one line), sandbox, pending (messages waiting for 
+  it), dialog (while it needs input: the open dialog's id, for answer), own_tasks (while it is done or in 
+  question: the shell commands and watches of its own still running at that turn end, each with its type, 
+  shell or monitor, and text, the command or the watch's description; [] when none) and asks (what it 
+  asks: while it needs input the open dialog's questions and options, a permission's tool and command, or 
+  an MCP server's form (server, message and fields: each with its name, title, type, whether it is 
+  required, options and default; or the url it sends the user to); the question while in question; null 
+  otherwise); and next_since, the moment of the list, to pass to wait as since: a wait from it returns 
+  only what changes after the list, so act on the agents it shows done, in question, needing input or 
+  ended.

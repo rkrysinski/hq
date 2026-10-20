@@ -1,0 +1,12 @@
+$ SBX_FAIL=hv hq new t1 repo 'say hi'; echo "[exit code: $?]"
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+hq: sbx.exe: error: the Windows Hypervisor Platform is unavailable: either the optional feature is not enabled, or Windows is itself running in a virt
+ual machine or VDI desktop whose host does not expose virtualization extensions (nested virtualization)
+[exit code: 3]
+$ SBX_FAIL=auth hq new t1 repo 'say hi'; echo "[exit code: $?]"
+hq: sbx.exe: error: Not authenticated to Docker; try: sbx login
+[exit code: 3]
+$ SBX_FAIL=auth hq sandbox rm repo -y; echo "[exit code: $?]"
+hq: sbx.exe: error: Not authenticated to Docker; try: sbx login
+[exit code: 3]
+$

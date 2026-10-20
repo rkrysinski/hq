@@ -1,0 +1,26 @@
+$ cd w21; tmux -V
+tmux 3.4
+$ hq new a 'my$repo' 'say hi'
+creating a sandbox for my$repo (first time only; log in to Claude when the session asks)
+started a in my$repo (sandbox claude-my$repo); enter it with: hq go a
+$ hq ls
+NAME  REPO      BRANCH  STATE     AGE  LAST
+a     my\$repo  -       starting  6s   -
+$ hq ls --json | tr , "\n" | grep repo | sed "s|/tmp/.*scratchpad|...|"
+      "repo": "my\\$repo"
+      "repo_path": ".../w21/my\\$repo"
+      "sandbox": "claude-my\\$repo"
+$ hq new b 'my$repo' 'say hi'   # a second agent in the same repository: the same sandbox
+started b in my$repo (sandbox claude-my$repo); enter it with: hq go b
+$ hq sandbox restart 'my$repo' -y; echo "[exit code: $?]"
+restarted the sandbox claude-my$repo
+[exit code: 0]
+$ hq sandbox rm 'my$repo' -y; echo "[exit code: $?]   # refused while agents run"
+removed the sandbox claude-my$repo
+[exit code: 0]   # refused while agents run
+$ hq kill a -y; hq kill b -y; hq sandbox rm 'my$repo' -y; echo "[exit code: $?]"
+killed a; the sandbox stays
+killed b; the sandbox stays
+hq: no sandbox for my$repo (hq new creates it)
+[exit code: 2]
+$

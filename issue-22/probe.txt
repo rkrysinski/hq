@@ -1,0 +1,14 @@
+# Probe on WSL 1, tmux 3.4: 80 windows with remain-on-exit, each running sh -c 'echo hi', one at a time;
+# 0.3 s after each pane is dead: #{pane_pid} dead=#{pane_dead} time=#{pane_dead_time} status=#{pane_dead_status},
+# and the pane's process in the process table.
+
+w44: 16098 dead=1 time= status= | process: 16098 15733 Zs   [sh] <defunct>
+w67: 16289 dead=1 time= status= | process: 16289 15733 Zs   [sh] <defunct>
+without time: 2 of 80
+
+# 15733 is the tmux server: the pane's program is a zombie tmux has not waited for.
+# After one more child of the server exits (tmux run-shell true): no pane without a time, no <defunct> left.
+#
+# tmux marks a pane dead when its terminal closes, and fills in the time and status (and draws "Pane is dead")
+# once it has also reaped the program, which it does on SIGCHLD with waitpid(WNOHANG) (server.c, server_child_signal).
+# Here the signal came before the child could be waited for, or not at all, and nothing made tmux look again.

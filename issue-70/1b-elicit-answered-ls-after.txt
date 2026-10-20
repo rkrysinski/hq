@@ -1,0 +1,12 @@
+NAME    REPO  BRANCH  STATE    AGE  LAST
+elicit  app   master  working  25s  -
+name      elicit
+repo      app  /tmp/claude-1000/-home-dev-work-repositories-hq/00000031-0000-4000-8000-000000000031/scratchpad/qa70/repo-after/app
+branch    master
+worktree  /tmp/claude-1000/-home-dev-work-repositories-hq/00000031-0000-4000-8000-000000000031/scratchpad/qa70/repo-after/app
+sandbox   claude-app
+state     working 25s
+pending   0
+
+reply     none
+after $

@@ -1,0 +1,9 @@
+$ gh pr view 111 --json title,baseRefName,headRefName,files
+{"base":"issue-108-skip-docs-ci","files":["cmd/hq/main.go"],"head":"qa-108-go","title":"QA #108: go-only change (throwaway, do not merge)"}
+
+$ gh pr checks 111
+tests (macos-latest)	pass	4m5s	https://github.com/rkrysinski/hq/actions/runs/39100177564/job/117594674443	
+tests (ubuntu-latest)	pass	2m56s	https://github.com/rkrysinski/hq/actions/runs/39100177564/job/117594674552	
+
+$ gh run list --workflow Tests --branch qa-108-go
+[{"conclusion":"success","databaseId":39100177564,"event":"pull_request","url":"https://github.com/rkrysinski/hq/actions/runs/39100177564"}]

@@ -1,0 +1,24 @@
+
+ ▐▛███▛█   Claude Code v2.1.302
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   /…/00000042-0000-4000-8000-000000000042/scratchpad/work
+
+
+❯ Write a 400-word story about a lighthouse keeper. Use no tools.
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ Run exactly this bash command in the foreground and show me its output: for i
+  in $(seq 25); do echo tock $i; sleep 1; done
+
+
+
+✶ Harmonizing… (0s · thought for 6s)
+  ⎿  Tip: For a fast, cheap code review, try /code-review low. It runs the
+     built-in skill at its lightest effort level.
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ▐◑◡◑▌  Opus 5.5 high │ master ✓ no upstream │ 5h ▕███▏░░░░░░░░▏ 26% ◷ 12:00…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                   ◆ Tools ▾

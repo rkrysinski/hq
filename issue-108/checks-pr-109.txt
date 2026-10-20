@@ -1,0 +1,9 @@
+$ gh pr view 109 --json title,baseRefName,headRefName,files
+{"base":"dev","files":[".github/workflows/tests.yml","docs/agents/qa-evidence.md","docs/agents/testing.md"],"head":"issue-108-skip-docs-ci","title":"Skip the Tests workflow for a change of docs alone"}
+
+$ gh pr checks 109
+tests (macos-latest)	pass	3m30s	https://github.com/rkrysinski/hq/actions/runs/39100170987/job/117594655170	
+tests (ubuntu-latest)	pass	3m0s	https://github.com/rkrysinski/hq/actions/runs/39100170987/job/117594655306	
+
+$ gh run list --workflow Tests --branch issue-108-skip-docs-ci
+[{"conclusion":"success","databaseId":39100170987,"event":"pull_request","url":"https://github.com/rkrysinski/hq/actions/runs/39100170987"}]

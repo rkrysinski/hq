@@ -1,0 +1,40 @@
+  hq  5 agents · 2 need you · 2 done · 1 working  view: all                                                                                          Fri 10:20
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ e       app         master        ● needs input  25s   Change effort level?                                                        ⏎ open   c code   k kill  │
+  b       app         master        ● needs input  58s   Which colour do you pick?
+  c       app         master        ● done         39s   Interrupted
+  a       app         master        ● done         1m    Done: hi
+  d       app         master        ● working      50s   Done: background research
+
+
+─┬ ▸ e · master · claude-app
+ │                                                                                                                                                            │
+ │claude in claude-app: hello                                                                                                                                 │
+ │fake claude: ready                                                                                                                                          │
+ │❯ hello                                                                                                                                                     │
+ │● Done: hello                                                                                                                                               │
+ │────────────────────────────────────────                                                                                                                    │
+ │❯                                                                                                                                                           │
+ │────────────────────────────────────────                                                                                                                    │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                                                             │
+ │/effort max                                                                                                                                                 │
+ │                                                                                                                                                            │
+ │▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔                                                                                            │
+ │   Change effort level?                                                                                                                                     │
+ │   Your next response will be slower and use more tokens                                                                                                    │
+ │                                                                                                                                                            │
+ │   This conversation is cached for the current effort level. Switching to max means the full history gets re-read on your next message.                     │
+ │                                                                                                                                                            │
+ │   ❯ 1. Yes, switch to max                                                                                                                                  │
+ │     2. No, go back                                                                                                                                         │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new

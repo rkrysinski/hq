@@ -1,0 +1,14 @@
+1792218667.601316088 KEY p P5-prompt
+1792218667.606015505 KEY p P5-enter
+1792218667.617351421 hook UserPromptSubmit pid=610245 {}
+1792218670.196411798 act-start PreToolUse pid=611172
+1792218670.195217714 hook PreToolUse pid=611169 {"tool_name":"AskUserQuestion"}
+1792218670.202034423 act-none PreToolUse pid=611172
+1792218670.213093714 act-start PermissionRequest pid=611187
+1792218670.212013589 hook PermissionRequest pid=611184 {"tool_name":"AskUserQuestion"}
+1792218676.219363259 hook Notification pid=613673 {"notification_type":"permission_prompt"}
+1792218679.612527552 SHOT p P5-open
+1792218679.620256885 DROP deny interrupt
+1792218679.634756052 act-answer PermissionRequest pid=611187 {"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"hq: cancelled","interrupt":true}}}
+1792218680.124868344 SHOT p P5-cancel-05
+1792218685.134253430 SHOT p P5-cancel-done

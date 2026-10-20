@@ -1,0 +1,11 @@
+=== RUN   TestAnAgentDockedBeforeItIsReleasedStillStarts
+=== RUN   TestAnAgentDockedBeforeItIsReleasedStillStarts/Dock
+    dash_integration_test.go:1164: timed out waiting for the docked agent's program to start
+=== RUN   TestAnAgentDockedBeforeItIsReleasedStillStarts/Show
+    dash_integration_test.go:1164: timed out waiting for the docked agent's program to start
+--- FAIL: TestAnAgentDockedBeforeItIsReleasedStillStarts (12.69s)
+    --- FAIL: TestAnAgentDockedBeforeItIsReleasedStillStarts/Dock (6.35s)
+    --- FAIL: TestAnAgentDockedBeforeItIsReleasedStillStarts/Show (6.34s)
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	12.771s
+FAIL

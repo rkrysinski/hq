@@ -1,0 +1,6 @@
+code ~/hq-qa/repos/wslrepo; echo "[exit code: $?]"
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+user@WIN-VM:~/hq-qa$ code ~/hq-qa/repos/wslrepo; echo "[exit code: $?]"
+[exit code: 0]
+user@WIN-VM:~/hq-qa$

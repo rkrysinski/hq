@@ -1,0 +1,2 @@
+12a13
+> - Odtwórz sandboxy z obrazu szablonu `ghcr.io/<org>/sbx-image:<tag>` (lub nowszego), w którym `claude-approve` nie odpowiada już na AskUserQuestion: `sbx rm <sandbox>`, potem `sbx run --template ghcr.io/<org>/sbx-image:<tag> ...` i `/login` w nowym sandboxie. W sandboxie ze starego obrazu `hq answer` kończy się po 5 s błędem wskazującym na claude-approve, a dialog trzeba odebrać przy agencie.

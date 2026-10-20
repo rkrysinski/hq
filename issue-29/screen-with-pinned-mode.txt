@@ -1,0 +1,36 @@
+ ▐▛███▛█   Claude Code v2.1.285
+▝▜██████▀  Fable 5.1 · Claude Max
+ ▝▝   ▝▝   $S/cc-work
+
+  Get to finished work sooner with Opus 5.5. Switch anytime with /model.
+  1 more notice hidden
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Try "how does <filepath> work?"
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker · restart with CLAUDE_CODE_FORCE_…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)                                             ● high · /effort
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,3 @@
+NAME    REPO  BRANCH  STATE        AGE  LAST
+elicit  app   master  needs input  22s  Claude Code needs your input
+before $

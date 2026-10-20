@@ -1,0 +1,14 @@
+First reproduction run (before the fix, hq from dev at 8e6392c, Claude Code 2.1.302, Fable 5.1 medium), files replaced by the rerun below; its screens are the fixtures screen-fs-queued-at-work, screen-fs-queued-taken-thinking, screen-fs-queued-taken-streaming and screen-fs-queued-taken-tool.
+06:22:11.380 drive  send busy prompt
+06:22:11.432 hook   UserPromptSubmit 78811303 story
+06:22:17.386 drive  type queued prompt
+06:22:17.402 hook   UserPromptSubmit 78811303 tock (queued; enqueue 17.412)
+06:22:19.393 drive  Esc
+06:22:19.458 trans  queue-dequeue; 19.470 user message = tock prompt
+06:22:19.804 hq wait returned: done / Interrupted (started 06:22:11.386)
+06:22:19.900 hq ls   done 0s Interrupted   (polls every 400 ms; stays so)
+06:22:43.170 hook   PreToolUse Bash 024a9395
+06:23:08.326 hook   PostToolUse Bash
+06:23:10.916 hook   Stop 024a9395
+06:23:11.010 hq ls   done 0s "Both parts are done. The story is above, and the command ra…"
+So hq said done / Interrupted from 06:22:19.9 to 06:23:11.0, 51 s of the 51.5 s queued turn; hq wait returned at the Esc.

@@ -1,0 +1,30 @@
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once to ask me "Which tree?" with the options Oak and Pine (single [39m
+  [38;5;231mchoice). After my answer, reply with one line quoting exactly the answer you received, and do [39m
+  [38;5;231mnothing else.[39m
+[49m    [38;5;246m○ [39mPytam Cię                                                     [38;5;246m━━━━━━━━━━━━━━━━━━━━[39m       [38;5;246m25 s[39m
+
+[38;5;246m● [39mUser declined to answer questions
+[38;5;246m  ⎿  · Which tree? (Oak / Pine)[39m
+
+[38;5;246m✻[39m [38;5;246mBrewed for 1s · done 6:44 AM[39m
+
+[38;5;246m[48;5;237m❯ [38;5;231mUse the AskUserQuestion tool once, with three questions in that one call: "Which color?" with [39m
+  [38;5;231moptions Red and Blue (single choice); "Which sizes?" with options Small, Medium and Large [39m
+  [38;5;231m(multiSelect true); "Which name?" with options Alpha and Beta (single choice). After my answers, [39m
+  [38;5;231mreply with one line per question quoting exactly the answer you received, and do nothing else.[39m
+[49m    [38;5;151m✓ [39mPytam Cię                                                     [38;5;151m━━━━━━━━━━━━━━━━━━━━[39m       [38;5;246m27 s[39m
+
+[38;5;246m● [39mUser answered Claude's questions:
+[38;5;246m  ⎿  · Which color? → Blue[39m
+     [38;5;246m· Which sizes? → Small, Large, XL[39m
+     [38;5;246m· Which name? → Gamma typed[39m
+
+[38;5;174m✢[39m [38;5;216mVibing…[38;5;174m [38;5;246m(running PermissionRequest hooks… 1/2 · 1m 1s · ↓[39m [38;5;246m282 tokens)[39m
+[38;5;246m  ⎿  Tip: Use /btw to ask a quick side question without interrupting Claude's current work[39m
+                                                                                  [38;5;246m● high · /effort[39m
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────
+[38;5;246m❯ [39m
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  [38;5;173m▐[38;5;16m[48;5;173m◕◡◕[38;5;173m[49m▌[38;5;246m  [1m[38;5;214mOpus 5.5[0m[38;5;214m [38;5;87mhigh[38;5;240m │ [38;5;250mctx [38;5;240m▕[38;5;114m▊[38;5;238m░░░░░░░[38;5;250m┆[38;5;238m░░░░░░░[38;5;240m▏ [38;5;114m5%[38;5;240m │ [38;5;183mmaster [38;5;114m✓ [38;5;245mno upstream[38;5;240m │ [38;5;250m5h [38;5;240m▕[38;5;114m██[38;5;150m▍[38;5;238m░░░░░░░░░[38;5;240m▏ [38;5;114m20%…[39m
+  [38;5;211m⏵⏵ bypass permissions on[38;5;246m (shift+tab to cycle)[39m
+                                                                                     [48;5;173m  ◆ Tools ▾  [49m

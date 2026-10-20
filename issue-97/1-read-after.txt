@@ -1,0 +1,30 @@
+$ hq read a
+name      a
+repo      app  /tmp/claude-1000/-home-dev-work-repositories-hq/00000011-0000-4000-8000-000000000011/scratchp
+ad/qa/app
+branch    master
+worktree  /tmp/claude-1000/-home-dev-work-repositories-hq/00000011-0000-4000-8000-000000000011/scratchpad/qa
+/app
+sandbox   claude-app
+state     done 44s
+own task: shell  sleep 120
+pending   0
+
+reply
+  I started `sleep 120` in the background and I'm waiting for it to finish.
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

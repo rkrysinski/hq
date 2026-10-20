@@ -1,0 +1,6 @@
+$ # dev's hook (origin/dev 8a8673f), the two tests of #123 run 40 times each:
+$ go test -count=40 -tags integration ./internal/cli/ -run 'TestAnswerFromTheCLIClosesTheDialogThroughItsHook|TestKillAndStopRemoveTheirAgentsStateFiles'
+--- FAIL: TestAnswerFromTheCLIClosesTheDialogThroughItsHook (2.83s)
+    answer_integration_test.go:52: left beside the state file: [/tmp/TestAnswerFromTheCLIClosesTheDialogThroughItsHook3228768072/002/app/.git/hq/agents/637ae4a3d4ed.1094469]
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	176.914s

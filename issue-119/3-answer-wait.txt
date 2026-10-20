@@ -1,0 +1,9 @@
+$ hq wait rel-1.10.5-213 --timeout 20s > $HOME/w.txt & sleep 1; hq answer rel-1.10.5-213 --dialog fd1c5c 2; wait; cat $HOME/w.txt
+[1] 95497
+answered: rel-1.10.5-213 is working
+[1]+  Done                       /home/dev/work/repositories/hq/.claude/worktrees/issue-119/scripts/local-dev.sh wait
+rel-1.10.5-213 --timeout 20s > $HOME/w.txt
+NAME            REPO  BRANCH  STATE     AGE  LAST
+rel-1.10.5-213  app   master  question  0s   Done on several lines. Shall I go on?
+next: hq wait rel-1.10.5-213 --since 2026-10-20T05:21:42.156300938Z
+$

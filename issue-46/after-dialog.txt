@@ -1,0 +1,9 @@
+supervisor send(name="a", text="this needs input")
+  delivered: typed into a as its next prompt
+  -> a is needs input: 'Which colour do you pick?'
+  desktop notification sent: Needs input: main  (agent a)
+user types at a: '1'
+  -> a is done: 'Done: this needs input'
+  desktop notifications sent: none
+-- end of dialog --
+$

@@ -1,0 +1,10 @@
+1792218817.46451451 KEY p P1b-prompt
+1792218817.51929118 KEY p P1b-enter
+1792218817.62620118 hook UserPromptSubmit pid=670137 {}
+1792218820.272671494 act-start PreToolUse pid=671434
+1792218820.271217244 hook PreToolUse pid=671429 {"tool_name":"AskUserQuestion"}
+1792218820.278726786 act-answer PreToolUse pid=671434 {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","updatedInput":{"questions":[{"question":"Which bird?","header":"Bird","options":[{"label":"Crow","description":"Choose crow"},{"label":"Owl","description":"Choose owl"}],"multiSelect":false}],"answers":{"Which bird?":"Owl"}}}}
+1792218820.289066286 hook PostToolUse pid=671459 {"tool_name":"AskUserQuestion"}
+1792218824.15393163 hook Stop pid=673232 {}
+1792218826.751051456 hook SubagentStop pid=674267 {"agent_id":"af74ce75b10f08229"}
+1792218829.73821040 SHOT p P1b-done

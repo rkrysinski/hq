@@ -1,0 +1,30 @@
+$ hqb ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     app   master  done   30s  I started `sleep 120` in the background and I'm waiting for…
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

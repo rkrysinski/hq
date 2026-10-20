@@ -1,0 +1,12 @@
+== mawk
+passed 16, failed 0
+#47 Po wdrożeniu: footer dropped
+identical 91, footer-only differences 1, unexpected 0
+== gawk
+passed 16, failed 0
+#47 Po wdrożeniu: footer dropped
+identical 91, footer-only differences 1, unexpected 0
+== original-awk
+passed 16, failed 0
+#47 Po wdrożeniu: footer dropped
+identical 91, footer-only differences 1, unexpected 0

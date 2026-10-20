@@ -1,0 +1,42 @@
+  hq  1 agent · 1 need you  view: attention                                                                                                Fri 11:02
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ elicit  app         master        ● needs input  1m    Claude Code needs your input                                      ⏎ open   c code   k kill  │
+
+
+
+
+
+
+─┬ ▸ elicit · master · claude-app
+ │                                                                                                                                                  │
+ │ ▐▛███▛█   Claude Code v2.1.301                                                                                                                   │
+ │▝▜██████▀  Opus 5.5 with high effort · Claude Max                                                                                                 │
+ │ ▝▝   ▝▝   /tmp/claude-1000/-home-dev-work-repositories-hq/00000031-0000-4000-8000-000000000031/scratchpad/qa70/repo-before/app       │
+ │                                                                                                                                                  │
+ │                                                                                                                                                  │
+ │❯ Call the ask_color tool from the elicit MCP server, then reply with the color it returns.                                                       │
+ │╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮ │
+ ││ ● Claude                                                                                                                                      │ │
+ ││ ▾ 2 komendy · ◑ · 1 min 9 s                                                                                                                   │ │
+ ││   ▸ ✓ Szukam narzędzia: +elicit ask_color                                                                    ━━━━━━━━━━━━━━━━━━━━      0,0 s  │ │
+ ││   ▸ ◑ elicit: ask_color                                                                                      ━━━━━━░░░░░░░░░░░░░░  1 min 8 s  │ │
+ │╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ │
+ │                                                                                                                                                  │
+ │                                                                                                                                                  │
+ │                                                                                                                                                  │
+ │                                                                                                                                                  │
+ │                                                                                                                                                  │
+ │                                                                                                                                                  │
+ │                                                                                                                                                  │
+ │                                                                                                                                                  │
+ │                                                                                                                                                  │
+ │✢ elicit: ask_color… (26s · ↓ 115 tokens)                                                                                                         │
+ │                                                                                                                                                  │
+ │──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │❯                                                                                                                                                 │
+ │──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │  ▐◕◡◕▌  Opus 5.5 high │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ 5h ▕█▎░░░░░░░░░░▏ 10% ◷ 17:00 │ $0.18                    ◆ Tools ▾    │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents                                                                                    │
+─┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit

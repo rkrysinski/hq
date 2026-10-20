@@ -1,0 +1,38 @@
+$ go test -count=6 -tags integration ./internal/tmux -run TestDocksAtTheSameTimeLeaveOneAgentDocked
+ok  	github.com/rkrysinski/hq/internal/tmux	36.394s
+
+$ go test -count=1 -tags integration ./...
+ok  	github.com/rkrysinski/hq/cmd/hq	44.841s
+ok  	github.com/rkrysinski/hq/internal/agent	0.199s
+ok  	github.com/rkrysinski/hq/internal/cli	115.976s
+ok  	github.com/rkrysinski/hq/internal/dash	9.805s
+ok  	github.com/rkrysinski/hq/internal/desktop	0.151s
+ok  	github.com/rkrysinski/hq/internal/dialog	1.106s
+ok  	github.com/rkrysinski/hq/internal/gh	0.153s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.156s
+ok  	github.com/rkrysinski/hq/internal/platform	1.389s
+ok  	github.com/rkrysinski/hq/internal/prefs	1.594s
+ok  	github.com/rkrysinski/hq/internal/proc	2.094s
+ok  	github.com/rkrysinski/hq/internal/repo	2.564s
+ok  	github.com/rkrysinski/hq/internal/sbx	4.422s
+ok  	github.com/rkrysinski/hq/internal/state	35.406s
+ok  	github.com/rkrysinski/hq/internal/tmux	74.930s
+ok  	github.com/rkrysinski/hq/internal/update	0.749s
+ok  	github.com/rkrysinski/hq/tools/testgate	0.135s
+
+# the journey of the issue, 10 runs (before: 2 of 6 failed on dev)
+ok  	github.com/rkrysinski/hq/e2e	19.611s
+    journey_e2e_test.go:327: never: hq go a
+ok  	github.com/rkrysinski/hq/e2e	19.100s
+ok  	github.com/rkrysinski/hq/e2e	19.463s
+ok  	github.com/rkrysinski/hq/e2e	19.487s
+ok  	github.com/rkrysinski/hq/e2e	19.975s
+ok  	github.com/rkrysinski/hq/e2e	19.525s
+ok  	github.com/rkrysinski/hq/e2e	19.132s
+ok  	github.com/rkrysinski/hq/e2e	19.806s
+ok  	github.com/rkrysinski/hq/e2e	20.047s
+
+$ go test -count=1 -tags e2e ./e2e/...
+ok  	github.com/rkrysinski/hq/e2e	37.048s
+
+unit 401, integration 108, e2e 3 (unit share 79%, minimum 50%)

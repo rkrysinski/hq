@@ -1,0 +1,126 @@
+FAIL 1 Po wdrożeniu + footer -> two bullets
+  expected: 0000000   -       o   n   e  
+   -       t   w   o
+0000013
+  actual:   - one
+- two
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+FAIL 2 Przed wdrożeniem + footer -> two bullets
+  expected: 0000000   -       o   n   e  
+   -       t   w   o
+0000013
+  actual:   - one
+- two
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+FAIL 3 footer then ## Other -> two bullets, no Other
+  expected: 0000000   -       o   n   e  
+   -       t   w   o
+0000013
+  actual:   - one
+- two
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+FAIL 4a section holding only the footer -> empty
+  expected: 0000000
+  actual:   🤖 Generated with [Claude Code](https://claude.com/claude-code)
+FAIL 5 rule + footer -> rule trimmed too
+  expected: 0000000   -       o   n   e  
+   -       t   w   o
+0000013
+  actual:   - one
+- two
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+FAIL 6 CRLF body + footer -> two bullets
+  expected: 0000000   -       o   n   e  
+   -       t   w   o
+0000013
+  actual:   - one
+- two
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+FAIL 7 footer without emoji, other URL -> dropped
+  expected: 0000000   -       o   n   e  
+   -       t   w   o
+0000013
+  actual:   - one
+- two
+
+Generated with [Claude Code](https://example.invalid/x)
+PASS 8 no footer: inner rule kept
+PASS 9 no footer: trailing rule kept as before
+PASS 10 heading must match exactly
+FAIL 12 footer mid-section: author's own trailing rule kept
+  expected: 0000000   -       o   n   e  
+   -       t   w   o  
+   -   -   -
+0000017
+  actual:   - one
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+- two
+---
+FAIL 13 two rules + footer -> both trimmed
+  expected: 0000000   -       o   n   e  
+   -       t   w   o
+0000013
+  actual:   - one
+- two
+
+---
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+FAIL 14 rule + footer only -> empty
+  expected: 0000000
+  actual:   ---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+FAIL 4b only-footer PR gets no block
+  expected: 0000000
+  actual:   1
+PASS 11a before.md identical with/without footer
+FAIL 11b after.md identical with/without footer
+  expected: 0000000   0   0   0   0   0   0   0               *               *    
+0000020           W               i               t               h    
+0000040                           f               o               o    
+  actual:   0000000   *   *   O   n   l   y       f   o   o   t   e   r       (   #
+0000020   1   )   *   *  
+  
+ 360 237 244 226       G   e   n   e   r
+0000040   a   t   e   d       w   i   t   h       [   C   l   a   u   d
+0000060   e       C   o   d   e   ]   (   h   t   t   p   s   :   /   /
+0000100   c   l   a   u   d   e   .   c   o   m   /   c   l   a   u   d
+0000120   e   -   c   o   d   e   )  
+  
+   *   *   W   i   t   h    
+0000140   f   o   o   t   e   r       (   #   2   )   *   *  
+  
+   -
+0000160       o   n   e  
+   -       t   w   o  
+  
+ 360 237 244 226
+0000200       G   e   n   e   r   a   t   e   d       w   i   t   h    
+0000220   [   C   l   a   u   d   e       C   o   d   e   ]   (   h   t
+0000240   t   p   s   :   /   /   c   l   a   u   d   e   .   c   o   m
+0000260   /   c   l   a   u   d   e   -   c   o   d   e   )  
+  
+
+0000277
+--- after.md with footer:
+**Only footer (#1)**
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+**With footer (#2)**
+
+- one
+- two
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+passed 4, failed 12

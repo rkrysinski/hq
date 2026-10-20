@@ -1,0 +1,5 @@
+delivered: typed into big as its next prompt
+NAME  REPO  BRANCH  STATE  AGE  LAST
+big   book   main    done   0s   Line 0001 of the long reply, a recon report, pasted verbati…
+next: hq wait big --since 2026-10-15T12:26:14.647549008Z
+$ 
