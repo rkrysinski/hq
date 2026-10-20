@@ -1684,3 +1684,52 @@ func TestTakeQueuedMakesTheStateFileTheQueuedPromptDatedNow(t *testing.T) {
 		t.Fatalf("the link changed the report: %+v", now)
 	}
 }
+
+// The hook publishes a Stop in the state file only once its .stop holds
+// it, and leaves nothing of its own beside them after that (#123): a
+// reader that sees the turn end finds its .stop, and no copy of the hook's.
+// A mv on PATH records, as each rename comes, its target, and what .stop
+// holds when the state file itself is renamed into place.
+func TestTheStopHookWritesStopBeforeItPublishesTheStateFile(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	dir := Dir(root)
+	real, err := exec.LookPath("mv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bin, log := t.TempDir(), filepath.Join(t.TempDir(), "renames")
+	shim := `#!/bin/sh
+for last; do :; done
+[ "${last##*/}" = ` + id + ` ] && { cat "$last.stop" >"$0.stop" 2>/dev/null || : >"$0.stop"; }
+printf '%s\n' "${last##*/}" >>"` + log + `"
+exec ` + real + ` "$@"
+`
+	if err := os.WriteFile(filepath.Join(bin, "mv"), []byte(shim), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	fire(t, root, root, id, "stop", fixture(t, "stop-question"))
+	os.Remove(log)
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	fire(t, root, root, id, "stop", fixture(t, "stop-done"))
+
+	b, _ := os.ReadFile(log)
+	renames := strings.Fields(string(b))
+	if len(renames) == 0 || renames[len(renames)-1] != id {
+		t.Fatalf("renames %v: the state file is not the last", renames)
+	}
+	published, _ := os.ReadFile(filepath.Join(bin, "mv.stop"))
+	now, _ := os.ReadFile(filepath.Join(dir, id))
+	if !bytes.Equal(published, now) {
+		t.Fatalf(".stop when the state file was published:\n%s\nthe state file:\n%s", published, now)
+	}
+	entries, _ := os.ReadDir(dir)
+	var names []string
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	if strings.Join(names, " ") != id+" "+id+".stop" {
+		t.Fatalf("files %v", names)
+	}
+}
