@@ -35,7 +35,7 @@ func TestParseNewSecondArgumentIsDirWhenItIsADirectory(t *testing.T) {
 
 func TestParseNewRejectsBadInput(t *testing.T) {
 	isDir := func(string) bool { return false }
-	for _, args := range [][]string{{}, {"bad name"}, {"a/b"}, {"a", "p1", "p2"}, {"a", "-x"}} {
+	for _, args := range [][]string{{}, {"bad name"}, {"a/b"}, {"a:b"}, {"a", "p1", "p2"}, {"a", "-x"}} {
 		if _, err := parseNew(args, isDir, "/w"); err == nil || err.(*Error).Code != ExitUsage {
 			t.Errorf("%q: got %v, want usage error", args, err)
 		}
@@ -47,8 +47,10 @@ func TestNewNamesWhatIsWrongWithTheName(t *testing.T) {
 	for name, want := range map[string]string{
 		strings.Repeat("a", 32): "",
 		long:                    "hq: name '" + long + "' is too long: at most 32 characters\n",
-		"bad name":              "hq: invalid name 'bad name': use letters, digits, - and _\n",
-		long + "/b":             "hq: invalid name '" + long + "/b': use letters, digits, - and _\n",
+		"bad name":              "hq: invalid name 'bad name': use letters, digits, '-', '_' and '.'\n",
+		long + "/b":             "hq: invalid name '" + long + "/b': use letters, digits, '-', '_' and '.'\n",
+		"..":                    "hq: invalid name '..': it needs a letter or a digit\n",
+		"_._":                   "hq: invalid name '_._': it needs a letter or a digit\n",
 	} {
 		_, err := parseNew([]string{name}, func(string) bool { return false }, "/w")
 		if want == "" {
