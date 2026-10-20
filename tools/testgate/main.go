@@ -1,5 +1,5 @@
-// Command testgate enforces the shape of hq's test suite in CI
-// (docs/agents/testing.md):
+// Command testgate holds hq's CI gates: the shape of the test suite, its
+// coverage, and no private details in the public text (docs/agents/testing.md):
 //
 //	go run ./tools/testgate pyramid          # counts tests per level, checks the shape
 //	go run ./tools/testgate coverage FILE    # checks a coverage profile against the threshold
@@ -53,7 +53,7 @@ func main() {
 		problems = c.problems(MinUnitShare)
 	case "coverage":
 		if len(os.Args) < 3 {
-			fmt.Fprintln(os.Stderr, "usage: testgate coverage FILE")
+			fmt.Fprintln(os.Stderr, usage)
 			os.Exit(2)
 		}
 		f, err := os.Open(os.Args[2])
@@ -72,31 +72,13 @@ func main() {
 			problems = append(problems, fmt.Sprintf("coverage %.1f%% is below %.1f%%", pct, MinCoverage))
 		}
 	case "private":
-		pats, err := parsePatterns(os.Getenv(PrivatePatternsEnv))
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "testgate:", PrivatePatternsEnv, err)
-			os.Exit(2)
-		}
-		if len(pats) == 0 {
-			fmt.Printf("private: %s is not set, nothing checked\n", PrivatePatternsEnv)
-			return
-		}
-		paths := os.Args[2:]
-		if len(paths) == 0 {
-			if paths, err = trackedFiles("."); err != nil {
-				fmt.Fprintln(os.Stderr, "testgate:", err)
-				os.Exit(2)
-			}
-		}
-		hits, err := scanPaths(paths, pats)
+		summary, p, err := checkPrivate(os.Getenv(PrivatePatternsEnv), os.Args[2:])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
 		}
-		fmt.Printf("private: %d patterns, %d matching lines\n", len(pats), len(hits))
-		for _, h := range hits {
-			problems = append(problems, h.String())
-		}
+		fmt.Println(summary)
+		problems = p
 	default:
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(2)

@@ -22,8 +22,9 @@ func TestPatternsSkipBlankAndCommentLinesAndIgnoreCase(t *testing.T) {
 }
 
 func TestPatternsRejectABadExpression(t *testing.T) {
-	if _, err := parsePatterns("ok\n(unclosed\n"); err == nil || !strings.Contains(err.Error(), "pattern 2") {
-		t.Fatalf("err %v, want one naming pattern 2", err)
+	_, err := parsePatterns("ok\n(unclosed\n")
+	if err == nil || !strings.Contains(err.Error(), "pattern 2") || strings.Contains(err.Error(), "unclosed") {
+		t.Fatalf("err %v, want one naming pattern 2 without its text", err)
 	}
 }
 
@@ -63,6 +64,23 @@ func TestScanPathsWalksDirectoriesAndSkipsGit(t *testing.T) {
 	want := []hit{{filepath.Join(root, "ev/1.txt"), 1, 1}, {filepath.Join(root, "ev/deep/2.txt"), 2, 1}}
 	if !reflect.DeepEqual(hits, want) {
 		t.Fatalf("hits %v, want %v", hits, want)
+	}
+}
+
+func TestCheckPrivatePassesWithANoticeWithoutPatterns(t *testing.T) {
+	summary, problems, err := checkPrivate("# only a comment\n", []string{t.TempDir()})
+	if err != nil || len(problems) != 0 || !strings.Contains(summary, "not set") {
+		t.Fatalf("summary %q problems %v err %v", summary, problems, err)
+	}
+}
+
+func TestCheckPrivateMakesAProblemOfEveryHit(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, "a.txt", "acme\nfine\nAcme\n")
+	summary, problems, err := checkPrivate("acme\n", []string{root})
+	want := []string{filepath.Join(root, "a.txt") + ":1 matches private pattern 1", filepath.Join(root, "a.txt") + ":3 matches private pattern 1"}
+	if err != nil || summary != "private: 1 patterns, 2 matching lines" || !reflect.DeepEqual(problems, want) {
+		t.Fatalf("summary %q problems %v err %v", summary, problems, err)
 	}
 }
 
