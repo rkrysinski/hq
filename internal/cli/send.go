@@ -34,8 +34,9 @@ const promptPoll = 50 * time.Millisecond
 // boxWait is how long hq send waits for the prompt box of an agent at its
 // prompt to be empty and at rest before it leaves the message for the next
 // prompt: right after a prompt or a slash command (the previous hq send's)
-// Claude has not taken it yet, or shows a panel in place of the box, for
-// about 2.5 s after /model (Claude Code 2.1.304, #125).
+// Claude has not taken it yet, or shows a panel in place of the box; after
+// /model the screen is not at rest for about 2.5 s (Claude Code 2.1.304,
+// #125).
 const boxWait = 4 * time.Second
 
 // leaveWait is how long hq send waits, once it has typed a prompt in, for
@@ -46,11 +47,15 @@ const leaveWait = 3 * time.Second
 // boxPoll is how often hq send looks at the box meanwhile.
 const boxPoll = 150 * time.Millisecond
 
-// staleAfter is how long a message waits for an agent at its prompt before
-// hq, looking at the agents, types it in itself (deliverStale): longer than
-// hq send takes to deliver it, so that one hq send's message is never
-// typed in by another hq process.
-const staleAfter = boxWait + 2*time.Second
+// waitingAfter is how long a message waits for an agent at its prompt before
+// hq, looking at the agents, types it in itself (deliverWaiting): longer than
+// hq send waits for the box, so that a message is typed in by the hq send
+// that left it. Not always: one left for a starting agent waits up to
+// startWait before hq send looks at the box, and a look that types in an
+// older message takes a newer one with it (state.Take takes them all).
+// Whoever takes a message delivers it, once; the hq send that left it
+// then says it was taken.
+const waitingAfter = boxWait + 2*time.Second
 
 const sendUsage = "usage: hq send NAME TEXT [--now] [--json]"
 
@@ -163,7 +168,7 @@ func atPrompt(a agent.Agent) bool {
 	return a.State == state.Done || a.State == state.Question || a.OnBackgroundWork()
 }
 
-// deliverStale types in the messages that have waited staleAfter or longer
+// deliverWaiting types in the messages that have waited waitingAfter or longer
 // for agents at their prompt, as hq send would have, when their box is
 // empty and at rest; it does not wait for the box. hq send leaves the
 // message for the next prompt when the box does not settle in time, and a
@@ -171,12 +176,12 @@ func atPrompt(a agent.Agent) bool {
 // keep it for a prompt the user types, which never comes for an agent the
 // supervisor drives (#125). hq calls it wherever it looks at the agents:
 // hq ls, hq read, hq wait and the list.
-func deliverStale(d deps, as []agent.Agent) {
+func deliverWaiting(d deps, as []agent.Agent) {
 	for _, a := range as {
 		if !a.Inbox || !atPrompt(a) {
 			continue
 		}
-		if at, ok := d.oldestMessage(a.RepoPath, a.ID); ok && d.now().Sub(at) >= staleAfter {
+		if at, ok := d.oldestMessage(a.RepoPath, a.ID); ok && d.now().Sub(at) >= waitingAfter {
 			_, _ = typeIn(d, a, 0)
 		}
 	}
@@ -265,7 +270,8 @@ func typeIn(d deps, a agent.Agent, within time.Duration) (string, error) {
 // (state.AtRest, faint hints aside), on two looks boxPoll apart that see
 // the same screen, so a screen Claude is about to redraw, as when it has
 // just taken a prompt and shows no spinner yet, is not typed into. It
-// looks again every boxPoll for up to within; with within zero, once.
+// looks again every boxPoll for up to within; with within zero, it gives
+// up at the first look not at rest.
 func boxAtRest(d deps, a agent.Agent, within time.Duration) bool {
 	last := ""
 	for i := 0; i < int(within/boxPoll)+2; i++ {
@@ -289,13 +295,14 @@ func boxAtRest(d deps, a agent.Agent, within time.Duration) bool {
 	return false
 }
 
-// awaitBoxLeft waits up to leaveWait until the agent's prompt box no longer
-// holds what hq typed in: Claude has taken it, as a prompt or a slash
-// command, whose panel may stand in place of the box (#125).
+// awaitBoxLeft waits up to leaveWait until the agent's prompt box is empty
+// or gone, as once Claude has taken what hq typed in, as a prompt or a
+// slash command, whose panel may stand in place of the box (#125). The
+// user typing there at once keeps it waiting the whole time.
 func awaitBoxLeft(d deps, a agent.Agent) {
 	for deadline := d.now().Add(leaveWait); d.now().Before(deadline); d.sleep(boxPoll) {
 		styled, err := d.tmux.StyledScreen(a.Pane)
-		if err != nil || state.InBox(state.WithoutHints(styled)) == "" {
+		if err != nil || state.BoxText(state.WithoutHints(styled)) == "" {
 			return
 		}
 	}

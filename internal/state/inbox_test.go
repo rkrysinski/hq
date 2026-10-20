@@ -115,9 +115,6 @@ func TestAMessageNameSaysWhenItWasSent(t *testing.T) {
 			t.Errorf("%q has a time", n)
 		}
 	}
-	if _, ok := Oldest("/w/app", "../x"); ok {
-		t.Error("not an agent id")
-	}
 }
 
 func TestAMessageFitsWhatHqReadsBack(t *testing.T) {
@@ -141,5 +138,8 @@ func TestInboxDirIsBesideTheStateFiles(t *testing.T) {
 	}
 	if _, err := Take("/w/app", "../x"); err == nil {
 		t.Fatal("took for a bad id")
+	}
+	if _, ok := Oldest("/w/app", "../x"); ok {
+		t.Fatal("a time for a bad id")
 	}
 }

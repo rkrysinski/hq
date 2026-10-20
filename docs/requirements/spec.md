@@ -108,7 +108,7 @@ A message left with `hq send` reaches the agent when it is ready, depending on i
 - `starting`: it waits for the session to start, then goes as above.
 - `ended`: refused.
 
-A message that still waits for an agent at its prompt with nothing typed there (the user emptied the box without sending it, or a command entered as its prompt kept Claude Code busy for longer than `hq send` waits) is entered as its next prompt the next time hq looks at the agents: the dashboard while it runs, `hq ls`, `hq read`, `hq wait`, and the supervisor's `list`, `read` and `wait`.
+A message that still waits for an agent at its prompt with nothing typed there (the user emptied the box without sending it, or Claude Code was still busy with a command entered just before) is entered as its next prompt the next time hq looks at the agents: the dashboard while it runs, `hq ls`, `hq read`, `hq wait`, and the supervisor's `list`, `read` and `wait`.
 
 Whose turn it is afterwards (5, *Supervised turns*): a message of the supervisor's entered as the agent's next prompt starts a supervised turn, unless a message of the user's is entered with it; one that reaches a running turn, or goes along with a prompt the user sends, leaves the turn whose it was; a message of the user's makes the turn it reaches theirs.
 

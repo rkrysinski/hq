@@ -137,7 +137,7 @@ func asks(a agent.Agent, det state.Detail) *state.Ask {
 // fit. A working agent's screen at rest may be a turn the user rewound,
 // which it is once it stays so a while (design §3.4): it looks again then,
 // so a single look tells the turn's end at once, like the list. Messages
-// left waiting for agents at their prompt are typed in (deliverStale).
+// left waiting for agents at their prompt are typed in (deliverWaiting).
 func gatherAgents(d deps) ([]agent.Agent, error) {
 	if err := checkTmux(d.tmux); err != nil {
 		return nil, err
@@ -152,7 +152,7 @@ func gatherAgents(d deps) ([]agent.Agent, error) {
 			return nil, err
 		}
 	}
-	deliverStale(d, as)
+	deliverWaiting(d, as)
 	return as, nil
 }
 

@@ -164,12 +164,12 @@ func AtRest(screen, reported string) (ok, restored bool) {
 	return restored, restored
 }
 
-// InBox is what Claude's prompt box at the bottom of the screen holds, its
+// BoxText is what Claude's prompt box at the bottom of the screen holds, its
 // lines joined and spaces collapsed, whatever its footer: "" for an empty
 // box, and for a screen that shows no box, as while the panel of /model
 // stands in its place (Claude Code 2.1.304, #125). Faint hints count as
 // text; WithoutHints takes them out first.
-func InBox(screen string) string {
+func BoxText(screen string) string {
 	b, ok, _ := findBox(screen)
 	if !ok {
 		return ""
