@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/testutil"
@@ -124,4 +125,59 @@ func TestAnswerFromTheCLIPicksAnOptionOfADialogOfClaudesOwn(t *testing.T) {
 			t.Fatalf("option %s again: exit %d %q", tc.option, code, errOut)
 		}
 	}
+}
+
+// The supervisor changes an agent's effort with hq send after its turns
+// (#120): each change sent after a turn opens Claude's dialog, answered
+// with hq answer, round the levels and back; one sent right after another
+// change switches at once, with no dialog, as Claude Code 2.1.304 does.
+func TestEffortChangesSentAfterATurnAreAnsweredWithHqAnswer(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	last := "Done: hello"
+	h.waitReport("a", "done", last)
+	for i, level := range []string{"medium", "high", "medium"} {
+		if i > 0 {
+			h.send("delivered: typed into a as its next prompt", "a", "go on "+level)
+			last = "Done: go on " + level
+			h.waitReport("a", "done", last)
+		}
+		h.send("delivered: typed into a as its next prompt", "a", "/effort "+level)
+		id := h.dialogOf("a")
+		if r := h.waitState("a", "needs input"); r.Last != "Change effort level?" {
+			t.Fatalf("%s: %+v", level, r)
+		}
+		if code, out, errOut := h.run("answer", "a", "--dialog", id, "1"); code != 0 || out != "answered: a is done\n" {
+			t.Fatalf("%s: exit %d %q %q\n%s", level, code, out, errOut, h.pane("a"))
+		}
+		h.waitReport("a", "done", last)
+		if got := h.effortSet(); got != level {
+			t.Fatalf("%s: set %q:\n%s", level, got, h.pane("a"))
+		}
+	}
+	// Right after a change: no dialog, the level set at once.
+	h.send("delivered: typed into a as its next prompt", "a", "/effort high")
+	for i := 0; h.effortSet() != "high"; i++ {
+		if i == 50 {
+			t.Fatalf("high not set:\n%s", h.pane("a"))
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if r := h.waitState("a", "done"); r.Dialog != "" {
+		t.Fatalf("a dialog after a change: %+v", r)
+	}
+}
+
+// effortSet is the level the fake Claude of agent a said it set last.
+func (h *realHQ) effortSet() string {
+	p := h.pane("a")
+	i := strings.LastIndex(p, "⎿  Set effort level to ")
+	if i < 0 {
+		return ""
+	}
+	return strings.Fields(p[i+len("⎿  Set effort level to "):])[0]
 }
