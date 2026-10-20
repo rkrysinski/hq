@@ -93,13 +93,14 @@ func (a Agent) Answerable() bool { return a.Hooks >= answeringHooks }
 // Repo is the repository's display name.
 func (a Agent) Repo() string { return filepath.Base(a.RepoPath) }
 
-var nameRE = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+var nameRE = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 // MaxName is the longest agent name, in characters (spec §4.2).
 const MaxName = 32
 
 // NameChars reports whether name is made of the characters a name may have:
-// letters, digits, - and _ (spec §4.2), and has at least one.
+// letters, digits, -, _ and . (spec §4.2), and has at least one. A dot is
+// no tmux target separator to hq: it targets windows by id, never by name.
 func NameChars(name string) bool { return nameRE.MatchString(name) }
 
 // NewID returns a fresh agent id.
