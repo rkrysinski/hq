@@ -76,7 +76,11 @@
 //     when the user has typed that and not sent it yet;
 //   - the line "/effort max" is no prompt: it draws the dialog Claude Code
 //     2.1.300 opens in place of its prompt box ("Change effort level?"),
-//     which no hook reports, until a line answers it (#66);
+//     which no hook reports, until it is answered (#66). As Claude Code
+//     2.1.304 does, it takes its keys as they are pressed: Down and Up
+//     move its ❯, wrapping round at the ends, and Enter picks the option
+//     the ❯ is on, which it says below the dialog ("Set effort level to
+//     max", "Kept effort level as high") (#120);
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.
 //
 // It reads the hooks' output as Claude Code 2.1.283 does (ADR 0012):
@@ -225,6 +229,7 @@ func main() {
 	c.lines = lines
 	go func() {
 		in := bufio.NewScanner(os.Stdin)
+		in.Split(linesAndArrows)
 		for in.Scan() {
 			lines <- pasted(in)
 		}
@@ -249,10 +254,7 @@ func main() {
 		case "/effort max":
 			// A slash command, no prompt: its dialog takes the box's place
 			// until it is answered; no hook fires.
-			fmt.Print(effortDialog)
-			c.line()
-			fmt.Println("  ⎿  Kept effort level as high")
-			promptBox("")
+			c.effort()
 		case "/exit":
 			c.endHooks()
 			c.fire("SessionEnd", map[string]any{"reason": "prompt_input_exit"})
@@ -278,6 +280,68 @@ func main() {
 
 // line is the next line typed; "" once the input has ended.
 func (c *claude) line() string { return <-c.lines }
+
+// The keys Down and Up as the terminal sends them.
+const (
+	keyDown = "\x1b[B"
+	keyUp   = "\x1b[A"
+)
+
+// linesAndArrows splits the input into lines, as bufio.ScanLines does, and
+// Down and Up pressed outside a line: what the effort dialog takes as it
+// is pressed, the terminal no longer canonical (effort). A canonical
+// terminal sends a line whole, so a line that starts with an arrow is the
+// arrow and then the rest of the line.
+func linesAndArrows(data []byte, atEOF bool) (int, []byte, error) {
+	for _, k := range []string{keyDown, keyUp} {
+		if bytes.HasPrefix(data, []byte(k)) {
+			return len(k), data[:len(k)], nil
+		}
+	}
+	return bufio.ScanLines(data, atEOF)
+}
+
+// effort shows the dialog of /effort max until Enter picks an option: the
+// terminal turned non-canonical meanwhile, so each arrow reaches the fake
+// as it is pressed, and the dialog drawn again with the ❯ moved.
+func (c *claude) effort() {
+	options := []string{"Yes, switch to max", "No, go back"}
+	draw := func(at int) {
+		fmt.Print(effortDialog)
+		for i, o := range options {
+			mark := " "
+			if i == at {
+				mark = "❯"
+			}
+			fmt.Printf("   %s %d. %s\n", mark, i+1, o)
+		}
+	}
+	stty("-icanon", "-echo")
+	at := 0
+	draw(at)
+	for key := c.line(); key == keyDown || key == keyUp; key = c.line() {
+		if key == keyDown {
+			at = (at + 1) % len(options)
+		} else {
+			at = (at + len(options) - 1) % len(options)
+		}
+		draw(at)
+	}
+	stty("icanon", "echo")
+	if at == 0 {
+		fmt.Println("  ⎿  Set effort level to max")
+	} else {
+		fmt.Println("  ⎿  Kept effort level as high")
+	}
+	promptBox("")
+}
+
+// stty sets the modes of the fake's terminal.
+func stty(modes ...string) {
+	cmd := exec.Command("stty", modes...)
+	cmd.Stdin = os.Stdin
+	_ = cmd.Run()
+}
 
 // wakePrefix starts the prompt Claude gives itself when background work has
 // finished.
@@ -635,7 +699,7 @@ const startDialog = `
 `
 
 // effortDialog is the dialog of Claude Code 2.1.300 for /effort max after a
-// turn, as it draws it.
+// turn, as it draws it, up to its options (effort draws them).
 const effortDialog = `
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
    Change effort level?
@@ -643,8 +707,6 @@ const effortDialog = `
 
    This conversation is cached for the current effort level. Switching to max means the full history gets re-read on your next message.
 
-   ❯ 1. Yes, switch to max
-     2. No, go back
 `
 
 // promptBox draws Claude's prompt box, where the user types the next

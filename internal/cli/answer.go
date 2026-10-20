@@ -26,6 +26,10 @@ const closeWait = 5 * time.Second
 // the dialog closed.
 const answerPoll = 100 * time.Millisecond
 
+// keyWait is how long hq answer gives a dialog of Claude's own to draw the
+// key it pressed: Claude redraws the ❯ within 0.1 s (#120).
+const keyWait = 2 * time.Second
+
 const answerUsage = "usage: hq answer NAME --dialog ID ANSWER... | --cancel [--json]"
 
 // answerRequest is an answer to an agent's question dialog, as hq answer
@@ -39,7 +43,8 @@ type answerRequest struct {
 }
 
 // runAnswer answers an agent's question dialog on the user's word, or
-// cancels it (spec §4.1, design §3.4, ADR 0013).
+// cancels it, or picks an option of a dialog of Claude's own (spec §4.1,
+// design §3.4, ADR 0013, ADR 0014).
 func runAnswer(env Env, d deps, args []string) error {
 	var r answerRequest
 	var rest []string
@@ -125,6 +130,9 @@ func answer(env Env, d deps, r answerRequest) error {
 		}
 		return usageErr("dialog %s is not open: %s is at dialog %s now (%s); read it (hq read %s) before answering", r.dialog, a.Name, open.ID(), a.Last, a.Name)
 	}
+	if open.Whose == agent.OwnDialog {
+		return answerOwn(env, d, a, r)
+	}
 	q, err := d.questions(a.RepoPath, a.ID)
 	if err != nil || state.DialogID(q.Since) != open.ID() {
 		return usageErr("%s's dialog changed meanwhile; read it again (hq read %s)", a.Name, a.Name)
@@ -177,9 +185,10 @@ func answer(env Env, d deps, r answerRequest) error {
 }
 
 // answerable refuses, with the reason, an agent whose dialog hq does not
-// answer: only the agent's own question dialog is, AskUserQuestion, which
-// asks; a permission prompt, an MCP elicitation and a dialog of Claude's
-// own stay the user's at the agent (spec Phase 2).
+// answer: the agent's own question dialog is, AskUserQuestion, which asks,
+// and a dialog of Claude's own whose options all show, which takes keys
+// and needs no hook; a permission prompt, an MCP elicitation and a list of
+// Claude's own that scrolls stay the user's at the agent (spec Phase 2).
 func answerable(a agent.Agent, ask *state.Ask) error {
 	at := fmt.Sprintf("answer it at the agent (hq go %s)", a.Name)
 	relaunch := fmt.Sprintf("relaunch it with hq sandbox restart %s, or kill it and start it again", a.Repo())
@@ -187,14 +196,16 @@ func answerable(a agent.Agent, ask *state.Ask) error {
 	switch {
 	case a.State == state.Ended:
 		return usageErr("%s has ended: it is at no dialog", a.Name)
+	case dialog.Scrolls():
+		return scrollsErr(a)
+	case dialog.Whose == agent.OwnDialog:
+		return nil
 	case !a.Answerable():
 		return usageErr("%s was started by an older hq and cannot be answered from hq; %s", a.Name, relaunch)
 	case a.State == state.Question:
 		return usageErr("%s asks in its reply, not in a dialog: answer it with hq send %s TEXT", a.Name, a.Name)
 	case !dialog.Open():
 		return usageErr("%s is at no dialog: it is %s", a.Name, a.State)
-	case dialog.Whose == agent.OwnDialog:
-		return usageErr("%s is at a dialog of Claude's own (%s), which hq does not answer; %s", a.Name, a.Last, at)
 	case dialog.Whose == agent.SubagentDialog:
 		return usageErr("%s's dialog is one of its subagents' (%s), which hq does not answer; %s", a.Name, a.Last, at)
 	case ask != nil && ask.Server != "":
@@ -266,4 +277,131 @@ func answersDiffer(q state.Questions, sent, got map[string]string) string {
 		}
 	}
 	return strings.Join(diffs, ", ")
+}
+
+// scrollsErr refuses the dialog of Claude's own a is at, whose list
+// scrolls to options its screen does not show, as the picker of /model
+// does: the numbers it shows are not the whole list's, and the cursor
+// moves the list (#120).
+func scrollsErr(a agent.Agent) error {
+	return usageErr("%s is at a dialog of Claude's own whose list scrolls (%s), which hq does not answer; answer it at the agent (hq go %s)", a.Name, a.Last, a.Name)
+}
+
+// answerOwn picks an option of the dialog of Claude's own the agent is at,
+// which fires no hook, with keys (ADR 0014): once a fresh look at its
+// screen shows the same dialog, it moves the ❯ to the option one key at a
+// time, each once Claude has drawn the last, presses Enter on it, and
+// returns once the agent has left the dialog. Nothing is pressed for an
+// answer that does not fit the dialog, nor for a screen that no longer
+// shows it.
+func answerOwn(env Env, d deps, a agent.Agent, r answerRequest) error {
+	if r.cancel {
+		return usageErr("%s not answered: a dialog of Claude's own is answered with one of its options, not cancelled", a.Name)
+	}
+	open := a.Dialog()
+	v, shown, err := ownScreen(d, a, open)
+	switch {
+	case err != nil:
+		return err
+	case v.Ask == nil:
+		// Answered at the agent meanwhile: the box is back.
+		now, err := findAgent(d, a.Name)
+		if err != nil {
+			return err
+		}
+		return usageErr("%s left the dialog before hq's answer reached it; nothing was answered from hq: it is %s", a.Name, now.State)
+	case !shown:
+		return usageErr("%s's dialog changed meanwhile; read it again (hq read %s)", a.Name, a.Name)
+	case v.Scrolls:
+		return scrollsErr(a)
+	}
+	pick, err := v.Pick(r.answers)
+	if err != nil {
+		return usageErr("%s not answered: %v", a.Name, err)
+	}
+	// The moment before the first key: what the agent does after the
+	// dialog is a change after it, for hq wait --since.
+	left := lookedAt(d.now())
+	if err := moveTo(d, a, open, v, pick); err != nil {
+		return err
+	}
+	if err := d.tmux.Press(a.Pane, "Enter"); err != nil {
+		return tmuxErr(err)
+	}
+	now, err := awaitLeft(d, a, open, pick)
+	if err != nil {
+		return err
+	}
+	if r.asJSON {
+		return writeJSON(env.Stdout, answerOutput{State: now.State, NextSince: left})
+	}
+	fmt.Fprintf(env.Stdout, "answered: %s is %s\n", a.Name, now.State)
+	return nil
+}
+
+// ownScreen looks at the agent's screen now: the dialog of Claude's own it
+// shows (no Ask when it shows none), and whether that is the open one.
+func ownScreen(d deps, a agent.Agent, open agent.Dialog) (state.OwnView, bool, error) {
+	screens, err := d.tmux.Screens([]string{a.Pane})
+	if err != nil {
+		return state.OwnView{}, false, tmuxErr(err)
+	}
+	v, _ := state.ViewOwnDialog(screens[a.Pane])
+	return v, open.Shows(v), nil
+}
+
+// moveTo moves the ❯ of the open dialog of Claude's own, which v shows,
+// to option pick: one Down or Up at a time, the next once a fresh look
+// shows the ❯ moved. The dialog changed, or the ❯ not moved within
+// keyWait, nothing is picked.
+func moveTo(d deps, a agent.Agent, open agent.Dialog, v state.OwnView, pick int) error {
+	// Down or Up each move the ❯ one option on; more keys than options
+	// would mean it never gets there.
+	for moves := 0; v.Cursor != pick; moves++ {
+		if moves == len(v.Ask.Questions[0].Options) {
+			return envErr("%s's dialog did not move to option %d: nothing was picked; answer it at the agent (hq go %s)", a.Name, pick+1, a.Name)
+		}
+		key := "Down"
+		if pick < v.Cursor {
+			key = "Up"
+		}
+		if err := d.tmux.Press(a.Pane, key); err != nil {
+			return tmuxErr(err)
+		}
+		from := v.Cursor
+		for deadline := d.now().Add(keyWait); ; {
+			d.sleep(answerPoll)
+			var shown bool
+			var err error
+			if v, shown, err = ownScreen(d, a, open); err != nil {
+				return err
+			}
+			if !shown {
+				return usageErr("%s's dialog changed while hq moved to option %d: nothing was picked; read it again (hq read %s)", a.Name, pick+1, a.Name)
+			}
+			if v.Cursor != from {
+				break
+			}
+			if !d.now().Before(deadline) {
+				return envErr("%s's dialog did not move to option %d within %s: nothing was picked; answer it at the agent (hq go %s)", a.Name, pick+1, keyWait, a.Name)
+			}
+		}
+	}
+	return nil
+}
+
+// awaitLeft waits up to closeWait, once Enter is pressed on option pick,
+// for the agent to leave the open dialog of Claude's own: back as it was
+// before it, or at the dialog's next step; and returns the agent then.
+func awaitLeft(d deps, a agent.Agent, open agent.Dialog, pick int) (agent.Agent, error) {
+	for deadline := d.now().Add(closeWait); ; {
+		d.sleep(answerPoll)
+		now, err := findAgent(d, a.Name)
+		if err != nil || now.Dialog().ID() != open.ID() {
+			return now, err
+		}
+		if !d.now().Before(deadline) {
+			return now, envErr("%s did not leave its dialog within %s of picking option %d: it is %s; answer it at the agent (hq go %s)", a.Name, closeWait, pick+1, now.State, a.Name)
+		}
+	}
 }

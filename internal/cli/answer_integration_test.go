@@ -96,3 +96,32 @@ func TestAnswerAfterTheTerminalAnsweredIsRefused(t *testing.T) {
 		t.Fatalf("old id: exit %d %q", code, errOut)
 	}
 }
+
+// A dialog of Claude's own fires no hook: hq answer picks its option with
+// keys in the agent's pane (#120), the ❯ moved to it, then Enter, and the
+// agent is back at its prompt as before the dialog.
+func TestAnswerFromTheCLIPicksAnOptionOfADialogOfClaudesOwn(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	for _, tc := range []struct{ option, said string }{
+		{"2", "⎿  Kept effort level as high"},
+		{"1", "⎿  Set effort level to max"},
+	} {
+		h.typeIn("a", "/effort max")
+		id := h.dialogOf("a")
+		if code, out, errOut := h.run("answer", "a", "--dialog", id, tc.option); code != 0 || out != "answered: a is done\n" {
+			t.Fatalf("option %s: exit %d %q %q\n%s", tc.option, code, out, errOut, h.pane("a"))
+		}
+		h.waitPane("a", tc.said)
+		h.waitReport("a", "done", "Done: hello")
+		// The dialog is gone: its id answers nothing any more.
+		if code, _, errOut := h.run("answer", "a", "--dialog", id, tc.option); code != ExitUsage || errOut != "hq: a is at no dialog: it is done\n" {
+			t.Fatalf("option %s again: exit %d %q", tc.option, code, errOut)
+		}
+	}
+}

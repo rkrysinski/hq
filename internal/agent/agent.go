@@ -48,6 +48,8 @@ type Agent struct {
 	queued     bool       // a prompt the user typed waits in Claude's queue, by its hooks (see settle)
 	takeQueued bool       // this look saw Claude take that prompt after an Esc: the state is handed over to it (see Look)
 	ownAsk     *state.Ask // the dialog Claude shows of its own on its screen, if any (see settle)
+	ownScrolls bool       // its list scrolls to options the screen does not show (state.OwnView)
+	ownPrint   string     // the fingerprint of the dialog of Claude's own it is at, seen or recalled (ownFingerprint)
 	dialog     Whose      // whose dialog it is at while it needs input: its hooks', a subagent's, or Claude's own, seen (ownAsk) or recorded on its window (see recallDialog)
 	answered   string     // when hq first saw Claude at work after the dialog its hooks reported (see settle)
 	lastStop   string     // its latest Stop's message, while a dialog's text stands in for it as Last
@@ -365,7 +367,7 @@ func (a *Agent) adopt(r record, stored string) {
 		a.answered = stored
 	case "dialogseen":
 		a.dialogSeen = stored
-		if at, ok := a.dialogSeenAt(a.ownFingerprint()); ok {
+		if at, ok := a.dialogSeenAt(ownFingerprint(a.ownAsk)); ok {
 			a.Since = at
 		}
 	case "endseen":
@@ -694,7 +696,7 @@ func (a *Agent) settle(screen string, now time.Time) record {
 // gone closes the record, so a dialog opened again counts anew.
 func (a *Agent) seeDialog(screen string, now time.Time) record {
 	key := a.key() + " "
-	ask, ok := state.OwnDialog(screen)
+	v, ok := state.ViewOwnDialog(screen)
 	if !ok {
 		if _, _, open := recorded(a.dialogSeen, a.key()); open {
 			// Open for this report: closed now.
@@ -702,8 +704,9 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 		}
 		return record{}
 	}
-	a.State, a.ownAsk, a.dialog, a.Last = state.NeedsInput, ask, OwnDialog, ask.Questions[0].Question
-	fp := a.ownFingerprint()
+	a.State, a.ownAsk, a.ownScrolls, a.dialog, a.Last = state.NeedsInput, v.Ask, v.Scrolls, OwnDialog, v.Ask.Questions[0].Question
+	fp := ownFingerprint(a.ownAsk)
+	a.ownPrint = fp
 	if at, ok := a.dialogSeenAt(fp); ok {
 		a.Since = at
 		return record{}
@@ -730,8 +733,8 @@ func (a *Agent) recallSeen() {
 // needs input since hq first saw the dialog, rather than dropping back to
 // its hooks' state for a refresh. What the dialog asks is not recorded.
 func (a *Agent) recallDialog() {
-	if _, at, ok := recorded(a.dialogSeen, a.key()); ok && a.waitsAtPrompt() {
-		a.State, a.Since, a.dialog = state.NeedsInput, at, OwnDialog
+	if fp, at, ok := recorded(a.dialogSeen, a.key()); ok && a.waitsAtPrompt() {
+		a.State, a.Since, a.dialog, a.ownPrint = state.NeedsInput, at, OwnDialog, fp
 	}
 }
 
@@ -777,14 +780,14 @@ func (a Agent) atHooksDialog() bool { return a.State == state.NeedsInput && a.di
 // the dialog's report, with its turn's last message.
 func (a *Agent) worksOn() { a.State, a.Last = state.Working, a.lastStop }
 
-// ownFingerprint names the dialog Claude shows of its own on the agent's
-// screen by its title and text: not by its options, which a list such as
-// the picker of /model scrolls as the cursor moves.
-func (a Agent) ownFingerprint() string {
-	if a.ownAsk == nil {
+// ownFingerprint names a dialog Claude shows of its own on the agent's
+// screen, ask, by its title and text: not by its options, which a list
+// such as the picker of /model scrolls as the cursor moves.
+func ownFingerprint(ask *state.Ask) string {
+	if ask == nil {
 		return ""
 	}
-	return fingerprint(a.ownAsk.Questions[0].Question + "\n" + a.ownAsk.Description)
+	return fingerprint(ask.Questions[0].Question + "\n" + ask.Description)
 }
 
 // dialogSeenAt is when hq first saw the dialog of fingerprint fp on the
