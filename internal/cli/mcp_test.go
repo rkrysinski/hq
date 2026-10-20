@@ -110,6 +110,10 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
 		}
 	}
+	// The name may carry a release's version (#119).
+	if schema, _ := json.Marshal(tools["new"].InputSchema); !strings.Contains(string(schema), "letters, digits, '-', '_' and '.', at least one letter or digit") || !strings.Contains(string(schema), "rel-1.10.5-213") {
+		t.Errorf("new: the name's characters not named in %s", schema)
+	}
 	if want := "for a question dialog or a dialog of Claude Code's own use answer, on the user's word"; !strings.Contains(tools["send"].Description, want) {
 		t.Errorf("send: no %q in %q", want, tools["send"].Description)
 	}
@@ -424,6 +428,12 @@ func TestMCPNewStartsAnAgentInTheRepositoryGiven(t *testing.T) {
 		if out, isErr := call(t, cs, "new", map[string]any{"name": "x", "dir": tc.dir, "prompt": "hi"}); !isErr || out != tc.want {
 			t.Errorf("%s: %v %q", tc.dir, isErr, out)
 		}
+	}
+	if out, isErr := call(t, cs, "new", map[string]any{"name": "rel-1.10.5-213", "dir": "/w/lib"}); isErr || f.tmux.windows[len(f.tmux.windows)-1].Name != "rel-1.10.5-213" {
+		t.Errorf("a release's name: %v %q", isErr, out)
+	}
+	if out, isErr := call(t, cs, "new", map[string]any{"name": "..", "dir": "/w/lib"}); !isErr || out != "hq: invalid name '..': it needs a letter or a digit\n" {
+		t.Errorf("dots alone: %v %q", isErr, out)
 	}
 	if out, isErr := call(t, cs, "new", map[string]any{"name": "42", "dir": "/w/lib"}); !isErr || !strings.Contains(out, "already exists") {
 		t.Errorf("duplicate: %v %q", isErr, out)

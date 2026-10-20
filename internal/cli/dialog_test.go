@@ -90,6 +90,10 @@ func TestTheDialogStartsAgentsAsHqNewDoes(t *testing.T) {
 			t.Fatalf("%s: docked %q keys %v", dir, f.tmux.docked, f.tmux.dockKeys)
 		}
 	}
+	// A release's name, its version and all (#119).
+	if err := start("rel-1.10.5-qa", "/w/app", ""); err != nil || f.tmux.windows[len(f.tmux.windows)-1].Name != "rel-1.10.5-qa" {
+		t.Fatalf("a release's name: %v", err)
+	}
 	// A failure to dock leaves the agent started, the dialog closing.
 	f.tmux.dockErr = errors.New("tmux gone")
 	if err := start("b1", "/w/app", ""); err != nil {
@@ -111,7 +115,8 @@ func TestTheDialogsErrorsBelongToTheirFields(t *testing.T) {
 		msg       string
 	}{
 		{"a", "/w/app", dialog.Name, "agent 'a' already exists (see hq ls; hq kill a frees the name)"},
-		{"bad name", "/w/app", dialog.Name, "invalid name 'bad name': use letters, digits, - and _"},
+		{"bad name", "/w/app", dialog.Name, "invalid name 'bad name': use letters, digits, '-', '_' and '.'"},
+		{".", "/w/app", dialog.Name, "invalid name '.': it needs a letter or a digit"},
 		{strings.Repeat("b", 33), "/w/app", dialog.Name, "name '" + strings.Repeat("b", 33) + "' is too long: at most 32 characters"},
 		{"b", "/w/plain", dialog.Dir, "/w/plain is not in a git repository"},
 	} {

@@ -198,7 +198,9 @@ func (c Client) Windows() ([]Window, error) {
 // NewWindow creates a home window named name in hq's session running argv,
 // with options stored on it. The program starts only after the options and
 // remain-on-exit are set, so a program that exits at once still leaves its
-// window, and its output, behind. Returns the window id.
+// window, and its output, behind. Returns the window id, by which hq targets
+// the window from then on: never by its name, whose . and : tmux would read
+// as target separators (#119).
 func (c Client) NewWindow(name, dir string, options map[string]string, argv []string) (string, error) {
 	// sh waits for one line on its terminal, then execs argv unchanged ("$@"):
 	// no shell parsing of any argument.

@@ -1150,6 +1150,17 @@ func TestSearchFooterReadsAsTheSpec(t *testing.T) {
 	}
 }
 
+// A name may carry a version, dots and all: the search takes the dot as
+// any other character of the name (#119).
+func TestSearchFindsANameByItsVersion(t *testing.T) {
+	as := []agent.Agent{ag("rel-1.10.5-213", state.Question, 0, ""), ag("rel-1.9.0-7", state.Question, 0, ""), ag("rel-1.10.5-qa", state.Question, 0, "")}
+	f := &fakeSource{agents: as, view: ViewAll}
+	m := typed(key(started(f, 120, 10), "/"), "rel-1.10")
+	if fmt.Sprint(f.footer[0]) != "{/rel-1.10 · 2 matches: rel-1.10.5-213 rel-1.10.5-qa}" || m.cursor != "rel-1.10.5-213" {
+		t.Fatalf("footer %v cursor %q", f.footer, m.cursor)
+	}
+}
+
 func TestSearchLooksAtTheRowsShown(t *testing.T) {
 	f := &fakeSource{agents: team()} // attention view: perm ask
 	m := typed(key(started(f, 120, 10), "/"), "w")
