@@ -312,10 +312,10 @@ func TestSessionValuesSurviveTheListProgram(t *testing.T) {
 	if v, err := c.SessionValue("cursor"); err != nil || v != "" {
 		t.Fatalf("unset: %q %v", v, err)
 	}
-	if err := c.SetSessionValue("cursor", "bok-17"); err != nil {
+	if err := c.SetSessionValue("cursor", "book-17"); err != nil {
 		t.Fatal(err)
 	}
-	if v, err := c.SessionValue("cursor"); err != nil || v != "bok-17" {
+	if v, err := c.SessionValue("cursor"); err != nil || v != "book-17" {
 		t.Fatalf("%q %v", v, err)
 	}
 }

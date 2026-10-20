@@ -43,7 +43,7 @@ func answer(m Confirm, keys ...string) (Confirm, bool) {
 
 func TestTheKillDialogLooksLikeTheMock(t *testing.T) {
 	k := &kills{}
-	m := KillDialog("bok-17", "fix/17-release-notes", k.kill)
+	m := KillDialog("book-17", "fix/17-release-notes", k.kill)
 	if m.Init() != nil {
 		t.Fatal("Init does something")
 	}
@@ -52,7 +52,7 @@ func TestTheKillDialogLooksLikeTheMock(t *testing.T) {
 	if !strings.Contains(ls[0], "Kill agent") || !strings.HasSuffix(ls[0], "×") {
 		t.Errorf("title line %q", ls[0])
 	}
-	for _, want := range []string{"Kill bok-17 (fix/17-release-notes)?", "Ends the Claude session; the sandbox stays.", "No ⏎", "Yes"} {
+	for _, want := range []string{"Kill book-17 (fix/17-release-notes)?", "Ends the Claude session; the sandbox stays.", "No ⏎", "Yes"} {
 		if !strings.Contains(v, want) {
 			t.Errorf("no %q in\n%s", want, v)
 		}

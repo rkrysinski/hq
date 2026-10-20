@@ -1,7 +1,7 @@
 
  ▐▛███▛█   Claude Code v2.1.304
 ▝▜██████▀  Opus 5.5 with high effort · Claude Max
- ▝▝   ▝▝   /…/-Users-romankrysinski-work-repositories-hq/9bc6efb4-adaa-4d67-80a8-652438081ab7/scratchpad/probe
+ ▝▝   ▝▝   /tmp/probe
 
   Updated to latest.
   code.claude.com/docs/en/changelog for details

@@ -4,7 +4,7 @@ Agent state must leave the sandbox through the mounted repository (ADR 0001), an
 
 ## Considered Options
 
-- **`hq init` committing a hook set into `.claude/` plus an ignore rule** (the spec's original design, and the `notify.sh` hook in support-chatbot): works for the whole team, but every repository must be prepared and changes to the hooks must be committed repository by repository.
+- **`hq init` committing a hook set into `.claude/` plus an ignore rule** (the spec's original design, and the `notify.sh` hook in one of the team's application repositories): works for the whole team, but every repository must be prepared and changes to the hooks must be committed repository by repository.
 - **Passing the identity with `sbx run -e`**: works per session, but the variables are also baked into the sandbox when that run creates it, so a repository's sandbox would carry the first agent's id; `--settings` keeps identity per Claude process.
 - **Keying state by Claude's session id**: breaks on `/clear`, which starts a new session id in the same process.
 - **One shared state file per repository**: concurrent agents in one sandbox race on it.

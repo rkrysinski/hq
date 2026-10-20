@@ -308,8 +308,8 @@ func TestListSourceKeepsTheModesInThePreferences(t *testing.T) {
 func TestListSourceKeepsTheCursorOnTheSession(t *testing.T) {
 	f := newFakes()
 	src := listSource(f.deps(), "%1")
-	src.SetCursor("bok-17")
-	if got := src.Cursor(); got != "bok-17" || f.tmux.session["cursor"] != "bok-17" {
+	src.SetCursor("book-17")
+	if got := src.Cursor(); got != "book-17" || f.tmux.session["cursor"] != "book-17" {
 		t.Fatalf("cursor %q", got)
 	}
 }

@@ -1,7 +1,7 @@
 
  ▐▛███▛█   Claude Code v2.1.301
 ▝▜██████▀  Opus 5.5 with high effort · Claude Max
- ▝▝   ▝▝   /…/0643a1bf-fff0-4d60-805c-979720bd1baa/scratchpad/app
+ ▝▝   ▝▝   /…/00000002-0000-4000-8000-000000000002/scratchpad/app
 
 
 ❯ First run ls -la in its own Bash call. Then, in a second foreground Bash
