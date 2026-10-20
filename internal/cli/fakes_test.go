@@ -78,8 +78,9 @@ type fakeTmux struct {
 	// panes Enter was pressed in; pasteErr fails the paste.
 	pasted    []string
 	submitted []string
-	onSubmit  func() // called at each Submit: Claude takes the prompt
-	startErr  error  // fails releasing a new window
+	onSubmit  func()                 // called at each Submit: Claude takes the prompt
+	onPress   func(pane, key string) // called at each key Press presses
+	startErr  error                  // fails releasing a new window
 	pasteErr  error
 }
 
@@ -101,6 +102,13 @@ func (f *fakeTmux) Submit(pane string) error {
 	f.submitted = append(f.submitted, pane)
 	if f.onSubmit != nil {
 		f.onSubmit()
+	}
+	return nil
+}
+
+func (f *fakeTmux) Press(pane, key string) error {
+	if f.onPress != nil {
+		f.onPress(pane, key)
 	}
 	return nil
 }

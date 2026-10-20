@@ -1,0 +1,40 @@
+
+ ▐▛███▛█   Claude Code v2.1.304
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   /…/-Users-romankrysinski-work-repositories-hq/9bc6efb4-adaa-4d67-80a8-652438081ab7/scratchpad/probe
+
+  Updated to latest.
+  code.claude.com/docs/en/changelog for details
+
+
+❯ Reply with the single word: hi
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                                            │
+│ hi                                                                                                                  │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Cogitated for 1s · done 5:21 AM
+
+❯ /effort medium
+  ⎿  Kept effort level as high
+
+❯ /effort low
+  ⎿  Kept effort level as high
+
+
+
+
+
+
+
+
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Switch model?
+   Your next response will be slower and use more tokens
+
+   This conversation is cached for the current model. Switching to Sonnet 5.5 means the full history gets re-read on
+   your next message.
+
+   ❯ 1. Yes, switch to Sonnet 5.5
+     2. No, go back
+

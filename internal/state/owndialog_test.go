@@ -107,3 +107,81 @@ func TestOwnDialogSeesTheModelPickerOverBackgroundWork(t *testing.T) {
 		t.Fatal("closed with Esc: still a dialog")
 	}
 }
+
+// Where the cursor of a dialog of Claude's own stands, and whether its list
+// shows every option, as hq answer needs them (#120). Claude Code 2.1.304
+// draws "Change effort level?" and "Switch model?" (/model NAME) after a
+// turn as 2.1.300 did; Down moves the ❯. The picker of /model scrolls.
+func TestViewOwnDialogSaysWhereItsCursorIsAndWhetherItsListScrolls(t *testing.T) {
+	for _, tc := range []struct {
+		screen   string
+		question string
+		cursor   int
+		scrolls  bool
+	}{
+		{"screen-own-effort.txt", "Change effort level?", 0, false},
+		{"screen-own-effort-low.txt", "Change effort level?", 0, false},
+		{"screen-own-effort-low-down.txt", "Change effort level?", 1, false},
+		{"screen-own-switch-model.txt", "Switch model?", 0, false},
+		{"screen-own-switch-model-down.txt", "Switch model?", 1, false},
+		{"screen-own-auto-mode.txt", "Make auto mode your default permission mode?", 0, false},
+		{"screen-own-trust.txt", "Accessing workspace:", 0, false},
+		{"screen-own-model.txt", "Select model", 0, true},
+		{"screen-own-model-2304.txt", "Select model", 1, true},
+		{"screen-own-model-background.txt", "Select model", 0, true},
+	} {
+		v, ok := ViewOwnDialog(readScreen(t, tc.screen))
+		if !ok || v.Ask.Questions[0].Question != tc.question || v.Cursor != tc.cursor || v.Scrolls != tc.scrolls {
+			t.Errorf("%s: %v cursor %d scrolls %v %+v", tc.screen, ok, v.Cursor, v.Scrolls, v.Ask)
+			continue
+		}
+		if ask, _ := OwnDialog(readScreen(t, tc.screen)); !reflect.DeepEqual(ask, v.Ask) {
+			t.Errorf("%s: OwnDialog %+v, view %+v", tc.screen, ask, v.Ask)
+		}
+	}
+	effort := readScreen(t, "screen-own-effort-low.txt")
+	if a, b := mustView(t, effort), mustView(t, readScreen(t, "screen-own-effort-low-down.txt")); !reflect.DeepEqual(a.Ask, b.Ask) {
+		t.Errorf("cursor moved, another dialog: %+v %+v", a.Ask, b.Ask)
+	}
+	// Answered: the box is back, with what Claude did.
+	for _, name := range []string{"screen-effort-low-set.txt", "screen-switch-model-kept.txt"} {
+		if v, ok := ViewOwnDialog(readScreen(t, name)); ok {
+			t.Errorf("%s: %+v", name, v)
+		}
+	}
+}
+
+func mustView(t *testing.T, screen string) OwnView {
+	t.Helper()
+	v, ok := ViewOwnDialog(screen)
+	if !ok {
+		t.Fatalf("no dialog:\n%s", screen)
+	}
+	return v
+}
+
+// A dialog of Claude's own takes one answer, one of its options by its
+// number as hq read lists them; anything else is refused before a key is
+// pressed (#120).
+func TestOwnViewPickTakesOneOptionByItsNumber(t *testing.T) {
+	v := mustView(t, readScreen(t, "screen-own-effort-low.txt"))
+	if n, err := v.Pick([]Answer{{Options: []int{2}}}); err != nil || n != 1 {
+		t.Fatalf("2: %d %v", n, err)
+	}
+	for _, tc := range []struct {
+		answers []Answer
+		want    string
+	}{
+		{nil, "the dialog has 1 question, 0 answers given: one per question, in its order"},
+		{[]Answer{{Options: []int{1}}, {Options: []int{2}}}, "the dialog has 1 question, 2 answers given: one per question, in its order"},
+		{[]Answer{{Options: []int{1, 2}}}, "Change effort level? takes one option, 2 given"},
+		{[]Answer{{Options: []int{3}}}, "Change effort level? has no option 3: it has 2"},
+		{[]Answer{{Options: []int{0}}}, "Change effort level? has no option 0: it has 2"},
+		{[]Answer{{Text: "yes"}}, "Change effort level? takes an option's number, not text: it is a dialog of Claude's own"},
+		{[]Answer{{Options: []int{1}, Text: "yes"}}, "Change effort level? takes an option's number, not text: it is a dialog of Claude's own"},
+	} {
+		if _, err := v.Pick(tc.answers); err == nil || err.Error() != tc.want {
+			t.Errorf("%+v: %v, want %q", tc.answers, err, tc.want)
+		}
+	}
+}

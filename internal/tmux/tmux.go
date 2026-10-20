@@ -373,6 +373,13 @@ func (c Client) Submit(pane string) error {
 	return err
 }
 
+// Press presses one key in a pane, by its tmux name (Down, Up, Enter):
+// hq answer moves the cursor of a dialog of Claude's own with it (#120).
+func (c Client) Press(pane, key string) error {
+	_, err := c.tmux("send-keys", "-t", pane, key)
+	return err
+}
+
 // Start releases the program of a window made by NewWindow. The line it
 // waits for goes to the agent's own pane, wherever that is by now: the list
 // docks a new agent as soon as it sees its window, which can be before hq
