@@ -31,6 +31,27 @@ const promptWait = 3 * time.Second
 // promptPoll is how often hq send looks whether that prompt was taken.
 const promptPoll = 50 * time.Millisecond
 
+// boxWait is how long hq send waits for the prompt box of an agent at its
+// prompt to be empty and at rest before it leaves the message for the next
+// prompt: right after a prompt or a slash command (the previous hq send's)
+// Claude has not taken it yet, or shows a panel in place of the box, for
+// about 2.5 s after /model (Claude Code 2.1.304, #125).
+const boxWait = 4 * time.Second
+
+// leaveWait is how long hq send waits, once it has typed a prompt in, for
+// Claude to take it out of the box, so that the next hq send meets what
+// Claude does with it, not the prompt still in the box (#125).
+const leaveWait = 3 * time.Second
+
+// boxPoll is how often hq send looks at the box meanwhile.
+const boxPoll = 150 * time.Millisecond
+
+// staleAfter is how long a message waits for an agent at its prompt before
+// hq, looking at the agents, types it in itself (deliverStale): longer than
+// hq send takes to deliver it, so that one hq send's message is never
+// typed in by another hq process.
+const staleAfter = boxWait + 2*time.Second
+
 const sendUsage = "usage: hq send NAME TEXT [--now] [--json]"
 
 // runSend leaves a message for an agent, delivered when the agent is ready
@@ -127,13 +148,38 @@ func findAgent(d deps, name string) (agent.Agent, error) {
 // to the agent's hooks. An agent working only on background work waits at
 // its prompt too (agent.OnBackgroundWork). It returns how the message goes.
 func deliver(d deps, a agent.Agent, now bool) (string, error) {
-	if a.State == state.Done || a.State == state.Question || a.OnBackgroundWork() {
-		return typeIn(d, a)
+	if atPrompt(a) {
+		return typeIn(d, a, boxWait)
 	}
 	if d.pending(a.RepoPath, a.ID) == 0 {
 		return fmt.Sprintf("delivered: %s took it with its hooks", a.Name), nil
 	}
 	return queued(a, now), nil
+}
+
+// atPrompt reports whether the agent waits at its prompt, where hq types
+// a message in: done, with a question, or working only on background work.
+func atPrompt(a agent.Agent) bool {
+	return a.State == state.Done || a.State == state.Question || a.OnBackgroundWork()
+}
+
+// deliverStale types in the messages that have waited staleAfter or longer
+// for agents at their prompt, as hq send would have, when their box is
+// empty and at rest; it does not wait for the box. hq send leaves the
+// message for the next prompt when the box does not settle in time, and a
+// slash command fires no hook, so an agent that stays at its prompt would
+// keep it for a prompt the user types, which never comes for an agent the
+// supervisor drives (#125). hq calls it wherever it looks at the agents:
+// hq ls, hq read, hq wait and the list.
+func deliverStale(d deps, as []agent.Agent) {
+	for _, a := range as {
+		if !a.Inbox || !atPrompt(a) {
+			continue
+		}
+		if at, ok := d.oldestMessage(a.RepoPath, a.ID); ok && d.now().Sub(at) >= staleAfter {
+			_, _ = typeIn(d, a, 0)
+		}
+	}
 }
 
 // queued says when the hooks of an agent that is not at its prompt deliver
@@ -165,15 +211,17 @@ func queued(a agent.Agent, now bool) string {
 }
 
 // typeIn types every message waiting for an agent that waits at its prompt
-// into the prompt box as its next prompt, oldest first, when the box is
-// empty (Claude's faint hints there aside); with anything in the box (the user typing), or a screen that does
-// not show the box, the messages wait and ride along with the next prompt
-// sent there. They leave the inbox first, so no hook delivers them too. A
-// prompt made only of the supervisor's messages is the supervisor's: the
-// agent's hooks are told before it is typed (spec §5).
-func typeIn(d deps, a agent.Agent) (string, error) {
-	screen, err := d.tmux.StyledScreen(a.Pane)
-	if empty, _ := state.AtRest(state.WithoutHints(screen), ""); err != nil || !empty {
+// into the prompt box as its next prompt, oldest first, once the box is
+// empty (Claude's faint hints there aside) and at rest, which it waits for
+// up to within (boxAtRest); with anything in the box all that time (the
+// user typing), or a screen that does not show the box, the messages wait
+// and ride along with the next prompt sent there. They leave the inbox
+// first, so no hook delivers them too. A prompt made only of the
+// supervisor's messages is the supervisor's: the agent's hooks are told
+// before it is typed (spec §5). It returns once Claude has taken the
+// prompt out of the box, or leaveWait on (awaitBoxLeft).
+func typeIn(d deps, a agent.Agent, within time.Duration) (string, error) {
+	if !boxAtRest(d, a, within) {
 		return fmt.Sprintf("queued: %s has something in its prompt box, delivered with its next prompt", a.Name), nil
 	}
 	msgs, err := d.takeMessages(a.RepoPath, a.ID)
@@ -206,10 +254,51 @@ func typeIn(d deps, a agent.Agent) (string, error) {
 		}
 		return "", tmuxErr(err)
 	}
+	awaitBoxLeft(d, a)
 	if supervised {
 		awaitPrompt(d, a)
 	}
 	return fmt.Sprintf("delivered: typed into %s as its next prompt", a.Name), nil
+}
+
+// boxAtRest reports whether the agent's prompt box is empty and at rest
+// (state.AtRest, faint hints aside), on two looks boxPoll apart that see
+// the same screen, so a screen Claude is about to redraw, as when it has
+// just taken a prompt and shows no spinner yet, is not typed into. It
+// looks again every boxPoll for up to within; with within zero, once.
+func boxAtRest(d deps, a agent.Agent, within time.Duration) bool {
+	last := ""
+	for i := 0; i < int(within/boxPoll)+2; i++ {
+		if i > 0 {
+			d.sleep(boxPoll)
+		}
+		styled, err := d.tmux.StyledScreen(a.Pane)
+		screen := state.WithoutHints(styled)
+		if empty, _ := state.AtRest(screen, ""); err != nil || !empty {
+			last = ""
+			if within == 0 {
+				return false
+			}
+			continue
+		}
+		if screen == last {
+			return true
+		}
+		last = screen
+	}
+	return false
+}
+
+// awaitBoxLeft waits up to leaveWait until the agent's prompt box no longer
+// holds what hq typed in: Claude has taken it, as a prompt or a slash
+// command, whose panel may stand in place of the box (#125).
+func awaitBoxLeft(d deps, a agent.Agent) {
+	for deadline := d.now().Add(leaveWait); d.now().Before(deadline); d.sleep(boxPoll) {
+		styled, err := d.tmux.StyledScreen(a.Pane)
+		if err != nil || state.InBox(state.WithoutHints(styled)) == "" {
+			return
+		}
+	}
 }
 
 // awaitPrompt waits until the agent's hooks have taken hq's word that the

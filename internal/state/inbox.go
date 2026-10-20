@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -174,6 +175,28 @@ func Pending(root, id string) int {
 		return 0
 	}
 	return len(messages(InboxDir(root, id)))
+}
+
+// Oldest is the moment the oldest message waiting for agent id of the
+// repository at root was sent, as its name says; false when none waits.
+func Oldest(root, id string) (time.Time, bool) {
+	if !idRE.MatchString(id) {
+		return time.Time{}, false
+	}
+	names := messages(InboxDir(root, id))
+	if len(names) == 0 {
+		return time.Time{}, false
+	}
+	return sentAt(names[0])
+}
+
+// sentAt is the moment the message named name was sent (messageName).
+func sentAt(name string) (time.Time, bool) {
+	n, err := strconv.ParseInt(name[:max(0, strings.IndexByte(name, '-'))], 10, 64)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return time.Unix(0, n), true
 }
 
 // Take takes every message waiting for agent id of the repository at root
