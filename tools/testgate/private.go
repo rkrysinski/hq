@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -18,8 +19,9 @@ import (
 // the check does not publish what it looks for.
 const PrivatePatternsEnv = "HQ_PRIVATE_PATTERNS"
 
-// hit is a line that matches a pattern. It names the pattern by its number
-// and never repeats the text: CI logs of a public repository are public.
+// hit is a line that matches a pattern. It names the pattern by its number,
+// counting patterns only (not blank or comment lines), and never repeats the
+// text: CI logs of a public repository are public.
 type hit struct {
 	file    string
 	line    int
@@ -39,7 +41,8 @@ func parsePatterns(list string) ([]*regexp.Regexp, error) {
 		}
 		re, err := regexp.Compile("(?i)" + l)
 		if err != nil {
-			return nil, fmt.Errorf("pattern %d: %v", len(pats)+1, err)
+			// Not err: it quotes the expression.
+			return nil, fmt.Errorf("%s: pattern %d is not a valid regular expression", PrivatePatternsEnv, len(pats)+1)
 		}
 		pats = append(pats, re)
 	}
@@ -81,6 +84,9 @@ func scanPaths(paths []string, pats []*regexp.Regexp) ([]hit, error) {
 				return nil
 			}
 			body, err := os.ReadFile(path)
+			if errors.Is(err, fs.ErrNotExist) { // tracked, deleted, not yet staged
+				return nil
+			}
 			if err != nil {
 				return err
 			}
@@ -92,6 +98,34 @@ func scanPaths(paths []string, pats []*regexp.Regexp) ([]hit, error) {
 		}
 	}
 	return hits, nil
+}
+
+// checkPrivate scans paths, or the tracked files under the current
+// directory when there are none, against the pattern list, and returns a
+// summary line and a problem for every matching line. An empty list checks
+// nothing and passes.
+func checkPrivate(list string, paths []string) (string, []string, error) {
+	pats, err := parsePatterns(list)
+	if err != nil {
+		return "", nil, err
+	}
+	if len(pats) == 0 {
+		return fmt.Sprintf("private: %s is not set, nothing checked", PrivatePatternsEnv), nil, nil
+	}
+	if len(paths) == 0 {
+		if paths, err = trackedFiles("."); err != nil {
+			return "", nil, err
+		}
+	}
+	hits, err := scanPaths(paths, pats)
+	if err != nil {
+		return "", nil, err
+	}
+	var problems []string
+	for _, h := range hits {
+		problems = append(problems, h.String())
+	}
+	return fmt.Sprintf("private: %d patterns, %d matching lines", len(pats), len(hits)), problems, nil
 }
 
 // trackedFiles lists the files git tracks under root, as paths under root.
