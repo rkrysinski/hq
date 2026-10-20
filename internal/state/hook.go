@@ -11,7 +11,9 @@ import (
 // and, on stop, dialog and input, the notification sequence in $2. It writes
 // the branch checked out there as a header line, then the payload, to the
 // main repository's .git/hq/agents/$HQ_ID, replacing it in one step, and
-// keeps the latest Stop event beside it (.stop) for the last message. An
+// keeps the latest Stop event beside it (.stop) for the last message,
+// written before the state file, so a reader that sees a Stop there finds
+// it in .stop too and no copy of the hook's beside them (#123). An
 // open dialog (the latest event is a PermissionRequest, or an Elicitation:
 // an MCP server's form, which dialog reports too and decides nothing, so
 // Claude draws it) decides three kinds: answer (a tool ran) is written only
@@ -199,10 +201,8 @@ start) taken && grep -Eq '` + clearedSession + `' "$t" && sid=$(get session_id "
 resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; }; rm -f "$t.p" ;;
 esac
 case $1 in dialog | answer | input | result) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
-if mv -f "$t" "$f" && [ "$1" = stop ]; then
-    cp -f "$f" "$t" && mv -f "$t" "$f.stop"
-fi
-rm -f "$t"
+[ "$1" = stop ] && put "$f.stop"
+mv -f "$t" "$f"; rm -f "$t"
 [ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && { owes || rm -f "$f` + supervisedSuffix + `"; exit 0; }
 case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$f" ;; esac
 exit 0`
