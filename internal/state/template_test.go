@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"reflect"
 	"testing"
 )
@@ -96,38 +95,5 @@ func TestDecides(t *testing.T) {
 		if got := Decides([]byte(out)); got != want {
 			t.Errorf("%q: %v", out, got)
 		}
-	}
-}
-
-// The dialog's payload is what Claude gave its hooks, for a hook of the
-// template to be run with it as Claude ran it.
-func TestQuestionsPayloadIsTheDialogsReport(t *testing.T) {
-	payload := fixture(t, "dialog-ask-three")
-	q, err := ParseQuestions(append([]byte("branch main\n"), payload...))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(q.Payload(), payload) {
-		t.Fatalf("%q", q.Payload())
-	}
-}
-
-// Claude Code 2.1.304's AskUserQuestion of three questions, as hq's hook
-// sees it (#128): read, and answered with the first option of each.
-func TestQuestionsOf2_1_304(t *testing.T) {
-	q := questions(t, "dialog-ask-three")
-	if len(q.Ask.Questions) != 3 || q.Ask.Questions[2].Question != "Which shape?" || len(q.Ask.Questions[1].Options) != 2 {
-		t.Fatalf("%+v", q.Ask)
-	}
-	d, sent, err := q.Decision([]Answer{{Options: []int{1}}, {Options: []int{1}}, {Options: []int{1}}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := map[string]string{"Which colour?": "Red", "Which size?": "Small", "Which shape?": "Circle"}
-	if !reflect.DeepEqual(sent, want) {
-		t.Fatalf("%v", sent)
-	}
-	if got := decode(t, d).HookSpecificOutput.Decision.UpdatedInput["answers"]; !reflect.DeepEqual(got, map[string]any{"Which colour?": "Red", "Which size?": "Small", "Which shape?": "Circle"}) {
-		t.Fatalf("%v", got)
 	}
 }

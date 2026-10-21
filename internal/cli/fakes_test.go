@@ -400,9 +400,14 @@ func (f *fakeSbx) Remove(sandbox string) error {
 	return f.err
 }
 
-func (f *fakeSbx) Exec(sandbox string, args ...string) error {
+// exec records a command run in a sandbox.
+func (f *fakeSbx) exec(sandbox string, args []string) {
 	f.execs = append(f.execs, append([]string{sandbox}, args...))
 	f.calls = append(f.calls, "exec "+sandbox+" "+strings.Join(args, " "))
+}
+
+func (f *fakeSbx) Exec(sandbox string, args ...string) error {
+	f.exec(sandbox, args)
 	f.setStatus(sandbox, "running")
 	if f.onExec != nil {
 		return f.onExec(args)
@@ -411,8 +416,7 @@ func (f *fakeSbx) Exec(sandbox string, args ...string) error {
 }
 
 func (f *fakeSbx) Output(sandbox string, args ...string) ([]byte, error) {
-	f.execs = append(f.execs, append([]string{sandbox}, args...))
-	f.calls = append(f.calls, "exec "+sandbox+" "+strings.Join(args, " "))
+	f.exec(sandbox, args)
 	if f.onOutput != nil {
 		return f.onOutput(args)
 	}

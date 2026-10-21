@@ -335,14 +335,15 @@ func TestAnswerReportsTheAgentOnceItLeftTheDialog(t *testing.T) {
 	}
 }
 
-// Taken, but the agent stays at the dialog for 5 s: a template whose own
-// PermissionRequest hook answers AskUserQuestion first (#89, case 3).
+// Taken, but the agent stays at the dialog for 5 s: another
+// PermissionRequest hook answered AskUserQuestion first (#89, case 3), one
+// hq could not run before it left the answer (#128).
 func TestAnswerTakenButNotClosedNamesTheLikelyCause(t *testing.T) {
 	f, id := askFakes(t, "dialog-ask")
 	f.onSleep = func() { delete(f.answerLeft, "id-a") }
 	start := f.now
 	code, _, errOut := f.run("answer", "a", "--dialog", id, "1")
-	want := "hq: a took the answer but did not leave its dialog within 5s: it is needs input; its sandbox's template may have a PermissionRequest hook that answers AskUserQuestion by itself (recreate the sandbox from a template whose hooks leave AskUserQuestion alone), or answer it at the agent (hq go a)\n"
+	want := "hq: a took the answer but did not leave its dialog within 5s: it is needs input; another PermissionRequest hook may have answered AskUserQuestion first (the repository's settings, a plugin, or the sandbox's template where hq could not run its hooks); answer it at the agent (hq go a)\n"
 	if code != ExitEnvironment || errOut != want {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
