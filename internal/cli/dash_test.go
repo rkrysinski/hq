@@ -266,8 +266,8 @@ func TestListSourceFitsTheListToTheTerminal(t *testing.T) {
 }
 
 // The list runs the daily check itself, in its own background, and shows
-// what it found; hq ls and the others then read the same answer.
-func TestListSourceShowsTheUpdateHintOnce(t *testing.T) {
+// the newer release it found; hq ls and the others then read the same answer.
+func TestListSourceFindsTheNewerReleaseOnce(t *testing.T) {
 	old := version.Version
 	version.Version = "v1.0.0"
 	defer func() { version.Version = old }()

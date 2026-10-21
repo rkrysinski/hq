@@ -1018,11 +1018,11 @@ func (m Model) header() string {
 	if m.sbxDown(now) {
 		clock += "  sbx ?"
 	}
-	view, newer, command := "view: "+m.view, m.newer, " hq update"
+	view, newer, hqUpdate := "view: "+m.view, m.newer, " hq update"
 	right := func() string {
 		r := clock + " · " + m.src.Version
 		if newer != "" {
-			r += " → " + newer + command
+			r += " → " + newer + hqUpdate
 		}
 		return cDim.Render(r)
 	}
@@ -1036,7 +1036,7 @@ func (m Model) header() string {
 	// The clock, sbx ? and the version stay; the left keeps what fits,
 	// giving up the view, then the counts from the last, and only then the
 	// right gives up " hq update", then the newer release (S12).
-	for _, drop := range []func(){func() { view = "" }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:1] }, func() { command = "" }, func() { newer = "" }} {
+	for _, drop := range []func(){func() { view = "" }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:1] }, func() { hqUpdate = "" }, func() { newer = "" }} {
 		if lipgloss.Width(left())+lipgloss.Width(right())+1 <= m.width-2*len(margin) {
 			break
 		}
