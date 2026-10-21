@@ -335,19 +335,94 @@ func TestAnswerReportsTheAgentOnceItLeftTheDialog(t *testing.T) {
 	}
 }
 
-// Taken, but the agent stays at the dialog for 5 s: a template whose own
-// PermissionRequest hook answers AskUserQuestion first (#89, case 3).
+// Taken, but the agent stays at the dialog for 5 s: another
+// PermissionRequest hook answered AskUserQuestion first (#89, case 3), one
+// hq could not run before it left the answer (#128).
 func TestAnswerTakenButNotClosedNamesTheLikelyCause(t *testing.T) {
 	f, id := askFakes(t, "dialog-ask")
 	f.onSleep = func() { delete(f.answerLeft, "id-a") }
 	start := f.now
 	code, _, errOut := f.run("answer", "a", "--dialog", id, "1")
-	want := "hq: a took the answer but did not leave its dialog within 5s: it is needs input; its sandbox's template may have a PermissionRequest hook that answers AskUserQuestion by itself (recreate the sandbox from a template whose hooks leave AskUserQuestion alone), or answer it at the agent (hq go a)\n"
+	want := "hq: a took the answer but did not leave its dialog within 5s: it is needs input; another PermissionRequest hook may have answered AskUserQuestion first (the repository's settings, a plugin, or the sandbox's template where hq could not run its hooks); answer it at the agent (hq go a)\n"
 	if code != ExitEnvironment || errOut != want {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 	if f.now.Sub(start) < closeWait || f.now.Sub(start) > closeWait+2*time.Second {
 		t.Fatalf("after %s", f.now.Sub(start))
+	}
+}
+
+// template is a sandbox whose managed settings are the sbx template's,
+// whose PermissionRequest hook prints out for any request it is run with;
+// it records the payload each hook was run with.
+func (f *fakes) template(t *testing.T, out string, ran *[]string) {
+	t.Helper()
+	settings, err := os.ReadFile("../state/testdata/managed-settings-template.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.sbx.onOutput = func(args []string) ([]byte, error) {
+		if !strings.Contains(strings.Join(args, " "), "/usr/local/bin/claude-approve") {
+			return settings, nil
+		}
+		// sh -c PROBE sh PAYLOAD HOOK...
+		*ran = append(*ran, args[4])
+		return []byte(out), nil
+	}
+}
+
+// A sandbox whose template answers AskUserQuestion by itself, as the sbx
+// image's claude-approve did before it left AskUserQuestion alone: Claude
+// takes no other hook's answer, so hq refuses at once, with the cause,
+// leaving no answer (#128).
+func TestAnswerRefusesWhenTheTemplateAnswersAskUserQuestion(t *testing.T) {
+	for _, args := range [][]string{{"1", "1", "1"}, {"--cancel"}} {
+		f, id := askFakes(t, "dialog-ask-three")
+		var ran []string
+		f.template(t, `{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}`+"\n", &ran)
+		f.holding(nil)
+		start := f.now
+		code, out, errOut := f.run(append([]string{"answer", "a", "--dialog", id}, args...)...)
+		want := "hq: a's dialog cannot be answered from hq: its sandbox's template answers AskUserQuestion by itself (its PermissionRequest hook /usr/local/bin/claude-approve gives a decision), so Claude would take no answer from hq; answer it at the agent (hq go a), and recreate the sandbox from a template whose hooks leave AskUserQuestion alone (hq sandbox rm app)\n"
+		if code != ExitUsage || out != "" || errOut != want {
+			t.Fatalf("%v: exit %d %q %q", args, code, out, errOut)
+		}
+		if len(f.answerLeft) != 0 || f.got["id-a"] != nil || f.now != start {
+			t.Fatalf("%v: left %v, got %v, after %s", args, f.answerLeft, f.got["id-a"], f.now.Sub(start))
+		}
+		// The hook ran as Claude ran it, with the dialog's payload.
+		payload := string(stateFixture(t, "dialog-ask-three"))
+		payload = payload[strings.Index(payload, "\n")+1:]
+		if len(ran) != 1 || ran[0] != payload {
+			t.Fatalf("%v: ran with %q", args, ran)
+		}
+	}
+}
+
+// A template whose hooks leave AskUserQuestion alone, as sbx-image #4's
+// claude-approve does, and a sandbox hq cannot look into, are answered
+// as ever.
+func TestAnswerGoesOnWhenTheTemplateLeavesAskUserQuestionAlone(t *testing.T) {
+	f, id := askFakes(t, "dialog-ask-three")
+	var ran []string
+	f.template(t, "", &ran)
+	f.holding(nil)
+	if code, out, errOut := f.run("answer", "a", "--dialog", id, "1", "1", "1"); code != 0 || out != "answered: a is working\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if len(ran) != 1 {
+		t.Fatalf("ran %d hooks", len(ran))
+	}
+	want := map[string]string{"Which colour?": "Red", "Which size?": "Small", "Which shape?": "Circle"}
+	if !reflect.DeepEqual(f.got["id-a"], want) {
+		t.Fatalf("Claude got %v", f.got["id-a"])
+	}
+
+	f, id = askFakes(t, "dialog-ask-three")
+	f.sbx.onOutput = func([]string) ([]byte, error) { return nil, errors.New("sbx: sandbox not running") }
+	f.holding(nil)
+	if code, out, errOut := f.run("answer", "a", "--dialog", id, "1", "1", "1"); code != 0 || out != "answered: a is working\n" {
+		t.Fatalf("no look: exit %d %q %q", code, out, errOut)
 	}
 }
 

@@ -69,6 +69,18 @@ func TestExecRunsTheCommandInTheSandbox(t *testing.T) {
 	}
 }
 
+func TestOutputReturnsWhatTheCommandPrinted(t *testing.T) {
+	bin, _ := testutil.SbxStub(t)
+	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
+	out, err := c.Output("claude-app", "sh", "-c", "echo out; echo err >&2")
+	if err != nil || string(out) != "out\n" {
+		t.Fatalf("%q %v", out, err)
+	}
+	if _, err := c.Output("claude-app", "false"); err == nil {
+		t.Fatal("a failing command must report an error")
+	}
+}
+
 func TestStopThenExecStartsAgainAndRemoveDeletes(t *testing.T) {
 	bin, _ := testutil.SbxStub(t)
 	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}

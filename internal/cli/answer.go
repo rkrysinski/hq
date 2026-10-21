@@ -143,6 +143,9 @@ func answer(env Env, d deps, r answerRequest) error {
 			return usageErr("%s not answered: %v", a.Name, err)
 		}
 	}
+	if hook := templateAnswers(d, a, q); hook != "" {
+		return usageErr("%s's dialog cannot be answered from hq: its sandbox's template answers AskUserQuestion by itself (its PermissionRequest hook %s gives a decision), so Claude would take no answer from hq; answer it at the agent (hq go %s), and recreate the sandbox from a template whose hooks leave AskUserQuestion alone (hq sandbox rm %s)", a.Name, hook, a.Name, a.Repo())
+	}
 	// The moment before the answer is left: what the agent does with it is
 	// a change after it, for hq wait --since.
 	left := lookedAt(d.now())
@@ -218,6 +221,36 @@ func answerable(a agent.Agent, ask *state.Ask) error {
 	return nil
 }
 
+// managedSettings prints the managed settings in the directory it is
+// given, the sandbox's template's: managed-settings.json, then the files of
+// managed-settings.d, as Claude reads them.
+const managedSettings = `cd "$1" 2>/dev/null || exit 0
+for f in managed-settings.json managed-settings.d/*.json; do [ -f "$f" ] && cat "$f" && echo; done
+exit 0`
+
+// runHook runs a hook, the arguments after the payload, with the payload
+// on its standard input, for at most 10 s where the sandbox has timeout
+// (coreutils).
+const runHook = `p=$1; shift; command -v timeout >/dev/null && set -- timeout 10 "$@"; printf '%s' "$p" | "$@"`
+
+// templateAnswers returns the PermissionRequest hook of the sandbox's
+// template that answers the question dialog q by itself, run once with the
+// dialog's payload; "" when none does, or hq cannot look.
+// Claude then takes no answer from hq's hook (ADR 0013, #128).
+func templateAnswers(d deps, a agent.Agent, q state.Questions) string {
+	settings, err := d.sbx.Output(a.Sandbox, "sh", "-c", managedSettings, "sh", "/etc/claude-code")
+	if err != nil {
+		return ""
+	}
+	for _, h := range state.AskHooks(settings) {
+		out, err := d.sbx.Output(a.Sandbox, append([]string{"sh", "-c", runHook, "sh", string(q.Payload())}, h.Argv()...)...)
+		if err == nil && state.Decides(out) {
+			return h.Command
+		}
+	}
+	return ""
+}
+
 // awaitTaken waits up to takeWait for the agent's hook to take the answer
 // to q, and takes the answer back when it has not; it reports whether the
 // hook took it.
@@ -251,7 +284,7 @@ func awaitClosed(d deps, a agent.Agent, open agent.Dialog) (agent.Agent, map[str
 			return now, got, nil
 		}
 		if !d.now().Before(deadline) {
-			return now, nil, envErr("%s took the answer but did not leave its dialog within %s: it is %s; its sandbox's template may have a PermissionRequest hook that answers AskUserQuestion by itself (recreate the sandbox from a template whose hooks leave AskUserQuestion alone), or answer it at the agent (hq go %s)", a.Name, closeWait, now.State, a.Name)
+			return now, nil, envErr("%s took the answer but did not leave its dialog within %s: it is %s; another PermissionRequest hook may have answered AskUserQuestion first (the repository's settings, a plugin, or the sandbox's template where hq could not run its hooks); answer it at the agent (hq go %s)", a.Name, closeWait, now.State, a.Name)
 		}
 	}
 }

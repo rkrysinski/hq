@@ -95,6 +95,12 @@ func (c Client) Exec(sandbox string, args ...string) error {
 	return err
 }
 
+// Output runs a command inside a running sandbox and returns what it
+// printed on its standard output.
+func (c Client) Output(sandbox string, args ...string) ([]byte, error) {
+	return c.run(append([]string{"exec", sandbox}, args...)...)
+}
+
 // RunArgv is the command that runs one more Claude session in a sandbox,
 // starting the sandbox when it is stopped; agentArgs go to Claude.
 func (c Client) RunArgv(sandbox string, agentArgs ...string) []string {

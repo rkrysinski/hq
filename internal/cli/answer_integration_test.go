@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -52,6 +53,39 @@ func TestAnswerFromTheCLIClosesTheDialogThroughItsHook(t *testing.T) {
 	if left, _ := filepath.Glob(filepath.Join(state.Dir(h.cwd), "*.[0-9]*")); len(left) != 0 {
 		t.Fatalf("left beside the state file: %v", left)
 	}
+	if left, _ := filepath.Glob(filepath.Join(h.cwd, ".git", "hq", "inbox", "*", "*")); len(left) != 0 {
+		t.Fatalf("left in the inbox: %v", left)
+	}
+}
+
+// In a sandbox whose template answers AskUserQuestion by itself, hq
+// refuses before it leaves an answer, naming the hook; the agent stays at
+// its dialog, for the user to answer there, with nothing left in its inbox
+// (#128). (The fake Claude does not run the template's hooks: that Claude
+// then ignores any later answer was seen with the real one.)
+func TestAnswerRefusedWhileTheTemplateAnswersAskUserQuestion(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	etc := filepath.Join(os.Getenv("SBX_STUB_DIR"), "root", "etc", "claude-code")
+	approve := filepath.Join(t.TempDir(), "claude-approve")
+	if err := os.MkdirAll(etc, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(etc, "managed-settings.json"), []byte(`{"hooks":{"PermissionRequest":[{"hooks":[{"type":"command","command":"`+approve+`"}]}]}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// The template's hook before it left AskUserQuestion alone: a bare
+	// allow for every request.
+	if err := os.WriteFile(approve, []byte("#!/bin/sh\ncat >/dev/null\necho '{\"hookSpecificOutput\":{\"hookEventName\":\"PermissionRequest\",\"decision\":{\"behavior\":\"allow\"}}}'\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	id := h.atDialog("needs input")
+	code, out, errOut := h.run("answer", "a", "--dialog", id, "2")
+	if code != ExitUsage || out != "" || !strings.Contains(errOut, approve) {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	h.waitReport("a", "needs input", "Which colour do you pick?")
 	if left, _ := filepath.Glob(filepath.Join(h.cwd, ".git", "hq", "inbox", "*", "*")); len(left) != 0 {
 		t.Fatalf("left in the inbox: %v", left)
 	}
