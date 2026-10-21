@@ -1,0 +1,32 @@
+$ after
+# hq from the issue-128 worktree (after)
+$ # the template's hook gives a bare allow for every request (before sbx-image #4)
+$ time hq answer a2 --dialog f489a8 1 1 1; echo "exit $?"; hq ls
+hq: a2's dialog cannot be answered from hq: its sandbox's template answers AskUserQuestion by itself (its Perm
+issionRequest hook /home/agent/qa128/bin/claude-approve gives a decision), so Claude would take no answer from
+ hq; answer it at the agent (hq go a2), and recreate the sandbox from a template whose hooks leave AskUserQues
+tion alone (hq sandbox rm blog)
+
+real	0m0.126s
+user	0m0.023s
+sys	0m0.003s
+exit 1
+NAME  REPO  BRANCH  STATE        AGE  LAST
+a2    blog  master  needs input  1s   Which colour?
+a1    shop  master  done         5s   User declined to answer questions
+$ # the template's hook now prints nothing for AskUserQuestion; the same dialog, opened under the old hook:
+$ hq answer a2 --dialog f489a8 2 2 3; echo "exit $?"
+hq: a2 took the answer but did not leave its dialog within 5s: it is needs input; another PermissionRequest ho
+ok may have answered AskUserQuestion first (the repository's settings, a plugin, or the sandbox's template whe
+re hq could not run its hooks); answer it at the agent (hq go a2)
+exit 3
+$
+
+
+
+
+
+
+
+
+

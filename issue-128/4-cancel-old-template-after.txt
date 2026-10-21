@@ -1,0 +1,32 @@
+$ after
+# hq from the issue-128 worktree (after)
+$ # old template again (bare allow for every request), a new dialog
+$ hq answer a1 --dialog c912a1 --cancel; echo "exit $?"; hq ls
+hq: a1's dialog cannot be answered from hq: its sandbox's template answers AskUserQuestion by itself (its Perm
+issionRequest hook /home/agent/qa128/bin/claude-approve gives a decision), so Claude would take no answer from
+ hq; answer it at the agent (hq go a1), and recreate the sandbox from a template whose hooks leave AskUserQues
+tion alone (hq sandbox rm shop)
+exit 1
+NAME  REPO  BRANCH  STATE        AGE  LAST
+a1    shop  master  needs input  0s   Which colour?
+a2    blog  master  done         1m   Colour: Green, Size: Large, Shape: Triangle
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

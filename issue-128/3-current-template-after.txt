@@ -1,0 +1,32 @@
+$ after
+# hq from the issue-128 worktree (after)
+$ # a new dialog, the template's hook silent for AskUserQuestion (the image after sbx-image #4)
+$ time hq answer a2 --dialog 5512bc 2 2 3; echo "exit $?"
+answered: a2 is working
+
+real	0m0.337s
+user	0m0.033s
+sys	0m0.010s
+exit 0
+$ hq wait a2 >/dev/null; hq read a2 | grep -A4 reply
+^C
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a2    blog  master  done   40s  Colour: Green, Size: Large, Shape: Triangle
+a1    shop  master  done   3m   User declined to answer questions
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

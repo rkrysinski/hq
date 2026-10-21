@@ -1,0 +1,32 @@
+# hq from dev (before)
+NAME  REPO  BRANCH  STATE        AGE  LAST
+a1    shop  master  needs input  4s   Which colour?
+a2    blog  master  done         31s  -
+hq: a1 took the answer but did not leave its dialog within 5s: it is needs input; its sandbox's template may h
+ave a PermissionRequest hook that answers AskUserQuestion by itself (recreate the sandbox from a template whos
+e hooks leave AskUserQuestion alone), or answer it at the agent (hq go a1)
+exit 3
+hq: a1's dialog cannot be answered from hq: its hook no longer holds it; it is needs input, answer it at the a
+gent (hq go a1)
+exit 1
+NAME  REPO  BRANCH  STATE        AGE  LAST
+a1    shop  master  needs input  12s  Which colour?
+a2    blog  master  done         39s  -
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

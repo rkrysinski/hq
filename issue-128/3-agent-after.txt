@@ -1,0 +1,24 @@
+❯ Use the AskUserQuestion tool once, with exactly three questions in one call:
+  1) 'Which colour?' header Colour, options Red, Green, Blue; 2) 'Which size?'
+  header Size, options Small, Large; 3) 'Which shape?' header Shape, options
+  Circle, Square, Triangle. Then reply with the answers you got, nothing else.
+    ✓ Pytam Cię                                 ━━━━━━━━━━━━━━━━━━━━      1,5 s
+
+● User answered Claude's questions:
+  ⎿  · Which colour? → Green
+     · Which shape? → Triangle
+     · Which size? → Large
+  ⎿  Allowed by PermissionRequest hook
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                    │
+│ Colour: Green, Size: Large, Shape: Triangle                                 │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+✻ Brewed for 5s · done 8:28 AM
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ▐–◡–▌  Opus 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ?1 no upstream …
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                   ◆ Tools ▾
