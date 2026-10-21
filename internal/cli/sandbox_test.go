@@ -56,7 +56,7 @@ func TestSandboxRestartRelaunchesItsAgentsInTheirOwnPanes(t *testing.T) {
 	f.sbx.onExec = func(args []string) error { err := exec(args); collect(); return err }
 	// a reported with its Claude session and resumes it; b's state file
 	// cannot smuggle an option in, so b starts fresh.
-	const session = "06d5c99c-1079-47e5-ad5f-d92403ccb28d"
+	const session = "00000003-0000-4000-8000-000000000003"
 	f.states["id-a"] = state.Report{State: state.Done, SessionID: session}
 	f.states["id-b"] = state.Report{State: state.Done, SessionID: "--dangerously-x"}
 	f.tmux.windows[2].Options["new"] = "1"

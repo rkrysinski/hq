@@ -3,7 +3,7 @@
   "transcript_path": "/home/agent/.claude/projects/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0.jsonl",
   "cwd": "/w/app/.claude/worktrees/feat-42",
   "scratchpad_dir": "/tmp/claude-1000/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0/scratchpad",
-  "prompt_id": "93d846fc-d0bc-493e-9a1e-2243c4685aa5",
+  "prompt_id": "00000013-0000-4000-8000-000000000013",
   "permission_mode": "bypassPermissions",
   "effort": {
     "level": "medium"

@@ -177,7 +177,7 @@ func TestTheQuestionDialogsHookTakesOnlyTheAnswerForItsDialog(t *testing.T) {
 	fire(t, root, root, id, "answer", fixture(t, "answer-ask-several"))
 	leave(t, root, id, q, q.Cancel()) // too late for the first dialog
 
-	again := bytes.Replace(first, []byte(`"prompt_id":"292b`), []byte(`"prompt_id":"392b`), 1)
+	again := bytes.Replace(first, []byte(`"prompt_id":"0000000a`), []byte(`"prompt_id":"1000000a`), 1)
 	openDialog(t, root, id, again)
 	k := hold(t, root, root, id, again)
 	if out, ok := k.ended(time.Second); ok {

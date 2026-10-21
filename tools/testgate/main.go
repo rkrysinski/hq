@@ -1,8 +1,12 @@
-// Command testgate enforces the shape of hq's test suite in CI
-// (docs/agents/testing.md):
+// Command testgate holds hq's CI gates: the shape of the test suite, its
+// coverage, and no private details in the public text (docs/agents/testing.md):
 //
 //	go run ./tools/testgate pyramid          # counts tests per level, checks the shape
 //	go run ./tools/testgate coverage FILE    # checks a coverage profile against the threshold
+//	go run ./tools/testgate private [PATH...] # no private details in tracked files (or PATHs)
+//
+// private reads its patterns from $HQ_PRIVATE_PATTERNS (see private.go)
+// and passes with a notice when the variable is unset.
 //
 // A test's level is its file's build constraint: none is unit, the
 // "integration" tag is integration, the "e2e" tag is end-to-end.
@@ -16,6 +20,8 @@ import (
 	"os"
 )
 
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...]"
+
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
 	MinUnitShare = 0.50
@@ -27,7 +33,7 @@ const (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: testgate pyramid [ROOT] | coverage FILE")
+		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(2)
 	}
 	var problems []string
@@ -47,7 +53,7 @@ func main() {
 		problems = c.problems(MinUnitShare)
 	case "coverage":
 		if len(os.Args) < 3 {
-			fmt.Fprintln(os.Stderr, "usage: testgate coverage FILE")
+			fmt.Fprintln(os.Stderr, usage)
 			os.Exit(2)
 		}
 		f, err := os.Open(os.Args[2])
@@ -65,8 +71,16 @@ func main() {
 		if pct < MinCoverage {
 			problems = append(problems, fmt.Sprintf("coverage %.1f%% is below %.1f%%", pct, MinCoverage))
 		}
+	case "private":
+		summary, p, err := checkPrivate(os.Getenv(PrivatePatternsEnv), os.Args[2:])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "testgate:", err)
+			os.Exit(2)
+		}
+		fmt.Println(summary)
+		problems = p
 	default:
-		fmt.Fprintln(os.Stderr, "usage: testgate pyramid [ROOT] | coverage FILE")
+		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(2)
 	}
 	for _, p := range problems {

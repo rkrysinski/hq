@@ -36,7 +36,7 @@ func TestTheLookHandsOverOnTheRealStateFilesOnce(t *testing.T) {
 		}
 	}
 	// The hook's mark that Claude acted on the turn at work: its prompt_id.
-	if err := os.WriteFile(filepath.Join(dir, id+".acted"), []byte("a5c44ac7-4166-41f7-96d0-9d535b9cdeb7\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, id+".acted"), []byte("00000019-0000-4000-8000-000000000019\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	asked := time.Now().Add(-time.Minute)
