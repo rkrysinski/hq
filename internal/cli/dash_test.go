@@ -266,19 +266,19 @@ func TestListSourceFitsTheListToTheTerminal(t *testing.T) {
 }
 
 // The list runs the daily check itself, in its own background, and shows
-// what it found; hq ls and the others then read the same answer.
-func TestListSourceShowsTheUpdateHintOnce(t *testing.T) {
+// the newer release it found; hq ls and the others then read the same answer.
+func TestListSourceFindsTheNewerReleaseOnce(t *testing.T) {
 	old := version.Version
 	version.Version = "v1.0.0"
 	defer func() { version.Version = old }()
 	f := newFakes()
 	f.releases.latest = "v1.1.0"
 	src := listSource(f.deps(), "%1")
-	if got := src.UpdateHint(); got != "v1.1.0 available - hq update" {
-		t.Fatalf("hint %q", got)
+	if got := src.NewerRelease(); got != "v1.1.0" || src.Version != "v1.0.0" {
+		t.Fatalf("newer %q, version %q", got, src.Version)
 	}
 	f.now = f.now.Add(time.Hour)
-	src.UpdateHint()
+	src.NewerRelease()
 	if f.releases.lookups != 1 || len(f.detached) != 0 || f.prefs.LatestRelease != "v1.1.0" {
 		t.Errorf("%d lookups within a day, want 1; %d detached; %+v", f.releases.lookups, len(f.detached), f.prefs)
 	}
