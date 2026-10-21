@@ -613,7 +613,7 @@
                     {
                       "type": "frame",
                       "id": "wWmWC",
-                      "name": "Row bok-17",
+                      "name": "Row agent-17",
                       "width": "fill_container",
                       "cornerRadius": 4,
                       "padding": [
@@ -635,7 +635,7 @@
                               "id": "NEFjd",
                               "name": "v",
                               "fill": "$fg",
-                              "content": "bok-17",
+                              "content": "agent-17",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "bold"
@@ -655,7 +655,7 @@
                               "id": "Hv3Rh",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -1240,7 +1240,7 @@
                               "id": "P3ULq",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -3301,7 +3301,7 @@
                     {
                       "type": "frame",
                       "id": "bZzeJ",
-                      "name": "Row bok-17",
+                      "name": "Row agent-17",
                       "width": "fill_container",
                       "cornerRadius": 4,
                       "padding": [
@@ -3323,7 +3323,7 @@
                               "id": "mUF0y",
                               "name": "v",
                               "fill": "$fg",
-                              "content": "bok-17",
+                              "content": "agent-17",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "bold"
@@ -3343,7 +3343,7 @@
                               "id": "PAYJo",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -3919,7 +3919,7 @@
                               "id": "tYxyi",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -5440,7 +5440,7 @@
                     {
                       "type": "frame",
                       "id": "mMQ88",
-                      "name": "Row bok-17",
+                      "name": "Row agent-17",
                       "width": "fill_container",
                       "fill": "$bg-row",
                       "cornerRadius": 4,
@@ -5463,7 +5463,7 @@
                               "id": "IDKrp",
                               "name": "v",
                               "fill": "$fg",
-                              "content": "bok-17",
+                              "content": "agent-17",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "bold"
@@ -5483,7 +5483,7 @@
                               "id": "S1i84g",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -6216,7 +6216,7 @@
                               "id": "t6kW1x",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -7048,7 +7048,7 @@
                       "id": "Pv842",
                       "name": "q",
                       "fill": "$fg",
-                      "content": "Kill bok-17 (fix/17-release-notes)?",
+                      "content": "Kill agent-17 (fix/17-release-notes)?",
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -8174,7 +8174,7 @@
                     {
                       "type": "frame",
                       "id": "AL0Wr",
-                      "name": "Row bok-17",
+                      "name": "Row agent-17",
                       "width": "fill_container",
                       "cornerRadius": 4,
                       "padding": [
@@ -8196,7 +8196,7 @@
                               "id": "w7Xpq",
                               "name": "v",
                               "fill": "$fg",
-                              "content": "bok-17",
+                              "content": "agent-17",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "bold"
@@ -8216,7 +8216,7 @@
                               "id": "YG1am",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -9567,7 +9567,7 @@
                     {
                       "type": "frame",
                       "id": "K6iNiH",
-                      "name": "Row bok-17",
+                      "name": "Row agent-17",
                       "width": "fill_container",
                       "cornerRadius": 4,
                       "padding": [
@@ -9589,7 +9589,7 @@
                               "id": "akXJ6",
                               "name": "v",
                               "fill": "$fg",
-                              "content": "bok-17",
+                              "content": "agent-17",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "bold"
@@ -9609,7 +9609,7 @@
                               "id": "RrLHW",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -10186,7 +10186,7 @@
                               "id": "TcL7s",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -10933,7 +10933,7 @@
       "id": "eBmeA",
       "x": 0,
       "y": 6300,
-      "name": "S3b - name search (/bo)",
+      "name": "S3b - name search (/ag)",
       "clip": true,
       "width": 1100,
       "height": 820,
@@ -11382,7 +11382,7 @@
                     {
                       "type": "frame",
                       "id": "C2X7C",
-                      "name": "Row bok-17",
+                      "name": "Row agent-17",
                       "width": "fill_container",
                       "fill": "$bg-row",
                       "cornerRadius": 4,
@@ -11407,7 +11407,7 @@
                               "id": "viXf2",
                               "name": "v",
                               "fill": "$fg",
-                              "content": "bok-17",
+                              "content": "agent-17",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "bold"
@@ -11427,7 +11427,7 @@
                               "id": "OQlCQ",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -12124,7 +12124,7 @@
                               "id": "iSaYt",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -12295,7 +12295,7 @@
                           "id": "f3Jq4",
                           "name": "pv title",
                           "fill": "$fg-faint",
-                          "content": "▸ bok-17 · fix/17-release-notes · claude-support-chatbot",
+                          "content": "▸ agent-17 · fix/17-release-notes · claude-app",
                           "fontFamily": "$mono",
                           "fontSize": 11,
                           "fontWeight": "normal"
@@ -12580,7 +12580,7 @@
                           "id": "E0RXl1",
                           "name": "k",
                           "fill": "$accent",
-                          "content": "/bo",
+                          "content": "/ag",
                           "fontFamily": "$mono",
                           "fontSize": 11,
                           "fontWeight": "bold"
@@ -12590,7 +12590,7 @@
                           "id": "CZW8D",
                           "name": "l",
                           "fill": "$fg-faint",
-                          "content": "· 1 match: bok-17  ⏎ open  esc cancel",
+                          "content": "· 1 match: agent-17  ⏎ open  esc cancel",
                           "fontFamily": "$mono",
                           "fontSize": 11,
                           "fontWeight": "normal"
@@ -12913,7 +12913,7 @@
                     {
                       "type": "frame",
                       "id": "n3vaJS",
-                      "name": "Row bok-17",
+                      "name": "Row agent-17",
                       "width": "fill_container",
                       "fill": "$bg-row",
                       "cornerRadius": 4,
@@ -12936,7 +12936,7 @@
                               "id": "SPLng",
                               "name": "v",
                               "fill": "$fg",
-                              "content": "bok-17",
+                              "content": "agent-17",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "bold"
@@ -12956,7 +12956,7 @@
                               "id": "dFuvF",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -13652,7 +13652,7 @@
                               "id": "rupUc",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -14656,7 +14656,7 @@
                     {
                       "type": "frame",
                       "id": "pafUY",
-                      "name": "Row bok-17",
+                      "name": "Row agent-17",
                       "width": "fill_container",
                       "cornerRadius": 4,
                       "padding": [
@@ -14678,7 +14678,7 @@
                               "id": "v2oQTp",
                               "name": "v",
                               "fill": "$fg",
-                              "content": "bok-17",
+                              "content": "agent-17",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "bold"
@@ -14698,7 +14698,7 @@
                               "id": "AqtwN",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -15186,7 +15186,7 @@
                               "id": "RJMwY",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -16431,7 +16431,7 @@
                     {
                       "type": "frame",
                       "id": "N30hlc",
-                      "name": "Row bok-17",
+                      "name": "Row agent-17",
                       "width": "fill_container",
                       "cornerRadius": 4,
                       "padding": [
@@ -16453,7 +16453,7 @@
                               "id": "bGyKI",
                               "name": "v",
                               "fill": "$fg",
-                              "content": "bok-17",
+                              "content": "agent-17",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "bold"
@@ -16473,7 +16473,7 @@
                               "id": "e1sNL",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"
@@ -17049,7 +17049,7 @@
                               "id": "kAqgb",
                               "name": "v",
                               "fill": "$fg-dim",
-                              "content": "support-chatbot",
+                              "content": "app",
                               "fontFamily": "$mono",
                               "fontSize": 13,
                               "fontWeight": "normal"

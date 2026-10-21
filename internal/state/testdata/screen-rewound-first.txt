@@ -1,7 +1,7 @@
 
  ▐▛███▛█   Claude Code v2.1.283
 ▝▜██████▀  Fable 5.1 · Claude Max
- ▝▝   ▝▝   /Users/romankrysinski/work/repositories/hq
+ ▝▝   ▝▝   ~/work/hq
 
 
 

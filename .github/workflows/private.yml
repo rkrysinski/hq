@@ -1,0 +1,50 @@
+# Fails when a detail of the private environments hq is tested in (an
+# organisation's or a repository's name, a local user's path, a host name)
+# comes back into the public text (#127). The patterns live only in the
+# repository secret HQ_PRIVATE_PATTERNS, one regular expression per line, so
+# the list does not leak; the gate prints file, line and pattern number,
+# never the text. Unlike tests.yml it runs for docs-only changes too. Each
+# run also checks the QA evidence on qa-artifacts, which has no workflows of
+# its own (a push there runs none), and so does a daily run - see
+# docs/agents/testing.md.
+name: Private details
+
+on:
+  pull_request:
+  push:
+    branches: [dev]
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private:
+    # A fork's pull request gets no secrets, so there is no list to check
+    # against; external pull requests are not taken (docs/agents/issue-tracker.md).
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      HQ_PRIVATE_PATTERNS: ${{ secrets.HQ_PRIVATE_PATTERNS }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: The pattern list is set
+        id: list
+        run: test -n "$HQ_PRIVATE_PATTERNS" || { echo "::error::secret HQ_PRIVATE_PATTERNS is not set"; exit 1; }
+
+      - name: No private details in the tracked files
+        run: go run ./tools/testgate private
+
+      - name: No private details in the QA evidence
+        # Also when the tracked files failed, as long as there is a list.
+        if: always() && steps.list.outcome == 'success'
+        run: |
+          git fetch -q --depth=1 origin qa-artifacts
+          git worktree add -q --detach "$RUNNER_TEMP/qa" FETCH_HEAD
+          go run ./tools/testgate private "$RUNNER_TEMP/qa"

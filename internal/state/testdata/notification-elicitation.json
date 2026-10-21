@@ -1,9 +1,9 @@
 {
-  "session_id": "db9b1a94-ae3b-4a7a-921e-9ad2a5465fdf",
-  "transcript_path": "/home/agent/.claude/projects/-w-app/db9b1a94-ae3b-4a7a-921e-9ad2a5465fdf.jsonl",
+  "session_id": "00000026-0000-4000-8000-000000000026",
+  "transcript_path": "/home/agent/.claude/projects/-w-app/00000026-0000-4000-8000-000000000026.jsonl",
   "cwd": "/w/app",
-  "scratchpad_dir": "/tmp/claude-1000/-w-app/db9b1a94-ae3b-4a7a-921e-9ad2a5465fdf/scratchpad",
-  "prompt_id": "b8458798-c5df-42fd-a137-6ca904ad6f45",
+  "scratchpad_dir": "/tmp/claude-1000/-w-app/00000026-0000-4000-8000-000000000026/scratchpad",
+  "prompt_id": "0000001d-0000-4000-8000-00000000001d",
   "hook_event_name": "Notification",
   "message": "Claude Code needs your input",
   "notification_type": "elicitation_dialog"

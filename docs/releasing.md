@@ -92,10 +92,10 @@ both of these sections (each runs to the next `## ` heading):
 
 ```markdown
 ## Przed wdrożeniem
-- IT: consent to `User.Read.All` for the app registration.
+- Admin: grant the service account read access to the new queue.
 
 ## Po wdrożeniu
-- `.env`: `DIRECTORY_SYNC_ENABLED=1`, restart.
+- `.env`: `EXAMPLE_FEATURE_ENABLED=1`, restart.
 ```
 
 The script collects them from every pull request in the release and places them
