@@ -239,8 +239,8 @@ func TestWaitRefusesBadArguments(t *testing.T) {
 
 func TestParseWaitReadsNamesAndOptions(t *testing.T) {
 	now := time.Date(2026, 9, 28, 10, 0, 0, 0, time.UTC)
-	w, err := parseWait([]string{"42", "--since=2026-09-28T09:59:30.5Z", "book-17", "--timeout", "90", "42", "--json"}, now)
-	if err != nil || strings.Join(w.names, " ") != "42 book-17" || !w.asJSON || w.timeout != 90*time.Second ||
+	w, err := parseWait([]string{"42", "--since=2026-09-28T09:59:30.5Z", "agent-17", "--timeout", "90", "42", "--json"}, now)
+	if err != nil || strings.Join(w.names, " ") != "42 agent-17" || !w.asJSON || w.timeout != 90*time.Second ||
 		!w.since.Equal(now.Add(-29500*time.Millisecond)) || !w.sinceArg {
 		t.Fatalf("%+v %v", w, err)
 	}

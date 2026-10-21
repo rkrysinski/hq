@@ -338,7 +338,7 @@ func New(src Source) Model {
 // hints are the keys of the list, in footer order: the sort shown is the
 // current one, the view the one a switches to (mocks). While searching the
 // footer is the search: what is typed, then ` · ` and its matches, Enter and
-// Esc (spec §6.3: `/bo · 1 match: book-17`).
+// Esc (spec §6.3: `/ag · 1 match: agent-17`).
 func (m Model) hints() []Hint {
 	if m.searching {
 		return []Hint{{"/" + m.search, "· " + m.matchText()}, {"⏎", "open"}, {"esc", "cancel"}}

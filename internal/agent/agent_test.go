@@ -11,7 +11,7 @@ import (
 )
 
 func TestNameChars(t *testing.T) {
-	for name, ok := range map[string]bool{"42": true, "book-17": true, "a_b": true, strings.Repeat("a", 40): true, "": false, "a b": false, "a/b": false, "ą": false, "rel-1.10.5-213": true, "a:b": false} {
+	for name, ok := range map[string]bool{"42": true, "agent-17": true, "a_b": true, strings.Repeat("a", 40): true, "": false, "a b": false, "a/b": false, "ą": false, "rel-1.10.5-213": true, "a:b": false} {
 		if NameChars(name) != ok {
 			t.Errorf("NameChars(%q) != %v", name, ok)
 		}
