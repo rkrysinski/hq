@@ -1,6 +1,6 @@
 $ sh ~/work/tools-list.sh ~/work/hq-bin | jq -r ".result.tools[] | select(.name==\"new\") | .inputSchema.properties.name
 .description" | fold -sw 110
 the agent's name: letters, digits, '-', '_' and '.', at least one letter or digit, at most 32 characters,
-e.g. the issue number (42), a slug (book-17) or a release's version and issue (rel-1.10.5-213); free until
+e.g. the issue number (42), a slug (agent-17) or a release's version and issue (rel-1.10.5-213); free until
 that agent is killed
 $

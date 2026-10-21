@@ -1,6 +1,6 @@
 $ git log --oneline -1; go run ./tools/testgate private; echo "exit $?"
-f521a0c (HEAD -> issue-127-strip-private-details) Private details: check qa-artifacts from dev's runs and a da
-ily one, since a push there runs no workflow (#127)
+784c96b (HEAD -> issue-127-strip-private-details) The slug placeholder is agent-17, and the name search's example /ag (#
+127)
 private: 10 patterns, 0 matching lines
 exit 0
 $
