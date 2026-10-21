@@ -27,9 +27,12 @@ type Source struct {
 	// Running asks sbx which sandboxes run; it may take seconds.
 	Running func() (agent.Sandboxes, error)
 	Now     func() time.Time
-	// UpdateHint is "vX.Y.Z available - hq update" when a newer release
-	// exists, else empty; it asks GitHub at most once a day.
-	UpdateHint func() string
+	// Version is the running hq's version, as hq --version prints it; the
+	// header shows it after the clock (§6.1).
+	Version string
+	// NewerRelease is the newer release's tag (vX.Y.Z) when one exists,
+	// else empty; it asks GitHub at most once a day.
+	NewerRelease func() string
 	// Layout re-applies the list pane's height to the terminal's (§6.1).
 	Layout func()
 	// Footer shows the key hints on the dashboard's status line.
@@ -240,7 +243,7 @@ type (
 		running agent.Sandboxes
 		err     error
 	}
-	hintMsg      struct{ text string }
+	newerMsg     struct{ release string }
 	deliveredMsg struct{} // a round of Source.Deliver finished
 	hourMsg      struct{}
 	actedMsg     struct{ err error } // a row action (dock, code) finished
@@ -266,7 +269,7 @@ type Model struct {
 	// dialog is true from n or k until the dialog closes: the keys typed before
 	// tmux shows the popup are not the list's either (spec §6.6).
 	dialog bool
-	hint   string // update hint
+	newer  string // the newer release, for the update hint
 	// search is the name typed after /, while searching is true (§6.3).
 	search    string
 	searching bool
@@ -600,7 +603,7 @@ func (m *Model) deliver(as []agent.Agent) tea.Cmd {
 }
 
 func (m Model) checkUpdate() tea.Cmd {
-	return func() tea.Msg { return hintMsg{m.src.UpdateHint()} }
+	return func() tea.Msg { return newerMsg{m.src.NewerRelease()} }
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -664,8 +667,8 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			m.polled = m.src.Now()
 		}
 		return m, m.collect()
-	case hintMsg:
-		m.hint = msg.text
+	case newerMsg:
+		m.newer = msg.release
 		return m, tea.Tick(updateEvery, func(time.Time) tea.Msg { return hourMsg{} })
 	case hourMsg:
 		return m, m.checkUpdate()
@@ -985,9 +988,10 @@ func (m Model) View() string {
 	return strings.Join(lines, "\n")
 }
 
-// header is `hq  N agents · X need you · Y done · Z working` on the left, the
-// update hint after it, and the clock on the right, with `sbx ?` after it
-// while sbx does not answer (§6.1, design §7.1).
+// header is `hq  N agents · X need you · Y done · Z working` and the view on
+// the left, and on the right the clock, `sbx ?` after it while sbx does not
+// answer, and the version, with the update hint `→ vX.Y.Z hq update` when a
+// newer release exists (§6.1, design §7.1).
 func (m Model) header() string {
 	var need, done, working int
 	for _, a := range m.agents {
@@ -1010,33 +1014,37 @@ func (m Model) header() string {
 		}
 	}
 	now := m.src.Now()
-	right := now.Format("Mon 15:04")
+	clock := now.Format("Mon 15:04")
 	if m.sbxDown(now) {
-		right += "  sbx ?"
+		clock += "  sbx ?"
 	}
-	right = cDim.Render(right)
-	// The clock and sbx ? stay; the left keeps what fits, giving up the
-	// update hint, the view, then the counts from the last (S12).
-	hint, view := m.hint, "view: "+m.view
-	room := m.width - 2*len(margin) - lipgloss.Width(right) - 1
+	view, newer, hqUpdate := "view: "+m.view, m.newer, " hq update"
+	right := func() string {
+		r := clock + " · " + m.src.Version
+		if newer != "" {
+			r += " → " + newer + hqUpdate
+		}
+		return cDim.Render(r)
+	}
 	left := func() string {
 		l := cTitle.Render("hq") + "  " + cText.Render(strings.Join(parts, " · "))
-		for _, s := range []string{view, hint} {
-			if s != "" {
-				l += "  " + cDim.Render(s)
-			}
+		if view != "" {
+			l += "  " + cDim.Render(view)
 		}
 		return l
 	}
-	for _, drop := range []func(){func() { hint = "" }, func() { view = "" }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:1] }} {
-		if lipgloss.Width(left()) <= room {
+	// The clock, sbx ? and the version stay; the left keeps what fits,
+	// giving up the view, then the counts from the last, and only then the
+	// right gives up " hq update", then the newer release (S12).
+	for _, drop := range []func(){func() { view = "" }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:1] }, func() { hqUpdate = "" }, func() { newer = "" }} {
+		if lipgloss.Width(left())+lipgloss.Width(right())+1 <= m.width-2*len(margin) {
 			break
 		}
 		drop()
 	}
-	l := left()
-	pad := m.width - len(margin) - lipgloss.Width(l) - lipgloss.Width(right) - len(margin)
-	return margin + l + strings.Repeat(" ", max(1, pad)) + right
+	l, r := left(), right()
+	pad := m.width - len(margin) - lipgloss.Width(l) - lipgloss.Width(r) - len(margin)
+	return margin + l + strings.Repeat(" ", max(1, pad)) + r
 }
 
 // sbxDown is whether sbx's last answer, or the start when it has not

@@ -1,5 +1,5 @@
 {
-  "version": "2.20",
+  "version": "2.21",
   "children": [
     {
       "type": "frame",
@@ -156,6 +156,16 @@
                       "name": "Clock",
                       "fill": "$fg-faint",
                       "content": "Sat 14:32",
+                      "fontFamily": "$mono",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "j9SyS",
+                      "name": "Version",
+                      "fill": "$fg-faint",
+                      "content": "· v0.9.2",
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -2130,6 +2140,16 @@
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ygfuW",
+                      "name": "Version",
+                      "fill": "$fg-faint",
+                      "content": "· v0.9.2",
+                      "fontFamily": "$mono",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -2844,6 +2864,16 @@
                       "name": "Clock",
                       "fill": "$fg-faint",
                       "content": "Sat 14:32",
+                      "fontFamily": "$mono",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "japrP",
+                      "name": "Version",
+                      "fill": "$fg-faint",
+                      "content": "· v0.9.2",
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -5140,6 +5170,16 @@
                       "name": "Clock",
                       "fill": "$fg-faint",
                       "content": "Sat 14:32",
+                      "fontFamily": "$mono",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "YhLQh",
+                      "name": "Version",
+                      "fill": "$fg-faint",
+                      "content": "· v0.9.2",
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -7720,6 +7760,16 @@
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "G4Om9",
+                      "name": "Version",
+                      "fill": "$fg-faint",
+                      "content": "· v0.9.2 → v0.9.3 hq update",
+                      "fontFamily": "$mono",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -9110,6 +9160,16 @@
                       "name": "Clock",
                       "fill": "$fg-faint",
                       "content": "Sat 14:32",
+                      "fontFamily": "$mono",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "K99aS",
+                      "name": "Version",
+                      "fill": "$fg-faint",
+                      "content": "· v0.9.2",
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -11086,6 +11146,16 @@
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "L9nDxy",
+                      "name": "Version",
+                      "fill": "$fg-faint",
+                      "content": "· v0.9.2",
+                      "fontFamily": "$mono",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -12763,6 +12833,16 @@
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "QwkQX",
+                      "name": "Version",
+                      "fill": "$fg-faint",
+                      "content": "· v0.9.2",
+                      "fontFamily": "$mono",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -14283,6 +14363,16 @@
                       "name": "Clock",
                       "fill": "$fg-faint",
                       "content": "Sat 14:32",
+                      "fontFamily": "$mono",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "nNvl3",
+                      "name": "Version",
+                      "fill": "$fg-faint",
+                      "content": "· v0.9.2",
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -15974,6 +16064,16 @@
                       "name": "Clock",
                       "fill": "$fg-faint",
                       "content": "Sat 14:32",
+                      "fontFamily": "$mono",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "YqryI",
+                      "name": "Version",
+                      "fill": "$fg-faint",
+                      "content": "· v0.9.2",
                       "fontFamily": "$mono",
                       "fontSize": 13,
                       "fontWeight": "normal"
