@@ -147,8 +147,7 @@ func newerRelease(d deps) string {
 	return ""
 }
 
-// updateHint is the line hq --version and the dashboard's header add when a
-// newer release is known.
+// updateHint is the line hq --version adds when a newer release is known.
 func updateHint(d deps) string {
 	if r := newerRelease(d); r != "" {
 		return r + " available - hq update\n"
