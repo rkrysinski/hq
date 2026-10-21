@@ -88,7 +88,10 @@ rm)
     rm "$d/sandboxes/$1"
     ;;
 exec)
-    # Like sbx, exec starts a stopped sandbox; the command runs on the host.
+    # Like sbx, exec starts a stopped sandbox; the command runs on the host,
+    # with SBX_STUB_ROOT naming the sandbox's own root for the files hq
+    # reads there (/etc/claude-code), so the host's never count (#128).
+    export SBX_STUB_ROOT="${SBX_STUB_ROOT:-$d/root}"
     [ ! -e "$d/sandboxes/$1" ] || put "$1" running "$(sed -n 2p "$d/sandboxes/$1")"
     shift
     exec "$@"
