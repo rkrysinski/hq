@@ -19,7 +19,7 @@ These are facts about the environment, not design choices. hq is designed with t
 
 ## 3. Concepts
 
-- **Agent**: one Claude Code session started through hq, identified by a short **name** (typically the issue number or a slug, e.g. `42`, `book-17`). A name is taken while its agent exists, running or `ended`, until the agent is killed.
+- **Agent**: one Claude Code session started through hq, identified by a short **name** (typically the issue number or a slug, e.g. `42`, `agent-17`). A name is taken while its agent exists, running or `ended`, until the agent is killed.
 - **Repo**: the repository the agent works in. **Worktree/branch**: where the agent actually works; the branch is the primary identifier in status output.
 - **State**: `starting`, `working`, `question`, `needs input`, `done`, `ended` (definitions in 5).
 - **Attention state**: `question` or `needs input` - the agent is waiting for the user.
@@ -51,7 +51,7 @@ All operations are available from any shell; the dashboard reflects them within 
 
 ### 4.2 Conventions
 
-- Names: letters, digits, `-`, `_`, `.`, at least one letter or digit, at most 32 characters (`42`, `book-17`, `rel-1.10.5-213`); unique among existing agents, running or `ended`. Reusable once the previous agent with that name is gone (killed). A name over the limit is refused with an error naming the limit.
+- Names: letters, digits, `-`, `_`, `.`, at least one letter or digit, at most 32 characters (`42`, `agent-17`, `rel-1.10.5-213`); unique among existing agents, running or `ended`. Reusable once the previous agent with that name is gone (killed). A name over the limit is refused with an error naming the limit.
 - Exit codes: `0` success, `1` usage or refused (duplicate name, `sandbox rm` with running agents), `2` not found (agent, repo, sandbox), `3` environment (tmux or sbx unavailable). Declining a confirmation is not an error: nothing changes and the exit code is `0`; with no terminal to confirm on and no `-y`, the command is refused (`1`).
 - Errors are one line on stderr, prefixed `hq:`, and name the remedy where there is one (`hq: no agent 'x' (see hq ls)`).
 - Every command works the same from inside the dashboard's own terminal and from any other shell.
@@ -153,7 +153,7 @@ All row actions work on any visible row in either view; an agent needs no pendin
 ### 6.3 Selecting
 
 - `↑/↓` move the cursor.
-- `/` then a name selects by prefix match, case-insensitive, shown in the footer as `/bo · 1 match: book-17`; `Enter` docks the match, `Esc` clears. The `/` prefix keeps names from colliding with single-letter keys. Same names as `hq go NAME`, so the shortcut is stable across re-sorts.
+- `/` then a name selects by prefix match, case-insensitive, shown in the footer as `/ag · 1 match: agent-17`; `Enter` docks the match, `Esc` clears. The `/` prefix keeps names from colliding with single-letter keys. Same names as `hq go NAME`, so the shortcut is stable across re-sorts.
 - Mouse: a click on a row moves the cursor there. A click on the row that is already the cursor row does nothing.
 
 The session slot follows the cursor: the row the cursor stops on is docked, and the keys stay in the list, so the user can look through the sessions row by row; `Enter` or `open` then moves the keys into the docked session. Holding `↓` docks only the row where the cursor stops, not every row it passes.
@@ -207,7 +207,7 @@ Trigger, what the user sees, what must be true afterwards. These are the accepta
 
 **S3. Select and work** - `↑↓`, a click or `/name`: the live session of the row the cursor stops on is docked below, the keys staying in the list, so the user can look from session to session. `Enter`: keyboard focus moves into the docked session. The user types to Claude directly; the list only updates that row's state and last message. Previous/next/first-needing-attention can be docked from inside the session without leaving it.
 
-**S3b. Name search** - `/bo` shows the matches in the footer and moves the cursor to the first match, which the slot follows; `Enter` moves the keys into it.
+**S3b. Name search** - `/ag` shows the matches in the footer and moves the cursor to the first match, which the slot follows; `Enter` moves the keys into it.
 
 **S4. Agent needs the user** - within 1s the row turns amber and moves up (attention sort), and one desktop notification fires whether the agent is docked or not (none for the `question` of a supervised turn, S5c). The user docks it, answers, the state returns to `working`.
 
@@ -297,7 +297,7 @@ Each milestone is usable on its own and is the acceptance boundary for that step
 - `S0 - attention view (default)` - default attention view
 - `hq dash - terminal window` - all view, action strip on the cursor row, keys on the list
 - `S3 - keys in the session: typing to 42` - keys in the docked session: the session on the terminal's background, its title in the accent, the list on the surround
-- `S1 - empty state (first hq)`, `S2 - new agent input (n)` (New agent dialog), `S3 - 42 docked by the cursor` (the docked row is the cursor row, keys on the list), `S3b - name search (/bo)` (the match docked), `S6 - kill confirmation (k)` (Kill dialog), `S6b - docked agent killed: placeholder below`, `S8 - after quit (q): list gone, session stays`, `S12 - narrow (80 cols): LAST dropped`
+- `S1 - empty state (first hq)`, `S2 - new agent input (n)` (New agent dialog), `S3 - 42 docked by the cursor` (the docked row is the cursor row, keys on the list), `S3b - name search (/ag)` (the match docked), `S6 - kill confirmation (k)` (Kill dialog), `S6b - docked agent killed: placeholder below`, `S8 - after quit (q): list gone, session stays`, `S12 - narrow (80 cols): LAST dropped`
 
 ## Phase 2: supervisor over MCP
 
