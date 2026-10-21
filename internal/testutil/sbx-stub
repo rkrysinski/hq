@@ -89,9 +89,15 @@ rm)
     ;;
 exec)
     # Like sbx, exec starts a stopped sandbox; the command runs on the host,
-    # with SBX_STUB_ROOT naming the sandbox's own root for the files hq
-    # reads there (/etc/claude-code), so the host's never count (#128).
-    export SBX_STUB_ROOT="${SBX_STUB_ROOT:-$d/root}"
+    # with an argument /etc/claude-code, the sandbox's managed settings hq
+    # reads, under the sandbox's own root (SBX_STUB_ROOT, by default
+    # $SBX_STUB_DIR/root), so the host's never count (#128).
+    root=${SBX_STUB_ROOT:-$d/root}
+    for a; do
+        shift
+        [ "$a" != /etc/claude-code ] || a=$root$a
+        set -- "$@" "$a"
+    done
     [ ! -e "$d/sandboxes/$1" ] || put "$1" running "$(sed -n 2p "$d/sandboxes/$1")"
     shift
     exec "$@"

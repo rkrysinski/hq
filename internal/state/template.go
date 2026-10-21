@@ -8,10 +8,10 @@ import (
 
 // A hook of the sandbox's template that answers AskUserQuestion by itself
 // keeps Claude from taking hq's answer (ADR 0013): Claude runs the
-// PermissionRequest hooks side by side, takes the first decisive result,
-// and for AskUserQuestion reads a bare allow as no decision and stops
-// there. hq answer runs the template's hooks once with the dialog's payload
-// to know, before it leaves an answer that would be ignored (#128).
+// PermissionRequest hooks side by side, takes a bare allow, the first
+// result, and ignores the later ones, the dialog staying open. hq answer
+// runs the template's hooks once with the dialog's payload to know, before
+// it leaves an answer that would be ignored (#128).
 
 // AskHook is a command hook the managed settings run on a PermissionRequest
 // of AskUserQuestion.
@@ -52,7 +52,7 @@ func AskHooks(settings []byte) []AskHook {
 			return found
 		}
 		for _, m := range s.Hooks.PermissionRequest {
-			if !matches(m.Matcher, AskTool) {
+			if !hookMatches(m.Matcher, AskTool) {
 				continue
 			}
 			for _, h := range m.Hooks {
@@ -64,10 +64,11 @@ func AskHooks(settings []byte) []AskHook {
 	}
 }
 
-// matches reports whether a hook's matcher takes the tool: no matcher or
-// "*" takes every tool; otherwise the tool's name or a pattern matching
-// it whole ("Bash|AskUserQuestion").
-func matches(matcher, tool string) bool {
+// hookMatches reports whether a hook's matcher takes the tool: no matcher
+// or "*" takes every tool; otherwise the tool's name or a pattern matching
+// it whole ("Bash|AskUserQuestion"; "Ask" takes no AskUserQuestion, seen
+// with Claude Code 2.1.304, #128).
+func hookMatches(matcher, tool string) bool {
 	if matcher == "" || matcher == "*" || matcher == tool {
 		return true
 	}

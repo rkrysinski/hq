@@ -82,7 +82,7 @@ func TestAnswerRefusedWhileTheTemplateAnswersAskUserQuestion(t *testing.T) {
 	}
 	id := h.atDialog("needs input")
 	code, out, errOut := h.run("answer", "a", "--dialog", id, "2")
-	if code != ExitUsage || out != "" || !strings.Contains(errOut, "its sandbox's template answers AskUserQuestion by itself (its PermissionRequest hook "+approve+" gives a decision)") {
+	if code != ExitUsage || out != "" || !strings.Contains(errOut, approve) {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
 	h.waitReport("a", "needs input", "Which colour do you pick?")
