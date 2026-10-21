@@ -1,6 +1,7 @@
 package dash
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"slices"
@@ -28,6 +29,7 @@ type fakeSource struct {
 	agentsErr  error
 	running    map[string]bool
 	runningErr error
+	version    string   // the running hq's, v1.0.0 when empty
 	newer      string   // the newer release the update check found
 	sort, view string   // the modes the user left
 	saved      []string // modes kept, "sort/view"
@@ -67,7 +69,7 @@ func (f *fakeSource) source() Source {
 			return agent.Sandboxes{Running: f.running, Asked: now}, f.runningErr
 		},
 		Now:          func() time.Time { return now },
-		Version:      "v1.0.0",
+		Version:      cmp.Or(f.version, "v1.0.0"),
 		NewerRelease: func() string { return f.newer },
 		Layout:       func() { f.layouts++ },
 		Footer:       func(h []Hint) { f.footer = h },
@@ -271,11 +273,7 @@ func TestHeaderShowsTheNewerReleaseBesideTheVersion(t *testing.T) {
 
 // A build without a release version shows what hq --version prints for it.
 func TestHeaderShowsADevBuildAsHqVersionNamesIt(t *testing.T) {
-	src := (&fakeSource{}).source()
-	src.Version = "dev"
-	m := New(src)
-	m, _ = update(m, tea.WindowSizeMsg{Width: 100, Height: 10})
-	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32 · dev") {
+	if h := lines(started(&fakeSource{version: "dev"}, 100, 10))[0]; !strings.HasSuffix(h, "  Sat 14:32 · dev") {
 		t.Fatalf("header %q", h)
 	}
 }
@@ -406,9 +404,11 @@ func TestSbxThatNeverAnsweredIsUnknownOnlyOnceTheThresholdPasses(t *testing.T) {
 	}
 }
 
+// The newer release goes before sbx ? and the version (#131).
 func TestANarrowHeaderKeepsSbxUnknownAndTheClock(t *testing.T) {
 	f := narrowTeam()
 	f.runningErr = errors.New("sbx hangs")
+	f.newer = "v9.9.9"
 	h := headerAt(started(f, 50, 12), now.Add(sbxStale+time.Second))
 	if !strings.HasSuffix(h, "  Sat 14:32  sbx ? · v1.0.0") || !strings.Contains(h, "5 agents") || strings.Contains(h, "view:") {
 		t.Errorf("header %q, want the counts giving way to the clock and sbx ?", h)
