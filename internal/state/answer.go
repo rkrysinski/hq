@@ -40,6 +40,7 @@ type Questions struct {
 	raw   []rawQuestion              // the questions as Claude gave them
 	input map[string]json.RawMessage // the tool's input, the answers to be added
 	name  string                     // the name of the answer's file (answerName)
+	event []byte                     // the dialog's payload, as Claude gave its hooks
 }
 
 // rawQuestion is a question of AskUserQuestion's input, unstripped: the
@@ -98,12 +99,15 @@ func ParseQuestions(latest []byte) (Questions, error) {
 		return Questions{}, errors.New("no question dialog of the agent's own is open")
 	}
 	_ = json.Unmarshal(event, &p.fullPayload)
-	q := Questions{Ask: p.ask(), input: p.Input, name: answerName(latest)}
+	q := Questions{Ask: p.ask(), input: p.Input, name: answerName(latest), event: event}
 	if json.Unmarshal(p.Input["questions"], &q.raw) != nil || len(q.raw) == 0 {
 		return Questions{}, errors.New("the dialog asks no questions")
 	}
 	return q, nil
 }
+
+// Payload is the dialog's PermissionRequest as Claude gave it to its hooks.
+func (q Questions) Payload() []byte { return q.event }
 
 // answerName names the answer's file for the dialog whose report is the
 // state file data: by the POSIX cksum of the file and its length, which

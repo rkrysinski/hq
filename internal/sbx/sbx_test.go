@@ -159,3 +159,17 @@ func TestAFailedCallReportsSbxsErrorAndKeepsWhetherSbxIsInstalled(t *testing.T) 
 		t.Fatalf("%v", err)
 	}
 }
+
+func TestOutputRunsTheCommandInTheSandboxAndReturnsWhatItPrinted(t *testing.T) {
+	r := &fakeRun{out: "printed\n"}
+	out, err := Client{Run: r, Platform: platform.Native{}}.Output("claude-app", "cat", "/etc/x")
+	if err != nil || string(out) != "printed\n" {
+		t.Fatalf("%q %v", out, err)
+	}
+	if !reflect.DeepEqual(r.args, []string{"sbx", "exec", "claude-app", "cat", "/etc/x"}) {
+		t.Fatalf("args %q", r.args)
+	}
+	if _, err := (Client{Run: &fakeRun{err: errors.New("boom")}, Platform: platform.Native{}}).Output("claude-app", "false"); err == nil {
+		t.Fatal("want error")
+	}
+}

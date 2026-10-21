@@ -143,6 +143,9 @@ func answer(env Env, d deps, r answerRequest) error {
 			return usageErr("%s not answered: %v", a.Name, err)
 		}
 	}
+	if hook := templateAnswers(d, a, q); hook != "" {
+		return usageErr("%s's dialog cannot be answered from hq: its sandbox's template answers AskUserQuestion by itself (its PermissionRequest hook %s gives a decision), so Claude would take no answer from hq; answer it at the agent (hq go %s), and recreate the sandbox from a template whose hooks leave AskUserQuestion alone (hq sandbox rm %s)", a.Name, hook, a.Name, a.Repo())
+	}
 	// The moment before the answer is left: what the agent does with it is
 	// a change after it, for hq wait --since.
 	left := lookedAt(d.now())
@@ -216,6 +219,36 @@ func answerable(a agent.Agent, ask *state.Ask) error {
 		return usageErr("%s is at a permission prompt (%s); permission prompts are answered at the agent (hq go %s)", a.Name, a.Last, a.Name)
 	}
 	return nil
+}
+
+// managedSettings prints the managed settings of the sandbox, its
+// template's: managed-settings.json, then the files of managed-settings.d,
+// as Claude reads them. SBX_STUB_ROOT, unset in a sandbox, is the stub
+// sbx's stand-in for the sandbox's root, whose exec runs on the host.
+const managedSettings = `cd "${SBX_STUB_ROOT:-}/etc/claude-code" 2>/dev/null || exit 0
+for f in managed-settings.json managed-settings.d/*.json; do [ -f "$f" ] && cat "$f" && echo; done
+exit 0`
+
+// runHook runs a hook, the arguments after the payload, as Claude runs it:
+// the payload on its standard input, for at most 10 s.
+const runHook = `p=$1; shift; command -v timeout >/dev/null && set -- timeout 10 "$@"; printf '%s' "$p" | "$@"`
+
+// templateAnswers returns the PermissionRequest hook of the sandbox's
+// template that answers the question dialog q by itself, run once with the
+// dialog's payload as Claude ran it; "" when none does, or hq cannot look.
+// Claude then takes no answer from hq's hook (ADR 0013, #128).
+func templateAnswers(d deps, a agent.Agent, q state.Questions) string {
+	settings, err := d.sbx.Output(a.Sandbox, "sh", "-c", managedSettings)
+	if err != nil {
+		return ""
+	}
+	for _, h := range state.AskHooks(settings) {
+		out, err := d.sbx.Output(a.Sandbox, append([]string{"sh", "-c", runHook, "sh", string(q.Payload())}, h.Argv()...)...)
+		if err == nil && state.Decides(out) {
+			return h.Command
+		}
+	}
+	return ""
 }
 
 // awaitTaken waits up to takeWait for the agent's hook to take the answer

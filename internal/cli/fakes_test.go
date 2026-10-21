@@ -362,6 +362,9 @@ type fakeSbx struct {
 	execs       [][]string // sandbox, then the command
 	// onExec is what the command does; its error is the command's.
 	onExec func(args []string) error
+	// onOutput is what a command run for its output prints; it prints
+	// nothing when unset.
+	onOutput func(args []string) ([]byte, error)
 	// orphans are the Claude sessions that run in a sandbox although their
 	// pane died (its host-side sbx run ended), by agent id.
 	orphans map[string]bool
@@ -405,6 +408,15 @@ func (f *fakeSbx) Exec(sandbox string, args ...string) error {
 		return f.onExec(args)
 	}
 	return nil
+}
+
+func (f *fakeSbx) Output(sandbox string, args ...string) ([]byte, error) {
+	f.execs = append(f.execs, append([]string{sandbox}, args...))
+	f.calls = append(f.calls, "exec "+sandbox+" "+strings.Join(args, " "))
+	if f.onOutput != nil {
+		return f.onOutput(args)
+	}
+	return nil, nil
 }
 
 func (f *fakeSbx) List() ([]sbx.Sandbox, error) { return f.sandboxes, f.err }
