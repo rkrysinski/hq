@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "tui": "fullscreen",
+  "autoCompactWindow": 500000,
+  "outputStyle": "concise",
+  "statusLine": {
+    "type": "command",
+    "command": "/usr/local/bin/claude-statusline",
+    "padding": 0,
+    "refreshInterval": 1
+  },
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "hooks": [
+          { "type": "command", "command": "/usr/local/bin/claude-approve" }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_PLUGIN_DIRS": "/opt/claude-mods/tools-pane:/opt/claude-mods/clean-view",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000"
+  }
+}

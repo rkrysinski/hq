@@ -78,6 +78,7 @@ type Sandboxes interface {
 	Create(workspace string, o sbx.Options) error
 	RunArgv(sandbox string, agentArgs ...string) []string
 	Exec(sandbox string, args ...string) error
+	Output(sandbox string, args ...string) ([]byte, error)
 	Stop(sandbox string) error
 	Remove(sandbox string) error
 }
