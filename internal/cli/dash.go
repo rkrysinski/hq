@@ -10,6 +10,7 @@ import (
 	"github.com/rkrysinski/hq/internal/iterm"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 // listCommand is the hidden command the list pane runs (design §3.8).
@@ -291,14 +292,15 @@ func listSource(d deps, pane string) dash.Source {
 			}
 			return agent.Sandboxes{Running: running, Asked: asked}, nil
 		},
-		Now: d.now,
-		UpdateHint: func() string {
+		Now:     d.now,
+		Version: version.Version,
+		NewerRelease: func() string {
 			// The list runs the update check itself, in the
 			// background of its own process.
 			if checkDue(d) {
 				checkUpdate(d)
 			}
-			return strings.TrimSpace(updateHint(d))
+			return newerRelease(d)
 		},
 		Layout: func() {
 			if h, err := d.tmux.TerminalHeight(pane); err == nil {

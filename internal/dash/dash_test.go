@@ -28,7 +28,7 @@ type fakeSource struct {
 	agentsErr  error
 	running    map[string]bool
 	runningErr error
-	hint       string
+	newer      string   // the newer release the update check found
 	sort, view string   // the modes the user left
 	saved      []string // modes kept, "sort/view"
 	cursor     string   // the cursor kept on the session
@@ -66,14 +66,15 @@ func (f *fakeSource) source() Source {
 			f.polls++
 			return agent.Sandboxes{Running: f.running, Asked: now}, f.runningErr
 		},
-		Now:        func() time.Time { return now },
-		UpdateHint: func() string { return f.hint },
-		Layout:     func() { f.layouts++ },
-		Footer:     func(h []Hint) { f.footer = h },
-		Modes:      func() (string, string) { return f.sort, f.view },
-		SaveModes:  func(sort, view string) { f.saved = append(f.saved, sort+"/"+view) },
-		Cursor:     func() string { return f.cursor },
-		SetCursor:  func(name string) { f.cursor = name; f.cursorSets++ },
+		Now:          func() time.Time { return now },
+		Version:      "v1.0.0",
+		NewerRelease: func() string { return f.newer },
+		Layout:       func() { f.layouts++ },
+		Footer:       func(h []Hint) { f.footer = h },
+		Modes:        func() (string, string) { return f.sort, f.view },
+		SaveModes:    func(sort, view string) { f.saved = append(f.saved, sort+"/"+view) },
+		Cursor:       func() string { return f.cursor },
+		SetCursor:    func(name string) { f.cursor = name; f.cursorSets++ },
 		Dock: func(name string) error {
 			if f.dockErr != nil {
 				return f.dockErr
@@ -208,7 +209,7 @@ func TestEmptyListShowsHowToStart(t *testing.T) {
 	if len(ls) != 10 {
 		t.Fatalf("%d lines, want the pane's 10:\n%s", len(ls), strings.Join(ls, "\n"))
 	}
-	if !strings.HasPrefix(ls[0], "  hq  0 agents  view: attention") || !strings.HasSuffix(ls[0], "  Sat 14:32") {
+	if !strings.HasPrefix(ls[0], "  hq  0 agents  view: attention") || !strings.HasSuffix(ls[0], "  Sat 14:32 · v1.0.0") {
 		t.Errorf("header %q", ls[0])
 	}
 	for _, col := range []string{"TAB", "REPO", "BRANCH", "STATE ▾", "AGE", "LAST"} {
@@ -251,10 +252,30 @@ func TestRowsInAttentionOrderWithCountsInTheHeader(t *testing.T) {
 	}
 }
 
-func TestHeaderLeavesOutZeroCountsAndShowsTheUpdateHint(t *testing.T) {
-	f := &fakeSource{agents: []agent.Agent{ag("a", state.Done, 0, "")}, hint: "v1.2.0 available - hq update"}
+func TestHeaderLeavesOutZeroCountsAndShowsTheVersionAfterTheClock(t *testing.T) {
+	f := &fakeSource{agents: []agent.Agent{ag("a", state.Done, 0, "")}}
 	h := lines(started(f, 120, 10))[0]
-	if !strings.HasPrefix(h, "  hq  1 agent · 1 done  view: attention  v1.2.0 available - hq update") {
+	if !strings.HasPrefix(h, "  hq  1 agent · 1 done  view: attention ") || !strings.HasSuffix(h, "  Sat 14:32 · v1.0.0") {
+		t.Fatalf("header %q", h)
+	}
+}
+
+// A newer release shows beside the running version, not on the left (#131).
+func TestHeaderShowsTheNewerReleaseBesideTheVersion(t *testing.T) {
+	f := &fakeSource{agents: []agent.Agent{ag("a", state.Done, 0, "")}, newer: "v1.2.0"}
+	h := lines(started(f, 120, 10))[0]
+	if !strings.HasPrefix(h, "  hq  1 agent · 1 done  view: attention ") || !strings.HasSuffix(h, "  Sat 14:32 · v1.0.0 → v1.2.0 hq update") {
+		t.Fatalf("header %q", h)
+	}
+}
+
+// A build without a release version shows what hq --version prints for it.
+func TestHeaderShowsADevBuildAsHqVersionNamesIt(t *testing.T) {
+	src := (&fakeSource{}).source()
+	src.Version = "dev"
+	m := New(src)
+	m, _ = update(m, tea.WindowSizeMsg{Width: 100, Height: 10})
+	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32 · dev") {
 		t.Fatalf("header %q", h)
 	}
 }
@@ -337,8 +358,8 @@ func TestFailedSbxKeepsTheClockAndLeavesStatesToTmux(t *testing.T) {
 	if !m.polled.IsZero() || m.running.Running != nil {
 		t.Fatalf("polled %v running %v", m.polled, m.running)
 	}
-	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32") {
-		t.Errorf("header %q, want the clock only while sbx may still answer", h)
+	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32 · v1.0.0") {
+		t.Errorf("header %q, want no sbx ? while sbx may still answer", h)
 	}
 }
 
@@ -348,14 +369,14 @@ func headerAt(m Model, t time.Time) string {
 	return lines(m)[0]
 }
 
-func TestAnAnsweringSbxShowsTheClockOnly(t *testing.T) {
+func TestAnAnsweringSbxShowsNoSbxUnknown(t *testing.T) {
 	m := started(&fakeSource{running: map[string]bool{}}, 100, 10)
 	if m.polled.IsZero() {
 		t.Fatal("sbx never asked")
 	}
 	for _, d := range []time.Duration{0, time.Second, sbxStale} {
-		if h := headerAt(m, now.Add(d)); !strings.HasSuffix(h, "  Sat 14:32") || strings.Contains(h, "sbx") || strings.Contains(h, "⟳") {
-			t.Errorf("%v after the answer: header %q, want the clock only", d, h)
+		if h := headerAt(m, now.Add(d)); !strings.HasSuffix(h, "  Sat 14:32 · v1.0.0") || strings.Contains(h, "sbx") || strings.Contains(h, "⟳") {
+			t.Errorf("%v after the answer: header %q, want no sbx ?", d, h)
 		}
 	}
 }
@@ -366,11 +387,11 @@ func TestAStaleSbxAnswerShowsSbxUnknownUntilTheNextAnswer(t *testing.T) {
 	later := now.Add(sbxStale + time.Second)
 	m.src.Now = func() time.Time { return later }
 	m, _ = update(m, runningMsg{err: errors.New("sbx ls: timed out")})
-	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32  sbx ?") {
+	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32  sbx ? · v1.0.0") {
 		t.Errorf("header %q, want sbx ? after the clock", h)
 	}
 	m, _ = update(m, runningMsg{running: agent.Sandboxes{Running: map[string]bool{}}})
-	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32") || strings.Contains(h, "sbx ?") {
+	if h := lines(m)[0]; !strings.HasSuffix(h, "  Sat 14:32 · v1.0.0") || strings.Contains(h, "sbx ?") {
 		t.Errorf("header %q, want sbx ? gone with the answer", h)
 	}
 }
@@ -380,7 +401,7 @@ func TestSbxThatNeverAnsweredIsUnknownOnlyOnceTheThresholdPasses(t *testing.T) {
 	if h := headerAt(m, now.Add(sbxStale)); strings.Contains(h, "sbx ?") {
 		t.Errorf("header %q warns before the threshold", h)
 	}
-	if h := headerAt(m, now.Add(sbxStale+time.Second)); !strings.HasSuffix(h, "  Sat 14:32  sbx ?") {
+	if h := headerAt(m, now.Add(sbxStale+time.Second)); !strings.HasSuffix(h, "  Sat 14:32  sbx ? · v1.0.0") {
 		t.Errorf("header %q, want sbx ? once the threshold passed", h)
 	}
 }
@@ -389,7 +410,7 @@ func TestANarrowHeaderKeepsSbxUnknownAndTheClock(t *testing.T) {
 	f := narrowTeam()
 	f.runningErr = errors.New("sbx hangs")
 	h := headerAt(started(f, 50, 12), now.Add(sbxStale+time.Second))
-	if !strings.HasSuffix(h, "  Sat 14:32  sbx ?") || !strings.Contains(h, "5 agents") || strings.Contains(h, "view:") {
+	if !strings.HasSuffix(h, "  Sat 14:32  sbx ? · v1.0.0") || !strings.Contains(h, "5 agents") || strings.Contains(h, "view:") {
 		t.Errorf("header %q, want the counts giving way to the clock and sbx ?", h)
 	}
 	if w := ansi.StringWidth(h); w > 50 {
@@ -449,11 +470,11 @@ func TestStartShowsTheFooterAndEveryResizeReappliesTheLayout(t *testing.T) {
 }
 
 func TestUpdateHintIsCheckedAgainHourly(t *testing.T) {
-	f := &fakeSource{hint: "v2.0.0 available - hq update"}
+	f := &fakeSource{newer: "v2.0.0"}
 	m, cmd := update(New(f.source()), hourMsg{})
 	m = do(m, cmd)
-	if m.hint != f.hint {
-		t.Fatalf("hint %q", m.hint)
+	if m.newer != f.newer {
+		t.Fatalf("newer %q", m.newer)
 	}
 }
 
@@ -1485,17 +1506,23 @@ func TestColumnsGiveWayByWidth(t *testing.T) {
 	}
 }
 
+// The left gives up the view, then the counts from the last; the right keeps
+// the clock and the version, giving up " hq update", then the newer release,
+// only once the left is down to the agents (S12, #131).
 func TestTheHeaderKeepsWhatFitsAndTheClock(t *testing.T) {
 	f := narrowTeam()
-	f.hint = "v9.9.9 available - hq update"
+	f.newer = "v9.9.9"
 	for _, tc := range []struct {
 		width      int
 		want, gone []string
+		right      string
 	}{
-		{160, []string{"5 agents · 2 need you · 1 done · 1 working", "view: all", "v9.9.9"}, nil},
-		{100, []string{"5 agents · 2 need you · 1 done · 1 working", "view: all"}, []string{"v9.9.9"}},
-		{70, []string{"5 agents · 2 need you · 1 done · 1 working"}, []string{"view:"}},
-		{45, []string{"5 agents · 2 need you"}, []string{"done", "view:"}},
+		{100, []string{"5 agents · 2 need you · 1 done · 1 working", "view: all"}, nil, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
+		{98, []string{"5 agents · 2 need you · 1 done · 1 working"}, []string{"view:"}, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
+		{80, []string{"5 agents · 2 need you · 1 done"}, []string{"working", "view:"}, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
+		{60, []string{"hq  5 agents "}, []string{"need you", "view:"}, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
+		{50, []string{"hq  5 agents "}, []string{"need you", "hq update"}, "  Sat 14:32 · v1.0.0 → v9.9.9"},
+		{40, []string{"hq  5 agents "}, []string{"need you", "→"}, "  Sat 14:32 · v1.0.0"},
 	} {
 		h := lines(started(f, tc.width, 12))[0]
 		for _, s := range tc.want {
@@ -1508,8 +1535,8 @@ func TestTheHeaderKeepsWhatFitsAndTheClock(t *testing.T) {
 				t.Errorf("%d: header %q keeps %q", tc.width, h, s)
 			}
 		}
-		if !strings.HasSuffix(h, "  Sat 14:32") {
-			t.Errorf("%d: clock gone: %q", tc.width, h)
+		if !strings.HasSuffix(h, tc.right) {
+			t.Errorf("%d: header %q, want it to end %q", tc.width, h, tc.right)
 		}
 	}
 }
