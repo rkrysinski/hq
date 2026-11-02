@@ -1,0 +1,10 @@
+NAME  REPO    BRANCH  STATE  AGE  LAST
+q3    app136  main    ended  4s   [session ended]
+hq: q3 has ended and cannot receive messages; relaunch it with hq sandbox restart app136 --setup local, or kill it and start it again
+exit 1
+restarted the sandbox hq-local-app136; relaunched q3
+exit 0
+$ hq ls
+NAME  REPO    BRANCH  STATE  AGE  LAST
+q3    app136  main    done   32s  -
+$

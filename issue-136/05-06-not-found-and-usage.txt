@@ -1,0 +1,40 @@
+hq: no sandbox of setup 'big' for app136 (hq new --setup big creates it)
+exit 2
+hq: no sandbox of setup 'big' for app136 (hq new --setup big creates it)
+exit 2
+hq: --setup and --all-setups exclude each other (usage: hq sandbox rm|restart REPO|SANDBOX [--setup NAME|--all-setups] [-y])
+exit 1
+hq: --setup takes a repository, and hq-local-app136 is a sandbox's name
+exit 1
+hq: --all-setups takes a repository, and claude-app136 is a sandbox's name
+exit 1
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

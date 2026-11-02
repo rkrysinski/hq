@@ -1,0 +1,40 @@
+  hq kill NAME [-y]                end that agent's Claude session; the sandbox stays
+  hq stop [-y]                     end all agents; sandboxes stay
+  hq sandbox rm|restart REPO|SANDBOX [-y] remove or restart a repository's sandbox
+hq new also takes --setup NAME: the agent runs in the repository's sandbox of that setup, from "sandboxes" in preferences.json (default: "sandbox").
+hq sandbox also takes --setup NAME (the repository's sandbox of that setup, instead of its default) or --all-setups (every sandbox of the repository).
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

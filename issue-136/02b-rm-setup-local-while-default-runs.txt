@@ -1,0 +1,9 @@
+killed q2; the sandbox stays
+Remove the sandbox hq-local-app136 and its state? [y/N] y
+removed the sandbox hq-local-app136
+$ echo "exit $?"; hq ls; qa-sbx
+exit 0
+NAME  REPO    BRANCH  STATE  AGE  LAST
+q1    app136  main    done   1m   Your previous message was: > say hi in one word
+sbx sandboxes of app136: claude-app136
+$

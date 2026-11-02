@@ -1,0 +1,150 @@
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q2      app136      main          ● done         2m    Hello                                                                       ⏎ open   c code   k kill
+  q1      app136      main          ● done         2m    Hi
+
+09:37:01
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● ended        0s    Hi
+  q2      app136      main          ● ended        0s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:02
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● ended        1s    Hi
+  q2      app136      main          ● ended        1s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:03
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● ended        3s    Hi
+  q2      app136      main          ● ended        3s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:04
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● ended        3s    Hi
+  q2      app136      main          ● ended        3s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:05
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q2      app136      main          ● starting     0s    Hello                                                                       ⏎ open   c code   k kill
+  q1      app136      main          ● starting     0s    Hi
+
+09:37:06
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         0s    Hi
+  q2      app136      main          ● done         0s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:07
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         1s    Hi
+  q2      app136      main          ● done         1s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:08
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         2s    Hi
+  q2      app136      main          ● done         2s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:09
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         3s    Hi
+  q2      app136      main          ● done         3s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:10
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         4s    Hi
+  q2      app136      main          ● done         5s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:12
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         5s    Hi
+  q2      app136      main          ● done         5s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:12
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         6s    Hi
+  q2      app136      main          ● done         6s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:13
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         7s    Hi
+  q2      app136      main          ● done         7s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:14
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         8s    Hi
+  q2      app136      main          ● done         8s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:15
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         9s    Hi
+  q2      app136      main          ● done         9s    Hello                                                                       ⏎ open   c code   k kill
+
+09:37:16
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         10s   Hi
+  q2      app136      main          ● done         10s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:17
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         11s   Hi
+  q2      app136      main          ● done         11s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:18
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         12s   Hi
+  q2      app136      main          ● done         12s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:19
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         13s   Hi
+  q2      app136      main          ● done         13s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:20
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         13s   Hi
+  q2      app136      main          ● done         14s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:21
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         14s   Hi
+  q2      app136      main          ● done         15s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:22
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         15s   Hi
+  q2      app136      main          ● done         16s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:23
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         16s   Hi
+  q2      app136      main          ● done         17s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:24
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         17s   Hi
+  q2      app136      main          ● done         18s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:25
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         18s   Hi
+  q2      app136      main          ● done         19s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:26
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         19s   Hi
+  q2      app136      main          ● done         20s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:27
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         20s   Hi
+  q2      app136      main          ● done         21s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:28
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         21s   Hi
+  q2      app136      main          ● done         22s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:29
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  q1      app136      main          ● done         22s   Hi
+  q2      app136      main          ● done         23s   Hello                                                                       ⏎ open   c code   k kill
+
+09:37:30

@@ -1,0 +1,11 @@
+creating a sandbox for app136 (first time only; log in to Claude when the session asks)
+started q4 in app136 (sandbox claude-app136); enter it with: hq go q4
+killed q3; the sandbox stays
+killed q4; the sandbox stays
+sbx sandboxes of app136: claude-app136 hq-local-app136
+Remove the sandboxes claude-app136, hq-local-app136 and their state? [y/N] y
+removed the sandboxes claude-app136, hq-local-app136
+$ echo "exit $?"; hq ls; qa-sbx
+exit 0
+sbx sandboxes of app136: none
+$

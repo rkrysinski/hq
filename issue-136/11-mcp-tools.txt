@@ -1,0 +1,1 @@
+hq mcp tools/list: answer, go, kill, list, new, read, send, wait

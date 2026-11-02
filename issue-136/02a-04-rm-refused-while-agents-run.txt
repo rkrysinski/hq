@@ -1,0 +1,40 @@
+hq: agents of hq-local-app136 are running (q2); end them first with hq kill
+exit 1
+hq: agents of claude-app136, hq-local-app136 are running (q1, q2); end them first with hq kill
+exit 1
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

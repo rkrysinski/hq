@@ -1,0 +1,11 @@
+      "name": "q2",
+      "state": "done",
+      "last": "\"say hi in one word\"",
+      "sandbox": "hq-local-app136",
+      "setup": "local",
+      "name": "q1",
+      "state": "done",
+      "last": "Your previous message was: \u003e say hi in one word",
+      "sandbox": "claude-app136",
+      "setup": "default",
+$

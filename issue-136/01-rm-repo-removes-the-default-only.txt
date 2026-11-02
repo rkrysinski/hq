@@ -1,0 +1,12 @@
+creating the local sandbox hq-local-app136 for app136 (first time only; log in to Claude when the session asks)
+started q3 in app136 (sandbox hq-local-app136); enter it with: hq go q3
+killed q1; the sandbox stays
+sbx sandboxes of app136: claude-app136 hq-local-app136
+Remove the sandbox claude-app136 and its state? [y/N] y
+removed the sandbox claude-app136
+$ echo "exit $?"; hq ls; qa-sbx
+exit 0
+NAME  REPO    BRANCH  STATE  AGE  LAST
+q3    app136  main    done   48s  -
+sbx sandboxes of app136: hq-local-app136
+$

@@ -1,0 +1,40 @@
+$ hq sandbox restart app136 --all-setups; echo "exit $?"; hq sandbox rm app136 --setup local; echo "exit $?"
+hq: usage: hq sandbox rm|restart REPO|SANDBOX [-y]
+exit 1
+hq: usage: hq sandbox rm|restart REPO|SANDBOX [-y]
+exit 1
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
