@@ -1,0 +1,10 @@
+$ export XDG_CONFIG_HOME=/tmp/hq-qa-134/i135/config0; cat $XDG_CONFIG_HOME/hq/preferences.json; hq-before new 63 .; echo "exit $?"; hq new 64 .; echo "exit $?";
+ hq new 65 . --setup local; echo "exit $?"; unset XDG_CONFIG_HOME
+{}
+started 63 in app135 (sandbox claude-app135); enter it with: hq go 63
+exit 0
+started 64 in app135 (sandbox claude-app135); enter it with: hq go 64
+exit 0
+hq: unknown setup 'local'; setups: default
+exit 1
+$

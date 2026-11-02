@@ -1,0 +1,45 @@
+  hq  4 agents · 4 done  view: all                                                                                                             Mon 09:12 · dev
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ 43      app135      main          ● done         50s   1 commit, and I am Claude Code running on model llmman/provider/lmstudio/q  ⏎ open   c code   k kill  │
+  45      app135      main          ● done         1m    1 — I'm Claude Sonnet 5.5.
+  44      app135      main          ● done         3m    -
+  42      app135      main          ● done         4m    -
+
+
+
+─┬ ▸ 43 · main · hq-local-app135
+ │                                                                                                                                                            │
+ │ ▐▛███▛█   Claude Code v2.1.306                                                                                                                             │
+ │▝▜██████▀  llmman.provider/lmstudio/qwen-local · API Usage Billing                                                                                          │
+ │ ▝▝   ▝▝   /private/tmp/hq-qa-134/i135/app135                                                                                                               │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │⚠ Both claude.ai and ANTHROPIC_API_KEY set · auth may not work as expected                                                                                  │
+ │  · to use claude.ai: Unset the ANTHROPIC_API_KEY environment variable, or claude /logout then say "No" to the API key approval before login.               │
+ │  · to use ANTHROPIC_API_KEY: claude /logout to sign out of claude.ai.                                                                                      │
+ │⚠ Model "llmman.provider/lmstudio/qwen-local" isn't recognized · context assumed to be 200k tokens · update Claude Code, or see the docs                    │
+ │                                                                                                                                                            │
+ │  Get to finished work sooner with Opus 5.5. Switch anytime with /model.                                                                                    │
+ │                                                                                                                                                            │
+ │❯ Use the Bash tool to run: git log --oneline | wc -l   Then reply with one line: the number it printed and the name of the model you are.                  │
+ │                                                                                                                                                            │
+ │  Thought for 41s, ran 1 shell command                                                                                                                      │
+ │                                                                                                                                                            │
+ │● 1 commit, and I am Claude Code running on model llmman/provider/lmstudio/qwen-local.                                                                      │
+ │                                                                                                                                                            │
+ │✻ Worked for 43s · done 8:11 AM                                                                                                                             │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                    ✔ Update installed · /restart to apply  │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │❯                                                                                                                                                           │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                                                             │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: attention  r refresh  q quit

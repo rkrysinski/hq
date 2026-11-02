@@ -1,0 +1,27 @@
+$ cat $XDG_CONFIG_HOME/hq/preferences.json 2>/dev/null || cat /tmp/hq-qa-134/i135/config/hq/preferences.json; echo; hq new 55 .; echo "exit $?"; hq new 59 . --s
+etup local; echo "exit $?"; qa-setups | grep app135
+{
+  "sandboxes": {
+    "badimg": {
+      "template": "hq-qa-no-such-image:nope"
+    },
+    "badprov": {
+      "model": "qwen-local",
+      "provider": "no-such-provider"
+    }
+  },
+  "sort": "attention",
+  "view": "all"
+}
+started 55 in app135 (sandbox claude-app135); enter it with: hq go 55
+exit 0
+hq: unknown setup 'local'; setups: default, badimg, badprov
+exit 1
+58   app135     claude-app135        setup=default
+56   app135     hq-local-app135      setup=local
+43   app135     hq-local-app135      setup=local
+45   app135     claude-app135        setup=default
+44   app135     hq-local-app135      setup=local
+42   app135     claude-app135        setup=default
+55   app135     claude-app135        setup=default
+$

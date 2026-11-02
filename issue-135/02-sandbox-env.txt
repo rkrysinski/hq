@@ -1,0 +1,10 @@
+$ sbx exec hq-local-app135 sh -c "env | grep -E ^ANTHROPIC_(BASE_URL|MODEL|DEFAULT)|SUBAGENT"
+ANTHROPIC_BASE_URL=http://host.docker.internal:17434
+ANTHROPIC_DEFAULT_HAIKU_MODEL=llmman.provider/lmstudio/qwen-local
+ANTHROPIC_DEFAULT_OPUS_MODEL=llmman.provider/lmstudio/qwen-local
+ANTHROPIC_DEFAULT_SONNET_MODEL=llmman.provider/lmstudio/qwen-local
+ANTHROPIC_MODEL=llmman.provider/lmstudio/qwen-local
+CLAUDE_CODE_SUBAGENT_MODEL=llmman.provider/lmstudio/qwen-local
+
+$ sbx exec claude-app135 sh -c "env | grep -E ^ANTHROPIC_(BASE_URL|MODEL)"; echo "exit $?"
+exit 1

@@ -1,0 +1,18 @@
+⚠ Both claude.ai and ANTHROPIC_API_KEY set · auth may not work as expected
+  · to use claude.ai: Unset the ANTHROPIC_API_KEY environment variable, or
+  claude /logout then say "No" to the API key approval before login.
+  · to use ANTHROPIC_API_KEY: claude /logout to sign out of claude.ai.
+⚠ Model "llmman.provider/lmstudio/qwen-local" isn't recognized · context assumed
+  to be 200k tokens · update Claude Code, or see the docs
+  Get to finished work sooner with Opus 5.5. Switch anytime with /model.
+❯ Use the Bash tool to run: git log --oneline | wc -l   Then reply with one
+  line: the number it printed and the name of the model you are.
+  Thought for 41s, ran 1 shell command
+● 1 commit, and I am Claude Code running on model
+  llmman/provider/lmstudio/qwen-local.
+✻ Worked for 43s · done 8:11 AM
+                                        ✔ Update installed · /restart to apply
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)

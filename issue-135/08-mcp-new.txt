@@ -1,0 +1,6 @@
+== new {"name": "56", "dir": "/tmp/hq-qa-134/i135/app135", "setup": "local"} -> isError=False
+  started 56 in app135 (sandbox hq-local-app135); enter it with: hq go 56
+== new {"name": "57", "dir": "/tmp/hq-qa-134/i135/app135", "setup": "locl"} -> isError=True
+  hq: unknown setup 'locl'; setups: default, badimg, badprov, local
+== new {"name": "58", "dir": "/tmp/hq-qa-134/i135/app135"} -> isError=False
+  started 58 in app135 (sandbox claude-app135); enter it with: hq go 58

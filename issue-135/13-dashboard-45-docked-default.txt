@@ -1,0 +1,45 @@
+  hq  4 agents · 4 done  view: all                                                                                                             Mon 09:12 · dev
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  43      app135      main          ● done         54s   1 commit, and I am Claude Code running on model llmman/provider/lmstudio/qwen-local.
+│ 45      app135      main          ● done         1m    1 — I'm Claude Sonnet 5.5.                                                  ⏎ open   c code   k kill  │
+  44      app135      main          ● done         3m    -
+  42      app135      main          ● done         5m    -
+
+
+
+─┬ ▸ 45 · main · claude-app135
+ │                                                                                                                                                            │
+ │ ▐▛███▛█   Claude Code v2.1.316                                                                                                                             │
+ │▝▜██████▀  Sonnet 5.5 · Claude API                                                                                                                          │
+ │ ▝▝   ▝▝   /private/tmp/hq-qa-134/i135/app135                                                                                                               │
+ │                                                                                                                                                            │
+ │  Updated to latest. Got 17 features, 180 bugfixes, and 82 other changes.                                                                                   │
+ │  code.claude.com/docs/en/changelog for details                                                                                                             │
+ │                                                                                                                                                            │
+ │⚠ 7 MCP servers need authentication · run /mcp                                                                                                              │
+ │                                                                                                                                                            │
+ │  Get to finished work sooner with Opus 5.5. Switch anytime with /model.                                                                                    │
+ │                                                                                                                                                            │
+ │❯ Use the Bash tool to run: git log --oneline | wc -l   Then reply with one line: the number it printed and the name of the model you are.                  │
+ │                                                                                                                                                            │
+ │  Ran 1 shell command                                                                                                                                       │
+ │                                                                                                                                                            │
+ │● 1 — I'm Claude Sonnet 5.5.                                                                                                                                │
+ │                                                                                                                                                            │
+ │✻ Cooked for 3s · done 8:11 AM                                                                                                                              │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │❯                                                                                                                                                           │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                                                             │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: attention  r refresh  q quit

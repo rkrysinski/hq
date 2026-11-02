@@ -1,0 +1,8 @@
+$ qa-sbx; hq new 46 . --setup locl; echo "exit $?"; qa-sbx
+claude-app135            running  /tmp/hq-qa-134/i135/app135
+hq-local-app135          running  /tmp/hq-qa-134/i135/app135
+hq: unknown setup 'locl'; setups: default, badimg, badprov, local
+exit 1
+claude-app135            running  /tmp/hq-qa-134/i135/app135
+hq-local-app135          running  /tmp/hq-qa-134/i135/app135
+$

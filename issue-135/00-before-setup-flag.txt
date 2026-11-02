@@ -1,0 +1,4 @@
+$ hq-before new 46 . --setup local; echo "exit $?"
+hq: unknown option '--setup' (see hq help)
+exit 1
+$

@@ -1,0 +1,9 @@
+$ hq sandbox restart foo-local; echo "exit $?"
+Restart the sandbox claude-foo-local? This ends and relaunches 1 agent (50). [y/N] n
+exit 0
+$ hq sandbox rm ../foo-local; echo "exit $?"; hq sandbox rm hq-local-foo-local; echo "exit $?"
+hq: agents of claude-foo-local are running (50); end them first with hq kill
+exit 1
+hq: agents of hq-local-foo-local are running (51); end them first with hq kill
+exit 1
+$

@@ -1,0 +1,5 @@
+$ hq new 43 . --setup local; echo "exit $?"
+creating the local sandbox hq-local-app135 for app135 (first time only; log in to Claude when the session asks)
+started 43 in app135 (sandbox hq-local-app135); enter it with: hq go 43
+exit 0
+$

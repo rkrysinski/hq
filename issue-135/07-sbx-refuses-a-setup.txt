@@ -1,0 +1,13 @@
+$ hq new 47 . --setup badimg; echo "exit $?"; hq new 48 . --setup badprov; echo "exit $?"; qa-sbx
+creating the badimg sandbox hq-badimg-app135 for app135 (first time only; log in to Claude when the session asks)
+hq: sbx: error: request failed: 403 Forbidden: pull failed for image "hq-qa-no-such-image:nope"; created with sandboxes.badimg.template hq-qa-no-such-image:nope
+ (/tmp/hq-qa-134/i135/config/hq/preferences.json)
+exit 3
+creating the badprov sandbox hq-badprov-app135 for app135 (first time only; log in to Claude when the session asks)
+hq: sbx: error: invalid --provider "no-such-provider": not "llmman", "ollama", or a provider llmman can route to; run `llmman providers` for the list, or define
+ it by URL in the model.providers setting (`sbx settings get model.providers`); created with sandboxes.badprov.model qwen-local, sandboxes.badprov.provider no-s
+uch-provider (/tmp/hq-qa-134/i135/config/hq/preferences.json)
+exit 3
+claude-app135            running  /tmp/hq-qa-134/i135/app135
+hq-local-app135          running  /tmp/hq-qa-134/i135/app135
+$

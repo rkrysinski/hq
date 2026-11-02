@@ -1,0 +1,6 @@
+$ hq new 44 . --setup local; echo "exit $?"; hq new 45 .; echo "exit $?"
+started 44 in app135 (sandbox hq-local-app135); enter it with: hq go 44
+exit 0
+started 45 in app135 (sandbox claude-app135); enter it with: hq go 45
+exit 0
+$

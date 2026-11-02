@@ -1,0 +1,10 @@
+== list {} -> isError=False
+  54   hq-local-my-repo-x   setup=local
+  53   hq-local-my-repo-x   setup=local
+  52   qa135-handmade       setup=default
+  51   hq-local-foo-local   setup=local
+  50   claude-foo-local     setup=default
+  43   hq-local-app135      setup=local
+  45   claude-app135        setup=default
+  44   hq-local-app135      setup=local
+  42   claude-app135        setup=default

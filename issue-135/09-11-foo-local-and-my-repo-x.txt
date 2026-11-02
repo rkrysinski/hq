@@ -1,0 +1,19 @@
+$ cd ../foo-local && hq new 50 . && hq new 51 . --setup local; echo "exit $?"; cd "../My_Repo x" && hq new 52 . && hq new 53 . --setup local && hq new 54 . --se
+tup local; echo "exit $?"; cd ../app135; qa-sbx
+creating a sandbox for foo-local (first time only; log in to Claude when the session asks)
+started 50 in foo-local (sandbox claude-foo-local); enter it with: hq go 50
+creating the local sandbox hq-local-foo-local for foo-local (first time only; log in to Claude when the session asks)
+started 51 in foo-local (sandbox hq-local-foo-local); enter it with: hq go 51
+exit 0
+started 52 in My_Repo x (sandbox qa135-handmade); enter it with: hq go 52
+creating the local sandbox hq-local-my-repo-x for My_Repo x (first time only; log in to Claude when the session asks)
+started 53 in My_Repo x (sandbox hq-local-my-repo-x); enter it with: hq go 53
+started 54 in My_Repo x (sandbox hq-local-my-repo-x); enter it with: hq go 54
+exit 0
+claude-app135            running  /tmp/hq-qa-134/i135/app135
+claude-foo-local         running  /tmp/hq-qa-134/i135/foo-local
+hq-local-app135          running  /tmp/hq-qa-134/i135/app135
+hq-local-foo-local       running  /tmp/hq-qa-134/i135/foo-local
+hq-local-my-repo-x       running  /tmp/hq-qa-134/i135/My_Repo x
+qa135-handmade           running  /tmp/hq-qa-134/i135/My_Repo x
+$

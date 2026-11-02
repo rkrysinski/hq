@@ -1,0 +1,23 @@
+$ hq read 43; echo; hq read 45
+name      43
+repo      app135  /private/tmp/hq-qa-134/i135/app135
+branch    main
+worktree  /private/tmp/hq-qa-134/i135/app135
+sandbox   hq-local-app135
+state     done 6s
+pending   0
+
+reply
+  1 commit, and I am Claude Code running on model llmman/provider/lmstudio/qwen-local.
+
+name      45
+repo      app135  /private/tmp/hq-qa-134/i135/app135
+branch    main
+worktree  /private/tmp/hq-qa-134/i135/app135
+sandbox   claude-app135
+state     done 46s
+pending   0
+
+reply
+  1 — I'm Claude Sonnet 5.5.
+$

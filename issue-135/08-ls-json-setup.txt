@@ -1,0 +1,12 @@
+$ qa-setups; hq ls --json | grep -c "\"setup\""
+54   My_Repo x  hq-local-my-repo-x   setup=local
+53   My_Repo x  hq-local-my-repo-x   setup=local
+52   My_Repo x  qa135-handmade       setup=default
+51   foo-local  hq-local-foo-local   setup=local
+50   foo-local  claude-foo-local     setup=default
+43   app135     hq-local-app135      setup=local
+45   app135     claude-app135        setup=default
+44   app135     hq-local-app135      setup=local
+42   app135     claude-app135        setup=default
+9
+$

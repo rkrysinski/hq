@@ -1,0 +1,27 @@
+$ cat /tmp/hq-qa-134/i135/config/hq/preferences.json; hq new 46 .; echo "exit $?"; hq new 46 . --setup local; echo "exit $?"; qa-sbx
+{
+  "sandboxes": {
+    "local": {
+      "model": "qwen-local",
+      "provider": "lmstudio"
+    },
+    "badimg": {
+      "template": "hq-qa-no-such-image:nope"
+    },
+    "badprov": {
+      "model": "qwen-local",
+      "provider": "no-such-provider"
+    },
+    "default": {
+      "template": "some-image:latest"
+    }
+  }
+}hq: /tmp/hq-qa-134/i135/config/hq/preferences.json: "default" under "sandboxes" is not a setup of its own: the default setup is the "sandbox" object; move its
+settings there or give it another name
+exit 1
+hq: /tmp/hq-qa-134/i135/config/hq/preferences.json: "default" under "sandboxes" is not a setup of its own: the default setup is the "sandbox" object; move its s
+ettings there or give it another name
+exit 1
+claude-app135            running  /tmp/hq-qa-134/i135/app135
+hq-local-app135          running  /tmp/hq-qa-134/i135/app135
+$
