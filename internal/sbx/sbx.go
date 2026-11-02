@@ -223,6 +223,12 @@ func SandboxName(setup, dir string) string {
 	return setupPrefix + setup + "-" + cleanDir(dir)
 }
 
+// DefaultName is the name sbx gives the Claude sandbox it creates for a
+// repository in directory dir without being given one, the default setup's:
+// claude-<dir>, dir cleaned as for SandboxName. hq only shows it, for a
+// sandbox not created yet (spec §6.6); it never looks a sandbox up by it.
+func DefaultName(dir string) string { return "claude-" + cleanDir(dir) }
+
 // SetupOf is the setup of the sandbox named name for a repository in
 // directory dir: what stands between hq- and -<dir>, the default for any
 // other name.
