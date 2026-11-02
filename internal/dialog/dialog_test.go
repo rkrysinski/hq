@@ -16,8 +16,12 @@ type starts struct {
 	err   error
 }
 
-func (s *starts) start(name, dir, prompt string) error {
-	s.calls = append(s.calls, name+"|"+dir+"|"+prompt)
+func (s *starts) start(name, dir, prompt, setup string) error {
+	call := name + "|" + dir + "|" + prompt
+	if setup != "" {
+		call += "|" + setup
+	}
+	s.calls = append(s.calls, call)
 	return s.err
 }
 
@@ -52,9 +56,16 @@ func result(cmd tea.Cmd) tea.Msg {
 	go func() { done <- cmd() }()
 	select {
 	case msg := <-done:
-		switch msg.(type) {
-		case startedMsg, tea.QuitMsg:
+		switch msg := msg.(type) {
+		case startedMsg, noteMsg, tea.QuitMsg:
 			return msg
+		case tea.BatchMsg:
+			// The one of its commands that answers at once.
+			for _, c := range msg {
+				if r := result(c); r != nil {
+					return r
+				}
+			}
 		}
 	case <-time.After(20 * time.Millisecond):
 	}

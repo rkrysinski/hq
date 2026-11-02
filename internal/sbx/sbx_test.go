@@ -135,6 +135,16 @@ func TestSetupSandboxName(t *testing.T) {
 	}
 }
 
+// sbx names a Claude sandbox it creates without a name claude-<dir>, dir
+// cleaned the same way (verified with sbx v0.47.0).
+func TestDefaultName(t *testing.T) {
+	for dir, want := range map[string]string{"app": "claude-app", "My_Repo x": "claude-my-repo-x", "v1.2": "claude-v1.2"} {
+		if got := DefaultName(dir); got != want {
+			t.Errorf("%s: %q, want %q", dir, got, want)
+		}
+	}
+}
+
 // The setup of a sandbox is read off its name: what stands between hq- and
 // -<dir>; default for any other name.
 func TestSetupOf(t *testing.T) {
