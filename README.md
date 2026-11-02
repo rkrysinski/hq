@@ -55,7 +55,7 @@ The `sandbox` object is the default setup, which every agent uses unless `hq new
 
 `hq new NAME [DIR] [PROMPT] --setup local` starts the agent in the repository's sandbox of that setup, `hq-local-<dir>` (`<dir>` being the repository's folder name, lowercased, with anything but letters, digits, hyphens and periods turned into a hyphen), and creates it on first use, while the repository's other agents keep running in its default sandbox. A setup's sandbox is created with `sbx run --detached --model M --provider P` when it has a model or a provider (`sbx create` takes neither), with `sbx create --name` otherwise. `model` and `provider` are read only under `sandboxes`; `HQ_SBX_TEMPLATE` and `HQ_SBX_STATIC_MCP` apply only to the default setup. `default` is not a name for one of them: the default's settings go in `sandbox`. hq lists the setups there are when the name given is not one of them, `hq ls --json` and the supervisor's `list` show each agent's `setup`, and the supervisor's `new` takes `setup`.
 
-The same rule as for `sandbox` holds: a setup's settings apply when its sandbox is created. To change them for a sandbox that exists, remove it (`hq sandbox rm hq-local-<dir>`, after its agents are killed) and let the next `hq new --setup local` create it again.
+The same rule as for `sandbox` holds: a setup's settings apply when its sandbox is created. To change them for a sandbox that exists, remove it (`hq sandbox rm REPO --setup local`, after the agents in it are killed; the repository's other sandboxes and their agents stay) and let the next `hq new --setup local` create it again. `hq sandbox rm|restart REPO` alone acts on the default sandbox, `--setup NAME` on that setup's, and `--all-setups` on every sandbox of the repository, after one confirmation that lists them.
 
 To run agents on a model served by LM Studio on the host (verified with sbx v0.47.0 on macOS; not yet on Windows, where sbx runs on the Windows side and LM Studio must be reachable from it):
 
@@ -95,6 +95,8 @@ hq send NAME TEXT                # leave a message, delivered when the agent is 
 hq answer NAME --dialog ID N     # answer an agent's question dialog (hq read shows the id)
 hq kill NAME                     # end an agent's Claude session; the sandbox stays
 ```
+
+After the laptop sleeps, agents can fail with clock drift: `hq sandbox restart REPO` restarts the repository's sandbox and relaunches its agents, each continuing its conversation. A repository with agents on several setups has a sandbox per setup; `hq sandbox restart REPO --all-setups` restarts them all after one confirmation.
 
 In the dashboard, agents that need you (a question, a permission prompt) come first; the selected agent's session opens below the list, and the bottom line shows the keys. `hq help` lists every command.
 
