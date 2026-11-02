@@ -40,6 +40,33 @@ hq creates a repository's sandbox the first time `hq new` runs there, with sbx's
 
 `template` goes to `sbx create --template` and `staticMcp` to `--static-mcp`; either may be left out. `HQ_SBX_TEMPLATE` and `HQ_SBX_STATIC_MCP` (comma-separated) override them for one command. They apply only when hq creates a sandbox: one that exists, hq's or one you created by hand, is used as it is, so to change its image remove it (`hq sandbox rm REPO`) and let the next `hq new` create it again. hq neither pulls nor checks the image; when `sbx` refuses the image or a server, `hq new` shows sbx's error and the settings it used.
 
+#### Setups: another sandbox for some agents, such as a local model
+
+The `sandbox` object is the default setup, which every agent uses unless `hq new` is given `--setup NAME`. Other setups are named objects under `sandboxes`, each with `template`, `staticMcp`, `model` and `provider`, all optional:
+
+```json
+{
+  "sandbox": { "staticMcp": ["pencil"] },
+  "sandboxes": {
+    "local": { "model": "qwen-local", "provider": "lmstudio" }
+  }
+}
+```
+
+`hq new NAME [DIR] [PROMPT] --setup local` starts the agent in the repository's sandbox of that setup, `hq-local-<dir>` (`<dir>` being the repository's folder name, lowercased, with anything but letters, digits, hyphens and periods turned into a hyphen), and creates it on first use, while the repository's other agents keep running in its default sandbox. A setup's sandbox is created with `sbx run --detached --model M --provider P` when it has a model or a provider (`sbx create` takes neither), with `sbx create --name` otherwise. `model` and `provider` are read only under `sandboxes`; `HQ_SBX_TEMPLATE` and `HQ_SBX_STATIC_MCP` apply only to the default setup. `default` is not a name for one of them: the default's settings go in `sandbox`. hq lists the setups there are when the name given is not one of them, `hq ls --json` and the supervisor's `list` show each agent's `setup`, and the supervisor's `new` takes `setup`.
+
+The same rule as for `sandbox` holds: a setup's settings apply when its sandbox is created. To change them for a sandbox that exists, remove it (`hq sandbox rm hq-local-<dir>`, after its agents are killed) and let the next `hq new --setup local` create it again.
+
+To run agents on a model served by LM Studio on the host (verified with sbx v0.47.0 on macOS; not yet on Windows, where sbx runs on the Windows side and LM Studio must be reachable from it):
+
+```bash
+sbx settings set feature.model true
+sbx settings set model.providers '{"lmstudio":{"url":"http://localhost:1234/v1","wire":"anthropic"}}'
+lms load <model> --identifier qwen-local   # the name the setup's "model" gives
+```
+
+The first sandbox created with a model may take minutes while sbx downloads what it needs to serve it; hq waits for it. hq checks neither the model, the provider nor sbx's model feature: when sbx refuses one, `hq new` shows sbx's error and the setup's settings it used. A local model answers more slowly than Claude, and how well it uses Claude Code's tools depends on the model.
+
 #### Requirements on the sandbox template
 
 hq works with any template, with one condition for `hq answer`: the template's own hooks must not answer an AskUserQuestion dialog. Claude takes the first decisive answer of its `PermissionRequest` hooks, so a template hook that approves every request, AskUserQuestion included, answers first and Claude ignores hq's answer; such a hook has to stay silent for AskUserQuestion.
@@ -61,6 +88,7 @@ When a newer release is out, hq says so after a command's output (`hq v0.4.0 is 
 ```bash
 hq                               # open the dashboard
 hq new NAME [DIR] [PROMPT]       # start an agent for the repository in DIR
+                                 # (--setup NAME: in its sandbox of that setup)
 hq ls                            # list agents and their state
 hq go NAME                       # enter an agent's session
 hq send NAME TEXT                # leave a message, delivered when the agent is ready
