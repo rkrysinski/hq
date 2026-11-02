@@ -163,3 +163,42 @@ func TestSetupRefusals(t *testing.T) {
 		}
 	}
 }
+
+// Setups the file holds in a form hq cannot read are refused naming where
+// and what is wrong, whichever setup is asked for, rather than read as no
+// setups; a wrong form elsewhere in the file leaves the setups alone.
+func TestSetupsInTheWrongFormAreRefused(t *testing.T) {
+	for _, c := range []struct{ file, want string }{
+		{`{"sandboxes":"local"}`, `"sandboxes" should be an object of setups by name, not a string`},
+		{`{"sandboxes":[{"model":"qwen-local"}]}`, `"sandboxes" should be an object of setups by name, not a list`},
+		{`{"sandboxes":{"local":"qwen-local"}}`, `"sandboxes.local" should be an object of settings, not a string`},
+		{`{"sandboxes":{"local":{"model":5}}}`, `"sandboxes.local.model" should be a string, not a number`},
+		{`{"sandbox":{"staticMcp":"docs"}}`, `"sandbox.staticMcp" should be a list of names, not a string`},
+		{`{"sandbox":true}`, `"sandbox" should be an object of settings, not true or false`},
+	} {
+		path := filepath.Join(t.TempDir(), "preferences.json")
+		if err := os.WriteFile(path, []byte(c.file), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		p := Load(path)
+		for _, name := range []string{"default", "local"} {
+			_, err := p.Setup(name)
+			if err == nil || err.Error() != c.want || !InFile(err) {
+				t.Errorf("%s, %s: %v", c.file, name, err)
+			}
+		}
+	}
+	path := filepath.Join(t.TempDir(), "preferences.json")
+	if err := os.WriteFile(path, []byte(`{"sort":5,"sandboxes":{"local":{"model":"qwen-local"}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if s, err := Load(path).Setup("local"); err != nil || s.Model != "qwen-local" {
+		t.Fatalf("%+v %v", s, err)
+	}
+	if !InFile(ErrDefaultUnderSandboxes) {
+		t.Fatal(`"default" under "sandboxes" is the file's fault`)
+	}
+	if _, err := (Prefs{}).Setup("local"); InFile(err) {
+		t.Fatalf("an unknown setup is no fault of the file: %v", err)
+	}
+}

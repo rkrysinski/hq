@@ -370,6 +370,8 @@ type fakeSbx struct {
 	orphans map[string]bool
 	calls   []string // stop, rm and exec, in order
 	onStop  func(sandbox string)
+	// removeErr fails the removal of a sandbox, by name.
+	removeErr map[string]error
 }
 
 func (f *fakeSbx) setStatus(name, status string) {
@@ -391,6 +393,9 @@ func (f *fakeSbx) Stop(sandbox string) error {
 
 func (f *fakeSbx) Remove(sandbox string) error {
 	f.calls = append(f.calls, "rm "+sandbox)
+	if err := f.removeErr[sandbox]; err != nil {
+		return err
+	}
 	for i, s := range f.sandboxes {
 		if s.Name == sandbox {
 			f.sandboxes = append(f.sandboxes[:i], f.sandboxes[i+1:]...)

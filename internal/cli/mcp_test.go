@@ -394,7 +394,7 @@ func TestMCPWaitFromSendsNextSinceReturnsAnAnswerGivenBeforeWaitWasCalled(t *tes
 }
 
 // new takes a setup, the default without one, refused as hq new refuses it
-// (#135).
+// (#135); list, read and wait say their rows carry it.
 func TestMCPNewTakesASetup(t *testing.T) {
 	f := setupFakes()
 	cs := mcpSession(t, f)
@@ -417,6 +417,10 @@ func TestMCPNewTakesASetup(t *testing.T) {
 		}
 		if tl.Name == "list" && !strings.Contains(tl.Description, "setup (the setup of its sandbox") {
 			t.Fatalf("%s", tl.Description)
+		}
+		// read and wait give list's row, and say the setup is in it (#134).
+		if (tl.Name == "read" || tl.Name == "wait") && !strings.Contains(tl.Description, "setup") {
+			t.Fatalf("%s: %s", tl.Name, tl.Description)
 		}
 	}
 }

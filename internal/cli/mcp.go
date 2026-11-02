@@ -337,7 +337,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "read",
-		Description: "One agent in full, as JSON: what list gives, what it asks and the open dialog's id included (asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise), its worktree, its last reply, and next_since, the moment of the read, for its next page (below): never pass it to wait as since, it is this agent's alone. " +
+		Description: "One agent in full, as JSON: what list gives, its sandbox and setup, what it asks and the open dialog's id included (asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise), its worktree, its last reply, and next_since, the moment of the read, for its next page (below): never pass it to wait as since, it is this agent's alone. " +
 			"A reply longer than 32 KiB comes in pages: reply is the page, reply_size the whole reply's size in bytes, and next_offset where the next page starts, null on the last page. " +
 			"To read on, call read again with offset set to next_offset and since set to this read's next_since; if the agent has replied anew in between, it says the reply changed: read it again from its start. " +
 			"Read an agent when wait returns it, and to see its answer to a message you sent. " +
@@ -356,7 +356,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "wait",
-		Description: "Wait until one of the named agents (every agent when none is named) is done, asks a question, needs input or ends, and return it, with every other that does so within a moment of it, as list gives them, with next_since, as JSON. " +
+		Description: "Wait until one of the named agents (every agent when none is named) is done, asks a question, needs input or ends, and return it, with every other that does so within a moment of it, as list gives them (each with its sandbox and setup), with next_since, as JSON. " +
 			"After timeout seconds (" + waitLimit(client) + ") it returns no agents, which is not an error. " +
 			"since is required: the next_since of your most recent wait or list result, so a change between that result and this call is not missed; never that of read, send or answer, which is one agent's and later than what the others did meanwhile. " +
 			"To watch agents, call it in a loop, passing each result's next_since as the next call's since and naming every agent you follow each time (or none, for every agent): no change is then missed or returned twice. React to the agents it returns (read them), then call it again. " +

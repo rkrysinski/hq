@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -452,6 +453,43 @@ func TestSandboxRmAllSetupsRemovesEverySandboxOfTheRepository(t *testing.T) {
 	}
 	if code, _, errOut := f.run("sandbox", "rm", "/w/app", "--all-setups", "-y"); code != ExitNotFound || errOut != "hq: no sandbox for app (hq new creates it)\n" {
 		t.Fatalf("again: exit %d %q", code, errOut)
+	}
+}
+
+// When sbx fails to remove one of the sandboxes, rm --all-setups still
+// removes the others and says which it removed and which not, with sbx's
+// error (#134).
+func TestSandboxRmAllSetupsSaysWhatItRemovedWhenOneFails(t *testing.T) {
+	f := localSandboxFakes()
+	f.tmux.windows[1].PaneDead, f.tmux.windows[4].PaneDead = true, true
+	f.sbx.removeErr = map[string]error{"claude-x": &proc.Error{Name: "sbx", Msg: "error: sandbox is busy"}}
+	code, out, errOut := f.run("sandbox", "rm", "app", "--all-setups", "-y")
+	if code != ExitEnvironment || out != "removed the sandbox hq-local-app\n" || errOut != "hq: could not remove claude-x: sbx: error: sandbox is busy\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if got := strings.Join(f.sbx.calls, "; "); got != "rm claude-x; rm hq-local-app" {
+		t.Fatalf("sbx calls %q", got)
+	}
+	// Neither removed: both named, nothing said removed.
+	f = localSandboxFakes()
+	f.tmux.windows[1].PaneDead, f.tmux.windows[4].PaneDead = true, true
+	f.sbx.removeErr = map[string]error{"claude-x": &proc.Error{Name: "sbx", Msg: "error: a"}, "hq-local-app": &proc.Error{Name: "sbx", Msg: "error: b"}}
+	if code, out, errOut := f.run("sandbox", "rm", "app", "--all-setups", "-y"); code != ExitEnvironment || out != "" || errOut != "hq: could not remove claude-x: sbx: error: a; hq-local-app: sbx: error: b\n" {
+		t.Fatalf("both: exit %d %q %q", code, out, errOut)
+	}
+	// Without sbx none can be removed: said once.
+	f = localSandboxFakes()
+	f.tmux.windows[1].PaneDead, f.tmux.windows[4].PaneDead = true, true
+	f.sbx.removeErr = map[string]error{"claude-x": sbxNotFound()}
+	if code, out, errOut := f.run("sandbox", "rm", "app", "--all-setups", "-y"); code != ExitEnvironment || out != "" || errOut != "hq: sbx not found; install Docker Sandboxes\n" || len(f.sbx.calls) != 1 {
+		t.Fatalf("no sbx: exit %d %q %q calls %v", code, out, errOut, f.sbx.calls)
+	}
+	// One sandbox fails as before: sbx's error alone.
+	f = localSandboxFakes()
+	f.tmux.windows[4].PaneDead = true
+	f.sbx.removeErr = map[string]error{"hq-local-app": &proc.Error{Name: "sbx", Msg: "error: b"}}
+	if code, out, errOut := f.run("sandbox", "rm", "app", "--setup", "local", "-y"); code != ExitEnvironment || out != "" || errOut != "hq: sbx: error: b\n" {
+		t.Fatalf("one: exit %d %q %q", code, out, errOut)
 	}
 }
 
