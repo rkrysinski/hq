@@ -15,23 +15,45 @@ import (
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
-// newArgs is hq new's arguments after parsing.
+// newArgs is hq new's arguments after parsing; setup "" is the default.
 type newArgs struct {
-	name, dir, prompt string
+	name, dir, prompt, setup string
 }
 
+const newUsage = "hq new NAME [DIR] [PROMPT] [--setup NAME]"
+
 // parseNew applies spec §4.1: the second argument is DIR when it is an
-// existing directory, otherwise it is the PROMPT; DIR defaults to cwd.
+// existing directory, otherwise it is the PROMPT; DIR defaults to cwd;
+// --setup NAME, anywhere, is the setup, the default without it.
 func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, error) {
-	for _, a := range args {
-		if strings.HasPrefix(a, "-") && len(a) > 1 {
+	setup := prefs.DefaultSetup
+	var plain []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		v, isSetup := strings.CutPrefix(a, "--setup=")
+		if a == "--setup" {
+			isSetup, v = true, ""
+			if i+1 < len(args) {
+				i++
+				v = args[i]
+			}
+		}
+		switch {
+		case isSetup && v == "":
+			return newArgs{}, usageErr("--setup needs a setup's name (usage: %s)", newUsage)
+		case isSetup:
+			setup = v
+		case strings.HasPrefix(a, "-") && len(a) > 1:
 			return newArgs{}, usageErr("unknown option '%s' (see hq help)", a)
+		default:
+			plain = append(plain, a)
 		}
 	}
+	args = plain
 	if len(args) == 0 {
-		return newArgs{}, usageErr("missing NAME (usage: hq new NAME [DIR] [PROMPT])")
+		return newArgs{}, usageErr("missing NAME (usage: %s)", newUsage)
 	}
-	n := newArgs{name: args[0], dir: cwd}
+	n := newArgs{name: args[0], dir: cwd, setup: setup}
 	rest := args[1:]
 	if len(rest) > 0 && isDir(rest[0]) {
 		n.dir, rest = rest[0], rest[1:]
@@ -41,7 +63,7 @@ func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, erro
 	case 1:
 		n.prompt = rest[0]
 	default:
-		return newArgs{}, usageErr("too many arguments; quote the prompt (usage: hq new NAME [DIR] [PROMPT])")
+		return newArgs{}, usageErr("too many arguments; quote the prompt (usage: %s)", newUsage)
 	}
 	if !filepath.IsAbs(n.dir) {
 		n.dir = filepath.Join(cwd, n.dir)
@@ -113,11 +135,19 @@ func runNew(env Env, d deps, args []string) error {
 }
 
 // createAgent starts a new agent, as hq new and the New agent dialog do,
-// marked new for the list (S2). What is wrong with the name or the dir is a
-// dialog.FieldError, so the dialog shows it under that field.
+// marked new for the list (S2), in the repository's sandbox of its setup
+// (the default when n.setup is ""). What is wrong with the name or the dir
+// is a dialog.FieldError, so the dialog shows it under that field.
 func createAgent(out io.Writer, d deps, n newArgs) (root, sandbox string, err error) {
 	if err := checkName(n.name); err != nil {
 		return "", "", dialog.FieldError{Field: dialog.Name, Err: err}
+	}
+	if n.setup == "" {
+		n.setup = prefs.DefaultSetup
+	}
+	setup, err := sandboxSettings(d, n.setup)
+	if err != nil {
+		return "", "", err
 	}
 	root, ok := d.repoRoot(n.dir)
 	if !ok {
@@ -130,7 +160,8 @@ func createAgent(out io.Writer, d deps, n newArgs) (root, sandbox string, err er
 	if _, exists := agent.Find(agent.FromWindows(ws), n.name); exists {
 		return "", "", dialog.FieldError{Field: dialog.Name, Err: duplicateErr(n.name)}
 	}
-	sb, err := findOrCreateSandbox(out, d, root)
+	setup.Name = sbx.SandboxName(setup.name, filepath.Base(root))
+	sb, err := findOrCreateSandbox(out, d, root, setup)
 	if err != nil {
 		return "", "", err
 	}
@@ -189,16 +220,21 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string, fresh bool) 
 	return nil
 }
 
-func findOrCreateSandbox(out io.Writer, d deps, root string) (sbx.Sandbox, error) {
+// findOrCreateSandbox is the repository's sandbox of the setup, created
+// with the setup's settings when it has none (#135).
+func findOrCreateSandbox(out io.Writer, d deps, root string, set sandboxSetup) (sbx.Sandbox, error) {
 	all, err := d.sbx.List()
 	if err != nil {
 		return sbx.Sandbox{}, sbxErr(err)
 	}
-	if s, ok := sbx.ByWorkspace(all, root, d.samePath); ok {
+	if s, ok := sbx.Find(all, root, set.name, d.samePath); ok {
 		return s, nil
 	}
-	fmt.Fprintf(out, "creating a sandbox for %s (first time only; log in to Claude when the session asks)\n", filepath.Base(root))
-	set := sandboxSettings(d)
+	if set.Name == "" {
+		fmt.Fprintf(out, "creating a sandbox for %s (first time only; log in to Claude when the session asks)\n", filepath.Base(root))
+	} else {
+		fmt.Fprintf(out, "creating the %s sandbox %s for %s (first time only; log in to Claude when the session asks)\n", set.name, set.Name, filepath.Base(root))
+	}
 	if err := d.sbx.Create(root, set.Options); err != nil {
 		if set.from != "" {
 			err = fmt.Errorf("%w; created with %s", err, set.from)
@@ -208,42 +244,70 @@ func findOrCreateSandbox(out io.Writer, d deps, root string) (sbx.Sandbox, error
 	if all, err = d.sbx.List(); err != nil {
 		return sbx.Sandbox{}, sbxErr(err)
 	}
-	if s, ok := sbx.ByWorkspace(all, root, d.samePath); ok {
+	if s, ok := sbx.Find(all, root, set.name, d.samePath); ok {
 		return s, nil
 	}
 	return sbx.Sandbox{}, envErr("sbx created no sandbox for %s (see sbx ls)", root)
 }
 
-// The environment variables that override the preferences file's sandbox
-// settings, for scripts and tests.
+// The environment variables that override the preferences file's settings
+// of the default setup, for scripts and tests.
 const (
 	templateEnv  = "HQ_SBX_TEMPLATE"
 	staticMCPEnv = "HQ_SBX_STATIC_MCP" // comma-separated
 )
 
-// sandboxSetup is what hq creates a sandbox with; from names the settings
-// in effect and where they were set, for sbx's error about them.
+// sandboxSetup is what hq creates a sandbox of setup name with, its
+// sandbox's name included (none for the default: sbx's own); from names the
+// settings in effect and where they were set, for sbx's error about them.
 type sandboxSetup struct {
 	sbx.Options
+	name string
 	from string
 }
 
-// sandboxSettings reads the settings hq creates a sandbox with (#58), each
-// from its environment variable when set, else from the preferences file.
-func sandboxSettings(d deps) sandboxSetup {
+// sandboxSettings reads the settings hq creates a sandbox of the setup with
+// (#58, #135), from the preferences file, those of the default each from
+// its environment variable when set. The setup's sandbox name is left for
+// the caller, who knows the repository. An unknown setup, or a file whose
+// "sandboxes" holds "default", is refused.
+func sandboxSettings(d deps, setup string) (sandboxSetup, error) {
 	file := prefs.Path(d.getenv)
-	p := d.loadPrefs().Sandbox
-	var r sandboxSetup
-	var named []string // setting, where; where "" is the file
-	if r.Template = strings.TrimSpace(d.getenv(templateEnv)); r.Template != "" {
-		named = append(named, "sandbox.template "+r.Template, templateEnv)
-	} else if r.Template = strings.TrimSpace(p.Template); r.Template != "" {
-		named = append(named, "sandbox.template "+r.Template, "")
+	p, err := d.loadPrefs().Setup(setup)
+	if err != nil {
+		if errors.Is(err, prefs.ErrDefaultUnderSandboxes) {
+			return sandboxSetup{}, usageErr("%s: %v", file, err)
+		}
+		return sandboxSetup{}, usageErr("%v", err)
 	}
-	if r.StaticMCP = names(strings.Split(d.getenv(staticMCPEnv), ",")); r.StaticMCP != nil {
-		named = append(named, "sandbox.staticMcp "+strings.Join(r.StaticMCP, ","), staticMCPEnv)
+	r := sandboxSetup{name: setup}
+	key := "sandboxes." + setup + "."
+	if setup == prefs.DefaultSetup {
+		key = "sandbox."
+	}
+	var named []string // setting, where; where "" is the file
+	// The default's settings are each overridden by their variable.
+	env := func(name string) string {
+		if setup != prefs.DefaultSetup {
+			return ""
+		}
+		return d.getenv(name)
+	}
+	if r.Template = strings.TrimSpace(env(templateEnv)); r.Template != "" {
+		named = append(named, key+"template "+r.Template, templateEnv)
+	} else if r.Template = strings.TrimSpace(p.Template); r.Template != "" {
+		named = append(named, key+"template "+r.Template, "")
+	}
+	if r.StaticMCP = names(strings.Split(env(staticMCPEnv), ",")); r.StaticMCP != nil {
+		named = append(named, key+"staticMcp "+strings.Join(r.StaticMCP, ","), staticMCPEnv)
 	} else if r.StaticMCP = names(p.StaticMCP); r.StaticMCP != nil {
-		named = append(named, "sandbox.staticMcp "+strings.Join(r.StaticMCP, ","), "")
+		named = append(named, key+"staticMcp "+strings.Join(r.StaticMCP, ","), "")
+	}
+	if r.Model = strings.TrimSpace(p.Model); r.Model != "" {
+		named = append(named, key+"model "+r.Model, "")
+	}
+	if r.Provider = strings.TrimSpace(p.Provider); r.Provider != "" {
+		named = append(named, key+"provider "+r.Provider, "")
 	}
 	// Settings from the same place share its name: "a, b (where)".
 	for i := 0; i < len(named); i += 2 {
@@ -259,7 +323,7 @@ func sandboxSettings(d deps) sandboxSetup {
 			r.from += " (" + where + ")"
 		}
 	}
-	return r
+	return r, nil
 }
 
 // names is the list without blanks, trimmed; nil when nothing is left.

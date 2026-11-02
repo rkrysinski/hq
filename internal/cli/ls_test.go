@@ -143,6 +143,35 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 	}
 }
 
+// Each row carries its setup, read off its sandbox's name: default for any
+// name but hq-<setup>-<dir>, a sandbox made by hand included (#135).
+func TestLsJSONCarriesTheSetup(t *testing.T) {
+	f := newLsFakes()
+	f.tmux.windows = nil
+	for i, c := range []struct{ repo, sandbox string }{
+		{"/w/app", "claude-app"}, {"/w/app", "hq-local-app"}, {"/w/app", "my-own"}, {"/w/foo-local", "claude-foo-local"},
+		{"/w/foo-local", "hq-local-foo-local"}, {"/w/My_Repo x", "hq-local-my-repo-x"}, {"/w/app", "hq-gone-app"},
+	} {
+		w := agentWindow("@"+strconv.Itoa(i), "a"+strconv.Itoa(i), c.repo, f.now, false)
+		w.Options["sandbox"] = c.sandbox
+		f.tmux.windows = append(f.tmux.windows, w)
+	}
+	_, out, _ := f.run("ls", "--json")
+	var l struct {
+		Agents []struct{ Sandbox, Setup string } `json:"agents"`
+	}
+	if err := json.Unmarshal([]byte(out), &l); err != nil || len(l.Agents) != 7 {
+		t.Fatalf("%v %s", err, out)
+	}
+	want := map[string]string{"claude-app": "default", "hq-local-app": "local", "my-own": "default", "claude-foo-local": "default",
+		"hq-local-foo-local": "local", "hq-local-my-repo-x": "local", "hq-gone-app": "gone"}
+	for _, r := range l.Agents {
+		if r.Setup != want[r.Sandbox] {
+			t.Errorf("%s: setup %q", r.Sandbox, r.Setup)
+		}
+	}
+}
+
 // hq ls --json says what each agent asks, as hq read does: an MCP form's
 // server, message and fields while it needs input at one (#100), the
 // question while it has one, and null otherwise.

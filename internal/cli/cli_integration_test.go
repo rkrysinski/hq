@@ -256,6 +256,45 @@ func TestNewCreatesSandboxWithTheSettingsOfThePreferencesFile(t *testing.T) {
 	}
 }
 
+// A repository has a sandbox per setup on one workspace: hq new with a
+// setup creates and then reuses hq-<setup>-<dir>, with the setup's model
+// through sbx run --detached, beside the default sandbox, which agents
+// without a setup keep using; every row says its setup (#135).
+func TestNewFindsEachSetupsSandboxOnOneWorkspace(t *testing.T) {
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	file := filepath.Join(cfg, "hq", "preferences.json")
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, []byte(`{"sandboxes":{"local":{"model":"qwen-local","provider":"lmstudio"}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "My_Repo x")
+	for _, args := range [][]string{{"new", "42"}, {"new", "43", "--setup", "local"}, {"new", "44", "--setup", "local"}, {"new", "45"}} {
+		if code, _, errOut := h.run(args...); code != 0 {
+			t.Fatalf("%q: exit %d %s", args, code, errOut)
+		}
+	}
+	log, _ := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/creates.log")
+	lines := strings.Split(strings.TrimSpace(string(log)), "\n")
+	if len(lines) != 2 || !strings.HasPrefix(lines[0], "--quiet claude F:") || !strings.HasPrefix(lines[1], "run --detached --name hq-local-my-repo-x --model qwen-local --provider lmstudio claude F:") {
+		t.Fatalf("created with %q", lines)
+	}
+	got := map[string]string{}
+	for _, r := range h.ls() {
+		got[r.Name] = r.Sandbox + " " + r.Setup
+	}
+	want := map[string]string{"42": "claude-my-repo-x default", "43": "hq-local-my-repo-x local", "44": "hq-local-my-repo-x local", "45": "claude-my-repo-x default"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("rows %v", got)
+	}
+	if code, _, errOut := h.run("new", "46", "--setup", "locl"); code != ExitUsage || errOut != "hq: unknown setup 'locl'; setups: default, local\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+}
+
 // The first prompt has nearly all of tmux's 16 KiB for itself, the hook
 // script none of it; one longer than tmux takes is hq's error, which says by
 // how much, and starts nothing (#40).

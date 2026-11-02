@@ -120,6 +120,7 @@ func runHelp(env Env, _ deps, _ []string) error {
 	}
 	fmt.Fprintf(&b, "  %-32s %s\n", "hq --version", "print the version")
 	fmt.Fprintf(&b, "\nNAME: letters, digits, '-', '_' and '.', at least one letter or digit, at most %d characters; taken until that agent is killed.\n", agent.MaxName)
+	b.WriteString("hq new also takes --setup NAME: the agent runs in the repository's sandbox of that setup, from \"sandboxes\" in preferences.json (default: \"sandbox\").\n")
 	fmt.Fprintf(&b, "hq wait also takes --since TIME (the moment it printed last, or 10m back) and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
 	b.WriteString("hq answer takes one ANSWER per question, in the dialog's order: an option's number, numbers joined with commas where several may be picked, or text; a dialog of Claude's own (as /effort opens) takes one option's number; ID is the dialog's, as hq read shows it.\n")
 	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment.\n")

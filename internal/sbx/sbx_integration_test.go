@@ -27,7 +27,7 @@ func TestCreateThenListFindsSandboxByWorkspace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, ok := ByWorkspace(all, "/w/app", func(a, b string) bool { return a == b })
+	s, ok := Find(all, "/w/app", "default", func(a, b string) bool { return a == b })
 	if !ok || s.Name != "claude-app" || s.Running() {
 		t.Fatalf("%+v %v", s, ok)
 	}
@@ -51,6 +51,45 @@ func TestCreateWithTemplateAndStaticMCP(t *testing.T) {
 	t.Setenv("SBX_STUB_CREATE_ERR", "image sbx-image:gone not found")
 	err := c.Create("/w/lib", Options{Template: "sbx-image:gone"})
 	if err == nil || !strings.HasSuffix(err.Error(), ": error: image sbx-image:gone not found") {
+		t.Fatalf("%v", err)
+	}
+}
+
+// A repository's sandboxes of several setups, on one workspace, are told
+// apart by name: a setup's is created under its name, through sbx run
+// --detached with a model, and found again beside the default (#135).
+func TestSandboxesOfSeveralSetupsOnOneWorkspace(t *testing.T) {
+	bin, dir := testutil.SbxStub(t)
+	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
+	same := func(a, b string) bool { return a == b }
+	if err := c.Create("/w/app", Options{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Create("/w/app", Options{Name: SandboxName("local", "app"), Model: "qwen-local", Provider: "lmstudio"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Create("/w/app", Options{Name: SandboxName("plain", "app")}); err != nil {
+		t.Fatal(err)
+	}
+	log, _ := os.ReadFile(dir + "/creates.log")
+	if got := strings.Split(strings.TrimSpace(string(log)), "\n"); len(got) != 3 ||
+		got[1] != `run --detached --name hq-local-app --model qwen-local --provider lmstudio claude F:\w\app` ||
+		got[2] != `--quiet --name hq-plain-app claude F:\w\app` {
+		t.Fatalf("created with %q", got)
+	}
+	all, err := c.List()
+	if err != nil || len(all) != 3 {
+		t.Fatalf("%+v %v", all, err)
+	}
+	for setup, want := range map[string]string{"default": "claude-app", "local": "hq-local-app", "plain": "hq-plain-app"} {
+		if s, ok := Find(all, "/w/app", setup, same); !ok || s.Name != want || SetupOf(s.Name, "app") != setup {
+			t.Errorf("%s: %+v %v", setup, s, ok)
+		}
+	}
+	// sbx refuses a setup's name for a second repository of the same
+	// directory name, and hq passes its error on.
+	err = c.Create("/x/app", Options{Name: SandboxName("local", "app")})
+	if err == nil || !strings.Contains(err.Error(), "error: sandbox hq-local-app already exists and can't be given new workspaces") {
 		t.Fatalf("%v", err)
 	}
 }

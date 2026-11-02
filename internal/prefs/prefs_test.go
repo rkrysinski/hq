@@ -3,6 +3,7 @@ package prefs
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -103,5 +104,62 @@ func TestSandboxSettingsAreReadAndKept(t *testing.T) {
 	}
 	if q := Load(path); q.Sandbox.Template != "sbx-image:local" || len(q.Sandbox.StaticMCP) != 2 {
 		t.Fatalf("%+v", q)
+	}
+}
+
+// Setups are read from "sandboxes" beside the default's "sandbox", with
+// model and provider, and kept as the user wrote them (#135).
+func TestSetupsAreReadAndKept(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "preferences.json")
+	if err := os.WriteFile(path, []byte(`{"sandbox":{"template":"img:claude"},"sandboxes":{"local":{"template":"img:local","staticMcp":["docs"],"model":"qwen-local","provider":"lmstudio","later":2},"plain":{}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p := Load(path)
+	local, err := p.Setup("local")
+	if err != nil || local.Template != "img:local" || strings.Join(local.StaticMCP, ",") != "docs" || local.Model != "qwen-local" || local.Provider != "lmstudio" {
+		t.Fatalf("%+v %v", local, err)
+	}
+	if def, err := p.Setup("default"); err != nil || def.Template != "img:claude" || def.Model != "" {
+		t.Fatalf("default %+v %v", def, err)
+	}
+	if plain, err := p.Setup("plain"); err != nil || !reflect.DeepEqual(plain, Sandbox{}) {
+		t.Fatalf("plain %+v %v", plain, err)
+	}
+	p.Sort = "state"
+	if err := Save(path, p); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(path)
+	if !strings.Contains(string(data), `"later": 2`) || !strings.Contains(string(data), `"provider": "lmstudio"`) {
+		t.Fatalf("%s", data)
+	}
+}
+
+func TestSetupNamesListDefaultFirst(t *testing.T) {
+	if got := (Prefs{}).SetupNames(); !reflect.DeepEqual(got, []string{"default"}) {
+		t.Fatalf("%q", got)
+	}
+	p := Prefs{Sandboxes: map[string]Sandbox{"zeta": {}, "local": {}}}
+	if got := p.SetupNames(); !reflect.DeepEqual(got, []string{"default", "local", "zeta"}) {
+		t.Fatalf("%q", got)
+	}
+}
+
+// An unknown setup is refused naming the setups there are; "default" under
+// "sandboxes" is refused with the reason, whichever setup is asked for.
+func TestSetupRefusals(t *testing.T) {
+	p := Prefs{Sandboxes: map[string]Sandbox{"local": {}}}
+	if _, err := p.Setup("locl"); err == nil || err.Error() != "unknown setup 'locl'; setups: default, local" {
+		t.Fatalf("%v", err)
+	}
+	if _, err := (Prefs{}).Setup("local"); err == nil || err.Error() != "unknown setup 'local'; setups: default" {
+		t.Fatalf("%v", err)
+	}
+	p.Sandboxes["default"] = Sandbox{Template: "img:x"}
+	for _, name := range []string{"default", "local"} {
+		_, err := p.Setup(name)
+		if err == nil || err.Error() != `"default" under "sandboxes" is not a setup of its own: the default setup is the "sandbox" object; move its settings there or give it another name` {
+			t.Fatalf("%s: %v", name, err)
+		}
 	}
 }
