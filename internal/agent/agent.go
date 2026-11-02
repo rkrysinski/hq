@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -94,6 +95,10 @@ func (a Agent) Answerable() bool { return a.Hooks >= answeringHooks }
 
 // Repo is the repository's display name.
 func (a Agent) Repo() string { return filepath.Base(a.RepoPath) }
+
+// Setup is the setup its sandbox was created for, read off the sandbox's
+// name (#135), so it stays when the setup leaves the preferences.
+func (a Agent) Setup() string { return sbx.SetupOf(a.Sandbox, a.Repo()) }
 
 var nameRE = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
