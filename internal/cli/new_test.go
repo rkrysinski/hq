@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -295,5 +297,152 @@ func TestNewWithAPromptTooLongForTmuxSaysSo(t *testing.T) {
 	var fe dialog.FieldError
 	if !errors.As(err, &fe) || fe.Field != dialog.Prompt {
 		t.Fatalf("%v", err)
+	}
+}
+
+// setupFakes is a repository app with its default sandbox and a local
+// setup with a model in the preferences (#135).
+func setupFakes() *fakes {
+	f := newFakes()
+	f.env["HOME"] = "/home/u"
+	f.sbx.sandboxes = sandboxesFor("/w/app")
+	f.prefs.Sandbox = prefs.Sandbox{Template: "img:claude"}
+	f.prefs.Sandboxes = map[string]prefs.Sandbox{"local": {Template: "img:local", StaticMCP: []string{"docs"}, Model: "qwen-local", Provider: "lmstudio"}}
+	return f
+}
+
+func TestParseNewTakesASetup(t *testing.T) {
+	isDir := func(p string) bool { return p == "/w/lib" }
+	for _, args := range [][]string{{"a", "/w/lib", "hi", "--setup", "local"}, {"--setup", "local", "a", "/w/lib", "hi"}, {"a", "--setup=local", "/w/lib", "hi"}} {
+		n, err := parseNew(args, isDir, "/w/app")
+		if err != nil || n.setup != "local" || n.dir != "/w/lib" || n.prompt != "hi" || n.name != "a" {
+			t.Errorf("%q: %+v %v", args, n, err)
+		}
+	}
+	if n, err := parseNew([]string{"a"}, isDir, "/w/app"); err != nil || n.setup != "default" {
+		t.Errorf("without a setup: %+v %v", n, err)
+	}
+	for _, args := range [][]string{{"a", "--setup"}, {"a", "--setup="}, {"a", "--setup", ""}} {
+		if _, err := parseNew(args, isDir, "/w/app"); err == nil || err.Error() != "--setup needs a setup's name (usage: hq new NAME [DIR] [PROMPT] [--setup NAME])" {
+			t.Errorf("%q: %v", args, err)
+		}
+	}
+}
+
+// An agent of a setup runs in the repository's sandbox of that setup,
+// created on first use under hq-<setup>-<dir> with the setup's settings;
+// the default sandbox is left as it is, and agents without a setup keep
+// running in it.
+func TestNewWithASetupUsesTheSetupsSandbox(t *testing.T) {
+	f := setupFakes()
+	f.env["HQ_SBX_TEMPLATE"] = "img:env" // the default's only
+	code, out, errOut := f.run("new", "43", "/w/app", "--setup", "local")
+	if code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	want := sbx.Options{Name: "hq-local-app", Template: "img:local", StaticMCP: []string{"docs"}, Model: "qwen-local", Provider: "lmstudio"}
+	if len(f.sbx.createdWith) != 1 || !reflect.DeepEqual(f.sbx.createdWith[0], want) {
+		t.Fatalf("created with %+v", f.sbx.createdWith)
+	}
+	if !strings.Contains(out, "creating the local sandbox hq-local-app for app") || !strings.HasSuffix(out, "started 43 in app (sandbox hq-local-app); enter it with: hq go 43\n") {
+		t.Fatalf("stdout %q", out)
+	}
+	sandboxOf := func(name string) string {
+		for _, w := range f.tmux.windows {
+			if w.Name == name {
+				return w.Options["sandbox"]
+			}
+		}
+		return ""
+	}
+	if got := sandboxOf("43"); got != "hq-local-app" {
+		t.Fatalf("43 in %q", got)
+	}
+	if code, _, errOut := f.run("new", "44", "--setup", "local"); code != 0 || sandboxOf("44") != "hq-local-app" || len(f.sbx.createdWith) != 1 {
+		t.Fatalf("44: exit %d %q in %q, created %d", code, errOut, sandboxOf("44"), len(f.sbx.createdWith))
+	}
+	if code, _, errOut := f.run("new", "45"); code != 0 || sandboxOf("45") != "claude-app" || len(f.sbx.createdWith) != 1 {
+		t.Fatalf("45: exit %d %q in %q, created %d", code, errOut, sandboxOf("45"), len(f.sbx.createdWith))
+	}
+	if len(f.sbx.calls) != 0 {
+		t.Fatalf("a sandbox was touched: %q", f.sbx.calls)
+	}
+}
+
+// A setup without a model is created as the default is, under its name.
+func TestNewWithASetupWithoutAModel(t *testing.T) {
+	f := setupFakes()
+	f.prefs.Sandboxes["plain"] = prefs.Sandbox{}
+	f.sbx.sandboxes = nil
+	if code, _, errOut := f.run("new", "a", "/w/app", "--setup", "plain"); code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if want := (sbx.Options{Name: "hq-plain-app"}); len(f.sbx.createdWith) != 1 || !reflect.DeepEqual(f.sbx.createdWith[0], want) {
+		t.Fatalf("created with %+v", f.sbx.createdWith)
+	}
+}
+
+// An unknown setup, or "default" under "sandboxes", is refused before
+// anything is created.
+func TestNewRefusesAnUnknownSetup(t *testing.T) {
+	f := setupFakes()
+	code, _, errOut := f.run("new", "46", "/w/app", "--setup", "locl")
+	if code != ExitUsage || errOut != "hq: unknown setup 'locl'; setups: default, local\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	f.prefs.Sandboxes["default"] = prefs.Sandbox{Template: "img:x"}
+	for _, args := range [][]string{{"new", "46"}, {"new", "46", "--setup", "local"}} {
+		code, _, errOut = f.run(args...)
+		if code != ExitUsage || errOut != `hq: /home/u/.config/hq/preferences.json: "default" under "sandboxes" is not a setup of its own: the default setup is the "sandbox" object; move its settings there or give it another name`+"\n" {
+			t.Fatalf("%q: exit %d %q", args, code, errOut)
+		}
+	}
+	if len(f.sbx.createdWith) != 0 || len(f.tmux.windows) != 0 {
+		t.Fatalf("created %+v, %d windows", f.sbx.createdWith, len(f.tmux.windows))
+	}
+}
+
+// Setups the preferences file holds in a form hq cannot read are refused
+// as the file's fault, naming it, not as an unknown setup (#134).
+func TestNewRefusesSetupsInTheWrongForm(t *testing.T) {
+	f := setupFakes()
+	file := filepath.Join(t.TempDir(), "preferences.json")
+	if err := os.WriteFile(file, []byte(`{"sandboxes":{"local":"qwen-local"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.prefs = prefs.Load(file)
+	for _, args := range [][]string{{"new", "46", "/w/app", "--setup", "local"}, {"new", "46", "/w/app"}} {
+		code, _, errOut := f.run(args...)
+		if code != ExitUsage || errOut != `hq: /home/u/.config/hq/preferences.json: "sandboxes.local" should be an object of settings, not a string`+"\n" {
+			t.Fatalf("%q: exit %d %q", args, code, errOut)
+		}
+	}
+	if len(f.sbx.createdWith) != 0 || len(f.tmux.windows) != 0 {
+		t.Fatalf("created %+v, %d windows", f.sbx.createdWith, len(f.tmux.windows))
+	}
+}
+
+// sbx's error for a setup names the setup's settings and the file.
+func TestNewSetupCreationFailureNamesTheSetupsSettings(t *testing.T) {
+	f := setupFakes()
+	f.env["HQ_SBX_STATIC_MCP"] = "pencil" // the default's only
+	f.sbx.createErr = &proc.Error{Name: "sbx", Msg: "error: the model feature is not enabled"}
+	code, _, errOut := f.run("new", "a", "--setup", "local")
+	want := "hq: sbx: error: the model feature is not enabled; created with sandboxes.local.template img:local, sandboxes.local.staticMcp docs, sandboxes.local.model qwen-local, sandboxes.local.provider lmstudio (/home/u/.config/hq/preferences.json)\n"
+	if code != ExitEnvironment || errOut != want {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+}
+
+// The sandbox of a setup no longer in the preferences is never the
+// default: hq new without a setup creates the default's.
+func TestNewWithoutASetupNeverUsesASetupsSandbox(t *testing.T) {
+	f := setupFakes()
+	f.sbx.sandboxes = []sbx.Sandbox{{Name: "hq-gone-app", Status: "running", Workspaces: []string{"/w/app"}}}
+	if code, _, errOut := f.run("new", "a"); code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if len(f.sbx.created) != 1 || f.tmux.windows[len(f.tmux.windows)-1].Options["sandbox"] != "claude-app" {
+		t.Fatalf("created %v, window %+v", f.sbx.created, f.tmux.windows[len(f.tmux.windows)-1].Options)
 	}
 }

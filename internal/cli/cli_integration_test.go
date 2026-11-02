@@ -256,6 +256,45 @@ func TestNewCreatesSandboxWithTheSettingsOfThePreferencesFile(t *testing.T) {
 	}
 }
 
+// A repository has a sandbox per setup on one workspace: hq new with a
+// setup creates and then reuses hq-<setup>-<dir>, with the setup's model
+// through sbx run --detached, beside the default sandbox, which agents
+// without a setup keep using; every row says its setup (#135).
+func TestNewFindsEachSetupsSandboxOnOneWorkspace(t *testing.T) {
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	file := filepath.Join(cfg, "hq", "preferences.json")
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, []byte(`{"sandboxes":{"local":{"model":"qwen-local","provider":"lmstudio"}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "My_Repo x")
+	for _, args := range [][]string{{"new", "42"}, {"new", "43", "--setup", "local"}, {"new", "44", "--setup", "local"}, {"new", "45"}} {
+		if code, _, errOut := h.run(args...); code != 0 {
+			t.Fatalf("%q: exit %d %s", args, code, errOut)
+		}
+	}
+	log, _ := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/creates.log")
+	lines := strings.Split(strings.TrimSpace(string(log)), "\n")
+	if len(lines) != 2 || !strings.HasPrefix(lines[0], "--quiet claude F:") || !strings.HasPrefix(lines[1], "run --detached --name hq-local-my-repo-x --model qwen-local --provider lmstudio claude F:") {
+		t.Fatalf("created with %q", lines)
+	}
+	got := map[string]string{}
+	for _, r := range h.ls() {
+		got[r.Name] = r.Sandbox + " " + r.Setup
+	}
+	want := map[string]string{"42": "claude-my-repo-x default", "43": "hq-local-my-repo-x local", "44": "hq-local-my-repo-x local", "45": "claude-my-repo-x default"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("rows %v", got)
+	}
+	if code, _, errOut := h.run("new", "46", "--setup", "locl"); code != ExitUsage || errOut != "hq: unknown setup 'locl'; setups: default, local\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+}
+
 // The first prompt has nearly all of tmux's 16 KiB for itself, the hook
 // script none of it; one longer than tmux takes is hq's error, which says by
 // how much, and starts nothing (#40).
@@ -842,6 +881,68 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 		t.Fatalf("rm: exit %d %q %q", code, out, errOut)
 	}
 	if code, _, _ := h.run("sandbox", "rm", "app", "-y"); code != ExitNotFound {
+		t.Fatalf("rm again: exit %d", code)
+	}
+}
+
+// --all-setups restarts every sandbox of the repository, the default and a
+// setup's, and relaunches each agent in its own sandbox, continuing its
+// conversation; rm --all-setups waits for the agents to end, then removes
+// them all (#136).
+func TestSandboxAllSetupsRestartsAndRemovesEverySandboxOfTheRepository(t *testing.T) {
+	testutil.FakeClaude(t)
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	file := filepath.Join(cfg, "hq", "preferences.json")
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, []byte(`{"sandboxes":{"local":{"model":"qwen-local","provider":"lmstudio"}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	for _, args := range [][]string{{"new", "a", "hello"}, {"new", "d", "hi", "--setup", "local"}} {
+		if code, _, errOut := h.run(args...); code != 0 {
+			t.Fatalf("%q: exit %d %s", args, code, errOut)
+		}
+	}
+	h.waitReport("a", "done", "Done: hello")
+	h.waitReport("d", "done", "Done: hi")
+	h.waitSessions("claude-app", 1)
+	h.waitSessions("hq-local-app", 1)
+	sessions := map[string]string{}
+	ws, _ := h.d.tmux.Windows()
+	for _, a := range agent.FromWindows(ws) {
+		r, ok := h.d.readState(h.cwd, a.ID)
+		if !ok || r.SessionID == "" {
+			t.Fatalf("%s's session: %+v", a.Name, r)
+		}
+		sessions[a.Name] = r.SessionID
+	}
+
+	if code, out, errOut := h.run("sandbox", "restart", "app", "--all-setups", "-y"); code != 0 || out != "restarted the sandboxes claude-app, hq-local-app; relaunched a, d\n" {
+		t.Fatalf("restart: exit %d %q %q", code, out, errOut)
+	}
+	for _, name := range []string{"a", "d"} {
+		h.waitPane(name, "fake claude: resumed "+sessions[name])
+	}
+	for _, r := range h.ls() {
+		if r.Name == "d" && (r.Sandbox != "hq-local-app" || r.Setup != "local") || r.Name == "a" && r.Sandbox != "claude-app" {
+			t.Fatalf("row %+v", r)
+		}
+	}
+
+	if code, _, errOut := h.run("sandbox", "rm", "app", "--all-setups", "-y"); code != ExitUsage || errOut != "hq: agents of claude-app, hq-local-app are running (a, d); end them first with hq kill\n" {
+		t.Fatalf("rm with agents: exit %d %q", code, errOut)
+	}
+	if code, _, _ := h.run("stop", "-y"); code != 0 {
+		t.Fatal("stop")
+	}
+	if code, out, errOut := h.run("sandbox", "rm", h.cwd, "--all-setups", "-y"); code != 0 || out != "removed the sandboxes claude-app, hq-local-app\n" {
+		t.Fatalf("rm: exit %d %q %q", code, out, errOut)
+	}
+	if code, _, _ := h.run("sandbox", "rm", "app", "--setup", "local", "-y"); code != ExitNotFound {
 		t.Fatalf("rm again: exit %d", code)
 	}
 }

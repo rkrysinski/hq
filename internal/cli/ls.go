@@ -22,7 +22,10 @@ type lsRow struct {
 	AgeSeconds int64     `json:"age_seconds"`
 	Last       string    `json:"last"`
 	Sandbox    string    `json:"sandbox"`
-	Pending    int       `json:"pending"` // messages waiting for it (hq send)
+	// Setup is the setup its sandbox was created for, read off the
+	// sandbox's name (#135).
+	Setup   string `json:"setup"`
+	Pending int    `json:"pending"` // messages waiting for it (hq send)
 	// Dialog is the open dialog's id while it needs input, which hq answer
 	// names it by; absent otherwise.
 	Dialog string `json:"dialog,omitempty"`
@@ -113,6 +116,7 @@ func lsRowWithDetail(d deps, a agent.Agent, now time.Time, det state.Detail) lsR
 	return lsRow{
 		Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
 		Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
+		Setup:   a.Setup(),
 		Pending: d.pending(a.RepoPath, a.ID), Dialog: a.Dialog().ID(), OwnTasks: append([]state.Task{}, a.OwnTasks...), Asks: asks(a, det),
 	}
 }

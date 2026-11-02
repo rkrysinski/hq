@@ -254,6 +254,7 @@ type (
 		Name   string `json:"name" jsonschema:"the agent's name: letters, digits, '-', '_' and '.', at least one letter or digit, at most 32 characters, e.g. the issue number (42), a slug (agent-17) or a release's version and issue (rel-1.10.5-213); free until that agent is killed"`
 		Dir    string `json:"dir" jsonschema:"the git repository to work in: an absolute path on the user's machine (~/ is their home), e.g. /Users/me/work/app"`
 		Prompt string `json:"prompt,omitempty" jsonschema:"the agent's first prompt: the task; without it the agent waits for a prompt (send one)"`
+		Setup  string `json:"setup,omitempty" jsonschema:"the setup to start it on, as the user named it (e.g. local, a sandbox for a local model): the repository's sandbox of that setup is used, created on first use; without it, default, the repository's usual sandbox. An unknown setup is refused, listing the setups there are"`
 	}
 	mcpListIn struct{}
 	mcpNameIn struct {
@@ -305,7 +306,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "new",
-		Description: "Start an agent: a Claude Code session named name, in the repository at dir, in that repository's sandbox, with prompt as its first prompt. " +
+		Description: "Start an agent: a Claude Code session named name, in the repository at dir, in that repository's sandbox of setup (the default without it), with prompt as its first prompt. " +
 			"It returns once the agent is starting; the agent then works on its own. Follow it with wait and read: " +
 			"the user is not notified when the work you gave it with prompt finishes or asks a question, so wait for it and tell them.",
 		Annotations: &mcp.ToolAnnotations{Title: "Start an agent", DestructiveHint: &no, OpenWorldHint: &no},
@@ -315,6 +316,9 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 			return toolResult("", err)
 		}
 		args := []string{in.Name, dir}
+		if in.Setup != "" {
+			args = append(args, "--setup", in.Setup)
+		}
 		if in.Prompt != "" {
 			args = append(args, in.Prompt)
 		}
@@ -323,7 +327,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "list",
-		Description: "List every agent as JSON (agents), those that need the user first: name, repo, branch, state, since and age_seconds (in that state), last (its last message, one line), sandbox, pending (messages waiting for it), dialog (while it needs input: the open dialog's id, for answer), own_tasks (while it is done or in question: the shell commands and watches of its own still running at that turn end, each with its type, shell or monitor, and text, the command or the watch's description; [] when none) and asks (what it asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise); and next_since, the moment of the list, to pass to wait as since: a wait from it returns only what changes after the list, so act on the agents it shows done, in question, needing input or ended. " +
+		Description: "List every agent as JSON (agents), those that need the user first: name, repo, branch, state, since and age_seconds (in that state), last (its last message, one line), sandbox, setup (the setup of its sandbox, as new takes it: default, or the one it was started on), pending (messages waiting for it), dialog (while it needs input: the open dialog's id, for answer), own_tasks (while it is done or in question: the shell commands and watches of its own still running at that turn end, each with its type, shell or monitor, and text, the command or the watch's description; [] when none) and asks (what it asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise); and next_since, the moment of the list, to pass to wait as since: a wait from it returns only what changes after the list, so act on the agents it shows done, in question, needing input or ended. " +
 			"States: starting, working, question (its reply ends with a question), needs input (a dialog is open), done (its turn ended), ended (its session is gone). " +
 			"This is where status comes from: never ask an agent for its status.",
 		Annotations: &mcp.ToolAnnotations{Title: "List agents", ReadOnlyHint: true, OpenWorldHint: &no},
@@ -333,7 +337,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "read",
-		Description: "One agent in full, as JSON: what list gives, what it asks and the open dialog's id included (asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise), its worktree, its last reply, and next_since, the moment of the read, for its next page (below): never pass it to wait as since, it is this agent's alone. " +
+		Description: "One agent in full, as JSON: what list gives, its sandbox and setup, what it asks and the open dialog's id included (asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise), its worktree, its last reply, and next_since, the moment of the read, for its next page (below): never pass it to wait as since, it is this agent's alone. " +
 			"A reply longer than 32 KiB comes in pages: reply is the page, reply_size the whole reply's size in bytes, and next_offset where the next page starts, null on the last page. " +
 			"To read on, call read again with offset set to next_offset and since set to this read's next_since; if the agent has replied anew in between, it says the reply changed: read it again from its start. " +
 			"Read an agent when wait returns it, and to see its answer to a message you sent. " +
@@ -352,7 +356,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "wait",
-		Description: "Wait until one of the named agents (every agent when none is named) is done, asks a question, needs input or ends, and return it, with every other that does so within a moment of it, as list gives them, with next_since, as JSON. " +
+		Description: "Wait until one of the named agents (every agent when none is named) is done, asks a question, needs input or ends, and return it, with every other that does so within a moment of it, as list gives them (each with its sandbox and setup), with next_since, as JSON. " +
 			"After timeout seconds (" + waitLimit(client) + ") it returns no agents, which is not an error. " +
 			"since is required: the next_since of your most recent wait or list result, so a change between that result and this call is not missed; never that of read, send or answer, which is one agent's and later than what the others did meanwhile. " +
 			"To watch agents, call it in a loop, passing each result's next_since as the next call's since and naming every agent you follow each time (or none, for every agent): no change is then missed or returned twice. React to the agents it returns (read them), then call it again. " +
