@@ -15,17 +15,21 @@ import (
 )
 
 // Width and Height are the popup's size with its frame, which tmux draws
-// (and shrinks to fit a smaller window).
+// (and shrinks to fit a smaller window); HeightWithSetups is the New agent
+// dialog's with its setup field.
 const (
-	Width  = 76
-	Height = 20
+	Width            = 76
+	Height           = 20
+	HeightWithSetups = Height + 3
 )
 
-// The New agent dialog's fields, in Tab order.
+// The New agent dialog's fields: its text fields, then the setup field,
+// shown between dir and prompt when there are setups to pick (spec §6.6).
 const (
 	Name = iota
 	Dir
 	Prompt
+	Setup
 )
 
 // FieldError is a failed start that belongs under one field (a duplicate
@@ -38,21 +42,36 @@ type FieldError struct {
 func (e FieldError) Error() string { return e.Err.Error() }
 func (e FieldError) Unwrap() error { return e.Err }
 
-// Start starts an agent as hq new does.
-type Start func(name, dir, prompt string) error
+// Start starts an agent as hq new does, on the setup picked ("" when the
+// dialog has no setup field: hq new's default).
+type Start func(name, dir, prompt, setup string) error
+
+// Sandbox is the sandbox an agent of the setup started in dir would run in,
+// and whether it exists yet; "" when dir is no repository.
+type Sandbox func(setup, dir string) (name string, exists bool)
 
 // Focus positions after the fields.
 const (
-	startButton = Prompt + 1 + iota
+	startButton = Setup + 1 + iota
 	cancelButton
 )
 
 var labels = []string{"name", "dir", "prompt"}
 
-// hintText is the line under the fields (mock dash-s2-new).
-const hintText = "dir defaults to the cursor row's repo · Tab next field · Esc cancel"
+// hintText is the line under the fields (frame S2), hintSetups the line
+// with the setup field (frame S2b).
+const (
+	hintText   = "dir defaults to the cursor row's repo · Tab next field · Esc cancel"
+	hintSetups = "dir defaults to the cursor row's repo · ↑↓ setup · Tab next · Esc cancel"
+)
 
 type startedMsg struct{ err error }
+
+// noteMsg is the sandbox an agent of setup started in dir would run in.
+type noteMsg struct {
+	setup, dir, name string
+	exists           bool
+}
 
 // NewAgent is the New agent dialog (spec §6.6): name, dir prefilled, prompt;
 // Start or Cancel.
@@ -64,6 +83,12 @@ type NewAgent struct {
 	focus  int      // a field, startButton or cancelButton
 	busy   bool     // the agent is starting
 	width  int
+	// setups are those to pick from, none without the setup field; chosen
+	// is the one picked; note names the sandbox it runs in (sandbox).
+	setups  []string
+	chosen  int
+	sandbox Sandbox
+	note    string
 	// Started is true once the agent started; false when the dialog was
 	// cancelled.
 	Started bool
@@ -85,6 +110,63 @@ func NewAgentDialog(dir string, start Start) NewAgent {
 	return m
 }
 
+// WithSetups is the dialog with a setup field picking among setups, the
+// default chosen, its note asking sandbox; with fewer than two setups (only
+// the default) it is the dialog as it is.
+func (m NewAgent) WithSetups(setups []string, sandbox Sandbox) NewAgent {
+	if len(setups) < 2 {
+		return m
+	}
+	m.setups, m.sandbox = setups, sandbox
+	for i, s := range setups {
+		if s == defaultSetup {
+			m.chosen = i
+		}
+	}
+	return m
+}
+
+// defaultSetup is the setup chosen when the dialog opens.
+const defaultSetup = "default"
+
+// order is the focus order: the fields as shown, then the buttons.
+func (m NewAgent) order() []int {
+	if m.setups == nil {
+		return []int{Name, Dir, Prompt, startButton, cancelButton}
+	}
+	return []int{Name, Dir, Setup, Prompt, startButton, cancelButton}
+}
+
+// step moves the focus d places along the focus order, round.
+func (m *NewAgent) step(d int) tea.Cmd {
+	o := m.order()
+	for i, f := range o {
+		if f == m.focus {
+			return m.setFocus(o[(i+d+len(o))%len(o)])
+		}
+	}
+	return nil
+}
+
+// choose picks the setup d places on, round, and asks for its sandbox.
+func (m *NewAgent) choose(d int) tea.Cmd {
+	m.chosen = (m.chosen + d + len(m.setups)) % len(m.setups)
+	return m.askNote()
+}
+
+// askNote asks for the sandbox of the chosen setup and the dir typed; the
+// answer is shown only while both are still those (sbx is slow to ask).
+func (m NewAgent) askNote() tea.Cmd {
+	if m.setups == nil || m.sandbox == nil {
+		return nil
+	}
+	setup, dir, sandbox := m.setups[m.chosen], strings.TrimSpace(m.inputs[Dir].Value()), m.sandbox
+	return func() tea.Msg {
+		name, exists := sandbox(setup, dir)
+		return noteMsg{setup: setup, dir: dir, name: name, exists: exists}
+	}
+}
+
 // setFocus moves the focus to a field or a button.
 func (m *NewAgent) setFocus(i int) tea.Cmd {
 	m.focus = i
@@ -99,12 +181,23 @@ func (m *NewAgent) setFocus(i int) tea.Cmd {
 	return cmd
 }
 
-func (m NewAgent) Init() tea.Cmd { return textinput.Blink }
+func (m NewAgent) Init() tea.Cmd { return tea.Batch(textinput.Blink, m.askNote()) }
 
 func (m NewAgent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+		return m, nil
+	case noteMsg:
+		if m.setups != nil && msg.setup == m.setups[m.chosen] && msg.dir == strings.TrimSpace(m.inputs[Dir].Value()) {
+			m.note = ""
+			if msg.name != "" {
+				m.note = "sandbox " + msg.name
+				if !msg.exists {
+					m.note += " (new)"
+				}
+			}
+		}
 		return m, nil
 	case startedMsg:
 		m.busy = false
@@ -137,19 +230,33 @@ func (m NewAgent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 			return m.submit()
-		case "tab", "down":
-			return m, m.setFocus((m.focus + 1) % (cancelButton + 1))
-		case "shift+tab", "up":
-			return m, m.setFocus((m.focus + cancelButton) % (cancelButton + 1))
+		case "tab":
+			return m, m.step(1)
+		case "shift+tab":
+			return m, m.step(-1)
+		case "down", "up":
+			d := map[string]int{"down": 1, "up": -1}[msg.String()]
+			if m.focus == Setup {
+				return m, m.choose(d)
+			}
+			return m, m.step(d)
 		case "left", "right":
-			if m.focus >= startButton {
+			d := map[string]int{"right": 1, "left": -1}[msg.String()]
+			switch {
+			case m.focus >= startButton:
 				return m, m.setFocus(startButton + cancelButton - m.focus)
+			case m.focus == Setup:
+				return m, m.step(d)
 			}
 		}
 	}
-	if m.focus < startButton {
+	if m.focus < len(m.inputs) {
+		dir := m.inputs[Dir].Value()
 		var cmd tea.Cmd
 		m.inputs[m.focus], cmd = m.inputs[m.focus].Update(msg)
+		if m.inputs[Dir].Value() != dir {
+			return m, tea.Batch(cmd, m.askNote())
+		}
 		return m, cmd
 	}
 	return m, nil
@@ -173,9 +280,16 @@ func (m NewAgent) click(x, y int) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
-	for i, top := range tops {
+	for f, top := range tops {
 		if y >= top && y < top+3 && x < w {
-			return m, m.setFocus(i)
+			cmd := m.setFocus(f)
+			if f == Setup && y == top+1 {
+				if i := m.optionAt(x); i >= 0 && i != m.chosen {
+					m.chosen = i
+					return m, m.askNote()
+				}
+			}
+			return m, cmd
 		}
 	}
 	return m, nil
@@ -194,7 +308,11 @@ func (m NewAgent) submit() (tea.Model, tea.Cmd) {
 	}
 	m.busy = true
 	dir, prompt, start := strings.TrimSpace(m.inputs[Dir].Value()), m.inputs[Prompt].Value(), m.start
-	return m, func() tea.Msg { return startedMsg{start(name, dir, prompt)} }
+	setup := ""
+	if m.setups != nil {
+		setup = m.setups[m.chosen]
+	}
+	return m, func() tea.Msg { return startedMsg{start(name, dir, prompt, setup)} }
 }
 
 // Colours of the mocks.
@@ -221,29 +339,42 @@ func (m NewAgent) View() string {
 }
 
 // layout is the dialog's lines and the line each field's box starts on.
-func (m NewAgent) layout() ([]string, []int) {
+func (m NewAgent) layout() ([]string, map[int]int) {
 	w := m.w()
 	boxW := w - labelWidth - 1
 	lines := append(titleLines("New agent", w), "")
-	var tops []int
-	for i, in := range m.inputs {
-		tops = append(tops, len(lines))
+	tops := map[int]int{}
+	for _, f := range m.order() {
+		if f >= startButton {
+			break
+		}
+		tops[f] = len(lines)
 		border := cLine
-		if i == m.focus {
+		if f == m.focus {
 			border = cAccent
 		}
-		in.Width = boxW - 5
-		box := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(border).Padding(0, 1).Width(boxW - 2).Render(in.View())
-		label := cDim.Render(" " + labels[i])
-		lines = append(lines, strings.Split(lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(labelWidth).Render("\n"+label), box), "\n")...)
-		if m.errs[i] != "" {
-			lines = append(lines, wrap(m.errs[i], labelWidth+1, boxW)...)
+		var content, label string
+		if f == Setup {
+			content, label = m.setupLine(boxW-4), "setup"
+		} else {
+			in := m.inputs[f]
+			in.Width = boxW - 5
+			content, label = in.View(), labels[f]
 		}
+		box := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(border).Padding(0, 1).Width(boxW - 2).Render(content)
+		lines = append(lines, strings.Split(lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(labelWidth).Render("\n"+cDim.Render(" "+label)), box), "\n")...)
+		if f < len(m.errs) && m.errs[f] != "" {
+			lines = append(lines, wrap(m.errs[f], labelWidth+1, boxW)...)
+		}
+	}
+	hint := hintText
+	if m.setups != nil {
+		hint = hintSetups
 	}
 	if m.busy {
 		lines = append(lines, " "+cDim.Render(ansi.Truncate("starting "+strings.TrimSpace(m.inputs[Name].Value())+"…", w-2, "…")))
 	} else {
-		lines = append(lines, " "+cDim.Render(ansi.Truncate(hintText, w-2, "…")))
+		lines = append(lines, " "+cDim.Render(ansi.Truncate(hint, w-2, "…")))
 	}
 	if m.err != "" {
 		lines = append(lines, wrap(m.err, 1, w-2)...)
@@ -256,6 +387,43 @@ func (m NewAgent) layout() ([]string, []int) {
 	}
 	lines = append(lines, "", buttons(w, start.Render("Start ⏎"), cancel.Render("Cancel")))
 	return lines, tops
+}
+
+// optionGap is the space between two setups of the setup field.
+const optionGap = "  "
+
+// setupLine is the inside of the setup field, w cells: the setups, the one
+// chosen marked, and at the right the note naming its sandbox (frame S2b).
+func (m NewAgent) setupLine(w int) string {
+	var opts []string
+	for i, s := range m.setups {
+		if i == m.chosen {
+			opts = append(opts, lipgloss.NewStyle().Foreground(cAccent).Render("●")+" "+cText.Render(s))
+		} else {
+			opts = append(opts, cDim.Render("○ "+s))
+		}
+	}
+	line := ansi.Truncate(strings.Join(opts, optionGap), w, "…")
+	room := w - ansi.StringWidth(line) - len(optionGap)
+	if m.note == "" || room < len("sandbox …") {
+		return line
+	}
+	note := ansi.Truncate(m.note, room, "…")
+	return line + strings.Repeat(" ", w-ansi.StringWidth(line)-ansi.StringWidth(note)) + cDim.Render(note)
+}
+
+// optionAt is the setup at column x of the setup field's middle line; -1
+// for none.
+func (m NewAgent) optionAt(x int) int {
+	at := labelWidth + 2 // the box's border and padding
+	for i, s := range m.setups {
+		end := at + ansi.StringWidth("○ "+s)
+		if x >= at && x < end {
+			return i
+		}
+		at = end + len(optionGap)
+	}
+	return -1
 }
 
 // buttonGap is the space between a dialog's two buttons.

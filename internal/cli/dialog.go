@@ -4,9 +4,11 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dialog"
+	"github.com/rkrysinski/hq/internal/sbx"
 )
 
 // newDialogCommand is the hidden command the New agent dialog's popup runs
@@ -23,15 +25,48 @@ func runNewDialog(_ Env, d deps, args []string) error {
 	if err != nil {
 		return envErr("%v", err)
 	}
-	return d.runDialog(dialog.NewAgentDialog(tildeDir(args[0], d.getenv("HOME")), dialogStart(d, cwd)))
+	m := dialog.NewAgentDialog(tildeDir(args[0], d.getenv("HOME")), dialogStart(d, cwd))
+	return d.runDialog(m.WithSetups(d.loadPrefs().SetupNames(), dialogSandbox(d, cwd)))
 }
 
-// dialogStart is the dialog's Start: hq new NAME DIR PROMPT, with DIR as
-// typed (~ and relative to cwd allowed), then the new agent docked with the
-// keys in its session. A failure to dock leaves the agent started.
+// hasSetups reports whether the preferences define a setup besides the
+// default, so the New agent dialog has its setup field.
+func hasSetups(d deps) bool { return len(d.loadPrefs().SetupNames()) > 1 }
+
+// dialogSandbox is the dialog's Sandbox: the repository's sandbox of the
+// setup, as hq new finds it, for DIR as typed; for one not created yet the
+// name it will get. sbx is asked once per dialog; when it cannot answer,
+// or DIR is no repository, there is no name.
+func dialogSandbox(d deps, cwd string) dialog.Sandbox {
+	var once sync.Once
+	var all []sbx.Sandbox
+	var listErr error
+	return func(setup, dir string) (string, bool) {
+		root, ok := d.repoRoot(expandDir(dir, d.getenv("HOME"), cwd))
+		if !ok {
+			return "", false
+		}
+		once.Do(func() { all, listErr = d.sbx.List() })
+		if listErr != nil {
+			return "", false
+		}
+		if s, ok := sbx.Find(all, root, setup, d.samePath); ok {
+			return s.Name, true
+		}
+		if name := sbx.SandboxName(setup, filepath.Base(root)); name != "" {
+			return name, false
+		}
+		return sbx.DefaultName(filepath.Base(root)), false
+	}
+}
+
+// dialogStart is the dialog's Start: hq new NAME DIR PROMPT --setup SETUP,
+// with DIR as typed (~ and relative to cwd allowed), then the new agent
+// docked with the keys in its session. A failure to dock leaves the agent
+// started.
 func dialogStart(d deps, cwd string) dialog.Start {
-	return func(name, dir, prompt string) error {
-		if _, _, err := createAgent(io.Discard, d, newArgs{name: name, dir: expandDir(dir, d.getenv("HOME"), cwd), prompt: prompt}); err != nil {
+	return func(name, dir, prompt, setup string) error {
+		if _, _, err := createAgent(io.Discard, d, newArgs{name: name, dir: expandDir(dir, d.getenv("HOME"), cwd), prompt: prompt, setup: setup}); err != nil {
 			return err
 		}
 		// The user's own new agent takes the slot, and the cursor with it
