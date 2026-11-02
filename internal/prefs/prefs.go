@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 	"syscall"
@@ -126,28 +125,85 @@ func Load(path string) Prefs {
 	}
 	_ = json.Unmarshal(data, &p)
 	_ = json.Unmarshal(data, &p.other)
-	var setups struct {
-		Sandbox   Sandbox            `json:"sandbox"`
-		Sandboxes map[string]Sandbox `json:"sandboxes"`
-	}
-	var te *json.UnmarshalTypeError
-	if err := json.Unmarshal(data, &setups); errors.As(err, &te) {
-		p.badSetups = FormError{At: te.Field, Want: formWanted(te.Type), Is: formFound(te.Value)}
-	}
+	p.badSetups = setupsForm(data)
 	return p
 }
 
-// formWanted is what the setups take where a value of type t goes.
-func formWanted(t reflect.Type) string {
-	switch t.Kind() {
-	case reflect.Map:
-		return "an object of setups by name"
-	case reflect.Struct:
-		return "an object of settings"
-	case reflect.Slice:
-		return "a list of names"
+// setupsForm is what is wrong with the form of the setups in the file
+// (FormError), nil when they read or the file is no JSON object. The path
+// it names is built here, the same whatever Go's json reports; setups are
+// looked at in name order, so the first wrong one is always the same.
+func setupsForm(data []byte) error {
+	var top map[string]json.RawMessage
+	if json.Unmarshal(data, &top) != nil {
+		return nil
 	}
-	return "a string"
+	if raw, ok := top["sandbox"]; ok {
+		if err := settingsForm("sandbox", raw); err != nil {
+			return err
+		}
+	}
+	raw, ok := top["sandboxes"]
+	if !ok {
+		return nil
+	}
+	var setups map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &setups); err != nil {
+		return formError("sandboxes", "an object of setups by name", err)
+	}
+	names := make([]string, 0, len(setups))
+	for n := range setups {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	for _, n := range names {
+		if err := settingsForm("sandboxes."+n, setups[n]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// settingsForm is what is wrong with the form of one setup's settings at
+// at, nil when they read; settings hq does not know are not looked at.
+func settingsForm(at string, raw json.RawMessage) error {
+	var settings map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &settings); err != nil {
+		return formError(at, "an object of settings", err)
+	}
+	for _, key := range []string{"template", "model", "provider"} {
+		var s string
+		if v, ok := settings[key]; ok {
+			if err := json.Unmarshal(v, &s); err != nil {
+				return formError(at+"."+key, "a string", err)
+			}
+		}
+	}
+	v, ok := settings["staticMcp"]
+	if !ok {
+		return nil
+	}
+	var list []json.RawMessage
+	if err := json.Unmarshal(v, &list); err != nil {
+		return formError(at+".staticMcp", "a list of names", err)
+	}
+	for i, item := range list {
+		var s string
+		if err := json.Unmarshal(item, &s); err != nil {
+			return formError(fmt.Sprintf("%s.staticMcp[%d]", at, i), "a string", err)
+		}
+	}
+	return nil
+}
+
+// formError is the FormError for the value at at, which json could not
+// read as want; the value is read whole, so json's own path is not needed.
+func formError(at, want string, err error) error {
+	var te *json.UnmarshalTypeError
+	if !errors.As(err, &te) {
+		return FormError{At: at, Want: want, Is: "something else"}
+	}
+	return FormError{At: at, Want: want, Is: formFound(te.Value)}
 }
 
 // formFound is a JSON value of the kind json reports (string, number,

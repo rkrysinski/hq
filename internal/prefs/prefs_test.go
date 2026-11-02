@@ -175,6 +175,8 @@ func TestSetupsInTheWrongFormAreRefused(t *testing.T) {
 		{`{"sandboxes":{"local":{"model":5}}}`, `"sandboxes.local.model" should be a string, not a number`},
 		{`{"sandbox":{"staticMcp":"docs"}}`, `"sandbox.staticMcp" should be a list of names, not a string`},
 		{`{"sandbox":true}`, `"sandbox" should be an object of settings, not true or false`},
+		{`{"sandboxes":{"local":{"staticMcp":["docs",5]}}}`, `"sandboxes.local.staticMcp[1]" should be a string, not a number`},
+		{`{"sandboxes":{"a":{},"b":{"provider":[]},"c":{"model":1}}}`, `"sandboxes.b.provider" should be a string, not a list`},
 	} {
 		path := filepath.Join(t.TempDir(), "preferences.json")
 		if err := os.WriteFile(path, []byte(c.file), 0o644); err != nil {
