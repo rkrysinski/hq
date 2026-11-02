@@ -12,6 +12,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+
+	"github.com/rkrysinski/hq/internal/prefs"
 )
 
 // Width and Height are the popup's size with its frame, which tmux draws
@@ -119,15 +121,12 @@ func (m NewAgent) WithSetups(setups []string, sandbox Sandbox) NewAgent {
 	}
 	m.setups, m.sandbox = setups, sandbox
 	for i, s := range setups {
-		if s == defaultSetup {
+		if s == prefs.DefaultSetup {
 			m.chosen = i
 		}
 	}
 	return m
 }
-
-// defaultSetup is the setup chosen when the dialog opens.
-const defaultSetup = "default"
 
 // order is the focus order: the fields as shown, then the buttons.
 func (m NewAgent) order() []int {
@@ -235,13 +234,13 @@ func (m NewAgent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "shift+tab":
 			return m, m.step(-1)
 		case "down", "up":
-			d := map[string]int{"down": 1, "up": -1}[msg.String()]
+			d := keyStep[msg.String()]
 			if m.focus == Setup {
 				return m, m.choose(d)
 			}
 			return m, m.step(d)
 		case "left", "right":
-			d := map[string]int{"right": 1, "left": -1}[msg.String()]
+			d := keyStep[msg.String()]
 			switch {
 			case m.focus >= startButton:
 				return m, m.setFocus(startButton + cancelButton - m.focus)
@@ -261,6 +260,10 @@ func (m NewAgent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	return m, nil
 }
+
+// keyStep is how far an arrow key moves the focus or the setup chosen:
+// down and right one on, up and left one back.
+var keyStep = map[string]int{"down": 1, "right": 1, "up": -1, "left": -1}
 
 // click is a left click at x, y (spec §6.6): × and Cancel close the
 // dialog, Start submits it, a field takes the focus; anywhere else does

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/rkrysinski/hq/internal/platform"
+	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
 )
 
@@ -187,9 +188,6 @@ func hasPrefixFold(s, prefix string) bool {
 	return len(s) >= len(prefix) && strings.EqualFold(s[:len(prefix)], prefix)
 }
 
-// DefaultSetup is the setup whose sandbox has sbx's own name.
-const DefaultSetup = "default"
-
 // setupPrefix starts the name of every sandbox of a setup but the default.
 const setupPrefix = "hq-"
 
@@ -217,12 +215,12 @@ func Find(all []Sandbox, path, setup string, same func(a, b string) bool) (Sandb
 // not one of them (#136).
 func OfRepository(all []Sandbox, path string, same func(a, b string) bool) []Sandbox {
 	var out []Sandbox
-	if def, ok := Find(all, path, DefaultSetup, same); ok {
+	if def, ok := Find(all, path, prefs.DefaultSetup, same); ok {
 		out = append(out, def)
 	}
 	dir := filepath.Base(path)
 	for _, s := range all {
-		if len(s.Workspaces) > 0 && same(s.Workspaces[0], path) && SetupOf(s.Name, dir) != DefaultSetup {
+		if len(s.Workspaces) > 0 && same(s.Workspaces[0], path) && SetupOf(s.Name, dir) != prefs.DefaultSetup {
 			out = append(out, s)
 		}
 	}
@@ -232,10 +230,10 @@ func OfRepository(all []Sandbox, path string, same func(a, b string) bool) []San
 // SandboxName is the name hq gives the sandbox of a setup for a repository
 // in directory dir: hq-<setup>-<dir>, dir cleaned as sbx cleans it for the
 // names it gives (lowercased, anything but letters, digits, hyphens and
-// periods a hyphen). It is "" for the default setup, whose sandbox has
-// sbx's own name.
+// periods a hyphen: cleanDir). It is "" for the default setup, whose
+// sandbox has sbx's own name.
 func SandboxName(setup, dir string) string {
-	if setup == DefaultSetup {
+	if setup == prefs.DefaultSetup {
 		return ""
 	}
 	return setupPrefix + setup + "-" + cleanDir(dir)
@@ -253,23 +251,25 @@ func DefaultName(dir string) string { return "claude-" + cleanDir(dir) }
 func SetupOf(name, dir string) string {
 	rest, ok := strings.CutPrefix(name, setupPrefix)
 	if !ok {
-		return DefaultSetup
+		return prefs.DefaultSetup
 	}
 	setup, ok := strings.CutSuffix(rest, "-"+cleanDir(dir))
 	if !ok || setup == "" {
-		return DefaultSetup
+		return prefs.DefaultSetup
 	}
 	return setup
 }
 
+// cleanDir is dir as sbx cleans it for its names (verified with sbx
+// v0.47.0): lowercased as Unicode lowercases it, then each byte that is not
+// a lowercase ASCII letter, a digit, a hyphen or a period a hyphen, so a
+// letter beyond ASCII is as many hyphens as it takes bytes.
 func cleanDir(dir string) string {
-	return strings.Map(func(r rune) rune {
-		switch {
-		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '-', r == '.':
-			return r
-		case r >= 'A' && r <= 'Z':
-			return r + 'a' - 'A'
+	b := []byte(strings.ToLower(dir))
+	for i, c := range b {
+		if (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-' && c != '.' {
+			b[i] = '-'
 		}
-		return '-'
-	}, dir)
+	}
+	return string(b)
 }

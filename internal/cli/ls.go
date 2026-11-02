@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"path/filepath"
 	"text/tabwriter"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
-	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -118,7 +116,7 @@ func lsRowWithDetail(d deps, a agent.Agent, now time.Time, det state.Detail) lsR
 	return lsRow{
 		Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
 		Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
-		Setup:   sbx.SetupOf(a.Sandbox, filepath.Base(a.RepoPath)),
+		Setup:   a.Setup(),
 		Pending: d.pending(a.RepoPath, a.ID), Dialog: a.Dialog().ID(), OwnTasks: append([]state.Task{}, a.OwnTasks...), Asks: asks(a, det),
 	}
 }

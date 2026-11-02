@@ -26,30 +26,15 @@ const newUsage = "hq new NAME [DIR] [PROMPT] [--setup NAME]"
 // existing directory, otherwise it is the PROMPT; DIR defaults to cwd;
 // --setup NAME, anywhere, is the setup, the default without it.
 func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, error) {
-	setup := prefs.DefaultSetup
-	var plain []string
-	for i := 0; i < len(args); i++ {
-		a := args[i]
-		v, isSetup := strings.CutPrefix(a, "--setup=")
-		if a == "--setup" {
-			isSetup, v = true, ""
-			if i+1 < len(args) {
-				i++
-				v = args[i]
-			}
-		}
-		switch {
-		case isSetup && v == "":
-			return newArgs{}, usageErr("--setup needs a setup's name (usage: %s)", newUsage)
-		case isSetup:
-			setup = v
-		case strings.HasPrefix(a, "-") && len(a) > 1:
+	args, setup, _, err := parseSetup(args, "usage: "+newUsage)
+	if err != nil {
+		return newArgs{}, err
+	}
+	for _, a := range args {
+		if strings.HasPrefix(a, "-") && len(a) > 1 {
 			return newArgs{}, usageErr("unknown option '%s' (see hq help)", a)
-		default:
-			plain = append(plain, a)
 		}
 	}
-	args = plain
 	if len(args) == 0 {
 		return newArgs{}, usageErr("missing NAME (usage: %s)", newUsage)
 	}
@@ -72,6 +57,34 @@ func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, erro
 		return newArgs{}, err
 	}
 	return n, nil
+}
+
+// parseSetup takes --setup NAME (or --setup=NAME), anywhere, out of args:
+// setup is NAME, given whether the flag was there; without it the setup is
+// the default. The flag without a name is refused, usage in brackets after
+// the reason.
+func parseSetup(args []string, usage string) (rest []string, setup string, given bool, err error) {
+	setup = prefs.DefaultSetup
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		v, isSetup := strings.CutPrefix(a, "--setup=")
+		if a == "--setup" {
+			isSetup, v = true, ""
+			if i+1 < len(args) {
+				i++
+				v = args[i]
+			}
+		}
+		switch {
+		case isSetup && v == "":
+			return nil, "", false, usageErr("--setup needs a setup's name (%s)", usage)
+		case isSetup:
+			setup, given = v, true
+		default:
+			rest = append(rest, a)
+		}
+	}
+	return rest, setup, given, nil
 }
 
 // checkName says what is wrong with an agent name, naming the remedy (spec
@@ -135,8 +148,9 @@ func runNew(env Env, d deps, args []string) error {
 }
 
 // createAgent starts a new agent, as hq new and the New agent dialog do,
-// marked new for the list (S2), in the repository's sandbox of its setup
-// (the default when n.setup is ""). What is wrong with the name or the dir
+// marked new for the list (S2), in the repository's sandbox of its setup:
+// the default when n.setup is "", as the dialog without its setup field
+// gives it, the one place a setup may be "". What is wrong with the name or the dir
 // is a dialog.FieldError, so the dialog shows it under that field.
 func createAgent(out io.Writer, d deps, n newArgs) (root, sandbox string, err error) {
 	if err := checkName(n.name); err != nil {
@@ -145,7 +159,7 @@ func createAgent(out io.Writer, d deps, n newArgs) (root, sandbox string, err er
 	if n.setup == "" {
 		n.setup = prefs.DefaultSetup
 	}
-	setup, err := sandboxSettings(d, n.setup)
+	spec, err := sandboxSpecOf(d, n.setup)
 	if err != nil {
 		return "", "", err
 	}
@@ -160,8 +174,8 @@ func createAgent(out io.Writer, d deps, n newArgs) (root, sandbox string, err er
 	if _, exists := agent.Find(agent.FromWindows(ws), n.name); exists {
 		return "", "", dialog.FieldError{Field: dialog.Name, Err: duplicateErr(n.name)}
 	}
-	setup.Name = sbx.SandboxName(setup.name, filepath.Base(root))
-	sb, err := findOrCreateSandbox(out, d, root, setup)
+	spec.Name = sbx.SandboxName(spec.setup, filepath.Base(root))
+	sb, err := findOrCreateSandbox(out, d, root, spec)
 	if err != nil {
 		return "", "", err
 	}
@@ -220,31 +234,31 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string, fresh bool) 
 	return nil
 }
 
-// findOrCreateSandbox is the repository's sandbox of the setup, created
-// with the setup's settings when it has none (#135).
-func findOrCreateSandbox(out io.Writer, d deps, root string, set sandboxSetup) (sbx.Sandbox, error) {
+// findOrCreateSandbox is the repository's sandbox of spec's setup, created
+// as spec says when it has none (#135).
+func findOrCreateSandbox(out io.Writer, d deps, root string, spec sandboxSpec) (sbx.Sandbox, error) {
 	all, err := d.sbx.List()
 	if err != nil {
 		return sbx.Sandbox{}, sbxErr(err)
 	}
-	if s, ok := sbx.Find(all, root, set.name, d.samePath); ok {
+	if s, ok := sbx.Find(all, root, spec.setup, d.samePath); ok {
 		return s, nil
 	}
-	if set.Name == "" {
+	if spec.Name == "" {
 		fmt.Fprintf(out, "creating a sandbox for %s (first time only; log in to Claude when the session asks)\n", filepath.Base(root))
 	} else {
-		fmt.Fprintf(out, "creating the %s sandbox %s for %s (first time only; log in to Claude when the session asks)\n", set.name, set.Name, filepath.Base(root))
+		fmt.Fprintf(out, "creating the %s sandbox %s for %s (first time only; log in to Claude when the session asks)\n", spec.setup, spec.Name, filepath.Base(root))
 	}
-	if err := d.sbx.Create(root, set.Options); err != nil {
-		if set.from != "" {
-			err = fmt.Errorf("%w; created with %s", err, set.from)
+	if err := d.sbx.Create(root, spec.Options); err != nil {
+		if spec.from != "" {
+			err = fmt.Errorf("%w; created with %s", err, spec.from)
 		}
 		return sbx.Sandbox{}, sbxErr(err)
 	}
 	if all, err = d.sbx.List(); err != nil {
 		return sbx.Sandbox{}, sbxErr(err)
 	}
-	if s, ok := sbx.Find(all, root, set.name, d.samePath); ok {
+	if s, ok := sbx.Find(all, root, spec.setup, d.samePath); ok {
 		return s, nil
 	}
 	return sbx.Sandbox{}, envErr("sbx created no sandbox for %s (see sbx ls)", root)
@@ -257,30 +271,31 @@ const (
 	staticMCPEnv = "HQ_SBX_STATIC_MCP" // comma-separated
 )
 
-// sandboxSetup is what hq creates a sandbox of setup name with, its
-// sandbox's name included (none for the default: sbx's own); from names the
-// settings in effect and where they were set, for sbx's error about them.
-type sandboxSetup struct {
+// sandboxSpec is what hq creates the sandbox of a setup with: the sbx
+// options, the sandbox's name included (none for the default: sbx's own);
+// setup is the setup's name; from names the settings in effect and where
+// they were set, for sbx's error about them.
+type sandboxSpec struct {
 	sbx.Options
-	name string
-	from string
+	setup string
+	from  string
 }
 
-// sandboxSettings reads the settings hq creates a sandbox of the setup with
+// sandboxSpecOf reads the settings hq creates a sandbox of the setup with
 // (#58, #135), from the preferences file, those of the default each from
 // its environment variable when set. The setup's sandbox name is left for
-// the caller, who knows the repository. An unknown setup, or a file whose
-// "sandboxes" holds "default", is refused.
-func sandboxSettings(d deps, setup string) (sandboxSetup, error) {
+// the caller, who knows the repository. An unknown setup is refused, and
+// so is any while the file's setups are wrong (prefs.InFile), naming it.
+func sandboxSpecOf(d deps, setup string) (sandboxSpec, error) {
 	file := prefs.Path(d.getenv)
 	p, err := d.loadPrefs().Setup(setup)
 	if err != nil {
-		if errors.Is(err, prefs.ErrDefaultUnderSandboxes) {
-			return sandboxSetup{}, usageErr("%s: %v", file, err)
+		if prefs.InFile(err) {
+			return sandboxSpec{}, usageErr("%s: %v", file, err)
 		}
-		return sandboxSetup{}, usageErr("%v", err)
+		return sandboxSpec{}, usageErr("%v", err)
 	}
-	r := sandboxSetup{name: setup}
+	r := sandboxSpec{setup: setup}
 	key := "sandboxes." + setup + "."
 	if setup == prefs.DefaultSetup {
 		key = "sandbox."
