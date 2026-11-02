@@ -41,11 +41,86 @@ func TestListReportsFailure(t *testing.T) {
 	}
 }
 
-func TestByWorkspaceMatchesPrimaryWorkspaceOnly(t *testing.T) {
+func same(a, b string) bool { return a == b }
+
+func TestFindMatchesPrimaryWorkspaceOnly(t *testing.T) {
 	all := []Sandbox{{Name: "docs", Workspaces: []string{"/w/docs", "/w/app"}}, {Name: "app", Workspaces: []string{"/w/app"}}}
-	s, ok := ByWorkspace(all, "/w/app", func(a, b string) bool { return a == b })
+	s, ok := Find(all, "/w/app", "default", same)
 	if !ok || s.Name != "app" {
 		t.Fatalf("%+v %v", s, ok)
+	}
+}
+
+// A repository has a sandbox per setup: the default is the first on the
+// workspace whose name does not start with hq-, whatever its name; another
+// setup's is the one named hq-<setup>-<dir> on it (#135).
+func TestFindTellsTheSetupsOfAWorkspaceApart(t *testing.T) {
+	all := []Sandbox{
+		{Name: "hq-local-app", Workspaces: []string{"/w/app"}},
+		{Name: "hq-gone-app", Workspaces: []string{"/w/app"}},
+		{Name: "my-own", Workspaces: []string{"/w/app"}},
+		{Name: "claude-app", Workspaces: []string{"/w/app"}},
+		{Name: "hq-local-app", Workspaces: []string{"/x/app"}},
+		{Name: "hq-other-app", Workspaces: []string{"/x/app"}},
+	}
+	for _, c := range []struct{ path, setup, want string }{
+		{"/w/app", "default", "my-own"},
+		{"/w/app", "local", "hq-local-app"},
+		{"/w/app", "gone", "hq-gone-app"},
+		{"/w/app", "other", ""},
+		{"/x/app", "default", ""}, // an hq- sandbox is never the default
+		{"/x/app", "other", "hq-other-app"},
+	} {
+		s, ok := Find(all, c.path, c.setup, same)
+		if c.want == "" {
+			if ok {
+				t.Errorf("%s %s: found %s", c.path, c.setup, s.Name)
+			}
+			continue
+		}
+		if !ok || s.Name != c.want || s.Workspaces[0] != c.path {
+			t.Errorf("%s %s: %+v %v, want %s", c.path, c.setup, s, ok, c.want)
+		}
+	}
+}
+
+// A setup's sandbox is hq-<setup>-<dir>, the directory cleaned as sbx
+// cleans it for its own names: lowercased, anything but letters, digits,
+// hyphens and periods a hyphen.
+func TestSetupSandboxName(t *testing.T) {
+	for _, c := range []struct{ setup, dir, want string }{
+		{"local", "app", "hq-local-app"},
+		{"local", "My_Repo x", "hq-local-my-repo-x"},
+		{"local", "foo-local", "hq-local-foo-local"},
+		{"qwen.big", "v1.2", "hq-qwen.big-v1.2"},
+	} {
+		if got := SandboxName(c.setup, c.dir); got != c.want {
+			t.Errorf("%s %s: %q, want %q", c.setup, c.dir, got, c.want)
+		}
+	}
+	if got := SandboxName("default", "app"); got != "" {
+		t.Errorf("the default's name is sbx's own: %q", got)
+	}
+}
+
+// The setup of a sandbox is read off its name: what stands between hq- and
+// -<dir>; default for any other name.
+func TestSetupOf(t *testing.T) {
+	for _, c := range []struct{ name, dir, want string }{
+		{"claude-app", "app", "default"},
+		{"my-own", "app", "default"},
+		{"hq-local-app", "app", "local"},
+		{"hq-a-b-app", "app", "a-b"},
+		{"claude-foo-local", "foo-local", "default"},
+		{"hq-local-foo-local", "foo-local", "local"},
+		{"hq-local-my-repo-x", "My_Repo x", "local"},
+		{"hq-app", "app", "default"},
+		{"hq--app", "app", "default"},
+		{"hq-local-lib", "app", "default"},
+	} {
+		if got := SetupOf(c.name, c.dir); got != c.want {
+			t.Errorf("%s in %s: %q, want %q", c.name, c.dir, got, c.want)
+		}
 	}
 }
 
@@ -104,6 +179,31 @@ func TestCreateGivesTheTemplateAndStaticMCPServersWhenSet(t *testing.T) {
 		}
 		want := append(append([]string{"sbx", "create", "--quiet"}, c.want...), "claude", `F:\w\app`)
 		if !reflect.DeepEqual(r.args, want) {
+			t.Errorf("%s: args %q", c.name, r.args)
+		}
+	}
+}
+
+// A setup's sandbox is created under its name; one with a model through
+// sbx run --detached, as sbx create takes no --model (#135).
+func TestCreateANamedSandboxAndOneWithAModel(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		o    Options
+		want []string
+	}{
+		{"named", Options{Name: "hq-local-app", Template: "img:x"},
+			[]string{"sbx", "create", "--quiet", "--name", "hq-local-app", "--template", "img:x", "claude", `F:\w\app`}},
+		{"with a model", Options{Name: "hq-local-app", Template: "img:x", StaticMCP: []string{"docs"}, Model: "qwen-local", Provider: "lmstudio"},
+			[]string{"sbx", "run", "--detached", "--name", "hq-local-app", "--template", "img:x", "--static-mcp", "docs", "--model", "qwen-local", "--provider", "lmstudio", "claude", `F:\w\app`}},
+		{"a provider alone", Options{Name: "hq-p-app", Provider: "lmstudio"},
+			[]string{"sbx", "run", "--detached", "--name", "hq-p-app", "--provider", "lmstudio", "claude", `F:\w\app`}},
+	} {
+		r := &fakeRun{}
+		if err := (Client{Run: r, Platform: platformtest.Fake{Sbx: "sbx"}}).Create("/w/app", c.o); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(r.args, c.want) {
 			t.Errorf("%s: args %q", c.name, r.args)
 		}
 	}

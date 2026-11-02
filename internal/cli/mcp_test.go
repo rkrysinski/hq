@@ -393,6 +393,34 @@ func TestMCPWaitFromSendsNextSinceReturnsAnAnswerGivenBeforeWaitWasCalled(t *tes
 	}
 }
 
+// new takes a setup, the default without one, refused as hq new refuses it
+// (#135).
+func TestMCPNewTakesASetup(t *testing.T) {
+	f := setupFakes()
+	cs := mcpSession(t, f)
+	if out, isErr := call(t, cs, "new", map[string]any{"name": "43", "dir": "/w/app", "setup": "local"}); isErr || out != "creating the local sandbox hq-local-app for app (first time only; log in to Claude when the session asks)\nstarted 43 in app (sandbox hq-local-app); enter it with: hq go 43\n" {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	if out, isErr := call(t, cs, "new", map[string]any{"name": "45", "dir": "/w/app"}); isErr || out != "started 45 in app (sandbox claude-app); enter it with: hq go 45\n" {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	if out, isErr := call(t, cs, "new", map[string]any{"name": "46", "dir": "/w/app", "setup": "locl"}); !isErr || out != "hq: unknown setup 'locl'; setups: default, local\n" {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	res, err := cs.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tl := range res.Tools {
+		if schema, _ := json.Marshal(tl.InputSchema); tl.Name == "new" && !strings.Contains(string(schema), `"setup":{"description":"the setup to start it on`) {
+			t.Fatalf("%s", schema)
+		}
+		if tl.Name == "list" && !strings.Contains(tl.Description, "setup (the setup of its sandbox") {
+			t.Fatalf("%s", tl.Description)
+		}
+	}
+}
+
 func TestMCPNewStartsAnAgentInTheRepositoryGiven(t *testing.T) {
 	f := newFakes()
 	f.sbx.sandboxes = sandboxesFor("/w/lib")

@@ -37,9 +37,10 @@ func runSandbox(env Env, d deps, args []string) error {
 	return sandboxRestart(env, d, sb, mine, yes)
 }
 
-// resolveSandbox finds the sandbox of REPO: a directory in the repository
-// (resolved as in hq new), the repository's name as hq ls shows it, or the
-// sandbox's own name as sbx ls shows it (#113).
+// resolveSandbox finds the sandbox of REPO: the default sandbox of a
+// directory in the repository (resolved as in hq new) or of the repository's
+// name as hq ls shows it, or the sandbox's own name as sbx ls shows it
+// (#113, #135).
 func resolveSandbox(d deps, repoArg string) (sbx.Sandbox, error) {
 	all, err := d.sbx.List()
 	if err != nil {
@@ -58,14 +59,14 @@ func resolveSandbox(d deps, repoArg string) (sbx.Sandbox, error) {
 		if !ok {
 			return sbx.Sandbox{}, notFoundErr("%s is not in a git repository", dir)
 		}
-		if s, ok := sbx.ByWorkspace(all, root, d.samePath); ok {
+		if s, ok := sbx.Find(all, root, sbx.DefaultSetup, d.samePath); ok {
 			return s, nil
 		}
 		return sbx.Sandbox{}, notFoundErr("no sandbox for %s (hq new creates it)", filepath.Base(root))
 	}
 	var found []sbx.Sandbox
 	for _, s := range all {
-		if s.Name == repoArg || len(s.Workspaces) > 0 && filepath.Base(s.Workspaces[0]) == repoArg {
+		if s.Name == repoArg || len(s.Workspaces) > 0 && filepath.Base(s.Workspaces[0]) == repoArg && isDefault(s, all, d.samePath) {
 			found = append(found, s)
 		}
 	}
@@ -76,6 +77,12 @@ func resolveSandbox(d deps, repoArg string) (sbx.Sandbox, error) {
 		return found[0], nil
 	}
 	return sbx.Sandbox{}, usageErr("'%s' names %d repositories; give the repository's directory or its sandbox's name", repoArg, len(found))
+}
+
+// isDefault reports whether s is the default sandbox of its workspace.
+func isDefault(s sbx.Sandbox, all []sbx.Sandbox, same func(a, b string) bool) bool {
+	def, ok := sbx.Find(all, s.Workspaces[0], sbx.DefaultSetup, same)
+	return ok && def.Name == s.Name
 }
 
 func sandboxRm(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes bool) error {

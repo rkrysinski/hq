@@ -221,6 +221,23 @@ func TestSandboxTakesTheSandboxsName(t *testing.T) {
 	}
 }
 
+// REPO is the repository's default sandbox: a setup's sandbox, listed
+// first, is never taken for it; its own name still names it (#135).
+func TestSandboxOfARepositoryIsItsDefault(t *testing.T) {
+	for _, repo := range []string{"/w/app", "app", "claude-x"} {
+		f := sandboxFakes()
+		f.sbx.sandboxes = append([]sbx.Sandbox{{Name: "hq-local-app", Status: "running", Workspaces: []string{"/w/app"}}}, f.sbx.sandboxes...)
+		if code, out, errOut := f.run("sandbox", "restart", repo, "-y"); code != 0 || out != "restarted the sandbox claude-x; relaunched a, b\n" {
+			t.Errorf("%s: exit %d %q %q", repo, code, out, errOut)
+		}
+	}
+	f := sandboxFakes()
+	f.sbx.sandboxes = append([]sbx.Sandbox{{Name: "hq-local-app", Status: "running", Workspaces: []string{"/w/app"}}}, f.sbx.sandboxes...)
+	if code, out, errOut := f.run("sandbox", "rm", "hq-local-app", "-y"); code != 0 || out != "removed the sandbox hq-local-app\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+}
+
 func TestDecliningAConfirmationChangesNothingAndSucceeds(t *testing.T) {
 	for _, args := range [][]string{{"kill", "a"}, {"stop"}, {"sandbox", "restart", "app"}, {"sandbox", "rm", "lib"}} {
 		f := sandboxFakes()

@@ -432,7 +432,11 @@ func (f *fakeSbx) Create(ws string, o sbx.Options) error {
 	}
 	f.created = append(f.created, ws)
 	parts := strings.Split(ws, "/")
-	f.sandboxes = append(f.sandboxes, sbx.Sandbox{Name: "claude-" + parts[len(parts)-1], Agent: "claude", Status: "running", Workspaces: []string{ws}})
+	name := o.Name
+	if name == "" {
+		name = "claude-" + parts[len(parts)-1]
+	}
+	f.sandboxes = append(f.sandboxes, sbx.Sandbox{Name: name, Agent: "claude", Status: "running", Workspaces: []string{ws}})
 	return nil
 }
 

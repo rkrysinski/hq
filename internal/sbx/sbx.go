@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/rkrysinski/hq/internal/platform"
@@ -55,22 +56,42 @@ func (c Client) List() ([]Sandbox, error) {
 // Options are what a sandbox is created with besides its workspace; the
 // zero value is sbx's defaults.
 type Options struct {
+	Name      string   // the sandbox's name, --name; sbx's own when empty
 	Template  string   // the image, sbx create --template
 	StaticMCP []string // MCP servers registered with sbx mcp add, --static-mcp
+	// Model and Provider are the model sbx serves the agent's API calls
+	// from, --model and --provider (#135).
+	Model, Provider string
 }
 
-// Create creates a Claude sandbox for the workspace under sbx's default name.
+// Create creates a Claude sandbox for the workspace. sbx create takes no
+// model, so one with a model or provider is created by sbx run --detached,
+// which starts it without a session; given to a sandbox that exists,
+// --model would recreate it, so it is only ever given here.
 func (c Client) Create(workspace string, o Options) error {
 	ws, err := c.Platform.ToSbx(workspace)
 	if err != nil {
 		return err
 	}
+	withModel := o.Model != "" || o.Provider != ""
 	args := []string{"create", "--quiet"}
+	if withModel {
+		args = []string{"run", "--detached"}
+	}
+	if o.Name != "" {
+		args = append(args, "--name", o.Name)
+	}
 	if o.Template != "" {
 		args = append(args, "--template", o.Template)
 	}
 	if len(o.StaticMCP) > 0 {
 		args = append(args, "--static-mcp", strings.Join(o.StaticMCP, ","))
+	}
+	if o.Model != "" {
+		args = append(args, "--model", o.Model)
+	}
+	if o.Provider != "" {
+		args = append(args, "--provider", o.Provider)
 	}
 	_, err = c.run(append(args, "claude", ws)...)
 	return err
@@ -166,13 +187,65 @@ func hasPrefixFold(s, prefix string) bool {
 	return len(s) >= len(prefix) && strings.EqualFold(s[:len(prefix)], prefix)
 }
 
-// ByWorkspace returns the sandbox whose primary workspace is path, compared
-// with same (which may resolve symlinks), or false.
-func ByWorkspace(all []Sandbox, path string, same func(a, b string) bool) (Sandbox, bool) {
+// DefaultSetup is the setup whose sandbox has sbx's own name.
+const DefaultSetup = "default"
+
+// setupPrefix starts the name of every sandbox of a setup but the default.
+const setupPrefix = "hq-"
+
+// Find returns the sandbox of a setup for the repository at path: among
+// the sandboxes whose primary workspace is path, compared with same (which
+// may resolve symlinks), the default's is the first whose name does not
+// start with hq-, whatever its name, so one made by hand is adopted; another
+// setup's is the one named SandboxName(setup, base of path) (#135).
+func Find(all []Sandbox, path, setup string, same func(a, b string) bool) (Sandbox, bool) {
+	want := SandboxName(setup, filepath.Base(path))
 	for _, s := range all {
-		if len(s.Workspaces) > 0 && same(s.Workspaces[0], path) {
+		if len(s.Workspaces) == 0 || !same(s.Workspaces[0], path) {
+			continue
+		}
+		if want == "" && !strings.HasPrefix(s.Name, setupPrefix) || want != "" && s.Name == want {
 			return s, true
 		}
 	}
 	return Sandbox{}, false
+}
+
+// SandboxName is the name hq gives the sandbox of a setup for a repository
+// in directory dir: hq-<setup>-<dir>, dir cleaned as sbx cleans it for the
+// names it gives (lowercased, anything but letters, digits, hyphens and
+// periods a hyphen). It is "" for the default setup, whose sandbox has
+// sbx's own name.
+func SandboxName(setup, dir string) string {
+	if setup == DefaultSetup {
+		return ""
+	}
+	return setupPrefix + setup + "-" + cleanDir(dir)
+}
+
+// SetupOf is the setup of the sandbox named name for a repository in
+// directory dir: what stands between hq- and -<dir>, the default for any
+// other name.
+func SetupOf(name, dir string) string {
+	rest, ok := strings.CutPrefix(name, setupPrefix)
+	if !ok {
+		return DefaultSetup
+	}
+	setup, ok := strings.CutSuffix(rest, "-"+cleanDir(dir))
+	if !ok || setup == "" {
+		return DefaultSetup
+	}
+	return setup
+}
+
+func cleanDir(dir string) string {
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '-', r == '.':
+			return r
+		case r >= 'A' && r <= 'Z':
+			return r + 'a' - 'A'
+		}
+		return '-'
+	}, dir)
 }

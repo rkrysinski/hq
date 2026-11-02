@@ -4,8 +4,12 @@ package prefs
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"syscall"
 )
 
@@ -28,18 +32,63 @@ type Prefs struct {
 	// §6.2); empty is the default.
 	Sort string `json:"sort,omitempty"`
 	View string `json:"view,omitempty"`
-	// Sandbox is what hq creates a repository's sandbox with. The user
-	// writes it and hq only reads it: Save keeps it as the file has it.
-	Sandbox Sandbox `json:"sandbox"`
-	other   map[string]json.RawMessage
+	// Sandbox is what hq creates a repository's sandbox with: the default
+	// setup. Sandboxes are the other setups, by name (#135). The user
+	// writes them and hq only reads them: Save keeps them as the file has
+	// them.
+	Sandbox   Sandbox            `json:"sandbox"`
+	Sandboxes map[string]Sandbox `json:"sandboxes"`
+	other     map[string]json.RawMessage
 }
 
-// Sandbox is the "sandbox" object: the image (sbx create --template) and
-// the MCP servers registered with sbx mcp add (--static-mcp). Empty is sbx's
-// defaults.
+// Sandbox is a setup: the image (sbx create --template), the MCP servers
+// registered with sbx mcp add (--static-mcp), and the model and its
+// provider (sbx run --model, --provider), which only a setup under
+// "sandboxes" has. Empty is sbx's defaults.
 type Sandbox struct {
 	Template  string   `json:"template,omitempty"`
 	StaticMCP []string `json:"staticMcp,omitempty"`
+	Model     string   `json:"model,omitempty"`
+	Provider  string   `json:"provider,omitempty"`
+}
+
+// DefaultSetup is the setup of the "sandbox" object, the one an agent
+// started without a setup gets.
+const DefaultSetup = "default"
+
+// ErrDefaultUnderSandboxes refuses "default" as a setup under "sandboxes":
+// it would be a second default.
+var ErrDefaultUnderSandboxes = errors.New(`"default" under "sandboxes" is not a setup of its own: the default setup is the "sandbox" object; move its settings there or give it another name`)
+
+// Setup is the setup of that name: the "sandbox" object for "default",
+// without a model or provider, else its object under "sandboxes". An
+// unknown name is refused naming the setups there are, and so is any name
+// while "sandboxes" holds "default".
+func (p Prefs) Setup(name string) (Sandbox, error) {
+	if _, ok := p.Sandboxes[DefaultSetup]; ok {
+		return Sandbox{}, ErrDefaultUnderSandboxes
+	}
+	if name == DefaultSetup {
+		return Sandbox{Template: p.Sandbox.Template, StaticMCP: p.Sandbox.StaticMCP}, nil
+	}
+	s, ok := p.Sandboxes[name]
+	if !ok {
+		return Sandbox{}, fmt.Errorf("unknown setup '%s'; setups: %s", name, strings.Join(p.SetupNames(), ", "))
+	}
+	return s, nil
+}
+
+// SetupNames are the setups the file defines: default first, then the
+// others in alphabetical order.
+func (p Prefs) SetupNames() []string {
+	var names []string
+	for n := range p.Sandboxes {
+		if n != DefaultSetup {
+			names = append(names, n)
+		}
+	}
+	sort.Strings(names)
+	return append([]string{DefaultSetup}, names...)
 }
 
 // Load reads the file; a missing or unreadable file gives empty preferences.
