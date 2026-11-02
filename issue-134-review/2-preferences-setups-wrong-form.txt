@@ -1,0 +1,9 @@
+$ cat $XDG_CONFIG_HOME/hq/preferences.json
+{"sandboxes":{"plain":"img:plain"}}
+$ hq new qa1 --setup plain; echo "exit $?"
+hq: /tmp/hq-qa-134/review/config/hq/preferences.json: "sandboxes.plain" should be an object of settings, not a string
+exit 1
+$ hq new qa1; echo "exit $?"
+hq: /tmp/hq-qa-134/review/config/hq/preferences.json: "sandboxes.plain" should be an object of settings, not a string
+exit 1
+$

@@ -1,0 +1,8 @@
+$ hq sandbox rm revapp --all-setups -y; echo "exit $?"
+removed the sandbox claude-revapp
+hq: could not remove hq-plain-revapp: sbx: error: QA wrapper: refusing to remove hq-plain-revapp
+exit 3
+$ hq sandbox rm revapp --all-setups -y; echo "exit $?"
+hq: sbx: error: QA wrapper: refusing to remove hq-plain-revapp
+exit 3
+$
