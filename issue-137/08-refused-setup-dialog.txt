@@ -1,0 +1,36 @@
+  hq  2 agents · 2 done  view: attention                                                               Mon 09:37 · dev
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ 46      app137      main          ● done         49s   -                                   ⏎ open   c code   k kill  │
+  nothing else needs you · 1 more agent hidden · press a to show all
+                     ╭──────────────────────────────────────────────────────────────────────────╮
+                     │         ╭──────────────────────────────────────────────────────────────╮ │
+                     │ name    │ 47                                                           │ │
+                     │         ╰──────────────────────────────────────────────────────────────╯ │
+                     │         ╭──────────────────────────────────────────────────────────────╮ │
+─┬ ▸ 46 · main · clau│ dir     │ /private/tmp/hq-qa-134/i137/app137                           │ │
+ │                   │         ╰──────────────────────────────────────────────────────────────╯ │                     │
+ │ ▐▛███▛█   Claude C│         ╭──────────────────────────────────────────────────────────────╮ │                     │
+ │▝▜██████▀  Sonnet 5│ setup   │ ○ default  ● badprov  ○ local  sandbox hq-badprov-app137 (n… │ │                     │
+ │ ▝▝   ▝▝   /private│         ╰──────────────────────────────────────────────────────────────╯ │                     │
+ │                   │         ╭──────────────────────────────────────────────────────────────╮ │                     │
+ │  Get to finished w│ prompt  │                                                              │ │                     │
+ │                   │         ╰──────────────────────────────────────────────────────────────╯ │                     │
+ │                   │ dir defaults to the cursor row's repo · ↑↓ setup · Tab next · Esc cancel │                     │
+ │                   │ sbx: error: invalid --provider "nope": not "llmman", "ollama", or a      │                     │
+ │                   │ provider llmman can route to; run `llmman providers` for the list, or    │                     │
+ │                   │ define it by URL in the model.providers setting (`sbx settings get       │                     │
+ │                   │ model.providers`); created with sandboxes.badprov.model qwen-local,      │                     │
+ │                   │ sandboxes.badprov.provider nope (/tmp/hq-qa-                             │                     │
+ │                   │ 134/i137/config/hq/preferences.json)                                     │                     │
+ │                   │                                                                          │                     │
+ │                   │                           Start ⏎       Cancel                           │                     │
+ │                   ╰──────────────────────────────────────────────────────────────────────────╯                     │
+ │                                                                                                                    │
+ │                                                                            ✔ Update installed · /restart to apply  │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │❯ Try "create a util logging.py that..."                                                                            │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit

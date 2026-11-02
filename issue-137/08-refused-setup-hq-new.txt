@@ -1,0 +1,8 @@
+$ hq new 48 . --setup badprov
+creating the badprov sandbox hq-badprov-app137 for app137 (first time only; log in to Claude when the session asks)
+hq: sbx: error: invalid --provider "nope": not "llmman", "ollama", or a provider llmman can route to; run `llmman providers` for the list, or define it by URL in the model.providers setting (`sbx settings get model.providers`); created with sandboxes.badprov.model qwen-local, sandboxes.badprov.provider nope (/tmp/hq-qa-134/i137/config/hq/preferences.json)
+exit 3
+
+$ sbx ls --json   (filtered to this QA run)
+claude-app137 running
+hq-local-app137 running

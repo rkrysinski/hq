@@ -1,0 +1,39 @@
+Check 1: the New agent dialog's popup (terminal rows 7-29), compared cell by cell (character, colours, bold, reverse) between the build before the change and after it.
+Six captures 0.3 s apart catch both phases of the name field's blinking cursor; the only cell that ever differs is that cursor.
+
+01-dialog-no-sandboxes-before vs nosb-after.p1: 1 cells differ, first at row 5 col 33
+01-dialog-no-sandboxes-before vs nosb-after.p2: 1 cells differ, first at row 5 col 33
+01-dialog-no-sandboxes-before vs nosb-after.p3: identical cells
+01-dialog-no-sandboxes-before vs nosb-after.p4: 1 cells differ, first at row 5 col 33
+01-dialog-no-sandboxes-before vs nosb-after.p5: 1 cells differ, first at row 5 col 33
+01-dialog-no-sandboxes-before vs nosb-after.p6: identical cells
+01-dialog-no-sandboxes-before vs emptysb-after.p1: identical cells
+01-dialog-no-sandboxes-before vs emptysb-after.p2: 1 cells differ, first at row 5 col 33
+01-dialog-no-sandboxes-before vs emptysb-after.p3: 1 cells differ, first at row 5 col 33
+01-dialog-no-sandboxes-before vs emptysb-after.p4: identical cells
+01-dialog-no-sandboxes-before vs emptysb-after.p5: 1 cells differ, first at row 5 col 33
+01-dialog-no-sandboxes-before vs emptysb-after.p6: 1 cells differ, first at row 5 col 33
+01-dialog-empty-sandboxes-before vs nosb-after.p1: 1 cells differ, first at row 5 col 33
+01-dialog-empty-sandboxes-before vs nosb-after.p2: 1 cells differ, first at row 5 col 33
+01-dialog-empty-sandboxes-before vs nosb-after.p3: identical cells
+01-dialog-empty-sandboxes-before vs nosb-after.p4: 1 cells differ, first at row 5 col 33
+01-dialog-empty-sandboxes-before vs nosb-after.p5: 1 cells differ, first at row 5 col 33
+01-dialog-empty-sandboxes-before vs nosb-after.p6: identical cells
+01-dialog-empty-sandboxes-before vs emptysb-after.p1: identical cells
+01-dialog-empty-sandboxes-before vs emptysb-after.p2: 1 cells differ, first at row 5 col 33
+01-dialog-empty-sandboxes-before vs emptysb-after.p3: 1 cells differ, first at row 5 col 33
+01-dialog-empty-sandboxes-before vs emptysb-after.p4: identical cells
+01-dialog-empty-sandboxes-before vs emptysb-after.p5: 1 cells differ, first at row 5 col 33
+01-dialog-empty-sandboxes-before vs emptysb-after.p6: 1 cells differ, first at row 5 col 33
+02-dialog-with-local-before vs nosb-after.p1: 1 cells differ, first at row 5 col 33
+02-dialog-with-local-before vs nosb-after.p2: 1 cells differ, first at row 5 col 33
+02-dialog-with-local-before vs nosb-after.p3: identical cells
+02-dialog-with-local-before vs nosb-after.p4: 1 cells differ, first at row 5 col 33
+02-dialog-with-local-before vs nosb-after.p5: 1 cells differ, first at row 5 col 33
+02-dialog-with-local-before vs nosb-after.p6: identical cells
+02-dialog-with-local-before vs emptysb-after.p1: identical cells
+02-dialog-with-local-before vs emptysb-after.p2: 1 cells differ, first at row 5 col 33
+02-dialog-with-local-before vs emptysb-after.p3: 1 cells differ, first at row 5 col 33
+02-dialog-with-local-before vs emptysb-after.p4: identical cells
+02-dialog-with-local-before vs emptysb-after.p5: 1 cells differ, first at row 5 col 33
+02-dialog-with-local-before vs emptysb-after.p6: 1 cells differ, first at row 5 col 33

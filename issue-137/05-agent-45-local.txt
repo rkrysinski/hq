@@ -1,0 +1,5 @@
+$ hq ls --json
+{"name": "45", "repo": "app137", "sandbox": "hq-local-app137", "setup": "local", "state": "done"}
+
+$ sbx ls --json   (filtered to this QA run)
+hq-local-app137 running ['/private/tmp/hq-qa-134/i137/app137']

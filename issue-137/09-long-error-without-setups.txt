@@ -1,0 +1,36 @@
+  hq  2 agents · 2 done  view: attention                                                               Mon 09:38 · dev
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ 46      app137      main          ● done         1m    -                                   ⏎ open   c code   k kill  │
+  nothing else needs you · 1 more agent hidden · press a to show all
+
+
+                     ╭──────────────────────────────────────────────────────────────────────────╮
+                     │                                New agent                               × │
+                     │ ──────────────────────────────────────────────────────────────────────── │
+─┬ ▸ 46 · main · clau│                                                                          │
+ │                   │         ╭──────────────────────────────────────────────────────────────╮ │                     │
+ │ ▐▛███▛█   Claude C│ name    │ 49                                                           │ │                     │
+ │▝▜██████▀  Sonnet 5│         ╰──────────────────────────────────────────────────────────────╯ │                     │
+ │ ▝▝   ▝▝   /private│         ╭──────────────────────────────────────────────────────────────╮ │                     │
+ │                   │ dir     │ /tmp/hq-qa-134/i137/lib137                                   │ │                     │
+ │  Get to finished w│         ╰──────────────────────────────────────────────────────────────╯ │                     │
+ │                   │         ╭──────────────────────────────────────────────────────────────╮ │                     │
+ │                   │ prompt  │                                                              │ │                     │
+ │                   │         ╰──────────────────────────────────────────────────────────────╯ │                     │
+ │                   │ dir defaults to the cursor row's repo · Tab next field · Esc cancel      │                     │
+ │                   │ sbx: error: request failed: 403 Forbidden: pull failed for image "hq-qa- │                     │
+ │                   │ 137/no-such-image:latest"; created with sandbox.template hq-qa-137/no-   │                     │
+ │                   │ such-image:latest (/tmp/hq-qa-134/i137/config/hq/preferences.json)       │                     │
+ │                   │                                                                          │                     │
+ │                   │                           Start ⏎       Cancel                           │                     │
+ │                   ╰──────────────────────────────────────────────────────────────────────────╯                     │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                            ✔ Update installed · /restart to apply  │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │❯ Try "create a util logging.py that..."                                                                            │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  a view: all  r refresh  q quit

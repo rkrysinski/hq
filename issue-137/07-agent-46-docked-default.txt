@@ -1,0 +1,36 @@
+  hq  2 agents · 2 done  view: attention                                                               Mon 09:36 · dev
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ 46      app137      main          ● done         13s   -                                   ⏎ open   c code   k kill  │
+  nothing else needs you · 1 more agent hidden · press a to show all
+
+
+
+
+
+─┬ ▸ 46 · main · claude-app137
+ │                                                                                                                    │
+ │ ▐▛███▛█   Claude Code v2.1.306                                                                                     │
+ │▝▜██████▀  Sonnet 5.5 · Claude API                                                                                  │
+ │ ▝▝   ▝▝   /private/tmp/hq-qa-134/i137/app137                                                                       │
+ │                                                                                                                    │
+ │  Get to finished work sooner with Opus 5.5. Switch anytime with /model.                                            │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                 Plugins changed. Run /reload-plugins to activate.  │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │❯ Try "create a util logging.py that..."                                                                            │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                     │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new

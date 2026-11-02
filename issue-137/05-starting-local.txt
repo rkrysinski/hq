@@ -1,0 +1,36 @@
+  hq  1 agent · 1 working  view: attention                                                             Mon 09:35 · dev
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ 45      app137      main          ● working      1s    -                                   ⏎ open   c code   k kill  │
+
+
+
+
+
+
+─┬ ▸ 45 · main · hq-local-app137
+ │                                                                                                                    │
+ │ ▐▛███▛█   Claude Code v2.1.306                                                                                     │
+ │▝▜██████▀  llmman.provider/lmstudio/qwen-local · API Usage Billing                                                  │
+ │ ▝▝   ▝▝   /private/tmp/hq-qa-134/i137/app137                                                                       │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │⚠ Both claude.ai and ANTHROPIC_API_KEY set · auth may not work as expected                                          │
+ │  · to use claude.ai: Unset the ANTHROPIC_API_KEY environment variable, or claude /logout then say "No" to the API  │
+ │  key approval before login.                                                                                        │
+ │  · to use ANTHROPIC_API_KEY: claude /logout to sign out of claude.ai.                                              │
+ │⚠ Model "llmman.provider/lmstudio/qwen-local" isn't recognized · context assumed to be 200k tokens · update Claude  │
+ │  Code, or see the docs                                                                                             │
+ │                                                                                                                    │
+ │  Get to finished work sooner with Opus 5.5. Switch anytime with /model.                                            │
+ │                                                                                                                    │
+ │❯ say hi in one word                                                                                                │
+ │                                                                                                                    │
+ │✶ Boondoggling…                                                                                                     │
+ │  ⚠ claude.ai connectors are disabled because ANTHROPIC_API_KEY or another auth source is set and takes precedenc…  │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │❯                                                                                                                   │
+ │────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle) · esc to interrupt · ← for agents                                   │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ alt+j/k dock next/previous  alt+a dock first needing you  alt+l list  alt+n new
