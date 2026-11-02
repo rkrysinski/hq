@@ -94,7 +94,7 @@ func runSend(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	relaunch := fmt.Sprintf("relaunch it with hq sandbox restart %s, or kill it and start it again", a.Repo())
+	relaunch := fmt.Sprintf("relaunch it with %s, or kill it and start it again", restartCommand(a))
 	switch {
 	case a.State == state.Ended:
 		return usageErr("%s has ended and cannot receive messages; %s", a.Name, relaunch)

@@ -211,6 +211,24 @@ func Find(all []Sandbox, path, setup string, same func(a, b string) bool) (Sandb
 	return Sandbox{}, false
 }
 
+// OfRepository returns every sandbox of the repository at path, the
+// default's first (Find), then each setup's, named hq-<setup>-<dir>, in
+// sbx's order. Another sandbox on the workspace, which hq never uses, is
+// not one of them (#136).
+func OfRepository(all []Sandbox, path string, same func(a, b string) bool) []Sandbox {
+	var out []Sandbox
+	if def, ok := Find(all, path, DefaultSetup, same); ok {
+		out = append(out, def)
+	}
+	dir := filepath.Base(path)
+	for _, s := range all {
+		if len(s.Workspaces) > 0 && same(s.Workspaces[0], path) && SetupOf(s.Name, dir) != DefaultSetup {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 // SandboxName is the name hq gives the sandbox of a setup for a repository
 // in directory dir: hq-<setup>-<dir>, dir cleaned as sbx cleans it for the
 // names it gives (lowercased, anything but letters, digits, hyphens and
