@@ -87,3 +87,7 @@ _Avoid_: question id, prompt id
 **Dialog verdict**:
 Whether an agent is at a dialog, whose (the one its hooks reported, Claude's own, or a subagent's), since when, and what it asks, decided in one place from what the look saw; the agent needs input exactly while it is at one. The hooks open it; the agent's screen may close it only on clear evidence (Claude at work), and opens only Claude's own.
 _Avoid_: dialog state, open dialog flag, needs-input check
+
+**Setup**:
+A named configuration a sandbox is created with: an image, MCP servers, and a model with where it is served from. `default` is the `sandbox` object of the preferences file and what an agent gets without one; the others are under `sandboxes`. A repository has one sandbox per setup it is used with, and an agent runs in the sandbox of the setup it was started on.
+_Avoid_: profile, model setting, flavour, sandbox type

@@ -1,121 +1,278 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/prefs"
+	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
 )
 
-const sandboxUsage = "usage: hq sandbox rm|restart REPO|SANDBOX [-y]"
+const sandboxUsage = "usage: hq sandbox rm|restart REPO|SANDBOX [--setup NAME|--all-setups] [-y]"
+
+// sandboxArgs is hq sandbox's arguments after parsing: setup is the
+// setup's sandbox, the default's unless setupGiven; all every sandbox of
+// the repository.
+type sandboxArgs struct {
+	cmd, repo, setup     string
+	setupGiven, all, yes bool
+}
+
+// flagged reports whether a flag chooses among the repository's sandboxes.
+func (s sandboxArgs) flagged() bool { return s.setupGiven || s.all }
+
+func parseSandbox(args []string) (sandboxArgs, error) {
+	var s sandboxArgs
+	args, setup, given, err := parseSetup(args, sandboxUsage)
+	if err != nil {
+		return s, err
+	}
+	s.setup, s.setupGiven = setup, given
+	var rest []string
+	for _, a := range args {
+		if a == "--all-setups" {
+			s.all = true
+		} else {
+			rest = append(rest, a)
+		}
+	}
+	plain, yes, err := parseYes(rest)
+	if err != nil || len(plain) != 2 || (plain[0] != "rm" && plain[0] != "restart") {
+		return s, usageErr(sandboxUsage)
+	}
+	if s.all && s.setupGiven {
+		return s, usageErr("--setup and --all-setups exclude each other (%s)", sandboxUsage)
+	}
+	s.cmd, s.repo, s.yes = plain[0], plain[1], yes
+	return s, nil
+}
 
 func runSandbox(env Env, d deps, args []string) error {
-	rest, yes, err := parseYes(args)
-	if err != nil || len(rest) != 2 || (rest[0] != "rm" && rest[0] != "restart") {
-		return usageErr(sandboxUsage)
+	s, err := parseSandbox(args)
+	if err != nil {
+		return err
 	}
 	as, err := agents(d)
 	if err != nil {
 		return err
 	}
-	sb, err := resolveSandbox(d, rest[1])
+	sbs, err := resolveSandboxes(d, s)
 	if err != nil {
 		return err
 	}
 	var mine []agent.Agent
 	for _, a := range as {
-		if a.Sandbox == sb.Name {
+		if slices.ContainsFunc(sbs, func(sb sbx.Sandbox) bool { return a.Sandbox == sb.Name }) {
 			mine = append(mine, a)
 		}
 	}
-	if rest[0] == "rm" {
-		return sandboxRm(env, d, sb, mine, yes)
+	if s.cmd == "rm" {
+		return sandboxRm(env, d, sbs, mine, s.yes)
 	}
-	return sandboxRestart(env, d, sb, mine, yes)
+	return sandboxRestart(env, d, sbs, mine, s.yes)
 }
 
-// resolveSandbox finds the sandbox of REPO: a directory in the repository
-// (resolved as in hq new), the repository's name as hq ls shows it, or the
-// sandbox's own name as sbx ls shows it (#113).
-func resolveSandbox(d deps, repoArg string) (sbx.Sandbox, error) {
+// resolveSandboxes finds the sandboxes REPO and the flags name (#113,
+// #135, #136): REPO is a directory in the repository, resolved as in hq
+// new, or a name (sandboxesNamed).
+func resolveSandboxes(d deps, a sandboxArgs) ([]sbx.Sandbox, error) {
 	all, err := d.sbx.List()
 	if err != nil {
-		return sbx.Sandbox{}, sbxErr(err)
+		return nil, sbxErr(err)
 	}
-	dir := repoArg
+	dir := a.repo
 	if !filepath.IsAbs(dir) {
 		cwd, err := d.getwd()
 		if err != nil {
-			return sbx.Sandbox{}, envErr("%v", err)
+			return nil, envErr("%v", err)
 		}
 		dir = filepath.Join(cwd, dir)
 	}
-	if d.isDir(dir) {
-		root, ok := d.repoRoot(dir)
-		if !ok {
-			return sbx.Sandbox{}, notFoundErr("%s is not in a git repository", dir)
-		}
-		if s, ok := sbx.ByWorkspace(all, root, d.samePath); ok {
-			return s, nil
-		}
-		return sbx.Sandbox{}, notFoundErr("no sandbox for %s (hq new creates it)", filepath.Base(root))
+	if !d.isDir(dir) {
+		return sandboxesNamed(d, all, a)
 	}
-	var found []sbx.Sandbox
-	for _, s := range all {
-		if s.Name == repoArg || len(s.Workspaces) > 0 && filepath.Base(s.Workspaces[0]) == repoArg {
-			found = append(found, s)
-		}
+	root, ok := d.repoRoot(dir)
+	if !ok {
+		return nil, notFoundErr("%s is not in a git repository", dir)
 	}
-	switch len(found) {
-	case 0:
-		return sbx.Sandbox{}, notFoundErr("no sandbox for '%s' (see hq ls)", repoArg)
-	case 1:
-		return found[0], nil
+	if sbs := chosenSandboxes(d, all, root, a); len(sbs) > 0 {
+		return sbs, nil
 	}
-	return sbx.Sandbox{}, usageErr("'%s' names %d repositories; give the repository's directory or its sandbox's name", repoArg, len(found))
+	return nil, noSandboxErr(filepath.Base(root), a.setup)
 }
 
-func sandboxRm(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes bool) error {
-	var running []string
+// chosenSandboxes are the sandboxes of the repository at root the flags
+// choose: its default sandbox, the sandbox of --setup, or with
+// --all-setups every one it has (sbx.OfRepository); none when it has none
+// of them.
+func chosenSandboxes(d deps, all []sbx.Sandbox, root string, a sandboxArgs) []sbx.Sandbox {
+	if a.all {
+		return sbx.OfRepository(all, root, d.samePath)
+	}
+	if s, ok := sbx.Find(all, root, a.setup, d.samePath); ok {
+		return []sbx.Sandbox{s}
+	}
+	return nil
+}
+
+// sandboxesNamed finds the sandboxes for REPO as the repository's name as
+// hq ls shows it, the flags choosing among each such repository's
+// sandboxes; without a flag REPO may also be a sandbox's own name as sbx
+// ls shows it, whatever its setup. A name that is more than one
+// repository's is refused, asking for the directory.
+func sandboxesNamed(d deps, all []sbx.Sandbox, a sandboxArgs) ([]sbx.Sandbox, error) {
+	repos := repositoriesNamed(d, all, a.repo)
+	var found [][]sbx.Sandbox // per repository that has those chosen
+	for _, root := range repos {
+		if sbs := chosenSandboxes(d, all, root, a); len(sbs) > 0 {
+			found = append(found, sbs)
+		}
+	}
+	if i := slices.IndexFunc(all, func(s sbx.Sandbox) bool { return s.Name == a.repo }); i >= 0 {
+		switch {
+		case a.all && len(repos) == 0:
+			return nil, usageErr("--all-setups takes a repository, and %s is a sandbox's name", a.repo)
+		case a.flagged() && len(repos) == 0:
+			return nil, usageErr("--setup takes a repository, and %s is a sandbox's name", a.repo)
+		case !a.flagged() && !slices.ContainsFunc(found, func(sbs []sbx.Sandbox) bool { return sbs[0].Name == a.repo }):
+			found = append(found, []sbx.Sandbox{all[i]})
+		}
+	}
+	switch {
+	case len(found) == 1:
+		return found[0], nil
+	case len(found) > 1 && a.all:
+		return nil, usageErr("'%s' names %d repositories; give the repository's directory", a.repo, len(found))
+	case len(found) > 1:
+		return nil, usageErr("'%s' names %d repositories; give the repository's directory or its sandbox's name", a.repo, len(found))
+	case len(repos) > 0 && a.setupGiven:
+		return nil, noSandboxErr(a.repo, a.setup)
+	}
+	return nil, notFoundErr("no sandbox for '%s' (see hq ls)", a.repo)
+}
+
+// repositoriesNamed are the repositories in a directory named name that
+// have a sandbox, each once: the primary workspaces of the sandboxes.
+func repositoriesNamed(d deps, all []sbx.Sandbox, name string) []string {
+	var repos []string
+	for _, s := range all {
+		if len(s.Workspaces) == 0 || filepath.Base(s.Workspaces[0]) != name || slices.ContainsFunc(repos, func(r string) bool { return d.samePath(r, s.Workspaces[0]) }) {
+			continue
+		}
+		repos = append(repos, s.Workspaces[0])
+	}
+	return repos
+}
+
+// noSandboxErr says the repository in directory dir has no sandbox of
+// setup (with --all-setups, of any) and which hq new creates it.
+func noSandboxErr(dir, setup string) error {
+	if setup == prefs.DefaultSetup {
+		return notFoundErr("no sandbox for %s (hq new creates it)", dir)
+	}
+	return notFoundErr("no sandbox of setup '%s' for %s (hq new --setup %s creates it)", setup, dir, setup)
+}
+
+// sandboxNames is "the sandbox X" or "the sandboxes X, Y".
+func sandboxNames(sbs []sbx.Sandbox) string {
+	var names []string
+	for _, s := range sbs {
+		names = append(names, s.Name)
+	}
+	if len(names) == 1 {
+		return "the sandbox " + names[0]
+	}
+	return "the sandboxes " + strings.Join(names, ", ")
+}
+
+func sandboxRm(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes bool) error {
+	var running, busy []string
 	for _, a := range mine {
 		if a.Alive {
 			running = append(running, a.Name)
 		}
 	}
+	for _, sb := range sbs {
+		if slices.ContainsFunc(mine, func(a agent.Agent) bool { return a.Alive && a.Sandbox == sb.Name }) {
+			busy = append(busy, sb.Name)
+		}
+	}
 	if len(running) > 0 {
-		return usageErr("agents of %s are running (%s); end them first with hq kill", sb.Name, strings.Join(running, ", "))
+		return usageErr("agents of %s are running (%s); end them first with hq kill", strings.Join(busy, ", "), strings.Join(running, ", "))
+	}
+	its := "its state"
+	if len(sbs) > 1 {
+		its = "their state"
 	}
 	if !yes {
-		if ok, err := confirm(env, d, fmt.Sprintf("Remove the sandbox %s and its state?", sb.Name)); !ok || err != nil {
+		if ok, err := confirm(env, d, fmt.Sprintf("Remove %s and %s?", sandboxNames(sbs), its)); !ok || err != nil {
 			return err
 		}
 	}
-	if err := d.sbx.Remove(sb.Name); err != nil {
-		return sbxErr(err)
+	if len(sbs) == 1 {
+		if err := d.sbx.Remove(sbs[0].Name); err != nil {
+			return sbxErr(err)
+		}
+		fmt.Fprintf(env.Stdout, "removed %s\n", sandboxNames(sbs))
+		return nil
 	}
-	fmt.Fprintf(env.Stdout, "removed the sandbox %s\n", sb.Name)
+	// Of several, one sbx fails to remove leaves the others to remove; hq
+	// says which it removed and which not (#134).
+	var removed []sbx.Sandbox
+	var failed []string // the sandbox: sbx's error
+	for _, sb := range sbs {
+		err := d.sbx.Remove(sb.Name)
+		var pe *proc.Error
+		switch {
+		case errors.As(err, &pe) && pe.NotFound:
+			return sbxErr(err)
+		case err != nil:
+			failed = append(failed, sb.Name+": "+sbxErr(err).Error())
+		default:
+			removed = append(removed, sb)
+		}
+	}
+	if len(removed) > 0 {
+		fmt.Fprintf(env.Stdout, "removed %s\n", sandboxNames(removed))
+	}
+	if len(failed) > 0 {
+		return envErr("could not remove %s", strings.Join(failed, "; "))
+	}
 	return nil
+}
+
+// restartCommand is the hq sandbox restart that relaunches a: its
+// repository's, with its setup unless that is the default (#136).
+func restartCommand(a agent.Agent) string {
+	cmd := "hq sandbox restart " + a.Repo()
+	if setup := a.Setup(); setup != prefs.DefaultSetup {
+		cmd += " --setup " + setup
+	}
+	return cmd
 }
 
 // sessionID is the form of a Claude session id; anything else in a state
 // file, which the sandbox writes, is not passed to Claude as an argument.
 var sessionID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
-// sandboxRestart stops and starts the sandbox, then relaunches each of its
-// agents in its own pane, continuing its conversation (design §3.6). The
+// sandboxRestart stops and starts the sandboxes, then relaunches each of
+// their agents in its own pane, continuing its conversation (design §3.6). The
 // agents keep their windows, names and ids throughout, so their rows stay
 // (ended, then starting), a docked agent stays docked, and what they last
 // reported stays until they report anew.
-func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes bool) error {
+func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes bool) error {
 	var names []string
 	for _, a := range mine {
 		names = append(names, a.Name)
 	}
 	if !yes {
-		q := fmt.Sprintf("Restart the sandbox %s?", sb.Name)
+		q := fmt.Sprintf("Restart %s?", sandboxNames(sbs))
 		if len(mine) > 0 {
 			q += fmt.Sprintf(" This ends and relaunches %s (%s).", plural(len(mine), "agent"), strings.Join(names, ", "))
 		}
@@ -139,8 +296,10 @@ func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes boo
 			return tmuxErr(err)
 		}
 	}
-	if err := d.sbx.Stop(sb.Name); err != nil {
-		return sbxErr(err)
+	for _, sb := range sbs {
+		if err := d.sbx.Stop(sb.Name); err != nil {
+			return sbxErr(err)
+		}
 	}
 	// A relaunched agent keeps its id, so its old session must be done
 	// writing its state file before the new one starts; sbx stop usually
@@ -149,8 +308,10 @@ func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes boo
 		return err
 	}
 	// sbx has no start command; running anything in a sandbox starts it.
-	if err := d.sbx.Exec(sb.Name, "true"); err != nil {
-		return sbxErr(err)
+	for _, sb := range sbs {
+		if err := d.sbx.Exec(sb.Name, "true"); err != nil {
+			return sbxErr(err)
+		}
 	}
 	ws, err := d.tmux.Windows()
 	if err != nil {
@@ -172,10 +333,10 @@ func sandboxRestart(env Env, d deps, sb sbx.Sandbox, mine []agent.Agent, yes boo
 		names = append(names, a.Name)
 	}
 	if len(names) == 0 {
-		fmt.Fprintf(env.Stdout, "restarted the sandbox %s\n", sb.Name)
+		fmt.Fprintf(env.Stdout, "restarted %s\n", sandboxNames(sbs))
 		return nil
 	}
-	fmt.Fprintf(env.Stdout, "restarted the sandbox %s; relaunched %s\n", sb.Name, strings.Join(names, ", "))
+	fmt.Fprintf(env.Stdout, "restarted %s; relaunched %s\n", sandboxNames(sbs), strings.Join(names, ", "))
 	return nil
 }
 

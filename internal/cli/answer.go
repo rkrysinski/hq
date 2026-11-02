@@ -194,7 +194,7 @@ func answer(env Env, d deps, r answerRequest) error {
 // Claude's own that scrolls stay the user's at the agent (spec Phase 2).
 func answerable(a agent.Agent, ask *state.Ask) error {
 	at := fmt.Sprintf("answer it at the agent (hq go %s)", a.Name)
-	relaunch := fmt.Sprintf("relaunch it with hq sandbox restart %s, or kill it and start it again", a.Repo())
+	relaunch := fmt.Sprintf("relaunch it with %s, or kill it and start it again", restartCommand(a))
 	dialog := a.Dialog()
 	switch {
 	case a.State == state.Ended:

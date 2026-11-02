@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -10,6 +11,9 @@ import (
 
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/gh"
+	"github.com/rkrysinski/hq/internal/prefs"
+	"github.com/rkrysinski/hq/internal/proc"
+	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -74,7 +78,7 @@ func TestTheDialogStartsAgentsAsHqNewDoes(t *testing.T) {
 	start := dialogStart(f.deps(), "/w/app")
 	for _, dir := range []string{"~/app", "sub", "/w/app/"} {
 		name := "a" + string(rune('0'+len(f.tmux.windows)))
-		if err := start(name, dir, "say hi"); err != nil {
+		if err := start(name, dir, "say hi", ""); err != nil {
 			t.Fatalf("%s: %v", dir, err)
 		}
 		w := f.tmux.windows[len(f.tmux.windows)-1]
@@ -91,12 +95,12 @@ func TestTheDialogStartsAgentsAsHqNewDoes(t *testing.T) {
 		}
 	}
 	// A release's name, its version and all (#119).
-	if err := start("rel-1.10.5-qa", "/w/app", ""); err != nil || f.tmux.windows[len(f.tmux.windows)-1].Name != "rel-1.10.5-qa" {
+	if err := start("rel-1.10.5-qa", "/w/app", "", ""); err != nil || f.tmux.windows[len(f.tmux.windows)-1].Name != "rel-1.10.5-qa" {
 		t.Fatalf("a release's name: %v", err)
 	}
 	// A failure to dock leaves the agent started, the dialog closing.
 	f.tmux.dockErr = errors.New("tmux gone")
-	if err := start("b1", "/w/app", ""); err != nil {
+	if err := start("b1", "/w/app", "", ""); err != nil {
 		t.Fatalf("a failed dock failed the start: %v", err)
 	}
 }
@@ -105,7 +109,7 @@ func TestTheDialogsErrorsBelongToTheirFields(t *testing.T) {
 	f := newFakes()
 	f.sbx.sandboxes = sandboxesFor("/w/app")
 	start := dialogStart(f.deps(), "/w/app")
-	if err := start("a", "/w/app", ""); err != nil {
+	if err := start("a", "/w/app", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	before := len(f.tmux.windows)
@@ -121,7 +125,7 @@ func TestTheDialogsErrorsBelongToTheirFields(t *testing.T) {
 		{"b", "/w/plain", dialog.Dir, "/w/plain is not in a git repository"},
 	} {
 		var fe dialog.FieldError
-		err := start(tc.name, tc.dir, "")
+		err := start(tc.name, tc.dir, "", "")
 		if !errors.As(err, &fe) || fe.Field != tc.field || err.Error() != tc.msg {
 			t.Errorf("%s in %s: %v", tc.name, tc.dir, err)
 		}
@@ -131,8 +135,114 @@ func TestTheDialogsErrorsBelongToTheirFields(t *testing.T) {
 	}
 	f.sbx.createErr = errors.New("daemon not running")
 	var fe dialog.FieldError
-	if err := start("b", "/w/lib", ""); err == nil || errors.As(err, &fe) {
+	if err := start("b", "/w/lib", "", ""); err == nil || errors.As(err, &fe) {
 		t.Fatalf("sbx failure: %v", err)
+	}
+}
+
+func TestTheDialogOffersTheSetupsOfThePreferences(t *testing.T) {
+	f := newFakes()
+	f.run("__new-dialog", "/w/app")
+	if v := ansi.Strip(f.dialog.View()); strings.Contains(v, "setup") {
+		t.Fatalf("a setup field without setups:\n%s", v)
+	}
+	f = setupFakes()
+	f.prefs.Sandboxes["fast"] = prefs.Sandbox{}
+	if code, _, errOut := f.run("__new-dialog", "/w/app"); code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if v := ansi.Strip(f.dialog.View()); !strings.Contains(v, "│ ● default  ○ fast  ○ local") {
+		t.Fatalf("no setups:\n%s", v)
+	}
+}
+
+func TestTheNewAgentPopupMakesRoomForTheSetupField(t *testing.T) {
+	f := setupFakes()
+	f.exe = "/opt/hq"
+	if err := listSource(f.deps(), "%1").NewAgent("/w/app"); err != nil {
+		t.Fatal(err)
+	}
+	f.prefs.Sandboxes = map[string]prefs.Sandbox{}
+	if err := listSource(f.deps(), "%1").NewAgent("/w/app"); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"%1 /w/app 76x23 /opt/hq __new-dialog /w/app", "%1 /w/app 76x20 /opt/hq __new-dialog /w/app"}
+	if strings.Join(f.tmux.popups, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("popups %q", f.tmux.popups)
+	}
+}
+
+func TestTheDialogNamesTheSandboxTheAgentWillRunIn(t *testing.T) {
+	f := setupFakes()
+	f.env["HOME"] = "/w"
+	f.repos["/w/My_Repo x"] = "/w/My_Repo x"
+	f.sbx.sandboxes = append(f.sbx.sandboxes,
+		sbx.Sandbox{Name: "mine", Status: "running", Workspaces: []string{"/w/lib"}},
+		sbx.Sandbox{Name: "hq-local-lib", Status: "running", Workspaces: []string{"/w/lib"}})
+	note := dialogSandbox(f.deps(), "/w/app")
+	for _, tc := range []struct {
+		setup, dir, name string
+		exists           bool
+	}{
+		{"default", "/w/app", "claude-app", true},
+		{"local", "/w/app", "hq-local-app", false},
+		{"local", "sub", "hq-local-app", false}, // as typed: relative to the cwd
+		{"default", "~/lib", "mine", true},      // the default whatever its name
+		{"local", "/w/lib", "hq-local-lib", true},
+		{"default", "/w/My_Repo x", "claude-my-repo-x", false}, // sbx's own name
+		{"local", "/w/My_Repo x", "hq-local-my-repo-x", false},
+		{"local", "/w/plain", "", false}, // no repository
+	} {
+		if name, exists := note(tc.setup, tc.dir); name != tc.name || exists != tc.exists {
+			t.Errorf("%s in %s: %q %v, want %q %v", tc.setup, tc.dir, name, exists, tc.name, tc.exists)
+		}
+	}
+	// sbx is asked once per dialog; when it cannot answer, no note.
+	f.sbx.sandboxes = nil
+	if name, _ := note("default", "/w/app"); name != "claude-app" {
+		t.Fatalf("asked sbx again: %q", name)
+	}
+	f.sbx.err = errors.New("daemon not running")
+	if name, _ := dialogSandbox(f.deps(), "/w/app")("default", "/w/app"); name != "" {
+		t.Fatalf("sbx failing: %q", name)
+	}
+}
+
+func TestTheDialogStartsTheAgentOnTheSetupPicked(t *testing.T) {
+	f := setupFakes()
+	start := dialogStart(f.deps(), "/w/app")
+	if err := start("43", "/w/app", "", "local"); err != nil {
+		t.Fatal(err)
+	}
+	want := sbx.Options{Name: "hq-local-app", Template: "img:local", StaticMCP: []string{"docs"}, Model: "qwen-local", Provider: "lmstudio"}
+	if len(f.sbx.createdWith) != 1 || !reflect.DeepEqual(f.sbx.createdWith[0], want) {
+		t.Fatalf("created with %+v", f.sbx.createdWith)
+	}
+	w := f.tmux.windows[len(f.tmux.windows)-1]
+	if w.Name != "43" || w.Options["sandbox"] != "hq-local-app" || f.tmux.docked != w.ID {
+		t.Fatalf("window %+v, docked %q", w, f.tmux.docked)
+	}
+	for _, setup := range []string{"default", ""} {
+		name := "d" + setup
+		if err := start(name, "/w/app", "", setup); err != nil {
+			t.Fatal(err)
+		}
+		if w := f.tmux.windows[len(f.tmux.windows)-1]; w.Options["sandbox"] != "claude-app" || len(f.sbx.createdWith) != 1 {
+			t.Fatalf("%q: in %q, created %d", setup, w.Options["sandbox"], len(f.sbx.createdWith))
+		}
+	}
+}
+
+// A setup sbx refuses fails the dialog with what hq new prints.
+func TestTheDialogsErrorForARefusedSetupIsHqNews(t *testing.T) {
+	f := setupFakes()
+	f.sbx.sandboxes = nil
+	f.sbx.createErr = &proc.Error{Name: "sbx", Msg: "error: unknown provider 'lmstudoi'"}
+	_, _, errOut := f.run("new", "a", "--setup", "local")
+	err := dialogStart(f.deps(), "/w/app")("a", "/w/app", "", "local")
+	var fe dialog.FieldError
+	if err == nil || errors.As(err, &fe) || "hq: "+err.Error()+"\n" != errOut {
+		t.Fatalf("dialog %v, hq new %q", err, errOut)
 	}
 }
 

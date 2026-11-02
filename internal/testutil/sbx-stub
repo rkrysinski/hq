@@ -6,7 +6,8 @@
 # Workspaces may be Windows paths, as sbx.exe sees them from WSL.
 # With SBX_STUB_BOOT set to a path, `run` starts a sandbox that is not
 # running only once that file exists, as sbx takes a while to start one
-# before the session begins. `create` logs its arguments to creates.log,
+# before the session begins. `create` and `run --detached` log their
+# arguments to creates.log (the latter after `run --detached`),
 # and with SBX_STUB_CREATE_ERR set fails with that error, as sbx does for a
 # template or MCP server it cannot find. With SBX_STUB_LOG set to a path,
 # every call is appended to that file with the time it came, to tell which
@@ -24,6 +25,35 @@ put() {
     printf '%s\n%s\n' "$2" "$3" >"$d/.put.$$"
     mv -f "$d/.put.$$" "$d/sandboxes/$1"
 }
+# create STATUS ARGS... is sbx create, and sbx run --detached, as ARGS
+# give them: logged to creates.log (run --detached with its command), named
+# --name or claude-<dir> as sbx names it, refused as sbx refuses a name
+# taken by another workspace.
+create() {
+    status=$1
+    shift
+    printf '%s\n' "$*" >>"$d/creates.log"
+    if [ -n "${SBX_STUB_CREATE_ERR:-}" ]; then
+        printf 'error: %s\n' "$SBX_STUB_CREATE_ERR" >&2
+        exit 1
+    fi
+    ws= name=
+    while [ $# -gt 0 ]; do
+        case $1 in
+        --name) name=$2; shift ;;
+        --template | -t | --static-mcp | --model | --provider) shift ;;
+        -q | --quiet | --detached | -d | claude | run) ;;
+        *) ws=$1 ;;
+        esac
+        shift
+    done
+    [ -n "$name" ] || name=claude-$(basename "$(printf %s "$ws" | tr '\\' /)" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9.\n-' -)
+    if [ -e "$d/sandboxes/$name" ] && [ "$(sed -n 2p "$d/sandboxes/$name")" != "$ws" ]; then
+        printf 'error: sandbox %s already exists and can'"'"'t be given new workspaces\n' "$name" >&2
+        exit 1
+    fi
+    put "$name" "$status" "$ws"
+}
 cmd=$1
 shift
 case $cmd in
@@ -40,23 +70,16 @@ ls)
     printf ']}\n'
     ;;
 create)
-    printf '%s\n' "$*" >>"$d/creates.log"
-    if [ -n "${SBX_STUB_CREATE_ERR:-}" ]; then
-        printf 'error: %s\n' "$SBX_STUB_CREATE_ERR" >&2
-        exit 1
-    fi
-    ws=
-    while [ $# -gt 0 ]; do
-        case $1 in
-        --template | -t | --static-mcp) shift ;;
-        -q | --quiet | claude) ;;
-        *) ws=$1 ;;
-        esac
-        shift
-    done
-    put "claude-$(basename "$(printf %s "$ws" | tr '\\' /)")" stopped "$ws"
+    create stopped "$@"
     ;;
 run)
+    # run --detached creates a sandbox (with a model, as sbx create takes
+    # none) and starts it without a session.
+    if [ "$1" = --detached ]; then
+        shift
+        create running run --detached "$@"
+        exit 0
+    fi
     [ "$1" = --name ] || { echo "stub: run needs --name" >&2; exit 1; }
     name=$2
     shift 3 # --name NAME --

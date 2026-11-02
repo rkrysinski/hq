@@ -182,7 +182,8 @@ func dockAs(d deps, name string, how func(window, title string) error) error {
 const startedValue = "started"
 
 // newDialog opens the New agent dialog over the dashboard, dir prefilled
-// (the directory hq was started from when empty), until it closes. The
+// (the directory hq was started from when empty), until it closes; taller
+// with the setup field. The
 // dialog runs there too, so a relative directory typed in it is under it.
 func newDialog(d deps, pane, dir string) error {
 	exe, err := d.executable()
@@ -198,7 +199,11 @@ func newDialog(d deps, pane, dir string) error {
 	if dir == "" {
 		dir = started
 	}
-	return d.tmux.Popup(pane, started, dialog.Width, dialog.Height, []string{exe, newDialogCommand, dir})
+	h := dialog.Height
+	if hasSetups(d) {
+		h = dialog.HeightWithSetups
+	}
+	return d.tmux.Popup(pane, started, dialog.Width, h, []string{exe, newDialogCommand, dir})
 }
 
 // killDialog opens the Kill dialog on the agent named name over the
