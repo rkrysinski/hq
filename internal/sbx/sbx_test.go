@@ -3,6 +3,7 @@ package sbx
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/rkrysinski/hq/internal/platform"
@@ -80,6 +81,37 @@ func TestFindTellsTheSetupsOfAWorkspaceApart(t *testing.T) {
 		}
 		if !ok || s.Name != c.want || s.Workspaces[0] != c.path {
 			t.Errorf("%s %s: %+v %v, want %s", c.path, c.setup, s, ok, c.want)
+		}
+	}
+}
+
+// Every sandbox of a repository is its default and each setup's on its
+// workspace, the default first: neither a second sandbox made by hand on
+// it, which hq never uses, nor another workspace's (#136).
+func TestOfRepositoryIsTheDefaultThenEachSetupsSandbox(t *testing.T) {
+	all := []Sandbox{
+		{Name: "hq-local-app", Workspaces: []string{"/w/app"}},
+		{Name: "my-own", Workspaces: []string{"/w/app"}},
+		{Name: "docs", Workspaces: []string{"/w/docs", "/w/app"}},
+		{Name: "second", Workspaces: []string{"/w/app"}},
+		{Name: "hq-gone-app", Workspaces: []string{"/w/app"}},
+		{Name: "hq-local-lib", Workspaces: []string{"/w/app"}},
+		{Name: "hq-local-app", Workspaces: []string{"/x/app"}},
+	}
+	for _, c := range []struct{ path, want string }{
+		{"/w/app", "my-own hq-local-app hq-gone-app"},
+		{"/x/app", "hq-local-app"},
+		{"/w/lib", ""},
+	} {
+		var got []string
+		for _, s := range OfRepository(all, c.path, same) {
+			if s.Workspaces[0] != c.path {
+				t.Errorf("%s: %+v", c.path, s)
+			}
+			got = append(got, s.Name)
+		}
+		if strings.Join(got, " ") != c.want {
+			t.Errorf("%s: %q, want %q", c.path, got, c.want)
 		}
 	}
 }

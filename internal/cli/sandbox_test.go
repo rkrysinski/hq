@@ -320,3 +320,158 @@ func TestARelaunchedAgentsEndCountsFromItsPanesDeathNotFromTheRestart(t *testing
 		t.Fatalf("ended:\n%s", out)
 	}
 }
+
+// localSandboxFakes is sandboxFakes with app's local sandbox, hq-local-app, listed
+// first, and its running agent d.
+func localSandboxFakes() *fakes {
+	f := sandboxFakes()
+	f.sbx.sandboxes = append([]sbx.Sandbox{{Name: "hq-local-app", Status: "running", Workspaces: []string{"/w/app"}}}, f.sbx.sandboxes...)
+	d := agentWindow("@7", "d", "/w/app", f.now.Add(-time.Hour), false)
+	d.Options["sandbox"] = "hq-local-app"
+	d.Pane = "%7"
+	f.tmux.windows = append(f.tmux.windows, d)
+	f.tmux.next = 8
+	return f
+}
+
+// --setup NAME is that setup's sandbox of the repository: its agents keep
+// rm from it, the default sandbox's do not (#136).
+func TestSandboxRmWithASetupRemovesThatSetupsSandboxOnly(t *testing.T) {
+	for _, repo := range []string{"/w/app", "app"} {
+		f := localSandboxFakes()
+		code, _, errOut := f.run("sandbox", "rm", repo, "--setup", "local", "-y")
+		if code != ExitUsage || errOut != "hq: agents of hq-local-app are running (d); end them first with hq kill\n" || len(f.sbx.calls) != 0 {
+			t.Fatalf("%s with d running: exit %d %q calls %v", repo, code, errOut, f.sbx.calls)
+		}
+		f.tmux.windows[4].PaneDead = true // d ended; a still runs in claude-x
+		f.stdin = "y\n"
+		code, out, errOut := f.run("sandbox", "rm", repo, "--setup", "local")
+		if code != 0 || out != "Remove the sandbox hq-local-app and its state? [y/N] removed the sandbox hq-local-app\n" {
+			t.Fatalf("%s: exit %d %q %q", repo, code, out, errOut)
+		}
+		if got := strings.Join(f.sbx.calls, "; "); got != "rm hq-local-app" {
+			t.Fatalf("%s: sbx calls %q", repo, got)
+		}
+	}
+}
+
+// A setup the repository has no sandbox of is not found, whether or not the
+// preferences name it; --setup takes a repository, not a sandbox's name
+// (#136).
+func TestSandboxWithASetupItHasNoSandboxOf(t *testing.T) {
+	f := localSandboxFakes()
+	for _, tc := range []struct {
+		args []string
+		code int
+		msg  string
+	}{
+		{[]string{"sandbox", "rm", "/w/app", "--setup", "big"}, ExitNotFound, "no sandbox of setup 'big' for app (hq new --setup big creates it)"},
+		{[]string{"sandbox", "restart", "app", "--setup=big", "-y"}, ExitNotFound, "no sandbox of setup 'big' for app (hq new --setup big creates it)"},
+		{[]string{"sandbox", "restart", "lib", "--setup", "local"}, ExitNotFound, "no sandbox of setup 'local' for lib (hq new --setup local creates it)"},
+		{[]string{"sandbox", "restart", "nope", "--setup", "local"}, ExitNotFound, "no sandbox for 'nope' (see hq ls)"},
+		{[]string{"sandbox", "rm", "claude-x", "--setup", "local"}, ExitUsage, "--setup takes a repository, and claude-x is a sandbox's name"},
+		{[]string{"sandbox", "rm", "hq-local-app", "--setup", "local"}, ExitUsage, "--setup takes a repository, and hq-local-app is a sandbox's name"},
+		{[]string{"sandbox", "rm", "app", "--setup"}, ExitUsage, "--setup needs a setup's name (" + sandboxUsage + ")"},
+	} {
+		if code, _, errOut := f.run(tc.args...); code != tc.code || errOut != "hq: "+tc.msg+"\n" {
+			t.Errorf("%v: exit %d %q", tc.args, code, errOut)
+		}
+	}
+	if len(f.sbx.calls) != 0 {
+		t.Fatalf("sbx calls %v", f.sbx.calls)
+	}
+	// --setup default is the default sandbox.
+	if code, out, errOut := f.run("sandbox", "restart", "app", "--setup", "default", "-y"); code != 0 || out != "restarted the sandbox claude-x; relaunched a, b\n" {
+		t.Fatalf("default: exit %d %q %q", code, out, errOut)
+	}
+}
+
+// --all-setups is every sandbox of the repository: one confirmation lists
+// them, each is stopped and started, and every agent of the repository is
+// relaunched in its own pane, continuing its conversation; another
+// repository's agent is left alone (#136).
+func TestSandboxRestartAllSetupsRestartsEverySandboxOfTheRepository(t *testing.T) {
+	for _, repo := range []string{"/w/app", "app"} {
+		f := localSandboxFakes()
+		const session = "00000004-0000-4000-8000-000000000004"
+		f.states["id-d"] = state.Report{State: state.Done, SessionID: session}
+		code, out, _ := f.run("sandbox", "restart", repo, "--all-setups")
+		if code != 0 || len(f.sbx.calls) != 0 || out != "Restart the sandboxes claude-x, hq-local-app? This ends and relaunches 3 agents (a, b, d). [y/N] " {
+			t.Fatalf("%s declined: exit %d %q calls %v", repo, code, out, f.sbx.calls)
+		}
+		f.stdin = "y\n"
+		code, out, errOut := f.run("sandbox", "restart", repo, "--all-setups")
+		if code != 0 || !strings.HasSuffix(out, "[y/N] restarted the sandboxes claude-x, hq-local-app; relaunched a, b, d\n") {
+			t.Fatalf("%s: exit %d %q %q", repo, code, out, errOut)
+		}
+		if got := strings.Join(f.sbx.calls, "; "); got != "stop claude-x; stop hq-local-app; exec claude-x true; exec hq-local-app true" {
+			t.Fatalf("%s: sbx calls %q", repo, got)
+		}
+		if got := strings.Join(f.tmux.respawns, " "); got != "%4 %5 %7" || f.names() != "hq a b c d" {
+			t.Fatalf("%s: respawned %q windows %q", repo, got, f.names())
+		}
+		d := f.tmux.windows[4]
+		if argv := strings.Join(f.tmux.argv[d.ID], " "); !strings.HasPrefix(argv, "sbx run --name hq-local-app -- --settings") || !strings.HasSuffix(argv, " --resume "+session) {
+			t.Fatalf("%s: d's argv %q", repo, argv)
+		}
+		if d.Options["sandbox"] != "hq-local-app" || d.Options["ending"] != "" || d.Options["started"] != agent.Stamp(f.now) {
+			t.Fatalf("%s: d %+v", repo, d)
+		}
+		if w := f.tmux.windows[3]; w.Options["started"] == agent.Stamp(f.now) {
+			t.Fatalf("%s: another repository's agent was touched", repo)
+		}
+	}
+	// A repository with one sandbox asks as for that sandbox.
+	f := sandboxFakes()
+	if code, out, _ := f.run("sandbox", "restart", "/w/lib", "--all-setups"); code != 0 || out != "Restart the sandbox claude-lib? This ends and relaunches 1 agent (c). [y/N] " {
+		t.Fatalf("one sandbox: exit %d %q", code, out)
+	}
+}
+
+// rm --all-setups is refused while any agent of the repository runs, in
+// whichever of its sandboxes; then it removes them all (#136).
+func TestSandboxRmAllSetupsRemovesEverySandboxOfTheRepository(t *testing.T) {
+	f := localSandboxFakes()
+	f.tmux.windows[1].PaneDead = true // a ended: only d runs
+	code, _, errOut := f.run("sandbox", "rm", "app", "--all-setups", "-y")
+	if code != ExitUsage || errOut != "hq: agents of hq-local-app are running (d); end them first with hq kill\n" || len(f.sbx.calls) != 0 {
+		t.Fatalf("d running: exit %d %q calls %v", code, errOut, f.sbx.calls)
+	}
+	f.tmux.windows[1].PaneDead = false
+	if code, _, errOut := f.run("sandbox", "rm", "app", "--all-setups", "-y"); code != ExitUsage || errOut != "hq: agents of claude-x, hq-local-app are running (a, d); end them first with hq kill\n" {
+		t.Fatalf("a and d running: exit %d %q", code, errOut)
+	}
+	f.tmux.windows[1].PaneDead, f.tmux.windows[4].PaneDead = true, true
+	f.stdin = "y\n"
+	code, out, errOut := f.run("sandbox", "rm", "/w/app", "--all-setups")
+	if code != 0 || out != "Remove the sandboxes claude-x, hq-local-app and their state? [y/N] removed the sandboxes claude-x, hq-local-app\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if got := strings.Join(f.sbx.calls, "; "); got != "rm claude-x; rm hq-local-app" || len(f.sbx.sandboxes) != 1 {
+		t.Fatalf("sbx calls %q, left %+v", got, f.sbx.sandboxes)
+	}
+	if code, _, errOut := f.run("sandbox", "rm", "/w/app", "--all-setups", "-y"); code != ExitNotFound || errOut != "hq: no sandbox for app (hq new creates it)\n" {
+		t.Fatalf("again: exit %d %q", code, errOut)
+	}
+}
+
+// --setup and --all-setups exclude each other, and neither takes a
+// sandbox's name, which means that one sandbox (#136).
+func TestSandboxSetupFlagsUsage(t *testing.T) {
+	f := localSandboxFakes()
+	for _, tc := range []struct {
+		args []string
+		msg  string
+	}{
+		{[]string{"sandbox", "rm", "app", "--setup", "local", "--all-setups"}, "--setup and --all-setups exclude each other (" + sandboxUsage + ")"},
+		{[]string{"sandbox", "restart", "app", "--all-setups", "--setup=local"}, "--setup and --all-setups exclude each other (" + sandboxUsage + ")"},
+		{[]string{"sandbox", "restart", "claude-x", "--all-setups"}, "--all-setups takes a repository, and claude-x is a sandbox's name"},
+	} {
+		if code, _, errOut := f.run(tc.args...); code != ExitUsage || errOut != "hq: "+tc.msg+"\n" {
+			t.Errorf("%v: exit %d %q", tc.args, code, errOut)
+		}
+	}
+	if len(f.sbx.calls) != 0 {
+		t.Fatalf("sbx calls %v", f.sbx.calls)
+	}
+}

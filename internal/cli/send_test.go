@@ -198,6 +198,14 @@ func TestSendRefusesAnAgentThatCannotReceive(t *testing.T) {
 	if code != ExitUsage || errOut != "hq: a was started by an older hq and cannot receive messages; relaunch it with hq sandbox restart app, or kill it and start it again\n" {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
+	// An agent of a setup's sandbox is relaunched with its setup (#136).
+	f = sendFakes(state.Done)
+	f.tmux.windows[1].PaneDead = true
+	f.tmux.windows[1].Options["sandbox"] = "hq-local-app"
+	code, _, errOut = f.run("send", "a", "hi")
+	if code != ExitUsage || errOut != "hq: a has ended and cannot receive messages; relaunch it with hq sandbox restart app --setup local, or kill it and start it again\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
 	if len(f.inbox) != 0 {
 		t.Fatalf("left a message it cannot deliver: %v", f.inbox)
 	}
