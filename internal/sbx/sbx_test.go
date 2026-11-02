@@ -145,6 +145,31 @@ func TestDefaultName(t *testing.T) {
 	}
 }
 
+// A directory with letters beyond ASCII is cleaned as sbx v0.47.0 cleaned
+// it for the names of shell sandboxes it created in /tmp: lowercased as
+// Unicode lowercases it (the Kelvin sign and İ become k and i), then each
+// byte that is not a lowercase ASCII letter, a digit, a hyphen or a period
+// a hyphen, so a two-byte letter is two hyphens and a letter whose
+// lowercase takes three bytes (Ⱥ, ⱥ) three.
+func TestNamesOfADirectoryBeyondASCII(t *testing.T) {
+	for dir, want := range map[string]string{
+		"Zażółć_Ünï x": "za-----------n---x",
+		"xİy":          "xiy",
+		"a\u212Ab":     "akb",
+		"aȺb":          "a---b",
+	} {
+		if got := DefaultName(dir); got != "claude-"+want {
+			t.Errorf("%q: %q, want %q", dir, got, "claude-"+want)
+		}
+		if got := SandboxName("local", dir); got != "hq-local-"+want {
+			t.Errorf("%q: %q, want %q", dir, got, "hq-local-"+want)
+		}
+		if got := SetupOf("hq-local-"+want, dir); got != "local" {
+			t.Errorf("%q: setup %q", dir, got)
+		}
+	}
+}
+
 // The setup of a sandbox is read off its name: what stands between hq- and
 // -<dir>; default for any other name.
 func TestSetupOf(t *testing.T) {

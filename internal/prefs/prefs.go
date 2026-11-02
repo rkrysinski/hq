@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"syscall"
@@ -39,6 +40,9 @@ type Prefs struct {
 	Sandbox   Sandbox            `json:"sandbox"`
 	Sandboxes map[string]Sandbox `json:"sandboxes"`
 	other     map[string]json.RawMessage
+	// badSetups is what is wrong with the setups as the file holds them,
+	// which every Setup returns; nil when they read.
+	badSetups error
 }
 
 // Sandbox is a setup: the image (sbx create --template), the MCP servers
@@ -53,18 +57,38 @@ type Sandbox struct {
 }
 
 // DefaultSetup is the setup of the "sandbox" object, the one an agent
-// started without a setup gets.
+// started without a setup gets, whose sandbox has sbx's own name. It is
+// hq's one name for it.
 const DefaultSetup = "default"
 
 // ErrDefaultUnderSandboxes refuses "default" as a setup under "sandboxes":
 // it would be a second default.
 var ErrDefaultUnderSandboxes = errors.New(`"default" under "sandboxes" is not a setup of its own: the default setup is the "sandbox" object; move its settings there or give it another name`)
 
+// FormError is a setting of the setups the file holds in a form hq cannot
+// read: At is where, as "sandboxes.local.model", Want what hq reads there
+// and Is what the file has.
+type FormError struct{ At, Want, Is string }
+
+func (e FormError) Error() string { return fmt.Sprintf("%q should be %s, not %s", e.At, e.Want, e.Is) }
+
+// InFile reports whether err, from Setup, is about what the file holds,
+// so the caller names the file with it, rather than about the name asked
+// for.
+func InFile(err error) bool {
+	var fe FormError
+	return errors.Is(err, ErrDefaultUnderSandboxes) || errors.As(err, &fe)
+}
+
 // Setup is the setup of that name: the "sandbox" object for "default",
 // without a model or provider, else its object under "sandboxes". An
 // unknown name is refused naming the setups there are, and so is any name
-// while "sandboxes" holds "default".
+// while "sandboxes" holds "default" or the setups are in a form hq cannot
+// read (FormError).
 func (p Prefs) Setup(name string) (Sandbox, error) {
+	if p.badSetups != nil {
+		return Sandbox{}, p.badSetups
+	}
 	if _, ok := p.Sandboxes[DefaultSetup]; ok {
 		return Sandbox{}, ErrDefaultUnderSandboxes
 	}
@@ -92,6 +116,8 @@ func (p Prefs) SetupNames() []string {
 }
 
 // Load reads the file; a missing or unreadable file gives empty preferences.
+// Setups in a form hq cannot read are kept as the FormError Setup returns,
+// whatever else the file holds in a wrong form.
 func Load(path string) Prefs {
 	var p Prefs
 	data, err := os.ReadFile(path)
@@ -100,7 +126,44 @@ func Load(path string) Prefs {
 	}
 	_ = json.Unmarshal(data, &p)
 	_ = json.Unmarshal(data, &p.other)
+	var setups struct {
+		Sandbox   Sandbox            `json:"sandbox"`
+		Sandboxes map[string]Sandbox `json:"sandboxes"`
+	}
+	var te *json.UnmarshalTypeError
+	if err := json.Unmarshal(data, &setups); errors.As(err, &te) {
+		p.badSetups = FormError{At: te.Field, Want: formWanted(te.Type), Is: formFound(te.Value)}
+	}
 	return p
+}
+
+// formWanted is what the setups take where a value of type t goes.
+func formWanted(t reflect.Type) string {
+	switch t.Kind() {
+	case reflect.Map:
+		return "an object of setups by name"
+	case reflect.Struct:
+		return "an object of settings"
+	case reflect.Slice:
+		return "a list of names"
+	}
+	return "a string"
+}
+
+// formFound is a JSON value of the kind json reports (string, number,
+// array, object, bool).
+func formFound(kind string) string {
+	switch kind {
+	case "array":
+		return "a list"
+	case "object":
+		return "an object"
+	case "bool":
+		return "true or false"
+	case "number", "string":
+		return "a " + kind
+	}
+	return kind
 }
 
 // Save writes the file, creating its directory. The file is written next to

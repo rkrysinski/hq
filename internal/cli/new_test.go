@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -392,6 +394,26 @@ func TestNewRefusesAnUnknownSetup(t *testing.T) {
 	for _, args := range [][]string{{"new", "46"}, {"new", "46", "--setup", "local"}} {
 		code, _, errOut = f.run(args...)
 		if code != ExitUsage || errOut != `hq: /home/u/.config/hq/preferences.json: "default" under "sandboxes" is not a setup of its own: the default setup is the "sandbox" object; move its settings there or give it another name`+"\n" {
+			t.Fatalf("%q: exit %d %q", args, code, errOut)
+		}
+	}
+	if len(f.sbx.createdWith) != 0 || len(f.tmux.windows) != 0 {
+		t.Fatalf("created %+v, %d windows", f.sbx.createdWith, len(f.tmux.windows))
+	}
+}
+
+// Setups the preferences file holds in a form hq cannot read are refused
+// as the file's fault, naming it, not as an unknown setup (#134).
+func TestNewRefusesSetupsInTheWrongForm(t *testing.T) {
+	f := setupFakes()
+	file := filepath.Join(t.TempDir(), "preferences.json")
+	if err := os.WriteFile(file, []byte(`{"sandboxes":{"local":"qwen-local"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f.prefs = prefs.Load(file)
+	for _, args := range [][]string{{"new", "46", "/w/app", "--setup", "local"}, {"new", "46", "/w/app"}} {
+		code, _, errOut := f.run(args...)
+		if code != ExitUsage || errOut != `hq: /home/u/.config/hq/preferences.json: "sandboxes.local" should be an object of settings, not a string`+"\n" {
 			t.Fatalf("%q: exit %d %q", args, code, errOut)
 		}
 	}
