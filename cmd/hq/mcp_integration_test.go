@@ -80,7 +80,9 @@ func supervisorEnv(t *testing.T) *supervisor {
 		t.Fatal(err)
 	}
 	s := &supervisor{t: t, socket: testutil.TmuxSocket(t), bin: buildHQ(t)}
-	s.env = append(os.Environ(), "PATH="+path+string(os.PathListSeparator)+os.Getenv("PATH"), "HQ_TMUX_SOCKET="+s.socket, "HOME="+t.TempDir(), "TMUX=")
+	// Its own preferences file too: CI runners set XDG_CONFIG_HOME, which
+	// would otherwise share the runner's file between tests (#141).
+	s.env = append(os.Environ(), "PATH="+path+string(os.PathListSeparator)+os.Getenv("PATH"), "HQ_TMUX_SOCKET="+s.socket, "HOME="+t.TempDir(), "XDG_CONFIG_HOME="+t.TempDir(), "TMUX=")
 	return s
 }
 
@@ -873,7 +875,12 @@ func TestASandboxsClaudeCodeSupervisesFromTheRegistrationHqMcpInstallSbxMade(t *
 	}
 	// The gateway starts it with an environment of its own, not the user's.
 	cmd := exec.Command(registered.Command[0], registered.Command[1:]...)
-	cmd.Env = []string{"HOME=" + os.Getenv("HOME")}
+	// The test's home, the last HOME in its environment.
+	for _, kv := range s.env {
+		if strings.HasPrefix(kv, "HOME=") {
+			cmd.Env = []string{kv}
+		}
+	}
 	s.connect(cmd)
 	tools, err := s.cs.ListTools(context.Background(), nil)
 	if err != nil {
