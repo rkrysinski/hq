@@ -1,0 +1,20 @@
+$ hq mcp load app; echo "exit $?"
+hq: no sandbox for app (hq new creates it)
+exit 2
+$ hq new sup app "supervise"
+creating a sandbox for app (first time only; log in to Claude when the session asks)
+started sup in app (sandbox claude-app); enter it with: hq go sup
+$ hq mcp load app; echo "exit $?"
+loaded hq into the sandbox claude-app: every agent in it sees hq's tools
+exit 0
+$ cat $SBX_STUB_DIR/mcp-loads.log; cat ~/.config/hq/preferences.json
+hq claude-app
+{
+  "mcp_loaded": [
+    "claude-app"
+  ]
+}
+$ hq mcp load nothing; echo "exit $?"
+hq: no sandbox for 'nothing' (see hq ls)
+exit 2
+$

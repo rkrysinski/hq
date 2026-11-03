@@ -1,0 +1,4 @@
+=== RUN   TestASandboxsClaudeCodeSupervisesFromTheRegistrationHqMcpInstallSbxMade
+--- PASS: TestASandboxsClaudeCodeSupervisesFromTheRegistrationHqMcpInstallSbxMade (0.45s)
+PASS
+ok  	github.com/rkrysinski/hq/cmd/hq	0.448s

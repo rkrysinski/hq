@@ -1,0 +1,3 @@
+$ /tmp/qa141/bin-before/hq mcp install sbx; echo "exit $?"
+hq: unexpected argument 'sbx' (usage: hq mcp [install] [claude-desktop|claude-code])
+exit 1

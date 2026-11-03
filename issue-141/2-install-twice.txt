@@ -1,0 +1,14 @@
+$ hq mcp install sbx; echo "exit $?"
+added hq to sbx (sbx mcp inspect hq)
+load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)
+exit 0
+$ hq mcp install sbx; echo "exit $?"
+hq is already set up in sbx (sbx mcp inspect hq)
+load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)
+exit 0
+$ sbx mcp inspect hq --json
+{"name":"hq","type":"local","command":["/usr/bin/env","PATH=/tmp/qa141/bin:/tmp/qa141/sbx:/usr/local/bin:/usr/bin:/bin","HQ_TMUX_S
+OCKET=qa-141-hq","XDG_CONFIG_HOME=/tmp/qa141/home/.config","/tmp/qa141/bin/hq","mcp","sbx"],"requires_oauth":false}
+$ cat $SBX_STUB_DIR/mcp-adds.log
+hq
+$

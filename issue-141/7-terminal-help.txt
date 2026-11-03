@@ -1,0 +1,12 @@
+$ hq mcp; echo "exit $?"
+hq: hq mcp is started by an MCP client, not typed; add it to Claude Desktop with: hq mcp install, to Claude Code with: hq mcp inst
+all claude-code, or to sbx, for a Claude Code inside a sandbox, with: hq mcp install sbx
+exit 1
+$ hq help | grep "mcp"
+  hq mcp [install] [claude-desktop|claude-code|sbx] | load REPO serve these commands as tools to Claude Desktop, Claude Code or sb
+x; install adds hq to it; load gives a sandbox's agents hq's tools
+hq mcp load takes REPO and those flags as hq sandbox does; hq sandbox restart loads hq again into a sandbox it was loaded into.
+$ hq mcp load; echo "exit $?"
+hq: usage: hq mcp load REPO|SANDBOX [--setup NAME|--all-setups]
+exit 1
+$

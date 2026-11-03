@@ -1,0 +1,9 @@
+$ hq sandbox restart app -y; echo "exit $?"
+restarted the sandbox claude-app; loaded hq into it again; relaunched sup
+exit 0
+$ cat $SBX_STUB_DIR/mcp-loads.log; hq ls
+hq claude-app
+hq claude-app
+NAME  REPO  BRANCH  STATE     AGE  LAST
+sup   app   -       starting  7s   -
+$

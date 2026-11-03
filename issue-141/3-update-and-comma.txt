@@ -1,0 +1,14 @@
+$ PATH=$PATH:/opt/x hq mcp install sbx; echo "exit $?"
+updated hq in sbx (sbx mcp inspect hq)
+load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)
+exit 0
+$ PATH=/opt/a,b:$PATH hq mcp install sbx; echo "exit $?"
+hq: cannot register hq with sbx: PATH holds a comma, and sbx mcp add splits its arguments at commas; take it out of PATH and run h
+q mcp install sbx again
+exit 3
+$ wc -l < $SBX_STUB_DIR/mcp-adds.log; sbx mcp inspect hq --json | grep -c /opt/x
+2
+1
+$ hq mcp install sbx >/dev/null; sbx mcp inspect hq --json | grep -c /opt/x
+0
+$

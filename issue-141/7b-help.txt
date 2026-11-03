@@ -1,0 +1,8 @@
+$ hq mcp load app; hq sandbox restart app -y
+loaded hq into the sandbox claude-app: every agent in it sees hq's tools
+restarted the sandbox claude-app; loaded hq into it again; relaunched sup
+$ hq help | grep -A1 "mcp \["
+  hq mcp [install] [claude-desktop|claude-code|sbx] | load|unload REPO serve these commands as tools to Claude Desktop, Claude Cod
+e or sbx; install adds hq to it; load gives a sandbox's agents hq's tools
+  hq update                        replace hq with the latest release
+$

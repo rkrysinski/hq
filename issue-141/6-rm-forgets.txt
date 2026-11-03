@@ -1,0 +1,8 @@
+$ hq kill sup -y
+killed sup; the sandbox stays
+$ hq sandbox rm app -y; echo "exit $?"
+removed the sandbox claude-app
+exit 0
+$ cat ~/.config/hq/preferences.json
+{}
+$

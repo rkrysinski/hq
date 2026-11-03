@@ -1,0 +1,18 @@
+$ hq new sup app
+creating a sandbox for app (first time only; log in to Claude when the session asks)
+started sup in app (sandbox claude-app); enter it with: hq go sup
+$ hq mcp load app
+loaded hq into the sandbox claude-app: every agent in it sees hq's tools
+$ hq mcp unload app; echo "exit $?"
+hq stays loaded into the sandbox claude-app until it restarts (sbx cannot unload it): hq sandbox restart claude-app takes its tool
+s away
+exit 0
+$ hq mcp unload app
+hq mcp load did not load hq into the sandbox claude-app; nothing to unload
+$ hq sandbox restart app -y
+restarted the sandbox claude-app; relaunched sup
+$ cat $SBX_STUB_DIR/mcp-loads.log; sbx mcp inspect hq --json | head -c 40; echo; cat ~/.config/hq/preferences.json
+hq claude-app
+{"name":"hq","type":"local","command":["
+{}
+$
