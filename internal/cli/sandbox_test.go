@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -511,5 +512,59 @@ func TestSandboxSetupFlagsUsage(t *testing.T) {
 	}
 	if len(f.sbx.calls) != 0 {
 		t.Fatalf("sbx calls %v", f.sbx.calls)
+	}
+}
+
+// A sandbox hq mcp load loaded hq into gets it again once restarted, before
+// its agents are relaunched; one it did not, does not.
+func TestSandboxRestartLoadsHqAgainWhereItWasLoaded(t *testing.T) {
+	f := sandboxFakes()
+	f.prefs.MCPLoaded = []string{"claude-x"}
+	code, out, errOut := f.run("sandbox", "restart", "app", "-y")
+	if code != 0 || out != "restarted the sandbox claude-x; loaded hq into it again; relaunched a, b\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if i, j := slices.Index(f.sbx.calls, "exec claude-x true"), slices.Index(f.sbx.calls, "mcp load hq claude-x"); i < 0 || j < i {
+		t.Fatalf("calls %q", f.sbx.calls)
+	}
+	f.sbx.loads = nil
+	if code, out, _ := f.run("sandbox", "restart", "lib", "-y"); code != 0 || out != "restarted the sandbox claude-lib; relaunched c\n" || len(f.sbx.loads) != 0 {
+		t.Fatalf("lib: exit %d %q loads %q", code, out, f.sbx.loads)
+	}
+	// A load that fails leaves the agents relaunched, and says so.
+	f.sbx.loadErr = map[string]error{"claude-x": errors.New("gateway down")}
+	code, out, errOut = f.run("sandbox", "restart", "app", "-y")
+	if code != ExitEnvironment || out != "restarted the sandbox claude-x; relaunched a, b\n" ||
+		errOut != "hq: could not load hq into claude-x again (gateway down); run hq mcp load claude-x\n" {
+		t.Fatalf("failed load: exit %d %q %q", code, out, errOut)
+	}
+}
+
+// A removed sandbox leaves the record: a new one of its name is not loaded.
+func TestSandboxRmForgetsHqWasLoaded(t *testing.T) {
+	f := sandboxFakes()
+	f.tmux.windows = f.tmux.windows[:1]
+	f.prefs.MCPLoaded = []string{"claude-lib", "claude-x"}
+	if code, _, errOut := f.run("sandbox", "rm", "app", "-y"); code != 0 || !slices.Equal(f.prefs.MCPLoaded, []string{"claude-lib"}) {
+		t.Fatalf("exit %d %q recorded %q", code, errOut, f.prefs.MCPLoaded)
+	}
+	// A record that cannot be changed is said, with the remedy.
+	f.prefsErr = errors.New("read-only file system")
+	code, out, errOut := f.run("sandbox", "rm", "lib", "-y")
+	if code != ExitEnvironment || out != "removed the sandbox claude-lib\n" ||
+		errOut != "hq: cannot forget that hq was loaded into claude-lib (read-only file system); hq mcp unload claude-lib forgets it\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+}
+
+// A restart whose load and whose restore of a lost agent both fail says both.
+func TestSandboxRestartSaysAFailedLoadBesideAnotherFailure(t *testing.T) {
+	f := sandboxFakes()
+	f.prefs.MCPLoaded = []string{"claude-x"}
+	f.sbx.loadErr = map[string]error{"claude-x": errors.New("gateway down")}
+	f.tmux.respawnErr = errors.New("tmux: can't find pane: %5")
+	code, _, errOut := f.run("sandbox", "restart", "app", "-y")
+	if code != ExitEnvironment || errOut != "hq: tmux: can't find pane: %5; could not load hq into claude-x again (gateway down); run hq mcp load claude-x\n" {
+		t.Fatalf("exit %d %q", code, errOut)
 	}
 }
