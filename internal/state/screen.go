@@ -349,7 +349,7 @@ func findBox(screen string) (b box, ok, esc bool) {
 // prompt starts Claude's input line and every prompt the user sent.
 const prompt = "❯"
 
-// maxFooter is how many lines Claude shows below its prompt box: in the sbx
+// maxFooter is the most lines Claude shows below its prompt box: in the sbx
 // template (Claude Code 2.1.317, #145) a notice such as "⚠ Transcript
 // saving is off…", the status line, the mode line, and the Tools mod's
 // "◆ Tools ▾" on a line of its own once the status line is full.
