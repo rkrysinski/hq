@@ -1,0 +1,30 @@
+no kills in the trace
+killed coolify; the sandbox stays
+started a in app (sandbox claude-app); enter it with: hq go a
+started b in app (sandbox claude-app); enter it with: hq go b
+ended 2 agents; sandboxes stay
+2026-11-03 16:19:57  coolify in app (sandbox claude-app), by hq kill
+2026-11-03 16:20:00  a in app (sandbox claude-app), by hq stop
+2026-11-03 16:20:00  b in app (sandbox claude-app), by hq stop
+2026-11-03 16:20:00  b in app (sandbox claude-app), by hq stop
+no kill of 'nobody' in the trace
+hq: usage: hq killed [NAME]
+exit 1
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

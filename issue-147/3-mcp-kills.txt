@@ -1,0 +1,30 @@
+started e in app (sandbox claude-app); enter it with: hq go e
+"text":"killed e; the sandbox stays\n"
+2026-11-03 16:20:27  c in app (sandbox claude-app), by MCP: client claude-code (qa-client 1.0), agent imp-hq-147
+2026-11-03 16:20:35  d in app (sandbox claude-app), by MCP: client sbx (qa-client 1.0), agent lead
+2026-11-03 16:20:58  e in app (sandbox claude-app), by MCP: client claude-desktop (qa-client 1.0)
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

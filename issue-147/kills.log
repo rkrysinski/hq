@@ -1,0 +1,7 @@
+{"at":"2026-11-03T16:19:57.353871413Z","name":"coolify","id":"75cb6787fe4e","repo":"/tmp/qa147/app","sandbox":"claude-app","by":"cli","command":"kill"}
+{"at":"2026-11-03T16:20:00.501554831Z","name":"a","id":"9de518b18639","repo":"/tmp/qa147/app","sandbox":"claude-app","by":"cli","command":"stop"}
+{"at":"2026-11-03T16:20:00.501664747Z","name":"b","id":"434de7dac075","repo":"/tmp/qa147/app","sandbox":"claude-app","by":"cli","command":"stop"}
+{"at":"2026-11-03T16:20:27.800340385Z","name":"c","id":"2806aa184f9e","repo":"/tmp/qa147/app","sandbox":"claude-app","by":"mcp","client":"claude-code","app":"qa-client 1.0","caller":"imp-hq-147"}
+{"at":"2026-11-03T16:20:35.807112264Z","name":"d","id":"1935d95ce289","repo":"/tmp/qa147/app","sandbox":"claude-app","by":"mcp","client":"sbx","app":"qa-client 1.0","caller":"lead"}
+{"at":"2026-11-03T16:20:58.172341983Z","name":"e","id":"4a4f51993f0f","repo":"/tmp/qa147/app","sandbox":"claude-app","by":"mcp","client":"claude-desktop","app":"qa-client 1.0"}
+{"at":"2026-11-03T16:21:35.751654334Z","name":"f","id":"d90f6400e56e","repo":"/tmp/qa147/app","sandbox":"claude-app","by":"dashboard"}

@@ -1,0 +1,30 @@
+75cb6787fe4e  75cb6787fe4e.hq  75cb6787fe4e.stop
+-- record removed, as an hq older than v0.12.0 left it:
+75cb6787fe4e  75cb6787fe4e.stop
+$ hq sandbox restart app -y; sleep 2; hq ls; ls .git/hq/agents/; hq restore
+restarted the sandbox claude-app; relaunched coolify
+NAME     REPO  BRANCH  STATE  AGE  LAST
+coolify  app   main    done   1s   Done: hello
+75cb6787fe4e  75cb6787fe4e.hq  75cb6787fe4e.prev  75cb6787fe4e.stop
+nothing to restore
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
