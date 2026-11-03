@@ -514,11 +514,10 @@ func TestAnEndedTurnsLineIsNoEndWhileClaudeWorksBelowIt(t *testing.T) {
 // its prompt box: a notice ("⚠ Transcript saving is off…"), the status
 // line, the mode line and, once the status line is full, the Tools mod's
 // "◆ Tools ▾" on a line of its own. The box above them is Claude's, at 80
-// columns and at 40 alike; a suggested next prompt there is faint, a
-// shell command ("! ls -la") as much as any other, and only typed text
-// is in the box.
+// columns and at 40 alike, run by hand and as an agent of hq's; a
+// suggested next prompt there is faint, and only typed text is in the box.
 func TestThePromptBoxIsFoundAboveAFooterWithANotice(t *testing.T) {
-	for _, name := range []string{"notice-empty", "notice-suggestion", "notice-suggestion-40", "suggestion-bang"} {
+	for _, name := range []string{"notice-empty", "notice-suggestion", "notice-suggestion-40", "agent-notice-suggestion"} {
 		s := WithoutHints(screen(t, "styled-"+name))
 		if ok, _ := AtRest(s, ""); !ok {
 			t.Errorf("%s: an empty box not at rest (box %q)", name, BoxText(s))
@@ -533,5 +532,14 @@ func TestThePromptBoxIsFoundAboveAFooterWithANotice(t *testing.T) {
 	}
 	if ok, _ := AtRest(typed, ""); ok {
 		t.Error("typed text read as an empty box")
+	}
+}
+
+// A suggested shell command ("! ls -la", Claude Code 2.1.317, #145) is as
+// faint as any other suggestion: the box is empty.
+func TestASuggestedShellCommandIsAFaintHint(t *testing.T) {
+	s := WithoutHints(screen(t, "styled-suggestion-bang"))
+	if ok, _ := AtRest(s, ""); !ok {
+		t.Fatalf("box %q", BoxText(s))
 	}
 }
