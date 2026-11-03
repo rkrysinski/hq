@@ -1345,3 +1345,93 @@ func TestAnAgentShowsTheTasksItLeftRunningItself(t *testing.T) {
 		}
 	}
 }
+
+// A host restart takes the tmux server with every agent's window: hq
+// restore brings each back under its name, in its sandbox, setup included,
+// continuing its conversation, so hq ls lists it and a message reaches the
+// continued session; an agent whose worktree was removed is reported, not
+// relaunched (#140).
+func TestRestoreBringsBackTheAgentsOfAKilledTmuxServer(t *testing.T) {
+	testutil.FakeClaude(t)
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	file := filepath.Join(cfg, "hq", "preferences.json")
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, []byte(`{"sandboxes":{"local":{"model":"qwen-local","provider":"lmstudio"}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h := newRealHQ(t)
+	t.Setenv("HQ_TMUX_SOCKET", h.socket)
+	h.cwd = testutil.GitRepo(t, "app")
+	for _, args := range [][]string{{"new", "a", "hello"}, {"new", "b", "hi"}, {"new", "d", "hey", "--setup", "local"}} {
+		if code, _, errOut := h.run(args...); code != 0 {
+			t.Fatalf("%q: exit %d %s", args, code, errOut)
+		}
+	}
+	h.waitReport("a", "done", "Done: hello")
+	h.waitReport("b", "done", "Done: hi")
+	h.waitReport("d", "done", "Done: hey")
+	sessions := map[string]string{}
+	ws, _ := h.d.tmux.Windows()
+	for _, a := range agent.FromWindows(ws) {
+		r, ok := h.d.readState(h.cwd, a.ID)
+		if !ok || r.SessionID == "" {
+			t.Fatalf("%s's session: %+v", a.Name, r)
+		}
+		sessions[a.Name] = r.SessionID
+	}
+	// An agent whose worktree went while tmux was down.
+	gone := filepath.Join(t.TempDir(), "worktree")
+	if err := state.WriteRecord(h.cwd, "0e0e0e", state.Record{Name: "w", Sandbox: "claude-app", Server: h.socket}); err != nil {
+		t.Fatal(err)
+	}
+	stop := `{"hook_event_name":"Stop","session_id":"0e0e0e0e-0000-4000-8000-00000000000e","cwd":"` + gone + `","last_assistant_message":"done"}`
+	if err := os.WriteFile(filepath.Join(state.Dir(h.cwd), "0e0e0e"), []byte(stop), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if out, err := exec.Command("tmux", "-u", "-L", h.socket, "kill-server").CombinedOutput(); err != nil {
+		t.Fatalf("kill-server: %v %s", err, out)
+	}
+	if rows := h.ls(); len(rows) != 0 {
+		t.Fatalf("agents after the server went: %+v", rows)
+	}
+	code, out, errOut := h.run("restore")
+	want := "restored a in app (sandbox claude-app)\nrestored b in app (sandbox claude-app)\nrestored d in app (sandbox hq-local-app)\n" +
+		"not restored w in app: its worktree " + gone + " is gone (hq kill w forgets it)\n"
+	if code != 0 || out != want {
+		t.Fatalf("restore: exit %d\n%s%s", code, out, errOut)
+	}
+	for _, name := range []string{"a", "b", "d"} {
+		h.waitPane(name, "fake claude: resumed "+sessions[name])
+	}
+	for _, r := range h.ls() {
+		if r.Name == "d" && (r.Sandbox != "hq-local-app" || r.Setup != "local") || r.Name != "d" && r.Sandbox != "claude-app" {
+			t.Fatalf("row %+v", r)
+		}
+	}
+	// A message reaches the continued session: its report is that
+	// session's.
+	ws, _ = h.d.tmux.Windows()
+	for _, a := range agent.FromWindows(ws) {
+		h.typeIn(a.Name, "back")
+		h.waitReport(a.Name, "done", "Done: back")
+		h.waitAtRest(a.Name)
+		h.send("delivered: typed into "+a.Name+" as its next prompt", a.Name, "after the restart")
+		h.waitReport(a.Name, "done", "Done: after the restart")
+		if r, _ := h.d.readState(h.cwd, a.ID); r.SessionID != sessions[a.Name] {
+			t.Fatalf("%s reports session %s, not %s", a.Name, r.SessionID, sessions[a.Name])
+		}
+	}
+	if code, out, _ := h.run("restore"); code != 0 || out != "not restored w in app: its worktree "+gone+" is gone (hq kill w forgets it)\n" {
+		t.Fatalf("restore again: exit %d %q", code, out)
+	}
+	if code, _, errOut := h.run("kill", "w", "-y"); code != 0 {
+		t.Fatalf("kill w: exit %d %s", code, errOut)
+	}
+	if code, out, _ := h.run("restore"); code != 0 || out != "nothing to restore\n" {
+		t.Fatalf("restore after the kill: exit %d %q", code, out)
+	}
+}

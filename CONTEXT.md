@@ -16,6 +16,10 @@ _Avoid_: synonym, another synonym
 One Claude Code session started through hq, known by a short name unique among existing agents (running or `ended`) until it is killed.
 _Avoid_: tab, session, worker
 
+**Lost agent**:
+An agent whose place in tmux went with the tmux server (a host restart) while hq keeps what it needs to bring it back with `hq restore`; it holds its name until restored or killed.
+_Avoid_: orphan, missing agent, dead agent
+
 **Dashboard**:
 The hq tmux window: the list on top, the docking slot below, the footer along the bottom.
 _Avoid_: TUI, console window

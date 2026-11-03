@@ -98,6 +98,8 @@ hq kill NAME                     # end an agent's Claude session; the sandbox st
 
 After the laptop sleeps, agents can fail with clock drift: `hq sandbox restart REPO` restarts the repository's sandbox and relaunches its agents, each continuing its conversation. A repository with agents on several setups has a sandbox per setup; `hq sandbox restart REPO --all-setups` restarts them all after one confirmation.
 
+After a host restart `hq ls` is empty, though the agents' conversations are kept: `hq restore` brings every agent back under its name, in its sandbox and worktree, continuing its conversation (`hq restore REPO` for one repository). It says which agents it could not bring back and why (a removed worktree); `hq kill NAME` forgets such an agent.
+
 In the dashboard, agents that need you (a question, a permission prompt) come first; the selected agent's session opens below the list, and the bottom line shows the keys. `hq help` lists every command.
 
 ## Notifications
