@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -1153,5 +1154,43 @@ func TestMCPUnloadForgetsASandboxThatIsGone(t *testing.T) {
 	}
 	if code, _, _ := f.run("mcp", "unload", "claude-gone"); code != ExitNotFound {
 		t.Fatalf("again: exit %d", code)
+	}
+}
+
+// A kill through the tool goes into the trace with the client, the name
+// and version it gave itself and, when hq mcp runs in an agent's session,
+// that agent (#147).
+func TestMCPKillLeavesATraceOfTheClientAndTheCallingAgent(t *testing.T) {
+	f := goFakes()
+	cs := mcpSession(t, f)
+	call(t, cs, "kill", map[string]any{"name": "a"})
+	if len(f.kills) != 0 {
+		t.Fatalf("traced without a kill: %+v", f.kills)
+	}
+	if _, isErr := call(t, cs, "kill", map[string]any{"name": "a", "confirmed": true}); isErr || len(f.kills) != 1 {
+		t.Fatalf("%v %+v", isErr, f.kills)
+	}
+	if k := f.kills[0]; k.Name != "a" || k.By != kills.ByMCP || k.Client != "claude-desktop" || k.App != "test v0" || k.Caller != "" || k.Command != "" {
+		t.Fatalf("trace %+v", k)
+	}
+
+	// A Claude Code running in an agent's session passes the agent on.
+	f = goFakes()
+	f.env["HQ_AGENT"] = "lead"
+	f.tty = false
+	cs = connect(t, newMCPServer(f.deps(), claudeCode))
+	call(t, cs, "kill", map[string]any{"name": "a", "confirmed": true})
+	if len(f.kills) != 1 || f.kills[0].Client != "claude-code" || f.kills[0].Caller != "lead" {
+		t.Fatalf("trace %+v", f.kills)
+	}
+	// sbx's gateway starts hq outside the calling agent's session: no
+	// agent is known. Nor is a name hq would not give an agent.
+	f = goFakes()
+	f.env["HQ_AGENT"] = "not a name"
+	f.tty = false
+	cs = connect(t, newMCPServer(f.deps(), sbxGateway))
+	call(t, cs, "kill", map[string]any{"name": "a", "confirmed": true})
+	if len(f.kills) != 1 || f.kills[0].Client != "sbx" || f.kills[0].Caller != "" {
+		t.Fatalf("trace %+v", f.kills)
 	}
 }
