@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -518,6 +519,8 @@ type fakes struct {
 	promptLost  bool
 	announceErr error
 	removed     []string // "repo id" of each agent whose state files were removed
+	// records are hq's records of agents, by repository (hq restore).
+	records map[string][]state.Record
 
 	// questions is the question dialog each agent id's state file reports
 	// open (none: no question dialog); answerLeft the answer waiting in
@@ -595,6 +598,7 @@ func newFakes() *fakes {
 		details: map[string]state.Detail{},
 
 		announced: map[string]bool{},
+		records:   map[string][]state.Record{},
 
 		questions:  map[string]state.Questions{},
 		answerLeft: map[string][]byte{},
@@ -706,6 +710,14 @@ func (f *fakes) deps() deps {
 			f.removed = append(f.removed, root+" "+id)
 			delete(f.states, id)
 			delete(f.inbox, id)
+			f.dropRecord(root, id)
+			return nil
+		},
+		records: func(root string) ([]state.Record, error) { return f.records[root], nil },
+		writeRecord: func(root, id string, r state.Record) error {
+			f.dropRecord(root, id)
+			r.ID = id
+			f.records[root] = append(f.records[root], r)
 			return nil
 		},
 		pollSandboxes: f.sbx.List,
@@ -839,4 +851,22 @@ func (f *fakes) deps() deps {
 		},
 		serveMCP: func(s *mcp.Server) error { f.served = s; return f.serveErr },
 	}
+}
+
+// dropRecord removes the record of agent id of the repository at root.
+func (f *fakes) dropRecord(root, id string) {
+	f.records[root] = slices.DeleteFunc(f.records[root], func(r state.Record) bool { return r.ID == id })
+}
+
+// recordOf is the record of agent id, in whichever repository; zero when
+// there is none.
+func (f *fakes) recordOf(id string) state.Record {
+	for _, rs := range f.records {
+		for _, r := range rs {
+			if r.ID == id {
+				return r
+			}
+		}
+	}
+	return state.Record{}
 }

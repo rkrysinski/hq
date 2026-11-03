@@ -131,6 +131,10 @@ type deps struct {
 	readDetail func(root, id string) state.Detail
 	// removeState deletes an agent's state files once it is gone (design §3.4).
 	removeState func(root, id string) error
+	// writeRecord keeps hq's record of an agent beside its state files, and
+	// records reads those of a repository, for hq restore (design §3.3).
+	writeRecord func(root, id string, r state.Record) error
+	records     func(root string) ([]state.Record, error)
 	// postMessage leaves a message in an agent's inbox, takeMessages takes
 	// what waits there for hq to type it in, pending counts it, and
 	// oldestMessage says when the oldest of it was sent (hq send, ADR 0012).
@@ -267,6 +271,8 @@ func defaultDeps() deps {
 		takeQueued:  state.TakeQueued,
 		readDetail:  state.ReadDetail,
 		removeState: state.Remove,
+		writeRecord: state.WriteRecord,
+		records:     state.Records,
 		postMessage: func(root, id string, m state.Message, now bool) error {
 			return state.Post(root, id, m, now, time.Now())
 		},

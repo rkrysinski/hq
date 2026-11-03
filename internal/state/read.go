@@ -236,7 +236,7 @@ func Remove(root, id string) error {
 	delete(parsed.m, path)
 	parsed.Unlock()
 	var errs []error
-	for _, suffix := range append(stateSuffixes[:], supervisedSuffix, announcedSuffix) {
+	for _, suffix := range append(stateSuffixes[:], supervisedSuffix, announcedSuffix, recordSuffix) {
 		if err := os.Remove(path + suffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			errs = append(errs, err)
 		}

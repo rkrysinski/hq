@@ -174,12 +174,20 @@ func createAgent(out io.Writer, d deps, n newArgs) (root, sandbox string, err er
 	if _, exists := agent.Find(agent.FromWindows(ws), n.name); exists {
 		return "", "", dialog.FieldError{Field: dialog.Name, Err: duplicateErr(n.name)}
 	}
+	all, err := d.sbx.List()
+	if err != nil {
+		return "", "", sbxErr(err)
+	}
+	// A lost agent holds its name too, until it is restored or killed.
+	if _, lost := agent.Find(lostAgents(d, ws, append(knownRepositories(d, all), root)), n.name); lost {
+		return "", "", dialog.FieldError{Field: dialog.Name, Err: usageErr("agent '%s' was lost with tmux (hq restore brings it back; hq kill %s forgets it)", n.name, n.name)}
+	}
 	spec.Name = sbx.SandboxName(spec.setup, filepath.Base(root))
-	sb, err := findOrCreateSandbox(out, d, root, spec)
+	sb, err := findOrCreateSandbox(out, d, all, root, spec)
 	if err != nil {
 		return "", "", err
 	}
-	if err := startAgent(d, n.name, root, sb.Name, "", n.prompt, true); err != nil {
+	if err := startAgent(d, n.name, root, sb.Name, n.prompt); err != nil {
 		return "", "", err
 	}
 	return root, sb.Name, nil
@@ -189,14 +197,21 @@ func duplicateErr(name string) error {
 	return usageErr("agent '%s' already exists (see hq ls; hq kill %s frees the name)", name, name)
 }
 
-// startAgent opens the agent's home window running a new Claude session in
-// the sandbox and releases it, resuming the Claude session resume when it
-// is set; fresh marks the agent new (S2).
-func startAgent(d deps, name, root, sandbox, resume, prompt string, fresh bool) error {
+// startAgent opens the home window of a new agent, marked new (S2),
+// running a new Claude session in the sandbox, and releases it.
+func startAgent(d deps, name, root, sandbox, prompt string) error {
+	return launchAgent(d, agent.Agent{ID: agent.NewID(), Name: name, RepoPath: root, Sandbox: sandbox}, "", prompt, true)
+}
+
+// launchAgent opens a's home window running a Claude session in its
+// sandbox under its id, resuming the Claude session resume when it is set,
+// keeps hq's record of it for hq restore, and releases it; fresh marks
+// the agent new (S2).
+func launchAgent(d deps, a agent.Agent, resume, prompt string, fresh bool) error {
+	name, root, sandbox, id := a.Name, a.RepoPath, a.Sandbox, a.ID
 	if err := d.tmux.EnsureSession(root); err != nil {
 		return tmuxErr(err)
 	}
-	id := agent.NewID()
 	opts := map[string]string{
 		"id": id, "name": name, "repo": root, "sandbox": sandbox,
 		"started": agent.Stamp(d.now()), "inbox": inboxHooks,
@@ -221,6 +236,11 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string, fresh bool) 
 		}
 		return dialog.FieldError{Field: dialog.Name, Err: duplicateErr(name)}
 	}
+	// Without its record, an agent lost with tmux could not be restored.
+	if err := keepRecord(d, a); err != nil {
+		_ = d.tmux.KillWindow(win)
+		return err
+	}
 	// The first prompt of an agent the supervisor starts is the
 	// supervisor's (spec §5); without the word it notifies, as the user's.
 	supervised := d.supervisor && prompt != "" && d.announce(root, id) == nil
@@ -229,18 +249,20 @@ func startAgent(d deps, name, root, sandbox, resume, prompt string, fresh bool) 
 			_ = d.withdraw(root, id)
 		}
 		_ = d.tmux.KillWindow(win)
+		// A new agent that never ran leaves no record to restore; a
+		// restored one keeps its own.
+		if fresh {
+			_ = d.removeState(root, id)
+		}
 		return tmuxErr(err)
 	}
 	return nil
 }
 
-// findOrCreateSandbox is the repository's sandbox of spec's setup, created
-// as spec says when it has none (#135).
-func findOrCreateSandbox(out io.Writer, d deps, root string, spec sandboxSpec) (sbx.Sandbox, error) {
-	all, err := d.sbx.List()
-	if err != nil {
-		return sbx.Sandbox{}, sbxErr(err)
-	}
+// findOrCreateSandbox is the repository's sandbox of spec's setup among
+// all, created as spec says when it has none (#135).
+func findOrCreateSandbox(out io.Writer, d deps, all []sbx.Sandbox, root string, spec sandboxSpec) (sbx.Sandbox, error) {
+	var err error
 	if s, ok := sbx.Find(all, root, spec.setup, d.samePath); ok {
 		return s, nil
 	}
