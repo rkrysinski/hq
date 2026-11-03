@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -32,6 +33,17 @@ func TestKilledListsTheTraceOldestFirstWithWhoAskedForIt(t *testing.T) {
 	}
 	if code, out, _ := f.run("killed", "nobody"); code != 0 || out != "no kill of 'nobody' in the trace\n" {
 		t.Fatalf("killed nobody: exit %d %q", code, out)
+	}
+}
+
+// What the trace holds is shown stripped: a client names itself (design
+// §7.3).
+func TestKilledStripsWhatTheTraceHolds(t *testing.T) {
+	f := newFakes()
+	f.kills = []kills.Kill{{At: f.now, Name: "a", Repo: "/w/a\x1b]0;x\x07pp", Sandbox: "claude-\x1b[2Jx", By: kills.ByMCP, Client: "sbx", App: "evil\x1b]2;pwned\x07 1.0"}}
+	code, out, _ := f.run("killed")
+	if code != 0 || strings.ContainsRune(out, 0x1b) || strings.ContainsRune(out, 0x07) {
+		t.Fatalf("exit %d %q", code, out)
 	}
 }
 

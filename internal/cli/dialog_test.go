@@ -293,7 +293,8 @@ func TestTheKillDialogEndsTheAgentAsHqKillDoes(t *testing.T) {
 	}
 	if got := strings.Join(f.sbx.execs[0], " "); got != `claude-x pkill -TERM -f HQ_ID":"id-a"` || f.names() != "hq b gone" || strings.Join(f.removed, ", ") != "/w/app id-a" {
 		t.Fatalf("exec %q, windows %q, removed %v", got, f.names(), f.removed)
-	} // The trace says the dashboard asked for it (#147).
+	}
+	// The trace says the dashboard asked for it (#147).
 	if len(f.kills) != 1 || f.kills[0].Name != "a" || f.kills[0].By != kills.ByDashboard || f.kills[0].Command != "" {
 		t.Fatalf("trace %+v", f.kills)
 	}
