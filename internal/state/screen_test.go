@@ -509,3 +509,37 @@ func TestAnEndedTurnsLineIsNoEndWhileClaudeWorksBelowIt(t *testing.T) {
 		t.Error("a turn with a prompt queued read as at rest")
 	}
 }
+
+// Claude Code 2.1.317 in the sbx template (#145) can draw four lines below
+// its prompt box: a notice ("⚠ Transcript saving is off…"), the status
+// line, the mode line and, once the status line is full, the Tools mod's
+// "◆ Tools ▾" on a line of its own. The box above them is Claude's, at 80
+// columns and at 40 alike, run by hand and as an agent of hq's; a
+// suggested next prompt there is faint, and only typed text is in the box.
+func TestThePromptBoxIsFoundAboveAFooterWithANotice(t *testing.T) {
+	for _, name := range []string{"notice-empty", "notice-suggestion", "notice-suggestion-40", "agent-notice-suggestion"} {
+		s := WithoutHints(screen(t, "styled-"+name))
+		if ok, _ := AtRest(s, ""); !ok {
+			t.Errorf("%s: an empty box not at rest (box %q)", name, BoxText(s))
+		}
+		if !Idle(s) {
+			t.Errorf("%s: not idle", name)
+		}
+	}
+	typed := WithoutHints(screen(t, "styled-notice-typed"))
+	if got := BoxText(typed); got != "hello there" {
+		t.Errorf("typed: box %q", got)
+	}
+	if ok, _ := AtRest(typed, ""); ok {
+		t.Error("typed text read as an empty box")
+	}
+}
+
+// A suggested shell command ("! ls -la", Claude Code 2.1.317, #145) is as
+// faint as any other suggestion: the box is empty.
+func TestASuggestedShellCommandIsAFaintHint(t *testing.T) {
+	s := WithoutHints(screen(t, "styled-suggestion-bang"))
+	if ok, _ := AtRest(s, ""); !ok {
+		t.Fatalf("box %q", BoxText(s))
+	}
+}
