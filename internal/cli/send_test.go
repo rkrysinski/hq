@@ -450,3 +450,14 @@ func TestSendDoesNotTypeIntoABoxClaudeIsAboutToRedraw(t *testing.T) {
 		t.Fatalf("exit %d %q pasted %v", code, out, f.tmux.pasted)
 	}
 }
+
+// #145: a done agent whose box holds only Claude's faint suggestion, under
+// a footer of four lines (a notice above the status line, Claude Code
+// 2.1.317 in the sbx template), takes the message as its next prompt.
+func TestSendTypesIntoABoxWithASuggestionAboveAFooterWithANotice(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.tmux.screens["%4"] = readFixture(t, "screen-styled-agent-notice-suggestion.txt")
+	if code, out, _ := f.run("send", "a", "hi"); code != 0 || out != "delivered: typed into a as its next prompt\n" || len(f.tmux.pasted) != 1 {
+		t.Fatalf("exit %d %q pasted %v", code, out, f.tmux.pasted)
+	}
+}
