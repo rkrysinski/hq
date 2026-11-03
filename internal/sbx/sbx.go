@@ -132,13 +132,12 @@ func (c Client) RunArgv(sandbox string, agentArgs ...string) []string {
 // MCPCommand is the command line of the local MCP server registered with
 // sbx under name (sbx mcp inspect NAME --json: its "command", the program
 // then its arguments); ok is false when sbx knows no server of that name.
-// sbx v0.47.0 fails the inspect of a name it does not know; a failure other
-// than sbx missing counts as that, and what else went wrong comes back
-// from the add that follows.
+// sbx fails the inspect of a name it does not know, saying it is not
+// found; any other failure is sbx's error.
 func (c Client) MCPCommand(name string) (argv []string, ok bool, err error) {
 	out, err := c.run("mcp", "inspect", name, "--json")
 	var pe *proc.Error
-	if errors.As(err, &pe) && !pe.NotFound {
+	if errors.As(err, &pe) && !pe.NotFound && strings.Contains(strings.ToLower(pe.Stderr), "not found") {
 		return nil, false, nil
 	}
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/rkrysinski/hq/internal/proc"
+	"github.com/rkrysinski/hq/internal/sbx"
 	"reflect"
 	"slices"
 	"strings"
@@ -1122,5 +1123,35 @@ func TestMCPUnloadForgetsTheLoadUntilTheSandboxRestarts(t *testing.T) {
 	f.tmux.windows = f.tmux.windows[:1]
 	if code, out, _ := f.run("sandbox", "restart", "app", "-y"); code != 0 || out != "restarted the sandbox claude-x\n" || len(f.sbx.loads) != 0 {
 		t.Fatalf("restart: exit %d %q loads %q", code, out, f.sbx.loads)
+	}
+}
+
+// Of several sandboxes, one sbx cannot load hq into leaves the others
+// loaded, recorded and named.
+func TestMCPLoadIntoSeveralSandboxesSaysWhichItLoaded(t *testing.T) {
+	f := newFakes()
+	f.sbx.sandboxes = []sbx.Sandbox{
+		{Name: "claude-x", Status: "running", Workspaces: []string{"/w/app"}},
+		{Name: "hq-local-app", Status: "stopped", Workspaces: []string{"/w/app"}},
+	}
+	f.sbx.mcp = map[string][]string{"hq": {"hq"}}
+	f.sbx.loadErr = map[string]error{"hq-local-app": errors.New("sandbox not running")}
+	code, out, errOut := f.run("mcp", "load", "app", "--all-setups")
+	if code != ExitEnvironment || out != "loaded hq into the sandbox claude-x: every agent in it sees hq's tools\n" ||
+		errOut != "hq: could not load hq into hq-local-app (sandbox not running)\n" || !slices.Equal(f.prefs.MCPLoaded, []string{"claude-x"}) {
+		t.Fatalf("exit %d %q %q recorded %q", code, out, errOut, f.prefs.MCPLoaded)
+	}
+}
+
+// A sandbox removed behind hq's back (sbx rm) is forgotten by its name.
+func TestMCPUnloadForgetsASandboxThatIsGone(t *testing.T) {
+	f := sandboxFakes()
+	f.prefs.MCPLoaded = []string{"claude-gone", "claude-x"}
+	code, out, errOut := f.run("mcp", "unload", "claude-gone")
+	if code != 0 || out != "forgot the sandbox claude-gone, which is gone: a new sandbox of its name will not get hq\n" || !slices.Equal(f.prefs.MCPLoaded, []string{"claude-x"}) {
+		t.Fatalf("exit %d %q %q recorded %q", code, out, errOut, f.prefs.MCPLoaded)
+	}
+	if code, _, _ := f.run("mcp", "unload", "claude-gone"); code != ExitNotFound {
+		t.Fatalf("again: exit %d", code)
 	}
 }

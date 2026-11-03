@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/sbx"
@@ -309,34 +311,22 @@ func installSbx(env Env, d deps, exe string, vars []string) error {
 // the flags, as hq sandbox takes them.
 func parseMCPLoad(verb string, args []string) (sandboxArgs, error) {
 	usage := fmt.Sprintf(mcpLoadUsage, verb)
-	args, setup, given, err := parseSetup(args, usage)
+	a, rest, err := parseSetups(args, usage)
 	if err != nil {
-		return sandboxArgs{}, err
-	}
-	a := sandboxArgs{setup: setup, setupGiven: given}
-	var rest []string
-	for _, arg := range args {
-		if arg == "--all-setups" {
-			a.all = true
-		} else {
-			rest = append(rest, arg)
-		}
+		return a, err
 	}
 	if len(rest) != 1 || strings.HasPrefix(rest[0], "-") {
 		return a, usageErr("%s", usage)
-	}
-	if a.all && a.setupGiven {
-		return a, usageErr("--setup and --all-setups exclude each other (%s)", usage)
 	}
 	a.repo = rest[0]
 	return a, nil
 }
 
 // runMCPLoad loads hq, registered with sbx, into the sandboxes REPO and the
-// flags name, as hq sandbox finds them, and records each in the
-// preferences, so hq sandbox restart loads it again; or, with unload,
-// forgets them (#141). sbx v0.47.0 has no unload, and sbx mcp rm would
-// take hq from every sandbox: hq's tools stay in a sandbox until it
+// flags name, as hq sandbox finds them, and records those it loaded it into
+// in the preferences, so hq sandbox restart loads it again; or, with
+// unload, forgets them (#141). sbx v0.47.0 has no unload, and sbx mcp rm
+// would take hq from every sandbox: hq's tools stay in a sandbox until it
 // restarts, which unload says.
 func runMCPLoad(env Env, d deps, verb string, args []string) error {
 	a, err := parseMCPLoad(verb, args)
@@ -351,32 +341,81 @@ func runMCPLoad(env Env, d deps, verb string, args []string) error {
 		}
 	}
 	sbs, err := resolveSandboxes(d, a)
+	if verb == "unload" {
+		// A sandbox removed behind hq's back (sbx rm) is forgotten by its
+		// name, which sbx no longer lists.
+		if err != nil && !a.flagged() && slices.Contains(d.loadPrefs().MCPLoaded, a.repo) {
+			return forgetGone(env, d, a.repo)
+		}
+		if err != nil {
+			return err
+		}
+		return unloadHq(env, d, sbs)
+	}
 	if err != nil {
 		return err
 	}
-	if verb == "unload" {
-		return unloadHq(env, d, sbs)
-	}
+	var loaded []sbx.Sandbox
+	var failed []string // the sandbox and sbx's error
 	for _, sb := range sbs {
 		if err := d.sbx.MCPLoad(sbxServer, sb.Name); err != nil {
-			return sbxErr(err)
-		}
-		if err := d.updatePrefs(func(p *prefs.Prefs) bool {
-			if slices.Contains(p.MCPLoaded, sb.Name) {
-				return false
+			if len(sbs) == 1 {
+				return sbxErr(err)
 			}
-			p.MCPLoaded = append(p.MCPLoaded, sb.Name)
-			return true
+			failed = append(failed, fmt.Sprintf("%s (%v)", sb.Name, sbxErr(err)))
+			continue
+		}
+		loaded = append(loaded, sb)
+	}
+	if len(loaded) > 0 {
+		if err := d.updatePrefs(func(p *prefs.Prefs) bool {
+			n := len(p.MCPLoaded)
+			for _, sb := range loaded {
+				if !slices.Contains(p.MCPLoaded, sb.Name) {
+					p.MCPLoaded = append(p.MCPLoaded, sb.Name)
+				}
+			}
+			return len(p.MCPLoaded) > n
 		}); err != nil {
-			return envErr("loaded hq into %s, but cannot record it for hq sandbox restart: %v", sb.Name, err)
+			return envErr("loaded hq into %s, but cannot record it for hq sandbox restart: %v", sandboxNames(loaded), err)
+		}
+		it := "it"
+		if len(loaded) > 1 {
+			it = "them"
+		}
+		fmt.Fprintf(env.Stdout, "loaded hq into %s: every agent in %s sees hq's tools\n", sandboxNames(loaded), it)
+	}
+	if len(failed) > 0 {
+		return envErr("could not load hq into %s", strings.Join(failed, "; "))
+	}
+	return nil
+}
+
+// forgetGone forgets a sandbox hq mcp load loaded hq into that sbx no
+// longer lists.
+func forgetGone(env Env, d deps, name string) error {
+	if err := d.updatePrefs(func(p *prefs.Prefs) bool {
+		p.MCPLoaded = slices.DeleteFunc(p.MCPLoaded, func(n string) bool { return n == name })
+		return true
+	}); err != nil {
+		return envErr("cannot record the unload: %v", err)
+	}
+	fmt.Fprintf(env.Stdout, "forgot the sandbox %s, which is gone: a new sandbox of its name will not get hq\n", name)
+	return nil
+}
+
+// reloadNotice names, after hq restore, each sandbox of the restored
+// agents that hq mcp load loaded hq into: a host restart restarted it, and
+// sbx lost the load with that.
+func reloadNotice(out io.Writer, d deps, restored []agent.Agent) {
+	recorded := d.loadPrefs().MCPLoaded
+	var said []string
+	for _, a := range restored {
+		if slices.Contains(recorded, a.Sandbox) && !slices.Contains(said, a.Sandbox) {
+			said = append(said, a.Sandbox)
+			fmt.Fprintf(out, "hq was loaded into the sandbox %s; if it restarted, hq mcp load %s loads it again\n", a.Sandbox, a.Sandbox)
 		}
 	}
-	it := "it"
-	if len(sbs) > 1 {
-		it = "them"
-	}
-	fmt.Fprintf(env.Stdout, "loaded hq into %s: every agent in %s sees hq's tools\n", sandboxNames(sbs), it)
-	return nil
 }
 
 // unloadHq forgets that hq mcp load loaded hq into the sandboxes and says

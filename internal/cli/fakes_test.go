@@ -571,6 +571,7 @@ type fakes struct {
 	profileWrote bool
 	profileErr   error
 	prefs        prefs.Prefs
+	prefsErr     error // fails every change of the preferences file
 	// detached are the programs started to outlive hq (the update check);
 	// stderrTTY is whether stderr is a terminal.
 	detached  [][]string
@@ -837,6 +838,9 @@ func (f *fakes) deps() deps {
 		},
 		loadPrefs: func() prefs.Prefs { return f.prefs },
 		updatePrefs: func(change func(*prefs.Prefs) bool) error {
+			if f.prefsErr != nil {
+				return f.prefsErr
+			}
 			p := f.prefs
 			if change(&p) {
 				f.prefs = p

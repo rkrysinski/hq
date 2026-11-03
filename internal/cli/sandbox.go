@@ -27,11 +27,14 @@ type sandboxArgs struct {
 // flagged reports whether a flag chooses among the repository's sandboxes.
 func (s sandboxArgs) flagged() bool { return s.setupGiven || s.all }
 
-func parseSandbox(args []string) (sandboxArgs, error) {
+// parseSetups reads the flags that choose among a repository's
+// sandboxes, --setup NAME and --all-setups, as hq sandbox and hq mcp load
+// take them, and returns the other arguments.
+func parseSetups(args []string, usage string) (sandboxArgs, []string, error) {
 	var s sandboxArgs
-	args, setup, given, err := parseSetup(args, sandboxUsage)
+	args, setup, given, err := parseSetup(args, usage)
 	if err != nil {
-		return s, err
+		return s, nil, err
 	}
 	s.setup, s.setupGiven = setup, given
 	var rest []string
@@ -42,12 +45,20 @@ func parseSandbox(args []string) (sandboxArgs, error) {
 			rest = append(rest, a)
 		}
 	}
+	if s.all && s.setupGiven {
+		return s, nil, usageErr("--setup and --all-setups exclude each other (%s)", usage)
+	}
+	return s, rest, nil
+}
+
+func parseSandbox(args []string) (sandboxArgs, error) {
+	s, rest, err := parseSetups(args, sandboxUsage)
+	if err != nil {
+		return s, err
+	}
 	plain, yes, err := parseYes(rest)
 	if err != nil || len(plain) != 2 || (plain[0] != "rm" && plain[0] != "restart") {
 		return s, usageErr(sandboxUsage)
-	}
-	if s.all && s.setupGiven {
-		return s, usageErr("--setup and --all-setups exclude each other (%s)", sandboxUsage)
 	}
 	s.cmd, s.repo, s.yes = plain[0], plain[1], yes
 	return s, nil
@@ -231,9 +242,8 @@ func sandboxRm(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes bool)
 		if err := d.sbx.Remove(sbs[0].Name); err != nil {
 			return sbxErr(err)
 		}
-		forgetLoaded(d, sbs)
 		fmt.Fprintf(env.Stdout, "removed %s\n", sandboxNames(sbs))
-		return nil
+		return forgetLoaded(d, sbs)
 	}
 	// Of several, one sbx fails to remove leaves the others to remove; hq
 	// says which it removed and which not (#134).
@@ -251,12 +261,18 @@ func sandboxRm(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes bool)
 			removed = append(removed, sb)
 		}
 	}
-	if len(removed) > 0 {
-		forgetLoaded(d, removed)
-		fmt.Fprintf(env.Stdout, "removed %s\n", sandboxNames(removed))
-	}
+	var msgs []string
 	if len(failed) > 0 {
-		return envErr("could not remove %s", strings.Join(failed, "; "))
+		msgs = append(msgs, "could not remove "+strings.Join(failed, "; "))
+	}
+	if len(removed) > 0 {
+		fmt.Fprintf(env.Stdout, "removed %s\n", sandboxNames(removed))
+		if err := forgetLoaded(d, removed); err != nil {
+			msgs = append(msgs, err.Error())
+		}
+	}
+	if len(msgs) > 0 {
+		return envErr("%s", strings.Join(msgs, "; "))
 	}
 	return nil
 }
@@ -356,7 +372,7 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 			continue // killed while the sandbox restarted
 		}
 		if err := relaunchAgent(d, a, pane, resume[a.ID]); err != nil {
-			return err
+			return withNotLoaded(err, notLoaded)
 		}
 		names = append(names, a.Name)
 	}
@@ -377,10 +393,20 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 	}
 	fmt.Fprintln(env.Stdout, line)
 	reportNotRestored(env.Stdout, plans)
-	if err == nil && len(notLoaded) > 0 {
-		err = envErr("%s", strings.Join(notLoaded, "; "))
+	return withNotLoaded(err, notLoaded)
+}
+
+// withNotLoaded is err with the sandboxes hq could not be loaded into
+// again said after it, so neither failure hides the other.
+func withNotLoaded(err error, notLoaded []string) error {
+	if len(notLoaded) == 0 {
+		return err
 	}
-	return err
+	msg := strings.Join(notLoaded, "; ")
+	if err != nil {
+		msg = err.Error() + "; " + msg
+	}
+	return envErr("%s", msg)
 }
 
 // reloadHq loads hq again into those of the sandboxes, just restarted,
@@ -403,10 +429,10 @@ func reloadHq(d deps, sbs []sbx.Sandbox) (loaded, failed []string) {
 }
 
 // forgetLoaded drops removed sandboxes from those hq mcp load loaded hq
-// into, so a new sandbox of the same name does not get it. A failure only
-// leaves a name that loads nothing until such a sandbox exists.
-func forgetLoaded(d deps, removed []sbx.Sandbox) {
-	_ = d.updatePrefs(func(p *prefs.Prefs) bool {
+// into, so a new sandbox of the same name does not get it; a failure is
+// said with the remedy, as such a sandbox would get hq's tools.
+func forgetLoaded(d deps, removed []sbx.Sandbox) error {
+	err := d.updatePrefs(func(p *prefs.Prefs) bool {
 		kept := slices.DeleteFunc(slices.Clone(p.MCPLoaded), func(name string) bool {
 			return slices.ContainsFunc(removed, func(sb sbx.Sandbox) bool { return sb.Name == name })
 		})
@@ -416,6 +442,14 @@ func forgetLoaded(d deps, removed []sbx.Sandbox) {
 		p.MCPLoaded = kept
 		return true
 	})
+	if err != nil {
+		var names []string
+		for _, sb := range removed {
+			names = append(names, sb.Name)
+		}
+		return envErr("cannot forget that hq was loaded into %s (%v); hq mcp unload %s forgets it", strings.Join(names, ", "), err, strings.Join(names, " "))
+	}
+	return nil
 }
 
 // relaunchAgent starts a new Claude session in the agent's own pane,
