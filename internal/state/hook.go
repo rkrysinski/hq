@@ -383,9 +383,9 @@ function refused(s,    i, c, d, str, val, kd, tool, name, keys, v, a, n, ks, k, 
     }
     v = tool
     if (!sub(/^mcp__.+__/, "", v) || name == "" || name != ENVIRON["N"] || name ~ /[^0-9A-Za-z._-]/) return
-    if (v == "kill") { a = " name confirmed "; r = "an agent does not end itself; the user ends it (hq kill " name ")" }
-    else if (v == "answer") { a = " name dialog answers cancel confirmed "; n = "dialog"; r = "an agent does not answer its own dialog" }
-    else if (v == "send") { a = " name text now "; n = "text"; r = "an agent does not send to itself" }
+    if (v == "kill") { a = " ` + killInput + ` "; r = "an agent does not end itself; the user ends it (hq kill " name ")" }
+    else if (v == "answer") { a = " ` + answerInput + ` "; n = "` + answerNeeds + `"; r = "an agent does not answer its own dialog" }
+    else if (v == "send") { a = " ` + sendInput + ` "; n = "` + sendNeeds + `"; r = "an agent does not send to itself" }
     else return
     if (n != "" && index(keys SUBSEP, SUBSEP n SUBSEP) == 0) return
     for (k = split(substr(keys, 2), ks, SUBSEP); k; k--) if (index(a, " " ks[k] " ") == 0) return
@@ -469,6 +469,33 @@ const branchHeader = "branch"
 // An MCP elicitation's (elicitation_dialog, elicitation_url_dialog) is left
 // out: its own hook reports it as it is drawn (#100).
 const attentionNotifications = "permission_prompt|agent_needs_input"
+
+// The keys of the input of hq's kill, answer and send as its MCP server
+// takes them, and the key each requires besides name, for the hook's refuse
+// to tell a call of hq's from another server's (#142). They must follow the
+// tools' inputs: a key the hook does not know makes it refuse nothing, so a
+// test of the server holds them to its inputs (RefusedInput).
+const (
+	killInput   = "name confirmed"
+	answerInput = "name dialog answers cancel confirmed"
+	answerNeeds = "dialog"
+	sendInput   = "name text now"
+	sendNeeds   = "text"
+)
+
+// RefusedInput gives, for the tool verb (kill, answer or send), the keys of
+// its input the hook's refuse takes for hq's and the ones it requires.
+func RefusedInput(verb string) (keys, required []string) {
+	switch verb {
+	case "kill":
+		return strings.Fields(killInput), []string{"name"}
+	case "answer":
+		return strings.Fields(answerInput), []string{"name", answerNeeds}
+	case "send":
+		return strings.Fields(sendInput), []string{"name", sendNeeds}
+	}
+	return nil, nil
+}
 
 // refusedTools are the tools whose PreToolUse runs the hook's refuse: an MCP
 // tool named kill, answer or send of any server, since hq's is mcp__hq__ when

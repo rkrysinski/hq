@@ -228,7 +228,8 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	pre := regexp.MustCompile(s.Hooks["PreToolUse"][0].Matcher)
 	for tool, checked := range map[string]bool{
 		"mcp__hq__kill": true, "mcp__mcp-gateway__answer": true, "mcp__hq__send": true,
-		"mcp__hq__read": false, "mcp__hq__killall": false, "kill": false, "Bash": false, "mcp__hq__new": false,
+		"mcp__hq__read": false, "mcp__hq__list": false, "mcp__hq__wait": false, "mcp__hq__go": false, "mcp__hq__new": false,
+		"mcp__hq__killall": false, "kill": false, "Bash": false,
 	} {
 		if pre.MatchString(tool) != checked {
 			t.Errorf("PreToolUse matcher %q on %s: %v", pre, tool, !checked)
