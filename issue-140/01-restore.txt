@@ -1,0 +1,15 @@
+tmux server hq-dev-2102740109 ended
+hq: agent 'a' was lost with tmux (hq restore brings it back; hq kill a forgets it)
+exit 1
+$ hq restore; echo "exit $?"
+restored a in app (sandbox claude-app)
+restored b in app (sandbox claude-app)
+restored d in app (sandbox hq-local-app)
+not restored w in app: its worktree /tmp/hq-qa-140/repos/app/.claude/worktrees/w is gone (hq kill w forgets it)
+exit 0
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+d     app   master  done   3s   Done: hey
+b     app   master  done   3s   Done: hi
+a     app   master  done   3s   Done: hello
+$

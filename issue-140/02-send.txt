@@ -1,0 +1,14 @@
+delivered: typed into a as its next prompt
+delivered: typed into b as its next prompt
+delivered: typed into d as its next prompt
+$ hq ls; for f in .git/hq/agents/*.hq; do i=$(basename $f .hq); [ -e .git/hq/agents/$i ] && echo "$i $(grep -o "\"session_id\":\"[^\"]*\"" .git/hq/age
+nts/$i | head -1)"; done
+NAME  REPO  BRANCH  STATE  AGE  LAST
+d     app   master  done   4s   Done: after the restart
+b     app   master  done   4s   Done: after the restart
+a     app   master  done   5s   Done: after the restart
+22e968857582 "session_id":"fa4ec1a0-0000-4000-8000-000000018172"
+83222de4fc0b "session_id":"fa4ec1a0-0000-4000-8000-0000000188fa"
+83f6e1fa54b7 "session_id":"fa4ec1a0-0000-4000-8000-0000000181f8"
+9072683ee3ce "session_id":"fa4ec1a0-0000-4000-8000-00000001811d"
+$

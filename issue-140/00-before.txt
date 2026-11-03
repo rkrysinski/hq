@@ -1,0 +1,5 @@
+tmux server killed (host restart)
+$ hqb ls; hqb sandbox restart app --all-setups -y; hqb ls; hqb restore
+restarted the sandboxes claude-app, hq-local-app
+hq: unknown command 'restore' (see hq help)
+$

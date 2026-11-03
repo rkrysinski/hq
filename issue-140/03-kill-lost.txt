@@ -1,0 +1,5 @@
+not restored w in app: its worktree /tmp/hq-qa-140/repos/app/.claude/worktrees/w is gone (hq kill w forgets it)
+killed w; the sandbox stays
+nothing to restore
+0
+$

@@ -1,0 +1,9 @@
+tmux server hq-dev-2102740109 ended
+Restart the sandboxes claude-app, hq-local-app? This restores 3 lost agents (a, b, d). [y/N] y
+restarted the sandboxes claude-app, hq-local-app; restored a, b, d
+exit 0
+$ hq ls --json | jq -r ".agents[] | [.name,.sandbox,.setup,.state,.last] | @tsv"
+d	hq-local-app	local	done	Done: after the restart
+b	claude-app	default	done	Done: after the restart
+a	claude-app	default	done	Done: after the restart
+$
