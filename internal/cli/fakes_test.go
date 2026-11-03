@@ -14,6 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/gh"
+	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/prefs"
@@ -41,6 +42,7 @@ type fakeTmux struct {
 	clients      []string // terminals of the clients attached to hq's session
 	shown        string   // window shown to them
 	windowsErr   error
+	killErr      map[string]error // fails KillWindow of that window
 
 	dash       tmux.Dash // the dashboard window, once made
 	dashList   []string  // the list pane's program
@@ -343,6 +345,9 @@ func (f *fakeTmux) SetOption(id, key, value string) error {
 }
 
 func (f *fakeTmux) KillWindow(id string) error {
+	if err := f.killErr[id]; err != nil {
+		return err
+	}
 	for i, w := range f.windows {
 		if w.ID == id {
 			f.windows = append(f.windows[:i], f.windows[i+1:]...)
@@ -571,7 +576,9 @@ type fakes struct {
 	profileWrote bool
 	profileErr   error
 	prefs        prefs.Prefs
-	prefsErr     error // fails every change of the preferences file
+	kills        []kills.Kill // the trace of kills
+	killsErr     error        // fails every addition to it
+	prefsErr     error        // fails every change of the preferences file
 	// detached are the programs started to outlive hq (the update check);
 	// stderrTTY is whether stderr is a terminal.
 	detached  [][]string
@@ -685,8 +692,9 @@ func newFakes() *fakes {
 
 func (f *fakes) deps() deps {
 	return deps{
-		tmux: f.tmux,
-		sbx:  f.sbx,
+		tmux:   f.tmux,
+		sbx:    f.sbx,
+		killer: kills.Kill{By: kills.ByCLI},
 		repoRoot: func(dir string) (string, bool) {
 			r, ok := f.repos[dir]
 			return r, ok
@@ -744,7 +752,15 @@ func (f *fakes) deps() deps {
 			f.dropRecord(root, id)
 			return nil
 		},
-		records: func(root string) ([]state.Record, error) { return f.records[root], nil },
+		traceKill: func(k kills.Kill) error {
+			if f.killsErr != nil {
+				return f.killsErr
+			}
+			f.kills = append(f.kills, k)
+			return nil
+		},
+		readKills: func() ([]kills.Kill, error) { return f.kills, nil },
+		records:   func(root string) ([]state.Record, error) { return f.records[root], nil },
 		writeRecord: func(root, id string, r state.Record) error {
 			f.dropRecord(root, id)
 			r.ID = id

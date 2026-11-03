@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/kills"
 )
 
 // endWait is how long hq gives Claude sessions to end after SIGTERM before it
@@ -79,6 +80,9 @@ func runKill(env Env, d deps, args []string) error {
 			return err
 		}
 	}
+	if d.killer.By == kills.ByCLI {
+		d.killer.Command = "kill"
+	}
 	if err := endAgents(d, []agent.Agent{a}); err != nil {
 		return err
 	}
@@ -122,6 +126,7 @@ func runStop(env Env, d deps, args []string) error {
 			return err
 		}
 	}
+	d.killer.Command = "stop"
 	if err := endAgents(d, as); err != nil {
 		return err
 	}
@@ -172,7 +177,11 @@ func sessionPattern(id string) string { return `HQ_ID":"` + id + `"` }
 // (sessions whose pane died) included, then removes their home windows and
 // their state files (design §3.4): nothing reads those once the window is
 // gone, and an ended session's last hook has written. Only these agents'
-// files go; a file that cannot be removed does not stop the removal.
+// files go; a file that cannot be removed does not stop the removal. Each
+// agent whose window is gone goes into the trace with who asked for it
+// (#147), before its files go, even when tmux then fails to remove the
+// next window; one the trace cannot take does not stop the others, and is
+// said once all are killed.
 func removeAgents(d deps, as, orphans []agent.Agent) error {
 	if err := waitEnded(d, as, orphans); err != nil {
 		return err
@@ -185,18 +194,44 @@ func removeAgents(d deps, as, orphans []agent.Agent) error {
 	for _, w := range ws {
 		present[w.ID] = true
 	}
+	var gone []agent.Agent
+	var killErr error
 	for _, a := range as {
-		if !present[a.Window] {
-			continue
+		if present[a.Window] {
+			if err := d.tmux.KillWindow(a.Window); err != nil {
+				killErr = tmuxErr(err)
+				break
+			}
 		}
-		if err := d.tmux.KillWindow(a.Window); err != nil {
-			return tmuxErr(err)
-		}
+		gone = append(gone, a)
 	}
-	for _, a := range as {
+	var untraced []string
+	var traceErr error
+	for _, a := range gone {
+		if err := traceKill(d, a); err != nil {
+			untraced, traceErr = append(untraced, a.Name), err
+		}
 		_ = d.removeState(a.RepoPath, a.ID)
 	}
-	return nil
+	if traceErr == nil {
+		return killErr
+	}
+	them := "it"
+	if len(untraced) > 1 {
+		them = "them"
+	}
+	msg := fmt.Sprintf("killed %s, but could not add %s to the trace of kills (%v)", strings.Join(untraced, ", "), them, traceErr)
+	if killErr != nil {
+		msg = killErr.Error() + "; " + msg
+	}
+	return envErr("%s", msg)
+}
+
+// traceKill adds the kill of a, now, to the trace, with who asked for it.
+func traceKill(d deps, a agent.Agent) error {
+	k := d.killer
+	k.At, k.Name, k.ID, k.Repo, k.Sandbox = d.now(), a.Name, a.ID, a.RepoPath, a.Sandbox
+	return d.traceKill(k)
 }
 
 // waitEnded waits up to endWait for the sessions of the agents that were

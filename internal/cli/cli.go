@@ -40,6 +40,7 @@ func commands() []command {
 		{"answer", "NAME --dialog ID ANSWER...|--cancel", "answer that agent's question dialog, or cancel it; or pick an option of a dialog of Claude's own", runAnswer},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
+		{"killed", "[NAME]", "show the agents hq killed: when, and who asked for it", runKilled},
 		{"sandbox", "rm|restart REPO|SANDBOX [-y]", "remove or restart a repository's sandbox", runSandbox},
 		{"restore", "[REPO]", "relaunch the agents tmux lost (a host restart), continuing their conversations", runRestore},
 		{"mcp", "[install] [claude-desktop|claude-code|sbx] | load|unload REPO", "serve these commands as tools to Claude Desktop, Claude Code or sbx; install adds hq to it; load gives a sandbox's agents hq's tools", runMCP},

@@ -8,6 +8,7 @@ import (
 
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dialog"
+	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/sbx"
 )
 
@@ -102,6 +103,7 @@ func runKillDialog(_ Env, d deps, args []string) error {
 	if branch == "" {
 		branch = a.Repo()
 	}
+	d.killer = kills.Kill{By: kills.ByDashboard}
 	return d.runDialog(dialog.KillDialog(a.Name, branch, func() error { return endAgents(d, []agent.Agent{a}) }))
 }
 

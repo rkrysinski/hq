@@ -248,6 +248,10 @@ func TestALostAgentHoldsItsNameUntilKilled(t *testing.T) {
 	if got := strings.Join(f.removed, ";"); got != "/w/lib id-c" || len(f.sbx.orphans) != 0 {
 		t.Fatalf("removed %q orphans %v", got, f.sbx.orphans)
 	}
+	// It is in the trace as any other kill (#147).
+	if len(f.kills) != 1 || f.kills[0].Name != "c" || f.kills[0].ID != "id-c" || f.kills[0].Repo != "/w/lib" || f.kills[0].Command != "kill" {
+		t.Fatalf("trace %+v", f.kills)
+	}
 	if code, _, _ := f.run("new", "c", "say hi"); code != 0 {
 		t.Fatalf("the name stays taken after the kill")
 	}

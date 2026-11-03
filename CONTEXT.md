@@ -20,6 +20,10 @@ _Avoid_: tab, session, worker
 An agent whose place in tmux went with the tmux server (a host restart) while hq keeps what it needs to bring it back with `hq restore`; it holds its name until restored or killed.
 _Avoid_: orphan, missing agent, dead agent
 
+**Trace of kills**:
+The user's own record of every agent hq killed: when, and who asked for it (the command line, the dashboard, or a supervisor's MCP client), shown by `hq killed`.
+_Avoid_: kill log, audit log, history
+
 **Dashboard**:
 The hq tmux window: the list on top, the docking slot below, the footer along the bottom.
 _Avoid_: TUI, console window
