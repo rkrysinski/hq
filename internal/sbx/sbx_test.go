@@ -365,6 +365,11 @@ func TestMCPCommandOfAnUnregisteredServer(t *testing.T) {
 	if _, _, err := (Client{Run: r, Platform: platform.Native{}}).MCPCommand("hq"); err == nil {
 		t.Fatal("sbx missing: want error")
 	}
+	// Any other failure of sbx is not taken for "not registered".
+	r = &fakeRun{err: &proc.Error{Stderr: "error: cannot reach sandboxd\n"}}
+	if _, _, err := (Client{Run: r, Platform: platform.Native{}}).MCPCommand("hq"); err == nil {
+		t.Fatal("sandboxd down: want error")
+	}
 	r = &fakeRun{out: "not json"}
 	if _, _, err := (Client{Run: r, Platform: platform.Native{}}).MCPCommand("hq"); err == nil {
 		t.Fatal("not json: want error")

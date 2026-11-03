@@ -103,6 +103,7 @@ func runRestore(env Env, d deps, args []string) error {
 		fmt.Fprintf(env.Stdout, "restored %s in %s (sandbox %s)\n", a.Name, a.Repo(), a.Sandbox)
 	}
 	reportNotRestored(env.Stdout, plans)
+	reloadNotice(env.Stdout, d, restored)
 	return err
 }
 
