@@ -964,3 +964,28 @@ func TestMCPAnswerPicksAnOptionOfADialogOfClaudesOwnOnTheUsersWord(t *testing.T)
 		t.Fatalf("confirmed: %v %q, picked %d", isErr, out, c.picked)
 	}
 }
+
+// The hook that refuses a kill, answer or send naming the calling agent
+// tells hq's call from another server's by its input's keys (#142): a key
+// it does not know makes it refuse nothing, so its keys follow the tools'.
+func TestTheRefusalKnowsTheInputsOfKillAnswerAndSend(t *testing.T) {
+	for verb, in := range map[string]any{"kill": mcpKillIn{}, "answer": mcpAnswerIn{}, "send": mcpSendIn{}} {
+		var keys, required []string
+		ty := reflect.TypeOf(in)
+		for i := range ty.NumField() {
+			tag := strings.Split(ty.Field(i).Tag.Get("json"), ",")
+			keys = append(keys, tag[0])
+			if !slices.Contains(tag[1:], "omitempty") {
+				required = append(required, tag[0])
+			}
+		}
+		k, r := state.RefusedInput(verb)
+		slices.Sort(keys)
+		slices.Sort(required)
+		slices.Sort(k)
+		slices.Sort(r)
+		if !slices.Equal(k, keys) || !slices.Equal(r, required) {
+			t.Errorf("%s: the hook takes %v (requires %v), the tool %v (requires %v)", verb, k, r, keys, required)
+		}
+	}
+}

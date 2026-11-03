@@ -117,6 +117,12 @@ import (
 // (its timeout, the session's end), and at once for a subagent's dialog
 // (agent_id), which hq does not answer.
 //
+// On refuse, the kind of the PreToolUse hook on an MCP tool named kill,
+// answer or send, it reads only the payload and writes nothing: it denies
+// the call (Claude does not make it) when it is a call of hq's tool that
+// names the agent itself, HQ_AGENT, so an agent that supervises through hq
+// does not end, answer or message itself (spec §4.1, design §3.12, #142).
+//
 // It needs only sh, git, cat, mv, cp, mkdir, rm, grep, awk, sleep and
 // cksum, sends its own errors nowhere and always exits 0; it holds Claude
 // back only while a message is unread (design §3.4, §7.1): the hook of
@@ -124,6 +130,8 @@ import (
 // takes an answer at.
 const hookSource = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
 exec 2>/dev/null
+A='` + hookAwk + `'
+[ "$1" = refuse ] && { K=refuse N=$HQ_AGENT awk "$A"; exit 0; }
 q=
 b=$(git branch --show-current)
 l=${b:-${PWD##*/}}
@@ -135,7 +143,6 @@ mkdir -p "$d" || exit 0
 f=$d/$HQ_ID
 t=$f.$$
 { printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" || { rm -f "$t"; exit 0; }
-A='` + hookAwk + `'
 works() { grep -Eq '` + workingEvent + `' "$f"; }
 ask() { grep -Eq '` + dialogEvent + `' "$f"; }
 form() { grep -q '` + elicitEvent + `' "$f"; }
@@ -310,6 +317,14 @@ const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 // the tool's name (the Workflow tool's response has a taskId too), it
 // prints the watch's taskId as =ID, which owes nothing.
 //
+// With K=refuse it prints, for the payload of a PreToolUse, a decision that
+// denies the call when it is a call of hq's kill, answer or send naming the
+// agent N: the tool's name is mcp__SERVER__VERB, whatever the server's name
+// (hq, or mcp-gateway through sbx), and its input has hq's shape, every key
+// one of that tool's and the keys hq requires there (refused). The name is
+// the input's own, never a word inside its text; one with an escape is not
+// taken for N, since an agent's name needs none.
+//
 // Otherwise it prints the notification for the event in the state file: on
 // dialog and input "Needs input: <branch>", on stop "Question: <branch>"
 // when the last assistant message ends with "?" (the rule of IsQuestion,
@@ -355,6 +370,27 @@ function busy(s,    i, c, d, str, key, val, ty, st, id) {
         } else if (d == 1 && (c == ":" || c == ",")) val = c == ":"
     }
 }
+function refused(s,    i, c, d, str, val, kd, tool, name, keys, v, a, n, ks, k, r) {
+    for (i = 1; (c = substr(s, i, 1)) != ""; i++) {
+        if (c == "\"") {
+            for (str = ""; (c = substr(s, ++i, 1)) != "\"" && c != ""; str = str c) if (c == "\\") i++
+            if (!val) { kd[d] = str; if (d == 2 && kd[1] == "tool_input") keys = keys SUBSEP str }
+            else if (d == 1 && kd[1] == "tool_name") tool = str
+            else if (d == 2 && kd[1] == "tool_input" && kd[2] == "name") name = str
+        } else if (c == "{" || c == "[") { d++; val = 0 }
+        else if (c == "}" || c == "]") d--
+        else if (c == ":" || c == ",") val = c == ":"
+    }
+    v = tool
+    if (!sub(/^mcp__.+__/, "", v) || name == "" || name != ENVIRON["N"] || name ~ /[^0-9A-Za-z._-]/) return
+    if (v == "kill") { a = " ` + killInput + ` "; r = "an agent does not end itself; the user ends it (hq kill " name ")" }
+    else if (v == "answer") { a = " ` + answerInput + ` "; n = "` + answerNeeds + `"; r = "an agent does not answer its own dialog" }
+    else if (v == "send") { a = " ` + sendInput + ` "; n = "` + sendNeeds + `"; r = "an agent does not send to itself" }
+    else return
+    if (n != "" && index(keys SUBSEP, SUBSEP n SUBSEP) == 0) return
+    for (k = split(substr(keys, 2), ks, SUBSEP); k; k--) if (index(a, " " ks[k] " ") == 0) return
+    printf "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"hq: %s refuses %s, the calling agent: %s\"}}\n", v, name, r
+}
 function get(s, key) {
     if (!match(s, "\"" key "\"[ \t\r\n]*:[ \t\r\n]*\"[^\"\\\\]+")) return ""
     s = substr(s, RSTART, RLENGTH)
@@ -396,6 +432,7 @@ NR == 1 && K == "wake" {
     if (paid) print "+"
     next
 }
+NR == 1 && K == "refuse" { refused($0); next }
 NR == 1 && K == "get" { print get($0, ENVIRON["N"]); next }
 NR == 1 && K == "session" {
     if (ENVIRON["S"] ~ /^[0-9A-Za-z-]+$/) sub(/"session_id"[ \t\r\n]*:[ \t\r\n]*"[^"]*"/, "\"session_id\":\"" ENVIRON["S"] "\"")
@@ -432,6 +469,39 @@ const branchHeader = "branch"
 // An MCP elicitation's (elicitation_dialog, elicitation_url_dialog) is left
 // out: its own hook reports it as it is drawn (#100).
 const attentionNotifications = "permission_prompt|agent_needs_input"
+
+// The keys of the input of hq's kill, answer and send as its MCP server
+// takes them, and the key each requires besides name, for the hook's refuse
+// to tell a call of hq's from another server's (#142). They must follow the
+// tools' inputs: a key the hook does not know makes it refuse nothing, so a
+// test of the server holds them to its inputs (RefusedInput).
+const (
+	killInput   = "name confirmed"
+	answerInput = "name dialog answers cancel confirmed"
+	answerNeeds = "dialog"
+	sendInput   = "name text now"
+	sendNeeds   = "text"
+)
+
+// RefusedInput gives, for the tool verb (kill, answer or send), the keys of
+// its input the hook's refuse takes for hq's and the ones it requires.
+func RefusedInput(verb string) (keys, required []string) {
+	switch verb {
+	case "kill":
+		return strings.Fields(killInput), []string{"name"}
+	case "answer":
+		return strings.Fields(answerInput), []string{"name", answerNeeds}
+	case "send":
+		return strings.Fields(sendInput), []string{"name", sendNeeds}
+	}
+	return nil, nil
+}
+
+// refusedTools are the tools whose PreToolUse runs the hook's refuse: an MCP
+// tool named kill, answer or send of any server, since hq's is mcp__hq__ when
+// Claude starts hq and mcp__mcp-gateway__ through sbx (#141); the hook tells
+// hq's from another server's by its input (#142).
+const refusedTools = "^mcp__.+__(kill|answer|send)$"
 
 // newSessions are the SessionStart sources after which Claude waits at its
 // prompt for the user: a new session and one started over by /clear. A
@@ -498,6 +568,7 @@ func Settings(name, id, notify string) string {
 				{Hooks: []hookCommand{hook("dialog", notify)}},
 				{Matcher: AskTool, Hooks: []hookCommand{holding(hook("hold", ""))}},
 			},
+			"PreToolUse":         {{Matcher: refusedTools, Hooks: []hookCommand{hook("refuse", "")}}},
 			"PostToolUse":        {{Hooks: []hookCommand{hook("answer", "")}}},
 			"PostToolUseFailure": {{Hooks: []hookCommand{hook("answer", "")}}},
 			"Stop":               {{Hooks: []hookCommand{hook("stop", notify)}}},
