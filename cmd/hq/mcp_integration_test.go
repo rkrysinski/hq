@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -79,7 +80,9 @@ func supervisorEnv(t *testing.T) *supervisor {
 		t.Fatal(err)
 	}
 	s := &supervisor{t: t, socket: testutil.TmuxSocket(t), bin: buildHQ(t)}
-	s.env = append(os.Environ(), "PATH="+path+string(os.PathListSeparator)+os.Getenv("PATH"), "HQ_TMUX_SOCKET="+s.socket, "HOME="+t.TempDir(), "TMUX=")
+	// Its own preferences file too: CI runners set XDG_CONFIG_HOME, which
+	// would otherwise share the runner's file between tests (#141).
+	s.env = append(os.Environ(), "PATH="+path+string(os.PathListSeparator)+os.Getenv("PATH"), "HQ_TMUX_SOCKET="+s.socket, "HOME="+t.TempDir(), "XDG_CONFIG_HOME="+t.TempDir(), "TMUX=")
 	return s
 }
 
@@ -824,5 +827,76 @@ func TestMCPInstallForClaudeCodeOnWSLAlsoSetsUpClaudeCodeOnWindows(t *testing.T)
 	}
 	if _, err := os.Stat(windows + ".lock"); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("the lock is left: %v", err)
+	}
+}
+
+// A Claude Code inside a sandbox reaches hq through sbx's gateway (#141):
+// hq mcp install sbx registers hq with sbx once however often it runs, hq
+// mcp load loads it into the repository's sandbox, and the command line sbx
+// holds starts an hq that offers the eight tools, wait capped as for
+// Claude Desktop, and lists the host's agents.
+func TestASandboxsClaudeCodeSupervisesFromTheRegistrationHqMcpInstallSbxMade(t *testing.T) {
+	s := supervisorEnv(t)
+	dir := os.Getenv("SBX_STUB_DIR")
+	hq := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command(s.bin, args...)
+		cmd.Env = s.env
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("hq %q: %v %s", args, err, out)
+		}
+		return string(out)
+	}
+	if out := hq("mcp", "install", "sbx"); !strings.HasPrefix(out, "added hq to sbx") {
+		t.Fatalf("install: %s", out)
+	}
+	if out := hq("mcp", "install", "sbx"); !strings.HasPrefix(out, "hq is already set up in sbx") {
+		t.Fatalf("again: %s", out)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "mcp-adds.log")); string(b) != "hq\n" {
+		t.Fatalf("registrations %q", b)
+	}
+	app := testutil.GitRepo(t, "app")
+	hq("new", "a", app, "hello")
+	if out := hq("mcp", "load", app); out != "loaded hq into the sandbox claude-app: every agent in it sees hq's tools\n" {
+		t.Fatalf("load: %s", out)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "mcp-loads.log")); string(b) != "hq claude-app\n" {
+		t.Fatalf("loads %q", b)
+	}
+
+	var registered struct {
+		Command []string `json:"command"`
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, "mcp", "hq"))
+	if err := json.Unmarshal(b, &registered); err != nil || registered.Command[0] != "/usr/bin/env" {
+		t.Fatalf("%v %s", err, b)
+	}
+	// The gateway starts it with an environment of its own, not the user's.
+	cmd := exec.Command(registered.Command[0], registered.Command[1:]...)
+	// The test's home, the last HOME in its environment.
+	for _, kv := range s.env {
+		if strings.HasPrefix(kv, "HOME=") {
+			cmd.Env = []string{kv}
+		}
+	}
+	s.connect(cmd)
+	tools, err := s.cs.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, tl := range tools.Tools {
+		names = append(names, tl.Name)
+		if tl.Name == "wait" && !strings.Contains(tl.Description, "(default and at most 50)") {
+			t.Fatalf("wait: %s", tl.Description)
+		}
+	}
+	if slices.Sort(names); strings.Join(names, " ") != "answer go kill list new read send wait" {
+		t.Fatalf("tools %q", names)
+	}
+	if out := s.ok("list", nil); !strings.Contains(out, `"name": "a"`) {
+		t.Fatalf("list: %s", out)
 	}
 }

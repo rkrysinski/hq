@@ -327,3 +327,15 @@ func TestKillFindsALostAgentOfTheCurrentRepositoryWithoutASandbox(t *testing.T) 
 		t.Fatalf("removed %q", got)
 	}
 }
+
+// A host restart restarted the sandboxes, and sbx lost what hq mcp load
+// loaded: hq restore says which sandbox to load hq into again.
+func TestRestoreNamesTheSandboxesHqWasLoadedInto(t *testing.T) {
+	f := lostFakes()
+	f.tmux.sessions = 0
+	f.prefs.MCPLoaded = []string{"claude-x"}
+	code, out, _ := f.run("restore", "/w/app")
+	if code != 0 || !strings.HasSuffix(out, "\nhq was loaded into the sandbox claude-x; if it restarted, hq mcp load claude-x loads it again\n") || len(f.sbx.loads) != 0 {
+		t.Fatalf("exit %d %q", code, out)
+	}
+}
