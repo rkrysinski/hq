@@ -231,6 +231,7 @@ func sandboxRm(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes bool)
 		if err := d.sbx.Remove(sbs[0].Name); err != nil {
 			return sbxErr(err)
 		}
+		forgetLoaded(d, sbs)
 		fmt.Fprintf(env.Stdout, "removed %s\n", sandboxNames(sbs))
 		return nil
 	}
@@ -251,6 +252,7 @@ func sandboxRm(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes bool)
 		}
 	}
 	if len(removed) > 0 {
+		forgetLoaded(d, removed)
 		fmt.Fprintf(env.Stdout, "removed %s\n", sandboxNames(removed))
 	}
 	if len(failed) > 0 {
@@ -338,6 +340,7 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 			return sbxErr(err)
 		}
 	}
+	reloaded, notLoaded := reloadHq(d, sbs)
 	ws, err := d.tmux.Windows()
 	if err != nil {
 		return tmuxErr(err)
@@ -359,6 +362,13 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 	}
 	restored, err := restoreLost(d, plans)
 	line := "restarted " + sandboxNames(sbs)
+	switch {
+	case len(reloaded) == 0:
+	case len(sbs) == 1:
+		line += "; loaded hq into it again"
+	default:
+		line += "; loaded hq into " + strings.Join(reloaded, ", ") + " again"
+	}
 	if len(names) > 0 {
 		line += "; relaunched " + strings.Join(names, ", ")
 	}
@@ -367,7 +377,45 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 	}
 	fmt.Fprintln(env.Stdout, line)
 	reportNotRestored(env.Stdout, plans)
+	if err == nil && len(notLoaded) > 0 {
+		err = envErr("%s", strings.Join(notLoaded, "; "))
+	}
 	return err
+}
+
+// reloadHq loads hq again into those of the sandboxes, just restarted,
+// that hq mcp load loaded it into: sbx loses it with the restart (#141).
+// It returns the sandboxes it loaded it into and, for each it could not,
+// why and what loads it.
+func reloadHq(d deps, sbs []sbx.Sandbox) (loaded, failed []string) {
+	recorded := d.loadPrefs().MCPLoaded
+	for _, sb := range sbs {
+		if !slices.Contains(recorded, sb.Name) {
+			continue
+		}
+		if err := d.sbx.MCPLoad(sbxServer, sb.Name); err != nil {
+			failed = append(failed, fmt.Sprintf("could not load hq into %s again (%v); run hq mcp load %s", sb.Name, sbxErr(err), sb.Name))
+			continue
+		}
+		loaded = append(loaded, sb.Name)
+	}
+	return loaded, failed
+}
+
+// forgetLoaded drops removed sandboxes from those hq mcp load loaded hq
+// into, so a new sandbox of the same name does not get it. A failure only
+// leaves a name that loads nothing until such a sandbox exists.
+func forgetLoaded(d deps, removed []sbx.Sandbox) {
+	_ = d.updatePrefs(func(p *prefs.Prefs) bool {
+		kept := slices.DeleteFunc(slices.Clone(p.MCPLoaded), func(name string) bool {
+			return slices.ContainsFunc(removed, func(sb sbx.Sandbox) bool { return sb.Name == name })
+		})
+		if len(kept) == len(p.MCPLoaded) {
+			return false
+		}
+		p.MCPLoaded = kept
+		return true
+	})
 }
 
 // relaunchAgent starts a new Claude session in the agent's own pane,

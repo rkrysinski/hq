@@ -12,6 +12,10 @@
 # template or MCP server it cannot find. With SBX_STUB_LOG set to a path,
 # every call is appended to that file with the time it came, to tell which
 # call changed a sandbox's status (#87).
+# `mcp add NAME --command C --args A,B` registers a local MCP server in
+# $SBX_STUB_DIR/mcp/NAME as `mcp inspect NAME --json` prints it, replacing
+# one of that name, and logs it to mcp-adds.log; `mcp load NAME --sandbox S`
+# logs "NAME S" to mcp-loads.log, refused for a server not registered.
 set -eu
 d=${SBX_STUB_DIR:?SBX_STUB_DIR not set}
 mkdir -p "$d/sandboxes"
@@ -109,6 +113,33 @@ stop)
 rm)
     [ "$1" != --force ] || shift
     rm "$d/sandboxes/$1"
+    ;;
+mcp)
+    sub=$1 name=$2
+    shift 2
+    case $sub in
+    add)
+        [ "$1" = --command ] && [ "$3" = --args ] || { echo "stub: mcp add NAME --command C --args A,B" >&2; exit 1; }
+        mkdir -p "$d/mcp"
+        # sbx splits --args at commas.
+        printf '%s\n' "$2" "$4" | tr , '\n' | sed 's/\\/\\\\/g; s/"/\\"/g; s/.*/"&"/' | paste -sd, - |
+            sed 's/.*/{"name":"'"$name"'","type":"local","command":[&],"requires_oauth":false}/' >"$d/mcp/$name"
+        printf '%s\n' "$name" >>"$d/mcp-adds.log"
+        ;;
+    inspect)
+        [ -e "$d/mcp/$name" ] || { printf 'error: MCP server "%s" not found\n' "$name" >&2; exit 1; }
+        cat "$d/mcp/$name"
+        ;;
+    load)
+        [ -e "$d/mcp/$name" ] || { printf 'error: MCP server "%s" not found\n' "$name" >&2; exit 1; }
+        printf '%s %s\n' "$name" "$2" >>"$d/mcp-loads.log"
+        printf 'MCP server "%s" loaded into sandbox "%s" (live)\n' "$name" "$2"
+        ;;
+    *)
+        echo "stub: unknown mcp command $sub" >&2
+        exit 1
+        ;;
+    esac
     ;;
 exec)
     # Like sbx, exec starts a stopped sandbox; the command runs on the host,

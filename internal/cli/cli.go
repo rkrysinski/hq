@@ -42,7 +42,7 @@ func commands() []command {
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
 		{"sandbox", "rm|restart REPO|SANDBOX [-y]", "remove or restart a repository's sandbox", runSandbox},
 		{"restore", "[REPO]", "relaunch the agents tmux lost (a host restart), continuing their conversations", runRestore},
-		{"mcp", "[install] [claude-desktop|claude-code]", "serve these commands as tools to Claude Desktop or Claude Code; install adds hq to it", runMCP},
+		{"mcp", "[install] [claude-desktop|claude-code|sbx] | load|unload REPO", "serve these commands as tools to Claude Desktop, Claude Code or sbx; install adds hq to it; load gives a sandbox's agents hq's tools", runMCP},
 		{"update", "", "replace hq with the latest release", runUpdate},
 		{"help", "", "show this help", runHelp},
 	}
@@ -123,6 +123,7 @@ func runHelp(env Env, _ deps, _ []string) error {
 	fmt.Fprintf(&b, "\nNAME: letters, digits, '-', '_' and '.', at least one letter or digit, at most %d characters; taken until that agent is killed.\n", agent.MaxName)
 	b.WriteString("hq new also takes --setup NAME: the agent runs in the repository's sandbox of that setup, from \"sandboxes\" in preferences.json (default: \"sandbox\").\n")
 	b.WriteString("hq sandbox also takes --setup NAME (the repository's sandbox of that setup, instead of its default) or --all-setups (every sandbox of the repository).\n")
+	b.WriteString("hq mcp load and unload take REPO and those flags as hq sandbox does; hq sandbox restart loads hq again into a sandbox it was loaded into, and takes it away after an unload (sbx has no unload).\n")
 	fmt.Fprintf(&b, "hq wait also takes --since TIME (the moment it printed last, or 10m back) and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
 	b.WriteString("hq answer takes one ANSWER per question, in the dialog's order: an option's number, numbers joined with commas where several may be picked, or text; a dialog of Claude's own (as /effort opens) takes one option's number; ID is the dialog's, as hq read shows it.\n")
 	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment.\n")

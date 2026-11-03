@@ -12,6 +12,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
+	"github.com/rkrysinski/hq/internal/prefs"
+	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/version"
 )
@@ -34,10 +36,18 @@ var (
 	// Claude Code gives a tool call the timeout of the server's entry,
 	// which hq mcp install sets a minute above maxWait.
 	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour}
-	mcpClients = []mcpClient{claudeDesktop, claudeCode}
+	// A Claude Code inside a sandbox reaches hq through sbx's MCP gateway,
+	// which gives a tool call 60 s, as Claude Desktop does (#141).
+	sbxGateway = mcpClient{name: "sbx", title: "sbx", maxWait: DefaultWaitTimeout}
+	mcpClients = []mcpClient{claudeDesktop, claudeCode, sbxGateway}
 )
 
-const mcpUsage = "hq mcp [install] [claude-desktop|claude-code]"
+const (
+	mcpUsage     = "hq mcp [install] [claude-desktop|claude-code|sbx]"
+	mcpLoadUsage = "usage: hq mcp %s REPO|SANDBOX [--setup NAME|--all-setups]"
+	// sbxServer is the name hq is registered with sbx under.
+	sbxServer = "hq"
+)
 
 // mcpEnv are the variables hq mcp install passes on to the client's
 // hq when they are set: PATH, which finds tmux, sbx and gh, and those that
@@ -65,6 +75,9 @@ func parseMCP(args []string) (install bool, c mcpClient, err error) {
 // runMCP serves hq's tools to an MCP client over stdio, or with install
 // adds hq to the client (spec §4.1, design §3.12).
 func runMCP(env Env, d deps, args []string) error {
+	if len(args) > 0 && (args[0] == "load" || args[0] == "unload") {
+		return runMCPLoad(env, d, args[0], args[1:])
+	}
 	install, client, err := parseMCP(args)
 	switch {
 	case err != nil:
@@ -72,7 +85,7 @@ func runMCP(env Env, d deps, args []string) error {
 	case install:
 		return runMCPInstall(env, d, client)
 	case d.canAsk(env.Stdin):
-		return usageErr("hq mcp is started by an MCP client, not typed; add it to Claude Desktop with: hq mcp install, or to Claude Code with: hq mcp install claude-code")
+		return usageErr("hq mcp is started by an MCP client, not typed; add it to Claude Desktop with: hq mcp install, to Claude Code with: hq mcp install claude-code, or to sbx, for a Claude Code inside a sandbox, with: hq mcp install sbx")
 	}
 	if err := d.serveMCP(newMCPServer(d, client)); err != nil {
 		return envErr("mcp: %v", err)
@@ -184,6 +197,9 @@ func runMCPInstall(env Env, d deps, c mcpClient) error {
 			vars = append(vars, k+"="+v)
 		}
 	}
+	if c == sbxGateway {
+		return installSbx(env, d, exe, vars)
+	}
 	targets := desktopTargets
 	if c == claudeCode {
 		targets = codeTargets
@@ -231,6 +247,165 @@ func runMCPInstall(env Env, d deps, c mcpClient) error {
 	case !set:
 		fmt.Fprint(env.Stdout, ts.targets[0].byHand)
 		return envErr("%s not found: there is no %s; %s", c.title, strings.Join(missing, " nor "), ts.install)
+	}
+	return nil
+}
+
+// sbxCommandLine is the command sbx starts hq with, given the entry app
+// (appServer) an app gets for argv: sbx mcp add sets no environment, so
+// where the entry sets one beside hq, env sets it, with vars in their order;
+// where the entry's command line carries it (WSL, where sbx.exe on Windows
+// starts hq through wsl.exe as Claude Desktop does), that command line.
+func sbxCommandLine(app mcpconfig.Server, argv, vars []string) (string, []string) {
+	if app.Env == nil {
+		return app.Command, app.Args
+	}
+	return "/usr/bin/env", append(slices.Clone(vars), argv...)
+}
+
+// installSbx registers hq with sbx, for a Claude Code inside a sandbox
+// (#141): replaced when sbx has another command line under hq's name,
+// left as it is when it has this one. sbx mcp add splits --args at commas,
+// so a value that holds one is refused.
+func installSbx(env Env, d deps, exe string, vars []string) error {
+	argv := []string{exe, "mcp", sbxGateway.name}
+	cmd, args := sbxCommandLine(d.appServer(argv, vars), argv, vars)
+	const comma = "cannot register hq with sbx: %s holds a comma, and sbx mcp add splits its arguments at commas; %s and run hq mcp install sbx again"
+	for _, a := range args {
+		k, _, isVar := strings.Cut(a, "=")
+		switch {
+		case !strings.Contains(a, ","):
+		case a == exe:
+			return envErr(comma, "the path of hq ("+exe+")", "move hq to a directory without one")
+		case isVar && slices.Contains(mcpEnv, k):
+			return envErr(comma, k, "take it out of "+k)
+		default:
+			return envErr(comma, "the argument '"+a+"'", "remove it")
+		}
+	}
+	had, ok, err := d.sbx.MCPCommand(sbxServer)
+	if err != nil {
+		return sbxErr(err)
+	}
+	where := "sbx (sbx mcp inspect " + sbxServer + ")"
+	switch want := append([]string{cmd}, args...); {
+	case ok && slices.Equal(had, want):
+		fmt.Fprintf(env.Stdout, "hq is already set up in %s\n", where)
+	default:
+		if err := d.sbx.MCPAdd(sbxServer, cmd, args); err != nil {
+			return sbxErr(err)
+		}
+		if ok {
+			fmt.Fprintf(env.Stdout, "updated hq in %s\n", where)
+		} else {
+			fmt.Fprintf(env.Stdout, "added hq to %s\n", where)
+		}
+	}
+	fmt.Fprintln(env.Stdout, "load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)")
+	return nil
+}
+
+// parseMCPLoad reads the arguments of hq mcp load and unload: REPO and
+// the flags, as hq sandbox takes them.
+func parseMCPLoad(verb string, args []string) (sandboxArgs, error) {
+	usage := fmt.Sprintf(mcpLoadUsage, verb)
+	args, setup, given, err := parseSetup(args, usage)
+	if err != nil {
+		return sandboxArgs{}, err
+	}
+	a := sandboxArgs{setup: setup, setupGiven: given}
+	var rest []string
+	for _, arg := range args {
+		if arg == "--all-setups" {
+			a.all = true
+		} else {
+			rest = append(rest, arg)
+		}
+	}
+	if len(rest) != 1 || strings.HasPrefix(rest[0], "-") {
+		return a, usageErr("%s", usage)
+	}
+	if a.all && a.setupGiven {
+		return a, usageErr("--setup and --all-setups exclude each other (%s)", usage)
+	}
+	a.repo = rest[0]
+	return a, nil
+}
+
+// runMCPLoad loads hq, registered with sbx, into the sandboxes REPO and the
+// flags name, as hq sandbox finds them, and records each in the
+// preferences, so hq sandbox restart loads it again; or, with unload,
+// forgets them (#141). sbx v0.47.0 has no unload, and sbx mcp rm would
+// take hq from every sandbox: hq's tools stay in a sandbox until it
+// restarts, which unload says.
+func runMCPLoad(env Env, d deps, verb string, args []string) error {
+	a, err := parseMCPLoad(verb, args)
+	if err != nil {
+		return err
+	}
+	if verb == "load" {
+		if _, ok, err := d.sbx.MCPCommand(sbxServer); err != nil {
+			return sbxErr(err)
+		} else if !ok {
+			return envErr("hq is not registered with sbx; run hq mcp install sbx first")
+		}
+	}
+	sbs, err := resolveSandboxes(d, a)
+	if err != nil {
+		return err
+	}
+	if verb == "unload" {
+		return unloadHq(env, d, sbs)
+	}
+	for _, sb := range sbs {
+		if err := d.sbx.MCPLoad(sbxServer, sb.Name); err != nil {
+			return sbxErr(err)
+		}
+		if err := d.updatePrefs(func(p *prefs.Prefs) bool {
+			if slices.Contains(p.MCPLoaded, sb.Name) {
+				return false
+			}
+			p.MCPLoaded = append(p.MCPLoaded, sb.Name)
+			return true
+		}); err != nil {
+			return envErr("loaded hq into %s, but cannot record it for hq sandbox restart: %v", sb.Name, err)
+		}
+	}
+	it := "it"
+	if len(sbs) > 1 {
+		it = "them"
+	}
+	fmt.Fprintf(env.Stdout, "loaded hq into %s: every agent in %s sees hq's tools\n", sandboxNames(sbs), it)
+	return nil
+}
+
+// unloadHq forgets that hq mcp load loaded hq into the sandboxes and says
+// what takes the tools away: a restart of each it had loaded hq into.
+func unloadHq(env Env, d deps, sbs []sbx.Sandbox) error {
+	recorded := d.loadPrefs().MCPLoaded
+	var loaded, not []sbx.Sandbox
+	for _, sb := range sbs {
+		if slices.Contains(recorded, sb.Name) {
+			loaded = append(loaded, sb)
+		} else {
+			not = append(not, sb)
+		}
+	}
+	if len(loaded) > 0 {
+		if err := d.updatePrefs(func(p *prefs.Prefs) bool {
+			p.MCPLoaded = slices.DeleteFunc(p.MCPLoaded, func(name string) bool {
+				return slices.ContainsFunc(loaded, func(sb sbx.Sandbox) bool { return sb.Name == name })
+			})
+			return true
+		}); err != nil {
+			return envErr("cannot record the unload: %v", err)
+		}
+		for _, sb := range loaded {
+			fmt.Fprintf(env.Stdout, "hq stays loaded into the sandbox %s until it restarts (sbx cannot unload it): hq sandbox restart %s takes its tools away\n", sb.Name, sb.Name)
+		}
+	}
+	if len(not) > 0 {
+		fmt.Fprintf(env.Stdout, "hq mcp load did not load hq into %s; nothing to unload\n", sandboxNames(not))
 	}
 	return nil
 }

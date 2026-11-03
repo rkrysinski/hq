@@ -340,3 +340,50 @@ func TestOutputRunsTheCommandInTheSandboxAndReturnsWhatItPrinted(t *testing.T) {
 		t.Fatal("want error")
 	}
 }
+
+// sbx mcp inspect --json gives a local server's command line whole, as sbx
+// v0.47.0 prints it.
+func TestMCPCommandReadsTheRegisteredCommandLine(t *testing.T) {
+	r := &fakeRun{out: `{"name":"hq","type":"local","command":["/usr/bin/env","PATH=/usr/bin:/bin","/u/.local/bin/hq","mcp"],"requires_oauth":false,"resolved_command":"/usr/bin/env"}`}
+	argv, ok, err := Client{Run: r, Platform: platform.Native{}}.MCPCommand("hq")
+	if err != nil || !ok || !reflect.DeepEqual(argv, []string{"/usr/bin/env", "PATH=/usr/bin:/bin", "/u/.local/bin/hq", "mcp"}) {
+		t.Fatalf("%q %v %v", argv, ok, err)
+	}
+	if !reflect.DeepEqual(r.args, []string{"sbx", "mcp", "inspect", "hq", "--json"}) {
+		t.Fatalf("args %q", r.args)
+	}
+}
+
+// A name sbx does not know fails the inspect: not registered. sbx itself
+// missing is still an error.
+func TestMCPCommandOfAnUnregisteredServer(t *testing.T) {
+	r := &fakeRun{err: &proc.Error{Stderr: "error: MCP server \"hq\" not found\n"}}
+	if argv, ok, err := (Client{Run: r, Platform: platform.Native{}}).MCPCommand("hq"); ok || err != nil || argv != nil {
+		t.Fatalf("%q %v %v", argv, ok, err)
+	}
+	r = &fakeRun{err: &proc.Error{NotFound: true}}
+	if _, _, err := (Client{Run: r, Platform: platform.Native{}}).MCPCommand("hq"); err == nil {
+		t.Fatal("sbx missing: want error")
+	}
+	r = &fakeRun{out: "not json"}
+	if _, _, err := (Client{Run: r, Platform: platform.Native{}}).MCPCommand("hq"); err == nil {
+		t.Fatal("not json: want error")
+	}
+}
+
+func TestMCPAddAndLoadRunSbx(t *testing.T) {
+	r := &fakeRun{}
+	c := Client{Run: r, Platform: platformtest.Fake{}}
+	if err := c.MCPAdd("hq", "/usr/bin/env", []string{"PATH=/usr/bin", "/u/hq", "mcp", "sbx"}); err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{c.bin(), "mcp", "add", "hq", "--command", "/usr/bin/env", "--args", "PATH=/usr/bin,/u/hq,mcp,sbx"}; !reflect.DeepEqual(r.args, want) {
+		t.Fatalf("add %q", r.args)
+	}
+	if err := c.MCPLoad("hq", "claude-app"); err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{c.bin(), "mcp", "load", "hq", "--sandbox", "claude-app"}; !reflect.DeepEqual(r.args, want) {
+		t.Fatalf("load %q", r.args)
+	}
+}

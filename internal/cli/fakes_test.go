@@ -373,6 +373,36 @@ type fakeSbx struct {
 	onStop  func(sandbox string)
 	// removeErr fails the removal of a sandbox, by name.
 	removeErr map[string]error
+	// mcp are the MCP servers registered with sbx, their command lines by
+	// name; adds counts the registrations, loads are the loads as
+	// "NAME SANDBOX", and loadErr fails a load into a sandbox, by name.
+	mcp     map[string][]string
+	adds    int
+	loads   []string
+	loadErr map[string]error
+}
+
+func (f *fakeSbx) MCPCommand(name string) ([]string, bool, error) {
+	argv, ok := f.mcp[name]
+	return argv, ok, f.err
+}
+
+func (f *fakeSbx) MCPAdd(name, command string, args []string) error {
+	if f.mcp == nil {
+		f.mcp = map[string][]string{}
+	}
+	f.adds++
+	f.mcp[name] = append([]string{command}, args...)
+	return f.err
+}
+
+func (f *fakeSbx) MCPLoad(name, sandbox string) error {
+	f.calls = append(f.calls, "mcp load "+name+" "+sandbox)
+	if err := f.loadErr[sandbox]; err != nil {
+		return err
+	}
+	f.loads = append(f.loads, name+" "+sandbox)
+	return f.err
 }
 
 func (f *fakeSbx) setStatus(name, status string) {
