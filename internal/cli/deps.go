@@ -81,6 +81,12 @@ type Sandboxes interface {
 	Output(sandbox string, args ...string) ([]byte, error)
 	Stop(sandbox string) error
 	Remove(sandbox string) error
+	// MCPCommand, MCPAdd and MCPLoad are sbx's MCP servers: the command line
+	// of one registered, registering one, and loading one into a sandbox
+	// (hq mcp install sbx, hq mcp load, design §3.12).
+	MCPCommand(name string) ([]string, bool, error)
+	MCPAdd(name, command string, args []string) error
+	MCPLoad(name, sandbox string) error
 }
 
 // Releases is the seam to hq's GitHub releases (design §3.9).

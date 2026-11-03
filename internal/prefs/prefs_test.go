@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -202,5 +203,22 @@ func TestSetupsInTheWrongFormAreRefused(t *testing.T) {
 	}
 	if _, err := (Prefs{}).Setup("local"); InFile(err) {
 		t.Fatalf("an unknown setup is no fault of the file: %v", err)
+	}
+}
+
+// The sandboxes hq loaded itself into are kept, and none leaves no key.
+func TestMCPLoadedIsKept(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "preferences.json")
+	if err := Save(path, Prefs{MCPLoaded: []string{"claude-app", "hq-local-app"}}); err != nil {
+		t.Fatal(err)
+	}
+	if p := Load(path); !slices.Equal(p.MCPLoaded, []string{"claude-app", "hq-local-app"}) {
+		t.Fatalf("%+v", p)
+	}
+	if err := Save(path, Prefs{}); err != nil {
+		t.Fatal(err)
+	}
+	if data, _ := os.ReadFile(path); strings.TrimSpace(string(data)) != "{}" {
+		t.Fatalf("none written: %s", data)
 	}
 }

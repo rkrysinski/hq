@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/rkrysinski/hq/internal/proc"
 	"reflect"
 	"slices"
 	"strings"
@@ -560,7 +561,7 @@ func TestMCPServesOnlyAClient(t *testing.T) {
 	f := newFakes()
 	for _, args := range [][]string{{"mcp"}, {"mcp", "claude-code"}} {
 		if code, _, errOut := f.run(args...); code != ExitUsage || f.served != nil ||
-			errOut != "hq: hq mcp is started by an MCP client, not typed; add it to Claude Desktop with: hq mcp install, or to Claude Code with: hq mcp install claude-code\n" {
+			errOut != "hq: hq mcp is started by an MCP client, not typed; add it to Claude Desktop with: hq mcp install, to Claude Code with: hq mcp install claude-code, or to sbx, for a Claude Code inside a sandbox, with: hq mcp install sbx\n" {
 			t.Fatalf("%q from a terminal: exit %d %q", args, code, errOut)
 		}
 	}
@@ -573,7 +574,7 @@ func TestMCPServesOnlyAClient(t *testing.T) {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 	for _, args := range [][]string{{"mcp", "install", "now"}, {"mcp", "serve"}, {"mcp", "install", "claude-code", "now"}, {"mcp", "claude-code", "now"}} {
-		if code, _, errOut := f.run(args...); code != ExitUsage || errOut != "hq: unexpected argument '"+args[len(args)-1]+"' (usage: hq mcp [install] [claude-desktop|claude-code])\n" {
+		if code, _, errOut := f.run(args...); code != ExitUsage || errOut != "hq: unexpected argument '"+args[len(args)-1]+"' (usage: hq mcp [install] [claude-desktop|claude-code|sbx])\n" {
 			t.Fatalf("%q: exit %d %q", args, code, errOut)
 		}
 	}
@@ -987,5 +988,139 @@ func TestTheRefusalKnowsTheInputsOfKillAnswerAndSend(t *testing.T) {
 		if !slices.Equal(k, keys) || !slices.Equal(r, required) {
 			t.Errorf("%s: the hook takes %v (requires %v), the tool %v (requires %v)", verb, k, r, keys, required)
 		}
+	}
+}
+
+// hq mcp install sbx registers hq with sbx under hq: as sbx mcp add cannot
+// set a local server's environment, env sets it, with the PATH and the
+// variables Claude Desktop's entry records. Again, it changes nothing.
+func TestMCPInstallRegistersHqWithSbx(t *testing.T) {
+	f := newFakes()
+	f.exe = "/Users/dev/.local/bin/hq"
+	f.env = map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET": "hq-dev", "HOME": "/Users/dev", "GITHUB_TOKEN": "secret"}
+	load := "load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)\n"
+	code, out, errOut := f.run("mcp", "install", "sbx")
+	if code != 0 || out != "added hq to sbx (sbx mcp inspect hq)\n"+load {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	want := []string{"/usr/bin/env", "PATH=/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET=hq-dev", f.exe, "mcp", "sbx"}
+	if !slices.Equal(f.sbx.mcp["hq"], want) {
+		t.Fatalf("registered %q", f.sbx.mcp["hq"])
+	}
+	if code, out, _ := f.run("mcp", "install", "sbx"); code != 0 || out != "hq is already set up in sbx (sbx mcp inspect hq)\n"+load || f.sbx.adds != 1 {
+		t.Fatalf("again: exit %d %q adds %d", code, out, f.sbx.adds)
+	}
+	f.env["PATH"] = "/usr/bin"
+	if code, out, _ := f.run("mcp", "install", "sbx"); code != 0 || out != "updated hq in sbx (sbx mcp inspect hq)\n"+load || f.sbx.adds != 2 || len(f.sbx.mcp) != 1 {
+		t.Fatalf("update: exit %d %q adds %d", code, out, f.sbx.adds)
+	}
+}
+
+// sbx mcp add splits --args at commas: a value holding one is refused
+// rather than registered broken.
+func TestMCPInstallForSbxRefusesAComma(t *testing.T) {
+	f := newFakes()
+	f.exe = "/Users/dev/.local/bin/hq"
+	f.env = map[string]string{"PATH": "/opt/a,b/bin:/usr/bin"}
+	code, _, errOut := f.run("mcp", "install", "sbx")
+	if code != ExitEnvironment || f.sbx.adds != 0 ||
+		errOut != "hq: cannot register hq with sbx: PATH holds a comma, and sbx mcp add splits its arguments at commas; take it out of PATH and run hq mcp install sbx again\n" {
+		t.Fatalf("exit %d %q adds %d", code, errOut, f.sbx.adds)
+	}
+	f.exe, f.env = "/Users/a,b/hq", map[string]string{"PATH": "/usr/bin"}
+	if code, _, errOut := f.run("mcp", "install", "sbx"); code != ExitEnvironment || !strings.Contains(errOut, "the path of hq (/Users/a,b/hq) holds a comma") || f.sbx.adds != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	f.exe, f.sbx.err = "/u/hq", &proc.Error{NotFound: true}
+	if code, _, errOut := f.run("mcp", "install", "sbx"); code != ExitEnvironment || errOut != "hq: sbx not found; install Docker Sandboxes\n" {
+		t.Fatalf("no sbx: exit %d %q", code, errOut)
+	}
+}
+
+// The command sbx starts hq with: env setting the variables beside hq, or
+// the platform's own command line where that carries them (WSL, where
+// sbx.exe on Windows starts hq through wsl.exe as Claude Desktop does).
+func TestSbxCommandLine(t *testing.T) {
+	vars := []string{"PATH=/usr/bin", "HQ_TMUX_SOCKET=s"}
+	argv := []string{"/u/hq", "mcp", "sbx"}
+	native := mcpconfig.Server{Command: "/u/hq", Args: argv[1:], Env: map[string]string{"PATH": "/usr/bin", "HQ_TMUX_SOCKET": "s"}}
+	if cmd, args := sbxCommandLine(native, argv, vars); cmd != "/usr/bin/env" || !slices.Equal(args, []string{"PATH=/usr/bin", "HQ_TMUX_SOCKET=s", "/u/hq", "mcp", "sbx"}) {
+		t.Fatalf("native %q %q", cmd, args)
+	}
+	wsl := mcpconfig.Server{Command: "wsl.exe", Args: []string{"-d", "Ubuntu", "--exec", "/usr/bin/env", "PATH=/usr/bin", "HQ_TMUX_SOCKET=s", "/u/hq", "mcp", "sbx"}}
+	if cmd, args := sbxCommandLine(wsl, argv, vars); cmd != "wsl.exe" || !slices.Equal(args, wsl.Args) {
+		t.Fatalf("wsl %q %q", cmd, args)
+	}
+}
+
+// Served for a sandbox's Claude Code, through sbx's gateway, which gives a
+// tool call 60 s: wait is capped as for Claude Desktop.
+func TestMCPForSbxServesClaudeDesktopsWait(t *testing.T) {
+	if _, c, err := parseMCP([]string{"sbx"}); err != nil || c != sbxGateway || c.maxWait != claudeDesktop.maxWait {
+		t.Fatalf("%+v %v", c, err)
+	}
+}
+
+// hq mcp load loads hq into the repository's sandbox and records it, so
+// hq sandbox restart loads it again.
+func TestMCPLoadLoadsHqIntoTheSandboxAndRecordsIt(t *testing.T) {
+	f := sandboxFakes()
+	f.sbx.mcp = map[string][]string{"hq": {"/usr/bin/env", "hq", "mcp", "sbx"}}
+	code, out, errOut := f.run("mcp", "load", "app")
+	if code != 0 || out != "loaded hq into the sandbox claude-x: every agent in it sees hq's tools\n" ||
+		!slices.Equal(f.sbx.loads, []string{"hq claude-x"}) || !slices.Equal(f.prefs.MCPLoaded, []string{"claude-x"}) {
+		t.Fatalf("exit %d %q %q loads %q recorded %q", code, out, errOut, f.sbx.loads, f.prefs.MCPLoaded)
+	}
+	if code, _, _ := f.run("mcp", "load", "/w/lib"); code != 0 || !slices.Equal(f.prefs.MCPLoaded, []string{"claude-x", "claude-lib"}) {
+		t.Fatalf("second: exit %d recorded %q", code, f.prefs.MCPLoaded)
+	}
+	if code, _, _ := f.run("mcp", "load", "app"); code != 0 || len(f.prefs.MCPLoaded) != 2 {
+		t.Fatalf("again: exit %d recorded %q", code, f.prefs.MCPLoaded)
+	}
+}
+
+func TestMCPLoadRefusals(t *testing.T) {
+	f := sandboxFakes()
+	code, _, errOut := f.run("mcp", "load", "app")
+	if code != ExitEnvironment || errOut != "hq: hq is not registered with sbx; run hq mcp install sbx first\n" || len(f.sbx.loads) != 0 {
+		t.Fatalf("unregistered: exit %d %q", code, errOut)
+	}
+	f.sbx.mcp = map[string][]string{"hq": {"hq"}}
+	if code, _, errOut := f.run("mcp", "load", "nothing"); code != ExitNotFound || len(f.sbx.loads) != 0 {
+		t.Fatalf("no sandbox: exit %d %q", code, errOut)
+	}
+	for _, args := range [][]string{{"mcp", "load"}, {"mcp", "load", "app", "lib"}} {
+		if code, _, errOut := f.run(args...); code != ExitUsage || errOut != "hq: usage: hq mcp load REPO|SANDBOX [--setup NAME|--all-setups]\n" {
+			t.Fatalf("%q: exit %d %q", args, code, errOut)
+		}
+	}
+	f.sbx.loadErr = map[string]error{"claude-x": errors.New("sandbox not running")}
+	if code, _, errOut := f.run("mcp", "load", "app"); code != ExitEnvironment || errOut != "hq: sandbox not running\n" || len(f.prefs.MCPLoaded) != 0 {
+		t.Fatalf("failed: exit %d %q recorded %q", code, errOut, f.prefs.MCPLoaded)
+	}
+}
+
+// sbx has no unload: hq mcp unload forgets the load, so hq sandbox restart
+// no longer loads hq again, and says the tools stay until that restart. It
+// never removes the registration, which every sandbox shares.
+func TestMCPUnloadForgetsTheLoadUntilTheSandboxRestarts(t *testing.T) {
+	f := sandboxFakes()
+	f.sbx.mcp = map[string][]string{"hq": {"hq"}}
+	f.prefs.MCPLoaded = []string{"claude-lib", "claude-x"}
+	code, out, errOut := f.run("mcp", "unload", "app")
+	if code != 0 || out != "hq stays loaded into the sandbox claude-x until it restarts (sbx cannot unload it): hq sandbox restart claude-x takes its tools away\n" ||
+		!slices.Equal(f.prefs.MCPLoaded, []string{"claude-lib"}) || len(f.sbx.mcp) != 1 || len(f.sbx.calls) != 0 {
+		t.Fatalf("exit %d %q %q recorded %q calls %q", code, out, errOut, f.prefs.MCPLoaded, f.sbx.calls)
+	}
+	if code, out, _ := f.run("mcp", "unload", "app"); code != 0 || out != "hq mcp load did not load hq into the sandbox claude-x; nothing to unload\n" {
+		t.Fatalf("again: exit %d %q", code, out)
+	}
+	if code, _, errOut := f.run("mcp", "unload"); code != ExitUsage || errOut != "hq: usage: hq mcp unload REPO|SANDBOX [--setup NAME|--all-setups]\n" {
+		t.Fatalf("usage: exit %d %q", code, errOut)
+	}
+	// After the restart the sandbox gets hq no more.
+	f.tmux.windows = f.tmux.windows[:1]
+	if code, out, _ := f.run("sandbox", "restart", "app", "-y"); code != 0 || out != "restarted the sandbox claude-x\n" || len(f.sbx.loads) != 0 {
+		t.Fatalf("restart: exit %d %q loads %q", code, out, f.sbx.loads)
 	}
 }

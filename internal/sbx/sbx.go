@@ -129,6 +129,46 @@ func (c Client) RunArgv(sandbox string, agentArgs ...string) []string {
 	return append([]string{c.bin(), "run", "--name", sandbox, "--"}, agentArgs...)
 }
 
+// MCPCommand is the command line of the local MCP server registered with
+// sbx under name (sbx mcp inspect NAME --json: its "command", the program
+// then its arguments); ok is false when sbx knows no server of that name.
+// sbx v0.47.0 fails the inspect of a name it does not know; a failure other
+// than sbx missing counts as that, and what else went wrong comes back
+// from the add that follows.
+func (c Client) MCPCommand(name string) (argv []string, ok bool, err error) {
+	out, err := c.run("mcp", "inspect", name, "--json")
+	var pe *proc.Error
+	if errors.As(err, &pe) && !pe.NotFound {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	var s struct {
+		Command []string `json:"command"`
+	}
+	if err := json.Unmarshal(out, &s); err != nil {
+		return nil, false, fmt.Errorf("sbx mcp inspect %s: %w", name, err)
+	}
+	return s.Command, true, nil
+}
+
+// MCPAdd registers a local MCP server with sbx under name, replacing the
+// one of that name (sbx mcp add NAME --command COMMAND --args A,B). sbx
+// splits --args at commas, so no argument may hold one (the caller checks).
+func (c Client) MCPAdd(name, command string, args []string) error {
+	_, err := c.run("mcp", "add", name, "--command", command, "--args", strings.Join(args, ","))
+	return err
+}
+
+// MCPLoad loads the MCP server registered under name into a sandbox's
+// gateway: every agent in the sandbox sees its tools. A restart of the
+// sandbox loses it.
+func (c Client) MCPLoad(name, sandbox string) error {
+	_, err := c.run("mcp", "load", name, "--sandbox", sandbox)
+	return err
+}
+
 func (c Client) bin() string { return c.Platform.SbxCommand() }
 
 // run runs sbx; a failure carries sbx's own error and remedy (Failure).

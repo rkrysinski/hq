@@ -32,6 +32,10 @@ type Prefs struct {
 	// §6.2); empty is the default.
 	Sort string `json:"sort,omitempty"`
 	View string `json:"view,omitempty"`
+	// MCPLoaded are the sandboxes hq mcp load loaded hq into, which hq
+	// sandbox restart loads it into again (#141). It is kept here, outside
+	// every sandbox, so that no agent can add its own sandbox.
+	MCPLoaded []string `json:"mcp_loaded,omitempty"`
 	// Sandbox is what hq creates a repository's sandbox with: the default
 	// setup. Sandboxes are the other setups, by name (#135). The user
 	// writes them and hq only reads them: Save keeps them as the file has
@@ -234,6 +238,10 @@ func Save(path string, p Prefs) error {
 		if v != int64(0) && v != "" {
 			all[k] = v
 		}
+	}
+	delete(all, "mcp_loaded")
+	if len(p.MCPLoaded) > 0 {
+		all["mcp_loaded"] = p.MCPLoaded
 	}
 	data, err := json.MarshalIndent(all, "", "  ")
 	if err != nil {
