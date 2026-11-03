@@ -13,6 +13,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/sbx"
@@ -649,7 +650,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 		Description: "End an agent's Claude session and remove it from hq; its conversation cannot be continued. Its sandbox, worktree and commits stay. " +
 			"Only when the user wants it: without confirmed set to true it ends nothing and says to ask the user.",
 		Annotations: &mcp.ToolAnnotations{Title: "Kill an agent", DestructiveHint: &yes, OpenWorldHint: &no},
-	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpKillIn) (*mcp.CallToolResult, any, error) {
+	}, func(_ context.Context, req *mcp.CallToolRequest, in mcpKillIn) (*mcp.CallToolResult, any, error) {
 		// A client may run a destructive tool without asking the user
 		// (Claude Desktop did, #26), so the user's word comes with the call:
 		// it is the confirmation -y stands for.
@@ -658,6 +659,8 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 				return usageErr("%s not killed: ask the user whether to end it, then call kill with confirmed set to true", in.Name)
 			})
 		}
+		d := d
+		d.killer = mcpKiller(d, client, req)
 		return callCommand(d, runKill, in.Name, "-y")
 	})
 	return s
@@ -690,6 +693,24 @@ func absDir(d deps, dir string) (string, error) {
 		return "", notFoundErr("no directory %s", dir)
 	}
 	return dir, nil
+}
+
+// mcpKiller is who asks for a kill through the kill tool, for the trace
+// (#147): the client as hq mcp takes it, the name and version it gave
+// itself, and the calling agent when hq mcp runs in an agent's session
+// (HQ_AGENT, which hq gives every agent's session). An agent behind sbx's
+// gateway calls hq mcp from outside its session, and is not known.
+func mcpKiller(d deps, client mcpClient, req *mcp.CallToolRequest) kills.Kill {
+	k := kills.Kill{By: kills.ByMCP, Client: client.name}
+	if req != nil && req.Session != nil {
+		if p := req.Session.InitializeParams(); p != nil && p.ClientInfo != nil {
+			k.App = strings.TrimSpace(p.ClientInfo.Name + " " + p.ClientInfo.Version)
+		}
+	}
+	if name := d.getenv("HQ_AGENT"); checkName(name) == nil {
+		k.Caller = name
+	}
+	return k
 }
 
 // callCommand runs a CLI command as hq would from a shell, with no terminal:
