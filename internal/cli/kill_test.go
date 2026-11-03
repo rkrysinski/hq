@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -314,5 +315,37 @@ func TestIsTerminal(t *testing.T) {
 	defer null.Close()
 	if isTerminal(null) {
 		t.Fatal("/dev/null is not a terminal")
+	}
+}
+
+// Every kill goes into the trace: the agent, when, and who asked for it
+// (#147).
+func TestEveryKillLeavesATrace(t *testing.T) {
+	f := killFakes()
+	if code, _, errOut := f.run("kill", "a", "-y"); code != 0 {
+		t.Fatalf("kill: exit %d %q", code, errOut)
+	}
+	want := kills.Kill{At: f.now, Name: "a", ID: "id-a", Repo: "/w/app", Sandbox: "claude-x", By: kills.ByCLI, Command: "kill"}
+	if len(f.kills) != 1 || f.kills[0] != want {
+		t.Fatalf("trace %+v", f.kills)
+	}
+	if code, _, errOut := f.run("stop", "-y"); code != 0 {
+		t.Fatalf("stop: exit %d %q", code, errOut)
+	}
+	if len(f.kills) != 3 || f.kills[1].Name != "b" || f.kills[2].Name != "gone" || f.kills[1].Command != "stop" || f.kills[2].By != kills.ByCLI {
+		t.Fatalf("trace %+v", f.kills)
+	}
+}
+
+// A kill the trace cannot take still ends every agent, then says so.
+func TestAKillTheTraceCannotTakeStillEndsTheAgents(t *testing.T) {
+	f := killFakes()
+	f.killsErr = errors.New("read-only file system")
+	code, out, errOut := f.run("stop", "-y")
+	if code != ExitEnvironment || out != "" || errOut != "hq: killed a, b, gone, but could not add it to the trace of kills (read-only file system)\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if f.names() != "hq" || len(f.removed) != 3 {
+		t.Fatalf("windows %q, removed %v", f.names(), f.removed)
 	}
 }

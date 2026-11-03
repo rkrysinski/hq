@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/repo"
@@ -42,7 +43,19 @@ func TestMain(m *testing.M) {
 	if len(os.Args) > 1 && os.Args[1] == sessionCommand {
 		os.Exit(Main(os.Args[1:], Env{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr}))
 	}
-	os.Exit(m.Run())
+	// Nothing a test runs reads or writes the user's own files: the
+	// preferences file and the trace of kills live under a home of the
+	// tests' own (CI runners set XDG_CONFIG_HOME, #146). A test that needs
+	// its own sets it again.
+	home, err := os.MkdirTemp("", "hq-cli-home-")
+	if err != nil {
+		panic(err)
+	}
+	os.Setenv("HOME", home)
+	os.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	code := m.Run()
+	os.RemoveAll(home)
+	os.Exit(code)
 }
 
 func newRealHQ(t *testing.T) *realHQ {
@@ -57,6 +70,10 @@ func newRealHQ(t *testing.T) *realHQ {
 	d.sbx = sbx.Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
 	d.pollSandboxes = sbx.Client{Run: proc.Exec{Timeout: sbxPollTimeout}, Platform: platformtest.Fake{Sbx: bin}}.List
 	d.getwd = func() (string, error) { return h.cwd, nil }
+	// A trace of kills of each test's own.
+	trace := filepath.Join(t.TempDir(), "kills.log")
+	d.traceKill = func(k kills.Kill) error { return kills.Append(trace, k) }
+	d.readKills = func() ([]kills.Kill, error) { return kills.Read(trace) }
 	h.d = d
 	return h
 }
@@ -810,6 +827,12 @@ func TestKillAndStopRemoveTheirAgentsStateFiles(t *testing.T) {
 	if got := files(); got != "0123456789ab" {
 		t.Fatalf("after stop: %q", got)
 	}
+	// Each kill is in the trace, with what asked for it (#147).
+	code, out, errOut := h.run("killed")
+	lines := strings.Split(strings.TrimSuffix(out, "\n"), "\n")
+	if code != 0 || len(lines) != 2 || !strings.HasSuffix(lines[0], "  a in app (sandbox claude-app), by hq kill") || !strings.HasSuffix(lines[1], "  b in app (sandbox claude-app), by hq stop") {
+		t.Fatalf("killed: exit %d %q\n%s", code, errOut, out)
+	}
 }
 
 func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
@@ -882,6 +905,48 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 	}
 	if code, _, _ := h.run("sandbox", "rm", "app", "-y"); code != ExitNotFound {
 		t.Fatalf("rm again: exit %d", code)
+	}
+}
+
+// An agent an older hq started has state files but no record (#147):
+// hq sandbox restart relaunches it all the same, continuing its
+// conversation, keeps its files and gives it the record hq restore reads.
+func TestSandboxRestartRelaunchesAnAgentWithoutARecordAndRecordsIt(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	t.Setenv("HQ_TMUX_SOCKET", h.socket)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "coolify", "hello"); code != 0 {
+		t.Fatalf("new: exit %d %s", code, errOut)
+	}
+	h.waitReport("coolify", "done", "Done: hello")
+	h.waitSessions("claude-app", 1)
+	ws, _ := h.d.tmux.Windows()
+	id := agent.FromWindows(ws)[0].ID
+	session, ok := h.d.readState(h.cwd, id)
+	if !ok || session.SessionID == "" {
+		t.Fatalf("session: %+v", session)
+	}
+	if err := os.Remove(filepath.Join(state.Dir(h.cwd), id+".hq")); err != nil {
+		t.Fatal(err)
+	}
+
+	if code, out, errOut := h.run("sandbox", "restart", "app", "-y"); code != 0 || out != "restarted the sandbox claude-app; relaunched coolify\n" {
+		t.Fatalf("restart: exit %d %q %q", code, out, errOut)
+	}
+	if r := h.waitState("coolify", "starting"); r.Last != "Done: hello" {
+		t.Fatalf("after the restart: %+v", r)
+	}
+	h.waitPane("coolify", "fake claude: resumed "+session.SessionID)
+	if _, ok := h.d.readState(h.cwd, id); !ok {
+		t.Fatal("its state file went")
+	}
+	rs, _ := h.d.records(h.cwd)
+	if len(rs) != 1 || rs[0].ID != id || rs[0].Name != "coolify" || rs[0].Sandbox != "claude-app" || rs[0].Server != h.socket {
+		t.Fatalf("records %+v", rs)
+	}
+	if code, out, _ := h.run("killed"); code != 0 || out != "no kills in the trace\n" {
+		t.Fatalf("killed: exit %d %q", code, out)
 	}
 }
 

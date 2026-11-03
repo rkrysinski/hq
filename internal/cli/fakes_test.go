@@ -14,6 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/gh"
+	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/prefs"
@@ -571,7 +572,9 @@ type fakes struct {
 	profileWrote bool
 	profileErr   error
 	prefs        prefs.Prefs
-	prefsErr     error // fails every change of the preferences file
+	kills        []kills.Kill // the trace of kills
+	killsErr     error        // fails every addition to it
+	prefsErr     error        // fails every change of the preferences file
 	// detached are the programs started to outlive hq (the update check);
 	// stderrTTY is whether stderr is a terminal.
 	detached  [][]string
@@ -685,8 +688,9 @@ func newFakes() *fakes {
 
 func (f *fakes) deps() deps {
 	return deps{
-		tmux: f.tmux,
-		sbx:  f.sbx,
+		tmux:   f.tmux,
+		sbx:    f.sbx,
+		killer: kills.Kill{By: kills.ByCLI},
 		repoRoot: func(dir string) (string, bool) {
 			r, ok := f.repos[dir]
 			return r, ok
@@ -744,7 +748,15 @@ func (f *fakes) deps() deps {
 			f.dropRecord(root, id)
 			return nil
 		},
-		records: func(root string) ([]state.Record, error) { return f.records[root], nil },
+		traceKill: func(k kills.Kill) error {
+			if f.killsErr != nil {
+				return f.killsErr
+			}
+			f.kills = append(f.kills, k)
+			return nil
+		},
+		readKills: func() ([]kills.Kill, error) { return f.kills, nil },
+		records:   func(root string) ([]state.Record, error) { return f.records[root], nil },
 		writeRecord: func(root, id string, r state.Record) error {
 			f.dropRecord(root, id)
 			r.ID = id

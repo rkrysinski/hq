@@ -18,6 +18,7 @@ import (
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/iterm"
+	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/prefs"
@@ -137,6 +138,13 @@ type deps struct {
 	readDetail func(root, id string) state.Detail
 	// removeState deletes an agent's state files once it is gone (design §3.4).
 	removeState func(root, id string) error
+	// killer says who asks for the kills this command makes, for the
+	// trace (#147): the way it came, and in hq mcp the client and the
+	// calling agent when known. traceKill adds a kill to the trace and
+	// readKills reads it (kills.Path).
+	killer    kills.Kill
+	traceKill func(k kills.Kill) error
+	readKills func() ([]kills.Kill, error)
 	// writeRecord keeps hq's record of an agent beside its state files, and
 	// records reads those of a repository, for hq restore (design §3.3).
 	writeRecord func(root, id string, r state.Record) error
@@ -277,6 +285,9 @@ func defaultDeps() deps {
 		takeQueued:  state.TakeQueued,
 		readDetail:  state.ReadDetail,
 		removeState: state.Remove,
+		killer:      kills.Kill{By: kills.ByCLI},
+		traceKill:   func(k kills.Kill) error { return kills.Append(kills.Path(os.Getenv), k) },
+		readKills:   func() ([]kills.Kill, error) { return kills.Read(kills.Path(os.Getenv)) },
 		writeRecord: state.WriteRecord,
 		records:     state.Records,
 		postMessage: func(root, id string, m state.Message, now bool) error {

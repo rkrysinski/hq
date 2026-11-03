@@ -94,7 +94,10 @@ hq go NAME                       # enter an agent's session
 hq send NAME TEXT                # leave a message, delivered when the agent is ready
 hq answer NAME --dialog ID N     # answer an agent's question dialog (hq read shows the id)
 hq kill NAME                     # end an agent's Claude session; the sandbox stays
+hq killed [NAME]                 # the agents hq killed: when, and who asked for it
 ```
+
+An agent gone from `hq ls` was killed or not: `hq killed` lists every kill, whether by `hq kill`, `hq stop`, the dashboard or a supervisor's `kill` tool (with its client and, when hq knows it, the calling agent).
 
 After the laptop sleeps, agents can fail with clock drift: `hq sandbox restart REPO` restarts the repository's sandbox and relaunches its agents, each continuing its conversation. A repository with agents on several setups has a sandbox per setup; `hq sandbox restart REPO --all-setups` restarts them all after one confirmation.
 
