@@ -1,0 +1,24 @@
+│ ● Claude                                                                    │
+│ Type ! git log in the prompt to run it in this session, and its output will │
+│ show up right here in the conversation.                                     │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+✻ Baked for 2s · done 4:26 PM
+
+❯ Reply with the single word: before
+
+  Reply with the single word: after
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                    │
+│ after                                                                       │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+✻ Worked for 1s · done 4:28 PM
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…
+  ▐–◡–▌  Opus 5.5 medium │ ctx ▕█░░░░░░░┆░░░░░░░▏ 6% │ master ✓ no upstream │…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                   ◆ Tools ▾
