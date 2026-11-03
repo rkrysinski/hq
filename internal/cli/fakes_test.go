@@ -42,6 +42,7 @@ type fakeTmux struct {
 	clients      []string // terminals of the clients attached to hq's session
 	shown        string   // window shown to them
 	windowsErr   error
+	killErr      map[string]error // fails KillWindow of that window
 
 	dash       tmux.Dash // the dashboard window, once made
 	dashList   []string  // the list pane's program
@@ -344,6 +345,9 @@ func (f *fakeTmux) SetOption(id, key, value string) error {
 }
 
 func (f *fakeTmux) KillWindow(id string) error {
+	if err := f.killErr[id]; err != nil {
+		return err
+	}
 	for i, w := range f.windows {
 		if w.ID == id {
 			f.windows = append(f.windows[:i], f.windows[i+1:]...)

@@ -1174,12 +1174,23 @@ func TestMCPKillLeavesATraceOfTheClientAndTheCallingAgent(t *testing.T) {
 		t.Fatalf("trace %+v", k)
 	}
 
+	// A Claude Code running in an agent's session passes the agent on.
 	f = goFakes()
 	f.env["HQ_AGENT"] = "lead"
 	f.tty = false
+	cs = connect(t, newMCPServer(f.deps(), claudeCode))
+	call(t, cs, "kill", map[string]any{"name": "a", "confirmed": true})
+	if len(f.kills) != 1 || f.kills[0].Client != "claude-code" || f.kills[0].Caller != "lead" {
+		t.Fatalf("trace %+v", f.kills)
+	}
+	// sbx's gateway starts hq outside the calling agent's session: no
+	// agent is known. Nor is a name hq would not give an agent.
+	f = goFakes()
+	f.env["HQ_AGENT"] = "not a name"
+	f.tty = false
 	cs = connect(t, newMCPServer(f.deps(), sbxGateway))
 	call(t, cs, "kill", map[string]any{"name": "a", "confirmed": true})
-	if len(f.kills) != 1 || f.kills[0].Client != "sbx" || f.kills[0].Caller != "lead" {
+	if len(f.kills) != 1 || f.kills[0].Client != "sbx" || f.kills[0].Caller != "" {
 		t.Fatalf("trace %+v", f.kills)
 	}
 }

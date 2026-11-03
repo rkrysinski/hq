@@ -178,8 +178,10 @@ func sessionPattern(id string) string { return `HQ_ID":"` + id + `"` }
 // their state files (design §3.4): nothing reads those once the window is
 // gone, and an ended session's last hook has written. Only these agents'
 // files go; a file that cannot be removed does not stop the removal. Each
-// kill goes into the trace with who asked for it (#147); one that cannot
-// does not stop the others, and is said once all are killed.
+// agent whose window is gone goes into the trace with who asked for it
+// (#147), before its files go, even when tmux then fails to remove the
+// next window; one the trace cannot take does not stop the others, and is
+// said once all are killed.
 func removeAgents(d deps, as, orphans []agent.Agent) error {
 	if err := waitEnded(d, as, orphans); err != nil {
 		return err
@@ -192,26 +194,37 @@ func removeAgents(d deps, as, orphans []agent.Agent) error {
 	for _, w := range ws {
 		present[w.ID] = true
 	}
+	var gone []agent.Agent
+	var killErr error
 	for _, a := range as {
-		if !present[a.Window] {
-			continue
+		if present[a.Window] {
+			if err := d.tmux.KillWindow(a.Window); err != nil {
+				killErr = tmuxErr(err)
+				break
+			}
 		}
-		if err := d.tmux.KillWindow(a.Window); err != nil {
-			return tmuxErr(err)
-		}
+		gone = append(gone, a)
 	}
 	var untraced []string
 	var traceErr error
-	for _, a := range as {
-		_ = d.removeState(a.RepoPath, a.ID)
+	for _, a := range gone {
 		if err := traceKill(d, a); err != nil {
 			untraced, traceErr = append(untraced, a.Name), err
 		}
+		_ = d.removeState(a.RepoPath, a.ID)
 	}
-	if traceErr != nil {
-		return envErr("killed %s, but could not add it to the trace of kills (%v)", strings.Join(untraced, ", "), traceErr)
+	if traceErr == nil {
+		return killErr
 	}
-	return nil
+	them := "it"
+	if len(untraced) > 1 {
+		them = "them"
+	}
+	msg := fmt.Sprintf("killed %s, but could not add %s to the trace of kills (%v)", strings.Join(untraced, ", "), them, traceErr)
+	if killErr != nil {
+		msg = killErr.Error() + "; " + msg
+	}
+	return envErr("%s", msg)
 }
 
 // traceKill adds the kill of a, now, to the trace, with who asked for it.

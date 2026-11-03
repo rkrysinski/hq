@@ -342,10 +342,29 @@ func TestAKillTheTraceCannotTakeStillEndsTheAgents(t *testing.T) {
 	f := killFakes()
 	f.killsErr = errors.New("read-only file system")
 	code, out, errOut := f.run("stop", "-y")
-	if code != ExitEnvironment || out != "" || errOut != "hq: killed a, b, gone, but could not add it to the trace of kills (read-only file system)\n" {
+	if code != ExitEnvironment || out != "" || errOut != "hq: killed a, b, gone, but could not add them to the trace of kills (read-only file system)\n" {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
 	if f.names() != "hq" || len(f.removed) != 3 {
 		t.Fatalf("windows %q, removed %v", f.names(), f.removed)
+	}
+}
+
+// tmux failing to remove a window stops the kill there; the agents whose
+// windows are already gone are in the trace and lose their files (#147).
+func TestAKillTmuxStopsHalfWayTracesTheAgentsAlreadyGone(t *testing.T) {
+	f := killFakes()
+	f.tmux.killErr = map[string]error{"@5": errors.New("server exited")}
+	code, _, errOut := f.run("stop", "-y")
+	if code != ExitEnvironment || !strings.Contains(errOut, "server exited") {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if len(f.kills) != 1 || f.kills[0].Name != "a" || strings.Join(f.removed, ", ") != "/w/app id-a" || f.names() != "hq b gone" {
+		t.Fatalf("trace %+v, removed %v, windows %q", f.kills, f.removed, f.names())
+	}
+	f.killsErr = errors.New("read-only file system")
+	f.tmux.killErr = map[string]error{"@6": errors.New("server exited")}
+	if code, _, errOut := f.run("stop", "-y"); code != ExitEnvironment || !strings.Contains(errOut, "server exited") || !strings.Contains(errOut, "; killed b, but could not add it to the trace of kills (read-only file system)") {
+		t.Fatalf("exit %d %q", code, errOut)
 	}
 }
