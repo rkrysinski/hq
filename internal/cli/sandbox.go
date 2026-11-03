@@ -75,7 +75,19 @@ func runSandbox(env Env, d deps, args []string) error {
 	if s.cmd == "rm" {
 		return sandboxRm(env, d, sbs, mine, s.yes)
 	}
-	return sandboxRestart(env, d, sbs, mine, s.yes)
+	// After a host restart tmux lists none of their agents: those it lost
+	// are restored, as hq restore does (#140).
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return tmuxErr(err)
+	}
+	var lost []agent.Agent
+	for _, a := range lostAgents(d, ws, knownRepositories(d, sbs)) {
+		if slices.ContainsFunc(sbs, func(sb sbx.Sandbox) bool { return a.Sandbox == sb.Name }) {
+			lost = append(lost, a)
+		}
+	}
+	return sandboxRestart(env, d, sbs, mine, lost, s.yes)
 }
 
 // resolveSandboxes finds the sandboxes REPO and the flags name (#113,
@@ -265,8 +277,9 @@ var sessionID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 // their agents in its own pane, continuing its conversation (design §3.6). The
 // agents keep their windows, names and ids throughout, so their rows stay
 // (ended, then starting), a docked agent stays docked, and what they last
-// reported stays until they report anew.
-func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes bool) error {
+// reported stays until they report anew. The agents of the sandboxes that
+// tmux lost are restored in new windows, as hq restore does (#140).
+func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent, yes bool) error {
 	var names []string
 	for _, a := range mine {
 		names = append(names, a.Name)
@@ -274,7 +287,18 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes 
 	if !yes {
 		q := fmt.Sprintf("Restart %s?", sandboxNames(sbs))
 		if len(mine) > 0 {
-			q += fmt.Sprintf(" This ends and relaunches %s (%s).", plural(len(mine), "agent"), strings.Join(names, ", "))
+			q += fmt.Sprintf(" This ends and relaunches %s (%s)", plural(len(mine), "agent"), strings.Join(names, ", "))
+		}
+		if len(lost) > 0 {
+			if len(mine) > 0 {
+				q += " and restores"
+			} else {
+				q += " This restores"
+			}
+			q += fmt.Sprintf(" %s (%s)", plural(len(lost), "lost agent"), strings.Join(agentNames(lost), ", "))
+		}
+		if len(mine)+len(lost) > 0 {
+			q += "."
 		}
 		if ok, err := confirm(env, d, q); !ok || err != nil {
 			return err
@@ -282,6 +306,7 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes 
 	}
 	// Each agent continues its conversation: the Claude session of its latest
 	// report, read before the agents go. One that never reported starts fresh.
+	plans := planRestore(d, sbs, lost)
 	resume := map[string]string{}
 	for _, a := range mine {
 		if r, ok := d.readState(a.RepoPath, a.ID); ok && sessionID.MatchString(r.SessionID) {
@@ -332,12 +357,17 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes 
 		}
 		names = append(names, a.Name)
 	}
-	if len(names) == 0 {
-		fmt.Fprintf(env.Stdout, "restarted %s\n", sandboxNames(sbs))
-		return nil
+	restored, err := restoreLost(d, plans)
+	line := "restarted " + sandboxNames(sbs)
+	if len(names) > 0 {
+		line += "; relaunched " + strings.Join(names, ", ")
 	}
-	fmt.Fprintf(env.Stdout, "restarted %s; relaunched %s\n", sandboxNames(sbs), strings.Join(names, ", "))
-	return nil
+	if len(restored) > 0 {
+		line += "; restored " + strings.Join(agentNames(restored), ", ")
+	}
+	fmt.Fprintln(env.Stdout, line)
+	reportNotRestored(env.Stdout, plans)
+	return err
 }
 
 // relaunchAgent starts a new Claude session in the agent's own pane,
@@ -362,5 +392,6 @@ func relaunchAgent(d deps, a agent.Agent, pane, resume string) error {
 			return tmuxErr(err)
 		}
 	}
-	return nil
+	// An agent an older hq started gets the record hq restore needs.
+	return keepRecord(d, a)
 }

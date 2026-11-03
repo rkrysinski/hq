@@ -67,6 +67,11 @@ func runKill(env Env, d deps, args []string) error {
 	}
 	a, ok := agent.Find(as, name)
 	if !ok {
+		// A lost agent is killed as an ended one is: forgotten, its session
+		// ended where it still runs in its sandbox (#140).
+		a, ok = lostAgent(d, name)
+	}
+	if !ok {
 		return notFoundErr("no agent '%s' (see hq ls)", name)
 	}
 	if !yes {
@@ -79,6 +84,24 @@ func runKill(env Env, d deps, args []string) error {
 	}
 	fmt.Fprintf(env.Stdout, "killed %s; the sandbox stays\n", a.Name)
 	return nil
+}
+
+// lostAgent is the agent named name that tmux lost (lostAgents), in a
+// repository hq knows or the one of the current directory, which hq new
+// looks in too, so one whose sandbox was removed can still be killed.
+func lostAgent(d deps, name string) (agent.Agent, bool) {
+	all, _ := d.sbx.List()
+	roots := knownRepositories(d, all)
+	if cwd, err := d.getwd(); err == nil {
+		if root, ok := d.repoRoot(cwd); ok {
+			roots = append(roots, root)
+		}
+	}
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return agent.Agent{}, false
+	}
+	return agent.Find(lostAgents(d, ws, roots), name)
 }
 
 func runStop(env Env, d deps, args []string) error {
