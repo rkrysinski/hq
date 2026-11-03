@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -191,7 +192,7 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	events := map[string]string{
 		"UserPromptSubmit": "prompt", "PermissionRequest": "dialog \\u0007", "PostToolUse": "answer", "PostToolUseFailure": "answer",
 		"Stop": "stop \\u0007", "Notification": "input \\u0007", "SessionEnd": "end",
-		"Elicitation": "dialog \\u0007", "ElicitationResult": "result",
+		"Elicitation": "dialog \\u0007", "ElicitationResult": "result", "PreToolUse": "refuse",
 	}
 	// SessionStart: a new session or /clear starts, a resumed one resumes;
 	// never a compaction, which may come in the middle of a turn. Neither
@@ -221,6 +222,19 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 			t.Errorf("%s: %+v", event, h)
 		}
 	}
+	// hq's kill, answer and send, as Claude names them whatever the server's
+	// name, are checked before they run for a call naming the agent itself
+	// (#142); no other tool waits for the hook.
+	pre := regexp.MustCompile(s.Hooks["PreToolUse"][0].Matcher)
+	for tool, checked := range map[string]bool{
+		"mcp__hq__kill": true, "mcp__mcp-gateway__answer": true, "mcp__hq__send": true,
+		"mcp__hq__read": false, "mcp__hq__list": false, "mcp__hq__wait": false, "mcp__hq__go": false, "mcp__hq__new": false,
+		"mcp__hq__killall": false, "kill": false, "Bash": false,
+	} {
+		if pre.MatchString(tool) != checked {
+			t.Errorf("PreToolUse matcher %q on %s: %v", pre, tool, !checked)
+		}
+	}
 	// An MCP elicitation is reported by its own hook (#100), not by the
 	// Notification Claude sends for it.
 	if s.Hooks["Notification"][0].Matcher != "permission_prompt|agent_needs_input" {
@@ -236,8 +250,10 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	// §3.4); a change that needs more says so here. 9 KiB since question
 	// dialogs are answered from hq (#90): the hold that takes the answer
 	// came on top of the elicitation's report (#100), well within the 24
-	// KiB of the settings.
-	if len(hookScript) > 9<<10 {
+	// KiB of the settings. 10 KiB since kill, answer and send refuse the
+	// calling agent (#142): the walk of the tool's input took the script to
+	// about 9.6 KiB.
+	if len(hookScript) > 10<<10 {
 		t.Errorf("hook script of %d bytes", len(hookScript))
 	}
 	for _, event := range []string{"PermissionRequest", "PostToolUse", "PostToolUseFailure"} {
