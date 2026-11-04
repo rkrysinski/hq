@@ -57,7 +57,7 @@ esac
 	testutil.FakeClaude(t)
 	t.Setenv("FAKE_CLAUDE_DELAY", "1s")
 	t.Setenv("HQ_TMUX_SOCKET", j.socket)
-	// The dashboard keeps its modes in the preferences file: not the user's.
+	// The dashboard keeps its sort in the preferences file: not the user's.
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	os.Unsetenv("TMUX")
 	j.repo = testutil.GitRepo(t, "app")
@@ -254,7 +254,6 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	shows("the New agent dialog", "New agent", "×", "name", "prompt", "Start ⏎", "Cancel")
 	keys("a", "Tab", "Tab", "say hi", "Enter")
 	shows("a new, starting", "a new", "● starting")
-	// The row itself may be hidden by now: done, in the attention view.
 	shows("a docked", "▸ a · ", "fake claude: ready", "❯ say hi")
 	if s := screen(); strings.Contains(s, "▸ placeholder") || strings.Contains(s, "New agent") {
 		t.Fatalf("placeholder or dialog still shown:\n%s", s)
@@ -270,14 +269,9 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	keys("Escape")
 	eventually(t, "the dialog to close", func() bool { return !strings.Contains(screen(), "New agent") })
 
-	// §6.2: the attention view keeps the docked agent, done, with its
-	// outline; a shows all.
-	shows("a done, docked, shown", "hq  1 agent · 1 done  view: attention", "│ a ", "● done")
-	if s := screen(); strings.Contains(s, "nothing needs you") {
-		t.Fatalf("the docked a is hidden:\n%s", s)
-	}
-	keys("a")
-	shows("a's row, done", "view: all", "● done", "Done: more please", "a view: attention")
+	// §6.2: the list shows every agent; the docked a, done, with its
+	// outline.
+	shows("a done, docked, shown", "hq  1 agent · 1 done", "│ a ", "● done", "Done: more please")
 	if s := screen(); strings.Contains(s, "1:a") {
 		t.Fatalf("tmux's window list shows:\n%s", s)
 	}
@@ -413,7 +407,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 
 	// S8 with c docked: q gives the terminal back, full height, with the
 	// hint; c keeps running in the slot; hq brings back the list, in the
-	// modes left, and the same docked session.
+	// sort left, and the same docked session.
 	if code, out := j.hq("new", "c"); code != 0 {
 		t.Fatalf("new c: exit %d %q", code, out)
 	}
@@ -436,7 +430,7 @@ func TestDashboardFollowsAgentsQuitsAndComesBack(t *testing.T) {
 	eventually(t, "the list program to end", func() bool { return len(strings.Fields(listPane())) == 2 }) // role and pane, no pid
 	_ = exec.Command("tmux", "-u", "-L", term, "kill-server").Run()
 	open()
-	shows("the list back, in the modes left, c still docked", "hq  1 agent", "view: all", "REPO ▾", "q quit", "▸ c · ", "fake claude: ready")
+	shows("the list back, in the sort left, c still docked", "hq  1 agent", "REPO ▾", "q quit", "▸ c · ", "fake claude: ready")
 	if after := cPane(); after != docked {
 		t.Fatalf("docked pane %q before q, %q after", docked, after)
 	}

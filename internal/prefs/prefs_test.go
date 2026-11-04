@@ -46,12 +46,12 @@ func TestSaveLoadKeepsUnknownFields(t *testing.T) {
 	}
 }
 
-func TestDashboardModesAreKept(t *testing.T) {
+func TestDashboardSortIsKept(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "preferences.json")
-	if err := Save(path, Prefs{Sort: "repo", View: "all", UpdateChecked: 7}); err != nil {
+	if err := Save(path, Prefs{Sort: "repo", UpdateChecked: 7}); err != nil {
 		t.Fatal(err)
 	}
-	if p := Load(path); p.Sort != "repo" || p.View != "all" || p.UpdateChecked != 7 {
+	if p := Load(path); p.Sort != "repo" || p.UpdateChecked != 7 {
 		t.Fatalf("%+v", p)
 	}
 	if err := Save(path, Prefs{}); err != nil {
@@ -220,5 +220,22 @@ func TestMCPLoadedIsKept(t *testing.T) {
 	}
 	if data, _ := os.ReadFile(path); strings.TrimSpace(string(data)) != "{}" {
 		t.Fatalf("none written: %s", data)
+	}
+}
+
+// The dashboard's view is gone (ADR 0016): an older hq's is dropped the next
+// time the file is saved, without a word.
+func TestAnOlderHqsViewIsDroppedOnSave(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "preferences.json")
+	if err := os.WriteFile(path, []byte(`{"sort": "repo", "view": "attention", "group": "repo"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p := Load(path)
+	if err := Save(path, p); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(path)
+	if strings.Contains(string(data), `"view"`) || !strings.Contains(string(data), `"sort": "repo"`) || !strings.Contains(string(data), `"group": "repo"`) {
+		t.Fatalf("saved %s", data)
 	}
 }

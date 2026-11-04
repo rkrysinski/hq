@@ -37,7 +37,7 @@ func chordFakes() *fakes {
 		f.states["id-"+n] = state.Report{State: state.Working, Since: f.now}
 	}
 	f.states["id-b"] = state.Report{State: state.NeedsInput, Since: f.now}
-	f.prefs = prefs.Prefs{Sort: "repo", View: "all"}
+	f.prefs = prefs.Prefs{Sort: "repo"}
 	f.tmux.session = map[string]string{}
 	return f
 }

@@ -31,8 +31,8 @@ type fakeSource struct {
 	runningErr error
 	version    string   // the running hq's, v1.0.0 when empty
 	newer      string   // the newer release the update check found
-	sort, view string   // the modes the user left
-	saved      []string // modes kept, "sort/view"
+	sort       string   // the sort the user left
+	saved      []string // sorts kept
 	cursor     string   // the cursor kept on the session
 	cursorSets int
 	docked     []string // agents docked with the keys (Dock), in order
@@ -73,8 +73,8 @@ func (f *fakeSource) source() Source {
 		NewerRelease: func() string { return f.newer },
 		Layout:       func() { f.layouts++ },
 		Footer:       func(h []Hint) { f.footer = h },
-		Modes:        func() (string, string) { return f.sort, f.view },
-		SaveModes:    func(sort, view string) { f.saved = append(f.saved, sort+"/"+view) },
+		Sort:         func() string { return f.sort },
+		SaveSort:     func(sort string) { f.saved = append(f.saved, sort) },
 		Cursor:       func() string { return f.cursor },
 		SetCursor:    func(name string) { f.cursor = name; f.cursorSets++ },
 		Dock: func(name string) error {
@@ -211,7 +211,7 @@ func TestEmptyListShowsHowToStart(t *testing.T) {
 	if len(ls) != 10 {
 		t.Fatalf("%d lines, want the pane's 10:\n%s", len(ls), strings.Join(ls, "\n"))
 	}
-	if !strings.HasPrefix(ls[0], "  hq  0 agents  view: attention") || !strings.HasSuffix(ls[0], "  Sat 14:32 · v1.0.0") {
+	if !strings.HasPrefix(ls[0], "  hq  0 agents ") || !strings.HasSuffix(ls[0], "  Sat 14:32 · v1.0.0") {
 		t.Errorf("header %q", ls[0])
 	}
 	for _, col := range []string{"TAB", "REPO", "BRANCH", "STATE ▾", "AGE", "LAST"} {
@@ -225,7 +225,7 @@ func TestEmptyListShowsHowToStart(t *testing.T) {
 }
 
 func TestRowsInAttentionOrderWithCountsInTheHeader(t *testing.T) {
-	f := &fakeSource{view: ViewAll, agents: []agent.Agent{
+	f := &fakeSource{agents: []agent.Agent{
 		ag("idm", state.Working, 3*time.Second, "Running mvn verify ..."),
 		ag("spike", state.Ended, time.Hour, agent.EndedLast), // as Collect gives it
 		ag("43", state.Done, 11*time.Minute, "PR #58 opened"),
@@ -233,7 +233,7 @@ func TestRowsInAttentionOrderWithCountsInTheHeader(t *testing.T) {
 		ag("agent", state.Question, 6*time.Minute, "Changelog too?"),
 	}}
 	ls := lines(started(f, 140, 10))
-	if want := "  hq  5 agents · 2 need you · 1 done · 1 working  view: all"; !strings.HasPrefix(ls[0], want) {
+	if want := "  hq  5 agents · 2 need you · 1 done · 1 working "; !strings.HasPrefix(ls[0], want) {
 		t.Errorf("header %q, want prefix %q", ls[0], want)
 	}
 	for i, want := range []string{"42", "agent", "43", "idm", "spike"} {
@@ -257,7 +257,7 @@ func TestRowsInAttentionOrderWithCountsInTheHeader(t *testing.T) {
 func TestHeaderLeavesOutZeroCountsAndShowsTheVersionAfterTheClock(t *testing.T) {
 	f := &fakeSource{agents: []agent.Agent{ag("a", state.Done, 0, "")}}
 	h := lines(started(f, 120, 10))[0]
-	if !strings.HasPrefix(h, "  hq  1 agent · 1 done  view: attention ") || !strings.HasSuffix(h, "  Sat 14:32 · v1.0.0") {
+	if !strings.HasPrefix(h, "  hq  1 agent · 1 done ") || !strings.HasSuffix(h, "  Sat 14:32 · v1.0.0") {
 		t.Fatalf("header %q", h)
 	}
 }
@@ -266,7 +266,7 @@ func TestHeaderLeavesOutZeroCountsAndShowsTheVersionAfterTheClock(t *testing.T) 
 func TestHeaderShowsTheNewerReleaseBesideTheVersion(t *testing.T) {
 	f := &fakeSource{agents: []agent.Agent{ag("a", state.Done, 0, "")}, newer: "v1.2.0"}
 	h := lines(started(f, 120, 10))[0]
-	if !strings.HasPrefix(h, "  hq  1 agent · 1 done  view: attention ") || !strings.HasSuffix(h, "  Sat 14:32 · v1.0.0 → v1.2.0 hq update") {
+	if !strings.HasPrefix(h, "  hq  1 agent · 1 done ") || !strings.HasSuffix(h, "  Sat 14:32 · v1.0.0 → v1.2.0 hq update") {
 		t.Fatalf("header %q", h)
 	}
 }
@@ -283,7 +283,7 @@ func TestMoreAgentsThanRowsScrollWithAHint(t *testing.T) {
 	for i := range 8 {
 		as = append(as, ag(fmt.Sprint("a", i), state.Working, time.Duration(i)*time.Minute, ""))
 	}
-	f := &fakeSource{agents: as, view: ViewAll}
+	f := &fakeSource{agents: as}
 	ls := lines(started(f, 100, 10))
 	if !strings.HasSuffix(ls[9], "6 of 8  ▾ 2 more") || ansi.StringWidth(ls[9]) != 98 {
 		t.Errorf("scroll hint %q", ls[9])
@@ -296,7 +296,7 @@ func TestMoreAgentsThanRowsScrollWithAHint(t *testing.T) {
 
 func TestLongCellsAreCutToTheLine(t *testing.T) {
 	// The long row is below the cursor, whose strip would cover LAST.
-	f := &fakeSource{view: ViewAll, agents: []agent.Agent{ag("cur", state.Working, 0, ""), {
+	f := &fakeSource{agents: []agent.Agent{ag("cur", state.Working, 0, ""), {
 		Name: "a-very-long-agent-name-indeed", RepoPath: "/w/r", Branch: "feat/" + strings.Repeat("b", 40),
 		State: state.Working, Since: now.Add(-time.Minute), Last: strings.Repeat("words ", 40),
 	}}}
@@ -419,7 +419,7 @@ func TestANarrowHeaderKeepsSbxUnknownAndTheClock(t *testing.T) {
 }
 
 func TestTmuxErrorIsShownAndTheRowsKept(t *testing.T) {
-	f := &fakeSource{view: ViewAll, agents: []agent.Agent{ag("a", state.Working, 0, "")}}
+	f := &fakeSource{agents: []agent.Agent{ag("a", state.Working, 0, "")}}
 	m := started(f, 100, 10)
 	f.agentsErr = errors.New("tmux gone")
 	m, cmd := update(m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("r")})
@@ -455,17 +455,17 @@ func TestQAndCtrlCQuit(t *testing.T) {
 
 func TestStartShowsTheFooterAndEveryResizeReappliesTheLayout(t *testing.T) {
 	f := &fakeSource{}
-	m := started(f, 130, 10)
-	if got := fmt.Sprint(f.footer); got != "[{↑↓ /name select} {⏎ open session below} {n new} {k kill} {c code} {p pr} {s sort: attention} {a view: all} {r refresh} {q quit}]" {
+	m := started(f, 105, 10)
+	if got := fmt.Sprint(f.footer); got != "[{↑↓ /name select} {⏎ open session below} {n new} {k kill} {c code} {p pr} {s sort: attention} {r refresh} {q quit}]" {
 		t.Errorf("footer %s", got)
 	}
 	// Narrower than the footer: open loses its words, so q quit stays.
-	update(m, tea.WindowSizeMsg{Width: 110, Height: 12})
+	update(m, tea.WindowSizeMsg{Width: 104, Height: 12})
 	if f.layouts != 2 {
 		t.Errorf("%d layouts after two sizes", f.layouts)
 	}
-	if f.footer[1] != (Hint{"⏎", "open"}) || HintsWidth(f.footer) > 110 {
-		t.Errorf("footer at 110: %v, %d cells", f.footer, HintsWidth(f.footer))
+	if f.footer[1] != (Hint{"⏎", "open"}) || HintsWidth(f.footer) > 104 {
+		t.Errorf("footer at 104: %v, %d cells", f.footer, HintsWidth(f.footer))
 	}
 }
 
@@ -524,82 +524,39 @@ func team() []agent.Agent {
 	}
 }
 
-func TestAttentionViewShowsOnlyWhoNeedsYouAndCountsAll(t *testing.T) {
+func TestTheListShowsEveryAgentWithWhoNeedsYouOnTop(t *testing.T) {
 	f := &fakeSource{agents: team()}
 	m := started(f, 120, 10)
 	ls := lines(m)
-	if !strings.HasPrefix(ls[0], "  hq  5 agents · 2 need you · 1 done · 1 working  view: attention") {
-		t.Errorf("header %q", ls[0])
+	if h := ls[0]; !strings.HasPrefix(h, "  hq  5 agents · 2 need you · 1 done · 1 working ") || strings.Contains(h, "view") {
+		t.Errorf("header %q", h)
 	}
-	if rowNames(m) != "perm ask" {
+	if rowNames(m) != "perm ask done w1 end" {
 		t.Fatalf("rows %q", rowNames(m))
 	}
-	if want := "  nothing else needs you · 3 more agents hidden · press a to show all"; ls[5] != want {
-		t.Errorf("line after the rows %q, want %q", ls[5], want)
+	if strings.Contains(strings.Join(ls, "\n"), "hidden") {
+		t.Errorf("a hint about hidden agents:\n%s", strings.Join(ls, "\n"))
 	}
-
-	m = key(m, "a")
-	if rowNames(m) != "perm ask done w1 end" || !strings.Contains(lines(m)[0], "view: all") {
-		t.Fatalf("a: rows %q header %q", rowNames(m), lines(m)[0])
-	}
-	if len(f.saved) != 1 || f.saved[0] != "attention/all" {
-		t.Errorf("kept %v", f.saved)
-	}
-	if got := f.footer[7]; got != (Hint{"a", "view: attention"}) {
-		t.Errorf("footer after a: %v", got)
-	}
-	m = key(m, "a")
-	if rowNames(m) != "perm ask" {
-		t.Errorf("a again: %q", rowNames(m))
-	}
-}
-
-func TestNothingNeedsYouSaysHowToSeeAll(t *testing.T) {
-	f := &fakeSource{agents: []agent.Agent{ag("w1", state.Working, 0, "")}}
-	ls := lines(started(f, 120, 10))
-	if !strings.Contains(ls[4], nothingText) || strings.Contains(strings.Join(ls, "\n"), "w1") {
-		t.Fatalf("view:\n%s", strings.Join(ls, "\n"))
-	}
-}
-
-func TestAttentionViewKeepsTheDockedRowInAnyState(t *testing.T) {
-	for _, st := range []string{state.Working, state.Starting, state.Done, state.Ended, state.Question} {
-		as := append(team(), ag("dock", st, 30*time.Second, "On screen"))
-		as[len(as)-1].Docked = true
-		if got, want := names(Arrange(as, SortAttention, ViewAttention)), map[string]string{
-			state.Working: "perm ask dock", state.Starting: "perm ask dock", state.Done: "perm ask dock",
-			state.Ended: "perm ask dock", state.Question: "perm dock ask",
-		}[st]; got != want {
-			t.Errorf("docked %s: rows %q, want %q", st, got, want)
+	for _, h := range f.footer {
+		if h.Key == "a" {
+			t.Errorf("footer names a: %v", f.footer)
 		}
 	}
-	// Drawn with its outline; w1, done and end stay hidden.
+	// a has no job: nothing changes, nothing is kept.
+	if m = key(m, "a"); rowNames(m) != "perm ask done w1 end" || len(f.saved) != 0 {
+		t.Errorf("a: rows %q, kept %v", rowNames(m), f.saved)
+	}
+}
+
+func TestADockedAgentIsDrawnWithItsOutline(t *testing.T) {
 	as := team()
 	as[0].Docked = true // w1, working
 	m := started(&fakeSource{agents: as}, 120, 10)
-	if rowNames(m) != "perm ask w1" {
+	if rowNames(m) != "perm ask done w1 end" {
 		t.Fatalf("rows %q", rowNames(m))
 	}
-	ls := lines(m)
-	if !strings.HasPrefix(ls[5], "│ w1") || !strings.HasSuffix(ls[5], " │") {
-		t.Errorf("docked row %q, want the outline", ls[5])
-	}
-	if want := "  nothing else needs you · 2 more agents hidden · press a to show all"; ls[6] != want {
-		t.Errorf("line after the rows %q, want %q", ls[6], want)
-	}
-	// The chords go from the docked row as the list shows it.
-	if got, _ := Neighbour(Arrange(as, SortAttention, ViewAttention), "w1", "perm", -1); got != "ask" {
-		t.Errorf("Alt+k from the docked w1: %q, want ask", got)
-	}
-}
-
-func TestTheDockedAgentAloneIsShownNotNothingNeedsYou(t *testing.T) {
-	a := ag("x", state.Working, 0, "3")
-	a.Docked = true
-	ls := lines(started(&fakeSource{agents: []agent.Agent{a}}, 120, 10))
-	view := strings.Join(ls, "\n")
-	if !strings.HasPrefix(ls[3], "│ x") || strings.Contains(view, nothingText) || strings.Contains(view, "hidden") {
-		t.Fatalf("view:\n%s", view)
+	if ls := lines(m); !strings.HasPrefix(ls[6], "│ w1") || !strings.HasSuffix(ls[6], " │") {
+		t.Errorf("docked row %q, want the outline", ls[6])
 	}
 }
 
@@ -610,7 +567,7 @@ func TestSortCyclesAndIsMarkedInTheColumnHeader(t *testing.T) {
 		{Name: "c", RepoPath: "/w/alpha", Branch: "main", State: state.Done, Since: now},
 		{Name: "d", RepoPath: "/w/zeta", Branch: "fix/d", State: state.Question, Since: now},
 	}
-	f := &fakeSource{agents: as, view: ViewAll}
+	f := &fakeSource{agents: as}
 	m := started(f, 120, 10)
 	for _, tc := range []struct{ sort, rows, marked string }{
 		{SortAttention, "d c a b", "TAB REPO BRANCH STATE ▾ AGE"},
@@ -628,7 +585,7 @@ func TestSortCyclesAndIsMarkedInTheColumnHeader(t *testing.T) {
 		}
 		m = key(m, "s")
 	}
-	if m.sort != SortAttention || strings.Join(f.saved, " ") != "repo/all state/all attention/all" {
+	if m.sort != SortAttention || strings.Join(f.saved, " ") != "repo state attention" {
 		t.Errorf("after a full cycle: %s, kept %v", m.sort, f.saved)
 	}
 	// S11: agents of one repository are told apart by branch.
@@ -638,19 +595,17 @@ func TestSortCyclesAndIsMarkedInTheColumnHeader(t *testing.T) {
 	}
 }
 
-func TestModesStartAsTheUserLeftThem(t *testing.T) {
-	m := New((&fakeSource{sort: SortState, view: ViewAll}).source())
-	if m.sort != SortState || m.view != ViewAll {
-		t.Errorf("modes %s %s", m.sort, m.view)
+func TestTheSortStartsAsTheUserLeftIt(t *testing.T) {
+	if m := New((&fakeSource{sort: SortState}).source()); m.sort != SortState {
+		t.Errorf("sort %s", m.sort)
 	}
-	m = New((&fakeSource{sort: "age", view: "some"}).source())
-	if m.sort != SortAttention || m.view != ViewAttention {
-		t.Errorf("unknown modes gave %s %s, want the defaults", m.sort, m.view)
+	if m := New((&fakeSource{sort: "age"}).source()); m.sort != SortAttention {
+		t.Errorf("unknown sort gave %s, want the default", m.sort)
 	}
 }
 
 func TestCursorMovesAndFollowsItsAgent(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := started(f, 120, 10)
 	if m.cursor != "perm" {
 		t.Fatalf("cursor starts on %q", m.cursor)
@@ -683,19 +638,20 @@ func TestCursorMovesAndFollowsItsAgent(t *testing.T) {
 		t.Errorf("cursor row shows %q", cursorLine)
 	}
 
-	// Its agent leaves the view: the cursor takes the nearest row.
-	m = key(m, "a") // attention: perm w1 ask
-	if m.cursor != "ask" || m.cursorRow != 2 {
-		t.Fatalf("after leaving the view: %q at %d", m.cursor, m.cursorRow)
+	// Its agent goes: the cursor takes its place, the row after it.
+	f.agents = slices.DeleteFunc(f.agents, func(a agent.Agent) bool { return a.Name == "done" })
+	m = key(m, "r") // perm w1 ask end
+	if m.cursor != "end" || m.cursorRow != 3 {
+		t.Fatalf("after its agent went: %q at %d", m.cursor, m.cursorRow)
 	}
 	f.agents = nil
 	m = key(m, "r")
-	if m.cursor != "ask" || m.cursorRow != -1 {
+	if m.cursor != "end" || m.cursorRow != -1 {
 		t.Fatalf("no rows: %q at %d, want no row and the name kept", m.cursor, m.cursorRow)
 	}
 	m = key(key(m, "down"), "up") // no rows: nothing to move to
 	f.agents = team()
-	if m = key(m, "r"); m.cursorRow < 0 || m.rows[m.cursorRow].Name != "ask" {
+	if m = key(m, "r"); m.cursorRow < 0 || m.rows[m.cursorRow].Name != "end" {
 		t.Fatalf("agent back: %q at %d", m.cursor, m.cursorRow)
 	}
 }
@@ -705,7 +661,7 @@ func TestCursorScrollsTheList(t *testing.T) {
 	for i := range 8 {
 		as = append(as, ag(fmt.Sprint("a", i), state.Working, time.Duration(i)*time.Minute, ""))
 	}
-	f := &fakeSource{agents: as, view: ViewAll}
+	f := &fakeSource{agents: as}
 	m := started(f, 100, 10)
 	for range 6 {
 		m = key(m, "down")
@@ -735,7 +691,7 @@ func TestCursorScrollsTheList(t *testing.T) {
 func TestCursorRowHasABackground(t *testing.T) {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 	defer lipgloss.SetColorProfile(termenv.Ascii)
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := key(started(f, 120, 10), "down")
 	rows := strings.Split(m.View(), "\n")[3:5]
 	if strings.Contains(rows[0], "48;2;") || !strings.Contains(rows[1], "48;2;") {
@@ -744,7 +700,7 @@ func TestCursorRowHasABackground(t *testing.T) {
 }
 
 func TestCursorIsKeptForTheNextListProgram(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll, cursor: "done"}
+	f := &fakeSource{agents: team(), cursor: "done"}
 	m := started(f, 120, 10)
 	if m.cursor != "done" || m.cursorRow != 2 {
 		t.Fatalf("cursor %q at %d, want done at 2", m.cursor, m.cursorRow)
@@ -761,7 +717,7 @@ func TestCursorIsKeptForTheNextListProgram(t *testing.T) {
 }
 
 func TestKeptCursorSurvivesTheSizeArrivingFirst(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll, cursor: "done"}
+	f := &fakeSource{agents: team(), cursor: "done"}
 	var m tea.Model = New(f.source())
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 120, Height: 10})
 	m, _ = m.Update(agentsMsg{agents: f.agents})
@@ -771,7 +727,7 @@ func TestKeptCursorSurvivesTheSizeArrivingFirst(t *testing.T) {
 }
 
 func TestEnterDocksTheCursorRowAndTheListMarksIt(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := key(key(started(f, 120, 10), "down"), "enter") // perm ask done w1 end
 	if len(f.docked) != 1 || f.docked[0] != "ask" {
 		t.Fatalf("docked %v, want ask", f.docked)
@@ -802,7 +758,7 @@ func TestEnterWithNothingToDockDoesNothing(t *testing.T) {
 }
 
 func TestAFailedDockIsSaidUntilTheNextKey(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll, dockErr: errors.New("no dashboard window")}
+	f := &fakeSource{agents: team(), dockErr: errors.New("no dashboard window")}
 	m := key(started(f, 120, 10), "enter")
 	if ls := lines(m); ls[len(ls)-1] != "  hq: no dashboard window" {
 		t.Fatalf("footer line %q", ls[len(ls)-1])
@@ -818,7 +774,7 @@ func TestARowActionsErrorGoesAfterAFewSecondsAndTheScrollHintIsBack(t *testing.T
 	for i := range 8 {
 		as = append(as, ag(fmt.Sprint("a", i), state.Working, time.Duration(i)*time.Minute, ""))
 	}
-	f := &fakeSource{agents: as, view: ViewAll}
+	f := &fakeSource{agents: as}
 	m := started(f, 100, 10)
 	footer := func(m Model) string { ls := lines(m); return ls[len(ls)-1] }
 	if !strings.HasSuffix(footer(m), "6 of 8  ▾ 2 more") {
@@ -852,7 +808,7 @@ func TestARowActionsErrorGoesAfterAFewSecondsAndTheScrollHintIsBack(t *testing.T
 }
 
 func TestAnOlderErrorsTimerLeavesANewerErrorShown(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := key(started(f, 120, 10), "p")
 	first := m.errSeq
 	m = key(m, "p") // the key clears the first error; p says it again
@@ -868,7 +824,7 @@ func TestAnOlderErrorsTimerLeavesANewerErrorShown(t *testing.T) {
 }
 
 func TestNOpensTheNewAgentDialogWithTheCursorRowsRepo(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	key(key(started(f, 120, 10), "down"), "n") // perm ask done w1 end
 	if len(f.dialogs) != 1 || f.dialogs[0] != "/w/ask-repo" {
 		t.Fatalf("dialogs %q", f.dialogs)
@@ -898,7 +854,7 @@ func TestANewAgentGetsTheCursorAndIsDockedWhenNothingIs(t *testing.T) {
 	if m.cursor != "n1" || len(f.docked) != 1 || f.docked[0] != "n1" {
 		t.Fatalf("cursor %q, docked %v", m.cursor, f.docked)
 	}
-	// Shown in the attention view while new, with the marker.
+	// Shown with the marker while new.
 	if !strings.Contains(rowNames(m), "n1") {
 		t.Fatalf("rows %q", rowNames(m))
 	}
@@ -921,10 +877,15 @@ func TestANewAgentGetsTheCursorAndIsDockedWhenNothingIs(t *testing.T) {
 		t.Fatalf("cursor %q, docked %v, shown %v", m.cursor, f.docked, f.shown)
 	}
 
-	// Its first report ends the marker, and the attention view lets it go.
+	// Its first report ends the marker; the row stays.
 	f.agents[len(f.agents)-1].New, f.agents[len(f.agents)-1].State = false, state.Working
 	m = key(m, "r")
-	if strings.Contains(rowNames(m), "n2") {
+	for _, l := range lines(m) {
+		if strings.Contains(l, "n2 new") {
+			t.Fatalf("row %q keeps the marker", l)
+		}
+	}
+	if !strings.Contains(rowNames(m), "n2") {
 		t.Fatalf("rows %q", rowNames(m))
 	}
 }
@@ -939,7 +900,7 @@ func TestAgentsRunningWhenTheListStartsAreNotWelcomed(t *testing.T) {
 
 func TestTheNewMarkerFitsALongName(t *testing.T) {
 	long := fresh(strings.Repeat("x", 20))
-	f := &fakeSource{agents: []agent.Agent{long, ag("b", state.Working, 0, "")}, view: ViewAll}
+	f := &fakeSource{agents: []agent.Agent{long, ag("b", state.Working, 0, "")}}
 	ls := lines(started(f, 120, 10))
 	if !strings.Contains(ls[4], "… new ") { // after b, which works
 		t.Fatalf("row %q", ls[4])
@@ -977,7 +938,7 @@ func TestANewAgentThatFirstLooksEndedIsStillWelcomed(t *testing.T) {
 }
 
 func TestTheListTakesNoKeysWhileADialogIsOpen(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := started(f, 120, 10)
 	m, open := update(m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
 	// Typed before tmux shows the popup: neither q nor Enter reach the list.
@@ -994,7 +955,7 @@ func TestTheListTakesNoKeysWhileADialogIsOpen(t *testing.T) {
 }
 
 func TestKOpensTheKillDialogOnTheCursorRow(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := key(started(f, 120, 10), "down") // perm ask done w1 end
 	// Yes: the agent is gone on the list's next refresh, the cursor takes
 	// the nearest row.
@@ -1036,7 +997,7 @@ func TestAKilledAgentsRowGivesTheCursorToTheRowThatTookItsPlace(t *testing.T) {
 	// A kill ends the session a moment before it removes the row, so a
 	// refresh may see the row ended, at the bottom, before it goes.
 	for _, tc := range []struct{ killed, want string }{{"w0", "w1"}, {"w1", "w2"}, {"w3", "w2"}} {
-		f := &fakeSource{agents: four(), view: ViewAll}
+		f := &fakeSource{agents: four()}
 		m := onRow(started(f, 120, 10), tc.killed)
 		i := slices.IndexFunc(f.agents, func(a agent.Agent) bool { return a.Name == tc.killed })
 		f.agents[i].State = state.Ended
@@ -1052,7 +1013,7 @@ func TestAKilledAgentsRowGivesTheCursorToTheRowThatTookItsPlace(t *testing.T) {
 
 func TestKillingARowWithoutAnEndedPhaseGivesTheCursorToTheNextRow(t *testing.T) {
 	for _, tc := range []struct{ killed, want string }{{"w0", "w1"}, {"w2", "w3"}, {"w3", "w2"}} {
-		f := &fakeSource{agents: four(), view: ViewAll}
+		f := &fakeSource{agents: four()}
 		m := onRow(started(f, 120, 10), tc.killed)
 		f.onKill = func() { f.agents = remove(f.agents, tc.killed) }
 		if m = key(m, "k"); m.cursor != tc.want {
@@ -1066,7 +1027,7 @@ func TestKOnAnEndedRowGivesTheCursorToTheRowAfterIt(t *testing.T) {
 	as := four()
 	as[2].State, as[3].State = state.Ended, state.Ended // w0 w1 w2 w3
 	for _, tc := range []struct{ killed, want string }{{"w2", "w3"}, {"w3", "w2"}} {
-		f := &fakeSource{agents: slices.Clone(as), view: ViewAll}
+		f := &fakeSource{agents: slices.Clone(as)}
 		m := onRow(started(f, 120, 10), tc.killed)
 		f.onKill = func() { f.agents = remove(f.agents, tc.killed) }
 		if m = key(m, "k"); m.cursor != tc.want {
@@ -1076,7 +1037,7 @@ func TestKOnAnEndedRowGivesTheCursorToTheRowAfterIt(t *testing.T) {
 	// w0 ends by itself as the user looks at it, and is killed at once:
 	// the cursor is where the user sees it, at the bottom, so it takes the
 	// row before.
-	f := &fakeSource{agents: four(), view: ViewAll}
+	f := &fakeSource{agents: four()}
 	m := started(f, 120, 10)
 	f.agents[0].State = state.Ended
 	m = key(m, "r") // w1 w2 w3 w0
@@ -1087,7 +1048,7 @@ func TestKOnAnEndedRowGivesTheCursorToTheRowAfterIt(t *testing.T) {
 }
 
 func TestARowEndedLongAgoKeepsTheCursorWhereItIs(t *testing.T) {
-	f := &fakeSource{agents: four(), view: ViewAll}
+	f := &fakeSource{agents: four()}
 	m := started(f, 120, 10)
 	f.agents[0].State = state.Ended
 	m = key(m, "r") // w1 w2 w3 w0, the cursor on w0
@@ -1111,7 +1072,7 @@ func remove(as []agent.Agent, name string) []agent.Agent {
 }
 
 func TestCOpensTheEditorOnTheCursorRow(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := key(key(started(f, 120, 10), "down"), "c") // perm ask done w1 end
 	if strings.Join(f.coded, " ") != "ask" {
 		t.Fatalf("opened %v", f.coded)
@@ -1136,7 +1097,7 @@ func typed(m Model, text string) Model {
 
 func TestSlashSelectsByName(t *testing.T) {
 	as := []agent.Agent{ag("agent-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, ""), ag("Agora", state.Working, 0, ""), ag("spike", state.Ended, 0, "")}
-	f := &fakeSource{agents: as, view: ViewAll} // 42 agent-17 Agora spike
+	f := &fakeSource{agents: as} // 42 agent-17 Agora spike
 	m := key(started(f, 120, 10), "/")
 	if got := fmt.Sprint(f.footer); got != "[{/ · type a name} {⏎ open} {esc cancel}]" {
 		t.Fatalf("footer %s", got)
@@ -1173,7 +1134,7 @@ func TestSlashSelectsByName(t *testing.T) {
 
 // The footer reads as spec §6.3 shows it: what is typed, ` · `, the matches.
 func TestSearchFooterReadsAsTheSpec(t *testing.T) {
-	f := &fakeSource{agents: []agent.Agent{ag("agent-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, "")}, view: ViewAll}
+	f := &fakeSource{agents: []agent.Agent{ag("agent-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, "")}}
 	typed(key(started(f, 120, 10), "/"), "ag")
 	if h := f.footer[0]; h.Key+" "+h.Label != "/ag · 1 match: agent-17" {
 		t.Fatalf("footer %v", f.footer)
@@ -1184,7 +1145,7 @@ func TestSearchFooterReadsAsTheSpec(t *testing.T) {
 // any other character of the name (#119).
 func TestSearchFindsANameByItsVersion(t *testing.T) {
 	as := []agent.Agent{ag("rel-1.10.5-213", state.Question, 0, ""), ag("rel-1.9.0-7", state.Question, 0, ""), ag("rel-1.10.5-qa", state.Question, 0, "")}
-	f := &fakeSource{agents: as, view: ViewAll}
+	f := &fakeSource{agents: as}
 	m := typed(key(started(f, 120, 10), "/"), "rel-1.10")
 	if fmt.Sprint(f.footer[0]) != "{/rel-1.10 · 2 matches: rel-1.10.5-213 rel-1.10.5-qa}" || m.cursor != "rel-1.10.5-213" {
 		t.Fatalf("footer %v cursor %q", f.footer, m.cursor)
@@ -1192,9 +1153,9 @@ func TestSearchFindsANameByItsVersion(t *testing.T) {
 }
 
 func TestSearchLooksAtTheRowsShown(t *testing.T) {
-	f := &fakeSource{agents: team()} // attention view: perm ask
-	m := typed(key(started(f, 120, 10), "/"), "w")
-	if fmt.Sprint(f.footer[0]) != "{/w · no match}" || m.cursor != "perm" {
+	f := &fakeSource{agents: team()} // perm ask done w1 end
+	m := typed(key(started(f, 120, 10), "/"), "x")
+	if fmt.Sprint(f.footer[0]) != "{/x · no match}" || m.cursor != "perm" {
 		t.Fatalf("footer %v cursor %q", f.footer, m.cursor)
 	}
 }
@@ -1207,7 +1168,7 @@ func burst(m Model, text string, paste bool) (Model, tea.Cmd) {
 
 func TestKeysArrivingTogetherAreTheSameKeysOneAfterAnother(t *testing.T) {
 	as := []agent.Agent{ag("x80", state.Question, 0, ""), ag("c-1", state.Working, time.Minute, ""), ag("c-2", state.Working, 2*time.Minute, "")}
-	f := &fakeSource{agents: as, view: ViewAll} // x80 c-1 c-2
+	f := &fakeSource{agents: as} // x80 c-1 c-2
 	m := do(burst(started(f, 120, 10), "/c-", false))
 	if !m.searching || m.search != "c-" || m.cursor != "c-1" || fmt.Sprint(f.footer[0]) != "{/c- · 2 matches: c-1 c-2}" {
 		t.Fatalf("searching %v %q cursor %q footer %v", m.searching, m.search, m.cursor, f.footer)
@@ -1221,10 +1182,10 @@ func TestKeysArrivingTogetherAreTheSameKeysOneAfterAnother(t *testing.T) {
 	if m = key(m, "enter"); strings.Join(f.docked, " ") != "c-2" {
 		t.Fatalf("docked %v", f.docked)
 	}
-	// In the list, s and a together cycle the sort and switch the view.
-	m = do(burst(m, "sa", false))
-	if m.sort != SortRepo || m.view != ViewAttention {
-		t.Fatalf("after sa: sort %s view %s", m.sort, m.view)
+	// In the list, s and s together cycle the sort twice.
+	m = do(burst(m, "ss", false))
+	if m.sort != SortState {
+		t.Fatalf("after ss: sort %s", m.sort)
 	}
 	// k opens the dialog: the keys after it are not the list's, q included.
 	cursor := m.cursor
@@ -1240,7 +1201,7 @@ func TestKeysArrivingTogetherAreTheSameKeysOneAfterAnother(t *testing.T) {
 }
 
 func TestTheCursorRowAloneCarriesTheActionStrip(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := started(f, 120, 10)
 	ls := lines(m)
 	// perm has the cursor: the strip on its tail, right-aligned, without pr.
@@ -1269,7 +1230,7 @@ func TestTheCursorRowAloneCarriesTheActionStrip(t *testing.T) {
 
 func TestPrShowsAndOpensWithAPullRequestOnly(t *testing.T) {
 	as := team() // perm has the cursor, on feat/perm in /w/perm-repo
-	f := &fakeSource{agents: as, view: ViewAll, prs: map[string]map[string]gh.PR{
+	f := &fakeSource{agents: as, prs: map[string]map[string]gh.PR{
 		"/w/perm-repo": {"feat/perm": {Number: 7, Branch: "feat/perm", URL: "https://github.com/o/r/pull/7"}},
 	}}
 	m := started(f, 120, 10)
@@ -1291,7 +1252,7 @@ func TestPrShowsAndOpensWithAPullRequestOnly(t *testing.T) {
 }
 
 func TestGhFailingOnlyHidesPr(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll, prErr: errors.New("gh: not logged in"),
+	f := &fakeSource{agents: team(), prErr: errors.New("gh: not logged in"),
 		prs: map[string]map[string]gh.PR{"/w/perm-repo": {"feat/perm": {Number: 7}}}}
 	ls := lines(started(f, 120, 10))
 	if strings.Contains(ls[3], " pr ") || ls[len(ls)-1] != "" {
@@ -1303,7 +1264,7 @@ func TestPullRequestsAreAskedAtStartEveryMinuteAndOnDone(t *testing.T) {
 	as := []agent.Agent{ag("a", state.Working, 0, ""), ag("b", state.Working, 0, ""), ag("c", state.Working, 0, "")}
 	as[0].ID, as[1].ID, as[2].ID = "ia", "ib", "ic"
 	as[1].RepoPath = as[0].RepoPath // a and b share a repository
-	f := &fakeSource{agents: as, view: ViewAll}
+	f := &fakeSource{agents: as}
 	m := started(f, 120, 10)
 	if got := f.askedAbout(); got != "/w/a-repo /w/c-repo" {
 		t.Fatalf("at start: %q", got)
@@ -1339,12 +1300,12 @@ func names(as []agent.Agent) string {
 }
 
 func TestChordsDockTheRowsAsTheListShowsThem(t *testing.T) {
-	rows := Arrange(team(), SortAttention, ViewAll)
+	rows := Arrange(team(), SortAttention)
 	if got := names(rows); got != "perm ask done w1 end" {
 		t.Fatalf("rows %s", got)
 	}
-	if got := names(Arrange(team(), "bogus", "bogus")); got != "perm ask" {
-		t.Fatalf("unknown modes: %s", got)
+	if got := names(Arrange(team(), "bogus")); got != "perm ask done w1 end" {
+		t.Fatalf("unknown sort: %s", got)
 	}
 	for _, tc := range []struct {
 		docked, cursor string
@@ -1371,39 +1332,36 @@ func TestChordsDockTheRowsAsTheListShowsThem(t *testing.T) {
 }
 
 func TestEnteringWithNothingDockedDocksTheCursorRow(t *testing.T) {
-	for _, tc := range []struct{ view, cursor, want string }{
-		{ViewAll, "done", "done"},     // the cursor's agent
-		{ViewAll, "gone", "perm"},     // gone: the first row
-		{ViewAll, "", "perm"},         // no cursor kept
-		{ViewAttention, "ask", "ask"}, // shown in the view
-		{ViewAttention, "w1", "perm"}, // hidden by the view: the first row
+	for _, tc := range []struct{ cursor, want string }{
+		{"done", "done"}, // the cursor's agent
+		{"gone", "perm"}, // gone: the first row
+		{"", "perm"},     // no cursor kept
 	} {
-		got, ok := EntryDock(team(), SortAttention, tc.view, tc.cursor)
+		got, ok := EntryDock(team(), SortAttention, tc.cursor)
 		if !ok || got != tc.want {
-			t.Errorf("view %s cursor %q: %q %v, want %q", tc.view, tc.cursor, got, ok, tc.want)
+			t.Errorf("cursor %q: %q %v, want %q", tc.cursor, got, ok, tc.want)
 		}
 		// The row the list comes back with (§6.3).
-		f := &fakeSource{agents: team(), view: tc.view, cursor: tc.cursor}
+		f := &fakeSource{agents: team(), cursor: tc.cursor}
 		if m := started(f, 120, 10); m.cursor != tc.want {
-			t.Errorf("view %s cursor %q: the list comes back on %q, not %q", tc.view, tc.cursor, m.cursor, tc.want)
+			t.Errorf("cursor %q: the list comes back on %q, not %q", tc.cursor, m.cursor, tc.want)
 		}
+	}
+	// Agents none of which needs the user are rows like any other.
+	calm := []agent.Agent{ag("w1", state.Working, 0, ""), ag("done", state.Done, 0, "")}
+	if got, ok := EntryDock(calm, SortAttention, "w1"); !ok || got != "w1" {
+		t.Errorf("calm agents: %q %v, want w1", got, ok)
 	}
 }
 
-func TestEnteringKeepsWhatIsDockedAndThePlaceholderWithNoRows(t *testing.T) {
+func TestEnteringKeepsWhatIsDockedAndThePlaceholderWithNoAgents(t *testing.T) {
 	as := team()
 	as[0].Docked = true // w1
-	if got, ok := EntryDock(as, SortAttention, ViewAll, "done"); ok {
+	if got, ok := EntryDock(as, SortAttention, "done"); ok {
 		t.Errorf("something docked: docks %q", got)
 	}
-	calm := []agent.Agent{ag("w1", state.Working, 0, ""), ag("done", state.Done, 0, "")}
-	for _, tc := range []struct {
-		name string
-		as   []agent.Agent
-	}{{"no agents", nil}, {"attention view showing no rows", calm}} {
-		if got, ok := EntryDock(tc.as, SortAttention, ViewAttention, "w1"); ok {
-			t.Errorf("%s: docks %q", tc.name, got)
-		}
+	if got, ok := EntryDock(nil, SortAttention, "w1"); ok {
+		t.Errorf("no agents: docks %q", got)
 	}
 }
 
@@ -1421,7 +1379,7 @@ func TestAltADocksTheFirstNeedingYouButNotTheDockedOne(t *testing.T) {
 func TestTheCursorFollowsAnAgentDockedElsewhere(t *testing.T) {
 	as := team()
 	as[2].Docked = true // done
-	f := &fakeSource{agents: as, view: ViewAll, cursor: "w1"}
+	f := &fakeSource{agents: as, cursor: "w1"}
 	m := started(f, 120, 10)
 	if m.cursor != "done" {
 		t.Fatalf("the list started with the cursor on %q, not on the docked agent", m.cursor)
@@ -1451,7 +1409,7 @@ func TestTheCursorFollowsAnAgentDockedElsewhere(t *testing.T) {
 func narrowTeam() *fakeSource {
 	as := team()
 	as[3].RepoPath, as[3].Branch = "/w/shop-portal", "feat/42-partner-login-with-entra"
-	return &fakeSource{agents: as, view: ViewAll, prs: map[string]map[string]gh.PR{"/w/shop-portal": {"feat/42-partner-login-with-entra": {Number: 42, URL: "u"}}}}
+	return &fakeSource{agents: as, prs: map[string]map[string]gh.PR{"/w/shop-portal": {"feat/42-partner-login-with-entra": {Number: 42, URL: "u"}}}}
 }
 
 func TestColumnsGiveWayByWidth(t *testing.T) {
@@ -1506,7 +1464,7 @@ func TestColumnsGiveWayByWidth(t *testing.T) {
 	}
 }
 
-// The left gives up the view, then the counts from the last; the right keeps
+// The left gives up the counts from the last; the right keeps
 // the clock and the version, giving up " hq update", then the newer release,
 // only once the left is down to the agents (S12, #131).
 func TestTheHeaderKeepsWhatFitsAndTheClock(t *testing.T) {
@@ -1517,10 +1475,9 @@ func TestTheHeaderKeepsWhatFitsAndTheClock(t *testing.T) {
 		want, gone []string
 		right      string
 	}{
-		{100, []string{"5 agents · 2 need you · 1 done · 1 working", "view: all"}, nil, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
-		{98, []string{"5 agents · 2 need you · 1 done · 1 working"}, []string{"view:"}, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
-		{80, []string{"5 agents · 2 need you · 1 done"}, []string{"working", "view:"}, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
-		{60, []string{"hq  5 agents "}, []string{"need you", "view:"}, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
+		{89, []string{"5 agents · 2 need you · 1 done · 1 working"}, []string{"view"}, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
+		{87, []string{"5 agents · 2 need you · 1 done"}, []string{"working"}, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
+		{60, []string{"hq  5 agents "}, []string{"need you"}, "  Sat 14:32 · v1.0.0 → v9.9.9 hq update"},
 		{50, []string{"hq  5 agents "}, []string{"need you", "hq update"}, "  Sat 14:32 · v1.0.0 → v9.9.9"},
 		{40, []string{"hq  5 agents "}, []string{"need you", "→"}, "  Sat 14:32 · v1.0.0"},
 	} {
@@ -1546,8 +1503,8 @@ func TestTheFooterKeepsTheLabelsWhenNarrow(t *testing.T) {
 		width int
 		want  string
 	}{
-		{110, "↑↓ /name select  ⏎ open  n new  k kill  c code  p pr  s sort: attention  a view: attention  r refresh  q quit"},
-		{109, "⏎ open  c code  p pr  k kill  n new  / name  q quit"},
+		{91, "↑↓ /name select  ⏎ open  n new  k kill  c code  p pr  s sort: attention  r refresh  q quit"},
+		{90, "⏎ open  c code  p pr  k kill  n new  / name  q quit"},
 		{80, "⏎ open  c code  p pr  k kill  n new  / name  q quit"},
 		{45, "⏎ open  c code  p pr  k kill  n new  q quit"},
 	} {
@@ -1576,10 +1533,6 @@ func TestEveryKeyWorksNarrow(t *testing.T) {
 	if len(f.browsed) != 1 {
 		t.Errorf("p at 80 opened %v", f.browsed)
 	}
-	m = key(m, "a")
-	if m.view != ViewAttention {
-		t.Errorf("a at 80: view %s", m.view)
-	}
 }
 
 // click is a left click at column x of line y.
@@ -1600,7 +1553,7 @@ func at(t *testing.T, m Model, y int, text string) int {
 }
 
 func TestAClickOnARowMovesTheCursorThere(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := started(f, 120, 10) // perm ask done w1 end, from line 3
 	if m = click(m, 10, 5); m.cursor != "done" {
 		t.Fatalf("cursor %q, want done", m.cursor)
@@ -1624,7 +1577,7 @@ func TestAClickOnARowMovesTheCursorThere(t *testing.T) {
 }
 
 func TestAClickOnARowScrolledIntoViewTakesThatRow(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := started(f, 120, 7) // three rows shown
 	m = key(key(key(m, "down"), "down"), "down")
 	if m.offset == 0 {
@@ -1668,7 +1621,7 @@ func TestTheStripsGapsDoNothing(t *testing.T) {
 }
 
 func TestTheWheelMovesTheCursor(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := started(f, 120, 10)
 	m, _ = update(m, tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonWheelDown})
 	if m.cursor != "ask" {
@@ -1681,7 +1634,7 @@ func TestTheWheelMovesTheCursor(t *testing.T) {
 }
 
 func TestClicksAreIgnoredWhileADialogIsOpenOrANameIsTyped(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := started(f, 120, 10)
 	m.dialog = true
 	if m = click(m, 10, 5); m.cursor != "perm" {
@@ -1712,8 +1665,8 @@ func (f *fakeSource) dockedNow() string {
 
 func TestTheSlotFollowsTheCursorOnceItRestsKeysStayingOnTheList(t *testing.T) {
 	as := team()
-	as[0].Docked = true                         // w1
-	f := &fakeSource{agents: as, view: ViewAll} // perm ask done w1 end
+	as[0].Docked = true          // w1
+	f := &fakeSource{agents: as} // perm ask done w1 end
 	m := started(f, 120, 10)
 	if m.cursor != "w1" {
 		t.Fatalf("cursor %q, want the docked w1", m.cursor)
@@ -1739,7 +1692,7 @@ func TestTheSlotFollowsTheCursorOnceItRestsKeysStayingOnTheList(t *testing.T) {
 }
 
 func TestHoldingDownDocksOnlyWhereTheCursorStops(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll} // perm ask done w1 end
+	f := &fakeSource{agents: team()} // perm ask done w1 end
 	m := started(f, 120, 10)
 	var stale []int
 	for range 4 {
@@ -1760,7 +1713,7 @@ func TestHoldingDownDocksOnlyWhereTheCursorStops(t *testing.T) {
 }
 
 func TestAClickOnARowDocksItAtRest(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll} // perm ask done w1 end
+	f := &fakeSource{agents: team()} // perm ask done w1 end
 	m := started(f, 120, 10)
 	m, cmd := update(m, tea.MouseMsg{X: 10, Y: rowsTop + 2, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft})
 	m = do(m, cmd)
@@ -1775,7 +1728,7 @@ func TestAClickOnARowDocksItAtRest(t *testing.T) {
 
 func TestSearchDocksTheMatchAtRestAndEnterMovesTheKeysThere(t *testing.T) {
 	as := []agent.Agent{ag("agent-17", state.Question, 0, ""), ag("42", state.NeedsInput, 0, ""), ag("Agora", state.Working, 0, "")}
-	f := &fakeSource{agents: as, view: ViewAll} // 42 agent-17 Agora
+	f := &fakeSource{agents: as} // 42 agent-17 Agora
 	m := rested(typed(key(started(f, 120, 10), "/"), "ag"))
 	if strings.Join(f.shown, " ") != "agent-17" || !m.searching {
 		t.Fatalf("shown %v searching %v", f.shown, m.searching)
@@ -1791,7 +1744,7 @@ func TestSearchDocksTheMatchAtRestAndEnterMovesTheKeysThere(t *testing.T) {
 }
 
 func TestEnterBeforeTheCursorRestsDocksOnceWithTheKeys(t *testing.T) {
-	f := &fakeSource{agents: team(), view: ViewAll}
+	f := &fakeSource{agents: team()}
 	m := key(key(started(f, 120, 10), "down"), "enter")
 	rested(m)
 	if strings.Join(f.docked, " ") != "ask" || len(f.shown) != 0 {
@@ -1799,12 +1752,12 @@ func TestEnterBeforeTheCursorRestsDocksOnceWithTheKeys(t *testing.T) {
 	}
 }
 
-func TestResortsRefreshesAndViewsNeverMoveTheSlot(t *testing.T) {
+func TestResortsAndRefreshesNeverMoveTheSlot(t *testing.T) {
 	as := team()
 	as[3].Docked = true // perm
-	f := &fakeSource{agents: as, view: ViewAll}
+	f := &fakeSource{agents: as}
 	m := started(f, 120, 10)
-	for _, k := range []string{"s", "r", "s", "a", "a", "s"} {
+	for _, k := range []string{"s", "r", "s", "a", "s"} {
 		m = key(m, k)
 		if m.cursor != "perm" {
 			t.Fatalf("after %s the cursor is on %q", k, m.cursor)
@@ -1819,7 +1772,7 @@ func TestResortsRefreshesAndViewsNeverMoveTheSlot(t *testing.T) {
 }
 
 func TestAKilledDockedAgentLeavesThePlaceholderWhereTheCursorGoesOn(t *testing.T) {
-	f := &fakeSource{agents: four(), view: ViewAll}
+	f := &fakeSource{agents: four()}
 	m := rested(onRow(started(f, 120, 10), "w1"))
 	if f.dockedNow() != "w1" {
 		t.Fatalf("docked %q", f.dockedNow())
@@ -1836,8 +1789,8 @@ func TestAKilledDockedAgentLeavesThePlaceholderWhereTheCursorGoesOn(t *testing.T
 
 func TestTheCursorStaysWhereTheUserMovedItWhileTheListsOwnDockCatchesUp(t *testing.T) {
 	as := team()
-	as[0].Docked = true                         // w1
-	f := &fakeSource{agents: as, view: ViewAll} // perm ask done w1 end
+	as[0].Docked = true          // w1
+	f := &fakeSource{agents: as} // perm ask done w1 end
 	m := started(f, 120, 10)
 	before := append([]agent.Agent(nil), f.agents...) // w1 still docked
 	m = key(m, "up")                                  // done
@@ -1867,7 +1820,7 @@ func TestTheNewAgentDialogsAgentTakesTheCursorWithTheSlot(t *testing.T) {
 		as[i].ID = as[i].Name + "-id"
 	}
 	as[0].Docked = true // w1
-	f := &fakeSource{agents: as, view: ViewAll}
+	f := &fakeSource{agents: as}
 	m := started(f, 120, 10)
 	// The dialog starts n1 and docks it (cli): the list follows.
 	f.onDialog = func() {
@@ -1889,7 +1842,7 @@ func TestARowWithOwnTasksStartsLastWithTheirCountDim(t *testing.T) {
 	sleeper.OwnTasks = []state.Task{{Type: "shell", Text: "sleep 120"}}
 	busy := ag("ci", state.Done, 2*time.Minute, strings.Repeat("words ", 40))
 	busy.OwnTasks = []state.Task{{Type: "shell", Text: "npm run dev"}, {Type: "monitor", Text: "Wait for CI"}}
-	f := &fakeSource{view: ViewAll, agents: []agent.Agent{ag("cur", state.Working, 0, "Editing"), sleeper, busy}}
+	f := &fakeSource{agents: []agent.Agent{ag("cur", state.Working, 0, "Editing"), sleeper, busy}}
 	m := started(f, 120, 10)
 	raw := strings.Split(m.View(), "\n")
 	row := map[string]int{}
@@ -1921,7 +1874,7 @@ func TestARowWithOwnTasksStartsLastWithTheirCountDim(t *testing.T) {
 
 func TestEachLookDeliversTheMessagesLeftWaitingOneRoundAtATime(t *testing.T) {
 	as := []agent.Agent{ag("a", state.Done, 0, ""), ag("b", state.Working, 0, "")}
-	f := &fakeSource{agents: as, view: ViewAll}
+	f := &fakeSource{agents: as}
 	m := started(f, 120, 10)
 	f.delivered = nil
 	m, cmd := update(m, agentsMsg{agents: as})
