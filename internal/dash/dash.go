@@ -37,10 +37,10 @@ type Source struct {
 	Layout func()
 	// Footer shows the key hints on the dashboard's status line.
 	Footer func([]Hint)
-	// Modes are the sort and view the user left; SaveModes keeps them for
-	// the next run (spec §6.2).
-	Modes     func() (sort, view string)
-	SaveModes func(sort, view string)
+	// Sort is the sort the user left; SaveSort keeps it for the next run
+	// (spec §6.2).
+	Sort     func() string
+	SaveSort func(sort string)
 	// Cursor is the cursor row's agent as the last list program left it;
 	// SetCursor keeps it for the next one (design §3.3).
 	Cursor    func() string
@@ -70,22 +70,20 @@ type Source struct {
 	Deliver func(as []agent.Agent)
 }
 
-// Sorts, cycled with s, and views, toggled with a (spec §6.2).
+// Sorts, cycled with s (spec §6.2). The list shows every agent (ADR 0016).
 const (
 	SortAttention = "attention"
 	SortRepo      = "repo"
 	SortState     = "state"
-
-	ViewAttention = "attention"
-	ViewAll       = "all"
 )
 
 var sorts = []string{SortAttention, SortRepo, SortState}
 
-// sortRows orders rows as mode says; filtering by view is a separate step
-// (design §5.1).
-func sortRows(rows []agent.Agent, mode string) {
-	switch mode {
+// Arrange is the rows in a sort, as the list shows them: every agent;
+// an unknown sort is the default.
+func Arrange(as []agent.Agent, sort string) []agent.Agent {
+	rows := slices.Clone(as)
+	switch sort {
 	case SortRepo:
 		agent.SortRepo(rows)
 	case SortState:
@@ -93,36 +91,13 @@ func sortRows(rows []agent.Agent, mode string) {
 	default:
 		agent.SortAttention(rows)
 	}
-}
-
-// filterRows keeps the agents the view shows: in the attention view those
-// needing the user, the new ones and the docked one, whatever its state, so
-// the list always shows the agent on screen (spec §6.2, ADR 0006).
-func filterRows(as []agent.Agent, view string) []agent.Agent {
-	rows := make([]agent.Agent, 0, len(as))
-	for _, a := range as {
-		if view == ViewAll || a.NeedsYou() || a.New || a.Docked {
-			rows = append(rows, a)
-		}
-	}
-	return rows
-}
-
-// Arrange is the rows of a sort and view, as the list shows them; unknown
-// modes are the defaults.
-func Arrange(as []agent.Agent, sort, view string) []agent.Agent {
-	if view != ViewAll {
-		view = ViewAttention
-	}
-	rows := filterRows(as, view)
-	sortRows(rows, sort)
 	return rows
 }
 
 // Neighbour is the agent Alt+j (step 1) or Alt+k (step -1) docks: the row
-// after or before the docked one. Every view shows the docked agent; while
-// none is shown (nothing is docked), the cursor stands where it left, so
-// Alt+j docks the cursor row and Alt+k the one above it (design §3.7).
+// after or before the docked one. While nothing is docked, the cursor
+// stands where it left, so Alt+j docks the cursor row and Alt+k the one
+// above it (design §3.7).
 func Neighbour(rows []agent.Agent, docked, cursor string, step int) (string, bool) {
 	at := func(name string) int {
 		for i, a := range rows {
@@ -154,15 +129,15 @@ func Neighbour(rows []agent.Agent, docked, cursor string, step int) (string, boo
 
 // EntryDock is the agent docked as the dashboard is entered (spec S1): with
 // nothing docked, the cursor row the list comes back with, the cursor's
-// agent when the view shows it, else the first row (§6.3). Something
-// docked stays docked, and with no row shown the placeholder stays.
-func EntryDock(as []agent.Agent, sort, view, cursor string) (string, bool) {
+// agent when it is still there, else the first row (§6.3). Something
+// docked stays docked, and with no agents the placeholder stays.
+func EntryDock(as []agent.Agent, sort, cursor string) (string, bool) {
 	for _, a := range as {
 		if a.Docked {
 			return "", false
 		}
 	}
-	rows := Arrange(as, sort, view)
+	rows := Arrange(as, sort)
 	if len(rows) == 0 {
 		return "", false
 	}
@@ -178,7 +153,7 @@ func EntryDock(as []agent.Agent, sort, view, cursor string) (string, bool) {
 // attention order, never the one docked now, whose answer may not be
 // reported yet (design §3.7).
 func FirstNeedingYou(as []agent.Agent, docked string) (string, bool) {
-	for _, a := range Arrange(as, SortAttention, ViewAttention) {
+	for _, a := range Arrange(as, SortAttention) {
 		if a.NeedsYou() && a.Name != docked {
 			return a.Name, true
 		}
@@ -261,7 +236,7 @@ type (
 type Model struct {
 	src     Source
 	agents  []agent.Agent // every agent, as collected
-	rows    []agent.Agent // the agents the view shows, in sort order
+	rows    []agent.Agent // every agent, in sort order
 	running agent.Sandboxes
 	err     error
 	actErr  error // why the last row action failed, for errFor or until the next key
@@ -292,7 +267,7 @@ type Model struct {
 	owning   int
 	ownFrom  int
 
-	sort, view string
+	sort string
 
 	// prs are the pull requests of each repository shown, by branch; a
 	// repository is asked when it first shows, every minute, and when one
@@ -321,36 +296,29 @@ type Model struct {
 	began         time.Time // when the list program started
 }
 
-// New is the list program before its first refresh, in the modes the user
+// New is the list program before its first refresh, in the sort the user
 // left.
 func New(src Source) Model {
-	m := Model{src: src, width: 80, height: Height(24), sort: SortAttention, view: ViewAttention, cursorRow: -1, place: -1, began: src.Now()}
-	sort, view := src.Modes()
+	m := Model{src: src, width: 80, height: Height(24), sort: SortAttention, cursorRow: -1, place: -1, began: src.Now()}
+	sort := src.Sort()
 	for _, s := range sorts {
 		if sort == s {
 			m.sort = s
 		}
-	}
-	if view == ViewAll {
-		m.view = ViewAll
 	}
 	m.cursor = src.Cursor()
 	return m
 }
 
 // hints are the keys of the list, in footer order: the sort shown is the
-// current one, the view the one a switches to (mocks). While searching the
+// current one (mocks). While searching the
 // footer is the search: what is typed, then ` · ` and its matches, Enter and
 // Esc (spec §6.3: `/ag · 1 match: agent-17`).
 func (m Model) hints() []Hint {
 	if m.searching {
 		return []Hint{{"/" + m.search, "· " + m.matchText()}, {"⏎", "open"}, {"esc", "cancel"}}
 	}
-	other := ViewAll
-	if m.view == ViewAll {
-		other = ViewAttention
-	}
-	hs := []Hint{{"↑↓ /name", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"k", "kill"}, {"c", "code"}, {"p", "pr"}, {"s", "sort: " + m.sort}, {"a", "view: " + other}, {"r", "refresh"}, {"q", "quit"}}
+	hs := []Hint{{"↑↓ /name", "select"}, {"⏎", "open session below"}, {"n", "new"}, {"k", "kill"}, {"c", "code"}, {"p", "pr"}, {"s", "sort: " + m.sort}, {"r", "refresh"}, {"q", "quit"}}
 	if HintsWidth(hs) <= m.width {
 		return hs
 	}
@@ -384,11 +352,11 @@ func HintsWidth(hs []Hint) int {
 // visible is how many rows the pane shows.
 func (m Model) visible() int { return max(1, m.height-4) }
 
-// arrange filters and sorts the agents into rows and puts the cursor back on
+// arrange sorts the agents into rows and puts the cursor back on
 // its agent; when the agent is gone, the cursor takes its place, the row
 // after it or, when it was the last, the one before (#82).
 func (m *Model) arrange() {
-	m.rows = Arrange(m.agents, m.sort, m.view)
+	m.rows = Arrange(m.agents, m.sort)
 	for i, a := range m.rows {
 		if a.Name == m.cursor {
 			place := m.place
@@ -784,10 +752,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 					break
 				}
 			}
-			m.modesChanged()
-		case "a":
-			m.view = map[string]string{ViewAll: ViewAttention, ViewAttention: ViewAll}[m.view]
-			m.modesChanged()
+			m.sortChanged()
 		}
 	}
 	return m, nil
@@ -911,11 +876,11 @@ func (m *Model) followDock() {
 	m.docked = docked
 }
 
-// modesChanged re-arranges the rows, keeps the modes for the next run and
-// shows them in the footer.
-func (m *Model) modesChanged() {
+// sortChanged re-arranges the rows, keeps the sort for the next run and
+// shows it in the footer.
+func (m *Model) sortChanged() {
 	m.arrange()
-	m.src.SaveModes(m.sort, m.view)
+	m.src.SaveSort(m.sort)
 	m.src.Footer(m.hints())
 }
 
@@ -945,10 +910,9 @@ var (
 )
 
 const (
-	margin      = "  "
-	gap         = "  "
-	emptyText   = "no agents yet - press n to start one, or run: hq new NAME [DIR] [PROMPT]"
-	nothingText = "nothing needs you - press a for all"
+	margin    = "  "
+	gap       = "  "
+	emptyText = "no agents yet - press n to start one, or run: hq new NAME [DIR] [PROMPT]"
 )
 
 func (m Model) View() string {
@@ -957,10 +921,8 @@ func (m Model) View() string {
 	cols := m.columns()
 	lines = append(lines, cols.header(m.sort))
 	switch {
-	case len(m.agents) == 0:
-		lines = append(lines, "", center(cDim.Render(emptyText), ansi.StringWidth(emptyText), m.width))
 	case len(m.rows) == 0:
-		lines = append(lines, "", center(cDim.Render(nothingText), ansi.StringWidth(nothingText), m.width))
+		lines = append(lines, "", center(cDim.Render(emptyText), ansi.StringWidth(emptyText), m.width))
 	default:
 		now := m.src.Now()
 		end := min(m.offset+v, len(m.rows))
@@ -972,9 +934,6 @@ func (m Model) View() string {
 			}
 			_, pr := m.pr(a)
 			lines = append(lines, cols.row(a, now, true, strip(pr, m.width >= wideFrom)))
-		}
-		if hidden := len(m.agents) - len(m.rows); hidden > 0 && len(m.rows) <= v {
-			lines = append(lines, margin+cDim.Render(fmt.Sprintf("nothing else needs you · %s hidden · press a to show all", plural(hidden, "more agent"))))
 		}
 	}
 	for len(lines) < v+3 {
@@ -988,10 +947,10 @@ func (m Model) View() string {
 	return strings.Join(lines, "\n")
 }
 
-// header is `hq  N agents · X need you · Y done · Z working` and the view on
-// the left, and on the right the clock, `sbx ?` after it while sbx does not
-// answer, and the version, with the update hint `→ vX.Y.Z hq update` when a
-// newer release exists (§6.1, design §7.1).
+// header is `hq  N agents · X need you · Y done · Z working` on the left,
+// and on the right the clock, `sbx ?` after it while sbx does not answer,
+// and the version, with the update hint `→ vX.Y.Z hq update` when a newer
+// release exists (§6.1, design §7.1).
 func (m Model) header() string {
 	var need, done, working int
 	for _, a := range m.agents {
@@ -1018,7 +977,7 @@ func (m Model) header() string {
 	if m.sbxDown(now) {
 		clock += "  sbx ?"
 	}
-	view, newer, hqUpdate := "view: "+m.view, m.newer, " hq update"
+	newer, hqUpdate := m.newer, " hq update"
 	right := func() string {
 		r := clock + " · " + m.src.Version
 		if newer != "" {
@@ -1027,16 +986,12 @@ func (m Model) header() string {
 		return cDim.Render(r)
 	}
 	left := func() string {
-		l := cTitle.Render("hq") + "  " + cText.Render(strings.Join(parts, " · "))
-		if view != "" {
-			l += "  " + cDim.Render(view)
-		}
-		return l
+		return cTitle.Render("hq") + "  " + cText.Render(strings.Join(parts, " · "))
 	}
 	// The clock, sbx ? and the version stay; the left keeps what fits,
-	// giving up the view, then the counts from the last, and only then the
-	// right gives up " hq update", then the newer release (S12).
-	for _, drop := range []func(){func() { view = "" }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:1] }, func() { hqUpdate = "" }, func() { newer = "" }} {
+	// giving up the counts from the last, and only then the right gives up
+	// " hq update", then the newer release (S12).
+	for _, drop := range []func(){func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:max(1, len(parts)-1)] }, func() { parts = parts[:1] }, func() { hqUpdate = "" }, func() { newer = "" }} {
 		if lipgloss.Width(left())+lipgloss.Width(right())+1 <= m.width-2*len(margin) {
 			break
 		}

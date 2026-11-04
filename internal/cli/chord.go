@@ -48,7 +48,7 @@ func chord(d deps, action string) error {
 	switch action {
 	case "next", "previous":
 		step := map[string]int{"next": 1, "previous": -1}[action]
-		if name, ok = dash.Neighbour(dash.Arrange(as, p.Sort, p.View), docked.Name, cursor, step); !ok {
+		if name, ok = dash.Neighbour(dash.Arrange(as, p.Sort), docked.Name, cursor, step); !ok {
 			return nil // the end of the list: nothing to do
 		}
 	case "attention":
