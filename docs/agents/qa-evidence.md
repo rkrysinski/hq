@@ -56,10 +56,10 @@ Link evidence pinned to `sha`. `<repo>` is this repository's `owner/name` (`gh r
 
 | # | Check | Expected | Result | Evidence |
 |---|-------|----------|--------|----------|
-| 1 | Attention view sorts waiting agents first | Waiting rows above running ones | ✅ pass | before / after below |
+| 1 | Attention sort puts waiting agents first | Waiting rows above running ones | ✅ pass | before / after below |
 | 2 | `hq kill` asks before killing | Kill dialog shown | ❌ fail: killed without asking | kill.txt |
 
-### 1. Attention view sorts waiting agents first
+### 1. Attention sort puts waiting agents first
 Before: ![...](...)  After: ![...](...)
 ```
 

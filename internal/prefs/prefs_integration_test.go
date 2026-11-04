@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// hq processes changing the file at once (the list keeping its modes, the
+// hq processes changing the file at once (the list keeping its sort, the
 // update check) never lose each other's changes, and a reader never sees
 // half a file.
 func TestUpdatesAtOnceLoseNothing(t *testing.T) {

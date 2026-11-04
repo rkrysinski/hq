@@ -87,13 +87,12 @@ func TestEnteringLeavesWhatIsDockedAndTheEmptySlot(t *testing.T) {
 	if f.tmux.docked != "" || f.tmux.focused != 0 {
 		t.Errorf("something docked: docked %q, keys put on the list %d times", f.tmux.docked, f.tmux.focused)
 	}
-	// The attention view showing no rows: the placeholder stays.
+	// No agent at all: the placeholder stays.
 	f = chordFakes()
-	f.states["id-b"] = state.Report{State: state.Working, Since: f.now}
-	f.prefs.View = "attention"
+	f.tmux.windows = f.tmux.windows[:1]
 	f.run()
 	if f.tmux.docked != "" {
-		t.Errorf("no rows: docked %q", f.tmux.docked)
+		t.Errorf("no agents: docked %q", f.tmux.docked)
 	}
 	// Refused in another tmux server, and hq ls: nothing docked.
 	f = chordFakes()
@@ -292,16 +291,16 @@ func TestFooterShowsKeysBrightAndKeepsTextLiteral(t *testing.T) {
 	}
 }
 
-func TestListSourceKeepsTheModesInThePreferences(t *testing.T) {
+func TestListSourceKeepsTheSortInThePreferences(t *testing.T) {
 	f := newFakes()
 	f.prefs.LatestRelease = "v1.0.0"
 	src := listSource(f.deps(), "%1")
-	if s, v := src.Modes(); s != "" || v != "" {
-		t.Fatalf("fresh modes %q %q", s, v)
+	if s := src.Sort(); s != "" {
+		t.Fatalf("fresh sort %q", s)
 	}
-	src.SaveModes("repo", "all")
-	if s, v := src.Modes(); s != "repo" || v != "all" || f.prefs.LatestRelease != "v1.0.0" {
-		t.Fatalf("modes %q %q, prefs %+v", s, v, f.prefs)
+	src.SaveSort("repo")
+	if s := src.Sort(); s != "repo" || f.prefs.LatestRelease != "v1.0.0" {
+		t.Fatalf("sort %q, prefs %+v", s, f.prefs)
 	}
 }
 

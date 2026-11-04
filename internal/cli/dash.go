@@ -68,7 +68,7 @@ func dockOnEntry(d deps) {
 	as := agent.Look(ws, d.readState, d.takeQueued, agent.Sandboxes{}, d.now(), d.tmux)
 	cursor, _ := d.tmux.SessionValue("cursor")
 	p := d.loadPrefs()
-	name, ok := dash.EntryDock(as, p.Sort, p.View, cursor)
+	name, ok := dash.EntryDock(as, p.Sort, cursor)
 	if !ok {
 		return
 	}
@@ -315,18 +315,15 @@ func listSource(d deps, pane string) dash.Source {
 			_ = d.tmux.FitHomes()
 		},
 		Footer: func(hs []dash.Hint) { _ = d.tmux.SetFooter(footer(hs)) },
-		Modes: func() (string, string) {
-			p := d.loadPrefs()
-			return p.Sort, p.View
-		},
+		Sort:   func() string { return d.loadPrefs().Sort },
 		Cursor: func() string {
 			v, _ := d.tmux.SessionValue("cursor")
 			return v
 		},
 		SetCursor: func(name string) { _ = d.tmux.SetSessionValue("cursor", name) },
-		SaveModes: func(sort, view string) {
+		SaveSort: func(sort string) {
 			_ = d.updatePrefs(func(p *prefs.Prefs) bool {
-				p.Sort, p.View = sort, view
+				p.Sort = sort
 				return true
 			})
 		},

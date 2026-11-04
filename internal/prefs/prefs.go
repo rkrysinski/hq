@@ -28,10 +28,9 @@ func Path(getenv func(string) string) string {
 type Prefs struct {
 	UpdateChecked int64  `json:"update_checked,omitempty"` // unix seconds
 	LatestRelease string `json:"latest_release,omitempty"`
-	// Sort and View are the dashboard's modes as the user left them (spec
-	// §6.2); empty is the default.
+	// Sort is the dashboard's sort as the user left it (spec §6.2); empty
+	// is the default.
 	Sort string `json:"sort,omitempty"`
-	View string `json:"view,omitempty"`
 	// MCPLoaded are the sandboxes hq mcp load loaded hq into, which hq
 	// sandbox restart loads it into again (#141). It is kept here, outside
 	// every sandbox, so that no agent can add its own sandbox.
@@ -233,12 +232,13 @@ func Save(path string, p Prefs) error {
 	for k, v := range p.other {
 		all[k] = v
 	}
-	for k, v := range map[string]any{"update_checked": p.UpdateChecked, "latest_release": p.LatestRelease, "sort": p.Sort, "view": p.View} {
+	for k, v := range map[string]any{"update_checked": p.UpdateChecked, "latest_release": p.LatestRelease, "sort": p.Sort} {
 		delete(all, k)
 		if v != int64(0) && v != "" {
 			all[k] = v
 		}
 	}
+	delete(all, "view") // the dashboard's view of an older hq (ADR 0016)
 	delete(all, "mcp_loaded")
 	if len(p.MCPLoaded) > 0 {
 		all["mcp_loaded"] = p.MCPLoaded
@@ -269,7 +269,7 @@ func Save(path string, p Prefs) error {
 }
 
 // Update changes the file under a lock, so hq processes changing it at once
-// (the list keeping its modes, the update check, hq update) never lose each
+// (the list keeping its sort, the update check, hq update) never lose each
 // other's changes: change gets the file as it is and returns false to leave
 // it unchanged. The lock is an flock on the file's .lock beside it, let go
 // when the process ends, however it ends.
