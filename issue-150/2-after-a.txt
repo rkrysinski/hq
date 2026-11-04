@@ -1,0 +1,30 @@
+  hq  4 agents · 1 need you · 2 done · 1 working                                                                           Wed 06:47 · dev
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+│ b       app         main          ● question     58s   Shall I go on?                                          ⏎ open   c code   k kill  │
+  d       lib         main          ● done         58s   Done: say hi
+  a       app         main          ● done         58s   Done: say hi
+  c       app         main          ● working      58s   -
+
+
+
+─┬ ▸ b · main · claude-app
+ │                                                                                                                                        │
+ │claude in claude-app: ask me a question                                                                                                 │
+ │fake claude: ready                                                                                                                      │
+ │❯ ask me a question                                                                                                                     │
+ │● Shall I go on?                                                                                                                        │
+ │────────────────────────────────────────                                                                                                │
+ │❯                                                                                                                                       │
+ │────────────────────────────────────────                                                                                                │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                                         │
+ │                                                                                                                                        │
+ │                                                                                                                                        │
+ │                                                                                                                                        │
+ │                                                                                                                                        │
+ │                                                                                                                                        │
+ │                                                                                                                                        │
+ │                                                                                                                                        │
+ │                                                                                                                                        │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  r refresh  q quit
