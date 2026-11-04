@@ -134,13 +134,13 @@ The terminal window is titled `hq - agents`.
 
 Resizing the terminal window keeps the 6 list rows and gives the rest to the session. Below 24 rows the list shows 3 rows. Minimum width 80 columns; narrower terminals drop `LAST`, then `REPO`.
 
-Header: `hq` + summary `N agents · X need you · Y done · Z working` + current view mode + clock; while `sbx` has not answered for a few seconds, a quiet `sbx ?` beside the clock says that `ended` states may be stale, and it goes as soon as `sbx` answers again. The summary always counts all agents, whatever the view. The right corner ends with the running version after the clock, as quiet as the clock: `Wed 14:32 · v0.9.2` (`Wed 14:32  sbx ? · v0.9.2` while `sbx` does not answer); a development build shows `dev`, as `hq --version` names it (`hq dev`). When a newer version of hq is released, the same place shows it after the running version, `Wed 14:32 · v0.9.2 → v0.9.3 hq update`, and the left side carries no update hint; hq looks for new releases at most once a day (4.2). In a narrow terminal the left side gives up the view mode, then the counts from the last; the clock, `sbx ?` and the version stay, and only once the left is down to `hq  N agents` does the right give up ` hq update`, then `→ v0.9.3` (S12).
+Header: `hq` + summary `N agents · X need you · Y done · Z working` + clock; while `sbx` has not answered for a few seconds, a quiet `sbx ?` beside the clock says that `ended` states may be stale, and it goes as soon as `sbx` answers again. The right corner ends with the running version after the clock, as quiet as the clock: `Wed 14:32 · v0.9.2` (`Wed 14:32  sbx ? · v0.9.2` while `sbx` does not answer); a development build shows `dev`, as `hq --version` names it (`hq dev`). When a newer version of hq is released, the same place shows it after the running version, `Wed 14:32 · v0.9.2 → v0.9.3 hq update`, and the left side carries no update hint; hq looks for new releases at most once a day (4.2). In a narrow terminal the left side gives up the counts from the last; the clock, `sbx ?` and the version stay, and only once the left is down to `hq  N agents` does the right give up ` hq update`, then `→ v0.9.3` (S12).
 
 Columns: `TAB` (name), `REPO`, `BRANCH`, `STATE` (colored dot + word), `AGE`, `LAST`. No row numbers: under attention sort rows reshuffle on every state change, so positional shortcuts would point at the wrong agent. Colors: attention amber, done green, working blue, ended grey, dark background; degrade gracefully on terminals with few colors.
 
 The docked row is marked with an outline, the cursor row with a background. Both marks are on the same row, except while the slot shows the placeholder (S6), when only the cursor row is marked.
 
-### 6.2 Sorting and views
+### 6.2 Sorting
 
 Sort, cycled with `s`, current mode marked in the column header, remembered between runs:
 
@@ -148,12 +148,7 @@ Sort, cycled with `s`, current mode marked in the column header, remembered betw
 - `repo`: repo name, then attention order inside a repo.
 - `state`: attention order, stable by name inside a state (no reshuffling by age).
 
-View, toggled with `a`, remembered between runs:
-
-- **attention** (default): only agents in an attention state, plus the docked agent in any state, marked with its outline as in the all view, so the list always shows the agent whose session is on screen. Agents neither docked nor in an attention state stay hidden. Empty state, when no row qualifies, reads "nothing needs you - press a for all". The calmest possible list: at most one extra row, and it is the one on screen anyway.
-- **all**: every agent, all states.
-
-All row actions work on any visible row in either view; an agent needs no pending question to be docked.
+The list always shows every agent, in all states (ADR 0016); the attention sort keeps those needing the user on top. All row actions work on any row; an agent needs no pending question to be docked.
 
 ### 6.3 Selecting
 
@@ -179,7 +174,7 @@ A click on a strip item fires that action at once (kill still asks).
 ### 6.5 Other keys
 
 - `n`: New agent dialog.
-- `s`: cycle sort. `a`: toggle view. `r`: force refresh.
+- `s`: cycle sort. `r`: force refresh.
 - `q`: quit the dashboard and give the terminal back to the shell it had before `hq`, full height; agents keep running, `hq` brings the dashboard back with the same docked session.
 - From inside the docked session, without leaving it: dock previous/next row, and dock the first row needing attention (bound to modifier-key shortcuts that do not clash with Claude Code's own keys). Switching keyboard focus between list and session uses the terminal's / tmux's own pane switching.
 
@@ -204,11 +199,11 @@ The `/name` search is the one exception and stays in the footer, because it filt
 
 Trigger, what the user sees, what must be true afterwards. These are the acceptance narrative for the implementation and the manual test.
 
-**S0. Default view** - `hq` with agents running: the list shows only agents that need the user, and the docked agent whatever its state (6.2); the header still counts all; `a` shows everything. With nothing docked and nothing needing the user, the list reads "nothing needs you - press a for all".
+**S0. Default view** - `hq` with agents running: the list shows every agent, those needing the user on top in amber (attention sort, 6.2), the docked one with its outline; the header counts them.
 
-**S1. Start of day** - `hq` with nothing running: the dashboard opens with an empty list ("no agents yet - press n to start one, or run: hq new NAME [DIR] [PROMPT]") and an empty session slot. With agents already running: the dashboard opens showing them, with the previously docked session still docked. When nothing is docked (e.g. the docked agent was killed before the user left, S6), the dashboard opens with the cursor row (6.3) docked and focus in the list; an empty list, or a view showing no rows, keeps the empty slot. This happens only on entering hq (`hq`, `hq dash`, including coming back to a running dashboard); after that, the placeholder stays until the user moves the cursor (6.3).
+**S1. Start of day** - `hq` with nothing running: the dashboard opens with an empty list ("no agents yet - press n to start one, or run: hq new NAME [DIR] [PROMPT]") and an empty session slot. With agents already running: the dashboard opens showing them, with the previously docked session still docked. When nothing is docked (e.g. the docked agent was killed before the user left, S6), the dashboard opens with the cursor row (6.3) docked and focus in the list; an empty list keeps the empty slot. This happens only on entering hq (`hq`, `hq dash`, including coming back to a running dashboard); after that, the placeholder stays until the user moves the cursor (6.3).
 
-**S2. New agent** - `n` in the dashboard or `hq new NAME [DIR] [PROMPT]` from any shell: the row appears at once as `starting` and becomes `working` when the agent reports; without a PROMPT it becomes `done` (last message `-`, no notification) once Claude waits at its prompt, within seconds. A new agent gets a `new` marker until its first report; in attention view it is shown for those seconds regardless of state. The cursor is always the docked agent, and only the user's own moves change them (6.3): an agent started with `n` in the dashboard is docked, gets the cursor, and focus moves to it (so a fresh sandbox can be logged in). An agent started from outside the dashboard (`hq new` from a shell, or another tool) takes neither the slot nor the cursor while an agent is docked; if nothing is docked, it is docked, gets the cursor and focus moves to it, as with `n`. With a setup (`hq new NAME --setup SETUP`, the New agent dialog's `setup` field, 6.6, the supervisor's `new` with `setup`) the agent starts in the repository's sandbox of that setup, created first when the repository has none for it (S11); without one, in its `default` sandbox. Duplicate name or unknown setup: error, nothing created.
+**S2. New agent** - `n` in the dashboard or `hq new NAME [DIR] [PROMPT]` from any shell: the row appears at once as `starting` and becomes `working` when the agent reports; without a PROMPT it becomes `done` (last message `-`, no notification) once Claude waits at its prompt, within seconds. A new agent gets a `new` marker until its first report. The cursor is always the docked agent, and only the user's own moves change them (6.3): an agent started with `n` in the dashboard is docked, gets the cursor, and focus moves to it (so a fresh sandbox can be logged in). An agent started from outside the dashboard (`hq new` from a shell, or another tool) takes neither the slot nor the cursor while an agent is docked; if nothing is docked, it is docked, gets the cursor and focus moves to it, as with `n`. With a setup (`hq new NAME --setup SETUP`, the New agent dialog's `setup` field, 6.6, the supervisor's `new` with `setup`) the agent starts in the repository's sandbox of that setup, created first when the repository has none for it (S11); without one, in its `default` sandbox. Duplicate name or unknown setup: error, nothing created.
 
 **S3. Select and work** - `↑↓`, a click or `/name`: the live session of the row the cursor stops on is docked below, the keys staying in the list, so the user can look from session to session. `Enter`: keyboard focus moves into the docked session. The user types to Claude directly; the list only updates that row's state and last message. Previous/next/first-needing-attention can be docked from inside the session without leaving it.
 
@@ -274,7 +269,7 @@ Creating worktrees or branches, managing pull requests, PR status per branch (le
 ### Manual test
 
 1. `hq new a ~/work/app "say hi"`, `hq new b ~/work/app "ask me one yes/no question and stop"`.
-2. `hq`; expect `b` as `question` in the attention view; `a` to see `a` as `done` below it.
+2. `hq`; expect `b` as `question` on top and `a` as `done` below it (attention sort).
 3. `/a` then `Enter`; expect `a`'s session below, type a follow-up and see Claude answer there.
 4. From inside the session, dock the first agent needing attention; expect `b`.
 5. `c` on `b`; expect the editor open on `b`'s worktree and branch.
@@ -298,15 +293,14 @@ Each milestone is usable on its own and is the acceptance boundary for that step
 
 - **M1 - CLI**: `hq new`, `ls` (no state yet, only `running`/`ended`), `go`, `kill`, `stop`, `sandbox`, `help`, `--version`, `update`; conventions of 4.2; both platforms. Deliverable: agents can be started, listed, entered and ended from any shell.
 - **M2 - State and notifications**: the state model of section 5, `hq ls` with `STATE AGE LAST`, desktop notifications. Deliverable: `hq ls` tells which agents need the user, and the user is notified.
-- **M3 - Dashboard core**: layout (6.1), sorting and views (6.2), selecting with keys (6.3 without mouse and name search), `open` and `kill` with dialogs (6.6), `n` New agent dialog, scenarios S0-S8, S10, S11. Deliverable: the consolidated view; S0-S8 pass.
+- **M3 - Dashboard core**: layout (6.1), sorting (6.2), selecting with keys (6.3 without mouse and name search), `open` and `kill` with dialogs (6.6), `n` New agent dialog, scenarios S0-S8, S10, S11. Deliverable: the consolidated view; S0-S8 pass.
 - **M4 - Dashboard extras**: row action strip with `code` and `pr` (6.4), mouse (6.3, 6.4, 6.6), `/name` search, in-session dock shortcuts (6.5), narrow layout (S12), WSL verification (S13), `hq code`. Deliverable: full acceptance of section 10.
 
 ## 13. Design reference
 
 `docs/requirements/look-and-feel.pen` (Pencil). It is the only design reference: there are no exported images, so it cannot fall behind a copy. Its frames:
 
-- `S0 - attention view (default)` - default attention view
-- `hq dash - terminal window` - all view, action strip on the cursor row, keys on the list
+- `hq dash - terminal window` - the default view (S0), action strip on the cursor row, keys on the list
 - `S3 - keys in the session: typing to 42` - keys in the docked session: the session on the terminal's background, its title in the accent, the list on the surround
 - `S1 - empty state (first hq)`, `S2 - new agent input (n)` (New agent dialog), `S2b - new agent input with setups (n)` (New agent dialog with the `setup` field, `local` chosen), `S3 - 42 docked by the cursor` (the docked row is the cursor row, keys on the list), `S3b - name search (/ag)` (the match docked), `S6 - kill confirmation (k)` (Kill dialog), `S6b - docked agent killed: placeholder below`, `S8 - after quit (q): list gone, session stays`, `S12 - narrow (80 cols): LAST dropped`
 
@@ -322,5 +316,5 @@ A supervisor is a conversation in an MCP client, Claude Desktop or Claude Code, 
 - **What the supervisor sent reports to the supervisor.** A turn whose prompts all came from it (`new` with a prompt, `send`) is a supervised turn (5): its `done` and `question` raise no desktop notification, on any agent, whoever started it. The supervisor is told: its instructions and its `new` and `send` tools say that the user is not notified when work it sent finishes or asks a question, so it waits for that work and tells the user. What its tools return, and `wait`, do not change. Whatever the user prompts, or sends a message into, notifies them as ever.
 - **No push into the client.** A tool call is a request and its answer; the supervisor acts only on a turn of its own. Without a `wait` running, the user is the clock, and nothing prompts them: a supervised turn ends without a notification even then. They see in the agent's row that it is `done` or asks a question, and ask the supervisor.
 - **Ending an agent is the user's call.** `kill` ends nothing unless the supervisor passes the user's confirmation: it asks the user first, naming the agent, unless the user has just said to end it. `kill` is also marked destructive, so a client that asks before destructive tools does; hq does not rely on that. A supervisor that is itself an agent (its Claude Code runs in one of hq's sessions) cannot end, answer or message itself: `kill`, `answer` and `send` naming it are refused (4.1), so a confirmed "end every agent of the release" that matches its own name ends the others only. `stop` and `sandbox` are not offered.
-- **Out of scope for now:** agents messaging each other (they report up in their replies and the supervisor passes on what matters), grouping the all view under supervisors, dashboard changes for the supervisor, MCP clients other than Claude Desktop and Claude Code (any client that starts a server over standard input and output works the same, untested, with Claude Desktop's limit on `wait`), and a supervisor that does not run on the user's machine beside hq, such as Claude Code inside a sandbox: it would need a transport other than standard input and output.
+- **Out of scope for now:** agents messaging each other (they report up in their replies and the supervisor passes on what matters), grouping the list under supervisors, dashboard changes for the supervisor, MCP clients other than Claude Desktop and Claude Code (any client that starts a server over standard input and output works the same, untested, with Claude Desktop's limit on `wait`), and a supervisor that does not run on the user's machine beside hq, such as Claude Code inside a sandbox: it would need a transport other than standard input and output.
 - **Acceptance:** from Claude Desktop on macOS, start two agents in two repositories with prompts, watch them with `wait`, read one agent mid-turn, send it a question answered at its next stop and a `--now` correction it follows within the running turn; the supervisor answers an agent's question dialog only after the user said what to pick (or told it to choose), and the agent goes on as if it had been picked at the agent; likewise it confirms an effort change it sent an agent after its first turn (`/effort`); it never asks the user to let it answer a permission prompt; the agents it gave work to reach `done` or ask a question without a desktop notification, a permission prompt of theirs fires one, and the supervisor tells the user what they said. The same on Windows 11 with WSL. The same from Claude Code on the same machine (on Windows, in WSL and on Windows), set up with `hq mcp install claude-code`, where one `wait` may last longer than 50 s and returns as soon as an agent it waits for is done.
