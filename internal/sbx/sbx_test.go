@@ -209,7 +209,7 @@ func TestListReportsWorkspacesAsHqSeesThem(t *testing.T) {
 
 func TestListFailsWhenAWorkspaceCannotBeMapped(t *testing.T) {
 	r := &fakeRun{out: `{"sandboxes":[{"name":"claude-app","workspaces":["C:\\w\\app"]}]}`}
-	c := Client{Run: r, Platform: platform.WSL{Run: &fakeRun{err: errors.New("wslpath: boom")}}}
+	c := Client{Run: r, Platform: platform.WSL{SbxSide: platform.WindowsSbx{Run: &fakeRun{err: errors.New("wslpath: boom")}}}}
 	if _, err := c.List(); err == nil {
 		t.Fatal("want the wslpath error")
 	}
@@ -223,7 +223,7 @@ func TestCreateGivesSbxItsOwnPathAndCommand(t *testing.T) {
 	if want := []string{"sbx.exe", "create", "--quiet", "claude", `F:\w\app`}; !reflect.DeepEqual(r.args, want) {
 		t.Fatalf("args %q", r.args)
 	}
-	c := Client{Run: r, Platform: platform.WSL{Run: &fakeRun{err: errors.New("wslpath: boom")}}}
+	c := Client{Run: r, Platform: platform.WSL{SbxSide: platform.WindowsSbx{Run: &fakeRun{err: errors.New("wslpath: boom")}}}}
 	if err := c.Create("/w/app", Options{}); err == nil {
 		t.Fatal("want the wslpath error")
 	}
@@ -332,7 +332,7 @@ func TestAFailedCallReportsSbxsErrorAndKeepsWhetherSbxIsInstalled(t *testing.T) 
 func TestAMissingSbxIsSaidAsThePlatformSaysIt(t *testing.T) {
 	r := &fakeRun{err: &proc.Error{Name: "sbx.exe", Msg: "executable file not found in $PATH", NotFound: true}}
 	var pe *proc.Error
-	_, err := Client{Run: r, Platform: platform.WSL{}}.List()
+	_, err := Client{Run: r, Platform: platform.WSL{SbxSide: platform.WindowsSbx{}}}.List()
 	if !errors.As(err, &pe) || !pe.NotFound || pe.Msg != "neither sbx nor sbx.exe found" {
 		t.Fatalf("WSL: %v", err)
 	}

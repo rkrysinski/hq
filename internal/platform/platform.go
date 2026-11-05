@@ -56,22 +56,30 @@ const OverrideEnv = "HQ_PLATFORM"
 // the Linux one when lookPath finds sbx, otherwise sbx.exe (wslSbx).
 // OverrideEnv, when set to one of its values, decides instead.
 func Detect(getenv func(string) string, readFile func(string) ([]byte, error), lookPath func(string) (string, error), run proc.Runner) Platform {
-	wsl := func(distro string) WSL {
-		return WSL{Run: run, BrowserSet: getenv("BROWSER") != "", Distro: distro, Sbx: wslSbx(lookPath, run, distro)}
+	wsl := func(distro string, sbx SbxSide) WSL {
+		return WSL{SbxSide: sbx, Run: run, BrowserSet: getenv("BROWSER") != "", Distro: distro}
 	}
 	switch getenv(OverrideEnv) {
 	case "native":
 		return Native{}
 	case "wsl":
-		return WSL{Run: run, BrowserSet: getenv("BROWSER") != "", Distro: getenv("WSL_DISTRO_NAME")}
+		d := getenv("WSL_DISTRO_NAME")
+		return wsl(d, WindowsSbx{Run: run, Distro: d})
 	}
 	if d := getenv("WSL_DISTRO_NAME"); d != "" {
-		return wsl(d)
+		return wsl(d, wslSbx(lookPath, run, d))
 	}
 	if b, err := readFile("/proc/sys/kernel/osrelease"); err == nil && strings.Contains(strings.ToLower(string(b)), "microsoft") {
-		return wsl("")
+		return wsl("", wslSbx(lookPath, run, ""))
 	}
 	return Native{}
+}
+
+// NativeOnWSL reports whether hq on WSL was told to run as on macOS
+// (HQ_PLATFORM=native), the way to the Linux sbx before hq took it itself
+// (#153), which hq mcp install then says is no longer needed.
+func NativeOnWSL(getenv func(string) string) bool {
+	return getenv("WSL_DISTRO_NAME") != "" && getenv(OverrideEnv) == "native"
 }
 
 // Native is macOS (and a plain Linux), with the native sbx.
@@ -119,27 +127,10 @@ func ghView(url string) []string { return []string{"gh", "pr", "view", "--web", 
 // WSL is Windows through WSL: the desktop is Windows, reached through
 // interop, and paths to it cross between Linux and Windows with wslpath.
 type WSL struct {
+	SbxSide    // the sbx hq runs: the Linux sbx or sbx.exe (Detect)
 	Run        proc.Runner
 	BrowserSet bool   // the user set BROWSER
 	Distro     string // the WSL distribution hq runs in, when known
-	// Sbx is the sbx hq runs; without one, the Windows sbx.exe
-	// (WindowsSbx with Run and Distro).
-	Sbx SbxSide
-}
-
-func (w WSL) sbx() SbxSide {
-	if w.Sbx == nil {
-		return WindowsSbx{Run: w.Run, Distro: w.Distro}
-	}
-	return w.Sbx
-}
-
-func (w WSL) SbxCommand() string                  { return w.sbx().SbxCommand() }
-func (w WSL) ToSbx(path string) (string, error)   { return w.sbx().ToSbx(path) }
-func (w WSL) FromSbx(path string) (string, error) { return w.sbx().FromSbx(path) }
-func (w WSL) Missing() string                     { return w.sbx().Missing() }
-func (w WSL) Gateway(argv, env []string) (string, []string) {
-	return w.sbx().Gateway(argv, env)
 }
 
 // NotifySequence is BEL, which Windows Terminal shows as a taskbar flash
@@ -209,8 +200,11 @@ func encodedCommand(script string) string {
 	return base64.StdEncoding.EncodeToString(b)
 }
 
-func (w WSL) wslpath(flag, path string) (string, error) {
-	out, err := w.Run.Run("wslpath", flag, path)
+func (w WSL) wslpath(flag, path string) (string, error) { return wslpath(w.Run, flag, path) }
+
+// wslpath turns a path between Linux and Windows with WSL's wslpath.
+func wslpath(run proc.Runner, flag, path string) (string, error) {
+	out, err := run.Run("wslpath", flag, path)
 	if err != nil {
 		return "", err
 	}

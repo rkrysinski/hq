@@ -58,7 +58,8 @@ func noSbx(string) (string, error) { return "", errors.New("not found") }
 func TestNativeKeepsTheContract(t *testing.T) { platformtest.Contract(t, platform.Native{}) }
 
 func TestWSLKeepsTheContract(t *testing.T) {
-	platformtest.Contract(t, platform.WSL{Run: &fakeWslpath{appdata: "C:\\Users\\dev\\AppData\\Roaming\r\n"}})
+	w := &fakeWslpath{appdata: "C:\\Users\\dev\\AppData\\Roaming\r\n"}
+	platformtest.Contract(t, platform.WSL{SbxSide: platform.WindowsSbx{Run: w}, Run: w})
 }
 
 func TestNotificationSequencePerPlatform(t *testing.T) {
@@ -84,7 +85,7 @@ func TestNativeRunsSbxWithPathsUnchanged(t *testing.T) {
 
 func TestWSLRunsSbxExeAndMapsPathsWithWslpath(t *testing.T) {
 	w := &fakeWslpath{}
-	p := platform.WSL{Run: w}
+	p := platform.WSL{SbxSide: platform.WindowsSbx{Run: w}, Run: w}
 	if p.SbxCommand() != "sbx.exe" {
 		t.Fatalf("sbx command %q", p.SbxCommand())
 	}
@@ -101,10 +102,10 @@ func TestWSLRunsSbxExeAndMapsPathsWithWslpath(t *testing.T) {
 }
 
 func TestWSLReportsWslpathFailures(t *testing.T) {
-	if _, err := (platform.WSL{Run: &fakeWslpath{err: errors.New("wslpath: not found")}}).ToSbx("/a"); err == nil {
+	if _, err := (platform.WindowsSbx{Run: &fakeWslpath{err: errors.New("wslpath: not found")}}).ToSbx("/a"); err == nil {
 		t.Fatal("want the wslpath error")
 	}
-	if _, err := (platform.WSL{Run: &fakeWslpath{out: "\r\n"}}).FromSbx(`C:\a`); err == nil {
+	if _, err := (platform.WindowsSbx{Run: &fakeWslpath{out: "\r\n"}}).FromSbx(`C:\a`); err == nil {
 		t.Fatal("want an error for an empty answer")
 	}
 }
