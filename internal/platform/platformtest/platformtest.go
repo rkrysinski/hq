@@ -32,8 +32,8 @@ func Contract(t *testing.T, p platform.Platform) {
 	if r := p.Raise("/dev/ttys004"); len(r) == 0 || r[0] == "" {
 		t.Errorf("raise %q", r)
 	}
-	if c, err := p.DesktopConfig("/home/dev"); err != nil || !strings.HasSuffix(c, "/Claude/claude_desktop_config.json") {
-		t.Errorf("Claude Desktop's configuration %q, %v", c, err)
+	if c, err := p.DesktopConfig("/home/dev"); err != nil || !strings.HasSuffix(c.Path, "/claude_desktop_config.json") || (c.Searched != "" && !c.Running) {
+		t.Errorf("Claude Desktop's configuration %+v, %v", c, err)
 	}
 	cmd, args, env := p.AppServer([]string{"/opt/hq", "mcp", "claude-code"}, []string{"PATH=/bin"})
 	all := strings.Join(append(append([]string{cmd}, args...), env["PATH"]), " ")
@@ -106,9 +106,9 @@ func (Fake) Browser(url string) []string { return []string{"browser", url} }
 // Raise names the fake raise.
 func (Fake) Raise(tty string) []string { return []string{"raise", tty} }
 
-// DesktopConfig is under home, as on macOS.
-func (Fake) DesktopConfig(home string) (string, error) {
-	return home + "/Claude/claude_desktop_config.json", nil
+// DesktopConfig is under home, as on macOS, Claude Desktop not running.
+func (Fake) DesktopConfig(home string) (platform.Desktop, error) {
+	return platform.Desktop{Path: home + "/Claude/claude_desktop_config.json"}, nil
 }
 
 // AppServer starts hq directly with the environment given.

@@ -720,6 +720,33 @@ func TestMCPInstallOnWSLStartsHqThroughWslExe(t *testing.T) {
 	if after, _ := os.ReadFile(path); string(after) != string(b) {
 		t.Fatal("store: the configuration in %APPDATA% changed")
 	}
+
+	// Since late 2026 Claude Desktop from the Store reads Claude-Data and
+	// leaves a marker in the package's folder, which it no longer reads:
+	// hq is set up in Claude-Data, the package's folder stays as it is
+	// (#154).
+	data := root + "/mnt/c/Users/stub/AppData/Local/Claude-Data/claude_2f7a1c/claude_desktop_config.json"
+	_ = os.MkdirAll(filepath.Dir(data), 0o700)
+	_ = os.WriteFile(filepath.Join(filepath.Dir(store), ".user-data-left.1761040000"), nil, 0o600)
+	before, _ := os.ReadFile(store)
+	out, errOut, err = install(t, bin, env...)
+	if err != nil || out != "added hq to Claude Desktop ("+data+")\nquit and reopen Claude Desktop to load it\n" {
+		t.Fatalf("Claude-Data: %v %q %q", err, out, errOut)
+	}
+	if after, _ := os.ReadFile(store); string(after) != string(before) {
+		t.Fatal("Claude-Data: the package's configuration changed")
+	}
+	// Running, Claude Desktop reads the folder its helpers are given: hq
+	// is set up there, and says it was not the one it looked for first.
+	other := root + "/mnt/c/Users/stub/AppData/Local/Claude-Data/claude_9b/claude_desktop_config.json"
+	_ = os.MkdirAll(filepath.Dir(other), 0o700)
+	t.Setenv("WSL_STUB_PROCESSES", `"C:\Program Files\WindowsApps\Claude_1.0.0_x64__pzs8sxrjxfjjc\app\claude.exe"`+"\r\n"+
+		`"C:\Program Files\WindowsApps\Claude_1.0.0_x64__pzs8sxrjxfjjc\app\claude.exe" --type=renderer --user-data-dir="C:\Users\stub\AppData\Local\Claude-Data\claude_9b" --lang=en`+"\r\n")
+	out, errOut, err = install(t, bin, env...)
+	if err != nil || out != "Claude Desktop is running and reads "+other+", not "+data+", where hq looks first; hq is set up in the one it reads\n"+
+		"added hq to Claude Desktop ("+other+")\nquit Claude Desktop from its icon in the system tray (closing its window is not enough) and open it again to load hq\n" {
+		t.Fatalf("running: %v %q %q", err, out, errOut)
+	}
 }
 
 func TestMCPInstallAddsHqToClaudeCodeOnceAndKeepsTheRest(t *testing.T) {

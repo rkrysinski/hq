@@ -116,10 +116,14 @@ type mcpTarget struct {
 type mcpTargets struct {
 	targets       []mcpTarget
 	install, load string
+	// note is said before hq is set up, when there is something to say.
+	note string
 }
 
 // desktopTargets is Claude Desktop's configuration, which the platform
-// adapter finds, and the entry it starts hq with (design §3.10).
+// adapter finds, and the entry it starts hq with (design §3.10). A running
+// Claude Desktop loads hq only once it is quit from the system tray; when it
+// reads another file than hq looks for first, both are named (#154).
 func desktopTargets(d deps, exe string, vars []string) (mcpTargets, error) {
 	t := mcpTarget{
 		title:  claudeDesktop.title,
@@ -127,13 +131,20 @@ func desktopTargets(d deps, exe string, vars []string) (mcpTargets, error) {
 		fix:    "add the entry above to it by hand, then quit and reopen Claude Desktop",
 	}
 	t.byHand = mcpconfig.Snippet(t.server)
-	path, err := d.desktopConfig()
-	t.file, t.missing = mcpconfig.File{Path: path, Create: true}, filepath.Dir(path)
-	return mcpTargets{
+	desktop, err := d.desktopConfig()
+	t.file, t.missing = mcpconfig.File{Path: desktop.Path, Create: true}, filepath.Dir(desktop.Path)
+	ts := mcpTargets{
 		targets: []mcpTarget{t},
 		install: "install Claude Desktop and open it once, then run hq mcp install again (or add the entry above to its configuration by hand)",
 		load:    "quit and reopen Claude Desktop to load it",
-	}, err
+	}
+	if desktop.Running {
+		ts.load = "quit Claude Desktop from its icon in the system tray (closing its window is not enough) and open it again to load hq"
+	}
+	if desktop.Searched != "" {
+		ts.note = fmt.Sprintf("Claude Desktop is running and reads %s, not %s, where hq looks first; hq is set up in the one it reads", desktop.Path, desktop.Searched)
+	}
+	return ts, err
 }
 
 // codeTargets are Claude Code's user configuration, .claude.json in
@@ -229,6 +240,9 @@ func installMCP(env Env, d deps, c mcpClient) error {
 		t := ts.targets[0]
 		fmt.Fprint(env.Stdout, t.byHand)
 		return envErr("cannot find %s's configuration (%v); %s", t.title, err, t.fix)
+	}
+	if ts.note != "" {
+		fmt.Fprintln(env.Stdout, ts.note)
 	}
 	var missing, failed []string
 	set, changed := false, false

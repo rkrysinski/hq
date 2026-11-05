@@ -209,12 +209,13 @@ type deps struct {
 
 	// home is the user's home directory.
 	home func() (string, error)
-	// desktopConfig is Claude Desktop's configuration file,
+	// desktopConfig is Claude Desktop's configuration file and whether it
+	// runs,
 	// windowsCodeConfig Claude Code's on Windows seen from WSL (ok false
 	// elsewhere), appServer how such an app starts hq's command line with an
 	// environment, and installConfig sets hq up in an MCP client's
 	// configuration file (hq mcp install, design §3.12).
-	desktopConfig     func() (string, error)
+	desktopConfig     func() (platform.Desktop, error)
 	windowsCodeConfig func() (path string, ok bool, err error)
 	appServer         func(argv, env []string) mcpconfig.Server
 	// sbxGateway is the command line sbx's MCP gateway starts hq's command
@@ -333,10 +334,10 @@ func defaultDeps() deps {
 		stderrTerminal: isTerminalOut,
 
 		home: os.UserHomeDir,
-		desktopConfig: func() (string, error) {
+		desktopConfig: func() (platform.Desktop, error) {
 			home, err := os.UserHomeDir()
 			if err != nil {
-				return "", err
+				return platform.Desktop{}, err
 			}
 			return plat.DesktopConfig(home)
 		},

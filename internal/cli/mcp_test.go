@@ -646,6 +646,36 @@ func TestMCPInstallSetsHqUpInClaudeDesktop(t *testing.T) {
 	}
 }
 
+// A running Claude Desktop loads hq only once it is quit from the system
+// tray; when it reads another file than hq looks for first, hq is set up in
+// the one it reads and says so, both files named (#154).
+func TestMCPInstallTellsARunningClaudeDesktopWhatItReads(t *testing.T) {
+	f := newFakes()
+	f.exe = "/home/dev/.local/bin/hq"
+	f.env = map[string]string{"PATH": "/usr/bin"}
+	reads := "/mnt/c/Users/dev/AppData/Local/Claude-Data/claude_2f7a1c/claude_desktop_config.json"
+	searched := "/mnt/c/Users/dev/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json"
+	f.desktop, f.desktopRunning, f.desktopSearched = reads, true, searched
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Added, Backup: reads + ".hq-backup-20260927-120000"}
+	code, out, errOut := f.run("mcp", "install")
+	want := "Claude Desktop is running and reads " + reads + ", not " + searched + ", where hq looks first; hq is set up in the one it reads\n" +
+		"added hq to Claude Desktop (" + reads + ")\nthe file as it was: " + reads + ".hq-backup-20260927-120000\n" +
+		"quit Claude Desktop from its icon in the system tray (closing its window is not enough) and open it again to load hq\n"
+	if code != 0 || out != want || f.installedIn[0] != (mcpconfig.File{Path: reads, Create: true}) {
+		t.Fatalf("exit %d %q %q in %+v", code, out, errOut, f.installedIn)
+	}
+	// It reads the file hq looks for first: only how to load hq.
+	f.desktopSearched = ""
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Updated}
+	if _, out, _ := f.run("mcp", "install"); out != "updated hq in Claude Desktop ("+reads+")\nquit Claude Desktop from its icon in the system tray (closing its window is not enough) and open it again to load hq\n" {
+		t.Fatalf("same file %q", out)
+	}
+	f.installResult = mcpconfig.Result{Outcome: mcpconfig.Unchanged}
+	if _, out, _ := f.run("mcp", "install"); out != "hq is already set up in Claude Desktop ("+reads+")\n" {
+		t.Fatalf("again %q", out)
+	}
+}
+
 func TestMCPInstallSetsHqUpInClaudeCode(t *testing.T) {
 	f := newFakes()
 	f.exe = "/Users/dev/.local/bin/hq"
