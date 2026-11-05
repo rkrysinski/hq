@@ -152,6 +152,11 @@ func TestARunningClaudeDesktopsConfigurationIsTheOneItReads(t *testing.T) {
 	if got, err := (WSL{Run: w}).DesktopConfig("/home/dev"); err != nil || got != (Desktop{Path: file(dataDir), Running: true}) {
 		t.Fatalf("same %+v %v", got, err)
 	}
+	// Windows' names ignore case: the same file, however it is written.
+	w = on(t, &windows{folders: devFolders, found: []string{dataDir}, processes: main + ` --type=renderer --user-data-dir="C:\Users\dev\AppData\Local\Claude-Data\CLAUDE_2F7A1C\\"`})
+	if got, err := (WSL{Run: w}).DesktopConfig("/home/dev"); err != nil || got != (Desktop{Path: file(dataDir), Running: true}) {
+		t.Fatalf("case %+v %v", got, err)
+	}
 	// The installer from claude.ai gives its helpers no --user-data-dir:
 	// the order's file, Claude Desktop running.
 	w = on(t, &windows{folders: devFolders, processes: main + "\r\n" + main + " --type=gpu-process --field-trial-handle=1\r\n"})
@@ -181,6 +186,7 @@ func TestUserDataDirIsReadOffACommandLine(t *testing.T) {
 		`claude.exe --type=utility "--user-data-dir=C:\Users\Jan Kowalski\Claude-Data\claude_1" --x`:                      `C:\Users\Jan Kowalski\Claude-Data\claude_1`,
 		`claude.exe --type=gpu-process --user-data-dir=C:\Users\dev\Claude-Data\claude_1 --x`:                             `C:\Users\dev\Claude-Data\claude_1`,
 		`claude.exe --type=gpu-process --user-data-dir=C:\Users\dev\Claude-Data\claude_1`:                                 `C:\Users\dev\Claude-Data\claude_1`,
+		`claude.exe --type=utility --user-data-dir="C:\Users\dev\Claude-Data\claude_1\\" --x`:                             `C:\Users\dev\Claude-Data\claude_1`,
 		`claude.exe --type=gpu-process --user-data-dir=`:                                                                  ``,
 		`claude.exe --type=gpu-process`: ``,
 	} {
