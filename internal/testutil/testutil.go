@@ -89,15 +89,17 @@ func SbxStub(t *testing.T) (bin, dir string) {
 }
 
 // WSLStubs puts the stub sbx on PATH as sbx.exe, the stub wslpath as
-// wslpath and the stub cmd.exe (it knows only the folders hq asks for) as
-// cmd.exe, as hq finds them on WSL, has an hq the test starts run as on WSL
+// wslpath, the stub cmd.exe (it knows only the folders hq asks for) as
+// cmd.exe and the stub powershell.exe (it lists the claude.exe processes
+// in WSL_STUB_PROCESSES, none by default) as powershell.exe, as hq finds
+// them on WSL, has an hq the test starts run as on WSL
 // whatever the machine, and returns the stub sbx's state directory, set in SBX_STUB_DIR
 // for this test.
 func WSLStubs(t *testing.T) string {
 	t.Helper()
 	sbx, dir := SbxStub(t)
 	bin := t.TempDir()
-	for name, target := range map[string]string{"sbx.exe": sbx, "wslpath": filepath.Join(filepath.Dir(sbx), "wslpath-stub"), "cmd.exe": filepath.Join(filepath.Dir(sbx), "cmd-stub")} {
+	for name, target := range map[string]string{"sbx.exe": sbx, "wslpath": filepath.Join(filepath.Dir(sbx), "wslpath-stub"), "cmd.exe": filepath.Join(filepath.Dir(sbx), "cmd-stub"), "powershell.exe": filepath.Join(filepath.Dir(sbx), "powershell-stub")} {
 		if err := os.Symlink(target, filepath.Join(bin, name)); err != nil {
 			t.Fatal(err)
 		}

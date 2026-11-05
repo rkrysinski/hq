@@ -34,9 +34,9 @@ type Platform interface {
 	// client's terminal, which a platform may use to find the window. It
 	// fails when no window shows the dashboard or the system refuses.
 	Raise(tty string) []string
-	// DesktopConfig is Claude Desktop's configuration file as hq sees it,
-	// home being the user's home directory (design §3.12).
-	DesktopConfig(home string) (string, error)
+	// DesktopConfig is where Claude Desktop's configuration file is as hq
+	// sees it, home being the user's home directory (design §3.12).
+	DesktopConfig(home string) (Desktop, error)
 	// AppServer is how an app on the user's desktop (Claude Desktop, or
 	// Claude Code on Windows) starts the MCP server that runs hq's command
 	// line argv with the environment env ("KEY=value"): the command, its
@@ -46,6 +46,20 @@ type Platform interface {
 	// Code on Windows as hq sees it (design §3.12); ok is false on a
 	// platform with no Windows side.
 	WindowsCodeConfig() (path string, ok bool, err error)
+}
+
+// Desktop is Claude Desktop's configuration file, and whether Claude
+// Desktop runs, as far as the platform can tell.
+type Desktop struct {
+	// Path is the file hq sets itself up in.
+	Path string
+	// Running: Claude Desktop runs; it loads hq once it is quit from the
+	// system tray and opened again (closing its window is not enough).
+	Running bool
+	// Searched is the file hq would have chosen, when the running Claude
+	// Desktop reads another one (Path): a sign it moved its configuration
+	// again (#154).
+	Searched string
 }
 
 // OverrideEnv names the variable that decides the platform instead of
