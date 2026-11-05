@@ -23,7 +23,9 @@ func sandboxesFor(paths ...string) []sbx.Sandbox {
 	return s
 }
 
-func sbxNotFound() error { return &proc.Error{Name: "sbx", Msg: "not found", NotFound: true} }
+// sbxNotFound is a missing sbx as sbx.Client reports it: what the
+// platform says was not found.
+func sbxNotFound() error { return &proc.Error{Name: "sbx", Msg: "sbx not found", NotFound: true} }
 
 func agentWindow(id, name, repo string, started time.Time, dead bool) tmux.Window {
 	return tmux.Window{ID: id, Name: name, PaneDead: dead, Options: map[string]string{

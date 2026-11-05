@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"syscall"
@@ -217,7 +218,10 @@ type deps struct {
 	desktopConfig     func() (platform.Desktop, error)
 	windowsCodeConfig func() (path string, ok bool, err error)
 	appServer         func(argv, env []string) mcpconfig.Server
-	installConfig     func(f mcpconfig.File, s mcpconfig.Server) (mcpconfig.Result, error)
+	// sbxGateway is the command line sbx's MCP gateway starts hq's command
+	// line argv with, environment env (platform.SbxSide.Gateway).
+	sbxGateway    func(argv, env []string) (command string, args []string)
+	installConfig func(f mcpconfig.File, s mcpconfig.Server) (mcpconfig.Result, error)
 	// serveMCP runs an MCP server over stdin and stdout until the client
 	// closes them.
 	serveMCP func(*mcp.Server) error
@@ -233,7 +237,7 @@ const sbxPollTimeout = 5 * time.Second
 
 func defaultDeps() deps {
 	run := proc.Exec{}
-	plat := platform.Detect(os.Getenv, os.ReadFile, run)
+	plat := platform.Detect(os.Getenv, os.ReadFile, exec.LookPath, run)
 	var placeholder, session []string
 	if exe, err := executable(); err == nil {
 		placeholder, session = []string{exe, slotCommand}, []string{exe, sessionCommand}
@@ -342,6 +346,7 @@ func defaultDeps() deps {
 			cmd, args, e := plat.AppServer(argv, env)
 			return mcpconfig.Server{Command: cmd, Args: args, Env: e}
 		},
+		sbxGateway: plat.Gateway,
 		installConfig: func(f mcpconfig.File, s mcpconfig.Server) (mcpconfig.Result, error) {
 			return mcpconfig.Install(f, s, time.Now())
 		},
@@ -405,7 +410,8 @@ func checkTmux(t Tmux) error {
 func sbxErr(err error) error {
 	var pe *proc.Error
 	if errors.As(err, &pe) && pe.NotFound {
-		return envErr("sbx not found; install Docker Sandboxes")
+		// sbx.Client says what was not found, as the platform names it.
+		return envErr("%s; install Docker Sandboxes", pe.Msg)
 	}
 	return envErr("%v", err)
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
+	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -1063,25 +1064,69 @@ func TestMCPInstallForSbxRefusesAComma(t *testing.T) {
 	if code, _, errOut := f.run("mcp", "install", "sbx"); code != ExitEnvironment || !strings.Contains(errOut, "the path of hq (/Users/a,b/hq) holds a comma") || f.sbx.adds != 0 {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
-	f.exe, f.sbx.err = "/u/hq", &proc.Error{NotFound: true}
+	f.exe, f.sbx.err = "/u/hq", sbxNotFound()
 	if code, _, errOut := f.run("mcp", "install", "sbx"); code != ExitEnvironment || errOut != "hq: sbx not found; install Docker Sandboxes\n" {
 		t.Fatalf("no sbx: exit %d %q", code, errOut)
 	}
 }
 
-// The command sbx starts hq with: env setting the variables beside hq, or
-// the platform's own command line where that carries them (WSL, where
-// sbx.exe on Windows starts hq through wsl.exe as Claude Desktop does).
-func TestSbxCommandLine(t *testing.T) {
-	vars := []string{"PATH=/usr/bin", "HQ_TMUX_SOCKET=s"}
-	argv := []string{"/u/hq", "mcp", "sbx"}
-	native := mcpconfig.Server{Command: "/u/hq", Args: argv[1:], Env: map[string]string{"PATH": "/usr/bin", "HQ_TMUX_SOCKET": "s"}}
-	if cmd, args := sbxCommandLine(native, argv, vars); cmd != "/usr/bin/env" || !slices.Equal(args, []string{"PATH=/usr/bin", "HQ_TMUX_SOCKET=s", "/u/hq", "mcp", "sbx"}) {
-		t.Fatalf("native %q %q", cmd, args)
+// The command line sbx starts hq with is the sbx side's (#153): with
+// sbx.exe on Windows, wsl.exe, as Claude Desktop's; with the Linux sbx on
+// WSL, the native form, which a user with HQ_PLATFORM=native already has.
+func TestMCPInstallForSbxRegistersTheSbxSidesCommandLine(t *testing.T) {
+	f := newFakes()
+	f.exe = "/home/dev/.local/bin/hq"
+	f.env = map[string]string{"PATH": "/usr/bin", "WSL_DISTRO_NAME": "Ubuntu"}
+	f.sbxSide = platform.WindowsSbx{Distro: "Ubuntu"}
+	if code, _, errOut := f.run("mcp", "install", "sbx"); code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
 	}
-	wsl := mcpconfig.Server{Command: "wsl.exe", Args: []string{"-d", "Ubuntu", "--exec", "/usr/bin/env", "PATH=/usr/bin", "HQ_TMUX_SOCKET=s", "/u/hq", "mcp", "sbx"}}
-	if cmd, args := sbxCommandLine(wsl, argv, vars); cmd != "wsl.exe" || !slices.Equal(args, wsl.Args) {
-		t.Fatalf("wsl %q %q", cmd, args)
+	if want := []string{"wsl.exe", "-d", "Ubuntu", "--exec", "/usr/bin/env", "PATH=/usr/bin", f.exe, "mcp", "sbx"}; !slices.Equal(f.sbx.mcp["hq"], want) {
+		t.Fatalf("sbx.exe: registered %q", f.sbx.mcp["hq"])
+	}
+	native := []string{"/usr/bin/env", "PATH=/usr/bin", f.exe, "mcp", "sbx"}
+	f.sbx.mcp, f.sbx.adds = map[string][]string{"hq": native}, 0
+	f.sbxSide = platform.NativeSbx{}
+	if code, out, _ := f.run("mcp", "install", "sbx"); code != 0 || !strings.HasPrefix(out, "hq is already set up in sbx") || f.sbx.adds != 0 {
+		t.Fatalf("Linux sbx: exit %d %q adds %d", code, out, f.sbx.adds)
+	}
+}
+
+// sbx missing: said as the platform says it, on WSL both names (#153).
+func TestMCPInstallForSbxSaysWhichSbxWasNotFound(t *testing.T) {
+	f := newFakes()
+	f.exe = "/u/hq"
+	f.sbx.err = &proc.Error{Name: "sbx.exe", Msg: "neither sbx nor sbx.exe found", NotFound: true}
+	if code, _, errOut := f.run("mcp", "install", "sbx"); code != ExitEnvironment || errOut != "hq: neither sbx nor sbx.exe found; install Docker Sandboxes\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+}
+
+// HQ_PLATFORM=native was the way to the Linux sbx on WSL before hq took it
+// itself (#153): hq mcp install says it is no longer needed, after its
+// work, whichever client it sets up; never off WSL, and never elsewhere.
+func TestMCPInstallOnWSLWarnsThatHQPlatformIsNoLongerNeeded(t *testing.T) {
+	const warning = "hq: HQ_PLATFORM=native is no longer needed on WSL: hq uses the Linux sbx when it is in PATH, and HQ_PLATFORM=native turns off the taskbar flash and hq go raising the window; remove it from ~/.bashrc, open a new terminal and run hq mcp install again\n"
+	for _, client := range [][]string{{}, {"claude-code"}, {"sbx"}} {
+		f := newFakes()
+		f.exe, f.desktop = "/home/dev/.local/bin/hq", "/mnt/c/Users/dev/AppData/Roaming/Claude/claude_desktop_config.json"
+		f.env = map[string]string{"PATH": "/usr/bin", "WSL_DISTRO_NAME": "Ubuntu", "HQ_PLATFORM": "native"}
+		if code, _, errOut := f.run(append([]string{"mcp", "install"}, client...)...); code != 0 || errOut != warning {
+			t.Errorf("%q: exit %d %q", client, code, errOut)
+		}
+		f.env["HQ_PLATFORM"] = ""
+		if _, _, errOut := f.run(append([]string{"mcp", "install"}, client...)...); errOut != "" {
+			t.Errorf("%q without HQ_PLATFORM: %q", client, errOut)
+		}
+		f.env = map[string]string{"PATH": "/usr/bin", "HQ_PLATFORM": "native"}
+		if _, _, errOut := f.run(append([]string{"mcp", "install"}, client...)...); errOut != "" {
+			t.Errorf("%q off WSL: %q", client, errOut)
+		}
+	}
+	f := newFakes()
+	f.env = map[string]string{"WSL_DISTRO_NAME": "Ubuntu", "HQ_PLATFORM": "native"}
+	if _, _, errOut := f.run("ls"); strings.Contains(errOut, "HQ_PLATFORM") {
+		t.Errorf("hq ls warned: %q", errOut)
 	}
 }
 

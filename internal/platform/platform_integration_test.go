@@ -14,5 +14,5 @@ import (
 // The WSL adapter against a wslpath program (the stub), through proc.Exec.
 func TestWSLKeepsTheContractWithWslpath(t *testing.T) {
 	testutil.WSLStubs(t)
-	platformtest.Contract(t, platform.WSL{Run: proc.Exec{}})
+	platformtest.Contract(t, platform.WSL{SbxSide: platform.WindowsSbx{Run: proc.Exec{}}, Run: proc.Exec{}})
 }
