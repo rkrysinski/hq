@@ -88,18 +88,23 @@ func SbxStub(t *testing.T) (bin, dir string) {
 	return bin, dir
 }
 
-// WSLStubs puts the stub sbx on PATH as sbx.exe, the stub wslpath as
-// wslpath, the stub cmd.exe (it knows only the folders hq asks for) as
-// cmd.exe and the stub powershell.exe (it lists the claude.exe processes
-// in WSL_STUB_PROCESSES, none by default) as powershell.exe, as hq finds
-// them on WSL, has an hq the test starts run as on WSL
-// whatever the machine, and returns the stub sbx's state directory, set in SBX_STUB_DIR
-// for this test.
+// WSLStubs puts the stub sbx on PATH as sbx.exe and the stubs of the
+// Windows side listed in wsl-stubs (wslpath; cmd.exe, which knows only the
+// folders hq asks for; powershell.exe, which lists the claude.exe processes
+// in WSL_STUB_PROCESSES, none by default) under their own names, as hq finds
+// them on WSL, has an hq the test starts run as on WSL whatever the machine,
+// and returns the stub sbx's state directory, set in SBX_STUB_DIR for this
+// test.
 func WSLStubs(t *testing.T) string {
 	t.Helper()
 	sbx, dir := SbxStub(t)
+	links, err := WindowsStubs(filepath.Dir(sbx))
+	if err != nil {
+		t.Fatal(err)
+	}
+	links["sbx.exe"] = sbx
 	bin := t.TempDir()
-	for name, target := range map[string]string{"sbx.exe": sbx, "wslpath": filepath.Join(filepath.Dir(sbx), "wslpath-stub"), "cmd.exe": filepath.Join(filepath.Dir(sbx), "cmd-stub"), "powershell.exe": filepath.Join(filepath.Dir(sbx), "powershell-stub")} {
+	for name, target := range links {
 		if err := os.Symlink(target, filepath.Join(bin, name)); err != nil {
 			t.Fatal(err)
 		}
@@ -107,6 +112,31 @@ func WSLStubs(t *testing.T) string {
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv(platformEnv, "wsl")
 	return dir
+}
+
+// WindowsStubs reads the list wsl-stubs in dir: the stub in dir of each
+// command it names, skipping a stub not there.
+func WindowsStubs(dir string) (map[string]string, error) {
+	b, err := os.ReadFile(filepath.Join(dir, "wsl-stubs"))
+	if err != nil {
+		return nil, err
+	}
+	stubs := map[string]string{}
+	for _, line := range strings.Split(string(b), "\n") {
+		f := strings.Fields(line)
+		if len(f) == 0 || strings.HasPrefix(f[0], "#") {
+			continue
+		}
+		if len(f) != 2 {
+			return nil, fmt.Errorf("wsl-stubs: want a command and its stub: %q", line)
+		}
+		stub := filepath.Join(dir, f[1])
+		if _, err := os.Stat(stub); err != nil {
+			continue
+		}
+		stubs[f[0]] = stub
+	}
+	return stubs, nil
 }
 
 var (
