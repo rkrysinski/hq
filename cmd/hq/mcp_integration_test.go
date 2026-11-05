@@ -22,10 +22,17 @@ import (
 	"github.com/rkrysinski/hq/internal/testutil"
 )
 
-// buildHQ builds hq into a temporary directory.
+// buildHQ builds hq into a temporary directory and returns its path with
+// symlinks resolved, as hq gives its own path: on macOS t.TempDir() is under
+// /var, a symlink to /private/var, so the unresolved path never matches what
+// hq prints or writes (#158).
 func buildHQ(t *testing.T) string {
 	t.Helper()
-	bin := filepath.Join(t.TempDir(), "hq")
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	bin := filepath.Join(dir, "hq")
 	if out, err := exec.Command("go", "build", "-o", bin, ".").CombinedOutput(); err != nil {
 		t.Fatalf("build: %v\n%s", err, out)
 	}
@@ -597,7 +604,7 @@ func installFor(t *testing.T, bin string, args []string, env ...string) (string,
 }
 
 func TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest(t *testing.T) {
-	bin, _ := filepath.EvalSymlinks(buildHQ(t))
+	bin := buildHQ(t)
 	home, _ := filepath.EvalSymlinks(t.TempDir())
 	path := desktopConfig(home)
 	_ = os.MkdirAll(filepath.Dir(path), 0o700)
@@ -662,7 +669,7 @@ func TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest(t *testing.T) {
 // On WSL the configuration is in the Windows user's %APPDATA%, and Claude
 // Desktop starts hq through wsl.exe (the WSL side is stubbed).
 func TestMCPInstallOnWSLStartsHqThroughWslExe(t *testing.T) {
-	bin, _ := filepath.EvalSymlinks(buildHQ(t))
+	bin := buildHQ(t)
 	testutil.WSLStubs(t)
 	root := t.TempDir()
 	t.Setenv("WSL_STUB_ROOT", root)
@@ -716,7 +723,7 @@ func TestMCPInstallOnWSLStartsHqThroughWslExe(t *testing.T) {
 }
 
 func TestMCPInstallAddsHqToClaudeCodeOnceAndKeepsTheRest(t *testing.T) {
-	bin, _ := filepath.EvalSymlinks(buildHQ(t))
+	bin := buildHQ(t)
 	home, _ := filepath.EvalSymlinks(t.TempDir())
 	path := filepath.Join(home, ".claude.json")
 	code := []string{"claude-code"}
@@ -782,7 +789,7 @@ func TestMCPInstallAddsHqToClaudeCodeOnceAndKeepsTheRest(t *testing.T) {
 // that starts hq through wsl.exe as Claude Desktop's does (#115; the
 // Windows side is stubbed).
 func TestMCPInstallForClaudeCodeOnWSLAlsoSetsUpClaudeCodeOnWindows(t *testing.T) {
-	bin, _ := filepath.EvalSymlinks(buildHQ(t))
+	bin := buildHQ(t)
 	testutil.WSLStubs(t)
 	root := t.TempDir()
 	t.Setenv("WSL_STUB_ROOT", root)
