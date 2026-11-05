@@ -1,0 +1,29 @@
+# 5: hq mcp install (Claude Desktop) and sbx on WSL with HQ_PLATFORM=native
+{
+  "mcpServers": {
+    "hq": {
+      "command": "/home/agent/qa153/bin/hq",
+      "args": [
+        "mcp"
+      ],
+      "env": {
+        "HQ_TMUX_SOCKET": "qa153-hq",
+        "PATH": "/home/agent/qa153/bin:/home/agent/qa153/linux:/usr/bin:/bin",
+        "XDG_CONFIG_HOME": "/home/agent/qa153/cfg"
+      }
+    }
+  }
+}
+hq: HQ_PLATFORM=native is no longer needed on WSL: hq uses the Linux sbx when it is in PATH, and HQ_PLATFORM=native tu
+rns off the taskbar flash and hq go raising the window; remove it from ~/.bashrc, open a new terminal and run hq mcp i
+nstall again
+hq: Claude Desktop not found: there is no /home/agent/qa153/home/.config/Claude; install Claude Desktop and open it on
+ce, then run hq mcp install again (or add the entry above to its configuration by hand)
+exit=3
+hq is already set up in sbx (sbx mcp inspect hq)
+load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)
+hq: HQ_PLATFORM=native is no longer needed on WSL: hq uses the Linux sbx when it is in PATH, and HQ_PLATFORM=native tu
+rns off the taskbar flash and hq go raising the window; remove it from ~/.bashrc, open a new terminal and run hq mcp i
+nstall again
+exit=0
+$

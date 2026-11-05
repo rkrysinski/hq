@@ -1,0 +1,12 @@
+# 2: WSL, only sbx.exe (stub, with stub wslpath and cmd.exe)
+bash: type: sbx: not found
+sbx.exe is /home/agent/qa153/win/sbx.exe
+creating a sandbox for app (first time only; log in to Claude when the session asks)
+started b in app (sandbox claude-app); enter it with: hq go b
+exit=0
+$ sleep 2; hq ls; echo '--- what sbx.exe got as the workspace:'; sed -n 2p $SBX_STUB_DIR/sandboxes/claude-app
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     app   main    done   6s   Done: hello
+--- what sbx.exe got as the workspace:
+\\wsl.localhost\Stub\home\agent\qa153\w\app
+$

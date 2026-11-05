@@ -1,0 +1,10 @@
+# 3 before: WSL, neither sbx nor sbx.exe
+bash: type: sbx: not found
+bash: type: sbx.exe: not found
+hq: sbx not found; install Docker Sandboxes
+exit=3
+hq install: missing prerequisites:
+  - sbx: install Docker Sandboxes
+  - code: install VS Code and put code on PATH (Command Palette: Shell Command)
+exit=3
+$

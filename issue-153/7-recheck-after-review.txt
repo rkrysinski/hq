@@ -1,0 +1,11 @@
+# Re-run after the review commit (same QA environment, new agent names)
+$ linux after; hq new x . hi
+started x in app (sandbox claude-app); enter it with: hq go x
+$ sbx ls --json
+{"sandboxes":[{"name":"claude-app","agent":"claude","status":"stopped","workspaces":["/home/agent/qa153/w/app"]}]}
+$ HQ_PLATFORM=native hq mcp install sbx   (last line)
+hq: HQ_PLATFORM=native is no longer needed on WSL: hq uses the Linux sbx when it is in PATH, and HQ_PLATFORM=native turns off the taskbar flash and hq go raising the window; remove it from ~/.bashrc, open a new terminal and run hq mcp install again
+$ win after; hq new y . hi
+started y in app (sandbox claude-app); enter it with: hq go y
+$ sed -n 2p $SBX_STUB_DIR/sandboxes/claude-app    (the workspace sbx.exe got)
+\\wsl.localhost\Stub\home\agent\qa153\w\app

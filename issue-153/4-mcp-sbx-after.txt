@@ -1,0 +1,11 @@
+# 4: the workaround (dev build, HQ_PLATFORM=native) registered hq with sbx:
+added hq to sbx (sbx mcp inspect hq)
+load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)
+# after hq update to this build, no HQ_PLATFORM: hq mcp install sbx
+hq is already set up in sbx (sbx mcp inspect hq)
+load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)
+exit=0
+{"name":"hq","type":"local","command":["/usr/bin/env","PATH=/home/agent/qa153/bin:/home/agent/qa153/linux:/usr/bin:/bi
+n","HQ_TMUX_SOCKET=qa153-hq","XDG_CONFIG_HOME=/home/agent/qa153/cfg","/home/agent/qa153/bin/hq","mcp","sbx"],"requires
+_oauth":false}
+$

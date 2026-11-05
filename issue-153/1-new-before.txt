@@ -1,0 +1,6 @@
+# 1 before: WSL, only the Linux sbx, no HQ_PLATFORM
+sbx is /home/agent/qa153/linux/sbx
+bash: type: sbx.exe: not found
+hq: sbx not found; install Docker Sandboxes
+exit=3
+$
