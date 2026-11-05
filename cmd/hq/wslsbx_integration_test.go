@@ -54,9 +54,7 @@ func TestOnWSLHqRunsTheLinuxSbxInPath(t *testing.T) {
 		Command []string `json:"command"`
 	}
 	b, _ := os.ReadFile(filepath.Join(dir, "mcp", "hq"))
-	// hq's own path, symlinks resolved (macOS's /var is /private/var).
-	bin, _ := filepath.EvalSymlinks(s.bin)
-	if err := json.Unmarshal(b, &registered); err != nil || registered.Command[0] != "/usr/bin/env" || registered.Command[len(registered.Command)-3] != bin {
+	if err := json.Unmarshal(b, &registered); err != nil || registered.Command[0] != "/usr/bin/env" || registered.Command[len(registered.Command)-3] != s.bin {
 		t.Fatalf("registered %v %s", err, b)
 	}
 
