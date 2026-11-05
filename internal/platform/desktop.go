@@ -99,7 +99,8 @@ func (w WSL) DesktopConfig(string) (Desktop, error) {
 	if reads == "" {
 		return d, nil
 	}
-	if dir, err := w.wslpath("-u", reads); err == nil && path.Join(dir, desktopFile) != d.Path {
+	// Windows' names ignore case: C:\Users\Dev is C:\Users\dev.
+	if dir, err := w.wslpath("-u", reads); err == nil && !strings.EqualFold(path.Join(dir, desktopFile), d.Path) {
 		d.Path, d.Searched = path.Join(dir, desktopFile), d.Path
 	}
 	return d, nil
@@ -168,7 +169,8 @@ func userDataDir(line string) string {
 		end = `"`
 	}
 	v, _, _ := strings.Cut(rest, end)
-	return v
+	// A folder quoted with its trailing backslash doubled ("C:\a b\\").
+	return strings.TrimRight(v, `\`)
 }
 
 // AppServer is wsl.exe running hq in this distribution directly, with no
