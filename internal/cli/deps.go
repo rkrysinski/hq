@@ -320,11 +320,11 @@ func defaultDeps() deps {
 		alive:     func(pid int) bool { return syscall.Kill(pid, 0) == nil },
 
 		releases:   update.Releases{Base: update.Base(os.Getenv), Agent: "hq/" + version.Version},
-		asset:      update.Asset(runtime.GOOS, runtime.GOARCH),
+		asset:      update.Asset(platform.OS, runtime.GOARCH),
 		executable: executable,
 		itermProfile: func() (bool, error) {
 			home, _ := os.UserHomeDir()
-			return iterm.Install(runtime.GOOS, home, "/")
+			return iterm.Install(platform.OS, home, "/")
 		},
 		loadPrefs: func() prefs.Prefs { return prefs.Load(prefs.Path(os.Getenv)) },
 		updatePrefs: func(change func(*prefs.Prefs) bool) error {
