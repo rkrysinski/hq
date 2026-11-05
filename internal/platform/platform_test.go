@@ -52,10 +52,14 @@ func (f *fakeWslpath) Run(name string, args ...string) ([]byte, error) {
 	return nil, errors.New("wslpath: bad flag")
 }
 
+// noSbx is a PATH without sbx.
+func noSbx(string) (string, error) { return "", errors.New("not found") }
+
 func TestNativeKeepsTheContract(t *testing.T) { platformtest.Contract(t, platform.Native{}) }
 
 func TestWSLKeepsTheContract(t *testing.T) {
-	platformtest.Contract(t, platform.WSL{Run: &fakeWslpath{appdata: "C:\\Users\\dev\\AppData\\Roaming\r\n"}})
+	w := &fakeWslpath{appdata: "C:\\Users\\dev\\AppData\\Roaming\r\n"}
+	platformtest.Contract(t, platform.WSL{SbxSide: platform.WindowsSbx{Run: w}, Run: w})
 }
 
 func TestNotificationSequencePerPlatform(t *testing.T) {
@@ -81,7 +85,7 @@ func TestNativeRunsSbxWithPathsUnchanged(t *testing.T) {
 
 func TestWSLRunsSbxExeAndMapsPathsWithWslpath(t *testing.T) {
 	w := &fakeWslpath{}
-	p := platform.WSL{Run: w}
+	p := platform.WSL{SbxSide: platform.WindowsSbx{Run: w}, Run: w}
 	if p.SbxCommand() != "sbx.exe" {
 		t.Fatalf("sbx command %q", p.SbxCommand())
 	}
@@ -98,10 +102,10 @@ func TestWSLRunsSbxExeAndMapsPathsWithWslpath(t *testing.T) {
 }
 
 func TestWSLReportsWslpathFailures(t *testing.T) {
-	if _, err := (platform.WSL{Run: &fakeWslpath{err: errors.New("wslpath: not found")}}).ToSbx("/a"); err == nil {
+	if _, err := (platform.WindowsSbx{Run: &fakeWslpath{err: errors.New("wslpath: not found")}}).ToSbx("/a"); err == nil {
 		t.Fatal("want the wslpath error")
 	}
-	if _, err := (platform.WSL{Run: &fakeWslpath{out: "\r\n"}}).FromSbx(`C:\a`); err == nil {
+	if _, err := (platform.WindowsSbx{Run: &fakeWslpath{out: "\r\n"}}).FromSbx(`C:\a`); err == nil {
 		t.Fatal("want an error for an empty answer")
 	}
 }
@@ -136,7 +140,7 @@ func TestDetectFindsWSLFromTheEnvironmentOrTheKernel(t *testing.T) {
 		{"Linux kernel", env(""), kernel("6.8.0-45-generic\n"), false},
 		{"macOS, no /proc", env(""), noFile, false},
 	} {
-		p := platform.Detect(tc.getenv, tc.readFile, &fakeWslpath{})
+		p := platform.Detect(tc.getenv, tc.readFile, noSbx, &fakeWslpath{})
 		if _, wsl := p.(platform.WSL); wsl != tc.wsl {
 			t.Errorf("%s: got %T", tc.name, p)
 		}
@@ -149,17 +153,17 @@ func TestDetectTakesThePlatformItIsToldInsteadOfLooking(t *testing.T) {
 	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
 
 	// On WSL, told native: hq as it runs on macOS.
-	p := platform.Detect(env(map[string]string{"HQ_PLATFORM": "native", "WSL_DISTRO_NAME": "Ubuntu"}), wslKernel, &fakeWslpath{})
+	p := platform.Detect(env(map[string]string{"HQ_PLATFORM": "native", "WSL_DISTRO_NAME": "Ubuntu"}), wslKernel, noSbx, &fakeWslpath{})
 	if _, ok := p.(platform.Native); !ok {
 		t.Errorf("native on WSL: got %T", p)
 	}
 	// Anywhere, told wsl: the WSL adapter, with the distribution when known.
-	p = platform.Detect(env(map[string]string{"HQ_PLATFORM": "wsl", "WSL_DISTRO_NAME": "Stub", "BROWSER": "x"}), noFile, &fakeWslpath{})
+	p = platform.Detect(env(map[string]string{"HQ_PLATFORM": "wsl", "WSL_DISTRO_NAME": "Stub", "BROWSER": "x"}), noFile, noSbx, &fakeWslpath{})
 	if w, ok := p.(platform.WSL); !ok || w.Distro != "Stub" || !w.BrowserSet || w.Run == nil {
 		t.Errorf("wsl on macOS: got %#v", p)
 	}
 	// Anything else is not an answer: hq looks.
-	p = platform.Detect(env(map[string]string{"HQ_PLATFORM": "windows"}), wslKernel, &fakeWslpath{})
+	p = platform.Detect(env(map[string]string{"HQ_PLATFORM": "windows"}), wslKernel, noSbx, &fakeWslpath{})
 	if _, ok := p.(platform.WSL); !ok {
 		t.Errorf("an unknown value: got %T", p)
 	}
@@ -179,7 +183,7 @@ func TestBrowserIsGhOpeningThePullRequest(t *testing.T) {
 			t.Errorf("%T: %q, want %q", tc.p, got, tc.want)
 		}
 	}
-	wsl := platform.Detect(func(k string) string { return map[string]string{"WSL_DISTRO_NAME": "U", "BROWSER": "wslview"}[k] }, nil, nil)
+	wsl := platform.Detect(func(k string) string { return map[string]string{"WSL_DISTRO_NAME": "U", "BROWSER": "wslview"}[k] }, nil, noSbx, nil)
 	if !wsl.(platform.WSL).BrowserSet {
 		t.Error("BROWSER not seen")
 	}
