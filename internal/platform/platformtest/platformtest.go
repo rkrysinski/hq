@@ -4,6 +4,7 @@ package platformtest
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 
@@ -16,9 +17,7 @@ import (
 // for the editor, the browser and raising the window.
 func Contract(t *testing.T, p platform.Platform) {
 	t.Helper()
-	if p.SbxCommand() == "" {
-		t.Error("no sbx command")
-	}
+	SbxContract(t, p)
 	seq := p.NotifySequence()
 	var s string
 	if seq == "" || json.Unmarshal([]byte(`"`+seq+`"`), &s) != nil || strings.Count(seq, "%s") > 1 {
@@ -41,13 +40,27 @@ func Contract(t *testing.T, p platform.Platform) {
 	if cmd == "" || len(args) < 2 || args[len(args)-2] != "mcp" || args[len(args)-1] != "claude-code" || !strings.Contains(all, "/opt/hq") || !strings.Contains(all, "/bin") {
 		t.Errorf("an app starts %q %q with %q", cmd, args, env)
 	}
+}
+
+// SbxContract checks what hq relies on from the sbx side: an sbx command
+// and what to say when it is missing, paths that survive the trip to sbx and
+// back, and a gateway command line that carries hq and its environment.
+func SbxContract(t *testing.T, s platform.SbxSide) {
+	t.Helper()
+	if s.SbxCommand() == "" || !strings.Contains(s.Missing(), s.SbxCommand()) {
+		t.Errorf("sbx command %q, missing %q", s.SbxCommand(), s.Missing())
+	}
+	cmd, args := s.Gateway([]string{"/opt/hq", "mcp", "sbx"}, []string{"PATH=/bin"})
+	if cmd == "" || len(args) < 4 || !slices.Equal(args[len(args)-4:], []string{"PATH=/bin", "/opt/hq", "mcp", "sbx"}) {
+		t.Errorf("the gateway starts %q %q", cmd, args)
+	}
 	for _, path := range []string{"/home/dev/app", "/Users/dev/work/hq", "/w/repo with space"} {
-		s, err := p.ToSbx(path)
-		if err != nil || s == "" {
-			t.Errorf("ToSbx(%q) = %q, %v", path, s, err)
+		p, err := s.ToSbx(path)
+		if err != nil || p == "" {
+			t.Errorf("ToSbx(%q) = %q, %v", path, p, err)
 			continue
 		}
-		back, err := p.FromSbx(s)
+		back, err := s.FromSbx(p)
 		if err != nil || back != path {
 			t.Errorf("FromSbx(ToSbx(%q)) = %q, %v", path, back, err)
 		}
@@ -72,6 +85,14 @@ func (Fake) ToSbx(path string) (string, error) {
 func (Fake) FromSbx(path string) (string, error) {
 	return strings.ReplaceAll(strings.TrimPrefix(path, "F:"), `\`, "/"), nil
 }
+
+// Gateway starts hq through env(1), as the native sbx does.
+func (Fake) Gateway(argv, env []string) (string, []string) {
+	return "/usr/bin/env", append(slices.Clone(env), argv...)
+}
+
+// Missing names the fake's sbx command.
+func (f Fake) Missing() string { return f.SbxCommand() + " not found" }
 
 // NotifySequence is plain text, readable in a test's output.
 func (Fake) NotifySequence() string { return "[notify %s]" }

@@ -319,11 +319,29 @@ func TestAFailedCallReportsSbxsErrorAndKeepsWhetherSbxIsInstalled(t *testing.T) 
 		t.Fatalf("the runner's own error was changed: %v", r.err)
 	}
 
-	// Without stderr (sbx missing, no answer in time) the error stays as it is.
-	r.err = &proc.Error{Name: "sbx.exe", Msg: "executable file not found", NotFound: true}
+	// Without stderr (no answer in time) the error stays as it is.
+	r.err = &proc.Error{Name: "sbx.exe", Msg: "signal: killed"}
 	var pe *proc.Error
-	if _, err := c.List(); !errors.As(err, &pe) || !pe.NotFound || pe.Msg != "executable file not found" {
+	if _, err := c.List(); !errors.As(err, &pe) || pe.Msg != "signal: killed" {
 		t.Fatalf("%v", err)
+	}
+}
+
+// sbx missing: the platform says what was not found, on WSL both sbx and
+// sbx.exe (#153).
+func TestAMissingSbxIsSaidAsThePlatformSaysIt(t *testing.T) {
+	r := &fakeRun{err: &proc.Error{Name: "sbx.exe", Msg: "executable file not found in $PATH", NotFound: true}}
+	var pe *proc.Error
+	_, err := Client{Run: r, Platform: platform.WSL{}}.List()
+	if !errors.As(err, &pe) || !pe.NotFound || pe.Msg != "neither sbx nor sbx.exe found" {
+		t.Fatalf("WSL: %v", err)
+	}
+	r.err = &proc.Error{Name: "sbx", Msg: "executable file not found in $PATH", NotFound: true}
+	if _, err := (Client{Run: r, Platform: platform.Native{}}).List(); !errors.As(err, &pe) || pe.Msg != "sbx not found" {
+		t.Fatalf("native: %v", err)
+	}
+	if r.err.(*proc.Error).Msg != "executable file not found in $PATH" {
+		t.Fatalf("the runner's own error was changed: %v", r.err)
 	}
 }
 
