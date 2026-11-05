@@ -1,0 +1,13 @@
+$ find /tmp/win -name 'claude_*' -o -name '.user-data-left*'
+/tmp/win/mnt/c/Users/stub/AppData/Local/Claude-Data/claude_2f7a1c
+/tmp/win/mnt/c/Users/stub/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/.user-data-left.1761040000
+/tmp/win/mnt/c/Users/stub/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json
+
+$ hq-before mcp install
+added hq to Claude Desktop (/tmp/win/mnt/c/Users/stub/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json)
+the file as it was: /tmp/win/mnt/c/Users/stub/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json.hq-backup-20261105-055355
+quit and reopen Claude Desktop to load it
+(exit 0)
+
+$ jq -c .mcpServers.hq.command Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json
+"wsl.exe"
