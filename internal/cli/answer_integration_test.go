@@ -119,7 +119,17 @@ func TestAnswerAfterTheTerminalAnsweredIsRefused(t *testing.T) {
 	if !strings.Contains(h.pane("a"), "· Which colour do you pick? → Red") || strings.Contains(h.pane("a"), "Allowed by PermissionRequest hook") {
 		t.Fatalf("screen:\n%s", h.pane("a"))
 	}
-	if left, _ := filepath.Glob(filepath.Join(state.Dir(h.cwd), "*.[0-9]*")); len(left) != 0 {
+	// The hook looks every 0.2 s whether the state file is still the
+	// dialog's, so it may end a moment after the report, later on a busy
+	// machine.
+	var left []string
+	for i := 0; i < 50; i++ {
+		if left, _ = filepath.Glob(filepath.Join(state.Dir(h.cwd), "*.[0-9]*")); len(left) == 0 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if len(left) != 0 {
 		t.Fatalf("the hook still holds: %v", left)
 	}
 	// A new dialog has an id of its own: the old one names it no more.
