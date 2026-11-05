@@ -1,0 +1,8 @@
+# The Windows side of WSL as hq reaches it, stubbed: each line is a command
+# as hq finds it on PATH and the stub in this directory that stands in for
+# it. testutil.WSLStubs and scripts/local-dev.sh --stub both read this list,
+# so a new stub goes here once. A line whose stub is not in this directory
+# yet is skipped.
+wslpath wslpath-stub
+cmd.exe cmd-stub
+powershell.exe powershell-stub
