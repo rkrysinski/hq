@@ -608,15 +608,18 @@ type fakes struct {
 	desktopErr      error
 	desktopRunning  bool
 	desktopSearched string
-	windowsCode     string
-	windowsCodeErr  error
-	installed       []mcpconfig.Server
-	installedIn     []mcpconfig.File
-	installResult   mcpconfig.Result
-	installErr      error
-	installErrs     map[string]error
-	served          *mcp.Server
-	serveErr        error
+	// sbxSide is the sbx side the gateway's command line comes from (the
+	// fake platform's when nil).
+	sbxSide        platform.SbxSide
+	windowsCode    string
+	windowsCodeErr error
+	installed      []mcpconfig.Server
+	installedIn    []mcpconfig.File
+	installResult  mcpconfig.Result
+	installErr     error
+	installErrs    map[string]error
+	served         *mcp.Server
+	serveErr       error
 }
 
 // supervisorMark ends, in the fakes' inbox, a message the supervisor sent.
@@ -897,6 +900,12 @@ func (f *fakes) deps() deps {
 		appServer: func(argv, env []string) mcpconfig.Server {
 			cmd, args, e := platformtest.Fake{}.AppServer(argv, env)
 			return mcpconfig.Server{Command: cmd, Args: args, Env: e}
+		},
+		sbxGateway: func(argv, env []string) (string, []string) {
+			if f.sbxSide != nil {
+				return f.sbxSide.Gateway(argv, env)
+			}
+			return platformtest.Fake{}.Gateway(argv, env)
 		},
 		installConfig: func(file mcpconfig.File, s mcpconfig.Server) (mcpconfig.Result, error) {
 			f.installed = append(f.installed, s)

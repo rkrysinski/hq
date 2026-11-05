@@ -29,8 +29,9 @@ need() { missing="$missing
   - $1"; }
 command -v git >/dev/null 2>&1 || need "git: install git"
 command -v curl >/dev/null 2>&1 || need "curl: install curl"
+# On WSL the Linux sbx first, then the Windows sbx.exe, as hq takes them.
 command -v sbx >/dev/null 2>&1 || command -v sbx.exe >/dev/null 2>&1 ||
-    need "sbx: install Docker Sandboxes"
+    need "sbx (or sbx.exe on WSL): install Docker Sandboxes"
 command -v code >/dev/null 2>&1 || need "code: install VS Code and put code on PATH (Command Palette: Shell Command)"
 if command -v tmux >/dev/null 2>&1; then
     v=$(tmux -V | sed 's/^tmux //; s/^next-//')

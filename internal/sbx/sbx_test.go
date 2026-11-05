@@ -209,7 +209,7 @@ func TestListReportsWorkspacesAsHqSeesThem(t *testing.T) {
 
 func TestListFailsWhenAWorkspaceCannotBeMapped(t *testing.T) {
 	r := &fakeRun{out: `{"sandboxes":[{"name":"claude-app","workspaces":["C:\\w\\app"]}]}`}
-	c := Client{Run: r, Platform: platform.WSL{Run: &fakeRun{err: errors.New("wslpath: boom")}}}
+	c := Client{Run: r, Platform: platform.WSL{SbxSide: platform.WindowsSbx{Run: &fakeRun{err: errors.New("wslpath: boom")}}}}
 	if _, err := c.List(); err == nil {
 		t.Fatal("want the wslpath error")
 	}
@@ -223,7 +223,7 @@ func TestCreateGivesSbxItsOwnPathAndCommand(t *testing.T) {
 	if want := []string{"sbx.exe", "create", "--quiet", "claude", `F:\w\app`}; !reflect.DeepEqual(r.args, want) {
 		t.Fatalf("args %q", r.args)
 	}
-	c := Client{Run: r, Platform: platform.WSL{Run: &fakeRun{err: errors.New("wslpath: boom")}}}
+	c := Client{Run: r, Platform: platform.WSL{SbxSide: platform.WindowsSbx{Run: &fakeRun{err: errors.New("wslpath: boom")}}}}
 	if err := c.Create("/w/app", Options{}); err == nil {
 		t.Fatal("want the wslpath error")
 	}
@@ -319,11 +319,29 @@ func TestAFailedCallReportsSbxsErrorAndKeepsWhetherSbxIsInstalled(t *testing.T) 
 		t.Fatalf("the runner's own error was changed: %v", r.err)
 	}
 
-	// Without stderr (sbx missing, no answer in time) the error stays as it is.
-	r.err = &proc.Error{Name: "sbx.exe", Msg: "executable file not found", NotFound: true}
+	// Without stderr (no answer in time) the error stays as it is.
+	r.err = &proc.Error{Name: "sbx.exe", Msg: "signal: killed"}
 	var pe *proc.Error
-	if _, err := c.List(); !errors.As(err, &pe) || !pe.NotFound || pe.Msg != "executable file not found" {
+	if _, err := c.List(); !errors.As(err, &pe) || pe.Msg != "signal: killed" {
 		t.Fatalf("%v", err)
+	}
+}
+
+// sbx missing: the platform says what was not found, on WSL both sbx and
+// sbx.exe (#153).
+func TestAMissingSbxIsSaidAsThePlatformSaysIt(t *testing.T) {
+	r := &fakeRun{err: &proc.Error{Name: "sbx.exe", Msg: "executable file not found in $PATH", NotFound: true}}
+	var pe *proc.Error
+	_, err := Client{Run: r, Platform: platform.WSL{SbxSide: platform.WindowsSbx{}}}.List()
+	if !errors.As(err, &pe) || !pe.NotFound || pe.Msg != "neither sbx nor sbx.exe found" {
+		t.Fatalf("WSL: %v", err)
+	}
+	r.err = &proc.Error{Name: "sbx", Msg: "executable file not found in $PATH", NotFound: true}
+	if _, err := (Client{Run: r, Platform: platform.Native{}}).List(); !errors.As(err, &pe) || pe.Msg != "sbx not found" {
+		t.Fatalf("native: %v", err)
+	}
+	if r.err.(*proc.Error).Msg != "executable file not found in $PATH" {
+		t.Fatalf("the runner's own error was changed: %v", r.err)
 	}
 }
 
