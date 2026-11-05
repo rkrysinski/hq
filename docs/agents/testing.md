@@ -39,7 +39,7 @@ go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.
 
 ## Platform code
 
-Both platforms behave the same, and the code that tells them apart lives in `internal/platform` only (`AGENTS.md`, design §3.10). `testgate platform` fails on a Go file, not a test, that names a program or variable of one platform outside it: `cmd.exe`, `powershell.exe`, `wsl.exe`, `wslpath`, `sbx.exe`, `WSL_DISTRO_NAME` or `osascript` in a string, or `runtime.GOOS` in code (ask `platform.OS` instead). It prints the file, the line and the name. Comments are not checked, and no other word is looked for: a message to the user about the system tray passes. The list and its exemptions (`internal/platform`, the stubs in `internal/testutil`, the gate itself), each with its reason, are in `tools/testgate/platform.go`; a new exemption needs a reason there and a line in the PR.
+Both platforms behave the same, and the code that tells them apart lives in `internal/platform` only (`AGENTS.md`, design §3.10). `testgate platform` fails on a Go file, not a test, that names a program or variable of one platform outside it: `cmd.exe`, `powershell.exe`, `wsl.exe`, `wslpath`, `sbx.exe`, `WSL_DISTRO_NAME` or `osascript` in a string (ignoring case), or `runtime.GOOS` in code (ask `platform.OS` instead). It prints the file, the line and the name. Comments are not checked, and no other word is looked for: a message to the user about the system tray passes. The list and its exemptions (`internal/platform`, the stubs in `internal/testutil`, the gate itself), each with its reason, are in `tools/testgate/platform.go`; a new exemption needs a reason there and a line in the PR.
 
 ## Private details
 

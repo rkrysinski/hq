@@ -107,3 +107,26 @@ func TestCheckPlatformFailsOnCodeThatDoesNotParse(t *testing.T) {
 		t.Fatal("no error for a file that does not parse")
 	}
 }
+
+func TestNameAfterAnEscapeOrInAnotherCaseIsAHit(t *testing.T) {
+	src := "package a\n\nvar (\n\tx = \"\\tcmd.exe /c\"\n\ty = \"\\nwslpath\"\n\tz = \"C:\\\\WINDOWS\\\\CMD.EXE\"\n)\n"
+	hits, err := scanPlatform("a.go", []byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []platformHit{{"a.go", 4, "cmd.exe"}, {"a.go", 5, "wslpath"}, {"a.go", 6, "cmd.exe"}}
+	if !reflect.DeepEqual(hits, want) {
+		t.Fatalf("hits %v, want %v", hits, want)
+	}
+}
+
+func TestGOOSOfADotImportedRuntimeIsAHit(t *testing.T) {
+	src := "package a\n\nimport . \"runtime\"\n\nvar s = GOOS\n"
+	hits, err := scanPlatform("a.go", []byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []platformHit{{"a.go", 5, "runtime.GOOS"}}; !reflect.DeepEqual(hits, want) {
+		t.Fatalf("hits %v, want %v", hits, want)
+	}
+}

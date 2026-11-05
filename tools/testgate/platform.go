@@ -60,57 +60,75 @@ var platformPatterns = func() map[string]*regexp.Regexp {
 	m := map[string]*regexp.Regexp{}
 	for _, n := range platformNames {
 		if !n.selector {
-			m[n.name] = regexp.MustCompile(`\b` + regexp.QuoteMeta(n.name) + `\b`)
+			// Ignoring case: Windows does, so CMD.EXE runs cmd.exe.
+			m[n.name] = regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(n.name) + `\b`)
 		}
 	}
 	return m
 }()
 
-// scanPlatform reports every use of a platform name in a Go source file:
-// a listed name inside a string literal, a listed selector in code.
-func scanPlatform(name string, src []byte) ([]platformHit, error) {
+// scanPlatform reports every use of a platform name in the Go source file
+// rel: a listed name inside a string literal, a listed selector in code
+// (a bare identifier, when the file dot-imports the package).
+func scanPlatform(rel string, src []byte) ([]platformHit, error) {
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, name, src, parser.SkipObjectResolution)
+	file, err := parser.ParseFile(fset, rel, src, parser.SkipObjectResolution)
 	if err != nil {
 		return nil, err
 	}
-	// The name each imported package goes by in this file.
-	local := map[string]string{}
+	// The import path each package name of this file stands for, and the
+	// paths it imports with a dot.
+	imported := map[string]string{}
+	var dotted []string
 	for _, imp := range file.Imports {
 		path, _ := strconv.Unquote(imp.Path.Value)
-		n := path[strings.LastIndex(path, "/")+1:]
+		local := path[strings.LastIndex(path, "/")+1:]
 		if imp.Name != nil {
-			n = imp.Name.Name
+			local = imp.Name.Name
 		}
-		local[n] = path
+		if local == "." {
+			dotted = append(dotted, path)
+		}
+		imported[local] = path
 	}
 	var hits []platformHit
-	hit := func(pos token.Pos, n string) {
-		hits = append(hits, platformHit{name, fset.Position(pos).Line, n})
+	hit := func(pos token.Pos, name string) {
+		hits = append(hits, platformHit{rel, fset.Position(pos).Line, name})
 	}
+	selector := func(pos token.Pos, path, sel string) {
+		for _, n := range platformNames {
+			if n.selector && n.name == path+"."+sel {
+				hit(pos, n.name)
+			}
+		}
+	}
+	selected := map[*ast.Ident]bool{} // the right-hand side of a selector
 	ast.Inspect(file, func(node ast.Node) bool {
 		switch x := node.(type) {
 		case *ast.BasicLit:
 			if x.Kind != token.STRING {
 				return true
 			}
+			s, err := strconv.Unquote(x.Value)
+			if err != nil {
+				s = x.Value
+			}
 			for _, n := range platformNames {
-				if !n.selector && platformPatterns[n.name].MatchString(x.Value) {
+				if !n.selector && platformPatterns[n.name].MatchString(s) {
 					hit(x.Pos(), n.name)
 				}
 			}
 		case *ast.SelectorExpr:
-			id, ok := x.X.(*ast.Ident)
-			if !ok {
-				return true
+			selected[x.Sel] = true
+			if id, ok := x.X.(*ast.Ident); ok {
+				if path, ok := imported[id.Name]; ok {
+					selector(x.Pos(), path, x.Sel.Name)
+				}
 			}
-			path, imported := local[id.Name]
-			if !imported {
-				return true
-			}
-			for _, n := range platformNames {
-				if n.selector && n.name == path+"."+x.Sel.Name {
-					hit(x.Pos(), n.name)
+		case *ast.Ident:
+			if !selected[x] {
+				for _, path := range dotted {
+					selector(x.Pos(), path, x.Name)
 				}
 			}
 		}
