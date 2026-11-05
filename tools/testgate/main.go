@@ -1,9 +1,11 @@
 // Command testgate holds hq's CI gates: the shape of the test suite, its
-// coverage, and no private details in the public text (docs/agents/testing.md):
+// coverage, no private details in the public text, and platform-specific
+// code in the platform package only (docs/agents/testing.md):
 //
 //	go run ./tools/testgate pyramid          # counts tests per level, checks the shape
 //	go run ./tools/testgate coverage FILE    # checks a coverage profile against the threshold
 //	go run ./tools/testgate private [PATH...] # no private details in tracked files (or PATHs)
+//	go run ./tools/testgate platform [ROOT]  # platform-specific names only in internal/platform
 //
 // private reads its patterns from $HQ_PRIVATE_PATTERNS (see private.go)
 // and passes with a notice when the variable is unset.
@@ -20,7 +22,7 @@ import (
 	"os"
 )
 
-const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...]"
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | platform [ROOT]"
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
@@ -79,6 +81,20 @@ func main() {
 		}
 		fmt.Println(summary)
 		problems = p
+	case "platform":
+		root := "."
+		if len(os.Args) > 2 {
+			root = os.Args[2]
+		}
+		hits, err := checkPlatform(root)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "testgate:", err)
+			os.Exit(2)
+		}
+		fmt.Printf("platform: %d names, %d uses outside internal/platform\n", len(platformNames), len(hits))
+		for _, h := range hits {
+			problems = append(problems, h.String())
+		}
 	default:
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(2)
