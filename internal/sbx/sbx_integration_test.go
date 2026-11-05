@@ -147,7 +147,7 @@ func TestStopThenExecStartsAgainAndRemoveDeletes(t *testing.T) {
 // On WSL, sbx.exe keeps Windows paths; hq sees them as Linux paths.
 func TestWSLCreateThenListThroughSbxExe(t *testing.T) {
 	dir := testutil.WSLStubs(t)
-	c := Client{Run: proc.Exec{}, Platform: platform.WSL{Run: proc.Exec{}}}
+	c := Client{Run: proc.Exec{}, Platform: platform.WSL{SbxSide: platform.WindowsSbx{Run: proc.Exec{}}, Run: proc.Exec{}}}
 	if err := c.Create("/home/dev/app", Options{}); err != nil {
 		t.Fatal(err)
 	}

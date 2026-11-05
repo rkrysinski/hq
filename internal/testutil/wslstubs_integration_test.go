@@ -39,7 +39,7 @@ func TestWindowsStubsRefusesALineThatIsNotACommandAndItsStub(t *testing.T) {
 
 func TestWSLStubsPutsTheListedStubsOnPath(t *testing.T) {
 	WSLStubs(t)
-	for _, name := range []string{"sbx.exe", "wslpath", "cmd.exe"} {
+	for _, name := range []string{"sbx.exe", "wslpath", "cmd.exe", "powershell.exe"} {
 		found := false
 		for _, d := range filepath.SplitList(os.Getenv("PATH")) {
 			if _, err := os.Stat(filepath.Join(d, name)); err == nil {

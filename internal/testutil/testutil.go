@@ -90,9 +90,11 @@ func SbxStub(t *testing.T) (bin, dir string) {
 
 // WSLStubs puts the stub sbx on PATH as sbx.exe and the stubs of the
 // Windows side listed in wsl-stubs (wslpath; cmd.exe, which knows only the
-// folders hq asks for; ...) under their own names, as hq finds them on WSL,
-// has an hq the test starts run as on WSL whatever the machine, and returns
-// the stub sbx's state directory, set in SBX_STUB_DIR for this test.
+// folders hq asks for; powershell.exe, which lists the claude.exe processes
+// in WSL_STUB_PROCESSES, none by default) under their own names, as hq finds
+// them on WSL, has an hq the test starts run as on WSL whatever the machine,
+// and returns the stub sbx's state directory, set in SBX_STUB_DIR for this
+// test.
 func WSLStubs(t *testing.T) string {
 	t.Helper()
 	sbx, dir := SbxStub(t)
