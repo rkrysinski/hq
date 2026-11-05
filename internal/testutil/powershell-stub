@@ -1,0 +1,9 @@
+#!/bin/sh
+# Stub of Windows' powershell.exe for integration tests, reached from WSL: it
+# answers an -EncodedCommand (hq's listing of the claude.exe processes) with
+# $WSL_STUB_PROCESSES, their command lines one a line: none when unset, as
+# for a Windows where Claude Desktop is not running.
+case "$*" in
+*-EncodedCommand*) printf '%s' "${WSL_STUB_PROCESSES:-}" ;;
+*) echo "powershell-stub: unexpected $*" >&2; exit 1 ;;
+esac
