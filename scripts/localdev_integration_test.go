@@ -38,6 +38,17 @@ func newLocalDev(t *testing.T) *localDev {
 
 func (d *localDev) dir() string { return "/tmp/hq-stub-" + d.id }
 
+// realDir is dir with symlinks resolved, as hq names a repository in it
+// (on macOS /tmp is /private/tmp).
+func (d *localDev) realDir() string {
+	d.t.Helper()
+	dir, err := filepath.EvalSymlinks(d.dir())
+	if err != nil {
+		d.t.Fatal(err)
+	}
+	return dir
+}
+
 // run runs local-dev.sh with args and returns its output and whether it
 // succeeded.
 func (d *localDev) run(args ...string) (string, bool) {
@@ -95,7 +106,7 @@ func has(names []string, name string) bool {
 func TestStubNativeGivesTheStubSbxHqsOwnPath(t *testing.T) {
 	d := newLocalDev(t)
 	d.must("--stub", "native", "new", "a", d.dir()+"/repo", "hello")
-	if ws := d.workspace(); ws != d.dir()+"/repo" {
+	if ws := d.workspace(); ws != d.realDir()+"/repo" {
 		t.Fatalf("workspace %q", ws)
 	}
 	if out := d.must("--stub", "native", "ls"); !strings.Contains(out, "a ") {
@@ -106,8 +117,11 @@ func TestStubNativeGivesTheStubSbxHqsOwnPath(t *testing.T) {
 func TestStubWSLExeGivesTheStubSbxExeAWindowsPath(t *testing.T) {
 	d := newLocalDev(t)
 	d.must("--stub", "wsl-exe", "new", "a", d.dir()+"/repo", "hello")
-	if ws, want := d.workspace(), `\\wsl.localhost\Stub`+strings.ReplaceAll(d.dir(), "/", `\`)+`\repo`; ws != want {
+	if ws, want := d.workspace(), `\\wsl.localhost\Stub`+strings.ReplaceAll(d.realDir(), "/", `\`)+`\repo`; ws != want {
 		t.Fatalf("workspace %q, want %q", ws, want)
+	}
+	if out := d.must("--stub", "wsl-exe", "ls"); !strings.Contains(out, "a ") {
+		t.Fatalf("ls: %s", out)
 	}
 }
 
