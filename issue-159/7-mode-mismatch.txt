@@ -1,0 +1,10 @@
+$ scripts/local-dev.sh --stub wsl-exe new a /tmp/hq-stub-159/repo hello
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started a in repo (sandbox claude-repo); enter it with: hq go a
+$ scripts/local-dev.sh --stub native ls; echo "exit $?"
+local-dev: this checkout's tmux server runs with --stub wsl-exe, not --stub native; end it first with scripts/local-dev.sh --kill-server
+exit 1
+$ scripts/local-dev.sh ls; echo "exit $?"
+local-dev: this checkout's tmux server runs with --stub wsl-exe, not the real sbx; end it first with scripts/local-dev.sh --kill-server
+exit 1
+$

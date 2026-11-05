@@ -1,0 +1,14 @@
+$ scripts/local-dev.sh --kill-server
+tmux server hq-dev-159 ended
+stub environment /tmp/hq-stub-159 removed
+$ scripts/local-dev.sh --stub wsl-exe --before mcp install sbx
+added hq to sbx (sbx mcp inspect hq)
+load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)
+$ scripts/local-dev.sh --stub wsl-exe mcp install sbx
+hq is already set up in sbx (sbx mcp inspect hq)
+load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)
+$ cat /tmp/hq-stub-159/sbx/mcp/hq
+{"name":"hq","type":"local","command":["wsl.exe","-d","Stub","--exec","/usr/bin/env","PATH=/tmp/hq-stub-159/bin:/tmp/hq-stub-159/stubs:/tmp/
+hq-stub-159/path/1:/tmp/hq-stub-159/path/2:/usr/local/share/npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","HQ
+_TMUX_SOCKET=hq-dev-159","XDG_CONFIG_HOME=/tmp/hq-stub-159/home/.config","/tmp/hq-stub-159/bin/hq","mcp","sbx"],"requires_oauth":false}
+$

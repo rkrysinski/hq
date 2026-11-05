@@ -1,0 +1,16 @@
+$ sleep 600 | scripts/local-dev.sh --stub wsl-exe mcp sbx & sleep 3
+[1] 1198710
+$ ps -o pid=,args= -p $(pgrep -x hq)
+1198710 /tmp/hq-stub-159/bin/hq mcp sbx
+$ scripts/local-dev.sh --stub wsl-exe --before --version && echo rebuilt
+hq dev
+rebuilt
+$ scripts/local-dev.sh --stub wsl-exe --version && echo rebuilt
+hq dev
+rebuilt
+$ kill %1; wait
+[1]+  Terminated                 sleep 600 | scripts/local-dev.sh --stub wsl-exe mcp sbx
+$ scripts/local-dev.sh --kill-server
+tmux server hq-dev-159 ended
+stub environment /tmp/hq-stub-159 removed
+$

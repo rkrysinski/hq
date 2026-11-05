@@ -1,0 +1,11 @@
+$ scripts/local-dev.sh --kill-server
+tmux server hq-dev-159 ended
+stub environment /tmp/hq-stub-159 removed
+$ ls -d /tmp/hq-stub-159; tmux -L hq-dev-159 has-session; echo "exit $?"
+ls: cannot access '/tmp/hq-stub-159': No such file or directory
+error connecting to /tmp/tmux-1000/hq-dev-159 (No such file or directory)
+exit 1
+$ scripts/local-dev.sh --version; ls .local-dev
+hq dev
+config	hq
+$

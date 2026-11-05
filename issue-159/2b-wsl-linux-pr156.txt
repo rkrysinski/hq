@@ -1,0 +1,15 @@
+$ scripts/local-dev.sh --kill-server
+tmux server hq-dev-159 ended
+stub environment /tmp/hq-stub-159 removed
+$ export LOCAL_DEV_BEFORE=origin/issue-153-wsl-linux-sbx  # hq of PR #156
+$ scripts/local-dev.sh --stub wsl-linux --before new a /tmp/hq-stub-159/repo hello
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started a in repo (sandbox claude-repo); enter it with: hq go a
+$ scripts/local-dev.sh --stub wsl-linux --before ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   Done: hello
+$ cat /tmp/hq-stub-159/sbx/sandboxes/claude-repo
+running
+/tmp/hq-stub-159/repo
+$ unset LOCAL_DEV_BEFORE
+$
