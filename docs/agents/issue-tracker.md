@@ -5,7 +5,7 @@ Issues and PRDs for this repo live as GitHub issues on the repository behind the
 ## Conventions
 
 - **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
-- **Read an issue**: `gh issue view <n> --comments` (add `--json labels,state,body` when you need structured fields).
+- **Read an issue**: `gh issue view <n> --json title,body,labels,comments` (the body and every comment in one call; `--comments` alone prints only the comments, so an issue without any shows nothing). Add `state` or other fields when you need them.
 - **List issues**: `gh issue list --state open --json number,title,body,labels --jq '[.[] | {number, title, body, labels: [.labels[].name]}]'` with appropriate `--label` and `--state` filters.
 - **Comment**: `gh issue comment <n> --body "..."`
 - **Apply / remove labels**: `gh issue edit <n> --add-label "..."` / `--remove-label "..."`
@@ -69,7 +69,7 @@ Create a GitHub issue (a `prd`-labelled issue for a PRD; sub-issues for its impl
 
 ## When a skill says "fetch the relevant ticket"
 
-Run `gh issue view <n> --comments`.
+Run `gh issue view <n> --json title,body,labels,comments`.
 
 ## Wayfinding operations
 
