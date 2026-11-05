@@ -1,0 +1,6 @@
+$ go run ./tools/testgate platform   # this branch
+platform: 8 names checked, uses outside internal/platform: 0
+exit 0
+
+$ grep -n "wsl.exe" internal/cli/mcp.go   # a comment: not checked
+261:// starts hq through wsl.exe as Claude Desktop does), that command line.

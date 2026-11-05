@@ -1,0 +1,17 @@
+$ git rev-parse --short HEAD   # origin/issue-154-claude-data, the PR's branch as it is
+a8f2e7b
+$ go run ./tools/testgate platform   # gate run against that checkout
+platform: 8 names checked, uses outside internal/platform: 2
+FAIL: internal/cli/deps.go:319 uses runtime.GOOS: platform-specific code lives in internal/platform
+FAIL: internal/cli/deps.go:323 uses runtime.GOOS: platform-specific code lives in internal/platform
+exit status 1
+exit 1
+
+$ git merge --no-edit issue-157-testgate-platform   # this PR merged into it
+Auto-merging internal/cli/deps.go
+merged cleanly
+$ go run ./tools/testgate platform
+platform: 8 names checked, uses outside internal/platform: 0
+exit 0
+$ go build ./... && go vet ./... && go test ./...
+ok
