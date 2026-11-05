@@ -91,7 +91,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
 		}
-		fmt.Printf("platform: %d names, %d uses outside internal/platform\n", len(platformNames), len(hits))
+		fmt.Printf("platform: %d names checked, uses outside internal/platform: %d\n", len(platformNames), len(hits))
 		for _, h := range hits {
 			problems = append(problems, h.String())
 		}
