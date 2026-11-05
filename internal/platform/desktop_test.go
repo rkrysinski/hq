@@ -2,6 +2,7 @@ package platform
 
 import (
 	"errors"
+	"path"
 	"reflect"
 	"strings"
 	"testing"
@@ -21,20 +22,26 @@ func TestClaudeDesktopsConfigurationOnMacOSAndLinux(t *testing.T) {
 	}
 }
 
-// windows answers cmd.exe with its folders and wslpath -u by mapping C:\ to
-// /mnt/c; glob answers with the Store packages' folders.
+// windows answers cmd.exe with its folders, powershell.exe with the
+// command lines of the claude.exe processes and wslpath -u by mapping C:\ to
+// /mnt/c; glob answers with the folders in found that match a pattern.
 type windows struct {
-	folders string
-	err     error
-	store   []string
-	calls   [][]string
-	globbed []string
+	folders   string
+	err       error
+	processes string
+	psErr     error
+	found     []string
+	calls     [][]string
+	globbed   []string
 }
 
 func (w *windows) Run(name string, args ...string) ([]byte, error) {
 	w.calls = append(w.calls, append([]string{name}, args...))
-	if name == "cmd.exe" {
+	switch name {
+	case "cmd.exe":
 		return []byte(w.folders), w.err
+	case "powershell.exe":
+		return []byte(w.processes), w.psErr
 	}
 	if len(args) == 2 && strings.HasPrefix(args[1], `C:\Users\dev`) {
 		return []byte("/mnt/c/" + strings.ReplaceAll(strings.TrimPrefix(args[1], `C:\`), `\`, "/") + "\n"), nil
@@ -42,26 +49,44 @@ func (w *windows) Run(name string, args ...string) ([]byte, error) {
 	return nil, errors.New("wslpath: bad path")
 }
 
-// withStore has DesktopConfig find w's Store packages for this test.
-func withStore(t *testing.T, w *windows) *windows {
+// on has DesktopConfig look for Claude Desktop's folders on w for this test.
+func on(t *testing.T, w *windows) *windows {
 	old := glob
 	glob = func(pattern string) ([]string, error) {
 		w.globbed = append(w.globbed, pattern)
-		return w.store, nil
+		var m []string
+		for _, f := range w.found {
+			if ok, _ := path.Match(pattern, f); ok {
+				m = append(m, f)
+			}
+		}
+		return m, nil
 	}
 	t.Cleanup(func() { glob = old })
 	return w
 }
 
-const devFolders = "C:\\Users\\dev\\AppData\\Roaming\r\nC:\\Users\\dev\\AppData\\Local\r\n"
+const (
+	devFolders = "C:\\Users\\dev\\AppData\\Roaming\r\nC:\\Users\\dev\\AppData\\Local\r\n"
+	local      = "/mnt/c/Users/dev/AppData/Local"
+	appData    = "/mnt/c/Users/dev/AppData/Roaming/Claude"
+	dataDir    = local + "/Claude-Data/claude_2f7a1c"
+	pkg        = local + "/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude"
+	// left is the marker Claude Desktop leaves in the package's folder
+	// when it moves its configuration to Claude-Data (#154).
+	left = pkg + "/.user-data-left.1761040000"
+)
+
+func file(dir string) string { return dir + "/claude_desktop_config.json" }
 
 func TestClaudeDesktopsConfigurationOnWindowsIsInAppData(t *testing.T) {
-	w := withStore(t, &windows{folders: devFolders})
+	w := on(t, &windows{folders: devFolders})
 	got, err := WSL{Run: w}.DesktopConfig("/home/dev")
-	if err != nil || got != "/mnt/c/Users/dev/AppData/Roaming/Claude/claude_desktop_config.json" {
-		t.Fatalf("%q %v", got, err)
+	if err != nil || got != (Desktop{Path: file(appData)}) {
+		t.Fatalf("%+v %v", got, err)
 	}
-	want := [][]string{{"cmd.exe", "/d", "/c", "echo %APPDATA%&echo %LOCALAPPDATA%"}, {"wslpath", "-u", `C:\Users\dev\AppData\Local`}, {"wslpath", "-u", `C:\Users\dev\AppData\Roaming`}}
+	want := [][]string{{"cmd.exe", "/d", "/c", "echo %APPDATA%&echo %LOCALAPPDATA%"}, {"wslpath", "-u", `C:\Users\dev\AppData\Local`}, {"wslpath", "-u", `C:\Users\dev\AppData\Roaming`},
+		{"powershell.exe", "-NoProfile", "-NonInteractive", "-OutputFormat", "Text", "-EncodedCommand", encodedCommand(desktopProcesses)}}
 	if !reflect.DeepEqual(w.calls, want) {
 		t.Fatalf("calls %q", w.calls)
 	}
@@ -71,29 +96,96 @@ func TestClaudeDesktopsConfigurationOnWindowsIsInAppData(t *testing.T) {
 		{folders: "%APPDATA%\r\n%LOCALAPPDATA%\r\n"},
 		{folders: `D:\elsewhere`},
 	} {
-		if got, err := (WSL{Run: withStore(t, w)}).DesktopConfig("/home/dev"); err == nil {
-			t.Errorf("%q: %q, want an error", w.folders, got)
+		if got, err := (WSL{Run: on(t, w)}).DesktopConfig("/home/dev"); err == nil {
+			t.Errorf("%q: %+v, want an error", w.folders, got)
 		}
 	}
 }
 
-// Installed from the Microsoft Store, Claude Desktop keeps its configuration
-// in its package's folder, and that is the one it reads (#25).
-func TestClaudeDesktopsConfigurationFromTheStoreIsInItsPackage(t *testing.T) {
-	pkg := "/mnt/c/Users/dev/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude"
-	w := withStore(t, &windows{folders: devFolders, store: []string{pkg, "/mnt/c/Users/dev/AppData/Local/Packages/Claude_zzz/LocalCache/Roaming/Claude"}})
-	got, err := WSL{Run: w}.DesktopConfig("/home/dev")
-	if err != nil || got != pkg+"/claude_desktop_config.json" {
-		t.Fatalf("%q %v", got, err)
+// Claude Desktop not running, hq looks in Claude-Data first, then in the
+// Store package's folder unless Claude Desktop left it, then in %APPDATA%
+// (#25, #154).
+func TestClaudeDesktopsConfigurationIsLookedForInOrder(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		found []string
+		want  string
+	}{
+		{"the Store's Claude-Data", []string{dataDir, local + "/Claude-Data/claude_9b", pkg, left}, file(dataDir)},
+		{"Claude-Data before the package it left", []string{pkg, dataDir}, file(dataDir)},
+		{"the Store package's folder", []string{pkg, local + "/Packages/Claude_zzz/LocalCache/Roaming/Claude"}, file(pkg)},
+		{"not a package Claude Desktop left", []string{pkg, left}, file(appData)},
+		{"the installer from claude.ai", nil, file(appData)},
+	} {
+		w := on(t, &windows{folders: devFolders, found: c.found})
+		if got, err := (WSL{Run: w}).DesktopConfig("/home/dev"); err != nil || got != (Desktop{Path: c.want}) {
+			t.Errorf("%s: %+v %v, want %q", c.name, got, err, c.want)
+		}
 	}
-	if want := []string{"/mnt/c/Users/dev/AppData/Local/Packages/Claude_*/LocalCache/Roaming/Claude"}; !reflect.DeepEqual(w.globbed, want) {
+	w := on(t, &windows{folders: devFolders})
+	WSL{Run: w}.DesktopConfig("/home/dev")
+	if want := []string{local + "/Claude-Data/claude_*", local + "/Packages/Claude_*/LocalCache/Roaming/Claude"}; !reflect.DeepEqual(w.globbed, want) {
 		t.Fatalf("looked for %q", w.globbed)
 	}
 	// Without a %LOCALAPPDATA%, or one wslpath cannot map: %APPDATA% as before.
 	for _, folders := range []string{"C:\\Users\\dev\\AppData\\Roaming\r\n", "C:\\Users\\dev\\AppData\\Roaming\r\n%LOCALAPPDATA%\r\n", "C:\\Users\\dev\\AppData\\Roaming\r\nD:\\elsewhere\r\n"} {
-		w := withStore(t, &windows{folders: folders, store: []string{pkg}})
-		if got, err := (WSL{Run: w}).DesktopConfig("/home/dev"); err != nil || got != "/mnt/c/Users/dev/AppData/Roaming/Claude/claude_desktop_config.json" || len(w.globbed) != 0 {
-			t.Errorf("%q: %q %v, globbed %q", folders, got, err, w.globbed)
+		w := on(t, &windows{folders: folders, found: []string{dataDir, pkg}})
+		if got, err := (WSL{Run: w}).DesktopConfig("/home/dev"); err != nil || got != (Desktop{Path: file(appData)}) || len(w.globbed) != 0 {
+			t.Errorf("%q: %+v %v, globbed %q", folders, got, err, w.globbed)
+		}
+	}
+}
+
+// A running Claude Desktop reads the configuration in the folder its helper
+// processes are given with --user-data-dir; the main process has none. When
+// that is another file than the order finds, hq says which (#154).
+func TestARunningClaudeDesktopsConfigurationIsTheOneItReads(t *testing.T) {
+	const main = `"C:\Program Files\WindowsApps\Claude_1.0.0_x64__pzs8sxrjxfjjc\app\claude.exe"`
+	helper := main + ` --type=renderer --user-data-dir="C:\Users\dev\AppData\Local\Claude-Data\claude_2f7a1c" --app-path="C:\Program Files\WindowsApps\x" --lang=pl`
+	w := on(t, &windows{folders: devFolders, found: []string{pkg}, processes: main + "\r\n" + helper + "\r\n"})
+	got, err := WSL{Run: w}.DesktopConfig("/home/dev")
+	if err != nil || got != (Desktop{Path: file(dataDir), Running: true, Searched: file(pkg)}) {
+		t.Fatalf("%+v %v", got, err)
+	}
+	// The order finds the file it reads: nothing more to say.
+	w = on(t, &windows{folders: devFolders, found: []string{dataDir}, processes: helper + "\r\n"})
+	if got, err := (WSL{Run: w}).DesktopConfig("/home/dev"); err != nil || got != (Desktop{Path: file(dataDir), Running: true}) {
+		t.Fatalf("same %+v %v", got, err)
+	}
+	// The installer from claude.ai gives its helpers no --user-data-dir:
+	// the order's file, Claude Desktop running.
+	w = on(t, &windows{folders: devFolders, processes: main + "\r\n" + main + " --type=gpu-process --field-trial-handle=1\r\n"})
+	if got, err := (WSL{Run: w}).DesktopConfig("/home/dev"); err != nil || got != (Desktop{Path: file(appData), Running: true}) {
+		t.Fatalf("installer %+v %v", got, err)
+	}
+	// Claude Code on Windows is a claude.exe too, with no helpers: not
+	// Claude Desktop. No PowerShell to ask: as though it were not running.
+	for _, w := range []*windows{
+		{folders: devFolders, processes: `C:\Users\dev\.local\bin\claude.exe --resume` + "\r\n"},
+		{folders: devFolders, processes: helper, psErr: errors.New("powershell.exe: not found")},
+	} {
+		if got, err := (WSL{Run: on(t, w)}).DesktopConfig("/home/dev"); err != nil || got != (Desktop{Path: file(appData)}) {
+			t.Errorf("%q %v: %+v %v", w.processes, w.psErr, got, err)
+		}
+	}
+	// A --user-data-dir wslpath cannot map: the order's file.
+	w = on(t, &windows{folders: devFolders, processes: main + ` --type=renderer --user-data-dir=D:\elsewhere`})
+	if got, err := (WSL{Run: w}).DesktopConfig("/home/dev"); err != nil || got != (Desktop{Path: file(appData), Running: true}) {
+		t.Fatalf("unmapped %+v %v", got, err)
+	}
+}
+
+func TestUserDataDirIsReadOffACommandLine(t *testing.T) {
+	for line, want := range map[string]string{
+		`claude.exe --type=renderer --user-data-dir="C:\Users\Jan Kowalski\AppData\Local\Claude-Data\claude_1" --lang=pl`: `C:\Users\Jan Kowalski\AppData\Local\Claude-Data\claude_1`,
+		`claude.exe --type=utility "--user-data-dir=C:\Users\Jan Kowalski\Claude-Data\claude_1" --x`:                      `C:\Users\Jan Kowalski\Claude-Data\claude_1`,
+		`claude.exe --type=gpu-process --user-data-dir=C:\Users\dev\Claude-Data\claude_1 --x`:                             `C:\Users\dev\Claude-Data\claude_1`,
+		`claude.exe --type=gpu-process --user-data-dir=C:\Users\dev\Claude-Data\claude_1`:                                 `C:\Users\dev\Claude-Data\claude_1`,
+		`claude.exe --type=gpu-process --user-data-dir=`:                                                                  ``,
+		`claude.exe --type=gpu-process`: ``,
+	} {
+		if got := userDataDir(line); got != want {
+			t.Errorf("%s: %q, want %q", line, got, want)
 		}
 	}
 }
