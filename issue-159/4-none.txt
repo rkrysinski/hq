@@ -1,8 +1,8 @@
 $ $L --stub none new a . hello
-hq: sbx not found; install Docker Sandboxes
+hq: neither sbx nor sbx.exe found; install Docker Sandboxes
 $ sleep 1; $L --stub none ls
 $ cat /tmp/hq-stub-159/sbx/sandboxes/* 2>/dev/null; ls /tmp/hq-stub-159/stubs
-cmd.exe	 wslpath
+cmd.exe	 powershell.exe	 wslpath
 $ $L --kill-server
 tmux server hq-dev-159 ended
 stub environment /tmp/hq-stub-159 removed

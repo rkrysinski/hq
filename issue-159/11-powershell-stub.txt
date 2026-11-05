@@ -1,0 +1,11 @@
+$ export WSL_STUB_PROCESSES='"C:\Program Files\Claude\claude.exe" --type=renderer --user-data-dir="C:\Users\stub\AppData\Roaming\Claude-Data
+"'
+$ $L --stub wsl-exe mcp install 2>&1 | head -1
+Claude Desktop is running and reads /tmp/hq-stub-159/win/mnt/c/Users/stub/AppData/Roaming/Claude-Data/claude_desktop_config.json, not /tmp/h
+q-stub-159/win/mnt/c/Users/stub/AppData/Roaming/Claude/claude_desktop_config.json, where hq looks first; hq is set up in the one it reads
+$ unset WSL_STUB_PROCESSES; $L --stub wsl-exe mcp install 2>&1 | head -1
+{
+$ $L --kill-server
+tmux server hq-dev-159 ended
+stub environment /tmp/hq-stub-159 removed
+$
