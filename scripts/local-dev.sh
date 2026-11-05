@@ -42,6 +42,11 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 # LOCAL_DEV_ID names the tmux server and the stub environment; tests set it
 # to stay apart from the checkout's own.
 ID=${LOCAL_DEV_ID:-$(printf %s "$ROOT" | cksum | cut -d' ' -f1)}
+case $ID in '' | *[!A-Za-z0-9-]*)
+    echo "local-dev: LOCAL_DEV_ID may hold only letters, digits and -" >&2
+    exit 1
+    ;;
+esac
 HQ_TMUX_SOCKET="hq-dev-$ID"
 export HQ_TMUX_SOCKET
 STUB_ENV=/tmp/hq-stub-$ID
@@ -128,11 +133,16 @@ mkdir -p "$(dirname "$BIN")"
 src=$ROOT
 if [ -n "$before" ]; then
     ref=${LOCAL_DEV_BEFORE:-origin/dev}
+    git -C "$ROOT" rev-parse -q --verify "$ref^{commit}" >/dev/null || die "--before: no commit $ref (fetch it first)"
     src=$(mktemp -d)
+    trap 'rm -rf "$src"' EXIT
     git -C "$ROOT" archive "$ref" | tar -x -C "$src"
 fi
 (cd "$src" && go build ${LOCAL_DEV_VERSION:+-ldflags "-X github.com/rkrysinski/hq/internal/version.Version=$LOCAL_DEV_VERSION"} -o "$BIN.new" ./cmd/hq)
-[ "$src" = "$ROOT" ] || rm -rf "$src"
+if [ "$src" != "$ROOT" ]; then
+    rm -rf "$src"
+    trap - EXIT
+fi
 mv -f "$BIN.new" "$BIN"
 
 if [ -n "$mode" ]; then
@@ -148,7 +158,7 @@ if [ -n "$mode" ]; then
     esac
     if [ "$mode" != native ]; then
         # The list testutil.WSLStubs reads; a stub not there yet is skipped.
-        while read -r cmd stub; do
+        while read -r cmd stub || [ -n "$cmd" ]; do
             case $cmd in '' | '#'*) continue ;; esac
             if [ -e "$TESTUTIL/$stub" ]; then
                 ln -s "$TESTUTIL/$stub" "$STUB_ENV/stubs/$cmd"

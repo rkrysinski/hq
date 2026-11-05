@@ -32,6 +32,7 @@ scripts/local-dev.sh --kill-server                        # ends the server and 
 - The stubs are `internal/testutil`'s, the same `testutil.WSLStubs` uses; the Windows side is listed once in `internal/testutil/wsl-stubs`. Add a new stub there.
 - Everything lives in `/tmp/hq-stub-<id>`: the binary (`bin/hq`), a neutral `HOME` with the preferences, the stub sbx's state (`sbx/`, `SBX_STUB_DIR`), `C:\` at `win/mnt/c`, the fake claude, and a git repository `repo` to start agents in. Run QA from that repository so screenshots carry no user's path; PATH directories under your HOME are reached through links there too.
 - `--before` builds `LOCAL_DEV_BEFORE` (default `origin/dev`; fetch it first) to the same path as the checkout's build, so the before and after binaries are one program to what registered it (`hq mcp install` says "already set up"). Builds are renamed into place: no "Text file busy".
+- hq keeps its agents' records in the repository (`.git/hq/agents`), so agents in a repository outside the stub environment outlive `--kill-server` as lost agents (`hq restore`, `hq kill`); kill them first, or use the stub environment's `repo`, which goes with it.
 - The tmux server is still this checkout's. It remembers the mode that started it, and a run in another mode (or without `--stub`) is refused until `--kill-server`.
 - End the private tmux server with `--kill-server` when done.
 - QA evidence needs terminal screenshots in every PR (`docs/agents/qa-evidence.md`): render a pane with `scripts/qa-screenshot.sh -L SOCKET TARGET OUT.png`.
