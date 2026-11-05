@@ -50,13 +50,8 @@ type WindowsSbx struct {
 
 func (WindowsSbx) SbxCommand() string { return "sbx.exe" }
 
-func (s WindowsSbx) ToSbx(path string) (string, error) {
-	return WSL{Run: s.Run}.wslpath("-w", path)
-}
-
-func (s WindowsSbx) FromSbx(path string) (string, error) {
-	return WSL{Run: s.Run}.wslpath("-u", path)
-}
+func (s WindowsSbx) ToSbx(path string) (string, error)   { return wslpath(s.Run, "-w", path) }
+func (s WindowsSbx) FromSbx(path string) (string, error) { return wslpath(s.Run, "-u", path) }
 
 // Missing names both: hq on WSL takes sbx.exe only when there is no sbx.
 func (WindowsSbx) Missing() string { return "neither sbx nor sbx.exe found" }

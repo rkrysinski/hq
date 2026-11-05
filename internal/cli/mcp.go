@@ -192,15 +192,15 @@ func codeTargets(d deps, exe string, vars []string) (mcpTargets, error) {
 // for the user to add and fails with the reason.
 func runMCPInstall(env Env, d deps, c mcpClient) error {
 	err := installMCP(env, d, c)
-	warnWorkaround(env, d)
+	warnHQPlatformNative(env, d)
 	return err
 }
 
-// warnWorkaround says, on WSL, that HQ_PLATFORM=native, the way to the
+// warnHQPlatformNative says, on WSL, that HQ_PLATFORM=native, the way to the
 // Linux sbx before hq took it itself, is no longer needed (#153). Only hq
 // mcp install says it: the tests set the variable for everything else.
-func warnWorkaround(env Env, d deps) {
-	if d.getenv("WSL_DISTRO_NAME") != "" && d.getenv(platform.OverrideEnv) == "native" {
+func warnHQPlatformNative(env Env, d deps) {
+	if platform.NativeOnWSL(d.getenv) {
 		fmt.Fprintln(env.Stderr, "hq: HQ_PLATFORM=native is no longer needed on WSL: hq uses the Linux sbx when it is in PATH, and HQ_PLATFORM=native turns off the taskbar flash and hq go raising the window; remove it from ~/.bashrc, open a new terminal and run hq mcp install again")
 	}
 }
