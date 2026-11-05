@@ -16,6 +16,7 @@ import (
 	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
+	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -601,8 +602,11 @@ type fakes struct {
 	// set up in a client's configuration, installedIn the files, and
 	// installResult and installErr the answer, installErrs a file's own;
 	// served is the MCP server run over stdio, serveErr how it ends.
-	desktop        string
-	desktopErr     error
+	desktop    string
+	desktopErr error
+	// sbxSide is the sbx side the gateway's command line comes from (the
+	// fake platform's when nil).
+	sbxSide        platform.SbxSide
 	windowsCode    string
 	windowsCodeErr error
 	installed      []mcpconfig.Server
@@ -890,6 +894,12 @@ func (f *fakes) deps() deps {
 		appServer: func(argv, env []string) mcpconfig.Server {
 			cmd, args, e := platformtest.Fake{}.AppServer(argv, env)
 			return mcpconfig.Server{Command: cmd, Args: args, Env: e}
+		},
+		sbxGateway: func(argv, env []string) (string, []string) {
+			if f.sbxSide != nil {
+				return f.sbxSide.Gateway(argv, env)
+			}
+			return platformtest.Fake{}.Gateway(argv, env)
 		},
 		installConfig: func(file mcpconfig.File, s mcpconfig.Server) (mcpconfig.Result, error) {
 			f.installed = append(f.installed, s)

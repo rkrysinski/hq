@@ -170,11 +170,17 @@ func (c Client) MCPLoad(name, sandbox string) error {
 
 func (c Client) bin() string { return c.Platform.SbxCommand() }
 
-// run runs sbx; a failure carries sbx's own error and remedy (Failure).
+// run runs sbx; a failure carries sbx's own error and remedy (Failure),
+// and a missing sbx what the platform says was not found.
 func (c Client) run(args ...string) ([]byte, error) {
 	out, err := c.Run.Run(c.bin(), args...)
 	var pe *proc.Error
 	if errors.As(err, &pe) {
+		if pe.NotFound {
+			missing := *pe
+			missing.Msg = c.Platform.Missing()
+			return out, &missing
+		}
 		if msg := Failure(pe.Stderr); msg != "" {
 			failed := *pe
 			failed.Msg = msg
