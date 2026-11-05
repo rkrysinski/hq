@@ -125,11 +125,17 @@ func TestStubWSLExeGivesTheStubSbxExeAWindowsPath(t *testing.T) {
 	}
 }
 
-func TestStubWSLLinuxPutsTheStubSbxAsTheLinuxOneBesideTheWindowsSide(t *testing.T) {
+func TestStubWSLLinuxGivesTheStubSbxAsTheLinuxOneHqsOwnPath(t *testing.T) {
 	d := newLocalDev(t)
-	d.must("--stub", "wsl-linux", "--version")
+	d.must("--stub", "wsl-linux", "new", "a", d.dir()+"/repo", "hello")
+	if ws := d.workspace(); ws != d.realDir()+"/repo" {
+		t.Fatalf("workspace %q", ws)
+	}
+	if out := d.must("--stub", "wsl-linux", "ls"); !strings.Contains(out, "a ") {
+		t.Fatalf("ls: %s", out)
+	}
 	stubs := d.stubs()
-	for _, name := range []string{"sbx", "wslpath", "cmd.exe"} {
+	for _, name := range []string{"sbx", "wslpath", "cmd.exe", "powershell.exe"} {
 		if !has(stubs, name) {
 			t.Errorf("no %s in %v", name, stubs)
 		}
@@ -149,7 +155,8 @@ func TestStubNoneHidesARealSbx(t *testing.T) {
 	}
 	d.env = append(d.env, "PATH="+real+string(os.PathListSeparator)+os.Getenv("PATH"))
 	out, ok := d.run("--stub", "none", "new", "a", d.dir()+"/repo", "hello")
-	if ok || !strings.Contains(out, "sbx not found") {
+	// hq's own message names the missing sbx; the real one is never run.
+	if ok || !strings.Contains(out, "found") || strings.Contains(out, "real sbx") {
 		t.Fatalf("ok %v: %s", ok, out)
 	}
 }

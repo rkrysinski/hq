@@ -16,6 +16,7 @@ import (
 	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
+	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -596,13 +597,20 @@ type fakes struct {
 	ranErr  error
 
 	// desktop is Claude Desktop's configuration file (desktopErr: it
-	// cannot be found), windowsCode Claude Code's on Windows (none when
+	// cannot be found; desktopRunning: Claude Desktop runs, reading desktop,
+	// and desktopSearched is the file hq looks for first when that is
+	// another), windowsCode Claude Code's on Windows (none when
 	// empty; windowsCodeErr: Windows cannot say); installed are the servers
 	// set up in a client's configuration, installedIn the files, and
 	// installResult and installErr the answer, installErrs a file's own;
 	// served is the MCP server run over stdio, serveErr how it ends.
-	desktop        string
-	desktopErr     error
+	desktop         string
+	desktopErr      error
+	desktopRunning  bool
+	desktopSearched string
+	// sbxSide is the sbx side the gateway's command line comes from (the
+	// fake platform's when nil).
+	sbxSide        platform.SbxSide
 	windowsCode    string
 	windowsCodeErr error
 	installed      []mcpconfig.Server
@@ -882,14 +890,22 @@ func (f *fakes) deps() deps {
 		pid:   4242,
 		alive: func(pid int) bool { return f.alive[pid] },
 
-		home:          func() (string, error) { return "/home/dev", nil },
-		desktopConfig: func() (string, error) { return f.desktop, f.desktopErr },
+		home: func() (string, error) { return "/home/dev", nil },
+		desktopConfig: func() (platform.Desktop, error) {
+			return platform.Desktop{Path: f.desktop, Running: f.desktopRunning, Searched: f.desktopSearched}, f.desktopErr
+		},
 		windowsCodeConfig: func() (string, bool, error) {
 			return f.windowsCode, f.windowsCode != "" || f.windowsCodeErr != nil, f.windowsCodeErr
 		},
 		appServer: func(argv, env []string) mcpconfig.Server {
 			cmd, args, e := platformtest.Fake{}.AppServer(argv, env)
 			return mcpconfig.Server{Command: cmd, Args: args, Env: e}
+		},
+		sbxGateway: func(argv, env []string) (string, []string) {
+			if f.sbxSide != nil {
+				return f.sbxSide.Gateway(argv, env)
+			}
+			return platformtest.Fake{}.Gateway(argv, env)
 		},
 		installConfig: func(file mcpconfig.File, s mcpconfig.Server) (mcpconfig.Result, error) {
 			f.installed = append(f.installed, s)

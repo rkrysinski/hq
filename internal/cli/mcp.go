@@ -15,6 +15,7 @@ import (
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
+	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
@@ -115,10 +116,14 @@ type mcpTarget struct {
 type mcpTargets struct {
 	targets       []mcpTarget
 	install, load string
+	// note is said before hq is set up, when there is something to say.
+	note string
 }
 
 // desktopTargets is Claude Desktop's configuration, which the platform
-// adapter finds, and the entry it starts hq with (design §3.10).
+// adapter finds, and the entry it starts hq with (design §3.10). A running
+// Claude Desktop loads hq only once it is quit from the system tray; when it
+// reads another file than hq looks for first, both are named (#154).
 func desktopTargets(d deps, exe string, vars []string) (mcpTargets, error) {
 	t := mcpTarget{
 		title:  claudeDesktop.title,
@@ -126,13 +131,20 @@ func desktopTargets(d deps, exe string, vars []string) (mcpTargets, error) {
 		fix:    "add the entry above to it by hand, then quit and reopen Claude Desktop",
 	}
 	t.byHand = mcpconfig.Snippet(t.server)
-	path, err := d.desktopConfig()
-	t.file, t.missing = mcpconfig.File{Path: path, Create: true}, filepath.Dir(path)
-	return mcpTargets{
+	desktop, err := d.desktopConfig()
+	t.file, t.missing = mcpconfig.File{Path: desktop.Path, Create: true}, filepath.Dir(desktop.Path)
+	ts := mcpTargets{
 		targets: []mcpTarget{t},
 		install: "install Claude Desktop and open it once, then run hq mcp install again (or add the entry above to its configuration by hand)",
 		load:    "quit and reopen Claude Desktop to load it",
-	}, err
+	}
+	if desktop.Running {
+		ts.load = "quit Claude Desktop from its icon in the system tray (closing its window is not enough) and open it again to load hq"
+	}
+	if desktop.Searched != "" {
+		ts.note = fmt.Sprintf("Claude Desktop is running and reads %s, not %s, where hq looks first; hq is set up in the one it reads", desktop.Path, desktop.Searched)
+	}
+	return ts, err
 }
 
 // codeTargets are Claude Code's user configuration, .claude.json in
@@ -190,6 +202,22 @@ func codeTargets(d deps, exe string, vars []string) (mcpTargets, error) {
 // changes nothing there, prints hq's entry, or the command that adds it,
 // for the user to add and fails with the reason.
 func runMCPInstall(env Env, d deps, c mcpClient) error {
+	err := installMCP(env, d, c)
+	warnHQPlatformNative(env, d)
+	return err
+}
+
+// warnHQPlatformNative says, on WSL, that HQ_PLATFORM=native, the way to the
+// Linux sbx before hq took it itself, is no longer needed (#153). Only hq
+// mcp install says it: the tests set the variable for everything else.
+func warnHQPlatformNative(env Env, d deps) {
+	if platform.NativeOnWSL(d.getenv) {
+		fmt.Fprintln(env.Stderr, "hq: HQ_PLATFORM=native is no longer needed on WSL: hq uses the Linux sbx when it is in PATH, and HQ_PLATFORM=native turns off the taskbar flash and hq go raising the window; remove it from ~/.bashrc, open a new terminal and run hq mcp install again")
+	}
+}
+
+// installMCP is runMCPInstall's work.
+func installMCP(env Env, d deps, c mcpClient) error {
 	exe, err := d.executable()
 	if err != nil {
 		return envErr("cannot find the running hq: %v", err)
@@ -212,6 +240,9 @@ func runMCPInstall(env Env, d deps, c mcpClient) error {
 		t := ts.targets[0]
 		fmt.Fprint(env.Stdout, t.byHand)
 		return envErr("cannot find %s's configuration (%v); %s", t.title, err, t.fix)
+	}
+	if ts.note != "" {
+		fmt.Fprintln(env.Stdout, ts.note)
 	}
 	var missing, failed []string
 	set, changed := false, false
@@ -254,25 +285,12 @@ func runMCPInstall(env Env, d deps, c mcpClient) error {
 	return nil
 }
 
-// sbxCommandLine is the command sbx starts hq with, given the entry app
-// (appServer) an app gets for argv: sbx mcp add sets no environment, so
-// where the entry sets one beside hq, env sets it, with vars in their order;
-// where the entry's command line carries it (WSL, where sbx.exe on Windows
-// starts hq through wsl.exe as Claude Desktop does), that command line.
-func sbxCommandLine(app mcpconfig.Server, argv, vars []string) (string, []string) {
-	if app.Env == nil {
-		return app.Command, app.Args
-	}
-	return "/usr/bin/env", append(slices.Clone(vars), argv...)
-}
-
 // installSbx registers hq with sbx, for a Claude Code inside a sandbox
 // (#141): replaced when sbx has another command line under hq's name,
 // left as it is when it has this one. sbx mcp add splits --args at commas,
 // so a value that holds one is refused.
 func installSbx(env Env, d deps, exe string, vars []string) error {
-	argv := []string{exe, "mcp", sbxGateway.name}
-	cmd, args := sbxCommandLine(d.appServer(argv, vars), argv, vars)
+	cmd, args := d.sbxGateway([]string{exe, "mcp", sbxGateway.name}, vars)
 	const comma = "cannot register hq with sbx: %s holds a comma, and sbx mcp add splits its arguments at commas; %s and run hq mcp install sbx again"
 	for _, a := range args {
 		k, _, isVar := strings.Cut(a, "=")

@@ -18,7 +18,7 @@ Rules of thumb:
 - **External tools sit behind an interface** (tmux, `sbx`, `gh`, the platform adapter, the clock, the state-file reader) with a fake for tests, so unit tests never call the real tool. Platform-specific adapters (macOS, WSL) get the same contract tests.
 - **Wait for tmux to reap an ended pane before looking at it.** On WSL 1 tmux now and then misses that a pane's program exited: the pane is dead, but without its time, status and "Pane is dead" line until another child of the server exits (#22). A tmux test that asserts any of those calls `reaped(t, socket)` after the pane is dead.
 - **Run tmux with `-u`.** hq passes it to every tmux command (design 3.2); a test that runs tmux itself does too, or what it reads depends on the machine's locale (#41).
-- **Never touch the user's tmux server or sandboxes from a test.** Integration and end-to-end tests use a private tmux socket and the stub `sbx`. A test that starts hq says which platform it runs as, so the suite behaves the same on macOS, Linux and WSL: `testutil.SbxStub` sets `HQ_PLATFORM=native` (hq runs `sbx`, the stub, never the `sbx.exe` of a WSL machine) and `testutil.WSLStubs` sets `HQ_PLATFORM=wsl`; a test that uses neither and starts the hq binary sets it itself.
+- **Never touch the user's tmux server or sandboxes from a test.** Integration and end-to-end tests use a private tmux socket and the stub `sbx`. A test that starts hq says which platform it runs as, so the suite behaves the same on macOS, Linux and WSL: `testutil.SbxStub` sets `HQ_PLATFORM=native` (hq runs `sbx`, the stub, never the `sbx.exe` of a WSL machine) and `testutil.WSLStubs` sets `HQ_PLATFORM=wsl` (hq runs the stub as `sbx.exe`, whatever `sbx` is in `PATH`); a test that uses neither and starts the hq binary sets it itself.
 
 ## Commands
 
@@ -28,13 +28,18 @@ go test -tags integration ./...                        # unit + integration
 go test -tags e2e ./e2e/...                            # end-to-end journeys
 go run ./tools/testgate pyramid                        # counts per level, checks the shape
 go run ./tools/testgate private [PATH...]              # no private details (needs HQ_PRIVATE_PATTERNS)
+go run ./tools/testgate platform                       # platform-specific names only in internal/platform
 go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./... \
   && go run ./tools/testgate coverage cover.out        # coverage threshold
 ```
 
 ## Thresholds
 
-`tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. CI (`.github/workflows/tests.yml`, on macOS and Ubuntu, for every change but one of only the paths its header lists as skipped) runs the pyramid check, unit and integration tests with coverage, and the end-to-end journeys. Both thresholds only go up. The unit share's minimum follows the figure: a PR that raises the share raises the minimum in the same PR. The coverage minimum stays 0.5 points under CI's figure, rounded down to a tenth, so a PR that changes nothing about tests cannot fall under it: a PR that lifts the figure more than 0.5 points above the minimum raises the minimum to the figure less 0.5 (#42). Never lower one to get a PR through. A PR with a red CI job is not merged.
+`tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. CI (`.github/workflows/tests.yml`, on macOS and Ubuntu, for every change but one of only the paths its header lists as skipped) runs the pyramid check, the platform check (below), unit and integration tests with coverage, and the end-to-end journeys. Both thresholds only go up. The unit share's minimum follows the figure: a PR that raises the share raises the minimum in the same PR. The coverage minimum stays 0.5 points under CI's figure, rounded down to a tenth, so a PR that changes nothing about tests cannot fall under it: a PR that lifts the figure more than 0.5 points above the minimum raises the minimum to the figure less 0.5 (#42). Never lower one to get a PR through. A PR with a red CI job is not merged.
+
+## Platform code
+
+Both platforms behave the same, and the code that tells them apart lives in `internal/platform` only (`AGENTS.md`, design §3.10). `testgate platform` fails on a Go file, not a test, that names a program or variable of one platform outside it: `cmd.exe`, `powershell.exe`, `wsl.exe`, `wslpath`, `sbx.exe`, `WSL_DISTRO_NAME` or `osascript` in a string (ignoring case), or `runtime.GOOS` in code (ask `platform.OS` instead). It prints the file, the line and the name. Comments are not checked, and no other word is looked for: a message to the user about the system tray passes. The list and its exemptions (`internal/platform`, the stubs in `internal/testutil`, the gate itself), each with its reason, are in `tools/testgate/platform.go`; a new exemption needs a reason there and a line in the PR.
 
 ## Private details
 
