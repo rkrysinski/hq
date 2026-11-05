@@ -57,7 +57,7 @@ The `sandbox` object is the default setup, which every agent uses unless `hq new
 
 The same rule as for `sandbox` holds: a setup's settings apply when its sandbox is created. To change them for a sandbox that exists, remove it (`hq sandbox rm REPO --setup local`, after the agents in it are killed; the repository's other sandboxes and their agents stay) and let the next `hq new --setup local` create it again. `hq sandbox rm|restart REPO` alone acts on the default sandbox, `--setup NAME` on that setup's, and `--all-setups` on every sandbox of the repository, after one confirmation that lists them.
 
-To run agents on a model served by LM Studio on the host (verified with sbx v0.47.0 on macOS; not yet on Windows, where sbx runs on the Windows side and LM Studio must be reachable from it):
+To run agents on a model served by LM Studio on the host (verified with sbx v0.47.0 on macOS; not yet on Windows, where the Windows `sbx.exe` runs on the Windows side and LM Studio must be reachable from it):
 
 ```bash
 sbx settings set feature.model true
@@ -76,10 +76,12 @@ hq works with any template, with one condition for `hq answer`: the template's o
 
 ### Windows
 
-1. Install `sbx` on Windows, not inside WSL (`winget install Docker.sbx`): hq in WSL runs the Windows `sbx.exe`.
-2. Open a new WSL session after installing it. The installer adds `sbx` to the Windows PATH, and a WSL session that was already open does not see it: there hq's installer still reports `sbx: install Docker Sandboxes`.
+1. Install `sbx`, either the Linux `sbx` inside WSL, as Docker Sandboxes describes it for Linux, or the Windows one (`winget install Docker.sbx`). hq in WSL runs the Linux `sbx` when `sbx` is in WSL's PATH, and the Windows `sbx.exe` otherwise. Each `sbx` has its own sandboxes: those of the other one, and the agents in them, are not visible to hq.
+2. With the Windows `sbx.exe`, open a new WSL session after installing it. The installer adds `sbx` to the Windows PATH, and a WSL session that was already open does not see it: there hq's installer still reports `sbx (or sbx.exe on WSL): install Docker Sandboxes`.
 3. Run the two `sbx` commands above.
-4. Check that the machine can run sandboxes: `sbx.exe diagnose` must not report `Virtualization - not available`. `sbx` on Windows is an x86-64 program that needs the Windows Hypervisor Platform feature; it starts no sandbox on ARM64 Windows, nor in a virtual machine without nested virtualization. hq itself runs on those machines (WSL 1 or 2, ARM64 too), so the first sign is a failing `hq new`.
+4. With the Windows `sbx.exe`, check that the machine can run sandboxes: `sbx.exe diagnose` must not report `Virtualization - not available`. `sbx` on Windows is an x86-64 program that needs the Windows Hypervisor Platform feature; it starts no sandbox on ARM64 Windows, nor in a virtual machine without nested virtualization. hq itself runs on those machines (WSL 1 or 2, ARM64 too), so the first sign is a failing `hq new`.
+
+`HQ_PLATFORM=native` in `~/.bashrc`, once the way to the Linux `sbx`, is no longer needed and turns off the taskbar flash and `hq go` raising the window: remove it, open a new terminal and run `hq mcp install` again (`hq mcp install` says so while it is set).
 
 When a newer release is out, hq says so after a command's output (`hq v0.4.0 is available - run hq update`), in the dashboard's header and in `hq --version`; `hq update` moves to it. hq looks at most once a day, in the background, so no command waits for GitHub.
 

@@ -12,14 +12,10 @@ import (
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
-// Platform is what differs between the platforms.
+// Platform is what differs between the platforms: the desktop hq runs on,
+// and the sbx it reaches from there (SbxSide).
 type Platform interface {
-	// SbxCommand is the command that runs sbx.
-	SbxCommand() string
-	// ToSbx turns a path as hq sees it into the path sbx understands.
-	ToSbx(path string) (string, error)
-	// FromSbx turns a path sbx reports into the path hq sees.
-	FromSbx(path string) (string, error)
+	SbxSide
 	// NotifySequence is the terminal's desktop notification as the content
 	// of a JSON string, with %s where the text goes (design §3.5); without
 	// %s the terminal shows no text.
@@ -49,15 +45,20 @@ type Platform interface {
 }
 
 // OverrideEnv names the variable that decides the platform instead of
-// Detect's look at the machine: "native" or "wsl". It is for tests and QA,
-// so that a suite run on WSL can still run hq as it runs on macOS, with the
+// Detect's look at the machine: "native" or "wsl", the latter with sbx.exe,
+// as the tests stub it, whatever sbx is in PATH. It is for tests and QA, so
+// that a suite run on WSL can still run hq as it runs on macOS, with the
 // stub sbx, and never reaches the Windows side (design §7.2).
 const OverrideEnv = "HQ_PLATFORM"
 
 // Detect chooses the platform at startup: WSL when WSL_DISTRO_NAME is set or
-// the kernel release names Microsoft, otherwise Native.
+// the kernel release names Microsoft, otherwise Native. On WSL the sbx is
+// the Linux one when lookPath finds sbx, otherwise sbx.exe (wslSbx).
 // OverrideEnv, when set to one of its values, decides instead.
-func Detect(getenv func(string) string, readFile func(string) ([]byte, error), run proc.Runner) Platform {
+func Detect(getenv func(string) string, readFile func(string) ([]byte, error), lookPath func(string) (string, error), run proc.Runner) Platform {
+	wsl := func(distro string) WSL {
+		return WSL{Run: run, BrowserSet: getenv("BROWSER") != "", Distro: distro, Sbx: wslSbx(lookPath, run, distro)}
+	}
 	switch getenv(OverrideEnv) {
 	case "native":
 		return Native{}
@@ -65,20 +66,16 @@ func Detect(getenv func(string) string, readFile func(string) ([]byte, error), r
 		return WSL{Run: run, BrowserSet: getenv("BROWSER") != "", Distro: getenv("WSL_DISTRO_NAME")}
 	}
 	if d := getenv("WSL_DISTRO_NAME"); d != "" {
-		return WSL{Run: run, BrowserSet: getenv("BROWSER") != "", Distro: d}
+		return wsl(d)
 	}
 	if b, err := readFile("/proc/sys/kernel/osrelease"); err == nil && strings.Contains(strings.ToLower(string(b)), "microsoft") {
-		return WSL{Run: run, BrowserSet: getenv("BROWSER") != ""}
+		return wsl("")
 	}
 	return Native{}
 }
 
-// Native is macOS (and a plain Linux): sbx runs as sbx and sees hq's paths.
-type Native struct{}
-
-func (Native) SbxCommand() string                  { return "sbx" }
-func (Native) ToSbx(path string) (string, error)   { return path, nil }
-func (Native) FromSbx(path string) (string, error) { return path, nil }
+// Native is macOS (and a plain Linux), with the native sbx.
+type Native struct{ NativeSbx }
 
 // NotifySequence is OSC 9, which iTerm2 shows as a desktop notification.
 func (Native) NotifySequence() string { return `\u001b]9;%s\u0007` }
@@ -119,17 +116,31 @@ end run`
 
 func ghView(url string) []string { return []string{"gh", "pr", "view", "--web", url} }
 
-// WSL is Windows through WSL: sbx is the Windows sbx.exe, reached through
-// interop, and paths cross between Linux and Windows with wslpath.
+// WSL is Windows through WSL: the desktop is Windows, reached through
+// interop, and paths to it cross between Linux and Windows with wslpath.
 type WSL struct {
 	Run        proc.Runner
 	BrowserSet bool   // the user set BROWSER
 	Distro     string // the WSL distribution hq runs in, when known
+	// Sbx is the sbx hq runs; without one, the Windows sbx.exe
+	// (WindowsSbx with Run and Distro).
+	Sbx SbxSide
 }
 
-func (WSL) SbxCommand() string                    { return "sbx.exe" }
-func (w WSL) ToSbx(path string) (string, error)   { return w.wslpath("-w", path) }
-func (w WSL) FromSbx(path string) (string, error) { return w.wslpath("-u", path) }
+func (w WSL) sbx() SbxSide {
+	if w.Sbx == nil {
+		return WindowsSbx{Run: w.Run, Distro: w.Distro}
+	}
+	return w.Sbx
+}
+
+func (w WSL) SbxCommand() string                  { return w.sbx().SbxCommand() }
+func (w WSL) ToSbx(path string) (string, error)   { return w.sbx().ToSbx(path) }
+func (w WSL) FromSbx(path string) (string, error) { return w.sbx().FromSbx(path) }
+func (w WSL) Missing() string                     { return w.sbx().Missing() }
+func (w WSL) Gateway(argv, env []string) (string, []string) {
+	return w.sbx().Gateway(argv, env)
+}
 
 // NotifySequence is BEL, which Windows Terminal shows as a taskbar flash
 // (design §3.10; what more it honours is checked on Windows, #9).
