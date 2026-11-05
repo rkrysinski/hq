@@ -1,0 +1,30 @@
+lrwxrwxrwx  1 agent agent   26 Nov  5 07:36 var -> /home/agent/qa-158/private
+cmd/hq/main.go:0
+cmd/hq/main_integration_test.go:0
+cmd/hq/mcp_integration_test.go:0
+ok  	github.com/rkrysinski/hq/cmd/hq	28.860s
+ok  	github.com/rkrysinski/hq/internal/agent	0.008s
+ok  	github.com/rkrysinski/hq/internal/cli	105.130s
+ok  	github.com/rkrysinski/hq/internal/dash	8.155s
+ok  	github.com/rkrysinski/hq/internal/dialog	1.300s
+ok  	github.com/rkrysinski/hq/internal/gh	0.001s
+ok  	github.com/rkrysinski/hq/internal/iterm	0.004s
+ok  	github.com/rkrysinski/hq/internal/kills	0.019s
+ok  	github.com/rkrysinski/hq/internal/mcpconfig	0.620s
+ok  	github.com/rkrysinski/hq/internal/platform	0.017s
+ok  	github.com/rkrysinski/hq/internal/prefs	0.018s
+ok  	github.com/rkrysinski/hq/internal/proc	0.817s
+ok  	github.com/rkrysinski/hq/internal/repo	0.026s
+ok  	github.com/rkrysinski/hq/internal/sbx	0.112s
+ok  	github.com/rkrysinski/hq/internal/state	8.881s
+ok  	github.com/rkrysinski/hq/internal/testutil	0.861s
+ok  	github.com/rkrysinski/hq/internal/tmux	13.576s
+ok  	github.com/rkrysinski/hq/internal/update	0.408s
+$
+
+
+
+
+
+
+

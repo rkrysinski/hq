@@ -1,0 +1,30 @@
+lrwxrwxrwx  1 agent agent   26 Nov  5 07:36 var -> /home/agent/qa-158/private
+--- FAIL: TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest (0.20s)
+    mcp_integration_test.go:620: hq {Type: Command:/home/agent/qa-158/private/TestMCPInstallAddsHqToClaudeDesktopOnceAndKeepsTheRest1005305621/001/hq Args:[mc
+--- FAIL: TestMCPInstallOnWSLStartsHqThroughWslExe (0.21s)
+    mcp_integration_test.go:695: hq {Type: Command:wsl.exe Args:[-d Stub --exec /usr/bin/env PATH=/home/agent/qa-158/var/TestMCPInstallOnWSLStartsHqThroughWsl
+--- FAIL: TestMCPInstallAddsHqToClaudeCodeOnceAndKeepsTheRest (0.19s)
+    mcp_integration_test.go:748: hq {Type:stdio Command:/home/agent/qa-158/private/TestMCPInstallAddsHqToClaudeCodeOnceAndKeepsTheRest3832846715/001/hq Args:[
+--- FAIL: TestMCPInstallForClaudeCodeOnWSLAlsoSetsUpClaudeCodeOnWindows (0.20s)
+    mcp_integration_test.go:806: hq {Type:stdio Command:/home/agent/qa-158/private/TestMCPInstallForClaudeCodeOnWSLAlsoSetsUpClaudeCodeOnWindows689653308/001/
+FAIL
+FAIL	github.com/rkrysinski/hq/cmd/hq	0.806s
+FAIL
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
