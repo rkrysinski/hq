@@ -10,7 +10,7 @@ on:
 
 permissions:
   contents: write        # create and edit the release
-  issues: write          # milestones and the "Wydane w ..." comments
+  issues: write          # milestones and the "Released in ..." comments
   pull-requests: write   # the milestone on each pull request
 
 jobs:

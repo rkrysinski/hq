@@ -1,7 +1,7 @@
 ---
 name: Release
 about: A supervised release (docs/agents/supervisor.md)
-title: "Wydanie vX.Y.Z"
+title: "Release vX.Y.Z"
 labels: [release]
 ---
 

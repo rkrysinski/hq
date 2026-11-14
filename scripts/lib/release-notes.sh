@@ -24,10 +24,10 @@
 
 RELEASE_NOTES_PROG=${RELEASE_NOTES_PROG:-$(basename "$0" .sh)}
 
-# The headings a pull request uses for its deployment prerequisites. Polish,
-# like the release notes they end up in (docs/releasing.md).
-RELEASE_NOTES_BEFORE_HEADING=${RELEASE_NOTES_BEFORE_HEADING:-Przed wdrożeniem}
-RELEASE_NOTES_AFTER_HEADING=${RELEASE_NOTES_AFTER_HEADING:-Po wdrożeniu}
+# The headings a pull request uses for its deployment prerequisites. English,
+# like the release notes they end up in (docs/releasing.md, docs/hq/releasing.md).
+RELEASE_NOTES_BEFORE_HEADING=${RELEASE_NOTES_BEFORE_HEADING:-Before deployment}
+RELEASE_NOTES_AFTER_HEADING=${RELEASE_NOTES_AFTER_HEADING:-After deployment}
 
 # A release branch is named release-v<MAJOR>.<MINOR>.<PATCH>
 # (docs/agents/issue-tracker.md); any other branch starting with `release-` is
@@ -285,8 +285,8 @@ release_notes_is_spec() {
 
 release_notes_prerequisites() {
     # Reads <workdir>/prs.tsv and prs.json and writes <workdir>/before.md and
-    # <workdir>/after.md: every pull request's `## Przed wdrożeniem` and
-    # `## Po wdrożeniu` section (RELEASE_NOTES_BEFORE_HEADING and
+    # <workdir>/after.md: every pull request's `## Before deployment` and
+    # `## After deployment` section (RELEASE_NOTES_BEFORE_HEADING and
     # RELEASE_NOTES_AFTER_HEADING), in pull request order, each block headed by
     # the pull request it comes from, without the steps ticked as done
     # (release_notes_drop_ticked). Empty files when no pull request has one.
