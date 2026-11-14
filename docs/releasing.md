@@ -108,7 +108,7 @@ nothing, here and in `scripts/check-pr.sh`.
 | `internal` | Internal, together with pull requests that closed no issue |
 | none | Other |
 
-The notes are in English, like everything hq writes on GitHub (`docs/hq/releasing.md`). The wording sits in one
+The notes are in English, like every release of hq (`docs/hq/releasing.md`). The wording sits in one
 block at the top of `scripts/release.sh`.
 
 A pull request may close several issues (a spec pull request closes the spec and

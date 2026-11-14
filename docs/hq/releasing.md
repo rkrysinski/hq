@@ -33,12 +33,24 @@ Every release of hq is in English (the owner's decision of 2026-11-14, #186): th
 | `Wydanie` (milestone), `Wydane w` (comment) | `Release`, `Released in` | `scripts/release.sh`, `docs/releasing.md`, `docs/workflow.md`, `.github/workflows/release.yml` |
 | `## Przed wdrożeniem`, `## Po wdrożeniu` | `## Before deployment`, `## After deployment` | `scripts/lib/release-notes.sh`, `scripts/check-pr.sh`, both pull request templates, `docs/releasing.md`, `docs/workflow.md`, `docs/agents/issue-tracker.md`, `docs/agents/implementer.md` |
 | `## Wycofanie`, `Brak: drzwi jednokierunkowe` | `## Rollback`, `None: one-way door` | `scripts/check-pr.sh`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/releasing.md`, `docs/agents/issue-tracker.md`, `docs/agents/implementer.md` |
-| `## Zamyka`, `## Plan wdrożenia` | `## Closes`, `## Rollout plan` | `.github/PULL_REQUEST_TEMPLATE/release.md`, `scripts/check-pr.sh` (`## Closes`), `docs/releasing.md`, `docs/agents/issue-tracker.md` |
+| `## Zamyka` | `## Closes` | `.github/PULL_REQUEST_TEMPLATE/release.md`, `scripts/check-pr.sh`, `docs/releasing.md`, `docs/agents/issue-tracker.md` |
+| `## Plan wdrożenia` | `## Rollout plan` | `.github/PULL_REQUEST_TEMPLATE/release.md`, `docs/agents/issue-tracker.md` |
 | `Wydanie vX.Y.Z` (release issue title) | `Release vX.Y.Z` | `.github/ISSUE_TEMPLATE/release.md`, `docs/agents/issue-tracker.md` |
 | `## Wycofane kroki wdrożenia`, `Wycofane:` (a reverted ticket) | `## Reverted deployment steps`, `Reverted:` | `docs/agents/issue-tracker.md` |
 | "in Polish" (the language of the notes and of a pull request's deployment steps) | "in English" | `scripts/release.sh`, `scripts/lib/release-notes.sh`, both pull request templates, `docs/releasing.md`, `docs/workflow.md`, `docs/agents/issue-tracker.md` |
+| a misspelt heading has "no Polish letters" | "another case" | `scripts/check-pr.sh` (header), `docs/releasing.md` |
 
-Two things stay as the template has them: `scripts/check-pr.sh` still rejects the Polish generic titles (`poprawki`, `zmiany`) and folds Polish letters when it looks for a misspelt heading; neither writes anything to GitHub. The text the release skills write themselves is theirs, not hq's.
+Three more differences come with the translation:
+
+- `scripts/check-pr.sh` names a section under the template's Polish heading (`## Przed wdrożeniem`, `## Po wdrożeniu`) as misspelt and asks for the English one, so its steps are not left out of the notes without a word (the template has no such case).
+- The header of `scripts/check-pr.sh` points its cases at hq's tests, `scripts/checkpr_integration_test.go`, which run it and `scripts/release.sh` against these strings (the template's point at its own test file).
+- The row of `internal` in `docs/agents/triage-labels.md` has `-` where the template has an em dash (`docs/hq/agents.md`, *Rules*).
+
+`scripts/check-pr.sh` still rejects the Polish generic titles (`poprawki`, `zmiany`) as the template does; that writes nothing to GitHub.
+
+**Releases before v0.14.0** are in Polish and stay so. Do not re-run `scripts/release.sh` on one of them except with `--dry-run`: it would rewrite its notes in English, leave out the deployment steps of pull requests written under the Polish headings, and post a second comment beside each `Wydane w` one.
+
+**The release skills** write some text of their own, which is not hq's to change: in their current version they look up and create the release issue as `Wydanie vX.Y.Z`, write `## Zamyka` and `## Plan wdrożenia` in the master pull request, check a ticket pull request for `## Wycofanie`, and rename the Polish deployment headings for a revert. Until they follow hq's English, a supervised release meets those differences: `scripts/check-pr.sh` requires the master pull request's closing keywords under `## Closes`, and a ticket pull request has `## Rollback`.
 
 ## Version
 

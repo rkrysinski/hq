@@ -20,8 +20,8 @@
 #   - git cannot resolve <base>..<head>: the full history is needed
 #   - a prerequisite section (`## Before deployment`, `## After deployment`) is
 #     empty, sits inside an HTML comment, or its heading is misspelt (another
-#     level, another case, a trailing colon): release.sh reads only the
-#     exact heading, so it would drop or garble the steps
+#     level, another case, a trailing colon, the template's Polish heading):
+#     release.sh reads only the exact heading, so it would drop or garble the steps
 #     (ticked steps, `- [x]`, count as content: release.sh leaves them out of
 #     the notes, but the section and its rollback rule stay)
 #   - a deployment prerequisite section is present and `## Rollback` is
@@ -36,7 +36,7 @@
 # words only, and a keyword inside an HTML comment, a code span or a fenced
 # code block closes nothing and is never checked.
 #
-# Cases (tests/test_check_pr.py):
+# Cases (scripts/checkpr_integration_test.go):
 #   `## After deployment` and no `## Rollback`       -> fails, names the section
 #   the same with `## Rollback` and one line         -> passes
 #   --release-pr: `Closes #12` under `## Closes`     -> passes
@@ -187,8 +187,10 @@ if [ -n "$misspelt" ]; then
     after_key=$(printf '%s\n' "$AFTER" | normalize_heading)
     while IFS= read -r line; do
         case $(printf '%s\n' "$line" | normalize_heading) in
-            "$before_key") problem "heading \"$line\" is not read by release.sh: write exactly \`## $BEFORE\`" ;;
-            "$after_key") problem "heading \"$line\" is not read by release.sh: write exactly \`## $AFTER\`" ;;
+            # hq's headings are English; the Polish ones of the template are
+            # named too, so their steps are not lost (docs/hq/releasing.md).
+            "$before_key" | "przed wdrozeniem") problem "heading \"$line\" is not read by release.sh: write exactly \`## $BEFORE\`" ;;
+            "$after_key" | "po wdrozeniu") problem "heading \"$line\" is not read by release.sh: write exactly \`## $AFTER\`" ;;
         esac
     done <<LINES
 $misspelt

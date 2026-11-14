@@ -26,7 +26,7 @@ for the reader:
 | ------------- | --------------------- | ------------------------------------------------------------ |
 | `enhancement` | New features          | Something a user of the product can see or do                |
 | `bug`         | Fixes                 | Something that was broken for a user                         |
-| `internal`    | Internal              | Tooling, CI, deployment, docs — invisible to the product's users |
+| `internal`    | Internal              | Tooling, CI, deployment, docs - invisible to the product's users |
 | (none)        | Other                 | Anything not yet classified                                  |
 
 Give every issue one of these when it is triaged; an unlabelled issue still appears in the notes,

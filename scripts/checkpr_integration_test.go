@@ -62,28 +62,33 @@ const ticketSections = "## Summary\n\nThe notes are in English.\n\n" +
 	"## QA\n\nN/A: wording only.\n\n" +
 	"## Merge Danger\n\n**Door:** two-way.\n\n"
 
-func TestCheckPRAsksForTheRollbackOfADeploymentStep(t *testing.T) {
-	body := "Closes #5\n\n" + ticketSections + "## After deployment\n\n- [ ] Restart the service.\n"
+// wantProblem runs check-pr.sh on a ticket's description and wants it to
+// fail with the given line.
+func wantProblem(t *testing.T, body, want string) {
+	t.Helper()
 	out, code := checkPR(t, body)
-	if code != 1 {
-		t.Fatalf("exit %d, want 1:\n%s", code, out)
-	}
-	want := "check-pr: `## Rollback` is missing: the description has deployment steps, so add one line per rollback step, or `None: one-way door`"
-	if !strings.Contains(out, want) {
-		t.Fatalf("output:\n%s\nwant the line:\n%s", out, want)
+	if code != 1 || !strings.Contains(out, want) {
+		t.Fatalf("exit %d, output:\n%s\nwant exit 1 and the line:\n%s", code, out, want)
 	}
 }
 
+func TestCheckPRAsksForTheRollbackOfADeploymentStep(t *testing.T) {
+	wantProblem(t, "Closes #5\n\n"+ticketSections+"## After deployment\n\n- [ ] Restart the service.\n",
+		"check-pr: `## Rollback` is missing: the description has deployment steps, so add one line per rollback step, or `None: one-way door`")
+}
+
 func TestCheckPRNamesTheEnglishHeadingOfAMisspeltSection(t *testing.T) {
-	body := "Closes #5\n\n" + ticketSections + "## before deployment:\n\n- [ ] Set the variable.\n"
-	out, code := checkPR(t, body)
-	if code != 1 {
-		t.Fatalf("exit %d, want 1:\n%s", code, out)
-	}
-	want := "check-pr: heading \"## before deployment:\" is not read by release.sh: write exactly `## Before deployment`"
-	if !strings.Contains(out, want) {
-		t.Fatalf("output:\n%s\nwant the line:\n%s", out, want)
-	}
+	wantProblem(t, "Closes #5\n\n"+ticketSections+"## before deployment:\n\n- [ ] Set the variable.\n",
+		"check-pr: heading \"## before deployment:\" is not read by release.sh: write exactly `## Before deployment`")
+}
+
+// A description written to the template's Polish headings would lose its
+// steps from the notes without a word, so the check names the English ones.
+func TestCheckPRNamesTheEnglishHeadingOfAPolishSection(t *testing.T) {
+	wantProblem(t, "Closes #5\n\n"+ticketSections+"## Przed wdrożeniem\n\n- [ ] Grant the token.\n",
+		"check-pr: heading \"## Przed wdrożeniem\" is not read by release.sh: write exactly `## Before deployment`")
+	wantProblem(t, "Closes #5\n\n"+ticketSections+"## Po wdrożeniu\n\n- [ ] Restart hq.\n",
+		"check-pr: heading \"## Po wdrożeniu\" is not read by release.sh: write exactly `## After deployment`")
 }
 
 func TestCheckPRPassesTheTicketTemplateFilledIn(t *testing.T) {

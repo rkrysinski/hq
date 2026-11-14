@@ -34,8 +34,8 @@ DEPLOY_DOC=docs/deployment.md
 GENERATED_BEGIN='<!-- generated -->'
 GENERATED_END='<!-- /generated -->'
 
-# Wording of the notes: English, like everything hq writes on GitHub (the
-# template has it in Polish; docs/hq/releasing.md). Change it here and in
+# Wording of the notes: English, like every release of hq (the template has it
+# in Polish; docs/hq/releasing.md). Change it here and in
 # docs/agents/triage-labels.md together. The prerequisite headings are
 # RELEASE_NOTES_BEFORE_HEADING and RELEASE_NOTES_AFTER_HEADING in
 # scripts/lib/release-notes.sh, because pull requests use them too.

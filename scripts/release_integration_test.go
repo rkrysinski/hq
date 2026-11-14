@@ -40,13 +40,13 @@ echo "stub gh: unexpected call: $*" >&2
 exit 3
 `
 
-// pull is a merged pull request as the GitHub API lists it.
-func pull(number int, title, body, mergeSha string) string {
+// pullJSON is a merged pull request as the GitHub API lists it.
+func pullJSON(number int, title, body, mergeSha string) string {
 	return fmt.Sprintf(`{"number":%d,"title":%q,"body":%q,"merged_at":"2026-11-14T10:00:00Z","merge_commit_sha":%q,"head":{"ref":"issue-%d"}}`,
 		number, title, body, mergeSha, number)
 }
 
-func issue(number int, title string, labels ...string) string {
+func issueJSON(number int, title string, labels ...string) string {
 	names := make([]string, len(labels))
 	for i, l := range labels {
 		names[i] = fmt.Sprintf(`{"name":%q}`, l)
@@ -85,14 +85,14 @@ func TestReleaseWritesItsNotesMilestoneAndCommentsInEnglish(t *testing.T) {
 	stub := t.TempDir()
 	writeFile(t, filepath.Join(stub, "gh"), stubGh, 0o755)
 	writeFile(t, filepath.Join(stub, "pulls.json"), "["+strings.Join([]string{
-		pull(10, "Show the queue", "Closes #1\n\n## Before deployment\n\n- [ ] Grant the token.\n\n## Rollback\n\n- Revoke the token.\n", shas[0]),
-		pull(11, "Keep the list sorted", "Closes #2\n\n## After deployment\n\n- [ ] Restart hq.\n\n## Rollback\n\nNone: one-way door\n", shas[1]),
-		pull(12, "Name the agent", "Closes #3\n", shas[2]),
-		pull(13, "Tidy the scripts", "No issue.\n", shas[3]),
+		pullJSON(10, "Show the queue", "Closes #1\n\n## Before deployment\n\n- [ ] Grant the token.\n\n## Rollback\n\n- Revoke the token.\n", shas[0]),
+		pullJSON(11, "Keep the list sorted", "Closes #2\n\n## After deployment\n\n- [ ] Restart hq.\n\n## Rollback\n\nNone: one-way door\n", shas[1]),
+		pullJSON(12, "Name the agent", "Closes #3\n", shas[2]),
+		pullJSON(13, "Tidy the scripts", "No issue.\n", shas[3]),
 	}, ",")+"]", 0o644)
-	writeFile(t, filepath.Join(stub, "issue-1.json"), issue(1, "A queue view", "enhancement"), 0o644)
-	writeFile(t, filepath.Join(stub, "issue-2.json"), issue(2, "The list jumps", "bug"), 0o644)
-	writeFile(t, filepath.Join(stub, "issue-3.json"), issue(3, "Agent names"), 0o644)
+	writeFile(t, filepath.Join(stub, "issue-1.json"), issueJSON(1, "A queue view", "enhancement"), 0o644)
+	writeFile(t, filepath.Join(stub, "issue-2.json"), issueJSON(2, "The list jumps", "bug"), 0o644)
+	writeFile(t, filepath.Join(stub, "issue-3.json"), issueJSON(3, "Agent names"), 0o644)
 
 	cmd := exec.Command(filepath.Join(repo, "scripts", "release.sh"), "v1.0.0", "--repo", "o/r")
 	cmd.Dir = repo
