@@ -4,8 +4,21 @@ hq's own release facts, beside the template's `docs/releasing.md`; where the two
 
 ## Branches
 
-- `dev` is the default branch. Work lands on it through pull requests.
-- `main` holds the latest released version and nothing else; nobody commits or merges into it by hand.
+- `dev` is the default branch. Work lands on it through pull requests, and a cut from `dev` tags it.
+- A supervised release is built on `release-vX.Y.Z`, forked from `dev`, or from the latest tag for a hotfix release (`docs/agents/issue-tracker.md`, *Working a release*, *Branches*). Its tag is on that branch's candidate, and the master pull request brings the branch back into `dev` with a merge commit after the tag push, so the tagged commit is an ancestor of `dev`.
+- A version is its tag `vX.Y.Z` and its GitHub release. The latest version is the release GitHub marks latest, which the install one-liner and `hq update` take (*Binaries, installer and checksums*).
+
+## Two ways to release
+
+| | Cut from `dev` | Supervised release |
+|---|---|---|
+| When | A small fix: one pull request, or a few unrelated ones, already merged on `dev` | A release of several issues planned together, built as a whole on one release branch |
+| Who merges the work | The user, each pull request into `dev` | The skills' merger, each ticket pull request into `release-vX.Y.Z`; the user, the master pull request into `dev`, with a merge commit after the tag push (`gh pr merge <pr> --merge`) |
+| Where the tag is | The release commit `scripts/cut-release.sh` makes on `dev`, or `dev`'s head when the version files already read the version (`docs/releasing.md`, *1. Cut a release*) | The candidate, the release branch's tip after its version bump (`docs/releasing.md`, *Release branch*) |
+| Who tags | The user: `scripts/cut-release.sh X.Y.Z` on `dev` | The supervisor, in `/release-ship`: `scripts/cut-release.sh X.Y.Z --no-push` on the release branch tags the candidate locally |
+| Who pushes the tag | `scripts/cut-release.sh`, with `dev`, when the user runs it | The user: `git push origin vX.Y.Z`, the go of the go/no-go |
+
+On both, the pushed tag also runs `.github/workflows/release.yml`: the binaries, the notes and the milestone (*Binaries, installer and checksums*).
 
 ## Version
 

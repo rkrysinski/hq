@@ -17,7 +17,6 @@ The rows for implementation and the release tester are left out: the skills' def
 - The project accepts that every agent in that sandbox sees hq's tools while hq is loaded there.
 - The release tester runs in that sandbox too and reaches no real sandbox: its steps use the stub `sbx` (`docs/agents/release-qa.md`).
 - The user pushes the tag.
-- `main` is moved by hq's own workflow, not by a release skill.
 - A release deploys nothing: people install it with the README's one-liner or `hq update` (`docs/hq/releasing.md`).
 
 ## Preflight
