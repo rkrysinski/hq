@@ -20,6 +20,26 @@ hq's own release facts, beside the template's `docs/releasing.md`; where the two
 
 On both, the pushed tag also runs `.github/workflows/release.yml`: the binaries, the notes and the milestone (*Binaries, installer and checksums*).
 
+## In English
+
+Every release of hq is in English (the owner's decision of 2026-11-14, #186): the notes and their headings, the milestone and the comments `scripts/release.sh` writes, the release issue, the master pull request, and the sections of a ticket pull request that a release reads. The template writes them in Polish, and hq has no setting to change that, so hq translates the strings in the template's own files. Each of the lines below conflicts at an update from the template that changes it: keep hq's English and take the rest of the template's change.
+
+| Template (Polish) | hq (English) | Where |
+|---|---|---|
+| `Nowe funkcje`, `Poprawki`, `Pozostałe`, `Wewnętrzne` | `New features`, `Fixes`, `Other`, `Internal` | `scripts/release.sh` (headings), `docs/releasing.md`, `docs/agents/triage-labels.md`, the note of `scripts/check-pr.sh`, the revert in `docs/agents/issue-tracker.md` |
+| `Wdrożenie` | `Deployment` | `scripts/release.sh`, `docs/releasing.md`, `docs/workflow.md` |
+| anchors `nowe-funkcje`, `poprawki`, `pozostale`, `wewnetrzne`, `wdrozenie`, `przed-wdrozeniem`, `polecenie`, `po-wdrozeniu` | `new-features`, `fixes`, `other`, `internal`, `deployment`, `before-deployment`, `command`, `after-deployment` | `scripts/release.sh` |
+| `Do zrobienia, zanim wdrożysz tę wersję:`, `Do zrobienia na produkcji po wdrożeniu:`, `Instrukcja` | `To do before you deploy this version:`, `To do after deploying this version:`, `Instructions` | `scripts/release.sh` |
+| `Wydanie` (milestone), `Wydane w` (comment) | `Release`, `Released in` | `scripts/release.sh`, `docs/releasing.md`, `docs/workflow.md`, `.github/workflows/release.yml` |
+| `## Przed wdrożeniem`, `## Po wdrożeniu` | `## Before deployment`, `## After deployment` | `scripts/lib/release-notes.sh`, `scripts/check-pr.sh`, both pull request templates, `docs/releasing.md`, `docs/workflow.md`, `docs/agents/issue-tracker.md`, `docs/agents/implementer.md` |
+| `## Wycofanie`, `Brak: drzwi jednokierunkowe` | `## Rollback`, `None: one-way door` | `scripts/check-pr.sh`, `.github/PULL_REQUEST_TEMPLATE.md`, `docs/releasing.md`, `docs/agents/issue-tracker.md`, `docs/agents/implementer.md` |
+| `## Zamyka`, `## Plan wdrożenia` | `## Closes`, `## Rollout plan` | `.github/PULL_REQUEST_TEMPLATE/release.md`, `scripts/check-pr.sh` (`## Closes`), `docs/releasing.md`, `docs/agents/issue-tracker.md` |
+| `Wydanie vX.Y.Z` (release issue title) | `Release vX.Y.Z` | `.github/ISSUE_TEMPLATE/release.md`, `docs/agents/issue-tracker.md` |
+| `## Wycofane kroki wdrożenia`, `Wycofane:` (a reverted ticket) | `## Reverted deployment steps`, `Reverted:` | `docs/agents/issue-tracker.md` |
+| "in Polish" (the language of the notes and of a pull request's deployment steps) | "in English" | `scripts/release.sh`, `scripts/lib/release-notes.sh`, both pull request templates, `docs/releasing.md`, `docs/workflow.md`, `docs/agents/issue-tracker.md` |
+
+Two things stay as the template has them: `scripts/check-pr.sh` still rejects the Polish generic titles (`poprawki`, `zmiany`) and folds Polish letters when it looks for a misspelt heading; neither writes anything to GitHub. The text the release skills write themselves is theirs, not hq's.
+
 ## Version
 
 `VERSION` records the version beside the tag (`scripts/bump-version.sh` writes it, *Version files*), but hq's binary does not read it: the release build bakes the tag into the binary (`hq --version`), and a build from a checkout is a dev build.

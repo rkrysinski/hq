@@ -103,17 +103,17 @@ nothing, here and in `scripts/check-pr.sh`.
 
 | Issue label | Section in the notes |
 |-------------|----------------------|
-| `enhancement` | Nowe funkcje |
-| `bug` | Poprawki |
-| `internal` | Wewnętrzne, together with pull requests that closed no issue |
-| none | Pozostałe |
+| `enhancement` | New features |
+| `bug` | Fixes |
+| `internal` | Internal, together with pull requests that closed no issue |
+| none | Other |
 
-The notes are in Polish, for the people who read them. The wording sits in one
+The notes are in English, like everything hq writes on GitHub (`docs/hq/releasing.md`). The wording sits in one
 block at the top of `scripts/release.sh`.
 
 A pull request may close several issues (a spec pull request closes the spec and
 every ticket): each ticket lands under its own type label, and an issue without a
-type label appears under *Pozostałe*. The spec itself (label `prd`) gets no line in
+type label appears under *Other*. The spec itself (label `prd`) gets no line in
 the notes, even with a type label; it still gets the milestone and the comment.
 The master pull request of a supervised release (head `release-vX.Y.Z`) is left
 out, with the issues it closes: it is merged into `dev` after its tag, so its merge
@@ -127,10 +127,10 @@ both of these sections (each runs to the next `## ` heading, a `---` rule, or th
 `🤖 Generated with` attribution line, whichever comes first):
 
 ```markdown
-## Przed wdrożeniem
+## Before deployment
 - Admin: grant the service account read access to the new queue.
 
-## Po wdrożeniu
+## After deployment
 - `.env`: `EXAMPLE_FEATURE_ENABLED=1`, restart.
 ```
 
@@ -144,24 +144,24 @@ the notes, with the lines indented under it. A pull request whose steps are all
 ticked adds nothing to the section. Untick a step to bring it back.
 
 The script collects the sections from every pull request in the release and places them
-in the notes' **Wdrożenie** part: *Przed wdrożeniem* first, *Po wdrożeniu* after
+in the notes' **Deployment** part: *Before deployment* first, *After deployment* after
 it, each block headed by its pull request. The console summary counts them
 (`prerequisites : N before deployment, M after`), so review them in the
 `--dry-run` output. A prerequisite missing from a merged pull request is fixed by
 editing that pull request's description and re-running the script; there is no
 separate list to maintain. A release with no prerequisites and no
-`docs/deployment.md` has no **Wdrożenie** part.
+`docs/deployment.md` has no **Deployment** part.
 
 The `Pull request` workflow guards these sections before merge: `scripts/check-pr.sh`
 fails a pull request whose prerequisite section is empty, commented out, or under a
-heading this script would not read (another level, no Polish letters, a trailing colon).
-A pull request with a prerequisite section also needs `## Wycofanie`: one line per
-rollback step, or `Brak: drzwi jednokierunkowe`. On a branch named
-`release-vX.Y.Z` the check also allows a closing keyword (`Closes #<n>`) only under `## Zamyka`
+heading this script would not read (another level, another case, a trailing colon).
+A pull request with a prerequisite section also needs `## Rollback`: one line per
+rollback step, or `None: one-way door`. On a branch named
+`release-vX.Y.Z` the check also allows a closing keyword (`Closes #<n>`) only under `## Closes`
 (locally: `scripts/check-pr.sh --release-pr ...`).
 
 The release also creates the milestone `vX.Y.Z`, puts every issue and pull
-request in it, closes it, and comments `Wydane w vX.Y.Z - <link>` on each issue.
+request in it, closes it, and comments `Released in vX.Y.Z - <link>` on each issue.
 Milestones are the record of what shipped in which version, so nobody needs to
 assign them by hand. A supervised release is the exception: its plan creates the
 milestone first (`docs/agents/issue-tracker.md`, *Working a release*, *Milestone*).
@@ -189,7 +189,7 @@ compares them with the published ones. `release v1.2.2 is already up to date`
 means they agree. `would update release v1.2.2 with:` means they differ: compare
 the printed notes with the published notes before you tag. When an issue or pull
 request is listed in one and not the other, find out why before you release,
-because the next notes, milestone and "Wydane w" comments would repeat a defect.
+because the next notes, milestone and "Released in" comments would repeat a defect.
 Three causes are not defects:
 
 - text someone wrote by hand between the `generated` markers (move it outside them)

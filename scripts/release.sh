@@ -14,9 +14,9 @@
 # script writes is scoped to --repo; issue references are only ever read as bare
 # `#<n>`, so a cross-repository reference can never pull another repo in.
 #
-# Issue labels decide the section: `enhancement` -> Nowe funkcje, `bug` -> Poprawki,
-# `internal` -> Wewnętrzne (alongside pull requests that closed no issue), the rest
-# -> Pozostałe. A spec (`prd`) is left out of the notes; milestone and comment stay.
+# Issue labels decide the section: `enhancement` -> New features, `bug` -> Fixes,
+# `internal` -> Internal (alongside pull requests that closed no issue), the rest
+# -> Other. A spec (`prd`) is left out of the notes; milestone and comment stay.
 #
 # Exits 0 on success, 1 on a failure that needs a human, 2 on usage errors.
 #
@@ -34,20 +34,21 @@ DEPLOY_DOC=docs/deployment.md
 GENERATED_BEGIN='<!-- generated -->'
 GENERATED_END='<!-- /generated -->'
 
-# Wording of the notes: Polish, for the people who read them. Change it here
-# and in docs/agents/triage-labels.md together. The prerequisite headings are
+# Wording of the notes: English, like everything hq writes on GitHub (the
+# template has it in Polish; docs/hq/releasing.md). Change it here and in
+# docs/agents/triage-labels.md together. The prerequisite headings are
 # RELEASE_NOTES_BEFORE_HEADING and RELEASE_NOTES_AFTER_HEADING in
 # scripts/lib/release-notes.sh, because pull requests use them too.
-HEADING_FEATURES='Nowe funkcje'
-HEADING_FIXES='Poprawki'
-HEADING_OTHER='Pozostałe'
-HEADING_INTERNAL='Wewnętrzne'
-HEADING_DEPLOY='Wdrożenie'
-TEXT_BEFORE='Do zrobienia, zanim wdrożysz tę wersję:'
-TEXT_AFTER='Do zrobienia na produkcji po wdrożeniu:'
-TEXT_DEPLOY_DOC='Instrukcja'
-TEXT_MILESTONE='Wydanie'
-TEXT_RELEASED_IN='Wydane w'
+HEADING_FEATURES='New features'
+HEADING_FIXES='Fixes'
+HEADING_OTHER='Other'
+HEADING_INTERNAL='Internal'
+HEADING_DEPLOY='Deployment'
+TEXT_BEFORE='To do before you deploy this version:'
+TEXT_AFTER='To do after deploying this version:'
+TEXT_DEPLOY_DOC='Instructions'
+TEXT_MILESTONE='Release'
+TEXT_RELEASED_IN='Released in'
 
 usage() {
     sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'
@@ -170,18 +171,18 @@ git cat-file -e "$VERSION:$DEPLOY_DOC" 2>/dev/null && HAS_DEPLOY_DOC=1
 {
     echo "$GENERATED_BEGIN"
     echo
-    section "$HEADING_FEATURES" nowe-funkcje "$TMP/features.tsv"
-    section "$HEADING_FIXES" poprawki "$TMP/fixes.tsv"
-    section "$HEADING_OTHER" pozostale "$TMP/other.tsv"
+    section "$HEADING_FEATURES" new-features "$TMP/features.tsv"
+    section "$HEADING_FIXES" fixes "$TMP/fixes.tsv"
+    section "$HEADING_OTHER" other "$TMP/other.tsv"
     sort -n "$TMP/internal.tsv" -o "$TMP/internal.tsv"
-    section "$HEADING_INTERNAL" wewnetrzne "$TMP/internal.tsv"
+    section "$HEADING_INTERNAL" internal "$TMP/internal.tsv"
     # The deployment part appears only when there is something to say in it.
     if [ -s "$TMP/before.md" ] || [ -s "$TMP/after.md" ] || [ "$HAS_DEPLOY_DOC" -eq 1 ]; then
-        echo '<a name="wdrozenie"></a>'
+        echo '<a name="deployment"></a>'
         echo "## $HEADING_DEPLOY"
         echo
         if [ -s "$TMP/before.md" ]; then
-            echo '<a name="przed-wdrozeniem"></a>'
+            echo '<a name="before-deployment"></a>'
             echo "### $RELEASE_NOTES_BEFORE_HEADING"
             echo
             echo "$TEXT_BEFORE"
@@ -190,10 +191,10 @@ git cat-file -e "$VERSION:$DEPLOY_DOC" 2>/dev/null && HAS_DEPLOY_DOC=1
         fi
         # Invisible anchor that ends the block above, so a deploy script can read
         # the steps to confirm back from the notes.
-        echo '<a name="polecenie"></a>'
+        echo '<a name="command"></a>'
         echo
         if [ -s "$TMP/after.md" ]; then
-            echo '<a name="po-wdrozeniu"></a>'
+            echo '<a name="after-deployment"></a>'
             echo "### $RELEASE_NOTES_AFTER_HEADING"
             echo
             echo "$TEXT_AFTER"

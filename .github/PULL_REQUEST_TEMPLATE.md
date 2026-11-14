@@ -42,17 +42,17 @@ removed files and changed contracts are one-way.
 
 <!--
 Work outside the code needed to go live (IT consents, environment variables, a manual command):
-add a section with the exact heading "Przed wdrożeniem" or "Po wdrożeniu" at level two, with the
-steps as a checklist in Polish. They hold only steps the operator or IT performs to deploy:
+add a section with the exact heading "Before deployment" or "After deployment" at level two, with
+the steps as a checklist in English. They hold only steps the operator or IT performs to deploy:
 scripts/release.sh copies them verbatim into the release notes (docs/releasing.md), so follow-up
 work, plans and "next steps" go in issues, never in these sections. A ticked step ("- [x]") is
 already done and stays out of the notes. Leave both out when there is nothing to do.
 -->
 
-## Wycofanie
+## Rollback
 
 <!--
-Required when the description has "Przed wdrożeniem" or "Po wdrożeniu": how to undo the deployment,
-one line per step, in Polish. A change that cannot be undone: "Brak: drzwi jednokierunkowe".
+Required when the description has "Before deployment" or "After deployment": how to undo the
+deployment, one line per step, in English. A change that cannot be undone: "None: one-way door".
 Delete this section when there are no deployment steps.
 -->
