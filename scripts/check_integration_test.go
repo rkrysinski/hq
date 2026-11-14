@@ -11,11 +11,12 @@ import (
 	"testing"
 )
 
-// stubGo stands in for the toolchain: it logs each call, and fails with
-// "boom" when the call contains STUB_FAIL. stubGofmt names an unformatted
-// file when STUB_UNFORMATTED is set.
+// stubGo stands in for the toolchain: it logs each call, prints a gate's
+// figure as "figure <gate>", and fails with "boom" when the call contains
+// STUB_FAIL. stubGofmt names an unformatted file when STUB_UNFORMATTED is set.
 const stubGo = `#!/bin/sh
 echo "go $*" >> "$STUB_LOG"
+case "$*" in "run ./tools/testgate "*) echo "figure $3" ;; esac
 case "$*" in *"$STUB_FAIL"*) [ -n "$STUB_FAIL" ] && { echo boom; exit 1; } ;; esac
 exit 0
 `
@@ -45,10 +46,10 @@ func newCheckRepo(t *testing.T) *checkRepo {
 	r := &checkRepo{t: t, dir: t.TempDir()}
 	stubs := t.TempDir()
 	r.log = filepath.Join(stubs, "log")
-	write(t, filepath.Join(stubs, "go"), stubGo, 0o755)
-	write(t, filepath.Join(stubs, "gofmt"), stubGofmt, 0o755)
-	write(t, filepath.Join(r.dir, "scripts", "check.sh"), string(script), 0o755)
-	write(t, filepath.Join(r.dir, "e2e", "journey_test.go"), "package e2e\n", 0o644)
+	writeFile(t, filepath.Join(stubs, "go"), stubGo, 0o755)
+	writeFile(t, filepath.Join(stubs, "gofmt"), stubGofmt, 0o755)
+	writeFile(t, filepath.Join(r.dir, "scripts", "check.sh"), string(script), 0o755)
+	writeFile(t, filepath.Join(r.dir, "e2e", "journey_test.go"), "package e2e\n", 0o644)
 	r.env = append(os.Environ(),
 		"PATH="+stubs+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"STUB_LOG="+r.log, "STUB_FAIL=", "STUB_UNFORMATTED=", "GITHUB_STEP_SUMMARY=")
@@ -58,7 +59,7 @@ func newCheckRepo(t *testing.T) *checkRepo {
 	return r
 }
 
-func write(t *testing.T, path, content string, mode os.FileMode) {
+func writeFile(t *testing.T, path, content string, mode os.FileMode) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
@@ -105,7 +106,7 @@ func (r *checkRepo) calls() string {
 	return string(b)
 }
 
-func equal(t *testing.T, got, want []string) {
+func equalLines(t *testing.T, got, want []string) {
 	t.Helper()
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("output:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
@@ -117,9 +118,10 @@ func equal(t *testing.T, got, want []string) {
 func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 	t.Run("a passing run names every step and the commit", func(t *testing.T) {
 		r := newCheckRepo(t)
-		lines, code := r.run()
+		summary := filepath.Join(t.TempDir(), "summary")
+		lines, code := r.run("GITHUB_STEP_SUMMARY=" + summary)
 		sha := r.git("rev-parse", "HEAD")
-		equal(t, lines, []string{
+		equalLines(t, lines, []string{
 			"check: ok   vet",
 			"check: ok   format",
 			"check: ok   pyramid",
@@ -132,6 +134,9 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 		})
 		if code != 0 {
 			t.Fatalf("exit %d", code)
+		}
+		if b, _ := os.ReadFile(summary); string(b) != "figure pyramid\nfigure coverage\n" {
+			t.Errorf("job summary %q, want the two gates' figures", b)
 		}
 		calls := r.calls()
 		for _, want := range []string{
@@ -154,11 +159,12 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 		r := newCheckRepo(t)
 		lines, code := r.run("STUB_FAIL=testgate platform")
 		sha := r.git("rev-parse", "HEAD")
-		equal(t, lines, []string{
+		equalLines(t, lines, []string{
 			"check: ok   vet",
 			"check: ok   format",
 			"check: ok   pyramid",
 			"check: FAIL platform",
+			"figure platform",
 			"boom",
 			"check: stopped at platform on " + sha,
 		})
@@ -170,9 +176,9 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 		}
 	})
 
-	t.Run("a dirty tree is named in the last line", func(t *testing.T) {
+	t.Run("a dirty tree is named in the passing and in the failing last line", func(t *testing.T) {
 		r := newCheckRepo(t)
-		write(t, filepath.Join(r.dir, "new.txt"), "x\n", 0o644)
+		writeFile(t, filepath.Join(r.dir, "new.txt"), "x\n", 0o644)
 		sha := r.git("rev-parse", "HEAD")
 
 		lines, code := r.run()
@@ -181,7 +187,7 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 		}
 
 		lines, code = r.run("STUB_UNFORMATTED=bad.go")
-		equal(t, lines, []string{
+		equalLines(t, lines, []string{
 			"check: ok   vet",
 			"check: FAIL format",
 			"bad.go",

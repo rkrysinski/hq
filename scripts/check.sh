@@ -1,7 +1,8 @@
 #!/bin/sh
-# The full build: every step CI runs, in CI's order, and CI runs nothing else
-# (#176). An agent, a merger and GitHub run the same steps, and the last line
-# is the test evidence of a merge. Runs from any directory.
+# The full build: every step the test workflows run, in their order, and they
+# run nothing else (#176; private.yml checks private details apart). An
+# agent, a merger and GitHub run the same steps, and the last line is the
+# test evidence of a merge. Runs from any directory.
 #
 # Its output is a contract the team's release skills read, the same one the
 # project template's full build prints:
@@ -15,8 +16,11 @@
 #
 # The steps: vet (for every build tag), format, pyramid (tools/testgate),
 # platform (tools/testgate), unit, integration (with coverage of internal/),
-# coverage (tools/testgate's threshold; its figure also goes to the GitHub
-# job summary when GITHUB_STEP_SUMMARY is set), e2e. See docs/agents/testing.md.
+# coverage (tools/testgate's threshold), e2e. A passed step's output is not
+# printed; the figures of pyramid and coverage go to the GitHub job summary
+# when GITHUB_STEP_SUMMARY is set. See docs/agents/testing.md.
+
+set -u
 
 cd "$(dirname "$0")/.." || exit 1
 
@@ -54,15 +58,7 @@ step_integration() {
 	go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile="$tmp/cover.out" ./...
 }
 
-step_coverage() {
-	go run ./tools/testgate coverage "$tmp/cover.out" >"$tmp/coverage" 2>&1
-	status=$?
-	cat "$tmp/coverage"
-	if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-		cat "$tmp/coverage" >>"$GITHUB_STEP_SUMMARY"
-	fi
-	return $status
-}
+step_coverage() { go run ./tools/testgate coverage "$tmp/cover.out"; }
 
 step_e2e() {
 	if [ -d e2e ]; then go test -tags e2e ./e2e/...; else echo "no journeys yet"; fi
@@ -78,5 +74,10 @@ for step in vet format pyramid platform unit integration coverage e2e; do
 	fi
 	echo "check: ok   $step"
 	n=$((n + 1))
+	# The two gates' figures, which the thresholds follow (testing.md).
+	case $step in pyramid | coverage)
+		if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then cat "$tmp/out" >>"$GITHUB_STEP_SUMMARY"; fi
+		;;
+	esac
 done
 echo "check: all $n steps passed on $commit"

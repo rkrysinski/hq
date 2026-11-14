@@ -1,7 +1,7 @@
 # Runs the full build, scripts/check.sh and nothing else, once on Linux on
 # every push to dev (#176). Pull requests into dev run it on both host
-# platforms from pull-request.yml; a pull request into any other branch (a
-# release branch) runs neither - see docs/agents/testing.md.
+# platforms from pull-request.yml; a pull request into any other branch runs
+# neither - see docs/agents/testing.md.
 #
 # Skipped when every changed file is one nothing in the build, the tests,
 # tools/testgate or e2e reads (#108): Markdown anywhere and docs/ (no

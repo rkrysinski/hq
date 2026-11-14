@@ -1,7 +1,7 @@
 //go:build integration
 
-// Package scripts_test tests scripts/local-dev.sh --stub, which QA of
-// Windows/WSL changes runs on any machine (#159).
+// Package scripts_test tests the scripts: here local-dev.sh --stub, which QA
+// of Windows/WSL changes runs on any machine (#159).
 package scripts_test
 
 import (
