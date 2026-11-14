@@ -102,7 +102,9 @@ func main() {
 			os.Exit(2)
 		}
 		problems = p
-		refused = "push refused: take the private details out of the commits that hold them (a later commit that removes one still pushes it), or fix the list"
+		if len(p) > 0 && p[0] != noList { // the summary says why a push without a list is refused
+			refused = "push refused: take the private details out of the commits that hold them (a later commit that removes one still pushes it), or fix the list"
+		}
 	case "platform":
 		root := "."
 		if len(os.Args) > 2 {
