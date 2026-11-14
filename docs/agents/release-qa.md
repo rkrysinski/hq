@@ -6,9 +6,8 @@ Read by the release tester in `/release-ship`. Release QA runs once per release,
 
 hq deploys nothing: the candidate is the release worktree at the candidate's commit, and every step runs there.
 
-1. `cd .claude/worktrees/release-vX.Y.Z` (`X.Y.Z` the release's version)
-2. `git fetch origin && git checkout --detach "$CANDIDATE_SHA"`
-3. `test -z "$(git status --short)" && test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"`
+1. `cd .claude/worktrees/release-vX.Y.Z`, from the primary checkout (`X.Y.Z` the release's version)
+2. `test -z "$(git status --short)" && test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"`: the worktree stays on the release branch, and when its tip is not the candidate, Release QA stops there
 
 ## Steps
 
@@ -17,7 +16,7 @@ In order. ETA and spend are estimates the skill reports against; evidence is wha
 | Step | Command | ETA | Spend, USD | Evidence |
 | --- | --- | --- | --- | --- |
 | Full build | `scripts/check.sh` | 5 minutes | 0 | its lines, the last naming `$CANDIDATE_SHA` without ` with uncommitted changes` |
-| Release files of all four platforms | `scripts/build-release.sh vX.Y.Z /tmp/hq-release-qa && ls /tmp/hq-release-qa && "/tmp/hq-release-qa/hq-linux-$(go env GOARCH)" --version` | 3 minutes | 0 | the listing (`hq-darwin-amd64`, `hq-darwin-arm64`, `hq-linux-amd64`, `hq-linux-arm64`, `install.sh`, `SHA256SUMS`) and `hq vX.Y.Z` |
+| Release files of all four platforms | `scripts/build-release.sh vX.Y.Z .local-dev/release-files && ls .local-dev/release-files && ".local-dev/release-files/hq-linux-$(go env GOARCH)" --version` | 3 minutes | 0 | the listing (`hq-darwin-amd64`, `hq-darwin-arm64`, `hq-linux-amd64`, `hq-linux-arm64`, `install.sh`, `SHA256SUMS`) and `hq vX.Y.Z` |
 | One journey on the stubbed setup | the commands under *Journey* below | 10 minutes | 0 | a terminal screenshot after each of its steps and the commands' output |
 | On the host, before go: the built binary against a real sandbox | the commands under *Host step* below, run by the user | 10 minutes | 0 | the user's word on the release issue that each command did what it says, with any output that differed |
 
@@ -42,14 +41,15 @@ Clean up: `tmux -L release-qa-term kill-server` and `scripts/local-dev.sh --kill
 
 ### Host step
 
-On the host, with the binary of the host's platform from the release files (`hq-darwin-arm64` on an Apple silicon Mac), in a repository with a sandbox, against a tmux server of its own so the user's own hq is not touched:
+On the host, in the repository's primary checkout, with the binary of the host's platform from the release files of step 2 (they are in the release worktree, which the host shares; `hq-darwin-arm64` on an Apple silicon Mac, `hq-linux-amd64` in WSL), against a tmux server of its own so the user's own hq is not touched:
 
 ```bash
+hq=.claude/worktrees/release-vX.Y.Z/.local-dev/release-files/hq-darwin-arm64
 export HQ_TMUX_SOCKET=hq-release-check
-./hq-darwin-arm64 --version                    # hq vX.Y.Z
-./hq-darwin-arm64 new rq . "say hi"            # starts Claude in the repository's real sandbox
-./hq-darwin-arm64 ls                           # rq listed, done once it answered
-./hq-darwin-arm64 send rq "say bye"            # its next reply follows
-./hq-darwin-arm64 kill rq -y                   # ended; the sandbox stays
+"$hq" --version                    # hq vX.Y.Z
+"$hq" new rq . "say hi"            # starts Claude in the repository's real sandbox
+"$hq" ls                           # rq listed, done once it answered
+"$hq" send rq "say bye"            # its next reply follows
+"$hq" kill rq -y                   # ended; the sandbox stays
 tmux -L hq-release-check kill-server
 ```

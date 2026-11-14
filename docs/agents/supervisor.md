@@ -13,7 +13,7 @@ The rows for implementation and the release tester are left out: the skills' def
 
 ## Environment
 
-- The supervisor runs as an hq agent `sup-X.Y.Z` (the release's version) in the repository's sandbox, with hq loaded there (`hq mcp load`).
+- The supervisor runs as an hq agent `sup-X.Y.Z` (the release's version) in the repository's sandbox, with hq loaded there (`hq mcp load REPO`).
 - The project accepts that every agent in that sandbox sees hq's tools while hq is loaded there.
 - The release tester runs in that sandbox too and reaches no real sandbox: its steps use the stub `sbx` (`docs/agents/release-qa.md`).
 - The user pushes the tag.
@@ -27,6 +27,6 @@ Checks `/release-prepare` runs before the readiness table is built, in this orde
 | Check | Command | Passes when |
 | --- | --- | --- |
 | Release notes on the last release | `scripts/release.sh "$(scripts/version.sh latest --remote origin)" --dry-run` | it prints `already up to date`, or each difference from the published notes has a cause that is not a defect (`docs/releasing.md`, *Before a supervised release*) |
-| Full build on the `dev` head | `git fetch origin dev && git checkout --detach origin/dev && scripts/check.sh`, in a clean checkout | it exits 0 and its last line names the sha `git rev-parse origin/dev` prints, without ` with uncommitted changes` |
+| Full build on the `dev` head | `git fetch origin dev && d=$(mktemp -d) && git worktree add --detach "$d" origin/dev && "$d/scripts/check.sh"`, then `git worktree remove --force "$d"` | `scripts/check.sh` exits 0 and its last line names the sha `git rev-parse origin/dev` prints, without ` with uncommitted changes` |
 | hq answers | hq's MCP tool `list`, called by the supervisor | it answers with the list of agents, without an error |
 | `Tests` on `dev` | `gh run list --branch dev --workflow Tests --limit 1 --json conclusion,headSha,url` | `conclusion` is `success` |

@@ -40,7 +40,7 @@ A pull request into `dev` gets a run, unlike the template's *Merging* says: `.gi
 
 ## Thresholds
 
-`tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. Both thresholds only go up. The unit share's minimum follows the figure: a PR that raises the share raises the minimum in the same PR. The coverage minimum stays 0.5 points under CI's figure, rounded down to a tenth, so a PR that changes nothing about tests cannot fall under it: a PR that lifts the figure more than 0.5 points above the minimum raises the minimum to the figure less 0.5 (#42). Never lower one to get a PR through.
+`tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. Unlike the template's `docs/agents/testing.md` and `docs/agents/implementer.md` say, a pull request moves them, by these rules. Both thresholds only go up. The unit share's minimum follows the figure: a PR that raises the share raises the minimum in the same PR. The coverage minimum stays 0.5 points under CI's figure, rounded down to a tenth, so a PR that changes nothing about tests cannot fall under it: a PR that lifts the figure more than 0.5 points above the minimum raises the minimum to the figure less 0.5 (#42). Never lower one to get a PR through.
 
 ## Platform code
 
@@ -49,7 +49,3 @@ Both platforms behave the same, and the code that tells them apart lives in `int
 ## Private details
 
 The repository is public. Names of private organisations and repositories, agent and repository names taken from them, a local user's paths, host names and Claude session ids stay out of the code, the docs, the fixtures and the QA evidence: use a placeholder (`<org>`, `~/work/app`, `agent-17`, `/w/app`), and when a capture carries such a detail, edit it and say so in its fixture README (#127). `testgate private` fails on a line that matches one of the patterns in `HQ_PRIVATE_PATTERNS` (one regular expression per line, matched ignoring case, `#` comments); it checks the tracked files, or the PATHs given. The list itself is not in the repository: CI takes it from the repository secret of the same name (`.github/workflows/private.yml`, on every pull request, every push to `dev` and once a day; each run also checks the tip of `qa-artifacts`), and a local run without the variable passes with a notice. Ask the owner for the list to run it locally; the gate prints the file, the line and the pattern's number (counting patterns, not comment or blank lines), never the text, since CI logs are public. It reads text only: look at images yourself.
-
-## In the QA plan and PR
-
-The QA plan (`docs/agents/qa-evidence.md` §1) lists the tests the change adds at each level before any code is written; the PR quotes `testgate pyramid` before and after.

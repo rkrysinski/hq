@@ -2,7 +2,7 @@
 
 One console for many Claude Code agents running in Docker Sandboxes (`sbx`) and tmux, on macOS (iTerm2) and Windows via WSL (Windows Terminal).
 
-`AGENTS.md` and the documents under `docs/agents/`, `docs/workflow.md` and `docs/releasing.md` are the project template's and say what every project made from it does. The files in `docs/hq/` hold what is hq's own, each linked from the template's document it belongs to. Where the two differ, `docs/hq/` holds for hq.
+`AGENTS.md`, `docs/workflow.md`, `docs/releasing.md` and the documents under `docs/agents/` are the project template's and say what every project made from it does, except four files under `docs/agents/` that hq owns and fills: the facts of a supervised release (`supervisor.md`, `release-qa.md`, `integration-review.md`) and `lessons.md`. The files in `docs/hq/` hold the rest of what is hq's own, each linked from the template's document it belongs to. Where the two differ, `docs/hq/` holds for hq.
 
 ## What this repository holds
 
@@ -11,7 +11,9 @@ One console for many Claude Code agents running in Docker Sandboxes (`sbx`) and 
 - `docs/adr/` - short records of decisions already taken; do not reopen them without saying so.
 - `docs/design/` - HOW hq is built: technology, architecture, key mechanics (`docs/design/hq.md`).
 - `GLOSSARY.md` - the glossary. Terms are added when they are settled.
+- `CODING_STANDARDS.md` - the rules for hq's code that take judgement.
 - `docs/hq/` - hq's own rules: this file, testing (`testing.md`), QA evidence (`qa-evidence.md`), working an issue (`issue-tracker.md`) and releasing (`releasing.md`).
+- `docs/agents/supervisor.md`, `release-qa.md`, `integration-review.md` - hq's facts for a supervised release, read by the release skills.
 - Implementation: Go (ADR 0011); `cmd/hq` is the binary, `internal/` its packages, `tools/testgate` the CI test gates.
 
 ## Rules
