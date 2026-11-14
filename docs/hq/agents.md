@@ -12,7 +12,7 @@ One console for many Claude Code agents running in Docker Sandboxes (`sbx`) and 
 - `docs/design/` - HOW hq is built: technology, architecture, key mechanics (`docs/design/hq.md`).
 - `GLOSSARY.md` - the glossary. Terms are added when they are settled.
 - `CODING_STANDARDS.md` - the rules for hq's code that take judgement.
-- `docs/hq/` - hq's own rules: this file, testing (`testing.md`), QA evidence (`qa-evidence.md`), working an issue (`issue-tracker.md`) and releasing (`releasing.md`).
+- `docs/hq/` - hq's own rules: this file, testing (`testing.md`), QA evidence (`qa-evidence.md`), filing and working an issue (`issue-tracker.md`) and releasing (`releasing.md`).
 - `docs/agents/supervisor.md`, `release-qa.md`, `integration-review.md` - hq's facts for a supervised release, read by the release skills.
 - Implementation: Go (ADR 0011); `cmd/hq` is the binary, `internal/` its packages, `tools/testgate` the CI test gates.
 
