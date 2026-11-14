@@ -2,7 +2,7 @@
 The master pull request of a supervised release: the release branch into `dev`, opened as a
 draft by /release-implement and finished by /release-ship (docs/agents/supervisor.md). The
 title states the release's outcome. CI checks it with scripts/check-pr.sh, which requires
-`## Summary`, `## QA` and `## Merge Danger`. Every issue reference outside `## Zamyka` is a
+`## Summary`, `## QA` and `## Merge Danger`. Every issue reference outside `## Closes` is a
 bare `#n`: check-pr.sh fails a closing keyword anywhere else in a release pull request.
 -->
 
@@ -68,11 +68,11 @@ removed files and changed contracts are one-way.
 **Blast Radius:** one or two words, then what the release can break and for whom.
 -->
 
-## Plan wdrożenia
+## Rollout plan
 
 <!--
-The rollout in order, in Polish: who does what, when, and how to roll back. Steps the operator
-or IT performs to deploy also go under `## Przed wdrożeniem` or `## Po wdrożeniu`, which
+The rollout in order, in English: who does what, when, and how to roll back. Steps the operator
+or IT performs to deploy also go under `## Before deployment` or `## After deployment`, which
 scripts/release.sh copies into the release notes (docs/releasing.md).
 -->
 
@@ -82,7 +82,7 @@ scripts/release.sh copies into the release notes (docs/releasing.md).
 The release issue, the inventory, the tickets' pull requests, the Release QA evidence.
 -->
 
-## Zamyka
+## Closes
 
 <!--
 One per line: `Closes #<release issue>`, then one `Closes #<prd>` per spec of the release,

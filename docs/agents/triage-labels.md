@@ -24,10 +24,10 @@ for the reader:
 
 | Label         | Release-notes section | Meaning                                                      |
 | ------------- | --------------------- | ------------------------------------------------------------ |
-| `enhancement` | Nowe funkcje          | Something a user of the product can see or do                |
-| `bug`         | Poprawki              | Something that was broken for a user                         |
-| `internal`    | Wewnętrzne            | Tooling, CI, deployment, docs — invisible to the product's users |
-| (none)        | Pozostałe             | Anything not yet classified                                  |
+| `enhancement` | New features          | Something a user of the product can see or do                |
+| `bug`         | Fixes                 | Something that was broken for a user                         |
+| `internal`    | Internal              | Tooling, CI, deployment, docs - invisible to the product's users |
+| (none)        | Other                 | Anything not yet classified                                  |
 
 Give every issue one of these when it is triaged; an unlabelled issue still appears in the notes,
 just under the catch-all heading (except a `prd` issue, which gets no line: see below).

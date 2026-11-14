@@ -18,18 +18,17 @@
 #     tracker*); merge commits are not checked, and without the range no
 #     commit is read
 #   - git cannot resolve <base>..<head>: the full history is needed
-#   - a prerequisite section (`## Przed wdrożeniem`, `## Po wdrożeniu`) is
+#   - a prerequisite section (`## Before deployment`, `## After deployment`) is
 #     empty, sits inside an HTML comment, or its heading is misspelt (another
-#     level, no Polish letters, a trailing colon): release.sh reads only the
-#     exact heading, so it would drop or garble the steps
+#     level, another case, a trailing colon, the template's Polish heading):
+#     release.sh reads only the exact heading, so it would drop or garble the steps
 #     (ticked steps, `- [x]`, count as content: release.sh leaves them out of
 #     the notes, but the section and its rollback rule stay)
-#   - a deployment prerequisite section is present and `## Wycofanie` is
-#     missing or empty: one line per rollback step, or `Brak: drzwi
-#     jednokierunkowe`
+#   - a deployment prerequisite section is present and `## Rollback` is
+#     missing or empty: one line per rollback step, or `None: one-way door`
 #   - in release-PR mode, a closing keyword followed by `#<n>` (close, closes,
 #     closed, fix, fixes, fixed, resolve, resolves, resolved) sits anywhere but
-#     inside `## Zamyka`. The mode is on with `--release-pr`, or when
+#     inside `## Closes`. The mode is on with `--release-pr`, or when
 #     `--head-branch` names a `release-vX.Y.Z` branch (the workflow passes
 #     the pull request's head branch); the commit rule is unchanged
 # Notes, without failing, a description that closes no issue.
@@ -37,10 +36,10 @@
 # words only, and a keyword inside an HTML comment, a code span or a fenced
 # code block closes nothing and is never checked.
 #
-# Cases (tests/test_check_pr.py):
-#   `## Po wdrożeniu` and no `## Wycofanie`          -> fails, names the section
-#   the same with `## Wycofanie` and one line        -> passes
-#   --release-pr: `Closes #12` under `## Zamyka`     -> passes
+# Cases (scripts/checkpr_integration_test.go):
+#   `## After deployment` and no `## Rollback`       -> fails, names the section
+#   the same with `## Rollback` and one line         -> passes
+#   --release-pr: `Closes #12` under `## Closes`     -> passes
 #   --release-pr: `Fixes #12` under `## Summary`     -> fails
 #   the same description without --release-pr        -> passes, as before
 #
@@ -95,8 +94,8 @@ count_heading() {
 }
 
 normalize_heading() {
-    # A heading reduced to lower-case ASCII words: "### Przed wdrozeniem:" and
-    # "## PRZED WDROŻENIEM" both become "przed wdrozeniem".
+    # A heading reduced to lower-case ASCII words: "### before deployment:" and
+    # "## BEFORE  DEPLOYMENT" both become "before deployment".
     sed -e 's/^[[:space:]]*#*[[:space:]]*//' -e 's/[[:space:]:.]*$//' \
         -e 's/[[:space:]][[:space:]]*/ /g' \
         -e 's/ą/a/g; s/ć/c/g; s/ę/e/g; s/ł/l/g; s/ń/n/g; s/ó/o/g; s/ś/s/g; s/ź/z/g; s/ż/z/g' \
@@ -136,7 +135,7 @@ keywords='(close[sd]?|fix(e[sd])?|resolve[sd]?)'
 if printf '%s\n' "$CODELESS" | grep -Eiq "^[[:space:]]*$keywords[[:space:]]+#([^0-9]|\$)"; then
     problem "\`Closes #\` has no issue number: add it or delete the line"
 elif ! printf '%s\n' "$CODELESS" | grep -Eiq "(^|[^[:alnum:]_])$keywords[[:space:]]+#[0-9]+"; then
-    echo "check-pr: note: the description closes no issue; the release notes will list the pull request under Wewnętrzne" >&2
+    echo "check-pr: note: the description closes no issue; the release notes will list the pull request under Internal" >&2
 elif [ -n "$RANGE" ]; then
     # The commits of a pull request that closes an issue (AGENTS.md, *Issue
     # tracker*). Merge commits are left out by their parent count.
@@ -152,14 +151,14 @@ elif [ -n "$RANGE" ]; then
 fi
 
 # Release-PR mode: the issues a release pull request closes are listed under
-# `## Zamyka`, so a closing keyword anywhere else is a problem.
+# `## Closes`, so a closing keyword anywhere else is a problem.
 if [ -n "$RELEASE_PR" ]; then
     outside=$(printf '%s\n' "$CODELESS" | awk '
-        $0 == "## Zamyka" { inside = 1; next }
+        $0 == "## Closes" { inside = 1; next }
         inside && (/^## / || /^---[[:space:]]*$/) { inside = 0 }
         !inside { print }')
     if printf '%s\n' "$outside" | grep -Eiq "(^|[^[:alnum:]_])$keywords[[:space:]]+#[0-9]+"; then
-        problem "a release pull request lists the issues it closes only under \`## Zamyka\`: move every \`Closes #<n>\` there, or reword a mention to \"see #<n>\""
+        problem "a release pull request lists the issues it closes only under \`## Closes\`: move every \`Closes #<n>\` there, or reword a mention to \"see #<n>\""
     fi
 fi
 
@@ -175,10 +174,10 @@ done
 
 # Rollback: a deployment step needs a way back.
 if [ "$(count_heading "$BEFORE" "$VISIBLE")" -gt 0 ] || [ "$(count_heading "$AFTER" "$VISIBLE")" -gt 0 ]; then
-    if [ "$(count_heading Wycofanie "$VISIBLE")" -eq 0 ]; then
-        problem "\`## Wycofanie\` is missing: the description has deployment steps, so add one line per rollback step, or \`Brak: drzwi jednokierunkowe\`"
-    elif ! has_text "$(printf '%s\n' "$VISIBLE" | release_notes_section Wycofanie)"; then
-        problem "\`## Wycofanie\` is empty: add one line per rollback step, or \`Brak: drzwi jednokierunkowe\`"
+    if [ "$(count_heading Rollback "$VISIBLE")" -eq 0 ]; then
+        problem "\`## Rollback\` is missing: the description has deployment steps, so add one line per rollback step, or \`None: one-way door\`"
+    elif ! has_text "$(printf '%s\n' "$VISIBLE" | release_notes_section Rollback)"; then
+        problem "\`## Rollback\` is empty: add one line per rollback step, or \`None: one-way door\`"
     fi
 fi
 
@@ -188,8 +187,10 @@ if [ -n "$misspelt" ]; then
     after_key=$(printf '%s\n' "$AFTER" | normalize_heading)
     while IFS= read -r line; do
         case $(printf '%s\n' "$line" | normalize_heading) in
-            "$before_key") problem "heading \"$line\" is not read by release.sh: write exactly \`## $BEFORE\`" ;;
-            "$after_key") problem "heading \"$line\" is not read by release.sh: write exactly \`## $AFTER\`" ;;
+            # hq's headings are English; the Polish ones of the template are
+            # named too, so their steps are not lost (docs/hq/releasing.md).
+            "$before_key" | "przed wdrozeniem") problem "heading \"$line\" is not read by release.sh: write exactly \`## $BEFORE\`" ;;
+            "$after_key" | "po wdrozeniu") problem "heading \"$line\" is not read by release.sh: write exactly \`## $AFTER\`" ;;
         esac
     done <<LINES
 $misspelt

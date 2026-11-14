@@ -65,7 +65,7 @@ flowchart LR
 
 ## 4. Pull request and review
 
-- The title states the intended outcome. The body follows the pull request template: `Closes #<n>` (a spec pull request lists the spec and every ticket), *Summary* with the smallest visual that makes the change clear, *Deviations from the issue*, *QA* with the evidence (one subsection per ticket in a spec pull request), *Merge Danger* (one-way or two-way door, blast radius), and *Przed wdrożeniem* / *Po wdrożeniu* when the change needs work outside the code to go live.
+- The title states the intended outcome. The body follows the pull request template: `Closes #<n>` (a spec pull request lists the spec and every ticket), *Summary* with the smallest visual that makes the change clear, *Deviations from the issue*, *QA* with the evidence (one subsection per ticket in a spec pull request), *Merge Danger* (one-way or two-way door, blast radius), and *Before deployment* / *After deployment* when the change needs work outside the code to go live.
 - Before the push, the agent runs the full build, `scripts/check.sh`: every check, the browser journeys included, the same script CI runs. Push only when it passes; `## QA` ends with its lines on the head commit.
 - On the pull request CI runs only `Pull request` (the check of the description and the commits); a red one is not merged.
 - Before the merge, a branch behind `dev` is rebased onto it, built again and pushed.
@@ -77,7 +77,7 @@ flowchart LR
 ## 5. Release
 
 - `scripts/cut-release.sh X.Y.Z` on a clean, up-to-date `dev` writes `VERSION`, commits, tags `vX.Y.Z` and pushes.
-- The tag starts `.github/workflows/release.yml`: release notes in Polish grouped by the issues' type labels, a *Wdrożenie* part gathered from the pull requests, the milestone `vX.Y.Z`, and a "Wydane w" comment on each issue.
+- The tag starts `.github/workflows/release.yml`: release notes in English grouped by the issues' type labels, a *Deployment* part gathered from the pull requests, the milestone `vX.Y.Z`, and a "Released in" comment on each issue.
 - Deploying a version is the project's own procedure, in `docs/deployment.md` once the project has one.
 - Details: [releasing](releasing.md).
 

@@ -30,7 +30,7 @@ Plan the QA checks from the ticket's acceptance criteria first (`docs/agents/qa-
 - **Glossary**: a ticket that introduces or changes a domain term updates `GLOSSARY.md` in the same commit.
 - **Thresholds**: never change one, up or down (`docs/agents/testing.md`).
 - **Commits**: every commit message carries a `Closes #<ticket>` line (`AGENTS.md`, *Issue tracker*).
-- **Deploy steps**: when the ticket needs anything outside the code to go live, your QA subsection's `#### Deviations` names it the way `## Przed wdrożeniem` and `## Po wdrożeniu` would, and for each step one line of `## Wycofanie`: the command or action that undoes it, or `Brak: drzwi jednokierunkowe` when it cannot be undone. A step without its line is a *block* finding of the integration review in a release.
+- **Deploy steps**: when the ticket needs anything outside the code to go live, your QA subsection's `#### Deviations` names it the way `## Before deployment` and `## After deployment` would, and for each step one line of `## Rollback`: the command or action that undoes it, or `None: one-way door` when it cannot be undone. A step without its line is a *block* finding of the integration review in a release.
 
 ## A gap
 
