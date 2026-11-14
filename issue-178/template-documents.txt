@@ -1,0 +1,53 @@
+# Each template-owned document at HEAD compared with the template v2.5.0 rendered for hq (copier copy --vcs-ref v2.5.0, stack other).
+# The one private name in the template's line of docs/workflow.md is replaced by PRIVATE-NAME here.
+
+$ diff template/CLAUDE.md CLAUDE.md
+(exit 0)
+
+$ diff template/AGENTS.md AGENTS.md
+0a1,2
+> hq's own rules hold beside everything below and win where they differ: @docs/hq/agents.md
+> 
+(exit 1)
+
+$ diff template/docs/workflow.md docs/workflow.md
+93c93
+< This page, the agent docs, the scripts and the workflows come from the team's project template; `.copier-answers.yml` records which version. A newer version of the template arrives as a pull request like any other change. With the team's `PRIVATE-NAME` plugin, asking an agent to "update the project to the newest template" does all of the following (skill `update-from-template`); by hand:
+---
+> This page, the agent docs, the scripts and the workflows come from the team's project template; `.copier-answers.yml` records which version. A newer version of the template arrives as a pull request like any other change. With the department's plugin, asking an agent to "update the project to the newest template" does all of the following (skill `update-from-template`); by hand:
+107a108
+> - hq records the template's address as an alias each machine maps once: `docs/hq/agents.md`, *Updating from the template*.
+(exit 1)
+
+$ diff template/docs/releasing.md docs/releasing.md
+5a6,7
+> hq's branches, version, release binaries, installer and checksums, and releasing without GitHub Actions: `docs/hq/releasing.md`, which holds for hq where it differs from this file.
+> 
+(exit 1)
+
+$ diff template/docs/agents/domain.md docs/agents/domain.md
+(exit 0)
+
+$ diff template/docs/agents/implementer.md docs/agents/implementer.md
+(exit 0)
+
+$ diff template/docs/agents/issue-tracker.md docs/agents/issue-tracker.md
+4a5,6
+> Running the checks and cleaning up an issue's worktree in hq: `docs/hq/issue-tracker.md`, which holds for hq where it differs from this file.
+> 
+(exit 1)
+
+$ diff template/docs/agents/qa-evidence.md docs/agents/qa-evidence.md
+4a5,6
+> hq's checks in a terminal, its screenshots in every pull request, the private-details check of the evidence and the CI row: `docs/hq/qa-evidence.md`, which holds for hq where it differs from this file.
+> 
+(exit 1)
+
+$ diff template/docs/agents/testing.md docs/agents/testing.md
+4a5,6
+> hq's test levels, commands, CI, thresholds, platform code and private details: `docs/hq/testing.md`, which holds for hq where it differs from this file.
+> 
+(exit 1)
+
+$ diff template/docs/agents/triage-labels.md docs/agents/triage-labels.md
+(exit 0)

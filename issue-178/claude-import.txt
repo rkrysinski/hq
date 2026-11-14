@@ -1,0 +1,8 @@
+$ echo "Without using any tool: from the instructions already in your context for this repository, quote word for word the rule about the em dash, and name the file it comes from. If no such rule is in your context, say NONE." | claude -p
+# run in the issue worktree at 6294c85; docs/hq/agents.md exists only on this branch
+Plugin "mattpocock-skills" is enabled in project settings but isn't installed — run `claude plugin install mattpocock-skills@mattpocock --scope project`
+The rule is in `docs/hq/agents.md`, under the heading **Rules**:
+
+> Never use the em dash; use `-`.
+
+`AGENTS.md` brings that file in with `@docs/hq/agents.md`, so the rule applies to the whole repository.

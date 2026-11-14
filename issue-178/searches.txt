@@ -1,0 +1,22 @@
+$ git grep -n "CONTEXT\.md"; echo "exit $?"
+exit 1
+
+$ git ls-files GLOSSARY.md CONTEXT.md
+GLOSSARY.md
+
+$ git diff -M --summary origin/dev HEAD -- CONTEXT.md GLOSSARY.md
+ rename CONTEXT.md => GLOSSARY.md (100%)
+
+$ grep -n -E "<[A-Za-z][^>]*>|to confirm" docs/agents/supervisor.md docs/agents/release-qa.md docs/agents/integration-review.md; echo "exit $?"
+exit 1
+
+# The private names (the patterns are not shown): git grep -n -i -E "PATTERNS"; echo "exit $?"
+exit 1
+
+$ head -1 CLAUDE.md >/dev/null; cat CLAUDE.md
+<!-- Claude Code reads this repository's instructions from AGENTS.md, the file every coding agent shares, through the import below. An import rather than a symlink, because Git on Windows checks a symlink out as a one-line text file. Claude-only instructions go below the import. -->
+
+@AGENTS.md
+
+$ head -1 AGENTS.md
+hq's own rules hold beside everything below and win where they differ: @docs/hq/agents.md

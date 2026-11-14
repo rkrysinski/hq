@@ -1,0 +1,15 @@
+$ git fetch origin dev && d=$(mktemp -d) && git worktree add --detach "$d" origin/dev && "$d/scripts/check.sh"
+From https://github.com/rkrysinski/hq
+ * branch            dev        -> FETCH_HEAD
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: ok   unit
+check: ok   integration
+check: ok   coverage
+check: ok   e2e
+check: all 8 steps passed on 67061de536045fee67a7b65ccfa17dcf0eef38eb
+exit 0
+$ git rev-parse origin/dev
+67061de536045fee67a7b65ccfa17dcf0eef38eb

@@ -1,0 +1,24 @@
+$ grep -n "^## " docs/agents/supervisor.md docs/agents/release-qa.md docs/agents/integration-review.md
+docs/agents/release-qa.md:5:## Candidate
+docs/agents/release-qa.md:13:## Steps
+docs/agents/integration-review.md:5:## Shared surfaces
+docs/agents/supervisor.md:5:## Agent policy
+docs/agents/supervisor.md:14:## Environment
+docs/agents/supervisor.md:23:## Preflight
+
+$ grep -n -E "<[A-Za-z][^>]*>|to confirm" docs/agents/supervisor.md docs/agents/release-qa.md docs/agents/integration-review.md; echo "exit $?"
+exit 1
+
+$ gh api repos/{owner}/{repo} --jq .permissions.push
+true
+
+$ gh api repos/{owner}/{repo} --jq .squash_merge_commit_message
+COMMIT_MESSAGES
+
+$ c=$(sed -n "s/^_commit: *//p" .copier-answers.yml | tr -d "'\""); printf "%s\n" v2.5.0 "$c" | sort -V | head -1; test -f scripts/check.sh && echo "scripts/check.sh present"
+_commit: v2.5.0
+v2.5.0
+scripts/check.sh present
+
+$ gh run list --branch dev --workflow Tests --limit 1 --json conclusion,headSha,url
+[{"conclusion":"success","headSha":"67061de536045fee67a7b65ccfa17dcf0eef38eb","url":"https://github.com/rkrysinski/hq/actions/runs/43583901737"}]

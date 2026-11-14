@@ -1,0 +1,11 @@
+$ scripts/check.sh
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: ok   unit
+check: ok   integration
+check: ok   coverage
+check: ok   e2e
+check: all 8 steps passed on d052050ad1b7585b5d9d99902fc5e0ee5d2a8d60
+exit 0

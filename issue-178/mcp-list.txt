@@ -1,0 +1,6 @@
+# hq's MCP tool `list`, called from this agent (an hq agent in the repository's sandbox).
+# Its answer, with each agent's repo_path and last message left out (they carry a local user's path):
+{"agents":[{"name":"t-precheck","repo":"hq","branch":"dev","state":"done","sandbox":"claude-hq","setup":"default","pending":0,"own_tasks":[],"asks":null},
+           {"name":"imp-hq-178","repo":"hq","branch":"dev","state":"working","sandbox":"claude-hq","setup":"default","pending":0,"own_tasks":[],"asks":null}],
+ "next_since":"2026-11-14T10:44:54.324691Z"}
+# No error.

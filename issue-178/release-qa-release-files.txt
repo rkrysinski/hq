@@ -1,0 +1,13 @@
+$ scripts/build-release.sh v0.14.0 /tmp/hq-release-qa && ls /tmp/hq-release-qa && /tmp/hq-release-qa/hq-linux-$(go env GOARCH) --version   # tried with the first draft's directory; the file now writes to .local-dev/release-files
+built hq-darwin-arm64
+built hq-darwin-amd64
+built hq-linux-amd64
+built hq-linux-arm64
+wrote SHA256SUMS
+SHA256SUMS
+hq-darwin-amd64
+hq-darwin-arm64
+hq-linux-amd64
+hq-linux-arm64
+install.sh
+hq v0.14.0
