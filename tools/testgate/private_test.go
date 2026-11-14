@@ -108,3 +108,31 @@ func TestTrackedFilesListsOnlyWhatGitTracks(t *testing.T) {
 		t.Fatalf("files %v, want %v", files, want)
 	}
 }
+
+func TestTheListComesFromTheVariableFirst(t *testing.T) {
+	common := t.TempDir()
+	write(t, common, "info/hq-private-patterns", "from-file\n")
+	list, err := privateList("from-env\n", common)
+	if err != nil || list != "from-env\n" {
+		t.Fatalf("list %q err %v", list, err)
+	}
+}
+
+func TestTheListComesFromTheFileInGitWithoutTheVariable(t *testing.T) {
+	common := t.TempDir()
+	write(t, common, "info/hq-private-patterns", "from-file\n")
+	list, err := privateList(" \n", common)
+	if err != nil || list != "from-file\n" {
+		t.Fatalf("list %q err %v", list, err)
+	}
+}
+
+func TestWithoutVariableOrFileThereIsNoList(t *testing.T) {
+	list, err := privateList("", t.TempDir())
+	if err != nil || list != "" {
+		t.Fatalf("list %q err %v", list, err)
+	}
+	if list, err = privateList("", ""); err != nil || list != "" { // not in a repository
+		t.Fatalf("outside a repository: list %q err %v", list, err)
+	}
+}
