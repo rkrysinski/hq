@@ -1,13 +1,16 @@
 .DS_Store
 .env
-__pycache__/
+node_modules/
 
-# Claude Code: status files, agent worktrees, personal settings
-.claude/status/
+# Per-checkout state of scripts/local-dev.sh
+.local-dev/
+
+# Agent worktrees and personal Claude Code settings
 .claude/worktrees/
 .claude/settings.local.json
 
-# Go: local builds and coverage
-/.local-dev/
-cover.out
-/dist/
+# Inventories of supervised releases (docs/agents/supervisor.md)
+.claude/releases/
+
+# Test coverage data and browser-journey screenshots
+e2e-screenshots/

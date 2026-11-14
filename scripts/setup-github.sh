@@ -4,13 +4,14 @@
 # QA evidence, and the repository settings. A repository created from a template
 # inherits none of these, only the files.
 #
-# Usage: scripts/setup-github.sh [--dry-run] [--repo <owner/name>]
+# Usage: scripts/setup-github.sh [--dry-run] [--labels-only] [--repo <owner/name>]
 #
-#   --dry-run  print every write instead of performing it
-#   --repo     target repository (default: the `origin` remote)
+#   --dry-run      print every write instead of performing it
+#   --labels-only  create the missing labels and stop: no branch, no settings
+#   --repo         target repository (default: the `origin` remote)
 #
-# Safe to run again: labels are updated in place, an existing `qa-artifacts`
-# branch is left alone. See docs/agents/triage-labels.md and
+# Safe to run again: missing labels are created and existing ones are left as
+# they are, an existing `qa-artifacts` branch is left alone. See docs/agents/triage-labels.md and
 # docs/agents/qa-evidence.md.
 #
 # Exits 0 on success, 1 on a failure that needs a human, 2 on usage errors.
@@ -18,10 +19,11 @@ set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+. "$SCRIPT_DIR/lib/repo-from-url.sh"
 QA_BRANCH=qa-artifacts
 
 usage() {
-    sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
 }
 
@@ -31,10 +33,12 @@ die() {
 }
 
 DRY_RUN=0
+LABELS_ONLY=0
 REPO=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --dry-run) DRY_RUN=1; shift ;;
+        --labels-only) LABELS_ONLY=1; shift ;;
         --repo) REPO=${2:-}; [ -n "$REPO" ] || usage; shift 2 ;;
         *) usage ;;
     esac
@@ -46,7 +50,7 @@ command -v gh >/dev/null 2>&1 || die "the gh CLI is not installed"
 
 if [ -z "$REPO" ]; then
     origin=$(git remote get-url origin 2>/dev/null) || die "no 'origin' remote; pass --repo <owner/name>"
-    REPO=$(echo "$origin" | sed -e 's#^git@[^:]*:##' -e 's#^https\{0,1\}://[^/]*/##' -e 's#\.git$##')
+    REPO=$(repo_from_url "$origin")
     # Push the way this checkout already pushes (HTTPS or SSH).
     PUSH_TARGET=origin
 else
@@ -64,12 +68,16 @@ gh api "repos/$REPO" -q .full_name >/dev/null 2>&1 \
 
 echo "repository : $REPO"
 [ "$DRY_RUN" -eq 1 ] && echo "mode       : dry run (no writes)"
+[ "$LABELS_ONLY" -eq 1 ] && echo "scope      : labels only"
 echo
 
 # ----------------------------------------------------------------- labels ----
 
 # <name>|<colour>|<description>. The first three exist in every new GitHub
 # repository; they are listed so that a repository which lost them gets them back.
+# Only missing labels are created: an existing label keeps the description and
+# colour the project gave it. To take the text below for an existing label, edit
+# that label on GitHub.
 LABELS='bug|d73a4a|Something that was broken for a user
 enhancement|a2eeef|Something a user of the product can see or do
 wontfix|ffffff|Will not be actioned
@@ -80,26 +88,38 @@ ready-for-agent|0e8a16|Fully specified, ready for an AFK agent
 ready-for-human|1d76db|Requires human implementation
 prd|5319e7|Product requirements document; implementation issues are sub-issues
 claimed|c5def5|Claimed by an agent session
+release|0052cc|The release issue of a supervised release
+watch|f9d0c4|A metric to keep an eye on, not work
 wayfinder:map|006b75|Wayfinder map
 wayfinder:research|bfdadc|Wayfinder research ticket
 wayfinder:prototype|bfdadc|Wayfinder prototype ticket
 wayfinder:grilling|bfdadc|Wayfinder grilling ticket
 wayfinder:task|bfdadc|Wayfinder task ticket'
 
+existing=$(gh label list --repo "$REPO" --limit 1000 --json name --jq '.[].name') \
+    || die "could not list the labels of $REPO"
+
 echo "labels:"
 echo "$LABELS" | while IFS='|' read -r name colour description; do
     [ -n "$name" ] || continue
-    if [ "$DRY_RUN" -eq 1 ]; then
-        echo "  would create or update '$name'"
+    if printf '%s\n' "$existing" | grep -Fxqi -- "$name"; then
+        echo "  $name (exists, kept)"
+    elif [ "$DRY_RUN" -eq 1 ]; then
+        echo "  $name (would create)"
     else
         # </dev/null: gh would otherwise read this loop's stdin and eat the list.
-        gh label create "$name" --repo "$REPO" --color "$colour" --description "$description" --force \
+        gh label create "$name" --repo "$REPO" --color "$colour" --description "$description" \
             < /dev/null >/dev/null \
             || die "could not create label '$name'"
-        echo "  $name"
+        echo "  $name (created)"
     fi
 done
 echo
+
+if [ "$LABELS_ONLY" -eq 1 ]; then
+    echo "https://github.com/$REPO/labels"
+    exit 0
+fi
 
 # ------------------------------------------------------------ qa-artifacts ----
 
@@ -115,7 +135,7 @@ else
 # QA artifacts
 
 QA evidence (screenshots, exported files, command output) recorded by agents for pull requests.
-This branch never merges into `dev` or `main`. Evidence for an issue lives under `issue-<n>/`; PR bodies link to it
+This branch never merges into `dev`. Evidence for an issue lives under `issue-<n>/`; PR bodies link to it
 by commit SHA. See `docs/agents/qa-evidence.md` on `dev`.
 README
     )

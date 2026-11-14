@@ -1,34 +1,38 @@
-# Runs the full build, scripts/check.sh and nothing else, once on Linux on
-# every push to dev (#176). Pull requests into dev run it on both host
-# platforms from pull-request.yml; a pull request into any other branch runs
-# neither - see docs/agents/testing.md.
-#
-# Skipped when every changed file is one nothing in the build, the tests,
-# tools/testgate or e2e reads (#108): Markdown anywhere and docs/ (no
-# //go:embed, no code reads them), .claude/ (no Go files; go vet, go test and
-# the pyramid gate skip it, and the tests' git repositories are temporary
-# ones) and .gitignore (CI builds a fresh checkout). Any other file in the
-# change runs the whole workflow. Remove a path from this list and from
-# pull-request.yml's the day code reads it.
+# The full build (scripts/check.sh) after every merge to dev. A pull request
+# gets no run: the agent runs the same script on the branch before pushing and
+# again before the merge - see docs/agents/testing.md, "Merging". Each push to
+# dev (a squash merge is one commit) gets a run of its own and none is
+# cancelled, so a red run names the commit that broke the build. A commit that
+# changes only the files below builds nothing and gets no run.
 name: Tests
 
 on:
   push:
     branches: [dev]
     paths-ignore:
-      - '**/*.md'
       - 'docs/**'
+      - '**/*.md'
       - '.claude/**'
-      - '.gitignore'
+      - '.github/workflows/pull-request.yml'
+      - '.github/workflows/release.yml'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/PULL_REQUEST_TEMPLATE/**'
 
 permissions:
   contents: read
 
 jobs:
-  tests:
+  full-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      # Set up the stack's toolchain here (actions/setup-java, setup-go,
+      # setup-node...) and the browser for the journeys, when wiring
+      # scripts/check.sh. The checks themselves stay in the script.
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod

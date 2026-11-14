@@ -16,7 +16,7 @@
 #
 # Issue labels decide the section: `enhancement` -> Nowe funkcje, `bug` -> Poprawki,
 # `internal` -> Wewnętrzne (alongside pull requests that closed no issue), the rest
-# -> Pozostałe.
+# -> Pozostałe. A spec (`prd`) is left out of the notes; milestone and comment stay.
 #
 # Exits 0 on success, 1 on a failure that needs a human, 2 on usage errors.
 #
@@ -26,6 +26,7 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 . "$SCRIPT_DIR/lib/release-notes.sh"
+. "$SCRIPT_DIR/lib/repo-from-url.sh"
 
 # The notes link to this document when the tagged version has it: the
 # project's own deployment procedure, written for whoever installs a version.
@@ -87,7 +88,7 @@ command -v jq >/dev/null 2>&1 || die "jq is not installed"
 
 if [ -z "$REPO" ]; then
     origin=$(git remote get-url origin 2>/dev/null) || die "no 'origin' remote; pass --repo <owner/name>"
-    REPO=$(echo "$origin" | sed -e 's#^git@[^:]*:##' -e 's#^https\{0,1\}://[^/]*/##' -e 's#\.git$##')
+    REPO=$(repo_from_url "$origin")
 fi
 case "$REPO" in
     */*) ;;
@@ -107,7 +108,7 @@ git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null \
 # behind both, describe would reach back past the other tag, and the notes would
 # re-announce work that already shipped.
 PREV=$(git tag --list 'v*' --merged "$VERSION" \
-    | sort -t. -k1.2,1n -k2,2n -k3,3n \
+    | "$SCRIPT_DIR/version.sh" sort \
     | awk -v v="$VERSION" '$0 == v { print prev; exit } { prev = $0 }') || PREV=""
 # No previous tag: this is the first release, and everything behind the tag is in it.
 
@@ -134,6 +135,8 @@ release_notes_prerequisites "$TMP"
 while IFS="$(printf '\t')" read -r issue title labels; do
     [ -n "$issue" ] || continue
     echo "$issue" >> "$TMP/issues"
+    # Checked before the type labels, so a spec with a type label is left out too.
+    release_notes_is_spec "$labels" && continue
     case ",$labels," in
         *,enhancement,*) printf '%s\t%s\n' "$issue" "$title" >> "$TMP/features.tsv" ;;
         *,bug,*) printf '%s\t%s\n' "$issue" "$title" >> "$TMP/fixes.tsv" ;;
