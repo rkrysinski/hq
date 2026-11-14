@@ -8,8 +8,10 @@ Read by the release skills (`/release-prepare`, `/release-implement`, `/release-
 | --- | --- |
 | Model for the supervisor | `fable` |
 | Effort for the supervisor | `high` |
+| Cap per release, USD | `not capped` |
+| Cap per agent, USD | `not capped` |
 
-The rows for implementation and the release tester are left out: the skills' defaults apply. There are no cap rows: hq's agents have no metered spend.
+The rows for implementation and the release tester are left out: the skills' defaults apply. Spend is not capped because hq's agents run on a subscription and hq calls no paid API.
 
 ## Environment
 
