@@ -1,0 +1,3 @@
+$ scripts/check-pr.sh --release-pr "Ship release v0.14.0 in English" < /tmp/qa-186/release-template-filled.md; echo "exit $?"
+check-pr: ok
+exit 0

@@ -1,0 +1,3 @@
+$ scripts/check-pr.sh "Show the release notes in English" < /tmp/qa-186/ticket-no-rollback.md; echo "exit $?"
+check-pr: ok
+exit 0

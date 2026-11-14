@@ -1,0 +1,3 @@
+$ scripts/check-pr.sh "Show the release notes in English" < /tmp/qa-186/ticket-template-filled.md; echo "exit $?"
+check-pr: ok
+exit 0

@@ -1,0 +1,4 @@
+$ scripts/check-pr.sh "Show the release notes in English" < /tmp/qa-186/ticket-no-rollback.md; echo "exit $?"
+check-pr: `## Rollback` is missing: the description has deployment steps, so add one line per rollback step, or `None: one-way door`
+check-pr: 1 problem(s); edit the pull request and the check runs again
+exit 1

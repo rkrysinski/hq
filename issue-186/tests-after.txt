@@ -1,0 +1,15 @@
+$ go test -count=1 -v -tags integration -run "CheckPR|Release" ./scripts/
+=== RUN   TestCheckPRAsksForTheRollbackOfADeploymentStep
+--- PASS: TestCheckPRAsksForTheRollbackOfADeploymentStep (0.02s)
+=== RUN   TestCheckPRNamesTheEnglishHeadingOfAMisspeltSection
+--- PASS: TestCheckPRNamesTheEnglishHeadingOfAMisspeltSection (0.02s)
+=== RUN   TestCheckPRNamesTheEnglishHeadingOfAPolishSection
+--- PASS: TestCheckPRNamesTheEnglishHeadingOfAPolishSection (0.03s)
+=== RUN   TestCheckPRPassesTheTicketTemplateFilledIn
+--- PASS: TestCheckPRPassesTheTicketTemplateFilledIn (0.02s)
+=== RUN   TestCheckPRReadsTheClosingSectionOfTheReleaseTemplate
+--- PASS: TestCheckPRReadsTheClosingSectionOfTheReleaseTemplate (0.05s)
+=== RUN   TestReleaseWritesItsNotesMilestoneAndCommentsInEnglish
+--- PASS: TestReleaseWritesItsNotesMilestoneAndCommentsInEnglish (0.05s)
+PASS
+ok  	github.com/rkrysinski/hq/scripts	0.185s

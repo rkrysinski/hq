@@ -1,0 +1,2 @@
+$ git grep -n -E 'Nowe funkcje|Poprawki|Pozostałe|Wewnętrzne|Wdrożenie|wdrożeni|Wycofan|drzwi jednokierunkowe|Zamyka|Wydan|Instrukcja' -- scripts .github docs/agents docs/releasing.md docs/workflow.md ':!*_test.go'; echo "exit $?"
+exit 1

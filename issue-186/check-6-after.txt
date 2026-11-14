@@ -1,0 +1,37 @@
+$ scripts/release.sh v0.14.0 --dry-run --repo rkrysinski/hq; echo "exit $?"
+repository : rkrysinski/hq
+range      : v0.13.1..v0.14.0
+mode       : dry run (no writes)
+
+prerequisites : 0 before deployment, 0 after (from pull request sections)
+
+would create release v0.14.0 with:
+  <!-- generated -->
+  
+  <a name="internal"></a>
+  ## Internal
+  
+  - The full build is one script, and GitHub runs it only for dev (#176)
+  - hq is made from the project template: the machinery (#177)
+  - hq's documents follow the project template, hq's own rules in hq's own files (#178)
+  - main follows the pushed tag, and hq's rules name both release paths (#179)
+  
+  <!-- /generated -->
+
+milestone v0.14.0 already exists (#25)
+  #176 already in milestone v0.14.0
+  #177 already in milestone v0.14.0
+  #178 already in milestone v0.14.0
+  #179 already in milestone v0.14.0
+  would add #180 to milestone v0.14.0
+  would add #182 to milestone v0.14.0
+  would add #183 to milestone v0.14.0
+  would add #184 to milestone v0.14.0
+  would comment on #176: Released in v0.14.0 - https://github.com/rkrysinski/hq/releases/tag/v0.14.0
+  would comment on #177: Released in v0.14.0 - https://github.com/rkrysinski/hq/releases/tag/v0.14.0
+  would comment on #178: Released in v0.14.0 - https://github.com/rkrysinski/hq/releases/tag/v0.14.0
+  would comment on #179: Released in v0.14.0 - https://github.com/rkrysinski/hq/releases/tag/v0.14.0
+would close milestone v0.14.0
+
+https://github.com/rkrysinski/hq/releases/tag/v0.14.0
+exit 0

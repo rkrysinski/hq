@@ -1,0 +1,4 @@
+$ scripts/check-pr.sh "Show the release notes in English" < /tmp/qa-186/ticket-polish-heading.md; echo "exit $?"
+check-pr: heading "## Przed wdrożeniem" is not read by release.sh: write exactly `## Before deployment`
+check-pr: 1 problem(s); edit the pull request and the check runs again
+exit 1

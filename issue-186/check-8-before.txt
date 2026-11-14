@@ -1,0 +1,4 @@
+$ scripts/check-pr.sh "Show the release notes in English" < /tmp/qa-186/ticket-polish-heading.md; echo "exit $?"
+check-pr: `## Wycofanie` is missing: the description has deployment steps, so add one line per rollback step, or `Brak: drzwi jednokierunkowe`
+check-pr: 1 problem(s); edit the pull request and the check runs again
+exit 1
