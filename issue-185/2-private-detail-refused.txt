@@ -1,0 +1,24 @@
+$ mkrepo after2 /tmp/qa185/hq/scripts/git-hooks; echo 'we ship for ACME' > notes.txt; git add . && git commit
+-qm 'Add notes'; echo 'we ship' > notes.txt; git commit -qam 'Clean up notes'; HQ_PRIVATE_PATTERNS=acme git pu
+sh origin main; echo "push exit $?"; git log --oneline -2
+private: 1 patterns, 2 commits, 1 matching lines
+FAIL: 9477c07 notes.txt:1 matches private pattern 1
+push refused: take the private details out of the commits that hold them (a later commit that removes one stil
+l pushes it), or fix the list
+exit status 1
+error: failed to push some refs to '../remote.git'
+push exit 1
+0ccf900 (HEAD -> main) Clean up notes
+9477c07 Add notes
+$
+
+
+
+
+
+
+
+
+
+
+

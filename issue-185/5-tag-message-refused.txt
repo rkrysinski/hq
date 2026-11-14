@@ -1,0 +1,24 @@
+$ mkrepo after5 /tmp/qa185/hq/scripts/git-hooks; git tag -a v1 -m 'Release for ACME'; HQ_PRIVATE_PATTERNS=acme
+ git push origin v1; echo "push exit $?"
+private: 1 patterns, 0 commits, 1 matching lines
+FAIL: 8aa554c tag message:1 matches private pattern 1
+push refused: take the private details out of the commits that hold them (a later commit that removes one stil
+l pushes it), or fix the list
+exit status 1
+error: failed to push some refs to '../remote.git'
+push exit 1
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+

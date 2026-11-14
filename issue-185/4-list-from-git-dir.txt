@@ -1,0 +1,24 @@
+$ mkrepo after4 /tmp/qa185/hq/scripts/git-hooks; echo acme > "$(git rev-parse --git-common-dir)/info/hq-privat
+e-patterns"; echo 'for ACME' > notes.txt; git add . && git commit -qm 'Add notes'; git push origin main; echo
+"push exit $?"
+private: 1 patterns, 1 commits, 1 matching lines
+FAIL: 3050fb9 notes.txt:1 matches private pattern 1
+push refused: take the private details out of the commits that hold them (a later commit that removes one stil
+l pushes it), or fix the list
+exit status 1
+error: failed to push some refs to '../remote.git'
+push exit 1
+$
+
+
+
+
+
+
+
+
+
+
+
+
+

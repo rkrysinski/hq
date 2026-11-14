@@ -1,0 +1,24 @@
+$ mkrepo before /tmp/qa185/dev/scripts/git-hooks; echo 'we ship for ACME' > notes.txt; git add . && git commit
+ -qm 'Add notes'; git push origin main; echo "push exit $?"
+Enumerating objects: 4, done.
+Counting objects: 100% (4/4), done.
+Delta compression using up to 10 threads
+Compressing objects: 100% (2/2), done.
+Writing objects: 100% (3/3), 278 bytes | 278.00 KiB/s, done.
+Total 3 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+To ../remote.git
+   f3bac47..3ca3bbf  main -> main
+push exit 0
+$ cd /tmp/qa185/dev && go run ./tools/testgate private; echo "gate exit $?"
+private: HQ_PRIVATE_PATTERNS is not set, nothing checked
+gate exit 0
+$
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,8 @@
+private: 11 patterns, 3 commits, 0 matching lines
+remote: 
+remote: Create a pull request for 'issue-185-prepush-gate' on GitHub by visiting:        
+remote:      https://github.com/rkrysinski/hq/pull/new/issue-185-prepush-gate        
+remote: 
+To https://github.com/rkrysinski/hq.git
+ * [new branch]      issue-185-prepush-gate -> issue-185-prepush-gate
+branch 'issue-185-prepush-gate' set up to track 'origin/issue-185-prepush-gate'.

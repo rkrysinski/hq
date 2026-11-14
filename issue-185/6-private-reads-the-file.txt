@@ -1,0 +1,24 @@
+$ cd /tmp/qa185/hq && go run ./tools/testgate private; echo "gate exit $?"; cd /tmp/qa185/after4/work && /tmp/
+qa185/testgate private notes.txt; echo "gate exit $?"
+private: HQ_PRIVATE_PATTERNS is not set and there is no .git/info/hq-private-patterns, nothing checked
+gate exit 0
+private: 1 patterns, 1 matching lines
+FAIL: notes.txt:1 matches private pattern 1
+gate exit 1
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

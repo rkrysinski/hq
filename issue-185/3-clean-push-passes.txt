@@ -1,0 +1,24 @@
+$ mkrepo after3 /tmp/qa185/hq/scripts/git-hooks; echo 'we ship' > notes.txt; git add . && git commit -qm 'Add
+notes'; HQ_PRIVATE_PATTERNS=acme git push -q origin main; echo "push exit $?"
+private: 1 patterns, 1 commits, 0 matching lines
+push exit 0
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,24 @@
+$ mkrepo after1 /tmp/qa185/hq/scripts/git-hooks; echo 'we ship for ACME' > notes.txt; git add . && git commit
+-qm 'Add notes'; git push origin main; echo "push exit $?"
+private: no pattern list, push refused
+FAIL: no pattern list: set HQ_PRIVATE_PATTERNS or put the list in "$(git rev-parse --git-common-dir)/info/hq-p
+rivate-patterns" (ask the owner for it); git push --no-verify skips this check
+exit status 1
+error: failed to push some refs to '../remote.git'
+push exit 1
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
