@@ -24,7 +24,7 @@ type platformName struct {
 
 // platformNames are the names that mark code as platform-specific: hq's
 // rule is that such code lives in internal/platform, never scattered
-// (AGENTS.md, design §3.10). Comments are not checked, and no other word
+// (docs/hq/agents.md, design §3.10). Comments are not checked, and no other word
 // is looked for: a message to the user about the system tray passes.
 var platformNames = []platformName{
 	{name: "cmd.exe"},

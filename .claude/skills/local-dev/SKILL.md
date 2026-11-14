@@ -35,4 +35,4 @@ scripts/local-dev.sh --kill-server                        # ends the server and 
 - hq keeps its agents' records in the repository (`.git/hq/agents`), so agents in a repository outside the stub environment outlive `--kill-server` as lost agents (`hq restore`, `hq kill`); kill them first, or use the stub environment's `repo`, which goes with it.
 - The tmux server is still this checkout's. It remembers the mode that started it, and a run in another mode (or without `--stub`) is refused until `--kill-server`.
 - End the private tmux server with `--kill-server` when done.
-- QA evidence needs terminal screenshots in every PR (`docs/agents/qa-evidence.md`): render a pane with `scripts/qa-screenshot.sh -L SOCKET TARGET OUT.png`.
+- QA evidence needs terminal screenshots in every PR (`docs/hq/qa-evidence.md`): render a pane with `scripts/qa-screenshot.sh -L SOCKET TARGET OUT.png`.

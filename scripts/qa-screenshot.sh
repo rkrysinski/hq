@@ -1,6 +1,6 @@
 #!/bin/sh
 # Render a tmux pane, colours included, as a terminal screenshot for QA
-# evidence (docs/agents/qa-evidence.md).
+# evidence (docs/hq/qa-evidence.md).
 #
 #   scripts/qa-screenshot.sh [-L SOCKET] [-b RRGGBB] [-f RRGGBB] TARGET OUT.png
 #

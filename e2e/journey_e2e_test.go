@@ -1,7 +1,7 @@
 //go:build e2e
 
 // Package e2e drives the built hq binary the way a person does, in real tmux
-// with the stub sbx (docs/agents/testing.md).
+// with the stub sbx (docs/hq/testing.md).
 package e2e
 
 import (

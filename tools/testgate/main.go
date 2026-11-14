@@ -1,6 +1,6 @@
 // Command testgate holds hq's CI gates: the shape of the test suite, its
 // coverage, no private details in the public text, and platform-specific
-// code in the platform package only (docs/agents/testing.md):
+// code in the platform package only (docs/hq/testing.md):
 //
 //	go run ./tools/testgate pyramid          # counts tests per level, checks the shape
 //	go run ./tools/testgate coverage FILE    # checks a coverage profile against the threshold

@@ -1,7 +1,7 @@
 # Runs the full build, scripts/check.sh and nothing else, on every pull
 # request into dev, on both host platforms hq supports (WSL is Linux) (#176).
 # A pull request into any other branch gets no run; the push to dev runs
-# tests.yml - see docs/agents/testing.md. hq's own workflow: the template's
+# tests.yml - see docs/hq/testing.md. hq's own workflow: the template's
 # pull-request.yml checks the description (#177).
 #
 # Skipped when every changed file is one nothing in the build, the tests,

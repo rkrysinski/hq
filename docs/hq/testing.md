@@ -1,0 +1,51 @@
+# Testing hq
+
+hq's own testing rules, beside the template's `docs/agents/testing.md`; where the two differ, this file holds for hq. hq is written in Go (ADR 0011). The seams and levels are designed in `docs/design/hq.md` §7.2.
+
+## Where a test goes
+
+| Level | Selected by | Use it for |
+|---|---|---|
+| Unit | no build tag; `_test.go` next to the code | Pure logic: parsing, state and attention rules, sorting and filtering, what a dashboard row or a command's output contains, mapping the answer of `sbx`, tmux or a hook with a fake. No processes, sockets, terminals or real `sbx`/tmux |
+| Integration | `//go:build integration`; `_integration_test.go` next to the code | The contract of a command or an adapter: what it runs against tmux (on a private socket per test, `tmux -L`), a stub `sbx`, `gh` or `wslpath` (`testutil.WSLStubs` runs the WSL side on any machine, with the stubs listed in `internal/testutil/wsl-stubs`, which `scripts/local-dev.sh --stub` puts in place for QA too; `testutil.FakeClaude` puts `tools/fakeclaude` behind the stub `sbx run`, firing hq's injected hooks with Claude's payloads as it is prompted, and running a question dialog's hooks side by side, so it takes an answer from a hook's decision as from a typed line), or the file system, and what it reports. Flows that need a real process, file or socket |
+| End-to-end | `//go:build e2e`; in `e2e/` only | A few critical journeys a person drives in a terminal (start an agent, see it, enter it, kill it; install and update), in real tmux with the stub `sbx` and `gh` |
+
+Rules of thumb, beside the template's:
+
+- **External tools sit behind an interface** (tmux, `sbx`, `gh`, the platform adapter, the clock, the state-file reader) with a fake for tests, so unit tests never call the real tool. Platform-specific adapters (macOS, WSL) get the same contract tests.
+- **Wait for tmux to reap an ended pane before looking at it.** On WSL 1 tmux now and then misses that a pane's program exited: the pane is dead, but without its time, status and "Pane is dead" line until another child of the server exits (#22). A tmux test that asserts any of those calls `reaped(t, socket)` after the pane is dead.
+- **Run tmux with `-u`.** hq passes it to every tmux command (design 3.2); a test that runs tmux itself does too, or what it reads depends on the machine's locale (#41).
+- **Never touch the user's tmux server or sandboxes from a test.** Integration and end-to-end tests use a private tmux socket and the stub `sbx`. A test that starts hq says which platform it runs as, so the suite behaves the same on macOS, Linux and WSL: `testutil.SbxStub` sets `HQ_PLATFORM=native` (hq runs `sbx`, the stub, never the `sbx.exe` of a WSL machine) and `testutil.WSLStubs` sets `HQ_PLATFORM=wsl` (hq runs the stub as `sbx.exe`, whatever `sbx` is in `PATH`); a test that uses neither and starts the hq binary sets it itself.
+
+## Commands
+
+The template's *Wiring the checks* is done: `scripts/check.sh` is hq's, `.github/workflows/tests.yml` sets up Go at `go.mod`'s version and tmux, and `scripts/local-dev.project.sh` is not used (hq runs with its own `scripts/local-dev.sh`, `docs/hq/agents.md`, *Local run*).
+
+`scripts/check.sh` is the full build: every step the test workflows run, in their order (vet for every build tag, formatting, the pyramid gate, the platform gate, unit tests, integration tests with coverage, the coverage gate, the end-to-end journeys), and they run nothing else (`.github/workflows/private.yml`, below, checks private details apart). Run it, from any directory, before you hand work over. It prints `check: ok   <step>` per passed step and stops at the first failure with `check: FAIL <step>`, that step's output and `check: stopped at <step> on <commit>` (exit 1). Its last line, `check: all <N> steps passed on <commit>` (exit 0), is the test evidence: `<commit>` is HEAD's full sha, followed by ` with uncommitted changes` when the tree is not clean, so only a clean tree's line vouches for a commit. A passed step's output is not printed: CI puts the pyramid and coverage figures in the job summary, and locally the single commands below print them. The single steps, to run one at a time:
+
+```bash
+go test ./...                                          # unit
+go test -tags integration ./...                        # unit + integration
+go test -tags e2e ./e2e/...                            # end-to-end journeys
+go run ./tools/testgate pyramid                        # counts per level, checks the shape
+go run ./tools/testgate private [PATH...]              # no private details (needs HQ_PRIVATE_PATTERNS)
+go run ./tools/testgate platform                       # platform-specific names only in internal/platform
+go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./... \
+  && go run ./tools/testgate coverage cover.out        # coverage threshold
+```
+
+## CI
+
+A pull request into `dev` gets a run, unlike the template's *Merging* says: `.github/workflows/pull-request-tests.yml` runs `scripts/check.sh` on macOS and Ubuntu, for every change but one of only the paths its header lists as skipped. Every push to `dev` runs it once more on Ubuntu (`.github/workflows/tests.yml`), for every change but one of only the paths its `paths-ignore` lists. A pull request into any other branch, a release branch among them, gets no run. A PR with a red CI job is not merged.
+
+## Thresholds
+
+`tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. Unlike the template's `docs/agents/testing.md` and `docs/agents/implementer.md` say, a pull request moves them, by these rules. Both thresholds only go up. The unit share's minimum follows the figure: a PR that raises the share raises the minimum in the same PR. The coverage minimum stays 0.5 points under CI's figure, rounded down to a tenth, so a PR that changes nothing about tests cannot fall under it: a PR that lifts the figure more than 0.5 points above the minimum raises the minimum to the figure less 0.5 (#42). Never lower one to get a PR through.
+
+## Platform code
+
+Both platforms behave the same, and the code that tells them apart lives in `internal/platform` only (`docs/hq/agents.md`, *Rules*; design §3.10). `testgate platform` fails on a Go file, not a test, that names a program or variable of one platform outside it: `cmd.exe`, `powershell.exe`, `wsl.exe`, `wslpath`, `sbx.exe`, `WSL_DISTRO_NAME` or `osascript` in a string (ignoring case), or `runtime.GOOS` in code (ask `platform.OS` instead). It prints the file, the line and the name. Comments are not checked, and no other word is looked for: a message to the user about the system tray passes. The list and its exemptions (`internal/platform`, the stubs in `internal/testutil`, the gate itself), each with its reason, are in `tools/testgate/platform.go`; a new exemption needs a reason there and a line in the PR.
+
+## Private details
+
+The repository is public. Names of private organisations and repositories, agent and repository names taken from them, a local user's paths, host names and Claude session ids stay out of the code, the docs, the fixtures and the QA evidence: use a placeholder (`<org>`, `~/work/app`, `agent-17`, `/w/app`), and when a capture carries such a detail, edit it and say so in its fixture README (#127). `testgate private` fails on a line that matches one of the patterns in `HQ_PRIVATE_PATTERNS` (one regular expression per line, matched ignoring case, `#` comments); it checks the tracked files, or the PATHs given. The list itself is not in the repository: CI takes it from the repository secret of the same name (`.github/workflows/private.yml`, on every pull request, every push to `dev` and once a day; each run also checks the tip of `qa-artifacts`), and a local run without the variable passes with a notice. Ask the owner for the list to run it locally; the gate prints the file, the line and the pattern's number (counting patterns, not comment or blank lines), never the text, since CI logs are public. It reads text only: look at images yourself.

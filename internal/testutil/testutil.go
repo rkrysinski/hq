@@ -2,7 +2,7 @@
 
 // Package testutil sets up real tmux, a stub sbx and git repositories for
 // integration and end-to-end tests, never touching the user's own tmux
-// server or sandboxes (docs/agents/testing.md).
+// server or sandboxes (docs/hq/testing.md).
 package testutil
 
 import (
