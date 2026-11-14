@@ -1,7 +1,6 @@
-# Publishes the GitHub release for a tag: the notes from scripts/release.sh,
-# then hq for every platform, install.sh and SHA256SUMS from
-# scripts/build-release.sh. The logic lives in the scripts, so the workflow
-# and a local run produce the same release - see docs/releasing.md.
+# Publishes the GitHub release for a tag. All the logic lives in
+# scripts/release.sh, so the workflow and a local run produce the same notes -
+# see docs/releasing.md.
 name: Release
 
 on:

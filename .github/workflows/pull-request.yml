@@ -1,44 +1,37 @@
-# Runs the full build, scripts/check.sh and nothing else, on every pull
-# request into dev, on both host platforms hq supports (WSL is Linux) (#176).
-# A pull request into any other branch gets no run; the push to dev runs
-# tests.yml - see docs/agents/testing.md.
-#
-# Skipped for the paths tests.yml's header explains; keep the two lists the
-# same (actionlint rejects an anchor, and a workflow cannot share one).
-# A skipped workflow reports no check at all: should dev ever require this
-# check, docs-only pull requests would wait on it forever, and the filter
-# must then move into a job that always runs and skips its steps.
-name: Pull request tests
+# Checks the title, the description and the commits of a pull request that is
+# ready for review with scripts/check-pr.sh: the sections a reviewer needs, the
+# prerequisite headings scripts/release.sh reads, and a `Closes #<n>` line in
+# every commit when the description closes an issue. Editing the pull request
+# runs it again. The commits are those the base branch, as fetched, does not
+# have; locally: scripts/check-pr.sh "<title>" origin/dev..HEAD < description.md
+name: Pull request
 
 on:
   pull_request:
-    branches: [dev]
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - '.claude/**'
-      - '.gitignore'
+    types: [opened, edited, reopened, synchronize, ready_for_review]
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
-  tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+  description:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Install tmux
-        run: |
-          if [ "$RUNNER_OS" = macOS ]; then brew install tmux; else sudo apt-get update -q && sudo apt-get install -yq tmux; fi
-          tmux -V
-
-      - name: Full build
-        run: scripts/check.sh
+      - name: Title, description and commits
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BASE_REF: ${{ github.base_ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: printf '%s\n' "$PR_BODY" | scripts/check-pr.sh --head-branch "$PR_HEAD_REF" "$PR_TITLE" "origin/$PR_BASE_REF..$PR_HEAD_SHA"
