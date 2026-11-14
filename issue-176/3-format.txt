@@ -1,0 +1,5 @@
+check: ok   vet
+check: FAIL format
+cmd/hq/main.go
+check: stopped at format on 7564fb8fd63b430ab32cdef15dff7ffd2b068f0b with uncommitted changes
+exit 1
