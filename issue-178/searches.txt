@@ -13,7 +13,13 @@ exit 1
 # The private names (the patterns are not shown): git grep -n -i -E "PATTERNS"; echo "exit $?"
 exit 1
 
-$ head -1 CLAUDE.md >/dev/null; cat CLAUDE.md
+# The two template example lines (the patterns are not shown), in every commit of origin/dev..HEAD:
+9087d5e none
+d31bb53 none
+f2eaabc none
+
+$ git ls-files -s CLAUDE.md; cat CLAUDE.md
+100644 9d921f41d5e437ec71242afe213911fb570321a6 0	CLAUDE.md
 <!-- Claude Code reads this repository's instructions from AGENTS.md, the file every coding agent shares, through the import below. An import rather than a symlink, because Git on Windows checks a symlink out as a one-line text file. Claude-only instructions go below the import. -->
 
 @AGENTS.md

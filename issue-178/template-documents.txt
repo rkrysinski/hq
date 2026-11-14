@@ -1,5 +1,5 @@
 # Each template-owned document at HEAD compared with the template v2.5.0 rendered for hq (copier copy --vcs-ref v2.5.0, stack other).
-# The one private name in the template's line of docs/workflow.md is replaced by PRIVATE-NAME here.
+# Two kinds of template text are replaced here: the private name in its line of docs/workflow.md (PRIVATE-NAME), and the two example lines of docs/releasing.md that match private patterns (TEMPLATE-EXAMPLE-LINE).
 
 $ diff template/CLAUDE.md CLAUDE.md
 (exit 0)
@@ -23,6 +23,14 @@ $ diff template/docs/releasing.md docs/releasing.md
 5a6,7
 > hq's branches, version, release binaries, installer and checksums, and releasing without GitHub Actions: `docs/hq/releasing.md`, which holds for hq where it differs from this file.
 > 
+129c131
+< TEMPLATE-EXAMPLE-LINE (matches a private pattern; not shown)
+---
+> - Admin: grant the service account read access to the new queue.
+132c134
+< TEMPLATE-EXAMPLE-LINE (matches a private pattern; not shown)
+---
+> - `.env`: `EXAMPLE_FEATURE_ENABLED=1`, restart.
 (exit 1)
 
 $ diff template/docs/agents/domain.md docs/agents/domain.md

@@ -1,7 +1,15 @@
-$ scripts/release.sh "$(scripts/version.sh latest --remote origin)" --dry-run
+$ t=$(scripts/version.sh latest --remote origin); echo "$t"
+v0.13.1
+
+$ scripts/release.sh "$t" --dry-run
 repository : rkrysinski/hq
 range      : v0.13.0..v0.13.1
 mode       : dry run (no writes)
 
 release: no merged pull requests found in v0.13.0..v0.13.1
 exit 1
+
+$ git for-each-ref --format='%(creatordate:short)' "refs/tags/$t"
+2026-11-05
+
+# The tag was created before 2026-11-14 and the dry run printed `no merged pull requests found`: the check passes by its stated exception.
