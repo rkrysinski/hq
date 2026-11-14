@@ -7,7 +7,7 @@
 #
 # git runs it in the pushing worktree with the refs it sends on stdin; it
 # runs the gate of the checkout it belongs to against that repository (see
-# docs/agents/testing.md, Private details). `git push --no-verify` skips it.
+# docs/hq/testing.md, Private details). `git push --no-verify` skips it.
 repo=$(pwd)
 cd "$(dirname "$0")/../.." || exit 1
 if ! command -v go >/dev/null 2>&1; then

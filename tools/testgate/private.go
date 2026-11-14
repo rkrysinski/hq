@@ -25,26 +25,21 @@ const PrivatePatternsEnv = "HQ_PRIVATE_PATTERNS"
 // host's checkout it is the host's, so it outlives the sandbox.
 const PrivatePatternsFile = "info/hq-private-patterns"
 
-// privateList returns the pattern list and where it came from: the
-// variable's value when it holds more than blanks, else the file under the
-// common git directory (none outside a repository), else no list and no
-// source.
-func privateList(env, gitCommonDir string) (list, source string, err error) {
+// privateList returns the pattern list: the variable's value when it holds
+// more than blanks, else the file under the common git directory (none
+// outside a repository), else none.
+func privateList(env, gitCommonDir string) (string, error) {
 	if strings.TrimSpace(env) != "" {
-		return env, PrivatePatternsEnv, nil
+		return env, nil
 	}
 	if gitCommonDir == "" {
-		return "", "", nil
+		return "", nil
 	}
-	path := filepath.Join(gitCommonDir, PrivatePatternsFile)
-	body, err := os.ReadFile(path)
+	body, err := os.ReadFile(filepath.Join(gitCommonDir, PrivatePatternsFile))
 	if errors.Is(err, fs.ErrNotExist) {
-		return "", "", nil
+		return "", nil
 	}
-	if err != nil {
-		return "", "", err
-	}
-	return string(body), path, nil
+	return string(body), err
 }
 
 // hit is a line that matches a pattern. It names the pattern by its number,
@@ -162,17 +157,42 @@ func checkPrivate(list string, paths []string) (string, []string, error) {
 
 // trackedFiles lists the files git tracks under root, as paths under root.
 func trackedFiles(root string) ([]string, error) {
-	cmd := exec.Command("git", "ls-files", "-z")
-	cmd.Dir = root
-	out, err := cmd.Output()
+	out, err := gitOutput(root, "ls-files", "-z")
 	if err != nil {
-		return nil, fmt.Errorf("git ls-files: %v", err)
+		return nil, err
 	}
 	var files []string
-	for _, f := range strings.Split(strings.TrimRight(string(out), "\x00"), "\x00") {
+	for _, f := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
 		if f != "" {
 			files = append(files, filepath.Join(root, f))
 		}
 	}
 	return files, nil
+}
+
+// gitCommonDir is the common git directory of the repository at dir, as an
+// absolute path, or "" outside a repository.
+func gitCommonDir(dir string) string {
+	out, err := gitOutput(dir, "rev-parse", "--path-format=absolute", "--git-common-dir")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(out)
+}
+
+// gitOutput runs git in dir and returns what it prints.
+func gitOutput(dir string, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("git %s: %v", args[0], err)
+	}
+	return string(out), nil
+}
+
+// gitSucceeds runs git in dir and reports whether it exited 0.
+func gitSucceeds(dir string, args ...string) bool {
+	_, err := gitOutput(dir, args...)
+	return err == nil
 }

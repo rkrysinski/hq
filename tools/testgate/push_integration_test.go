@@ -108,12 +108,13 @@ func TestTheBranchNameIsCheckedAndADeletionSendsNothing(t *testing.T) {
 	}
 }
 
-func TestAPushWithoutTheListIsRefused(t *testing.T) {
+func TestAnAnnotatedTagsMessageIsChecked(t *testing.T) {
 	r := newGitRepo(t)
-	tip := r.commit("b.txt", "fine\n", "Add b")
-	summary, problems := r.check("# nothing but a comment\n", "refs/heads/main "+tip+" refs/heads/main "+zero+"\n")
-	if !strings.Contains(summary, "no pattern list") || len(problems) != 1 ||
-		!strings.Contains(problems[0], PrivatePatternsEnv) || !strings.Contains(problems[0], PrivatePatternsFile) {
+	r.git(r.dir, "tag", "-a", "v1", "-m", "Release for acme")
+	tag := r.git(r.dir, "rev-parse", "v1")
+	summary, problems := r.check("acme\n", "refs/tags/v1 "+tag+" refs/tags/v1 "+zero+"\n")
+	want := []string{tag[:7] + " tag message:1 matches private pattern 1"}
+	if summary != "private: 1 patterns, 0 commits, 1 matching lines" || !reflect.DeepEqual(problems, want) {
 		t.Fatalf("summary %q problems %v", summary, problems)
 	}
 }

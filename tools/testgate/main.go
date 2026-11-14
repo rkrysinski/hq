@@ -23,8 +23,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 )
 
 const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | platform [ROOT]"
@@ -80,7 +78,7 @@ func main() {
 			problems = append(problems, fmt.Sprintf("coverage %.1f%% is below %.1f%%", pct, MinCoverage))
 		}
 	case "private":
-		list, _, err := privateList(os.Getenv(PrivatePatternsEnv), gitCommonDir("."))
+		list, err := privateList(os.Getenv(PrivatePatternsEnv), gitCommonDir("."))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -97,19 +95,13 @@ func main() {
 			fmt.Fprintln(os.Stderr, usage)
 			os.Exit(2)
 		}
-		repo := os.Args[2]
-		list, _, err := privateList(os.Getenv(PrivatePatternsEnv), gitCommonDir(repo))
-		if err == nil {
-			var summary string
-			if summary, problems, err = checkPush(list, repo, os.Stdin); err == nil {
-				fmt.Println(summary)
-			}
-		}
+		p, err := runPrepush(os.Args[2])
 		if err != nil {
-			// The push is not checked, so it does not go out: exit 2 fails the hook too.
+			// Not checked, so not pushed: exit 2 fails the hook too.
 			fmt.Fprintln(os.Stderr, "testgate:", err, "- push refused")
 			os.Exit(2)
 		}
+		problems = p
 		refused = "push refused: take the private details out of the commits that hold them (a later commit that removes one still pushes it), or fix the list"
 	case "platform":
 		root := "."
@@ -140,14 +132,17 @@ func main() {
 	}
 }
 
-// gitCommonDir is the common git directory of the repository at dir, as an
-// absolute path, or "" outside a repository.
-func gitCommonDir(dir string) string {
-	cmd := exec.Command("git", "rev-parse", "--path-format=absolute", "--git-common-dir")
-	cmd.Dir = dir
-	out, err := cmd.Output()
+// runPrepush checks the push the pre-push hook is given on stdin from the
+// repository repo, prints its summary and returns its problems.
+func runPrepush(repo string) ([]string, error) {
+	list, err := privateList(os.Getenv(PrivatePatternsEnv), gitCommonDir(repo))
 	if err != nil {
-		return ""
+		return nil, err
 	}
-	return strings.TrimSpace(string(out))
+	summary, problems, err := checkPush(list, repo, os.Stdin)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(summary)
+	return problems, nil
 }

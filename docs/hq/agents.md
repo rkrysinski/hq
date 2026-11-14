@@ -42,7 +42,7 @@ A push from a clone of hq runs the pre-push hook `scripts/git-hooks/pre-push`, w
 git config core.hooksPath scripts/git-hooks
 ```
 
-The list, which the owner gives, goes into the clone's `.git/info/hq-private-patterns` (`"$(git rev-parse --git-common-dir)/info/hq-private-patterns"`), or into `HQ_PRIVATE_PATTERNS`. A sandbox that mounts the host's checkout shares its `.git`, its configuration and that file, so the hook and the list outlive the sandbox; a sandbox with a clone of its own needs both put in again, and its first push says so. The hook runs the gate with `go run`, so a machine that pushes needs Go.
+The list, which the owner gives, goes into the clone's `.git/info/hq-private-patterns` (`"$(git rev-parse --git-common-dir)/info/hq-private-patterns"`), or into `HQ_PRIVATE_PATTERNS`. A sandbox that mounts the host's checkout shares its `.git`, its configuration and that file, so the hook and the list outlive the sandbox. A clone without the setting runs no hook at all, and neither does a worktree whose checkout has no `scripts/git-hooks` (a branch from before the hook, `qa-artifacts`): nothing there says the push went out unchecked, so a sandbox with a clone of its own needs both put in again before its first push. The hook runs the gate with `go run`, so a machine that pushes needs Go.
 
 ## Updating from the template
 

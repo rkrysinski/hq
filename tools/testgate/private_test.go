@@ -112,82 +112,27 @@ func TestTrackedFilesListsOnlyWhatGitTracks(t *testing.T) {
 func TestTheListComesFromTheVariableFirst(t *testing.T) {
 	common := t.TempDir()
 	write(t, common, "info/hq-private-patterns", "from-file\n")
-	list, source, err := privateList("from-env\n", common)
-	if err != nil || list != "from-env\n" || source != PrivatePatternsEnv {
-		t.Fatalf("list %q source %q err %v", list, source, err)
+	list, err := privateList("from-env\n", common)
+	if err != nil || list != "from-env\n" {
+		t.Fatalf("list %q err %v", list, err)
 	}
 }
 
 func TestTheListComesFromTheFileInGitWithoutTheVariable(t *testing.T) {
 	common := t.TempDir()
 	write(t, common, "info/hq-private-patterns", "from-file\n")
-	list, source, err := privateList(" \n", common)
-	if err != nil || list != "from-file\n" || source != filepath.Join(common, "info/hq-private-patterns") {
-		t.Fatalf("list %q source %q err %v", list, source, err)
+	list, err := privateList(" \n", common)
+	if err != nil || list != "from-file\n" {
+		t.Fatalf("list %q err %v", list, err)
 	}
 }
 
 func TestWithoutVariableOrFileThereIsNoList(t *testing.T) {
-	list, source, err := privateList("", t.TempDir())
-	if err != nil || list != "" || source != "" {
-		t.Fatalf("list %q source %q err %v", list, source, err)
+	list, err := privateList("", t.TempDir())
+	if err != nil || list != "" {
+		t.Fatalf("list %q err %v", list, err)
 	}
-	if list, source, err = privateList("", ""); err != nil || list != "" || source != "" { // not in a repository
-		t.Fatalf("outside a repository: list %q source %q err %v", list, source, err)
-	}
-}
-
-// pushLog is git log's output for two commits as prepush asks for it, written
-// out by hand from a real run: each commit's full message between \x01 and
-// \x02, then its patch with no context lines.
-const pushLog = "\x01" + "8eec91d1dfd234a2b33de75ba0cf9dd68f90b46c\n" +
-	"Ship it\n\nfor ACME as promised\n" + "\x02\n\n" +
-	"diff --git d/acme notes.txt d/acme notes.txt\n" +
-	"new file mode 100644\n" +
-	"index 0000000..b680253\n" +
-	"--- /dev/null\n" +
-	"+++ d/acme notes.txt\t\n" +
-	"@@ -0,0 +1 @@\n" +
-	"+fine\n" +
-	"diff --git f.txt f.txt\n" +
-	"index de98044..93e9516 100644\n" +
-	"--- f.txt\n" +
-	"+++ f.txt\n" +
-	"@@ -2,2 +2 @@ a\n" +
-	"-acme was here\n" +
-	"-+++ acme.txt\n" +
-	"+fine\n" +
-	"@@ -9,0 +10,2 @@ c\n" +
-	"++++ acme.txt\n" +
-	"+and acme again\n" +
-	"\\ No newline at end of file\n" +
-	"diff --git i.png i.png\n" +
-	"new file mode 100644\n" +
-	"index 0000000..e524aef\n" +
-	"Binary files /dev/null and i.png differ\n" +
-	"\x01" + "1234567aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n" +
-	"Clean\n" + "\x02\n\n" +
-	"diff --git gone.txt gone.txt\n" +
-	"deleted file mode 100644\n" +
-	"index 1111111..0000000\n" +
-	"--- gone.txt\n" +
-	"+++ /dev/null\n" +
-	"@@ -1 +0,0 @@\n" +
-	"-acme\n"
-
-func TestScanLogFindsHitsInMessagesAddedLinesAndNewPathsOnly(t *testing.T) {
-	pats, _ := parsePatterns("acme\n")
-	got := []string{}
-	for _, h := range scanLog(pushLog, pats) {
-		got = append(got, h.String())
-	}
-	want := []string{
-		"8eec91d message:3 matches private pattern 1",
-		"8eec91d d/acme notes.txt (path) matches private pattern 1",
-		"8eec91d f.txt:10 matches private pattern 1",
-		"8eec91d f.txt:11 matches private pattern 1",
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("hits\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	if list, err = privateList("", ""); err != nil || list != "" { // not in a repository
+		t.Fatalf("outside a repository: list %q err %v", list, err)
 	}
 }

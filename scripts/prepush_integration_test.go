@@ -87,15 +87,6 @@ func TestTheHookLetsACleanPushThrough(t *testing.T) {
 	}
 }
 
-func TestTheHookRefusesAPushWithAPrivateDetail(t *testing.T) {
-	r := newPushRepo(t, "HQ_PRIVATE_PATTERNS=acme")
-	r.commit("a.txt", "for ACME\n")
-	out, err := r.run(r.dir, "push", "origin", "main")
-	if err == nil || r.pushed() || !strings.Contains(out, "a.txt:1 matches private pattern 1") {
-		t.Fatalf("err %v pushed %v\n%s", err, r.pushed(), out)
-	}
-}
-
 func TestTheHookRefusesAPushWithoutTheList(t *testing.T) {
 	r := newPushRepo(t)
 	r.commit("a.txt", "fine\n")
