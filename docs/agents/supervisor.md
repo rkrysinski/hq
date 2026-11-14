@@ -26,7 +26,7 @@ Checks `/release-prepare` runs before the readiness table is built, in this orde
 
 | Check | Command | Passes when |
 | --- | --- | --- |
-| Release notes on the last release | `scripts/release.sh "$(scripts/version.sh latest --remote origin)" --dry-run` | it prints `already up to date`, or each difference from the published notes has a cause that is not a defect (`docs/releasing.md`, *Before a supervised release*) |
+| Release notes on the last release | `scripts/release.sh "$(scripts/version.sh latest --remote origin)" --dry-run` | it prints `already up to date`, or each difference from the published notes has a cause that is not a defect (`docs/releasing.md`, *Before a supervised release*). One known cause that is not a defect: origin's history was rewritten on 2026-11-14, and GitHub records the pull requests of a release cut before that date by their old merge commits, so for a last release whose tag was created before 2026-11-14 (`git for-each-ref --format='%(creatordate:short)' refs/tags/vX.Y.Z`) the check also passes when it prints `no merged pull requests found`. For every later release it passes only as above |
 | Full build on the `dev` head | `git fetch origin dev && d=$(mktemp -d) && git worktree add --detach "$d" origin/dev && "$d/scripts/check.sh"`, then `git worktree remove --force "$d"` | `scripts/check.sh` exits 0 and its last line names the sha `git rev-parse origin/dev` prints, without ` with uncommitted changes` |
 | hq answers | hq's MCP tool `list`, called by the supervisor | it answers with the list of agents, without an error |
 | `Tests` on `dev` | `gh run list --branch dev --workflow Tests --limit 1 --json conclusion,headSha,url` | `conclusion` is `success` |
