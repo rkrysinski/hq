@@ -1,0 +1,11 @@
+# The two runs of scripts/setup-github.sh, quoted from this session (their lines for these two labels);
+# the label list is read afterwards.
+$ scripts/setup-github.sh --labels-only --dry-run   # before
+  release (would create)
+  watch (would create)
+$ scripts/setup-github.sh --labels-only
+  release (created)
+  watch (created)
+$ gh label list --search release / watch
+release	The release issue of a supervised release
+watch	A metric to keep an eye on, not work

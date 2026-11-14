@@ -1,0 +1,39 @@
+# A clone of the branch's head 1ffe7ba, checked out as dev, against a local stand-in for origin
+# (its dev at this head, its tags GitHub's). Status, tags, HEAD, branches and the stand-in's refs
+# are compared before and after.
+
+$ git branch --show-current
+dev
+$ scripts/cut-release.sh 0.13.2 --dry-run
+repository : rkrysinski/hq
+branch     : dev at 1ffe7ba
+previous   : v0.13.1
+new tag    : v0.13.2
+mode       : dry run (nothing is changed)
+
+tag message:
+  Release v0.13.2
+  
+  - The full build is one script, and GitHub runs it only for dev (#176)
+
+would run : scripts/bump-version.sh 0.13.2
+would run : git commit -am 'Release 0.13.2'   (skipped if the files already read 0.13.2)
+would run : git tag -a v0.13.2 -F <the message above>
+would run : git push --atomic origin dev v0.13.2
+
+dry run: nothing was changed
+(exit 0)
+
+$ git branch --show-current
+dev
+$ scripts/cut-release.sh 0.13.2 --no-push --dry-run
+cut-release: --no-push is for a release-vX.Y.Z branch - on dev the release commit and tag are pushed together
+(exit 1)
+
+$ git branch --show-current
+dev
+$ scripts/cut-release.sh 0.13.2 --no-push
+cut-release: --no-push is for a release-vX.Y.Z branch - on dev the release commit and tag are pushed together
+(exit 1)
+
+after: git status, tags, HEAD, branches and origin's refs unchanged

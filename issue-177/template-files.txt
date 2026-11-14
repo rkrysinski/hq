@@ -1,0 +1,72 @@
+# Every file of the template v2.5.0, rendered with this project's answers (copier copy into <render>),
+# compared with the branch's head 1ffe7ba
+.claude/settings.json: differs
+.claude/skills/local-dev/SKILL.md: differs
+.copier-answers.yml: identical
+.github/ISSUE_TEMPLATE/release.md: identical
+.github/PULL_REQUEST_TEMPLATE.md: identical
+.github/PULL_REQUEST_TEMPLATE/release.md: identical
+.github/workflows/pull-request.yml: identical
+.github/workflows/release.yml: differs
+.github/workflows/tests.yml: differs
+.gitignore: identical
+AGENTS.md: differs
+CLAUDE.md: differs
+CODING_STANDARDS.md: absent on the branch
+GLOSSARY.md: absent on the branch
+README.md: differs
+VERSION: differs
+docs/adr/.gitkeep: identical
+docs/agents/domain.md: differs
+docs/agents/implementer.md: absent on the branch
+docs/agents/integration-review.md: absent on the branch
+docs/agents/issue-tracker.md: differs
+docs/agents/lessons.md: absent on the branch
+docs/agents/qa-evidence.md: differs
+docs/agents/release-qa.md: absent on the branch
+docs/agents/supervisor.md: absent on the branch
+docs/agents/testing.md: differs
+docs/agents/triage-labels.md: differs
+docs/design/.gitkeep: identical
+docs/releasing.md: differs
+docs/requirements/.gitkeep: identical
+docs/workflow.md: absent on the branch
+scripts/assemble-qa.sh: identical
+scripts/bump-version.sh: identical
+scripts/check-pr.sh: identical
+scripts/check.sh: differs
+scripts/cut-release.sh: identical
+scripts/lib/release-notes.sh: identical
+scripts/lib/repo-from-url.sh: identical
+scripts/local-dev.project.sh: identical
+scripts/local-dev.sh: differs
+scripts/release.sh: identical
+scripts/setup-github.sh: identical
+scripts/version.sh: identical
+
+$ diff <render>/.github/workflows/tests.yml .github/workflows/tests.yml
+35a36,43
+>       - uses: actions/setup-go@v6
+>         with:
+>           go-version-file: go.mod
+> 
+>       - name: Install tmux
+>         run: |
+>           sudo apt-get update -q && sudo apt-get install -yq tmux
+>           tmux -V
+
+$ diff <render>/.github/workflows/release.yml .github/workflows/release.yml
+24a25,31
+>       - uses: actions/setup-go@v6
+>         with:
+>           go-version-file: go.mod
+> 
+>       - name: Build hq for every platform
+>         run: scripts/build-release.sh "$GITHUB_REF_NAME" dist
+> 
+28a36,40
+> 
+>       - name: Attach the binaries, install.sh and SHA256SUMS
+>         env:
+>           GH_TOKEN: ${{ github.token }}
+>         run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber --repo "$GITHUB_REPOSITORY"

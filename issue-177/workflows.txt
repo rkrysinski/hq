@@ -1,0 +1,30 @@
+## The pull request run: origin/dev's pull-request.yml against the branch's pull-request-tests.yml, from 'name:' on
+$ diff <(git show origin/dev:.github/workflows/pull-request.yml | sed -n '/^name:/,$p') <(sed -n '/^name:/,$p' .github/workflows/pull-request-tests.yml)
+(no difference: same name, triggers, matrix, steps, script)
+
+## The push-to-dev run: origin/dev's tests.yml against the branch's, from 'name:' on
+$ diff <(git show origin/dev:.github/workflows/tests.yml | sed -n '/^name:/,$p') <(sed -n '/^name:/,$p' .github/workflows/tests.yml)
+7d6
+<       - '**/*.md'
+8a8
+>       - '**/*.md'
+10c10,14
+<       - '.gitignore'
+---
+>       - '.github/workflows/pull-request.yml'
+>       - '.github/workflows/release.yml'
+>       - '.github/ISSUE_TEMPLATE/**'
+>       - '.github/PULL_REQUEST_TEMPLATE.md'
+>       - '.github/PULL_REQUEST_TEMPLATE/**'
+16c20
+<   tests:
+---
+>   full-build:
+19a24,29
+>         with:
+>           persist-credentials: false
+> 
+>       # Set up the stack's toolchain here (actions/setup-java, setup-go,
+>       # setup-node...) and the browser for the journeys, when wiring
+>       # scripts/check.sh. The checks themselves stay in the script.
+(the paths-ignore list is the template's: the operator's decision 1 on #175)

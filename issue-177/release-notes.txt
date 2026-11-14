@@ -1,0 +1,98 @@
+## 1. On the branch (1ffe7ba), against the tags as they are on origin (history rewritten on 2026-11-14)
+$ scripts/release.sh v0.13.1 --dry-run
+repository : rkrysinski/hq
+range      : v0.13.0..v0.13.1
+mode       : dry run (no writes)
+
+release: no merged pull requests found in v0.13.0..v0.13.1
+(exit 1)
+
+Cause: GitHub still records every pull request merged before the rewrite by its old merge commit,
+which is in no rewritten range. hq's release.sh from origin/dev says the same (worktree of origin/dev):
+$ scripts/release.sh v0.13.1 --dry-run   # hq's, before this change
+release: no merged pull requests found in v0.13.0..v0.13.1
+
+$ merge commit of each pull request in v0.13.0..v0.13.1 as GitHub records it, and whether v0.13.1 contains it
+#155 dc45aae no
+#160 7635c45 no
+#161 649cbe1 no
+#162 0f5ac6d no
+#164 8107a4a no
+#180 8411c94 yes: merged after the rewrite, contained in origin/dev
+
+## 2. The same range on the commits GitHub records: a clone with tags v0.13.0 at 9af269d (merge of #151)
+## and v0.13.1 at 649cbe1 (merge of #161), the pre-rewrite commits of the published tags
+$ scripts/release.sh v0.13.1 --dry-run   # hq's, before this change
+(exit 0)
+$ scripts/release.sh v0.13.1 --dry-run   # the template's, from the branch
+(exit 0)
+repository : rkrysinski/hq
+range      : v0.13.0..v0.13.1
+mode       : dry run (no writes)
+
+prerequisites : 0 before deployment, 1 after (from pull request sections)
+
+release v0.13.1 is already up to date; notes would be:
+  <!-- generated -->
+  
+  <a name="poprawki"></a>
+  ## Poprawki
+  
+  - Na WSL hq domyślnie używa linuksowego sbx (#153)
+  - hq mcp install zapisuje do pliku, którego Claude Desktop ze Sklepu już nie czyta (Claude-Data) (#154)
+  
+  <a name="wewnetrzne"></a>
+  ## Wewnętrzne
+  
+  - testgate platform: nazwy zależne od platformy tylko w internal/platform (#157)
+  - buildHQ zwraca ścieżkę z rozwiązanymi dowiązaniami (macOS /var) (#158)
+  - local-dev.sh --stub: QA zmian Windows/WSL bez laptopa (#159)
+  - issue-tracker.md: czytanie issue przez --json zamiast --comments (#163)
+  
+  <a name="wdrozenie"></a>
+  ## Wdrożenie
+  
+  <a name="polecenie"></a>
+  
+  <a name="po-wdrozeniu"></a>
+  ### Po wdrożeniu
+  
+  Do zrobienia na produkcji po wdrożeniu:
+  
+  **On WSL hq runs the Linux sbx by default (#156)**
+  
+  Procedura wycofania obejścia dla zespołu (razem z #154), do opublikowania jako komentarz u zespołu:
+  
+  - [ ] usunąć `HQ_PLATFORM` i `BROWSER` z `~/.bashrc`;
+  - [ ] `hq update`, potem `hq mcp install` (przepisuje cały wpis `hq` w Claude Code i Claude Desktop; ręczne pola, np. `timeout`, przepadają);
+  - [ ] `tmux kill-session -t hq` i nowa karta, gdy `hq ls` jest pusty;
+  - [ ] Windows Terminal: `"bellStyle": ["audible", "taskbar"]` w `profiles.defaults`;
+  - [ ] restart Claude Desktop i Claude Code.
+  
+  <!-- /generated -->
+
+milestone v0.13.1 already exists (#24)
+  #153 already in milestone v0.13.1
+  #154 already in milestone v0.13.1
+  #155 already in milestone v0.13.1
+  #156 already in milestone v0.13.1
+  #157 already in milestone v0.13.1
+  #158 already in milestone v0.13.1
+  #159 already in milestone v0.13.1
+  #160 already in milestone v0.13.1
+  #161 already in milestone v0.13.1
+  #162 already in milestone v0.13.1
+  #163 already in milestone v0.13.1
+  #164 already in milestone v0.13.1
+  #153 already has the v0.13.1 comment
+  #154 already has the v0.13.1 comment
+  #157 already has the v0.13.1 comment
+  #158 already has the v0.13.1 comment
+  #159 already has the v0.13.1 comment
+  #163 already has the v0.13.1 comment
+would close milestone v0.13.1
+
+https://github.com/rkrysinski/hq/releases/tag/v0.13.1
+
+$ diff <hq's output> <the template's output>
+(no difference)

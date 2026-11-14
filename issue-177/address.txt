@@ -1,0 +1,59 @@
+copier 9.19.1, template v2.5.0, branch head 1ffe7ba. The alias, in the global git configuration
+of the machine (here: the agents' sandbox); the address is replaced with <org>/<repo> in this file:
+$ git config --global --get-regexp '^url\.'
+url.https://github.com/<org>/<repo>.git.insteadof template:upstream
+
+## 1. The issue's own worktree (an agent's worktree of the primary checkout)
+$ cat .git
+gitdir: <checkout>/.git/worktrees/issue-177-template-machinery
+$ grep _src_path .copier-answers.yml
+_src_path: git+template:upstream
+$ copier update --defaults --trust --vcs-ref v2.5.0
+Keeping template version 2.5.0
+(exit 0)
+$ git status --short   # what the update wrote
+?? CODING_STANDARDS.md
+?? GLOSSARY.md
+?? docs/agents/integration-review.md
+?? docs/agents/lessons.md
+?? docs/agents/release-qa.md
+?? docs/agents/supervisor.md
+(the files listed are template documents hq does not have yet, left to #178; removed after this run)
+
+## 2. A primary checkout: a fresh clone of the branch (.git is a directory)
+$ test -d .git && echo directory
+directory
+$ grep _src_path .copier-answers.yml
+_src_path: git+template:upstream
+$ copier update --defaults --trust --vcs-ref v2.5.0
+Keeping template version 2.5.0
+(exit 0)
+$ git status --short   # what the update wrote
+?? CODING_STANDARDS.md
+?? GLOSSARY.md
+?? docs/agents/integration-review.md
+?? docs/agents/lessons.md
+?? docs/agents/release-qa.md
+?? docs/agents/supervisor.md
+
+## 3. A fresh worktree added from that clone
+$ cat .git
+gitdir: <scratch>/ev/primary/.git/worktrees/wt
+$ grep _src_path .copier-answers.yml
+_src_path: git+template:upstream
+$ copier update --defaults --trust --vcs-ref v2.5.0
+Keeping template version 2.5.0
+(exit 0)
+$ git status --short   # what the update wrote
+?? CODING_STANDARDS.md
+?? GLOSSARY.md
+?? docs/agents/integration-review.md
+?? docs/agents/lessons.md
+?? docs/agents/release-qa.md
+?? docs/agents/supervisor.md
+
+## 4. The same command with a HOME whose git configuration has no alias
+$ HOME=<empty dir> copier update --defaults --trust --vcs-ref v2.5.0
+              | ssh: Could not resolve hostname template: No address associated with hostname
+              | fatal: Could not read from remote repository.
+(exit 1)

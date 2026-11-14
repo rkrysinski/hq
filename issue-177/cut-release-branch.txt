@@ -1,0 +1,46 @@
+# The same clone on a scratch branch release-v0.13.2, whose last commit is scripts/bump-version.sh 0.13.2
+$ git log --oneline -2
+d1de2e6 Release 0.13.2
+1ffe7ba CI: hq is made from the project template v2.5.0, its machinery (#177)
+$ cat VERSION
+0.13.2
+
+$ scripts/cut-release.sh 0.13.2 --no-push --dry-run
+repository : rkrysinski/hq
+branch     : release-v0.13.2 at d1de2e6
+previous   : v0.13.1
+new tag    : v0.13.2
+mode       : release branch (version files already read 0.13.2)
+mode       : dry run (nothing is changed)
+
+tag message:
+  Release v0.13.2
+  
+  - The full build is one script, and GitHub runs it only for dev (#176)
+
+would run : git tag -a v0.13.2 -F <the message above>
+would stop: the push is yours - git push origin v0.13.2
+
+dry run: nothing was changed
+(exit 0)
+
+$ scripts/cut-release.sh 0.13.2 --dry-run
+repository : rkrysinski/hq
+branch     : release-v0.13.2 at d1de2e6
+previous   : v0.13.1
+new tag    : v0.13.2
+mode       : release branch (version files already read 0.13.2)
+mode       : dry run (nothing is changed)
+
+tag message:
+  Release v0.13.2
+  
+  - The full build is one script, and GitHub runs it only for dev (#176)
+
+would run : git tag -a v0.13.2 -F <the message above>
+would run : git push --atomic origin release-v0.13.2 v0.13.2
+
+dry run: nothing was changed
+(exit 0)
+
+after: git status, tags, HEAD, branches and origin's refs unchanged

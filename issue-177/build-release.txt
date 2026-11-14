@@ -1,0 +1,22 @@
+$ cat VERSION
+0.13.1
+$ git tag --sort=-v:refname | head -1
+v0.13.1
+
+$ scripts/build-release.sh v0.0.1 <scratch>/dist
+built hq-darwin-arm64
+built hq-darwin-amd64
+built hq-linux-amd64
+built hq-linux-arm64
+wrote SHA256SUMS
+(exit 0)
+$ ls <scratch>/dist
+SHA256SUMS
+hq-darwin-amd64
+hq-darwin-arm64
+hq-linux-amd64
+hq-linux-arm64
+install.sh
+$ <scratch>/dist/hq-linux-arm64 --version
+hq v0.0.1
+v0.13.1 available - hq update

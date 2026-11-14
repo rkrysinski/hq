@@ -1,0 +1,20 @@
+$ git check-ignore -v .claude/releases/v0.14.0.md
+.gitignore:13:.claude/releases/	.claude/releases/v0.14.0.md
+$ cat .copier-answers.yml
+# Written by Copier; do not edit it by hand. `copier update` reads it to know
+# which version of the template this project comes from and how it was answered.
+_commit: v2.5.0
+_src_path: git+template:upstream
+description: One console for many Claude Code agents running in Docker Sandboxes and
+    tmux
+project_name: hq
+project_slug: hq
+stack: other
+$ ls .github/ISSUE_TEMPLATE .github/PULL_REQUEST_TEMPLATE*
+.github/PULL_REQUEST_TEMPLATE.md
+
+.github/ISSUE_TEMPLATE:
+release.md
+
+.github/PULL_REQUEST_TEMPLATE:
+release.md
