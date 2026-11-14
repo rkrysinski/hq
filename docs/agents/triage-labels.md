@@ -14,7 +14,7 @@ When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the 
 
 Edit the right-hand column to match whatever vocabulary you actually use.
 
-These are GitHub labels; an issue carries at most one of them at a time - remove the old role label when adding a new one. `wontfix` issues are also closed with `gh issue close <n> --reason "not planned"`. Newly reported issues start as `needs-triage`.
+These are GitHub labels; an issue carries at most one of them at a time — remove the old role label when adding a new one. `wontfix` issues are also closed with `gh issue close <n> --reason "not planned"`. Newly reported issues start as `needs-triage`.
 
 ## Type labels
 
@@ -26,19 +26,33 @@ for the reader:
 | ------------- | --------------------- | ------------------------------------------------------------ |
 | `enhancement` | Nowe funkcje          | Something a user of the product can see or do                |
 | `bug`         | Poprawki              | Something that was broken for a user                         |
-| `internal`    | Wewnętrzne            | Tooling, CI, deployment, docs - invisible to the product's users |
+| `internal`    | Wewnętrzne            | Tooling, CI, deployment, docs — invisible to the product's users |
 | (none)        | Pozostałe             | Anything not yet classified                                  |
 
 Give every issue one of these when it is triaged; an unlabelled issue still appears in the notes,
-just under the catch-all heading.
+just under the catch-all heading (except a `prd` issue, which gets no line: see below).
 
 ## Other labels
 
 | Label | Meaning |
 | ----- | ------- |
-| `prd` | A product requirements document; its implementation issues are sub-issues (`docs/agents/issue-tracker.md`) |
+| `prd` | A product requirements document; its implementation issues are sub-issues (`docs/agents/issue-tracker.md`). Left out of the release notes, even with a type label; it still gets the release's milestone and comment |
 | `claimed` | An agent session has claimed the ticket (`/wayfinder`) |
+| `release` | The release issue of a supervised release (`docs/agents/issue-tracker.md`, *Working a release*) |
+| `watch` | A metric to keep an eye on, not work |
 | `wayfinder:map`, `wayfinder:research`, `wayfinder:prototype`, `wayfinder:grilling`, `wayfinder:task` | The wayfinding map and its tickets |
 
-`scripts/setup-github.sh` creates every label named in this file; re-run it after changing the
-vocabulary.
+`scripts/setup-github.sh` creates every label named in this file that the repository lacks; re-run
+it after adding a label. It never changes an existing label, so a label's description and colour
+stay as the project set them; to take the template's text for an existing label, edit the label on
+GitHub.
+
+`copier update` creates no labels, so run `scripts/setup-github.sh --labels-only` after every
+update: it creates the missing labels and leaves the `qa-artifacts` branch and the repository
+settings alone (`--dry-run` lists them first). It is a no-op when nothing is missing.
+
+A project with a label script of its own runs `scripts/setup-github.sh --labels-only` first and its
+own script after it, or drops its script. Its own script alone misses every label the template adds
+later. Its script then adds the project's extra labels and, to keep its own description or colour
+for a label the template just created, updates that label (`gh label edit`, or
+`gh label create --force`): a plain `gh label create` fails on a label that exists.

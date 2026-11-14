@@ -398,7 +398,7 @@ The CLI follows spec §4.2 (exit codes 0-3, one `hq:` line naming the remedy). U
 CI runs a matrix of `ubuntu-latest` and `macos-latest` (both have tmux) plus the ported pyramid check counting test functions per tag. Real sbx and Claude are left to the manual test (spec §10); the WSL side of the adapter is unit-tested with a fake `wslpath` and verified by hand (S13), as hosted CI has no WSL.
 **Rationale:** sbx and Claude cannot run in CI, so a stub `sbx` with a fake `claude` firing real hook payloads is the widest seam that still exercises all of hq's own code; a private tmux socket keeps tmux tests real without touching the user's server.
 **Alternatives considered:** mocking tmux in integration tests (tests the fake, not the composition of ADR 0007); CI with real sbx (needs microVM support and a Claude login on the runner).
-**Satisfies:** §10 (acceptance, manual test), S13; `docs/agents/testing.md`; drivers 1, 4.
+**Satisfies:** §10 (acceptance, manual test), S13; `docs/hq/testing.md`; drivers 1, 4.
 
 **Notifications in tests.** Claude writes a hook's `terminalSequence` to its terminal; the fake `claude` appends each one to the file `FAKE_CLAUDE_NOTIFIED` names, with the agent's name, so a journey asserts which events notified and which did not (#46).
 

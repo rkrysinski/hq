@@ -6,7 +6,7 @@
 # never the text. Unlike tests.yml it runs for docs-only changes too. Each
 # run also checks the QA evidence on qa-artifacts, which has no workflows of
 # its own (a push there runs none), and so does a daily run - see
-# docs/agents/testing.md.
+# docs/hq/testing.md.
 name: Private details
 
 on:

@@ -1,52 +1,59 @@
 # Testing
 
-hq is written in Go (ADR 0011). The suite follows the [Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html): many fast unit tests, fewer integration tests, few end-to-end tests. Write each test at the lowest level that can prove the behaviour, not where it is easiest to write. The seams and levels are designed in `docs/design/hq.md` §7.2.
+The suite follows the [Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html): many fast unit tests, fewer integration tests, few end-to-end tests. Write each test at the lowest level that can prove the behaviour, not where it is easiest to write.
+
+hq's test levels, commands, CI, thresholds, platform code and private details: `docs/hq/testing.md`, which holds for hq where it differs from this file.
 
 ## Where a test goes
 
-| Level | Selected by | Use it for |
+| Level | Use it for | Must not |
 |---|---|---|
-| Unit | no build tag; `_test.go` next to the code | Pure logic: parsing, state and attention rules, sorting and filtering, what a dashboard row or a command's output contains, mapping the answer of `sbx`, tmux or a hook with a fake. No processes, sockets, terminals or real `sbx`/tmux |
-| Integration | `//go:build integration`; `_integration_test.go` next to the code | The contract of a command or an adapter: what it runs against tmux (on a private socket per test, `tmux -L`), a stub `sbx`, `gh` or `wslpath` (`testutil.WSLStubs` runs the WSL side on any machine, with the stubs listed in `internal/testutil/wsl-stubs`, which `scripts/local-dev.sh --stub` puts in place for QA too; `testutil.FakeClaude` puts `tools/fakeclaude` behind the stub `sbx run`, firing hq's injected hooks with Claude's payloads as it is prompted, and running a question dialog's hooks side by side, so it takes an answer from a hook's decision as from a typed line), or the file system, and what it reports. Flows that need a real process, file or socket |
-| End-to-end | `//go:build e2e`; in `e2e/` only | A few critical journeys a person drives in a terminal (start an agent, see it, enter it, kill it; install and update), in real tmux with the stub `sbx` and `gh` |
+| Unit | Pure logic: parsing, dates and statuses, calculations, what a page or an export row contains, mapping the answer of an external service with a fake client | Open a network connection, listen on a port or open a database |
+| Integration | The contract of a request handler, a command or an adapter: permission checks, the main success path, what gets saved, what the response shows | Re-check edge cases the unit tests already cover |
+| End-to-end | A few critical journeys a person clicks through, in a real browser against the running app (`scripts/local-dev.sh`), and JavaScript behaviour | Grow beyond the critical journeys; each one starts a browser |
 
 Rules of thumb:
 
-- **New logic starts with unit tests.** If logic sits inside a command and needs tmux or `sbx` only to fetch its inputs, extract it into a pure function and unit-test that. The command then gets one integration test for its contract.
+- **New logic starts with unit tests.** If the logic sits inside a handler and needs the database only to fetch its inputs, extract it into a pure function and unit-test that. The handler then gets one integration test for its contract.
 - **Don't re-check unit-tested logic through the integration level.** An integration test proves the pieces are wired together.
-- **Add an end-to-end test only for a new critical journey.** Keep them few.
-- **External tools sit behind an interface** (tmux, `sbx`, `gh`, the platform adapter, the clock, the state-file reader) with a fake for tests, so unit tests never call the real tool. Platform-specific adapters (macOS, WSL) get the same contract tests.
-- **Wait for tmux to reap an ended pane before looking at it.** On WSL 1 tmux now and then misses that a pane's program exited: the pane is dead, but without its time, status and "Pane is dead" line until another child of the server exits (#22). A tmux test that asserts any of those calls `reaped(t, socket)` after the pane is dead.
-- **Run tmux with `-u`.** hq passes it to every tmux command (design 3.2); a test that runs tmux itself does too, or what it reads depends on the machine's locale (#41).
-- **Never touch the user's tmux server or sandboxes from a test.** Integration and end-to-end tests use a private tmux socket and the stub `sbx`. A test that starts hq says which platform it runs as, so the suite behaves the same on macOS, Linux and WSL: `testutil.SbxStub` sets `HQ_PLATFORM=native` (hq runs `sbx`, the stub, never the `sbx.exe` of a WSL machine) and `testutil.WSLStubs` sets `HQ_PLATFORM=wsl` (hq runs the stub as `sbx.exe`, whatever `sbx` is in `PATH`); a test that uses neither and starts the hq binary sets it itself.
+- **Add an end-to-end test only for a new critical journey or new JavaScript.**
+- **External services sit behind a client interface** with a fake for tests and local QA, so neither level calls the real service.
 
-## Commands
+## Wiring the checks
 
-`scripts/check.sh` is the full build: every step the test workflows run, in their order (vet for every build tag, formatting, the pyramid gate, the platform gate, unit tests, integration tests with coverage, the coverage gate, the end-to-end journeys), and they run nothing else (`.github/workflows/private.yml`, below, checks private details apart). Run it, from any directory, before you hand work over. It prints `check: ok   <step>` per passed step and stops at the first failure with `check: FAIL <step>`, that step's output and `check: stopped at <step> on <commit>` (exit 1). Its last line, `check: all <N> steps passed on <commit>` (exit 0), is the test evidence: `<commit>` is HEAD's full sha, followed by ` with uncommitted changes` when the tree is not clean, so only a clean tree's line vouches for a commit. A passed step's output is not printed: CI puts the pyramid and coverage figures in the job summary, and locally the single commands below print them. The single steps, to run one at a time:
+The template does not know this project's stack, so three files start unwired and fail until they are:
+
+| File | What to put there |
+|---|---|
+| `scripts/check.sh` | The full build: one `step` per command of the stack, in the order the script lists: lint, format check, the pyramid check, unit and integration tests with coverage, the coverage threshold, the browser journeys. The script already prints a line per step, stops at the first failure and names the commit. CI runs this script and nothing else |
+| `.github/workflows/tests.yml` | The toolchain setup (`actions/setup-java`, `setup-go`, `setup-node`...) and the browser the journeys need, before `scripts/check.sh`; the checks themselves stay in the script |
+| `scripts/local-dev.project.sh` | How the app installs, prepares and starts, so agents can run it per checkout and verify changes in a browser |
+
+What `scripts/check.sh` enforces, whatever the stack:
+
+- **The pyramid's shape**: tests only in the three levels, fewer end-to-end tests than integration and unit tests, and the unit share of unit + integration tests at or above a minimum (the Python stack of the template starts at 75% and counts test methods per level; do the same with the stack's test runner).
+- **Unit tests cannot reach the network or a database**: a base class or a runner setting that fails such a test, with a message saying where the test belongs.
+- **Coverage** (branch coverage where the tool has it) at or above a threshold (the Python stack starts at 90%).
+- **Thresholds are changed by a human.** An agent never changes a threshold wired into `scripts/check.sh` (the minimum unit share, the coverage threshold), up or down: it reports the measured values in QA (see below). A pull request that falls below a threshold fixes its tests, not the threshold. For the human: raise a threshold when the measured value has grown; never lower one to get a pull request through.
+
+Then replace the table in *Running* below with the real commands.
+
+## Running
 
 ```bash
-go test ./...                                          # unit
-go test -tags integration ./...                        # unit + integration
-go test -tags e2e ./e2e/...                            # end-to-end journeys
-go run ./tools/testgate pyramid                        # counts per level, checks the shape
-go run ./tools/testgate private [PATH...]              # no private details (needs HQ_PRIVATE_PATTERNS)
-go run ./tools/testgate platform                       # platform-specific names only in internal/platform
-go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./... \
-  && go run ./tools/testgate coverage cover.out        # coverage threshold
+scripts/check.sh      # the full build: every check CI runs, the browser journeys included
 ```
 
-## Thresholds
+## Merging
 
-`tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. CI runs `scripts/check.sh` (above), and with it the pyramid check, the platform check (below), unit and integration tests with coverage, and the end-to-end journeys: on every pull request into `dev` on macOS and Ubuntu (`.github/workflows/pull-request-tests.yml`), for every change but one of only the paths its header lists as skipped, and once on Ubuntu on every push to `dev` (`.github/workflows/tests.yml`), for every change but one of only the paths its `paths-ignore` lists. A pull request into any other branch gets no run. Both thresholds only go up. The unit share's minimum follows the figure: a PR that raises the share raises the minimum in the same PR. The coverage minimum stays 0.5 points under CI's figure, rounded down to a tenth, so a PR that changes nothing about tests cannot fall under it: a PR that lifts the figure more than 0.5 points above the minimum raises the minimum to the figure less 0.5 (#42). Never lower one to get a PR through. A PR with a red CI job is not merged.
+The full build is `scripts/check.sh`: every check, the browser journeys included, one line per step, stopping at the first that fails; its last line names the commit it ran on. A pull request gets no `Tests` run in CI, so the agent runs the full build itself:
 
-## Platform code
+1. **After implementing**: `scripts/check.sh` on the branch. Push only when it passes.
+2. **Before the merge**: check whether the branch is behind its base (`git fetch origin <base>`, then `git merge-base --is-ancestor origin/<base> HEAD` fails when it is). If it is: `git rebase origin/<base>`, `scripts/check.sh` again, `git push --force-with-lease`, and the full build in the pull request's `## QA` section is replaced with this run's (`docs/agents/qa-evidence.md`, step 5). The master pull request of a release (`release-vX.Y.Z` to `dev`) is never rebased: its tag must stay an ancestor of `dev`, so it merges with a merge commit (`docs/agents/issue-tracker.md`, *Working a release*).
+3. **After the merge**: CI runs `Tests` (`.github/workflows/tests.yml`, the same script) on every push to `dev`: a squash merge is one commit, so each merge gets a run of its own, and none is cancelled; a commit that changes only documentation gets none. A red `Tests` run on `dev` blocks every further merge until a fix is merged: the run names the commit that broke the build. Before merging, the latest run must not be red: `gh run list --branch dev --workflow Tests --limit 1 --json conclusion,headSha,url`.
 
-Both platforms behave the same, and the code that tells them apart lives in `internal/platform` only (`AGENTS.md`, design §3.10). `testgate platform` fails on a Go file, not a test, that names a program or variable of one platform outside it: `cmd.exe`, `powershell.exe`, `wsl.exe`, `wslpath`, `sbx.exe`, `WSL_DISTRO_NAME` or `osascript` in a string (ignoring case), or `runtime.GOOS` in code (ask `platform.OS` instead). It prints the file, the line and the name. Comments are not checked, and no other word is looked for: a message to the user about the system tray passes. The list and its exemptions (`internal/platform`, the stubs in `internal/testutil`, the gate itself), each with its reason, are in `tools/testgate/platform.go`; a new exemption needs a reason there and a line in the PR.
-
-## Private details
-
-The repository is public. Names of private organisations and repositories, agent and repository names taken from them, a local user's paths, host names and Claude session ids stay out of the code, the docs, the fixtures and the QA evidence: use a placeholder (`<org>`, `~/work/app`, `agent-17`, `/w/app`), and when a capture carries such a detail, edit it and say so in its fixture README (#127). `testgate private` fails on a line that matches one of the patterns in `HQ_PRIVATE_PATTERNS` (one regular expression per line, matched ignoring case, `#` comments); it checks the tracked files, or the PATHs given. The list itself is not in the repository: CI takes it from the repository secret of the same name (`.github/workflows/private.yml`, on every pull request, every push to `dev` and once a day; each run also checks the tip of `qa-artifacts`), and a local run without the variable passes with a notice. Ask the owner for the list to run it locally; the gate prints the file, the line and the pattern's number (counting patterns, not comment or blank lines), never the text, since CI logs are public. It reads text only: look at images yourself.
+The organisation's GitHub plan has no required checks or branch protection for a private repository, so these rules are a convention.
 
 ## In the QA plan and PR
 
-The QA plan (`docs/agents/qa-evidence.md` §1) lists the tests the change adds at each level before any code is written; the PR quotes `testgate pyramid` before and after.
+The QA plan (`docs/agents/qa-evidence.md` §1) lists the tests the change adds at each level before any code is written. The PR's `## QA` section reports the test counts per level before and after the change, and the coverage figure after it, and ends with the full build on the head commit (`docs/agents/qa-evidence.md`, step 5).

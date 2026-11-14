@@ -18,7 +18,7 @@
 # platform (tools/testgate), unit, integration (with coverage of internal/),
 # coverage (tools/testgate's threshold), e2e. A passed step's output is not
 # printed; the figures of pyramid and coverage go to the GitHub job summary
-# when GITHUB_STEP_SUMMARY is set. See docs/agents/testing.md.
+# when GITHUB_STEP_SUMMARY is set. See docs/hq/testing.md.
 
 set -u
 
