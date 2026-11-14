@@ -22,6 +22,8 @@ Rules of thumb:
 
 ## Commands
 
+`scripts/check.sh` is the full build: every step CI runs, in CI's order (vet for every build tag, formatting, the pyramid gate, the platform gate, unit tests, integration tests with coverage, the coverage gate, the end-to-end journeys), and CI runs nothing else. Run it, from any directory, before you hand work over. It prints `check: ok   <step>` per passed step and stops at the first failure with `check: FAIL <step>`, that step's output and `check: stopped at <step> on <commit>` (exit 1). Its last line, `check: all <N> steps passed on <commit>` (exit 0), is the test evidence: `<commit>` is HEAD's full sha, followed by ` with uncommitted changes` when the tree is not clean, so only a clean tree's line vouches for a commit. The single steps, to run one at a time:
+
 ```bash
 go test ./...                                          # unit
 go test -tags integration ./...                        # unit + integration
@@ -35,7 +37,7 @@ go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.
 
 ## Thresholds
 
-`tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. CI (`.github/workflows/tests.yml`, on macOS and Ubuntu, for every change but one of only the paths its header lists as skipped) runs the pyramid check, the platform check (below), unit and integration tests with coverage, and the end-to-end journeys. Both thresholds only go up. The unit share's minimum follows the figure: a PR that raises the share raises the minimum in the same PR. The coverage minimum stays 0.5 points under CI's figure, rounded down to a tenth, so a PR that changes nothing about tests cannot fall under it: a PR that lifts the figure more than 0.5 points above the minimum raises the minimum to the figure less 0.5 (#42). Never lower one to get a PR through. A PR with a red CI job is not merged.
+`tools/testgate` holds the minimum unit share of unit + integration tests and the minimum statement coverage of `internal/`. CI runs `scripts/check.sh` (above), and with it the pyramid check, the platform check (below), unit and integration tests with coverage, and the end-to-end journeys: on every pull request into `dev` on macOS and Ubuntu (`.github/workflows/pull-request.yml`), and once on Ubuntu on every push to `dev` (`.github/workflows/tests.yml`), for every change but one of only the paths the header of `tests.yml` lists as skipped. A pull request into any other branch (a release branch) gets no run. Both thresholds only go up. The unit share's minimum follows the figure: a PR that raises the share raises the minimum in the same PR. The coverage minimum stays 0.5 points under CI's figure, rounded down to a tenth, so a PR that changes nothing about tests cannot fall under it: a PR that lifts the figure more than 0.5 points above the minimum raises the minimum to the figure less 0.5 (#42). Never lower one to get a PR through. A PR with a red CI job is not merged.
 
 ## Platform code
 
