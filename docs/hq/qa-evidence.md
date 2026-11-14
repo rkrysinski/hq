@@ -16,7 +16,7 @@ Done when every check has an outcome and evidence, and every check visible in a 
 
 ## Before publishing (step 4)
 
-The repository is public, and so is the evidence: before the commit, run `go run ./tools/testgate private "$qa/issue-<n>"` (from the checkout, with `HQ_PRIVATE_PATTERNS` set, see `docs/hq/testing.md`, *Private details*) and look at every image yourself. Nothing on the branch may name a private organisation, repository or host, or a local user's path: run QA in a neutral directory, or replace such a detail with a placeholder in a `.txt` and render its image again. CI checks the branch only on its next run on `dev` or a pull request, or the daily one: too late to keep a detail out.
+The repository is public, and so is the evidence: before the commit, run `go run ./tools/testgate private "$qa/issue-<n>"` (from the checkout, with the pattern list in place, see `docs/hq/testing.md`, *Private details*) and look at every image yourself. Nothing on the branch may name a private organisation, repository or host, or a local user's path: run QA in a neutral directory, or replace such a detail with a placeholder in a `.txt` and render its image again. CI checks the branch only on its next run on `dev` or a pull request, or the daily one: too late to keep a detail out. The pre-push hook does not guard this push either: the `qa-artifacts` worktree has no `scripts/git-hooks`, so git finds no hook there.
 
 ## In the `## QA` section (step 5)
 

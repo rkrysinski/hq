@@ -34,6 +34,16 @@ hq is a terminal program: this section takes the place of `AGENTS.md`, *Local ru
 
 Run hq from the issue's worktree with `scripts/local-dev.sh [hq arguments]` (skill `local-dev`): it builds the checkout and runs it against a tmux server private to that worktree, so it never touches the user's own hq or other worktrees. Drive it the way a person would before calling the work done; `scripts/local-dev.sh --kill-server` cleans up.
 
+## Pushing
+
+A push from a clone of hq runs the pre-push hook `scripts/git-hooks/pre-push`, which refuses a push that would publish a private detail and, without the pattern list, refuses the push as well (`docs/hq/testing.md`, *Private details*). Enable it once per clone; it then holds for every worktree of that clone that has the script:
+
+```bash
+git config core.hooksPath scripts/git-hooks
+```
+
+The list, which the owner gives, goes into the clone's `.git/info/hq-private-patterns` (`"$(git rev-parse --git-common-dir)/info/hq-private-patterns"`), or into `HQ_PRIVATE_PATTERNS`. A sandbox that mounts the host's checkout shares its `.git`, its configuration and that file, so the hook and the list outlive the sandbox; a sandbox with a clone of its own needs both put in again, and its first push says so. The hook runs the gate with `go run`, so a machine that pushes needs Go.
+
 ## Updating from the template
 
 `.copier-answers.yml` records the template's address as the alias `git+template:upstream`, so that the public repository never names it. Every machine that runs an update from the template (the host, and the sandbox the agents run in) maps the alias once, in its global git configuration, where Copier's own clone of the template reads it:

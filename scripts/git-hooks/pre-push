@@ -1,0 +1,17 @@
+#!/bin/sh
+# Refuses a push that would publish a private detail, or that cannot be
+# checked because the pattern list is missing (#185): the Private details
+# workflow only sees commits once they are public. Enable it once per clone:
+#
+#   git config core.hooksPath scripts/git-hooks
+#
+# git runs it in the pushing worktree with the refs it sends on stdin; it
+# runs the gate of the checkout it belongs to against that repository (see
+# docs/agents/testing.md, Private details). `git push --no-verify` skips it.
+repo=$(pwd)
+cd "$(dirname "$0")/../.." || exit 1
+if ! command -v go >/dev/null 2>&1; then
+    echo "pre-push: go is not installed, so the push cannot be checked for private details: push refused" >&2
+    exit 1
+fi
+exec go run ./tools/testgate prepush "$repo"

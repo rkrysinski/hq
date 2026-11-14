@@ -15,9 +15,37 @@ import (
 // PrivatePatternsEnv names the variable that holds the patterns of private
 // details (#127): one regular expression per line, matched ignoring case;
 // blank lines and lines starting with # are skipped. The list lives only
-// there (a CI secret, a local shell profile), never in a tracked file, so
+// there (a CI secret) or in PrivatePatternsFile, never in a tracked file, so
 // the check does not publish what it looks for.
 const PrivatePatternsEnv = "HQ_PRIVATE_PATTERNS"
+
+// PrivatePatternsFile is where the list is read from without the variable,
+// relative to the repository's common git directory (#185): never tracked,
+// never pushed, shared by every worktree, and in a sandbox that mounts the
+// host's checkout it is the host's, so it outlives the sandbox.
+const PrivatePatternsFile = "info/hq-private-patterns"
+
+// privateList returns the pattern list and where it came from: the
+// variable's value when it holds more than blanks, else the file under the
+// common git directory (none outside a repository), else no list and no
+// source.
+func privateList(env, gitCommonDir string) (list, source string, err error) {
+	if strings.TrimSpace(env) != "" {
+		return env, PrivatePatternsEnv, nil
+	}
+	if gitCommonDir == "" {
+		return "", "", nil
+	}
+	path := filepath.Join(gitCommonDir, PrivatePatternsFile)
+	body, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return "", "", nil
+	}
+	if err != nil {
+		return "", "", err
+	}
+	return string(body), path, nil
+}
 
 // hit is a line that matches a pattern. It names the pattern by its number,
 // counting patterns only (not blank or comment lines), and never repeats the
@@ -29,6 +57,9 @@ type hit struct {
 }
 
 func (h hit) String() string {
+	if h.line == 0 { // a name, not a line
+		return fmt.Sprintf("%s matches private pattern %d", h.file, h.pattern)
+	}
 	return fmt.Sprintf("%s:%d matches private pattern %d", h.file, h.line, h.pattern)
 }
 
@@ -103,14 +134,15 @@ func scanPaths(paths []string, pats []*regexp.Regexp) ([]hit, error) {
 // checkPrivate scans paths, or the tracked files under the current
 // directory when there are none, against the pattern list, and returns a
 // summary line and a problem for every matching line. An empty list checks
-// nothing and passes.
+// nothing and passes: unlike a push (checkPush), a local run publishes
+// nothing.
 func checkPrivate(list string, paths []string) (string, []string, error) {
 	pats, err := parsePatterns(list)
 	if err != nil {
 		return "", nil, err
 	}
 	if len(pats) == 0 {
-		return fmt.Sprintf("private: %s is not set, nothing checked", PrivatePatternsEnv), nil, nil
+		return fmt.Sprintf("private: %s is not set and there is no .git/%s, nothing checked", PrivatePatternsEnv, PrivatePatternsFile), nil, nil
 	}
 	if len(paths) == 0 {
 		if paths, err = trackedFiles("."); err != nil {
