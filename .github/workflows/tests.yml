@@ -1,28 +1,21 @@
-# Runs the test pyramid on every pull request and push to dev, on both host
-# platforms hq supports (WSL is Linux) - see docs/agents/testing.md.
+# Runs the full build, scripts/check.sh and nothing else, once on Linux on
+# every push to dev (#176). Pull requests into dev run it on both host
+# platforms from pull-request.yml; a pull request into any other branch runs
+# neither - see docs/agents/testing.md.
 #
 # Skipped when every changed file is one nothing in the build, the tests,
 # tools/testgate or e2e reads (#108): Markdown anywhere and docs/ (no
 # //go:embed, no code reads them), .claude/ (no Go files; go vet, go test and
 # the pyramid gate skip it, and the tests' git repositories are temporary
 # ones) and .gitignore (CI builds a fresh checkout). Any other file in the
-# change runs the whole workflow. Remove a path from both lists the day code
-# reads it.
-# A skipped workflow reports no check at all: should dev ever require this
-# check, docs-only pull requests would wait on it forever, and the filter
-# must then move into a job that always runs and skips its steps.
+# change runs the whole workflow. Remove a path from this list and from
+# pull-request.yml's the day code reads it.
 name: Tests
 
 on:
-  pull_request:
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - '.claude/**'
-      - '.gitignore'
   push:
     branches: [dev]
-    paths-ignore:   # pull_request's list again: actionlint rejects an anchor
+    paths-ignore:
       - '**/*.md'
       - 'docs/**'
       - '.claude/**'
@@ -33,11 +26,7 @@ permissions:
 
 jobs:
   tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -46,32 +35,8 @@ jobs:
 
       - name: Install tmux
         run: |
-          if [ "$RUNNER_OS" = macOS ]; then brew install tmux; else sudo apt-get update -q && sudo apt-get install -yq tmux; fi
+          sudo apt-get update -q && sudo apt-get install -yq tmux
           tmux -V
 
-      - name: Formatting and vet
-        run: |
-          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
-          go vet ./... && go vet -tags integration ./... && go vet -tags e2e ./...
-
-      - name: Test pyramid shape
-        run: go run ./tools/testgate pyramid
-
-      - name: Platform code only in internal/platform
-        run: go run ./tools/testgate platform
-
-      - name: Unit tests
-        run: go test ./...
-
-      # -count=1: a cached package's profile describes the code of the run
-      # that filled the cache, not this one's (#53).
-      - name: Unit and integration tests with coverage
-        run: go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./...
-
-      # bash with pipefail, so the gate's failure is not tee's success (#53).
-      - name: Coverage threshold
-        shell: bash
-        run: go run ./tools/testgate coverage cover.out | tee -a "$GITHUB_STEP_SUMMARY"
-
-      - name: End-to-end journeys
-        run: if [ -d e2e ]; then go test -tags e2e ./e2e/...; else echo "no journeys yet"; fi
+      - name: Full build
+        run: scripts/check.sh
