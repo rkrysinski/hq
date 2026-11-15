@@ -41,6 +41,19 @@ func TestADecisionThatTakesTimeIsAnEventAndTheTimePassedInDecidesNone(t *testing
 		t.Errorf("rewound: %+v", r)
 	}
 
+	// A screen at rest that changed starts over: the decision rests on the
+	// screen it was first seen as.
+	changed := []Event{
+		userPrompt(1, "t1"),
+		seenEvent(2, SourceScreen, KindAtRest, 1, Facts{Screen: "f1"}),
+		seenEvent(3, SourceScreen, KindAtRest, 1, Facts{Screen: "f2"}),
+		seenEvent(4, SourceScreen, KindAtRest, 1, Facts{Screen: "f2"}), // the same again
+		seenEvent(5, SourceScreen, KindRewound, 1, Facts{Screen: "f2", From: atSecond(3)}),
+	}
+	if r := Reduce(changed, Reply{}, atSecond(9)); !r.Since.Equal(atSecond(3)) || !slices.Equal(r.RestsOn, []int64{1, 3, 5}) {
+		t.Errorf("a changed screen: since %v, rests on %v", r.Since, r.RestsOn)
+	}
+
 	died := []Event{
 		userPrompt(1, "t1"),
 		endOfTurn(2, "t1", false),
@@ -93,7 +106,7 @@ func TestOfTwoSourcesOfEndedTheFirstDecides(t *testing.T) {
 		}
 	}
 	launched := seenEvent(1, SourceHQ, KindLaunched, 0, Facts{Start: "new"})
-	if r := Reduce([]Event{launched, notRunning(2, atSecond(2))}, Reply{}, atSecond(9)); r.State != Starting || !r.Since.Equal(atSecond(1)) || r.Entered.Number != 1 {
+	if r := Reduce([]Event{launched, notRunning(2, atSecond(2))}, Reply{}, atSecond(9)); r.State != Starting || !r.Since.Equal(atSecond(1)) || r.Entered.Number != 1 || !slices.Equal(r.RestsOn, []int64{1}) {
 		t.Errorf("before any report: %+v", r)
 	}
 	if r := Reduce([]Event{launched, died(2)}, Reply{}, atSecond(9)); r.State != Ended || !r.Since.Equal(atSecond(2)) || r.Last != EndedLast {
@@ -232,6 +245,10 @@ func TestARelaunchWithdrawnLeavesTheAgentTakenDown(t *testing.T) {
 	}
 	if r := Reduce(journal, Reply{}, atSecond(9)); r.State != Starting || !r.Since.Equal(atSecond(4)) {
 		t.Errorf("relaunched: %+v", r)
+	}
+	// Withdrawn of anything else leaves the relaunch standing.
+	if r := Reduce(append(slices.Clone(journal), seenEvent(5, SourceHQ, KindWithdrawn, 2, Facts{At: KindAnswer})), Reply{}, atSecond(9)); r.State != Starting {
+		t.Errorf("an answer withdrawn: %+v", r)
 	}
 	journal = append(journal, seenEvent(5, SourceHQ, KindWithdrawn, 2, Facts{At: KindRelaunched}))
 	if r := Reduce(journal, Reply{}, atSecond(9)); r.State != Ended || !r.Since.Equal(atSecond(3)) {
