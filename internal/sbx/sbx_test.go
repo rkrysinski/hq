@@ -22,14 +22,86 @@ func (f *fakeRun) Run(name string, args ...string) ([]byte, error) {
 	return []byte(f.out), f.err
 }
 
+// sbx ls --json as sbx 0.48 and newer print it: the array of sandboxes,
+// each with the keys the reporter's host showed on 0.53.0 (#172); keys hq
+// does not read are ignored, and running is the only status that runs.
 func TestListParsesRealSbxJSON(t *testing.T) {
-	r := &fakeRun{out: `{"sandboxes":[{"name":"claude-hq","id":"97a9","agent":"claude","status":"stopped","last_used_at":"2026-07-27T10:11:29Z","workspaces":["/Users/r/hq"],"created_at":"2026-07-27T10:11:29Z"}]}`}
+	r := &fakeRun{out: `[{"agent":"claude","created_at":"2026-11-12T09:14:03Z","id":"5c1e","last_used_at":"2026-11-12T09:20:41Z","mounts":[],"name":"claude-app","status":"running","workspaces":["/w/app"]},` +
+		"\r\n" + `{"agent":"claude","created_at":"2026-11-10T16:02:55Z","id":"97a9","last_used_at":"2026-11-11T08:31:10Z","mounts":[],"name":"hq-local-app","status":"stopped","workspaces":["/w/app","/w/docs"]}]` + "\r\n"}
 	all, err := Client{Run: r, Platform: platform.Native{}}.List()
-	if err != nil || len(all) != 1 || all[0].Name != "claude-hq" || all[0].Running() || all[0].Workspaces[0] != "/Users/r/hq" {
+	want := []Sandbox{
+		{Name: "claude-app", Agent: "claude", Status: "running", Workspaces: []string{"/w/app"}},
+		{Name: "hq-local-app", Agent: "claude", Status: "stopped", Workspaces: []string{"/w/app", "/w/docs"}},
+	}
+	if err != nil || !reflect.DeepEqual(all, want) || !all[0].Running() || all[1].Running() {
 		t.Fatalf("%+v %v", all, err)
 	}
 	if !reflect.DeepEqual(r.args, []string{"sbx", "ls", "--json"}) {
 		t.Fatalf("args %q", r.args)
+	}
+}
+
+// byCommand answers each sbx command (its first argument) with its own
+// output and error, and records the commands in order.
+type byCommand struct {
+	out   map[string]string
+	err   map[string]error
+	calls []string
+}
+
+func (b *byCommand) Run(name string, args ...string) ([]byte, error) {
+	b.calls = append(b.calls, strings.Join(args, " "))
+	return []byte(b.out[args[0]]), b.err[args[0]]
+}
+
+// An sbx older than 0.48 prints sbx ls --json as an object: hq says it is
+// too old, with the version sbx tells, and asks sbx for it only then (#172).
+func TestListTellsAnSbxOlderThanTheMinimumApart(t *testing.T) {
+	for _, c := range []struct {
+		name, version string
+		verErr        error
+		want          string
+	}{
+		{"0.47 tells its version", "sbx version: v0.47.0 1a2b3c4\r\n", nil,
+			"sbx 0.47.0 is too old, 0.48.0 or newer needed; update Docker Sandboxes"},
+		{"a version without a colon", "sbx version v0.45.2 9f8e7d6\n", nil,
+			"sbx 0.45.2 is too old, 0.48.0 or newer needed; update Docker Sandboxes"},
+		{"no version told", "", &proc.Error{Msg: "exit status 1"},
+			"sbx is too old, 0.48.0 or newer needed; update Docker Sandboxes"},
+		{"an answer that is no version", "something else\n", nil,
+			"sbx is too old, 0.48.0 or newer needed; update Docker Sandboxes"},
+	} {
+		r := &byCommand{
+			out: map[string]string{"ls": `{"sandboxes":[{"name":"claude-app","status":"running","workspaces":["/w/app"]}]}` + "\r\n", "version": c.version},
+			err: map[string]error{"version": c.verErr},
+		}
+		all, err := Client{Run: r, Platform: platform.Native{}}.List()
+		var old *TooOldError
+		if all != nil || !errors.As(err, &old) || err.Error() != c.want {
+			t.Errorf("%s: %+v %v", c.name, all, err)
+		}
+		if !reflect.DeepEqual(r.calls, []string{"ls --json", "version"}) {
+			t.Errorf("%s: calls %q", c.name, r.calls)
+		}
+	}
+}
+
+// A new enough sbx costs no more than sbx ls: no version is asked (#172).
+func TestListAsksNoVersionOfANewEnoughSbx(t *testing.T) {
+	r := &byCommand{out: map[string]string{"ls": "[]\n"}}
+	all, err := Client{Run: r, Platform: platform.Native{}}.List()
+	if err != nil || len(all) != 0 || !reflect.DeepEqual(r.calls, []string{"ls --json"}) {
+		t.Fatalf("%+v %v %q", all, err, r.calls)
+	}
+}
+
+// An object without sandboxes is no sbx hq knows, not a too old one.
+func TestListFailsOnAnObjectThatIsNoOldList(t *testing.T) {
+	r := &byCommand{out: map[string]string{"ls": `{"items":[]}`}}
+	_, err := Client{Run: r, Platform: platform.Native{}}.List()
+	var old *TooOldError
+	if err == nil || errors.As(err, &old) || !strings.HasPrefix(err.Error(), "sbx ls: ") {
+		t.Fatalf("%v", err)
 	}
 }
 
@@ -200,7 +272,7 @@ func TestRunArgvPassesAgentArgumentsAfterSeparator(t *testing.T) {
 }
 
 func TestListReportsWorkspacesAsHqSeesThem(t *testing.T) {
-	r := &fakeRun{out: `{"sandboxes":[{"name":"claude-app","status":"running","workspaces":["F:\\w\\app","F:\\w\\docs"]}]}`}
+	r := &fakeRun{out: `[{"name":"claude-app","status":"running","workspaces":["F:\\w\\app","F:\\w\\docs"]}]`}
 	all, err := Client{Run: r, Platform: platformtest.Fake{}}.List()
 	if err != nil || !reflect.DeepEqual(all[0].Workspaces, []string{"/w/app", "/w/docs"}) {
 		t.Fatalf("%+v %v", all, err)
@@ -208,7 +280,7 @@ func TestListReportsWorkspacesAsHqSeesThem(t *testing.T) {
 }
 
 func TestListFailsWhenAWorkspaceCannotBeMapped(t *testing.T) {
-	r := &fakeRun{out: `{"sandboxes":[{"name":"claude-app","workspaces":["C:\\w\\app"]}]}`}
+	r := &fakeRun{out: `[{"name":"claude-app","workspaces":["C:\\w\\app"]}]`}
 	c := Client{Run: r, Platform: platform.WSL{SbxSide: platform.WindowsSbx{Run: &fakeRun{err: errors.New("wslpath: boom")}}}}
 	if _, err := c.List(); err == nil {
 		t.Fatal("want the wslpath error")
@@ -220,7 +292,7 @@ func TestCreateGivesSbxItsOwnPathAndCommand(t *testing.T) {
 	if err := (Client{Run: r, Platform: platformtest.Fake{Sbx: "sbx.exe"}}).Create("/w/app", Options{}); err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"sbx.exe", "create", "--quiet", "claude", `F:\w\app`}; !reflect.DeepEqual(r.args, want) {
+	if want := []string{"sbx.exe", "create", "--no-progress", "claude", `F:\w\app`}; !reflect.DeepEqual(r.args, want) {
 		t.Fatalf("args %q", r.args)
 	}
 	c := Client{Run: r, Platform: platform.WSL{SbxSide: platform.WindowsSbx{Run: &fakeRun{err: errors.New("wslpath: boom")}}}}
@@ -244,7 +316,7 @@ func TestCreateGivesTheTemplateAndStaticMCPServersWhenSet(t *testing.T) {
 		if err := (Client{Run: r, Platform: platformtest.Fake{Sbx: "sbx"}}).Create("/w/app", c.o); err != nil {
 			t.Fatal(err)
 		}
-		want := append(append([]string{"sbx", "create", "--quiet"}, c.want...), "claude", `F:\w\app`)
+		want := append(append([]string{"sbx", "create", "--no-progress"}, c.want...), "claude", `F:\w\app`)
 		if !reflect.DeepEqual(r.args, want) {
 			t.Errorf("%s: args %q", c.name, r.args)
 		}
@@ -252,7 +324,7 @@ func TestCreateGivesTheTemplateAndStaticMCPServersWhenSet(t *testing.T) {
 }
 
 // A setup's sandbox is created under its name; one with a model through
-// sbx run --detached, as sbx create takes no --model (#135).
+// sbx run --detach, as sbx create takes no --model (#135).
 func TestCreateANamedSandboxAndOneWithAModel(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -260,11 +332,11 @@ func TestCreateANamedSandboxAndOneWithAModel(t *testing.T) {
 		want []string
 	}{
 		{"named", Options{Name: "hq-local-app", Template: "img:x"},
-			[]string{"sbx", "create", "--quiet", "--name", "hq-local-app", "--template", "img:x", "claude", `F:\w\app`}},
+			[]string{"sbx", "create", "--no-progress", "--name", "hq-local-app", "--template", "img:x", "claude", `F:\w\app`}},
 		{"with a model", Options{Name: "hq-local-app", Template: "img:x", StaticMCP: []string{"docs"}, Model: "qwen-local", Provider: "lmstudio"},
-			[]string{"sbx", "run", "--detached", "--name", "hq-local-app", "--template", "img:x", "--static-mcp", "docs", "--model", "qwen-local", "--provider", "lmstudio", "claude", `F:\w\app`}},
+			[]string{"sbx", "run", "--detach", "--name", "hq-local-app", "--template", "img:x", "--static-mcp", "docs", "--model", "qwen-local", "--provider", "lmstudio", "claude", `F:\w\app`}},
 		{"a provider alone", Options{Name: "hq-p-app", Provider: "lmstudio"},
-			[]string{"sbx", "run", "--detached", "--name", "hq-p-app", "--provider", "lmstudio", "claude", `F:\w\app`}},
+			[]string{"sbx", "run", "--detach", "--name", "hq-p-app", "--provider", "lmstudio", "claude", `F:\w\app`}},
 	} {
 		r := &fakeRun{}
 		if err := (Client{Run: r, Platform: platformtest.Fake{Sbx: "sbx"}}).Create("/w/app", c.o); err != nil {

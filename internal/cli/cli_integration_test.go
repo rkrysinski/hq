@@ -261,7 +261,7 @@ func TestNewCreatesSandboxWithTheSettingsOfThePreferencesFile(t *testing.T) {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
 	log, _ := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/creates.log")
-	if !strings.HasPrefix(string(log), "--quiet --template sbx-image:local --static-mcp pencil claude F:") {
+	if !strings.HasPrefix(string(log), "--no-progress --template sbx-image:local --static-mcp pencil claude F:") {
 		t.Fatalf("created with %q", log)
 	}
 
@@ -275,7 +275,7 @@ func TestNewCreatesSandboxWithTheSettingsOfThePreferencesFile(t *testing.T) {
 
 // A repository has a sandbox per setup on one workspace: hq new with a
 // setup creates and then reuses hq-<setup>-<dir>, with the setup's model
-// through sbx run --detached, beside the default sandbox, which agents
+// through sbx run --detach, beside the default sandbox, which agents
 // without a setup keep using; every row says its setup (#135).
 func TestNewFindsEachSetupsSandboxOnOneWorkspace(t *testing.T) {
 	cfg := t.TempDir()
@@ -296,7 +296,7 @@ func TestNewFindsEachSetupsSandboxOnOneWorkspace(t *testing.T) {
 	}
 	log, _ := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/creates.log")
 	lines := strings.Split(strings.TrimSpace(string(log)), "\n")
-	if len(lines) != 2 || !strings.HasPrefix(lines[0], "--quiet claude F:") || !strings.HasPrefix(lines[1], "run --detached --name hq-local-my-repo-x --model qwen-local --provider lmstudio claude F:") {
+	if len(lines) != 2 || !strings.HasPrefix(lines[0], "--no-progress claude F:") || !strings.HasPrefix(lines[1], "run --detach --name hq-local-my-repo-x --model qwen-local --provider lmstudio claude F:") {
 		t.Fatalf("created with %q", lines)
 	}
 	got := map[string]string{}
@@ -1498,5 +1498,31 @@ func TestRestoreBringsBackTheAgentsOfAKilledTmuxServer(t *testing.T) {
 	}
 	if code, out, _ := h.run("restore"); code != 0 || out != "nothing to restore\n" {
 		t.Fatalf("restore after the kill: exit %d %q", code, out)
+	}
+}
+
+// With an sbx older than 0.48, hq new and hq ls exit 3 with one line that
+// names the version sbx tells, when it tells one, the minimum and the
+// remedy; no JSON or unknown flag error reaches the user (#172).
+func TestNewAndLsSayAnSbxIsTooOld(t *testing.T) {
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	for _, c := range []struct{ told, want string }{
+		{"0.47.0", "hq: sbx 0.47.0 is too old, 0.48.0 or newer needed; update Docker Sandboxes\n"},
+		{"none", "hq: sbx is too old, 0.48.0 or newer needed; update Docker Sandboxes\n"},
+	} {
+		t.Setenv("SBX_STUB_OLD", c.told)
+		for _, cmd := range []string{"new", "ls"} {
+			args := []string{cmd}
+			if cmd == "new" {
+				args = append(args, "a")
+			}
+			if code, out, errOut := h.run(args...); code != ExitEnvironment || out != "" || errOut != c.want {
+				t.Errorf("%s with %s: exit %d %q %q", cmd, c.told, code, out, errOut)
+			}
+		}
+	}
+	if log, err := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/creates.log"); err == nil {
+		t.Fatalf("created %q", log)
 	}
 }

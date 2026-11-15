@@ -2,12 +2,14 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"text/tabwriter"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -162,9 +164,14 @@ func gatherAgents(d deps) ([]agent.Agent, error) {
 
 // collect gathers the agents with their state from tmux, the state files,
 // sbx and their screens (design §5.1, agent.Look). When sbx fails or does
-// not answer in time, the states come from tmux and the hooks alone.
+// not answer in time, the states come from tmux and the hooks alone; an sbx
+// too old for hq fails it (#172).
 func collect(d deps) ([]agent.Agent, error) {
-	return collectWith(d, runningSandboxes(d))
+	running, err := askSandboxes(d)
+	if err != nil {
+		return nil, sbxErr(err)
+	}
+	return collectWith(d, running)
 }
 
 // collectWith is collect with sbx's answer given: which sandboxes run, and
@@ -178,20 +185,31 @@ func collectWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
 }
 
 // runningSandboxes asks sbx which sandboxes run, noting when it asked; the
-// answer says nothing when sbx fails or does not answer in time.
+// answer says nothing when sbx fails, does not answer in time or is too old.
 func runningSandboxes(d deps) agent.Sandboxes {
+	running, _ := askSandboxes(d)
+	return running
+}
+
+// askSandboxes is runningSandboxes, failing only for an sbx too old for hq
+// (sbx.TooOldError): an answer, not a failure to give one.
+func askSandboxes(d deps) (agent.Sandboxes, error) {
 	// The moment before the question: what an agent reports from here on
 	// is newer than the answer (#48).
 	asked := d.now()
 	sbs, err := d.pollSandboxes()
 	if err != nil {
-		return agent.Sandboxes{}
+		var old *sbx.TooOldError
+		if errors.As(err, &old) {
+			return agent.Sandboxes{}, err
+		}
+		return agent.Sandboxes{}, nil
 	}
 	running := map[string]bool{}
 	for _, s := range sbs {
 		running[s.Name] = s.Running()
 	}
-	return agent.Sandboxes{Running: running, Asked: asked}
+	return agent.Sandboxes{Running: running, Asked: asked}, nil
 }
 
 // resting reports whether a working agent's screen is at rest in a way one
