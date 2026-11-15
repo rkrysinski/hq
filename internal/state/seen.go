@@ -126,10 +126,12 @@ func (f *Fold) handOver(e Event) {
 }
 
 // looked is the agent's state as the look gives it, and the event of the
-// screen whose turn end it is, if it is one (0 otherwise).
+// screen that decided the turn Claude owed does not come, if its state is
+// that decision (KindTurnNotTaken; 0 otherwise): it completes the turn
+// whose end the hook reported and kept working for background work.
 type looked struct {
 	Reduced
-	turnEndBy int64
+	notTaken int64
 }
 
 // look is the agent's state from the hook's (reading, with reply the
@@ -266,7 +268,10 @@ func (f *Fold) overrule(r *looked, h Reduced) {
 	}
 	switch te, w := s.turnEnd, s.atWork; {
 	case te.at(key):
-		r.State, r.Last, r.Entered, r.turnEndBy = Done, turnEndLast(te.Event, r.Last), RefOf(te.Event), te.Number
+		r.State, r.Last, r.Entered = Done, turnEndLast(te.Event, r.Last), RefOf(te.Event)
+		if te.Kind == KindTurnNotTaken {
+			r.notTaken = te.Number
+		}
 		rests := []int64{te.Number}
 		r.Since = te.Time
 		if te.Kind != KindTurnEnded {

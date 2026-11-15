@@ -37,7 +37,7 @@ func TestADecisionThatTakesTimeIsAnEventAndTheTimePassedInDecidesNone(t *testing
 	}
 	journal = append(journal, seenEvent(3, SourceScreen, KindRewound, 1, Facts{Screen: "f1", From: atSecond(2)}))
 	r := Reduce(journal, Reply{}, atSecond(9))
-	if r.State != Done || r.Last != RewoundLast || !r.Since.Equal(atSecond(2)) || r.Entered != (Ref{3, atSecond(3)}) || r.TurnEnded != 3 || !slices.Equal(r.RestsOn, []int64{1, 2, 3}) {
+	if r.State != Done || r.Last != RewoundLast || !r.Since.Equal(atSecond(2)) || r.Entered != (Ref{3, atSecond(3)}) || r.TurnEnded != 0 || !slices.Equal(r.RestsOn, []int64{1, 2, 3}) {
 		t.Errorf("rewound: %+v", r)
 	}
 
@@ -291,19 +291,45 @@ func TestClaudeTakingAQueuedPromptHandsTheStateOverToIt(t *testing.T) {
 	}
 }
 
-// The turn end of the last completed turn may be one the screen showed:
-// a turn the user ended, rewound, or one Claude owed that did not come.
-func TestATurnEndTheScreenShowedEndsTheLastCompletedTurn(t *testing.T) {
+// A turn the user ended at the agent, with its line or rewound, is no
+// completed turn: the last completed turn stays the one the hook reported
+// before it. A turn Claude owed for background work that does not come
+// completes the turn whose end the hook reported and kept working.
+func TestATurnTheUserEndedIsNoCompletedTurnButOneClaudeOwedThatDidNotComeIs(t *testing.T) {
 	journal := []Event{
 		userPrompt(1, "t1"),
-		seenEvent(2, SourceScreen, KindTurnEnded, 1, Facts{Text: "Interrupted"}),
-		seenEvent(3, SourceScreen, KindTurnEnded, 1, Facts{Text: "User declined to answer questions"}), // a later one for the same report
-		userPrompt(4, "t2"),
+		endOfTurn(2, "t1", false),
+		userPrompt(3, "t2"),
+		seenEvent(4, SourceScreen, KindTurnEnded, 3, Facts{Text: "Interrupted"}),
+		seenEvent(5, SourceScreen, KindTurnEnded, 3, Facts{Text: "User declined to answer questions"}), // a later one for the same report
+		userPrompt(6, "t3"),
+		seenEvent(7, SourceScreen, KindAtRest, 6, Facts{Screen: "f1"}),
+		seenEvent(8, SourceScreen, KindRewound, 6, Facts{Screen: "f1", From: atSecond(7)}),
 	}
-	if r := reducedAt(journal, 3); r.State != Done || r.TurnEnded != 2 || r.Last != "Interrupted" || !r.Since.Equal(atSecond(2)) {
+	for _, tc := range []struct {
+		after int64
+		state string
+	}{{2, Done}, {4, Done}, {5, Done}, {6, Working}, {8, Done}} {
+		if r := reducedAt(journal, tc.after); r.State != tc.state || r.TurnEnded != 2 {
+			t.Errorf("after %d: %s, turn ended at %d", tc.after, r.State, r.TurnEnded)
+		}
+	}
+	if r := reducedAt(journal, 5); r.Last != "Interrupted" || !r.Since.Equal(atSecond(4)) {
 		t.Errorf("ended: %+v", r)
 	}
-	if r := reducedAt(journal, 4); r.State != Working || r.TurnEnded != 2 {
-		t.Errorf("the next turn: %+v", r)
+
+	owed := []Event{
+		userPrompt(1, "t1"),
+		endOfTurn(2, "t1", false, subagentRunning("a1"), subagentRunning("a2")),
+		hookEvent(3, "prompt", "UserPromptSubmit", Facts{Turn: "w1", Wake: true, Woke: "a1"}),
+		endOfTurn(4, "w1", false), // a2 finished together with a1: Claude owes a turn
+		seenEvent(5, SourceScreen, KindAtRest, 4, Facts{Screen: "f1"}),
+		seenEvent(6, SourceScreen, KindTurnNotTaken, 4, Facts{Screen: "f1", From: atSecond(5)}),
+	}
+	if r := reducedAt(owed, 5); r.State != Working || !r.Owed || r.TurnEnded != 0 {
+		t.Errorf("owed: %s, owed %v, turn ended at %d", r.State, r.Owed, r.TurnEnded)
+	}
+	if r := reducedAt(owed, 6); r.State != Done || r.TurnEnded != 6 {
+		t.Errorf("not taken: %s, turn ended at %d", r.State, r.TurnEnded)
 	}
 }

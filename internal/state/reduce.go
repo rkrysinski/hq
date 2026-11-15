@@ -56,8 +56,11 @@ type Reduced struct {
 	// last changed: a report that leaves both as they were does not move it.
 	Changed Ref
 	// TurnEnded is the number of the event that ended the last completed
-	// turn: a turn end the hook reported as done or question; 0 before
-	// the first.
+	// turn: a turn end the hook reported as done or question, or, for one
+	// it reported and kept working for background work, the screen's
+	// decision that the turn Claude owed does not come (KindTurnNotTaken);
+	// 0 before the first. A turn the user ended at the agent (its line,
+	// KindTurnEnded, or rewound, KindRewound) leaves it as it was.
 	TurnEnded int64
 	// Last is the last message, one line, and LastStop the latest turn
 	// end's, for which a dialog's text stands in as Last.
@@ -226,7 +229,7 @@ func (f Fold) With(events ...Event) Fold {
 				f.turnEnded = e.Number
 			}
 		}
-		if r.turnEndBy == e.Number && r.State == Done {
+		if r.notTaken == e.Number && r.State == Done {
 			f.turnEnded = e.Number
 		}
 	}
