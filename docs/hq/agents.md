@@ -26,7 +26,7 @@ One console for many Claude Code agents running in Docker Sandboxes (`sbx`) and 
 
 ## Testing
 
-Levels are Go build tags (none, `integration`, `e2e`), and the end-to-end journeys run in a terminal, not a browser. `scripts/check.sh` runs the gates of `tools/testgate` on the shape, the platform code and the coverage. See `docs/hq/testing.md`.
+Levels are Go build tags (none, `integration`, `e2e`), and the end-to-end journeys run in a terminal, not a browser. `scripts/check.sh` runs the gates of `tools/testgate` on the shape, the platform code and the coverage. Every pull request but a release's master pull request and a revert also runs the mutation tests of its changed lines, `go run ./tools/testgate mutation BASE` with BASE the branch it goes into, each time the full build is run for it (an implementer of a spec's ticket runs it against the integration branch before it reports), and leaves no mutant alive without a test that kills it or a one-line reason in `## QA`. See `docs/hq/testing.md`.
 
 ## Local run
 

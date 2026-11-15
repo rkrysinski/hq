@@ -7,11 +7,16 @@
 //	go run ./tools/testgate private [PATH...] # no private details in tracked files (or PATHs)
 //	go run ./tools/testgate prepush REPO     # no private details in what a push sends (the pre-push hook)
 //	go run ./tools/testgate platform [ROOT]  # platform-specific names only in internal/platform
+//	go run ./tools/testgate mutation BASE    # mutation tests of the lines changed against BASE
 //
 // private and prepush read the pattern list from $HQ_PRIVATE_PATTERNS or,
 // without it, from the repository's .git/info/hq-private-patterns (see
 // private.go). Without a list private passes with a notice and prepush
 // refuses the push (#185).
+//
+// mutation prints one line per mutant left alive or timed out and a last
+// line with the counts, and exits 1 when there is such a mutant (#204,
+// mutation.go). Like every gate it exits 2 on an error of its own.
 //
 // A test's level is its file's build constraint: none is unit, the
 // "integration" tag is integration, the "e2e" tag is end-to-end.
@@ -21,11 +26,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
-const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | platform [ROOT]"
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | platform [ROOT] | mutation BASE"
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
@@ -118,6 +126,22 @@ func main() {
 		fmt.Printf("platform: %d names checked, uses outside internal/platform: %d\n", len(platformNames), len(hits))
 		for _, h := range hits {
 			problems = append(problems, h.String())
+		}
+	case "mutation":
+		if len(os.Args) != 3 {
+			fmt.Fprintln(os.Stderr, "testgate: mutation needs the base the pull request goes into, for example: go run ./tools/testgate mutation origin/dev")
+			fmt.Fprintln(os.Stderr, usage)
+			os.Exit(2)
+		}
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		failed, err := runMutation(ctx, ".", os.Args[2], os.Stdout, os.Stderr)
+		stop()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "testgate: mutation:", err)
+			os.Exit(2)
+		}
+		if failed {
+			os.Exit(1)
 		}
 	default:
 		fmt.Fprintln(os.Stderr, usage)

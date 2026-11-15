@@ -32,7 +32,35 @@ go run ./tools/testgate private [PATH...]              # no private details (nee
 go run ./tools/testgate platform                       # platform-specific names only in internal/platform
 go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./... \
   && go run ./tools/testgate coverage cover.out        # coverage threshold
+go run ./tools/testgate mutation BASE                  # mutation tests of the lines changed against BASE (not in the full build)
 ```
+
+## Mutation tests
+
+Coverage says a line ran under a test, not that a test would fail if the line were wrong; a mutation run checks the second (#204). A mutant is one small change to the code, for example `<` into `<=`. It is killed when a unit test then fails, alive when every unit test still passes, timed out when the tests did not finish within the limit, and not covered when no unit test runs its line.
+
+**The rule.** Every pull request that runs the full build also runs `go run ./tools/testgate mutation BASE`, each time the full build is run for it: after implementing, after review fixes, and after the rebase before the merge. It runs after the full build, on the same tree, and is not a step of it: CI does not run it, and its block in the pull request's `## QA` section is the evidence (`docs/hq/qa-evidence.md`).
+
+- **BASE** is the branch the pull request goes into: `origin/dev` for a single issue, the release branch for a ticket of a supervised release. In a spec built on one integration branch, each ticket's implementer runs it against the integration branch before reporting, and the orchestrator runs it once on the integration branch against `origin/dev`, after the review fixes and before the pull request is ready.
+- **What passes**: no mutant left alive in the changed lines. For each survivor, write a unit test that kills it, or give a one-line reason in `## QA` next to its line: a mutant that does not change behaviour (an equivalent mutant, such as `<` into `<=` where the two values are never equal) cannot be killed by any test. A timed-out mutant fails the run the same way, until a rerun kills it or it is explained. An accepted survivor stays in the command's output; the reason next to it is what makes it pass. Not covered is a count, never a failure. There is no minimum share and no figure for the whole module.
+- **Exempt** are only the master pull request of a release (each of its tickets had a run) and a revert. No kind of change is exempt: where there is nothing to mutate (documents, CI files, shell scripts, tests only, Go lines with nothing to change), the command says so, and that line is the evidence.
+- **Shell scripts get no mutation check**: the tool changes Go code only. Their Go integration tests stay their check.
+
+**What it does.** It makes mutants only in the lines of Go code, not tests, that the working tree changes against its merge base with BASE, uncommitted and untracked files included: a branch behind BASE is not charged for what BASE gained meanwhile. The mutants are the five kinds the tool makes by default: arithmetic operators (`arithmetic base`), comparison boundaries (`conditionals boundary`), negated conditions (`conditionals negation`), increments and decrements (`increment decrement`) and negated numbers (`invert negatives`). Each mutant is judged by the unit tests of the whole module (`go test ./...`, no build tag), so a line counts as covered when a unit test of any package runs it, and a mutant in a `package main` directory gets a real test run. The tool is go-gremlins, pinned in `tools/testgate/mutation.go` (nothing in `go.mod`) and installed fresh for each run. A run copies the files git tracks or would track into a temporary directory (git's objects are borrowed, not copied; other worktrees and ignored directories stay out), uses a build cache of its own there and removes the directory when it ends, also when it fails or is interrupted (Ctrl-C, SIGTERM): the shared Go build cache does not grow from it. It needs the module cache to hold the tool, or the network once.
+
+**Its output.** One line per alive and per timed-out mutant, in file and line order: the verdict, the file, the line and column, the kind. The last line gives the counts, BASE and HEAD's full sha, followed by ` with uncommitted changes` when the tree is not clean, as the full build's last line does; only a clean tree's line vouches for a commit. Progress goes to stderr.
+
+```text
+alive      tools/testgate/push.go:94:14 conditionals boundary
+timed out  internal/dash/dash.go:120:9 arithmetic base
+mutation: 23 killed, 1 alive, 1 timed out, 0 not covered against origin/dev on <commit>
+```
+
+When the changed lines hold no mutant, the last line is `mutation: no mutants in the lines changed against <BASE> on <commit>`. It exits 0 when no mutant is alive or timed out, 1 when one is, and 2 on an error of its own: no BASE, a BASE git does not know (`git fetch origin dev` first), unit tests that fail before any mutation, the tool failing, or an interruption.
+
+**Cost.** The tool runs the unit tests once with coverage, then once per mutant, in parallel on every core; a mutant's run rebuilds the packages it touches and runs the unit tests the test cache cannot answer. On 10 cores the changes of pull request #148 (292 added lines of Go, 66 mutants) took 35 s in all, those of #151 (7 mutants) 20 s. A mutant times out when its run takes ten times as long as that first run, which builds the whole module from an empty cache.
+
+**Known limits of the tool.** A mutant that does not compile is counted as killed (the tool's issue 321); for these five kinds it is rare. The tool cannot tell an equivalent mutant from a weak test: that judgement is the reason in `## QA`.
 
 ## CI
 
