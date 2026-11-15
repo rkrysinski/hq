@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// gremlinsReport is the report go-gremlins v0.6.0 wrote with --output for
+// gremlinsReport is the report the pinned go-gremlins wrote with --output for
 // the module of the integration test, copied from a real run.
 const gremlinsReport = `{"go_module":"example.com/m","files":[` +
 	`{"file_name":"cmd/tool/main.go","mutations":[` +
