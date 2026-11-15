@@ -171,7 +171,7 @@ func dockAs(d deps, name string, how func(window, title string) error) error {
 	if err != nil {
 		return err
 	}
-	a, ok := agent.Find(d.collectAgents(ws), name)
+	a, ok := agent.Find(d.fromJournals(ws), name)
 	if !ok {
 		return fmt.Errorf("no agent '%s'", name)
 	}

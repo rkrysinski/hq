@@ -158,14 +158,14 @@ func FromWindows(ws []tmux.Window) []Agent {
 		// A window marked ending belongs to an agent hq is taking down (its
 		// sandbox restarting): ended already, though its pane still runs.
 		// This is tmux's word alone, for what does not read the agent's
-		// journal; the journal decides once it is read (Collect, Look).
+		// journal; the journal decides once it is read (FromJournals, Look).
 		if w.PaneDead || o["ending"] != "" {
 			a.State = state.Ended
 		}
 		a.Generation, _ = strconv.Atoi(o[GenerationOption])
 		if a.Generation != version.Generation {
 			// Nothing of its own is read: its state, its age and its
-			// branch are unknown to this hq (see Collect).
+			// branch are unknown to this hq (see FromJournals).
 			a.State, a.Last = state.Outdated, OutdatedLast(a.Generation)
 		}
 		a.New = o["new"] != "" && a.State == state.Starting

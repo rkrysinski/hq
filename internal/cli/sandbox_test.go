@@ -53,7 +53,7 @@ func TestSandboxRestartRelaunchesItsAgentsInTheirOwnPanes(t *testing.T) {
 			}
 		}
 		var s []string
-		for _, a := range agent.Collect(f.tmux.windows, d.journal, f.now, nil) {
+		for _, a := range agent.FromJournals(f.tmux.windows, d.journal, f.now, nil) {
 			s = append(s, a.Name+"="+a.State)
 		}
 		during = append(during, strings.Join(s, " "))

@@ -31,7 +31,7 @@ func openCode(d deps, name string) (string, error) {
 		return "", tmuxErr(err)
 	}
 	// With its state, for the worktree.
-	a, ok := agent.Find(d.collectAgents(ws), name)
+	a, ok := agent.Find(d.fromJournals(ws), name)
 	if !ok {
 		return "", notFoundErr("no agent '%s' (see hq ls)", name)
 	}

@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"math"
 	"slices"
 	"sync"
 	"time"
@@ -112,6 +111,14 @@ func (f *folded) witness(store journal.Store, id string, e state.Event, now time
 	_, _ = store.Append(id, e)
 }
 
+// witnessDeath appends the death of a's pane, as tmux dates it, at now
+// (witness).
+func (f *folded) witnessDeath(store journal.Store, a Agent, now time.Time) {
+	e := state.Event{Source: state.SourceTmux, Kind: state.KindPaneDied}
+	e.Facts.From = a.deadAt
+	f.witness(store, a.ID, e, now)
+}
+
 // read gives agent a its state from its journal, the event files its hook
 // left ingested first: a journal that cannot be read leaves the agent as
 // its window says.
@@ -127,20 +134,23 @@ func (a *Agent) read(store journal.Store, f *folded) bool {
 	return true
 }
 
-// Collect is the agents of the home windows ws with their state as their
-// journals give it, the event files their hooks left ingested first, at
-// now: nothing is appended and no screen is read (design §3.4). hq go, hq
-// code and the dashboard's dock take it; the commands that show or act on
-// an agent's state take a Look.
-func Collect(ws []tmux.Window, store journal.Store, now time.Time, folds *Folds) []Agent {
+// FromJournals is the agents of the home windows ws with their state as
+// their journals give it, the event files their hooks left ingested first,
+// at now: of what tmux, sbx and the screen show, only a dead pane's death
+// is appended, and no screen is read (design §3.4). hq go, hq code and the
+// dashboard's dock take it; the commands that show or act on an agent's
+// state take a Look.
+func FromJournals(ws []tmux.Window, store journal.Store, now time.Time, folds *Folds) []Agent {
 	as := FromWindows(ws)
 	ReadStates(as, store, now, folds)
 	return as
 }
 
-// ReadStates gives the agents, from their home windows (FromWindows), their
-// state as Collect does: an agent whose pane is dead is ended, as tmux
-// dates it, though only a look appends that.
+// ReadStates gives the agents their state from their journals, as
+// FromJournals does: the death of the pane of an agent with a home window
+// (FromWindows) is appended first, as tmux dates it, so the ended state
+// rests on an event as any other does (story 43 of #165). A lost agent has
+// no pane to have died: its journal alone gives its state.
 func ReadStates(as []Agent, store journal.Store, now time.Time, folds *Folds) {
 	defer folds.lock()()
 	for i := range as {
@@ -149,17 +159,11 @@ func ReadStates(as []Agent, store journal.Store, now time.Time, folds *Folds) {
 		if !a.read(store, f) {
 			continue
 		}
-		if a.Alive {
-			a.apply(f, now, "", false)
-			continue
+		if !a.Alive && a.Window != "" {
+			f.witnessDeath(store, *a, now)
+			_ = f.update(store, a.ID)
 		}
-		// The pane's death, which only a look appends, counts as tmux
-		// tells it.
-		dead := *f
-		e := state.Event{Number: math.MaxInt64, Source: state.SourceTmux, Kind: state.KindPaneDied, Time: now, Basis: f.basis}
-		e.Facts.From = a.deadAt
-		dead.fold = f.fold.With(e)
-		a.apply(&dead, now, "", false)
+		a.apply(f, now, "", false)
 	}
 }
 
@@ -203,9 +207,7 @@ func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Store, fol
 			wakes[i] = &e
 		}
 		if !a.Alive {
-			e := state.Event{Source: state.SourceTmux, Kind: state.KindPaneDied}
-			e.Facts.From = a.deadAt
-			f.witness(store, a.ID, e, now)
+			f.witnessDeath(store, *a, now)
 		}
 		if sandboxes.notRunning(*a) && f.fold.Stopped(sandboxes.Asked) {
 			e := state.Event{Source: state.SourceSbx, Kind: state.KindNotRunning}

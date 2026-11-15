@@ -17,6 +17,7 @@ import (
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 // memStore is a Store over the journals' fake (journaltest.Memory), with
@@ -444,19 +445,30 @@ func TestALongRunningLookFoldsOnlyWhatIsNew(t *testing.T) {
 	}
 }
 
-// Collect gives the agents their state from their journals, the hooks'
-// event files ingested first, and appends nothing and captures no screen:
-// an agent whose pane died is ended, as tmux dates it (here not at all:
-// since the moment of the look), though the journal holds no such event.
-func TestCollectAppendsNothingAndCapturesNoScreen(t *testing.T) {
+// FromJournals gives the agents their state from their journals, the hooks'
+// event files ingested first, and captures no screen: of what tmux shows it
+// appends only the death of a pane, as tmux dates it (here not at all:
+// since the moment of the look), once, so the ended state rests on an event
+// (story 43 of #165). A lost agent, which has no home window, gets none.
+func TestFromJournalsAppendsOnlyAPanesDeathAndCapturesNoScreen(t *testing.T) {
 	now := time.Unix(1000, 0)
 	ws := []tmux.Window{lookWindow("1")}
 	ws[0].PaneDead = true
 	s := newStore(map[string]string{"%1": declinedScreen()})
 	s.report("a1", state.Report{State: state.Working, Since: now.Add(-time.Minute), Branch: "feat/1", Cwd: "/w/app/wt"})
-	a := Collect(ws, s, now, nil)[0]
-	if a.State != state.Ended || !a.Since.Equal(now) || a.Branch != "feat/1" || a.Worktree != "/w/app/wt" || len(s.captures) != 0 || len(s.journalOf(t, "a1")) != 1 {
-		t.Fatalf("%+v, captures %v, journal %s", a, s.captures, journaltest.Kinds(s.journalOf(t, "a1")))
+	for range 2 {
+		a := FromJournals(ws, s, now, nil)[0]
+		j := s.journalOf(t, "a1")
+		if a.State != state.Ended || !a.Since.Equal(now) || a.Branch != "feat/1" || a.Worktree != "/w/app/wt" || len(s.captures) != 0 ||
+			journaltest.Kinds(j) != "UserPromptSubmit PaneDied" || a.Entered() != j[1].Time {
+			t.Fatalf("%+v, captures %v, journal %s", a, s.captures, journaltest.Kinds(j))
+		}
+	}
+	s.report("b1", state.Report{State: state.Working, Since: now.Add(-time.Minute), Cwd: "/w/app/wt"})
+	lost := []Agent{{ID: "b1", Name: "b", RepoPath: "/w/app", Generation: version.Generation, State: state.Starting}}
+	ReadStates(lost, s, now, nil)
+	if lost[0].State != state.Working || lost[0].Worktree != "/w/app/wt" || journaltest.Kinds(s.journalOf(t, "b1")) != "UserPromptSubmit" {
+		t.Fatalf("lost %+v, journal %s", lost[0], journaltest.Kinds(s.journalOf(t, "b1")))
 	}
 }
 

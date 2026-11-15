@@ -397,10 +397,10 @@ func (d deps) look(ws []tmux.Window, running agent.Sandboxes) []agent.Agent {
 	return agent.Look(ws, running, d.now(), d.store(), d.folds)
 }
 
-// collectAgents are the agents of the home windows ws with their state
-// from their journals, nothing appended and no screen read (agent.Collect).
-func (d deps) collectAgents(ws []tmux.Window) []agent.Agent {
-	return agent.Collect(ws, d.journal, d.now(), d.folds)
+// fromJournals are the agents of the home windows ws with their state
+// from their journals, no screen read (agent.FromJournals).
+func (d deps) fromJournals(ws []tmux.Window) []agent.Agent {
+	return agent.FromJournals(ws, d.journal, d.now(), d.folds)
 }
 
 // removeAgentFiles deletes what an agent leaves once it is gone: its hook's

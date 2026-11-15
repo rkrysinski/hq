@@ -89,7 +89,7 @@ func TestAnAgentOfAnotherGenerationIsOutdated(t *testing.T) {
 		s := newStore(nil)
 		s.Memory.Report("/w/app", "a1", state.Report{State: state.Working, Since: time.Unix(200, 0), Branch: "main"}, state.Detail{Reply: "on it"})
 		s.Memory.Report("/w/app", "a1", state.Report{State: state.Working, Since: time.Unix(201, 0), Branch: "main", Prompt: "go on"}, state.Detail{})
-		for _, a := range []Agent{Collect(ws, s, time.Unix(300, 0), nil)[0], Look(ws, Sandboxes{}, time.Unix(300, 0), s, nil)[0]} {
+		for _, a := range []Agent{FromJournals(ws, s, time.Unix(300, 0), nil)[0], Look(ws, Sandboxes{}, time.Unix(300, 0), s, nil)[0]} {
 			if a.State != c.state || a.Last != c.last || a.Generation != c.generated || a.Outdated() != (c.state == state.Outdated) {
 				t.Errorf("generation %q, dead %v: %s %q generation %d outdated %v, want %s %q generation %d", c.gen, c.dead, a.State, a.Last, a.Generation, a.Outdated(), c.state, c.last, c.generated)
 			}
@@ -143,7 +143,7 @@ func TestTheLookEndsAgentsWhoseSandboxIsNotRunning(t *testing.T) {
 		t.Fatalf("claude-lib stopped: %s", got)
 	}
 	// What the journal holds stands for a look that cannot ask sbx.
-	if got := states(Collect(sbxWindows(), s, now, nil)); got != "a=done/on it a b=ended/on it b" {
+	if got := states(FromJournals(sbxWindows(), s, now, nil)); got != "a=done/on it a b=ended/on it b" {
 		t.Fatalf("collected: %s", got)
 	}
 }
@@ -261,17 +261,17 @@ func TestAnEndedAgentWithoutAMessageSaysItsSessionEnded(t *testing.T) {
 func TestAnAgentStartedWithoutAPromptIsDoneOnceClaudeWaitsAtItsPrompt(t *testing.T) {
 	ws := []tmux.Window{{ID: "@1", Name: "a", Options: map[string]string{GenerationOption: gen, "id": "a1", "repo": "/w/app", "new": "1", "started": "100"}}}
 	s := newStore(nil)
-	if a := Collect(ws, s, time.Unix(101, 0), nil)[0]; a.State != state.Starting || !a.New {
+	if a := FromJournals(ws, s, time.Unix(101, 0), nil)[0]; a.State != state.Starting || !a.New {
 		t.Fatalf("launched: %+v", a)
 	}
 	// Claude's session started (SessionStart, before any prompt).
 	s.Leave("/w/app", "a1", "000000001.start.1", journaltest.Hook("main", map[string]any{"session_id": "s", "cwd": "/w/app", "hook_event_name": "SessionStart", "source": "startup"}), time.Unix(102, 0))
-	if a := Collect(ws, s, time.Unix(103, 0), nil)[0]; a.State != state.Done || a.New || a.Last != "" || a.Branch != "main" || a.Since.Unix() != 102 {
+	if a := FromJournals(ws, s, time.Unix(103, 0), nil)[0]; a.State != state.Done || a.New || a.Last != "" || a.Branch != "main" || a.Since.Unix() != 102 {
 		t.Fatalf("session started: %+v", a)
 	}
 	// The user's first prompt makes it work as usual.
 	s.Leave("/w/app", "a1", "000000002.prompt.1", journaltest.Hook("main", map[string]any{"session_id": "s", "cwd": "/w/app", "hook_event_name": "UserPromptSubmit", "prompt": "go"}), time.Unix(104, 0))
-	if a := Collect(ws, s, time.Unix(105, 0), nil)[0]; a.State != state.Working || a.New {
+	if a := FromJournals(ws, s, time.Unix(105, 0), nil)[0]; a.State != state.Working || a.New {
 		t.Fatalf("prompted: %+v", a)
 	}
 }
@@ -290,12 +290,12 @@ func TestAReportFromBeforeALaunchGivesTheMessageButNotTheState(t *testing.T) {
 	if _, err := s.Append("a1", state.Event{Source: state.SourceHQ, Kind: state.KindRelaunched, Time: time.Unix(900, 0), Basis: 1}); err != nil {
 		t.Fatal(err)
 	}
-	a := Collect(ws, s, time.Unix(950, 0), nil)[0]
+	a := FromJournals(ws, s, time.Unix(950, 0), nil)[0]
 	if a.State != state.Starting || a.Since.Unix() != 900 || a.Last != "PR #58 opened" || a.Branch != "feat/42" || a.Worktree != "/w/app/.claude/worktrees/42" || a.Session() != "s1" {
 		t.Fatalf("relaunched: %+v, session %q", a, a.Session())
 	}
 	s.report("a1", state.Report{State: state.Working, Since: time.Unix(901, 0), Branch: "feat/42", SessionID: "s1"})
-	if a := Collect(ws, s, time.Unix(950, 0), nil)[0]; a.State != state.Working || a.Since.Unix() != 901 {
+	if a := FromJournals(ws, s, time.Unix(950, 0), nil)[0]; a.State != state.Working || a.Since.Unix() != 901 {
 		t.Fatalf("after its first report: %+v", a)
 	}
 	if es := s.journalOf(t, "a1"); es[len(es)-1].Number != int64(len(es)) || len(es) != 3 {
