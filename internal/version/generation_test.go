@@ -38,7 +38,8 @@ var pinned = struct {
 // forms are the forms the generation stands for, each as text whose
 // fingerprint changes with it: the hook set and script hq injects into
 // every agent it starts (state.Settings, ADR 0009), and hq's record of an
-// agent for hq restore (state.Record).
+// agent for hq restore (state.Record). The journal's form (its events, as
+// form describes them) joins them with the journal (#193).
 func forms() map[string]string {
 	return map[string]string{
 		"the hook's script": state.Settings("NAME", "ID", "NOTIFY"),
