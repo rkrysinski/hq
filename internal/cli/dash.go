@@ -304,11 +304,7 @@ func listSource(d deps, pane string) dash.Source {
 			if err != nil {
 				return agent.Sandboxes{}, err
 			}
-			running := map[string]bool{}
-			for _, s := range sbs {
-				running[s.Name] = s.Running()
-			}
-			return agent.Sandboxes{Running: running, Asked: asked}, nil
+			return agent.SandboxesOf(sbs, asked), nil
 		},
 		Now:     d.now,
 		Version: version.Version,

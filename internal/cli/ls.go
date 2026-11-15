@@ -219,11 +219,7 @@ func askSandboxes(d deps) (agent.Sandboxes, error) {
 		}
 		return agent.Sandboxes{}, nil
 	}
-	running := map[string]bool{}
-	for _, s := range sbs {
-		running[s.Name] = s.Running()
-	}
-	return agent.Sandboxes{Running: running, Asked: asked}, nil
+	return agent.SandboxesOf(sbs, asked), nil
 }
 
 // resting reports whether a working agent's screen is at rest in a way one

@@ -402,6 +402,36 @@ func TestUpdateAcrossGenerationsIsRefusedWhileAgentsExist(t *testing.T) {
 	}
 }
 
+// An agent hq started on another tmux server is in the way too, running or
+// lost there: this hq cannot see its window, but its repository holds its
+// record (story 22 of #165). It counts once, and an agent this server
+// knows is not counted again for a record of another server.
+func TestUpdateAcrossGenerationsIsRefusedForAnAgentOfAnotherTmuxServer(t *testing.T) {
+	for _, tc := range []struct{ socket, server, want string }{
+		{"", "qa", "c (on tmux server qa), d (on tmux server qa)"},
+		{"qa", "", "c (on the default tmux server), d (on the default tmux server)"},
+	} {
+		withVersion(t, "v0.1.0")
+		f := inTheWayFakes(t)
+		f.env["HQ_TMUX_SOCKET"] = tc.socket
+		f.tmux.windows = nil
+		f.records = map[string][]state.Record{
+			"/w/lib": {
+				{ID: "id-d", Name: "d", Sandbox: "claude-lib", Server: tc.server, Generation: version.Generation},
+				{ID: "id-c", Name: "c", Sandbox: "claude-lib", Server: tc.server, Generation: version.Generation},
+				{ID: "id-x", Name: "../x", Sandbox: "claude-lib", Server: tc.server},
+			},
+			"/w/app": {{ID: "id-c", Name: "c", Sandbox: "claude-x", Server: tc.server}},
+		}
+		f.publishOf("v0.2.0", "new", other)
+		code, _, errOut := f.run("update")
+		if code != ExitUsage || !strings.HasSuffix(errOut, "hq kill NAME: "+tc.want+"\n") {
+			t.Fatalf("socket %q: exit %d %q", tc.socket, code, errOut)
+		}
+		replaced(t, f, "old")
+	}
+}
+
 // When hq cannot tell whether agents exist, because sbx does not answer, is
 // too old or is not there, or tmux fails, an update across generations is
 // refused with the reason, exit code 1, and nothing is replaced; an update

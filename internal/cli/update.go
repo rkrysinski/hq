@@ -11,6 +11,7 @@ import (
 
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/prefs"
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/update"
 	"github.com/rkrysinski/hq/internal/version"
 )
@@ -139,9 +140,11 @@ func mayUpdate(d deps, tag string, gen int, published bool) error {
 // agentsInTheWay lists every agent hq knows, each with its state, as an
 // update across generations names them: the agents of this tmux server in
 // any state, ended ones included, as hq ls shows them, then its lost agents
-// in every repository hq knows (lostAgents). Asking sbx is not optional
-// here: when it fails, does not answer in time or is too old, hq cannot
-// know the lost agents, and that is the error.
+// in every repository hq knows (lostAgents), then the agents those
+// repositories hold records of on another tmux server, running or lost
+// there (elsewhere). Asking sbx is not optional here: when it fails, does
+// not answer in time or is too old, hq cannot know the lost agents, and
+// that is the error.
 func agentsInTheWay(d deps) ([]string, *Error) {
 	asked := d.now()
 	all, err := d.pollSandboxes()
@@ -152,18 +155,46 @@ func agentsInTheWay(d deps) ([]string, *Error) {
 	if err != nil {
 		return nil, asError(tmuxErr(err))
 	}
-	running := agent.Sandboxes{Running: map[string]bool{}, Asked: asked}
-	for _, s := range all {
-		running.Running[s.Name] = s.Running()
-	}
 	var in []string
-	for _, a := range d.look(ws, running) {
+	for _, a := range d.look(ws, agent.SandboxesOf(all, asked)) {
 		in = append(in, a.Name+" ("+a.State+")")
 	}
-	for _, a := range lostAgents(d, ws, knownRepositories(d, all)) {
+	roots := knownRepositories(d, all)
+	for _, a := range lostAgents(d, ws, roots) {
 		in = append(in, a.Name+" (lost)")
 	}
+	for _, r := range elsewhere(d, roots) {
+		in = append(in, r.Name+" (on "+serverName(r.Server)+")")
+	}
 	return in, nil
+}
+
+// elsewhere are the records the repositories at roots hold of agents hq
+// started on another tmux server than this one: this hq cannot see their
+// windows, so each may run there or be lost, and an update would leave it
+// outdated either way (story 22 of #165). Each counts once, by its id.
+func elsewhere(d deps, roots []string) []state.Record {
+	var out []state.Record
+	for _, root := range roots {
+		records, _ := d.records(root)
+		slices.SortStableFunc(records, func(a, b state.Record) int { return strings.Compare(a.Name, b.Name) })
+		for _, r := range records {
+			if r.Server == server(d) || checkName(r.Name) != nil || slices.ContainsFunc(out, func(o state.Record) bool { return o.ID == r.ID }) {
+				continue
+			}
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// serverName names the tmux server of -L socket name s, "" being the
+// default server.
+func serverName(s string) string {
+	if s == "" {
+		return "the default tmux server"
+	}
+	return "tmux server " + s
 }
 
 func (d deps) rememberLatest(latest string) {

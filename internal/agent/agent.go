@@ -189,6 +189,15 @@ type Sandboxes struct {
 	Asked time.Time
 }
 
+// SandboxesOf is sbx's answer all, the sandboxes sbx lists, asked at asked.
+func SandboxesOf(all []sbx.Sandbox, asked time.Time) Sandboxes {
+	running := map[string]bool{}
+	for _, s := range all {
+		running[s.Name] = s.Running()
+	}
+	return Sandboxes{Running: running, Asked: asked}
+}
+
 // stopped reports whether the answer ends a: its sandbox does not run, and
 // a's session has reported, but not since hq asked. Before its first
 // report its session may still wait for sbx run to start the sandbox (S2).
