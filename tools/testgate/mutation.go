@@ -118,8 +118,12 @@ func parseGremlinsReport(r io.Reader) ([]mutant, error) {
 // is alive or timed out. head is HEAD's full sha, with " with uncommitted
 // changes" when the tree is not clean, as the full build's last line has it.
 func mutationReport(ms []mutant, base, head string) (lines []string, failed bool, err error) {
+	type survivor struct {
+		verdict string
+		mutant
+	}
 	counts := map[string]int{}
-	var shown []mutant
+	var shown []survivor
 	for _, m := range ms {
 		v, err := verdict(m.status)
 		if err != nil {
@@ -130,15 +134,14 @@ func mutationReport(ms []mutant, base, head string) (lines []string, failed bool
 		}
 		counts[v]++
 		if v == verdictAlive || v == verdictTimedOut {
-			m.status = v
-			shown = append(shown, m)
+			shown = append(shown, survivor{v, m})
 		}
 	}
-	slices.SortFunc(shown, func(a, b mutant) int {
+	slices.SortFunc(shown, func(a, b survivor) int {
 		return cmp.Or(strings.Compare(a.file, b.file), cmp.Compare(a.line, b.line), cmp.Compare(a.col, b.col), strings.Compare(a.kind, b.kind))
 	})
-	for _, m := range shown {
-		lines = append(lines, fmt.Sprintf("%-10s %s:%d:%d %s", m.status, m.file, m.line, m.col, kindName(m.kind)))
+	for _, s := range shown {
+		lines = append(lines, fmt.Sprintf("%-10s %s:%d:%d %s", s.verdict, s.file, s.line, s.col, kindName(s.kind)))
 	}
 	if len(counts) == 0 {
 		return append(lines, noMutantsLine(base, head)), false, nil
