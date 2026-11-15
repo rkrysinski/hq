@@ -4,8 +4,6 @@ package state
 
 import (
 	"bytes"
-	"cmp"
-	"encoding/json"
 	"strings"
 	"time"
 	"unicode"
@@ -124,13 +122,6 @@ type backgroundTask struct {
 	Command     string `json:"command"`
 }
 
-// own reports whether the task is one the agent itself started that still
-// runs: a shell command or a watch that no subagent of its started (theirs,
-// by id). Every other running task is background work (busy).
-func (t backgroundTask) own(theirs map[string]bool) bool {
-	return t.Status == "running" && (t.Type == ShellTask || t.Type == MonitorTask) && !theirs[t.ID]
-}
-
 // The SessionStart sources of a new session and of one started with
 // --resume.
 const (
@@ -146,23 +137,6 @@ const wakePrefix = "<task-notification>"
 // question dialog hq answer answers.
 const AskTool = "AskUserQuestion"
 
-// busy reports whether the event, a Stop, lists background work that
-// still runs: a running task that is neither a shell command nor a watch
-// (a monitor task: the artifact watch Claude arms when the agent publishes
-// one, the Monitor tool), or one of those that one of the agent's
-// subagents started, which the hook's list (owed, the .owe file) names on
-// a line ~ID. It is the rule of the hook's awk, which decides (design
-// §3.4).
-func (p payload) busy(owed []byte) bool {
-	theirs := marked(owed, subagentMark)
-	for _, t := range p.BackgroundTasks {
-		if t.Status == "running" && !t.own(theirs) {
-			return true
-		}
-	}
-	return false
-}
-
 // The marks of the hook's list (the .owe file) beside the ids owed a turn:
 // a shell command or a watch one of the agent's subagents started (~ID),
 // and a watch the agent itself keeps with the Monitor tool (=ID), which
@@ -172,17 +146,6 @@ const (
 	monitorMark  = "="
 )
 
-// marked are the ids the hook's list names on a line of the mark each.
-func marked(owed []byte, mark string) map[string]bool {
-	ids := map[string]bool{}
-	for _, line := range strings.Split(string(owed), "\n") {
-		if id, ok := strings.CutPrefix(line, mark); ok && id != "" {
-			ids[id] = true
-		}
-	}
-	return ids
-}
-
 // artifactWatch ends the description of the watch Claude arms when the
 // agent publishes an artifact, the only thing that tells it from a watch of
 // the agent's own in a Stop (seen with Claude Code 2.1.296 as a monitor
@@ -191,29 +154,6 @@ func marked(owed []byte, mark string) map[string]bool {
 // too. Should Claude describe it otherwise, it shows as an own task: no
 // state depends on it (design §3.4).
 const artifactWatch = "(auto-armed on publish)"
-
-// ownTasks are the agent's own tasks the event, a Stop, lists: the
-// running tasks busy does not count, less the artifact watch, a shell by
-// its command and a watch by its description. A task the hook's list marks
-// as the agent's own Monitor watch (=ID) is a watch whatever its type.
-func (p payload) ownTasks(owed []byte) []Task {
-	theirs, watches := marked(owed, subagentMark), marked(owed, monitorMark)
-	var ts []Task
-	for _, t := range p.BackgroundTasks {
-		if !t.own(theirs) || strings.HasSuffix(strings.TrimSpace(t.Description), artifactWatch) {
-			continue
-		}
-		kind, text := t.Type, t.Description
-		if watches[t.ID] {
-			kind = MonitorTask
-		}
-		if kind == ShellTask {
-			text = t.Command
-		}
-		ts = append(ts, Task{Type: kind, Text: CleanText(text)})
-	}
-	return ts
-}
 
 // dialogText is what an open dialog shows as the last message: the first
 // question Claude asks, or for a permission prompt the tool and what it is
@@ -229,141 +169,6 @@ func (p payload) dialogText() string {
 		}
 	}
 	return Clean(p.ToolName)
-}
-
-// Parse derives the report from the latest event and the latest Stop event
-// (empty when there is none), which keeps the last message across events,
-// and the event before a resumed session started (empty when there is none).
-// A latest event it cannot read (a session cut off while it fed its hook
-// the event) is starting, with the branch and last message still known.
-func Parse(latest, lastStop, prev []byte) Report {
-	branch, latest := splitHeader(latest)
-	r := Report{State: Starting, Branch: Clean(branch)}
-	var stop payload
-	if _, lastStop = splitHeader(lastStop); json.Unmarshal(lastStop, &stop) == nil {
-		r.Last = Clean(stop.AssistantMessage)
-	}
-	r.LastStop = r.Last
-	var p payload
-	if json.Unmarshal(latest, &p) != nil {
-		return r
-	}
-	r.SessionID, r.Cwd = Clean(p.SessionID), p.Cwd
-	switch p.Event {
-	case "UserPromptSubmit", "PostToolUse", "PostToolUseFailure":
-		// The hook keeps a tool's end only when it closes a dialog: the
-		// user answered and Claude works on.
-		r.State = Working
-		r.Prompt = p.Prompt
-		r.Woken = strings.HasPrefix(p.Prompt, wakePrefix)
-	case "PermissionRequest":
-		r.State, r.SubagentDialog = NeedsInput, p.AgentID != ""
-		if m := p.dialogText(); m != "" {
-			r.Last = m
-		}
-	case "Elicitation":
-		// An MCP server's form, the agent's own or a subagent's: it carries
-		// no agent_id (Kept tells a subagent's).
-		r.State = NeedsInput
-		if m := cmp.Or(Clean(p.Message), Clean(p.Server)); m != "" {
-			r.Last = m
-		}
-	case "ElicitationResult":
-		// The form answered at the agent: the MCP tool has the answer and
-		// Claude works on, in a turn it has acted on, which no early Esc
-		// rewinds (#100).
-		r.State, r.Acted = Working, true
-	case "Stop":
-		r.Last = Clean(p.AssistantMessage)
-		r.LastStop, r.State = r.Last, Done
-		if IsQuestion(p.AssistantMessage) {
-			r.State = Question
-		}
-	case "Notification":
-		r.State, r.SubagentDialog = NeedsInput, p.AgentID != ""
-		if m := Clean(p.Message); m != "" {
-			r.Last = m
-		}
-	case "SessionStart":
-		// Claude has started, or started over after /clear, and waits at
-		// its prompt for the user. A resumed session starts in the
-		// repository, not in the worktree its conversation left: until it
-		// reports again it keeps the branch, worktree and last message the
-		// event before it gave (design §3.4).
-		r.State = Done
-		if p.Source == newSource {
-			// Nothing to resume yet: Claude keeps no conversation for a
-			// session that never had a prompt, and --resume with its id
-			// fails (design §3.6).
-			r.SessionID = ""
-		}
-		if p.Source == resumeSource {
-			if before := Parse(prev, lastStop, nil); before.State != Starting {
-				r.Branch, r.Cwd, r.Last, r.LastStop = before.Branch, before.Cwd, before.Last, before.LastStop
-			}
-		}
-	case "SessionEnd":
-		r.State = Ended
-	default:
-		r.State = Starting
-	}
-	return r
-}
-
-// Kept adds to the report of the state file latest what the hook kept
-// beside it (kept, written at; empty when there is nothing; owed is the
-// hook's list of the background work it follows, the .owe file): the latest
-// event that left the agent working without restarting its time (design
-// §3.4). A turn end with background work still running (a Stop) counts
-// beside a report that says working, and as the report itself when the hook
-// wrote it there too, the agent not working before: the agent works, at its
-// prompt, with that turn's message. Claude's wake-up for the closing turn
-// (a UserPromptSubmit) counts beside a report that says working: the agent
-// works on, since the same moment. A dialog reported beside such a Stop is
-// one of its subagents' (SubagentDialog).
-func (r Report) Kept(latest, kept, owed []byte, at time.Time) Report {
-	var p payload
-	if _, event := splitHeader(kept); json.Unmarshal(event, &p) != nil {
-		return r
-	}
-	switch {
-	case p.Event == "Stop" && (r.State == Working || bytes.Equal(kept, latest)):
-		r.State, r.Background, r.Last = Working, true, Clean(p.AssistantMessage)
-		r.LastStop = r.Last
-		r.Owed = !p.busy(owed)
-	case p.Event == "UserPromptSubmit" && r.State == Working:
-		r.Woken = true
-	case p.Event == "Stop" && r.State == NeedsInput:
-		// A dialog reported after a turn that ended with background work
-		// running is a subagent's: the agent has no turn until Claude wakes
-		// it, and an MCP elicitation carries no agent_id, neither its own
-		// event nor Claude's Notification for it (#89).
-		r.SubagentDialog = true
-		return r
-	default:
-		return r
-	}
-	if at.After(r.Latest) {
-		r.Latest = at
-	}
-	return r
-}
-
-// Own adds to the report of the state file latest the agent's own tasks
-// (owed is the hook's list of the background work it follows, the .owe
-// file): while it is done or has a question from latest, a Stop, what that
-// Stop lists running of its own. A turn end the hook kept leaves the report
-// working, and any other latest event has no turn end of its own, so their
-// list stays empty (#78).
-func (r Report) Own(latest, owed []byte) Report {
-	var p payload
-	if _, event := splitHeader(latest); json.Unmarshal(event, &p) != nil || p.Event != "Stop" {
-		return r
-	}
-	if r.State == Done || r.State == Question {
-		r.OwnTasks = p.ownTasks(owed)
-	}
-	return r
 }
 
 // splitHeader separates the hook's branch line from the payload after it; a

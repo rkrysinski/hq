@@ -176,10 +176,10 @@ func TestHookBlocksTheStopWithTheMessagesAndStaysQuiet(t *testing.T) {
 	if o.Decision != "block" || o.Reason != labelled("also run the linter", `and say "done"`) || o.TerminalSequence != "" {
 		t.Fatalf("blocked stop: %+v", o)
 	}
-	if r, _ := Read(root, id); r.State != Working {
+	if r, _ := reported(root, id); r.State != Working {
 		t.Fatalf("after the blocked stop: %+v", r)
 	}
-	if _, err := os.Stat(filepath.Join(Dir(root), id+".stop")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(Dir(root), id+endedSuffix)); !os.IsNotExist(err) {
 		t.Fatal("the blocked stop was kept as the last stop")
 	}
 	if left := inboxLeft(root, id); len(left) != 0 {
@@ -196,7 +196,7 @@ func TestHookBlocksTheStopWithTheMessagesAndStaysQuiet(t *testing.T) {
 	if o := stop("stop-after-block"); o.Decision != "" || o.TerminalSequence != "[notify Done: main]" {
 		t.Fatalf("the stop after: %+v", o)
 	}
-	if r, _ := Read(root, id); r.State != Done || r.Last != "PINEAPPLE" {
+	if r, _ := reported(root, id); r.State != Done || r.Last != "PINEAPPLE" {
 		t.Fatalf("done: %+v", r)
 	}
 }
@@ -230,7 +230,7 @@ func TestHookDeliversAfterAToolOnlyWhenAMessageAsksForIt(t *testing.T) {
 		t.Fatal("left pending")
 	}
 	// The turn goes on, working with the age it had.
-	if r, _ := Read(root, id); r.State != Working {
+	if r, _ := reported(root, id); r.State != Working {
 		t.Fatalf("%+v", r)
 	}
 }
@@ -245,7 +245,7 @@ func TestHookPassesTheMessagesOnWithAPromptFromAWorktree(t *testing.T) {
 	if o.HookSpecificOutput.HookEventName != "UserPromptSubmit" || o.HookSpecificOutput.AdditionalContext != labelled("ride along") {
 		t.Fatalf("%+v", o)
 	}
-	if r, _ := Read(root, id); r.State != Working || r.Branch != "feat-42" {
+	if r, _ := reported(root, id); r.State != Working || r.Branch != "feat-42" {
 		t.Fatalf("%+v", r)
 	}
 	// Nothing waiting, or no inbox at all: the hook prints nothing.

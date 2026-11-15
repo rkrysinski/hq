@@ -104,18 +104,18 @@ func TestHookLeavesAnEventFileForEveryReportARuleReads(t *testing.T) {
 	if events[1].Facts.Branch != "main" || events[2].Facts.Branch != "feat-42" || events[2].Facts.Tool != "Bash" {
 		t.Errorf("facts: %+v %+v", events[1].Facts, events[2].Facts)
 	}
-	// The old files are still written, and still decide the state.
-	if r, ok := Read(root, id); !ok || r.State != Ended {
-		t.Errorf("the state file: %+v %v", r, ok)
+	// The host's state comes from them alone.
+	if r, ok := reported(root, id); !ok || r.State != Ended {
+		t.Errorf("the host's state: %+v %v", r, ok)
 	}
 }
 
-func TestHookLeavesEventsForTurnsTheStateFileDoesNotShow(t *testing.T) {
+func TestHookLeavesEventsForTurnsItsNoteDoesNotShow(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
 	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
-	// A turn that ends with background work running: kept beside the state
-	// file, and an event all the same; so is Claude's wake-up for it.
+	// A turn that ends with background work running: kept beside the hook's
+	// note, and an event all the same; so is Claude's wake-up for it.
 	fire(t, root, root, id, "answer", []byte(`{"hook_event_name":"PostToolUse","prompt_id":"`+promptID+`","tool_name":"Agent","tool_response":{"status":"async_launched","agentId":"a58b43841609db047"}}`))
 	fire(t, root, root, id, "stop", fixture(t, "stop-background"))
 	fire(t, root, root, id, "prompt", fixture(t, "prompt-wake"))
@@ -129,8 +129,8 @@ func TestHookLeavesEventsForTurnsTheStateFileDoesNotShow(t *testing.T) {
 	if events[1].Facts.Started != "a58b43841609db047" || events[3].Facts.Woke != "a58b43841609db047" || events[4].Facts.Started != "~b3ukv3517" {
 		t.Errorf("facts: %+v", events)
 	}
-	if r, _ := Read(root, id); r.State != Working {
-		t.Errorf("the state file: %+v", r)
+	if r, _ := reported(root, id); r.State != Working {
+		t.Errorf("the host's state: %+v", r)
 	}
 	// A prompt queued while the agent works, and its hand-over at the
 	// turn's stop.
@@ -142,8 +142,8 @@ func TestHookLeavesEventsForTurnsTheStateFileDoesNotShow(t *testing.T) {
 	if got := eventKinds(leftEvents(t, root2, id)); got != "UserPromptSubmit UserPromptSubmit Stop" {
 		t.Fatalf("queued: %s", got)
 	}
-	if r, _ := Read(root2, id); r.State != Working {
-		t.Errorf("the queued prompt's state file: %+v", r)
+	if r, _ := reported(root2, id); r.State != Working {
+		t.Errorf("the queued prompt's state: %+v", r)
 	}
 }
 
@@ -224,8 +224,8 @@ func TestHookDeliveriesAreEventsNamingEachMessage(t *testing.T) {
 }
 
 // A question dialog answered at the terminal before the hook that holds
-// on it first saw its report in the state file: the state file, newer
-// than the hold's copy and not the dialog's, ends the hold at once, not
+// on it first saw its report in the hook's note: the note, newer than the
+// hold's copy and not the dialog's, ends the hold at once, not
 // after the 10 s it waits for a report that never comes (#193: the event
 // files made the dialog's report come a moment later).
 func TestTheHoldEndsWhenItsDialogWasAnsweredBeforeItSawIt(t *testing.T) {

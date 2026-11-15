@@ -14,12 +14,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -44,14 +38,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:02Z"
@@ -82,15 +68,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -120,16 +97,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:04Z",
-        "latest": "2026-01-01T00:00:04Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "queued": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:04Z"
@@ -137,16 +104,6 @@
     },
     {
       "screen": "fs-queued-at-work",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:04Z",
-        "latest": "2026-01-01T00:00:04Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "queued": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:04Z"
@@ -164,15 +121,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:06Z"
@@ -180,15 +128,6 @@
     },
     {
       "screen": "fs-queued-taken-thinking",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:06Z"
@@ -208,15 +147,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:06Z"
@@ -224,15 +154,6 @@
     },
     {
       "screen": "fs-queued-taken-tool",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:06Z"
@@ -266,16 +187,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:06Z"
@@ -309,16 +220,6 @@
         "n": 8,
         "text": "tock 25"
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:11Z",
@@ -350,17 +251,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:12Z",
-        "latest": "2026-01-01T00:00:12Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:12Z",
@@ -391,18 +281,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:13Z",
-        "latest": "2026-01-01T00:00:13Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "queued": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:13Z",
@@ -421,17 +299,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z",
@@ -440,17 +307,6 @@
     },
     {
       "screen": "fs-queued-taken-shown-tool",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z",
@@ -471,17 +327,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:16Z",
@@ -490,17 +335,6 @@
     },
     {
       "screen": "fs-esc-twice",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:16Z",
@@ -532,17 +366,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:18Z",
-        "latest": "2026-01-01T00:00:18Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:18Z",
@@ -573,18 +396,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:19Z",
-        "latest": "2026-01-01T00:00:19Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "queued": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:19Z",
@@ -603,17 +414,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:20Z",
-        "latest": "2026-01-01T00:00:20Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:20Z",
@@ -648,18 +448,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:20Z",
-        "latest": "2026-01-01T00:00:20Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:20Z",
@@ -693,16 +481,6 @@
       "reply": {
         "n": 17,
         "text": "tock 25"
-      },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:22Z",
-        "latest": "2026-01-01T00:00:22Z",
-        "last": "tock 25",
-        "last_stop": "tock 25",
-        "branch": "main",
-        "session": "s1"
       },
       "look": {
         "state": "done",

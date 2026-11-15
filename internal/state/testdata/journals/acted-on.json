@@ -14,12 +14,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -44,14 +38,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:02Z"
@@ -82,15 +68,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -124,16 +101,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -141,16 +108,6 @@
     },
     {
       "screen": "fs-later-tool-running",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -158,16 +115,6 @@
     },
     {
       "screen": "fs-tool-failed-done",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -175,16 +122,6 @@
     },
     {
       "screen": "fs-tool-failed-working",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -204,16 +141,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -221,16 +148,6 @@
     },
     {
       "screen": "fs-esc-tool",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -251,16 +168,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:08Z",
@@ -292,15 +199,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:11Z"
@@ -334,16 +232,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:11Z"
@@ -351,16 +239,6 @@
     },
     {
       "screen": "fs-later-tool-running",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:11Z"
@@ -380,16 +258,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:11Z"
@@ -397,16 +265,6 @@
     },
     {
       "screen": "fs-esc-later-tool",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:11Z"
@@ -427,16 +285,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:14Z",
@@ -468,15 +316,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:17Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:17Z"
@@ -510,16 +349,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:17Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:17Z"
@@ -527,16 +356,6 @@
     },
     {
       "screen": "fs-tool-running-80",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:17Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:17Z"
@@ -556,16 +375,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:17Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:17Z"
@@ -573,16 +382,6 @@
     },
     {
       "screen": "fs-esc-later-tool-80",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:17Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:17Z"
@@ -603,16 +402,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:17Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:20Z",
@@ -644,15 +433,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:23Z",
-        "latest": "2026-01-01T00:00:23Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run a command."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:23Z"
@@ -686,15 +466,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Bash: Run a command",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:24Z",
@@ -715,15 +486,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Bash: Run a command",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:24Z"
@@ -731,15 +493,6 @@
     },
     {
       "screen": "fs-streaming",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Bash: Run a command",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:24Z"
@@ -747,15 +500,6 @@
     },
     {
       "screen": "fs-streaming",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Bash: Run a command",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:24Z"
@@ -763,15 +507,6 @@
     },
     {
       "screen": "fs-streaming",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Bash: Run a command",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:24Z"
@@ -791,15 +526,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Bash: Run a command",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:24Z"
@@ -807,15 +533,6 @@
     },
     {
       "screen": "fs-esc-tool",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Bash: Run a command",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:24Z"
@@ -836,15 +553,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Bash: Run a command",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:29Z",

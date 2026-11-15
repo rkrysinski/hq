@@ -3,8 +3,6 @@ package state
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -73,12 +71,50 @@ type AskFieldOption struct {
 }
 
 // Asked is what the journal keeps of the latest dialog an agent's hook
-// reported, beside its event: the event's number and what the dialog asks
-// (nil when it asks nothing hq shows), for hq read (spec #165: an event
-// holds only what the rules read).
+// reported, beside its event (spec #165: an event holds only what the
+// rules read): the event's number and what the dialog asks (nil when it
+// asks nothing hq shows), for hq read; and for a question dialog of the
+// agent's own what hq answer needs: the event file as the hook left it
+// (Report), whose cksum names the answer (answerName), and once the
+// dialog's tool has ended, the answers Claude reports it got (Answers,
+// with Answered).
 type Asked struct {
-	Number int64 `json:"n"`
-	Ask    *Ask  `json:"ask,omitempty"`
+	Number   int64             `json:"n"`
+	Ask      *Ask              `json:"ask,omitempty"`
+	Report   string            `json:"report,omitempty"`
+	Answered bool              `json:"answered,omitempty"`
+	Answers  map[string]string `json:"answers,omitempty"`
+}
+
+// AskedOf is what the journal keeps of the dialog event e of the hook,
+// read from the event file data, and whether e reports a dialog at all
+// (AskOf); its Number is the journal's to give.
+func AskedOf(e Event, data []byte) (Asked, bool) {
+	ask, ok := AskOf(e, data)
+	if !ok {
+		return Asked{}, false
+	}
+	a := Asked{Ask: ask}
+	if _, err := ParseQuestions(data); err == nil {
+		a.Report = string(data)
+	}
+	return a, true
+}
+
+// Answer adds to a, a question dialog of the agent's own, the answers
+// Claude reports it got when e, an event of the hook read from the event
+// file data, is the end of its tool (ParseAnswers), and reports whether
+// it is.
+func (a *Asked) Answer(e Event, data []byte) bool {
+	if a.Report == "" || e.Kind != "PostToolUse" || e.Facts.Tool != AskTool {
+		return false
+	}
+	got, ok := ParseAnswers(data)
+	if !ok {
+		return false
+	}
+	a.Answered, a.Answers = true, got
+	return true
 }
 
 // AskOf is what the dialog event e of the hook, read from the event file
@@ -90,33 +126,6 @@ func AskOf(e Event, data []byte) (*Ask, bool) {
 		return ParseDetail(data, nil).Ask, true
 	}
 	return nil, false
-}
-
-// ReadDetail returns the detail of agent id of the repository at root:
-// empty until the agent's first event. A reply in a state file too large
-// to read is TooLarge, never nothing (#64).
-func ReadDetail(root, id string) Detail {
-	if !idRE.MatchString(id) {
-		return Detail{}
-	}
-	path := filepath.Join(Dir(root), id)
-	latest, info, err := readData(path)
-	lastStop, stopInfo, stopErr := readData(path + ".stop")
-	d := ParseDetail(latest, lastStop)
-	// The hook keeps every Stop it reports in .stop, so its time is the
-	// reply's; before one, a Stop could only be the state file itself.
-	if stopInfo == nil {
-		stopInfo, stopErr = info, err
-	}
-	if stopInfo != nil {
-		d.ReplyAt = stopInfo.ModTime()
-	}
-	var big tooLargeError
-	// The latest event too large is the reply itself, whatever came before.
-	if errors.As(err, &big) || (errors.As(stopErr, &big) && d.Reply == "") {
-		d.Reply = TooLarge(big.size)
-	}
-	return d
 }
 
 // ParseDetail derives the detail from the latest event and the latest Stop

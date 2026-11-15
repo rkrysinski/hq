@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -196,6 +197,34 @@ func answer(env Env, d deps, r answerRequest) error {
 	}
 	fmt.Fprintf(env.Stdout, "%s: %s is %s\n", how, a.Name, now.State)
 	return nil
+}
+
+// journalQuestions is the question dialog the journal of agent id holds as
+// the latest dialog its hook reported, as hq answer needs it: read from the
+// dialog's report as the hook left it (state.Asked).
+func journalQuestions(store journal.Store, id string) (state.Questions, error) {
+	j, err := store.Read(id)
+	if err != nil {
+		return state.Questions{}, err
+	}
+	if j.Ask.Report == "" {
+		return state.Questions{}, errors.New("no question dialog of the agent's own is open")
+	}
+	return state.ParseQuestions([]byte(j.Ask.Report))
+}
+
+// journalAnswers is what Claude reports it got for the question dialog the
+// journal of agent id holds as the latest its hook reported, once the
+// dialog's tool has ended; ok is false before.
+func journalAnswers(store journal.Store, id string) (map[string]string, bool) {
+	j, err := store.Read(id)
+	if err != nil || !j.Ask.Answered {
+		return nil, false
+	}
+	if j.Ask.Answers == nil {
+		return map[string]string{}, true
+	}
+	return j.Ask.Answers, true
 }
 
 // answerable refuses, with the reason, an agent whose dialog hq does not

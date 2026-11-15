@@ -14,12 +14,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -38,12 +32,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:02Z",
@@ -51,12 +39,6 @@
       }
     },
     {
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:02Z",
@@ -65,12 +47,6 @@
     },
     {
       "sbx": "stopped",
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:02Z",
@@ -88,12 +64,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:05Z"
@@ -118,14 +88,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:06Z"
@@ -153,15 +115,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:07Z",
-        "latest": "2026-01-01T00:00:07Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:07Z"
@@ -193,16 +146,6 @@
         "n": 6,
         "text": "Counted."
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:08Z",
@@ -221,16 +164,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:09Z",
@@ -238,16 +171,6 @@
       }
     },
     {
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:09Z",
@@ -268,16 +191,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:09Z",

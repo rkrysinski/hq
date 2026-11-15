@@ -30,9 +30,8 @@ var update = flag.Bool("update", false, "write the fixture journals as they are 
 // The fixture journals are what the hook and the ingest make of their
 // payloads (the operator's decision 8 of #165): each is rebuilt by running
 // the hook on its steps' payloads, as Claude runs it, and ingesting what
-// it left after each run, with what the old reading gave of the hook's
-// working files beside it. A rebuilt journal that differs from the
-// committed file fails; -update writes it.
+// it left after each run, with what the look then gave. A rebuilt journal
+// that differs from the committed file fails; -update writes it.
 func TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads(t *testing.T) {
 	paths, err := filepath.Glob("testdata/journals/*.json")
 	if err != nil || len(paths) == 0 {
@@ -105,7 +104,7 @@ func rebuild(t *testing.T, fx state.JournalFixture) state.JournalFixture {
 				cwd = worktrees[step.In]
 			}
 			runHook(t, script, cwd, root, id, step.Hook, payloadOf(t, step))
-			dateFiles(t, when, state.Dir(root), state.EventsDir(root, id))
+			dateFiles(t, when, state.EventsDir(root, id))
 		}
 		if err := store.Ingest(root, id); err != nil {
 			t.Fatal(err)
@@ -131,13 +130,7 @@ func rebuild(t *testing.T, fx state.JournalFixture) state.JournalFixture {
 			// a pane, without them.
 			store.screen = styles.ReplaceAllString(string(data), "")
 		}
-		take := func(root, id string) error {
-			if err := state.TakeQueued(root, id); err != nil {
-				return err
-			}
-			return os.Chtimes(filepath.Join(state.Dir(root), id), when, when)
-		}
-		as := agent.Look([]tmux.Window{w}, sandboxes, when, store, take, nil)
+		as := agent.Look([]tmux.Window{w}, sandboxes, when, store, nil)
 		j, err := store.Read(id)
 		if err != nil {
 			t.Fatal(err)
@@ -152,7 +145,6 @@ func rebuild(t *testing.T, fx state.JournalFixture) state.JournalFixture {
 			r := j.Reply
 			s.Reply, reply = &r, r.Number
 		}
-		s.Old = state.OldReadingOf(state.Read(root, id))
 		s.Look = oldLookOf(as[0])
 		out.Steps = append(out.Steps, s)
 	}
@@ -220,8 +212,8 @@ func act(t *testing.T, store *lookStore, w *tmux.Window, id, how string, when ti
 	}
 }
 
-// oldLookOf is what a fixture journal holds of agent a as the old look
-// gave it.
+// oldLookOf is what a fixture journal holds of agent a as the look gives
+// it, as the old look gave it when the journal was first built.
 func oldLookOf(a agent.Agent) *state.OldLook {
 	l := &state.OldLook{State: a.State, Since: a.Since.UTC(), Last: a.Last, OwnTasks: a.OwnTasks}
 	if d := a.Dialog(); d.Open() {

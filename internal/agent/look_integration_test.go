@@ -29,12 +29,12 @@ func (s filesStore) Screens(panes []string) (map[string]string, error) {
 	return out, nil
 }
 
-// The look wired to the real journal and the hook's working files: with a
-// prompt queued behind the turn at work, a screen showing Claude at work
-// below the Interrupted line appends that Claude took it, once, which
-// hands the state over to it, and hands the hook's working files over
-// (state.TakeQueued); the next look reads the agent working on it since
-// then, and the same screen is no turn end (#88).
+// The look wired to the real journal: with a prompt queued behind the turn
+// at work, a screen showing Claude at work below the Interrupted line
+// appends that Claude took it, once, which hands the state over to it; the
+// next look reads the agent working on it since then, and the same screen
+// is no turn end (#88). The hook's working files it leaves as they are:
+// hq on the host reads and writes none of them (#199).
 func TestTheLookHandsOverOnTheRealJournalOnce(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
@@ -74,16 +74,16 @@ func TestTheLookHandsOverOnTheRealJournalOnce(t *testing.T) {
 	s := filesStore{journal.Files{Dir: t.TempDir()}, capture(t, "fs-queued-taken-thinking")}
 
 	before := time.Now()
-	a := Look([]tmux.Window{w}, Sandboxes{}, time.Now(), s, state.TakeQueued, nil)[0]
+	a := Look([]tmux.Window{w}, Sandboxes{}, time.Now(), s, nil)[0]
 	if a.State != state.Working || a.Since.Before(before) {
 		t.Fatalf("handed over: %+v", a)
 	}
-	for _, suffix := range []string{".queued", ".acted"} {
-		if _, err := os.Lstat(filepath.Join(dir, id+suffix)); err == nil {
-			t.Errorf("%s stayed", suffix)
+	for suffix, want := range map[string]string{".queued": string(queued), ".acted": "00000019-0000-4000-8000-000000000019\n"} {
+		if got, err := os.ReadFile(filepath.Join(dir, id+suffix)); err != nil || string(got) != want {
+			t.Errorf("%s: %q %v", suffix, got, err)
 		}
 	}
-	later := Look([]tmux.Window{w}, Sandboxes{}, time.Now().Add(time.Second), s, state.TakeQueued, NewFolds())[0]
+	later := Look([]tmux.Window{w}, Sandboxes{}, time.Now().Add(time.Second), s, NewFolds())[0]
 	if later.State != state.Working || !later.Since.Equal(a.Since) {
 		t.Fatalf("the look after: %+v", later)
 	}

@@ -64,7 +64,7 @@ func (s *memStore) look(ws []tmux.Window, rs map[string]state.Report, sbxs Sandb
 	for id, r := range rs {
 		s.report(id, r)
 	}
-	return Look(ws, sbxs, now, s, nil, nil)
+	return Look(ws, sbxs, now, s, nil)
 }
 
 // journalOf is agent id's journal.
@@ -256,7 +256,7 @@ func TestTheLookAppendsAndShowsWhatEveryFixtureJournalSays(t *testing.T) {
 				s.screen = styles.ReplaceAllString(capture(t, step.Screen), "")
 			}
 			before := len(s.events)
-			a := Look([]tmux.Window{w}, sbxs, when, s, nil, folds)[0]
+			a := Look([]tmux.Window{w}, sbxs, when, s, folds)[0]
 			got, want := s.events[before:], looked
 			for j := range got {
 				got[j].Time = got[j].Time.UTC()
@@ -362,7 +362,7 @@ func TestTheLookLeavesAnOutdatedAgentAlone(t *testing.T) {
 	}
 	s := newStore(map[string]string{"%1": "❯ \n", "%2": "❯ \n"})
 	s.report("a1", state.Report{State: state.Working, Since: time.Unix(200, 0)})
-	as := Look(ws, Sandboxes{Running: map[string]bool{}, Asked: time.Unix(300, 0)}, time.Unix(1000, 0), s, nil, nil)
+	as := Look(ws, Sandboxes{Running: map[string]bool{}, Asked: time.Unix(300, 0)}, time.Unix(1000, 0), s, nil)
 	for _, a := range as {
 		if a.State != state.Outdated || a.Since != a.Started {
 			t.Errorf("%s: %s since %v", a.Name, a.State, a.Since)
@@ -390,7 +390,7 @@ func TestAnAgentWhoseJournalCannotBeReadIsWhatItsWindowSays(t *testing.T) {
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2")}
 	ws[1].PaneDead = true
 	s := failingStore{newStore(map[string]string{"%1": declinedScreen()})}
-	as := Look(ws, Sandboxes{}, time.Unix(1000, 0), s, nil, nil)
+	as := Look(ws, Sandboxes{}, time.Unix(1000, 0), s, nil)
 	if as[0].State != state.Starting || as[1].State != state.Ended || as[1].Last != EndedLast || len(s.captures) != 0 {
 		t.Fatalf("%+v %+v, captures %v", as[0], as[1], s.captures)
 	}
@@ -417,21 +417,21 @@ func TestALongRunningLookFoldsOnlyWhatIsNew(t *testing.T) {
 	ws := []tmux.Window{lookWindow("1")}
 	folds := NewFolds()
 	s.report("a1", state.Report{State: state.Working, Since: now.Add(-time.Minute), Last: "Earlier."})
-	Look(ws, Sandboxes{}, now, s, nil, folds)
+	Look(ws, Sandboxes{}, now, s, folds)
 	if s.read != 2 {
 		t.Fatalf("the first look read %d events", s.read)
 	}
 	s.read = 0
-	Look(ws, Sandboxes{}, now.Add(time.Second), s, nil, folds)
+	Look(ws, Sandboxes{}, now.Add(time.Second), s, folds)
 	if s.read != 0 {
 		t.Fatalf("a look with nothing new read %d events", s.read)
 	}
 	s.report("a1", state.Report{State: state.Done, Since: now.Add(2 * time.Second), Last: "Done."})
-	a := Look(ws, Sandboxes{}, now.Add(3*time.Second), s, nil, folds)[0]
+	a := Look(ws, Sandboxes{}, now.Add(3*time.Second), s, folds)[0]
 	if s.read != 1 || a.State != state.Done || a.Last != "Done." || !a.Since.Equal(now.Add(2*time.Second)) {
 		t.Fatalf("read %d events: %+v", s.read, a)
 	}
-	if fresh := Look(ws, Sandboxes{}, now.Add(3*time.Second), s, nil, nil)[0]; !reflect.DeepEqual(fresh.reduced, a.reduced) {
+	if fresh := Look(ws, Sandboxes{}, now.Add(3*time.Second), s, nil)[0]; !reflect.DeepEqual(fresh.reduced, a.reduced) {
 		t.Fatalf("folded on %+v\nfrom the start %+v", a.reduced, fresh.reduced)
 	}
 	if err := s.Remove("/w/app", "a1"); err != nil {
@@ -439,7 +439,7 @@ func TestALongRunningLookFoldsOnlyWhatIsNew(t *testing.T) {
 	}
 	s.reports = map[string]state.Report{}
 	s.report("a1", state.Report{State: state.Working, Since: now.Add(4 * time.Second)})
-	if a := Look(ws, Sandboxes{}, now.Add(5*time.Second), s, nil, folds)[0]; a.State != state.Working || a.Last != "" {
+	if a := Look(ws, Sandboxes{}, now.Add(5*time.Second), s, folds)[0]; a.State != state.Working || a.Last != "" {
 		t.Fatalf("after the removal: %+v", a)
 	}
 }
@@ -464,43 +464,36 @@ func TestCollectAppendsNothingAndCapturesNoScreen(t *testing.T) {
 // runs the queued prompt at once (#88): the screen shows the Interrupted
 // line with Claude at work below it and no prompt of the user's between.
 // With the prompt queued, the look appends that Claude took it, which
-// hands the state over to it, working since then, and has the hook's
-// working files handed over too (Taker), once; not while the prompt is
-// still queued, nor when nothing is queued.
+// hands the state over to it, working since then, once; not while the
+// prompt is still queued, nor when nothing is queued.
 func TestTheLookHandsTheStateOverToTheQueuedPromptClaudeTookAfterAnEsc(t *testing.T) {
 	now := time.Unix(1000, 0)
 	const queued = "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
 	prompt := func(text string) []byte {
 		return journaltest.Hook("main", map[string]any{"hook_event_name": "UserPromptSubmit", "prompt_id": "t1", "prompt": text})
 	}
-	look := func(screen string, queue bool, take Taker) (Agent, *memStore) {
+	look := func(screen string, queue bool) (Agent, *memStore) {
 		t.Helper()
 		s := newStore(map[string]string{"%1": capture(t, screen)})
 		s.Leave("/w/app", "a1", "000000001.prompt.1", prompt("Count the tocks."), now.Add(-2*time.Minute))
 		if queue {
 			s.Leave("/w/app", "a1", "000000002.prompt.1", prompt(queued), now.Add(-time.Minute))
 		}
-		return Look([]tmux.Window{lookWindow("1")}, Sandboxes{}, now, s, take, nil)[0], s
+		return Look([]tmux.Window{lookWindow("1")}, Sandboxes{}, now, s, nil)[0], s
 	}
-	var taken []string
-	take := func(root, id string) error { taken = append(taken, root+"/"+id); return nil }
-	a, s := look("fs-queued-taken-thinking", true, take)
-	if a.State != state.Working || !a.Since.Equal(now) || len(taken) != 1 || taken[0] != "/w/app/a1" || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != state.KindTookQueued {
-		t.Fatalf("taken: %+v, taken %v, journal %s", a, taken, journaltest.Kinds(s.journalOf(t, "a1")))
+	a, s := look("fs-queued-taken-thinking", true)
+	if a.State != state.Working || !a.Since.Equal(now) || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != state.KindTookQueued {
+		t.Fatalf("taken: %+v, journal %s", a, journaltest.Kinds(s.journalOf(t, "a1")))
 	}
 	// The next look finds nothing to hand over.
-	if a := Look([]tmux.Window{lookWindow("1")}, Sandboxes{}, now.Add(time.Second), s, take, nil)[0]; a.State != state.Working || !a.Since.Equal(now) || len(taken) != 1 {
-		t.Fatalf("the look after: %+v, taken %v", a, taken)
+	if a := Look([]tmux.Window{lookWindow("1")}, Sandboxes{}, now.Add(time.Second), s, nil)[0]; a.State != state.Working || !a.Since.Equal(now) || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != state.KindTookQueued {
+		t.Fatalf("the look after: %+v, journal %s", a, journaltest.Kinds(s.journalOf(t, "a1")))
 	}
-	taken = nil
-	if a, _ := look("fs-queued-at-work", true, take); a.State != state.Working || !a.Since.Equal(now.Add(-time.Minute)) || len(taken) != 0 {
-		t.Errorf("still queued: %+v, taken %v", a, taken)
+	if a, s := look("fs-queued-at-work", true); a.State != state.Working || !a.Since.Equal(now.Add(-time.Minute)) || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != "" {
+		t.Errorf("still queued: %+v", a)
 	}
-	if a, _ := look("fs-queued-taken-thinking", false, take); a.State != state.Working || len(taken) != 0 {
-		t.Errorf("nothing queued: %+v, taken %v", a, taken)
-	}
-	if a, _ := look("fs-queued-taken-thinking", true, nil); a.State != state.Working || !a.Since.Equal(now) {
-		t.Errorf("no taker: %+v", a)
+	if a, s := look("fs-queued-taken-thinking", false); a.State != state.Working || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) == state.KindTookQueued {
+		t.Errorf("nothing queued: %+v", a)
 	}
 }
 
@@ -513,16 +506,16 @@ func TestTheDetailIsTheLatestReplyAndWhatTheOpenDialogAsks(t *testing.T) {
 	s := newStore(nil)
 	ask := &state.Ask{Tool: "Bash", Description: "Clean", Command: "rm -rf build"}
 	s.Memory.Report("/w/app", "a1", state.Report{State: state.NeedsInput, Since: now.Add(-time.Minute), LastStop: "On it."}, state.Detail{Reply: "On it.\n\nNext.", Ask: ask})
-	a := Look(ws, Sandboxes{}, now, s, nil, nil)[0]
+	a := Look(ws, Sandboxes{}, now, s, nil)[0]
 	if d := a.Detail(); d.Reply != "On it.\n\nNext." || !d.ReplyAt.Equal(now.Add(-time.Minute-time.Millisecond)) || !reflect.DeepEqual(d.Ask, ask) || a.Dialog().Asks(d.Ask) != d.Ask {
 		t.Fatalf("at the dialog: %+v", d)
 	}
 	s.report("a1", state.Report{State: state.Working, Since: now})
-	a = Look(ws, Sandboxes{}, now, s, nil, nil)[0]
+	a = Look(ws, Sandboxes{}, now, s, nil)[0]
 	if d := a.Detail(); d.Reply != "On it.\n\nNext." || d.Ask != nil {
 		t.Fatalf("working on: %+v", d)
 	}
-	if d := Look([]tmux.Window{lookWindow("2")}, Sandboxes{}, now, s, nil, nil)[0].Detail(); d != (state.Detail{}) {
+	if d := Look([]tmux.Window{lookWindow("2")}, Sandboxes{}, now, s, nil)[0].Detail(); d != (state.Detail{}) {
 		t.Fatalf("no turn end yet: %+v", d)
 	}
 }
@@ -566,8 +559,8 @@ func TestLooksAtOnceShowTheSameStateAndAge(t *testing.T) {
 	list, ls := NewFolds(), NewFolds()
 	views := [][]Agent{
 		s.look(ws, rs, Sandboxes{}, now),
-		Look(ws, Sandboxes{}, now.Add(10*time.Millisecond), s, nil, list),
-		Look(ws, Sandboxes{}, now.Add(20*time.Millisecond), s, nil, ls),
+		Look(ws, Sandboxes{}, now.Add(10*time.Millisecond), s, list),
+		Look(ws, Sandboxes{}, now.Add(20*time.Millisecond), s, ls),
 	}
 	for _, v := range views[1:] {
 		for i := range v {
@@ -603,7 +596,7 @@ func TestALookAtFifteenLongJournalsFoldsOnlyWhatIsNew(t *testing.T) {
 		s.Put(w.Options["id"], events...)
 	}
 	folds := NewFolds()
-	for _, a := range Look(ws, Sandboxes{}, now, s, nil, folds) {
+	for _, a := range Look(ws, Sandboxes{}, now, s, folds) {
 		if a.State != state.Done {
 			t.Fatalf("%s: %s", a.Name, a.State)
 		}
@@ -613,7 +606,7 @@ func TestALookAtFifteenLongJournalsFoldsOnlyWhatIsNew(t *testing.T) {
 		s.Put(w.Options["id"], state.Event{Source: state.SourceHook, Kind: "UserPromptSubmit", Time: now, Facts: state.Facts{At: "prompt", Turn: "next"}})
 	}
 	start := time.Now()
-	as := Look(ws, Sandboxes{}, now.Add(time.Second), s, nil, folds)
+	as := Look(ws, Sandboxes{}, now.Add(time.Second), s, folds)
 	if took := time.Since(start); took > 250*time.Millisecond/5 {
 		t.Errorf("a look took %v", took)
 	}

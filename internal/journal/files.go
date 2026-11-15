@@ -106,10 +106,11 @@ func (s Files) Ingest(root, id string) error {
 		return err
 	}
 	names := eventFiles(dir)
+	path := s.journalPath(id)
 	var events []state.Event
 	var reply *state.Reply
 	var ask *state.Asked
-	turnEnd, dialog := -1, -1
+	turnEnd, dialog, answered := -1, -1, false
 	for _, n := range names {
 		e, r, data, ok := readEvent(dir, n)
 		if !ok {
@@ -118,8 +119,18 @@ func (s Files) Ingest(root, id string) error {
 		if e.Kind == state.KindTurnEnd {
 			reply, turnEnd = r, len(events)
 		}
-		if a, ok := state.AskOf(e, data); ok {
-			ask, dialog = &state.Asked{Ask: a}, len(events)
+		if a, ok := state.AskedOf(e, data); ok {
+			ask, dialog = &a, len(events)
+		} else if e.Kind == "PostToolUse" {
+			// The end of a question dialog's tool, reported in an ingest
+			// after the dialog's own: its answers join the dialog kept.
+			if ask == nil {
+				var a state.Asked
+				if readJSON(path+askSuffix, &a) {
+					ask = &a
+				}
+			}
+			answered = ask != nil && ask.Answer(e, data) || answered
 		}
 		events = append(events, e)
 	}
@@ -135,9 +146,11 @@ func (s Files) Ingest(root, id string) error {
 			return err
 		}
 	}
-	if ask != nil {
-		ask.Number = events[dialog].Number
-		if err := writeJSON(s.journalPath(id)+askSuffix, ask); err != nil {
+	if dialog >= 0 || answered {
+		if dialog >= 0 {
+			ask.Number = events[dialog].Number
+		}
+		if err := writeJSON(path+askSuffix, ask); err != nil {
 			return err
 		}
 	}
@@ -145,7 +158,6 @@ func (s Files) Ingest(root, id string) error {
 	if err != nil {
 		return err
 	}
-	path := s.journalPath(id)
 	from, err := repair(path)
 	if err != nil {
 		return err

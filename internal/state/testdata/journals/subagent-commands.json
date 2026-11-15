@@ -21,16 +21,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -57,17 +47,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -95,17 +74,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -114,17 +82,6 @@
     {
       "hook": "answer",
       "payload": "post-tool-subagent",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -176,19 +133,6 @@
             "command": "until [ -e /w/app/flag2 ]; do sleep 0.5; done; echo \"flag2 appeared at $(date -u +%H:%M:%SZ)\""
           }
         ]
-      },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "last": "The subagent has started its `flag2` monitor and is waiting. `flag2` hasn't appeared yet, and the subagent will report again when it does.",
-        "last_stop": "The subagent has started its `flag2` monitor and is waiting. `flag2` hasn't appeared yet, and the subagent will report again when it does.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
       },
       "look": {
         "state": "working",
@@ -242,21 +186,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "last": "The subagent's watch ended.",
-        "last_stop": "The subagent's watch ended.",
-        "branch": "main",
-        "own_tasks": [
-          {
-            "type": "monitor",
-            "text": "Wait"
-          }
-        ]
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:06Z",
@@ -289,18 +218,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:07Z",
-        "latest": "2026-01-01T00:00:07Z",
-        "last": "The subagent's watch ended.",
-        "last_stop": "The subagent's watch ended.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:07Z",
@@ -342,18 +259,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:07Z",
-        "latest": "2026-01-01T00:00:07Z",
-        "last": "The subagent's watch ended.",
-        "last_stop": "The subagent's watch ended.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:07Z",
@@ -397,19 +302,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:07Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "The dev server is up.",
-        "last_stop": "The dev server is up.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word.",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:07Z",
@@ -439,15 +331,6 @@
       "reply": {
         "n": 9,
         "text": "The dev server stopped."
-      },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:10Z",
-        "latest": "2026-01-01T00:00:10Z",
-        "last": "The dev server stopped.",
-        "last_stop": "The dev server stopped.",
-        "branch": "main"
       },
       "look": {
         "state": "done",

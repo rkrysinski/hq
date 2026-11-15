@@ -14,12 +14,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -44,14 +38,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:02Z"
@@ -72,14 +58,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:03Z",
@@ -90,14 +68,6 @@
     },
     {
       "screen": "own-trust",
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:03Z",
@@ -121,14 +91,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:05Z",
@@ -149,14 +111,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:02Z"
@@ -164,14 +118,6 @@
     },
     {
       "screen": "fs-start-ready",
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:02Z"
@@ -199,15 +145,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Say hi."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z"
@@ -236,17 +173,6 @@
         "n": 7,
         "text": "Hi. The tests pass\nand PR #58 is open."
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:09Z",
@@ -268,17 +194,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:10Z",
@@ -289,17 +204,6 @@
     },
     {
       "screen": "own-effort-80",
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:10Z",
@@ -310,17 +214,6 @@
     },
     {
       "screen": "own-effort",
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:10Z",
@@ -341,17 +234,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:09Z",
@@ -373,17 +255,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:14Z",
@@ -394,17 +265,6 @@
     },
     {
       "screen": "own-effort-low-down",
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:14Z",
@@ -425,17 +285,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:09Z",
@@ -457,17 +306,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:17Z",
@@ -478,17 +316,6 @@
     },
     {
       "screen": "own-switch-model-down",
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:17Z",
@@ -509,17 +336,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:09Z",
@@ -541,17 +357,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:20Z",
@@ -562,17 +367,6 @@
     },
     {
       "screen": "own-model-2304",
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:20Z",
@@ -583,17 +377,6 @@
     },
     {
       "screen": "own-model",
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:20Z",
@@ -624,17 +407,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:23Z",
-        "latest": "2026-01-01T00:00:23Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Ask me something."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:23Z",
@@ -665,17 +437,6 @@
         "n": 16,
         "text": "Should I also update the README? \n"
       },
-      "old": {
-        "reported": true,
-        "state": "question",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Should I also update the README?",
-        "last_stop": "Should I also update the README?",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "question",
         "since": "2026-01-01T00:00:24Z",
@@ -697,17 +458,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "question",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Should I also update the README?",
-        "last_stop": "Should I also update the README?",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:25Z",
@@ -728,17 +478,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "question",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Should I also update the README?",
-        "last_stop": "Should I also update the README?",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "question",
         "since": "2026-01-01T00:00:24Z",
@@ -768,17 +507,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:27Z",
-        "last": "Should I also update the README?",
-        "last_stop": "Should I also update the README?",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:27Z",
@@ -799,17 +527,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:27Z",
-        "last": "Should I also update the README?",
-        "last_stop": "Should I also update the README?",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:28Z",
@@ -831,17 +548,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:27Z",
-        "last": "Should I also update the README?",
-        "last_stop": "Should I also update the README?",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:29Z",
@@ -862,17 +568,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:27Z",
-        "last": "Should I also update the README?",
-        "last_stop": "Should I also update the README?",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:28Z",
@@ -902,17 +597,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:31Z",
-        "last": "Should I also update the README?",
-        "last_stop": "Should I also update the README?",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start a subagent."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:31Z",
@@ -951,18 +635,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:31Z",
-        "last": "Should I also update the README?",
-        "last_stop": "Should I also update the README?",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start a subagent.",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:31Z",
@@ -1016,18 +688,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:33Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start a subagent.",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:31Z",
@@ -1049,18 +709,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:33Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start a subagent.",
-        "background": true
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:34Z",
@@ -1081,18 +729,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:33Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start a subagent.",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:31Z",
@@ -1123,18 +759,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:36Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start a subagent.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:31Z",
@@ -1168,16 +792,6 @@
         "n": 29,
         "text": "It finished."
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:37Z",
-        "latest": "2026-01-01T00:00:37Z",
-        "last": "It finished.",
-        "last_stop": "It finished.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:37Z",
@@ -1207,17 +821,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:38Z",
-        "latest": "2026-01-01T00:00:38Z",
-        "last": "It finished.",
-        "last_stop": "It finished.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Ask me a colour."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:38Z",
@@ -1245,17 +848,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:39Z",
-        "latest": "2026-01-01T00:00:39Z",
-        "last": "Which color should I use?",
-        "last_stop": "It finished.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000c-0000-4000-8000-00000000000c"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:39Z",
@@ -1266,17 +858,6 @@
     },
     {
       "screen": "fs-elicit-open",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:39Z",
-        "latest": "2026-01-01T00:00:39Z",
-        "last": "Which color should I use?",
-        "last_stop": "It finished.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000c-0000-4000-8000-00000000000c"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:39Z",
@@ -1287,17 +868,6 @@
     },
     {
       "screen": "timeout-elicit-open",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:39Z",
-        "latest": "2026-01-01T00:00:39Z",
-        "last": "Which color should I use?",
-        "last_stop": "It finished.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000c-0000-4000-8000-00000000000c"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:39Z",
@@ -1308,17 +878,6 @@
     },
     {
       "screen": "own-effort",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:39Z",
-        "latest": "2026-01-01T00:00:39Z",
-        "last": "Which color should I use?",
-        "last_stop": "It finished.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000c-0000-4000-8000-00000000000c"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:39Z",

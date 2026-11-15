@@ -35,7 +35,6 @@ func askFakes(t *testing.T, fixture string) (*fakes, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	q.Since = since
 	f.questions["id-a"] = q
 	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: since, Last: q.Ask.Questions[0].Question, LastStop: "On it."}
 	f.details["id-a"] = state.Detail{Reply: "On it.", Ask: q.Ask}

@@ -21,16 +21,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -70,17 +60,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -122,19 +101,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "last": "The tests are running in a subagent.",
-        "last_stop": "The tests are running in a subagent.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z",
@@ -162,18 +128,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:04Z",
-        "latest": "2026-01-01T00:00:04Z",
-        "last": "Which color should I use?",
-        "last_stop": "The tests are running in a subagent.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000c-0000-4000-8000-00000000000c",
-        "subagent": true
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:04Z",
@@ -202,19 +156,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "last": "The tests are running in a subagent.",
-        "last_stop": "The tests are running in a subagent.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000005-0000-4000-8000-000000000005",
-        "background": true,
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:05Z",
@@ -248,16 +189,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "last": "Bash: List the files",
-        "last_stop": "The tests are running in a subagent.",
-        "branch": "main",
-        "subagent": true
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:06Z",
@@ -297,17 +228,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:07Z",
-        "latest": "2026-01-01T00:00:07Z",
-        "last": "The tests are running in a subagent.",
-        "last_stop": "The tests are running in a subagent.",
-        "branch": "main",
-        "session": "s",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:07Z",
@@ -359,17 +279,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:07Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "last": "The tests still run.",
-        "last_stop": "The tests still run.",
-        "branch": "main",
-        "session": "s",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:07Z",
@@ -398,18 +307,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "mcp__elicit__ask_color",
-        "last_stop": "The tests still run.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000026-0000-4000-8000-000000000026",
-        "subagent": true
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:09Z",
@@ -439,19 +336,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:10Z",
-        "latest": "2026-01-01T00:00:10Z",
-        "last": "The tests still run.",
-        "last_stop": "The tests still run.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "<task-notification>\n<task-id>a58b43841609db047</task-id>\n<tool-use-id>toolu_0112wAsZe5QgjuXfi2EzMwNk</tool-use-id>\n<output-file>/tmp/claude-1000/-w-app/0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0/tasks/a58b43841609db047.output</output-file>\n<status>completed</status>\n<summary>Agent \"Run the slow tests\" finished</summary>\n<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>\n<result>done</result>\n<usage><subagent_tokens>28463</subagent_tokens><tool_uses>1</tool_uses><duration_ms>42659</duration_ms></usage>\n</task-notification>",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:10Z",
@@ -481,15 +365,6 @@
       "reply": {
         "n": 11,
         "text": "The tests pass."
-      },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "last": "The tests pass.",
-        "last_stop": "The tests pass.",
-        "branch": "main"
       },
       "look": {
         "state": "done",

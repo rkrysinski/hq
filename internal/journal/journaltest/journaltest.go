@@ -96,8 +96,11 @@ func (m *Memory) Ingest(root, id string) error {
 			r.Number = e.Number
 			m.replies[id] = *r
 		}
-		if a, ok := state.AskOf(e, f.data); ok {
-			m.asks[id] = state.Asked{Number: e.Number, Ask: a}
+		if a, ok := state.AskedOf(e, f.data); ok {
+			a.Number = e.Number
+			m.asks[id] = a
+		} else if a := m.asks[id]; a.Answer(e, f.data) {
+			m.asks[id] = a
 		}
 		delete(m.files[k], n)
 	}

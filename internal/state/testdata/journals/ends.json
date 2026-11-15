@@ -14,12 +14,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -27,12 +21,6 @@
     },
     {
       "sbx": "stopped",
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -40,12 +28,6 @@
     },
     {
       "sbx": "running",
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -70,14 +52,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:04Z",
-        "latest": "2026-01-01T00:00:04Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:04Z"
@@ -106,15 +80,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:05Z"
@@ -123,30 +88,12 @@
     {
       "sbx": "stopped",
       "asked": -2,
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:05Z"
       }
     },
     {
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:05Z"
@@ -166,15 +113,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:08Z",
@@ -195,15 +133,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:09Z",
@@ -211,15 +140,6 @@
       }
     },
     {
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:09Z",
@@ -240,15 +160,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:09Z",
@@ -256,15 +167,6 @@
       }
     },
     {
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:09Z",
@@ -273,15 +175,6 @@
     },
     {
       "sbx": "running",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:09Z",

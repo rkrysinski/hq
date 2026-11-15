@@ -7,15 +7,14 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 )
 
 // JournalFixture is a fixture journal (testdata/journals): an agent's
 // journal in steps, each what one run of the hook, or what hq did, left in
-// it with what the look then saw, and what the old reading of the hook's
-// working files (Read) and the old look (agent.Look) gave after it. The
+// it with what the look then saw, and what the old look (agent.Look) gave
+// after it. The
 // steps' hook, payload, inline, raw, pad, messages, in, hq, screen, pane,
 // sbx and asked say how the integration test rebuilds the journal
 // (TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads);
@@ -69,10 +68,8 @@ type JournalStep struct {
 	Events []Event `json:"events,omitempty"`
 	// Reply is the journal's reply when the run changed it.
 	Reply *Reply `json:"reply,omitempty"`
-	// Old is what the old reading gave after the step, and Look what the
-	// old look gave.
-	Old  OldReading `json:"old"`
-	Look *OldLook   `json:"look,omitempty"`
+	// Look is what the old look gave after the step.
+	Look *OldLook `json:"look,omitempty"`
 }
 
 // OldLook is what the old look (agent.Look) gave of the agent after a
@@ -86,43 +83,6 @@ type OldLook struct {
 	OwnTasks    []Task    `json:"own_tasks,omitempty"`
 	Dialog      string    `json:"dialog,omitempty"`
 	DialogSince time.Time `json:"dialog_since,omitzero"`
-}
-
-// OldReading is what Read gave of the hook's working files, and the
-// dialog verdict it makes (Subagent, while it needs input), as a fixture
-// journal holds it.
-type OldReading struct {
-	Reported   bool      `json:"reported"`
-	State      string    `json:"state"`
-	Since      time.Time `json:"since"`
-	Latest     time.Time `json:"latest"`
-	Last       string    `json:"last,omitempty"`
-	LastStop   string    `json:"last_stop,omitempty"`
-	Branch     string    `json:"branch,omitempty"`
-	Worktree   string    `json:"worktree,omitempty"`
-	Session    string    `json:"session,omitempty"`
-	Prompt     string    `json:"prompt,omitempty"`
-	Background bool      `json:"background,omitempty"`
-	Owed       bool      `json:"owed,omitempty"`
-	Woken      bool      `json:"woken,omitempty"`
-	Acted      bool      `json:"acted,omitempty"`
-	Queued     bool      `json:"queued,omitempty"`
-	Subagent   bool      `json:"subagent,omitempty"`
-	OwnTasks   []Task    `json:"own_tasks,omitempty"`
-}
-
-// OldReadingOf is what a fixture journal holds of r, the report Read gave
-// (ok false: none yet).
-func OldReadingOf(r Report, ok bool) OldReading {
-	if !ok {
-		r.State = Starting
-	}
-	return OldReading{
-		Reported: ok, State: r.State, Since: r.Since.UTC(), Latest: r.Latest.UTC(),
-		Last: r.Last, LastStop: r.LastStop, Branch: r.Branch, Worktree: r.Cwd, Session: r.SessionID, Prompt: r.Prompt,
-		Background: r.Background, Owed: r.Owed, Woken: r.Woken, Acted: r.Acted, Queued: r.Queued,
-		Subagent: r.SubagentDialog, OwnTasks: r.OwnTasks,
-	}
 }
 
 // Encode is the fixture as its file holds it.
@@ -157,22 +117,6 @@ func fixtureJournals(t *testing.T) map[string]JournalFixture {
 	return fxs
 }
 
-// asOld is what the old reading would have to give for the reducer's
-// result r. The old reading gives the prompt of a wake-up as Claude sent
-// it, which no rule reads and the journal does not keep.
-func asOld(r Reduced, old OldReading) OldReading {
-	o := OldReading{
-		Reported: r.Reported, State: r.State, Since: r.Since, Latest: r.Latest,
-		Last: r.Last, LastStop: r.LastStop, Branch: r.Branch, Worktree: r.Worktree, Session: r.Session, Prompt: r.Prompt,
-		Background: r.Background, Owed: r.Owed, Woken: r.Woken, Acted: r.Acted, Queued: r.Queued,
-		Subagent: r.Dialog.Open && r.Dialog.Whose == DialogSubagent, OwnTasks: r.OwnTasks,
-	}
-	if strings.HasPrefix(old.Prompt, wakePrefix) && o.Prompt == "" {
-		o.Prompt = old.Prompt
-	}
-	return o
-}
-
 // jsonOf is v as JSON, to compare and to show.
 func jsonOf(t *testing.T, v any) string {
 	t.Helper()
@@ -181,28 +125,6 @@ func jsonOf(t *testing.T, v any) string {
 		t.Fatal(err)
 	}
 	return string(b)
-}
-
-// The reducer reads the hook's state after every step of every fixture
-// journal as the old reading read the hook's working files: the state,
-// last message, own tasks and subagent's dialog, and the rest of what it
-// read too.
-func TestTheReducerReadsEveryFixtureJournalAsTheOldReadingDid(t *testing.T) {
-	for name, fx := range fixtureJournals(t) {
-		var events []Event
-		reply := Reply{}
-		for i, step := range fx.Steps {
-			events = append(events, step.Events...)
-			if step.Reply != nil {
-				reply = *step.Reply
-			}
-			f := Fold{}.With(events...)
-			r := f.reading(&reply)
-			if got, want := jsonOf(t, asOld(r, step.Old)), jsonOf(t, step.Old); got != want {
-				t.Errorf("%s, step %d (%s %s%s):\n got %s\nwant %s", name, i, step.Hook, step.Payload, step.Raw, got, want)
-			}
-		}
-	}
 }
 
 // asLook is what the old look would have to give for the reducer's result

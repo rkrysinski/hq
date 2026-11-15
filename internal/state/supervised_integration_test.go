@@ -76,7 +76,7 @@ func (h hooked) message(supervisor, now bool, text string) {
 
 func (h hooked) state() string {
 	h.t.Helper()
-	r, _ := Read(h.root, h.id)
+	r, _ := reported(h.root, h.id)
 	return r.State
 }
 
@@ -393,7 +393,7 @@ func TestAnAnnouncementIsForOnePromptAndCanBeWithdrawn(t *testing.T) {
 	if err := Remove(h.root, h.id); err != nil {
 		t.Fatal(err)
 	}
-	if f := files(t, h.root, h.id); len(f) != 2 { // the other agent's report and its last stop
+	if f := files(t, h.root, h.id); len(f) != 2 { // the other agent's notes of its report and its turn end
 		t.Fatalf("files left: %v", f)
 	}
 }

@@ -14,12 +14,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -44,14 +38,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:02Z"
@@ -80,15 +66,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -126,16 +103,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -173,16 +140,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -202,16 +159,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "acted": true
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:06Z",
@@ -220,16 +167,6 @@
     },
     {
       "screen": "interrupted",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "acted": true
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:06Z",
@@ -269,17 +206,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "woken": true,
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z"
@@ -287,34 +213,12 @@
     },
     {
       "screen": "interrupted-then-woken",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "woken": true,
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z"
       }
     },
     {
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "woken": true,
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z"
@@ -367,18 +271,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z",
@@ -386,18 +278,6 @@
       }
     },
     {
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z",
@@ -427,18 +307,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:13Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z",
@@ -446,18 +314,6 @@
       }
     },
     {
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:13Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z",
@@ -490,16 +346,6 @@
         "n": 11,
         "text": "both finished"
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:15Z",
-        "last": "both finished",
-        "last_stop": "both finished",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:15Z",
@@ -529,17 +375,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:16Z",
-        "latest": "2026-01-01T00:00:16Z",
-        "last": "both finished",
-        "last_stop": "both finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:16Z",
@@ -560,17 +395,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:16Z",
-        "latest": "2026-01-01T00:00:16Z",
-        "last": "both finished",
-        "last_stop": "both finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:17Z",
@@ -610,18 +434,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:16Z",
-        "latest": "2026-01-01T00:00:18Z",
-        "last": "both finished",
-        "last_stop": "both finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:18Z",
@@ -653,16 +465,6 @@
       "reply": {
         "n": 16,
         "text": "Counted."
-      },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:19Z",
-        "latest": "2026-01-01T00:00:19Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
       },
       "look": {
         "state": "done",

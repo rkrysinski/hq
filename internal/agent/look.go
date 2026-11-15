@@ -19,12 +19,6 @@ type Store interface {
 	Screens(panes []string) (map[string]string, error)
 }
 
-// A Taker hands the hook's working files of an agent over to the prompt
-// Claude took from its queue after the user interrupted the turn it was
-// queued in (#88), as state.TakeQueued does, so the hook goes on from it;
-// nil for a look that does not.
-type Taker func(root, id string) error
-
 // Folds are the agents' journals as one hq process keeps them folded
 // (state.Fold), so that each look reads and folds only the events appended
 // since the one before (design §5.1): the list and hq wait keep one for as
@@ -184,15 +178,16 @@ func ReadStates(as []Agent, store journal.Store, now time.Time, folds *Folds) {
 // give ends nobody and is no event); what the screens of the agents the
 // hooks leave unsettled show (state.Fold.Sees), all captured in one call;
 // and Claude's wake-up after a turn the user ended (state.Fold.WakeUp).
-// When it sees Claude take a queued prompt after an Esc, take hands the
-// hook's working files over to it (#88).
+// It reads none of the hook's working files and writes none: what it sees
+// of Claude taking a queued prompt after an Esc is an event like any other
+// (#88).
 //
 // It never fails: a capture that fails appends nothing of the screens,
 // and what the journal holds still stands; a journal that cannot be read
 // leaves the agent as its window says, and one that cannot be written gets
 // no event. One look may not be enough: an agent Resting needs one more,
 // RestDelay later, which is the caller's to take.
-func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Store, take Taker, folds *Folds) []Agent {
+func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Store, folds *Folds) []Agent {
 	defer folds.lock()()
 	as := FromWindows(ws)
 	fs := make([]*folded, len(as))
@@ -234,9 +229,6 @@ func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Store, tak
 				if e.Kind == state.KindTookQueued {
 					// The prompt Claude took is no wake-up.
 					wakes[i] = nil
-					if take != nil {
-						_ = take(a.RepoPath, a.ID)
-					}
 				}
 			}
 		}

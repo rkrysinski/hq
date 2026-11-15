@@ -161,22 +161,25 @@ e=$g/` + eventsPath + `/$HQ_ID
 i=$g/hq/inbox/$HQ_ID
 mkdir -p "$d" "$e" || exit 0
 f=$d/$HQ_ID
+y=$f` + noteSuffix + `
 t=$f.$$
-{ printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" || { rm -f "$t"; exit 0; }
-works() { grep -Eq '` + workingEvent + `' "$f"; }
-ask() { grep -Eq '` + dialogEvent + `' "$f"; }
-form() { grep -q '` + elicitEvent + `' "$f"; }
-theirs() { ask && grep -q '"agent_id"' "$f"; }
+trap 'rm -f "$t"' 0
+{ printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" || exit 0
+works() { grep -Eq '` + workingEvent + `' "$y"; }
+ask() { grep -Eq '` + dialogEvent + `' "$y"; }
+form() { grep -q '` + elicitEvent + `' "$y"; }
+theirs() { ask && grep -q '"agent_id"' "$y"; }
 owes() { grep -q '^[^=]' "$f` + owedSuffix + `"; }
 owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" || rm -f "$t.o" "$f` + owedSuffix + `"; }
 put() { cp -f "${2:-$t}" "$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
+note() { C=$(cksum <"${2:-$t}") K=note awk "$A" "${2:-$t}" >"$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
 ev() { read -r j <"$e/.n" || j=0; j=$((j+1)); echo $j >"$t.j"; mv -f "$t.j" "$e/.n"; put "$e/$(printf %09d.$h $j).$$" "$1"; }
 get() { K=get N=$1 awk "$A" "$2"; }
 turn() { get prompt_id "$1"; }
 queued() { n=$(turn "$f` + queuedSuffix + `") && [ -n "$n" ]; }
-taken() { queued && [ "$n" = "$(turn "$f.stop")" ]; }
+taken() { queued && [ "$n" = "$(turn "$f` + endedSuffix + `")" ]; }
 tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1"; }
-mcp() { form && v=$(get mcp_server_name "$f") && case $(tool "$t") in *\"mcp__"$v"__*) ;; *) false ;; esac; }
+mcp() { form && v=$(get mcp_server_name "$y") && case $(tool "$t") in *\"mcp__"$v"__*) ;; *) false ;; esac; }
 soon() { for m in "$i"/[0-9]*` + nowSuffix + `; do [ -f "$m" ] && return 0; done; return 1; }
 take() {
     u=; c=$i/.taken.$$
@@ -193,49 +196,48 @@ say() {
     ev "$t.v"; rm -rf "$c" "$t.v"; printf '%s\n' "$2"
 }
 nap() { sleep .2 || sleep 1; }
-mine() { awk -v RS='\001' 'NR==FNR{p=$0;next}{s=$0==p}END{exit !s}' "$t" "$f"; }
+mine() { grep -qx "$k" "$y"; }
 case $1 in
 hold) grep -q '"agent_id"' "$t" || { k=$(cksum <"$t") && a=$i/` + answerPrefix + `${k% *}.${k#* } && trap 'rm -f "$t"; exit 0' HUP TERM &&
-    { w=0; until mine || [ "$f" -nt "$t" ] || [ $((w+=1)) -gt 50 ]; do nap; done
+    { w=0; until mine || [ "$y" -nt "$t" ] || [ $((w+=1)) -gt 50 ]; do nap; done
     while mine; do mv -f "$a" "$t" && cat "$t" && break; nap; done; }; }
-    rm -f "$t"; exit 0 ;;
-stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
+    exit 0 ;;
+stop) take && { say '{"decision":"block","reason":"' '"}'; exit 0; }
     K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; k=$?; owe
     queued && ! taken && [ "$n" = "$(turn "$t")" ] && {
-        ev; put "$f.stop"; rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `"; put "$f" "$f` + queuedSuffix + `"; rm -f "$t"; exit 0; }
+        ev; note "$f` + endedSuffix + `"; rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `"; note "$y" "$f` + queuedSuffix + `"; exit 0; }
     rm -f "$f` + queuedSuffix + `"
-    [ $k = 0 ] && { ev; rm -f "$f` + actedSuffix + `"; put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f"; rm -f "$t"; exit 0; } ;;
+    [ $k = 0 ] && { ev; rm -f "$f` + actedSuffix + `"; note "$f` + endedSuffix + `"; : >"$f` + keptSuffix + `"; works || theirs || note "$y"; exit 0; } ;;
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
     if K=wake O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; then
         owe
-        works && { ev; mv -f "$t" "$f` + keptSuffix + `"; rm -f "$t"; exit 0; }
+        works && { ev; : >"$f` + keptSuffix + `"; exit 0; }
     else
         if mv -f "$f` + announcedSuffix + `" "$t.n"; then rm -f "$t.n"; [ "$u" ] || [ -f "$f` + supervisedSuffix + `" ] || owes || works || : >"$f` + supervisedSuffix + `"
         else rm -f "$f` + supervisedSuffix + `"; fi
         grep -v '^[!+]' "$f` + owedSuffix + `" >"$t.o"; owe
-        p=$(turn "$t") && [ -n "$p" ] && works && { [ "$p" = "$(turn "$f")" ] || [ "$p" = "$(cat "$f` + actedSuffix + `")" ]; } && q=1 && put "$f` + queuedSuffix + `"
+        p=$(turn "$t") && [ -n "$p" ] && works && { [ "$p" = "$(turn "$y")" ] || [ "$p" = "$(cat "$f` + actedSuffix + `")" ]; } && q=1 && put "$f` + queuedSuffix + `"
     fi ;;
 answer) o=; grep -q '"agent_id"' "$t" || { o=1; p=$(turn "$t")
         [ -f "$f` + actedSuffix + `" ] && [ "$p" = "$(cat "$f` + actedSuffix + `")" ] || x=1
-        queued && ! taken && [ "$p" != "$n" ] && [ ! -f "$f` + keptSuffix + `" ] && put "$f" "$f` + queuedSuffix + `" && x=1
+        queued && ! taken && [ "$p" != "$n" ] && [ ! -f "$f` + keptSuffix + `" ] && note "$y" "$f` + queuedSuffix + `" && x=1
         printf '%s\n' "$p" >"$f` + actedSuffix + `"; rm "$f` + queuedSuffix + `" && x=1; }
     grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `" && x=1
-    { ask && [ "$(tool "$f")" = "$(tool "$t")" ] || mcp; } && x=2
+    { ask && [ "$(tool "$y")" = "$(tool "$t")" ] || mcp; } && x=2
     [ "$x" ] && ev
     grep -q '` + toolEndEvent + `' "$t" && [ "$o" ] && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
-    [ "$x" = 2 ] || { rm -f "$t"; exit 0; } ;;
-input) ask && { rm -f "$t"; exit 0; } ;;
-result) form || { rm -f "$t"; exit 0; } ;;
-end) taken && grep -Eq '` + clearedSession + `' "$t" && { rm -f "$t"; exit 0; } ;;
+    [ "$x" = 2 ] || exit 0 ;;
+input) ask && exit 0 ;;
+result) form || exit 0 ;;
+end) taken && grep -Eq '` + clearedSession + `' "$t" && exit 0 ;;
 start) taken && grep -Eq '` + clearedSession + `' "$t" && sid=$(get session_id "$t") &&
     S=$sid K=session awk "$A" "$f` + queuedSuffix + `" >"$t.c" && mv -f "$t.c" "$t"; rm -f "$t.c" ;;
-resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; }; rm -f "$t.p" ;;
 esac
 case $1 in dialog | answer | input | result) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
-[ "$1" = stop ] && { put "$f.stop"; ev; }
-put "$f"; [ "$1" = stop ] || [ "$x" = 2 ] || ev; rm -f "$t"
+[ "$1" = stop ] && note "$f` + endedSuffix + `"
+note "$y"; [ "$x" = 2 ] || ev
 [ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && { owes || rm -f "$f` + supervisedSuffix + `"; exit 0; }
-case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$f" ;; esac
+case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$t" ;; esac
 exit 0`
 
 // hookScript is hookSource as it travels in the settings: without the
@@ -261,13 +263,6 @@ const elicitEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"Elicitation"`
 // toolEndEvent is what the hook's grep finds in the payload of a tool that
 // ended successfully, whose result can carry messages (PostToolUse).
 const toolEndEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"PostToolUse"`
-
-// startEvent and resumed are what the hook's grep finds in a state file
-// whose latest event started a resumed session.
-const (
-	startEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"SessionStart"`
-	resumed    = `"source"[[:blank:]]*:[[:blank:]]*"` + resumeSource + `"`
-)
 
 // clearedSession is what the hook's grep -E finds in the payload of the
 // SessionEnd and the SessionStart of /clear.
@@ -454,6 +449,13 @@ NR == 1 && K == "wake" {
         else if (x != "") print x
     }
     if (paid) print "+"
+    next
+}
+NR == 1 && K == "note" {
+    split("hook_event_name prompt_id tool_name mcp_server_name", a)
+    for (i in a) for (s = $0; match(s, "\"" a[i] "\"[ \t\r\n]*:[ \t\r\n]*\"[^\"]*\""); s = substr(s, RSTART + RLENGTH)) print substr(s, RSTART, RLENGTH)
+    if (/"agent_id"/) print "\"agent_id\""
+    print ENVIRON["C"]
     next
 }
 NR == 1 && K == "refuse" { refused($0); next }

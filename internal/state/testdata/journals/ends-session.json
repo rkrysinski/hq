@@ -14,12 +14,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -44,14 +38,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:02Z"
@@ -76,15 +62,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "ended",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:03Z",
@@ -105,15 +82,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "ended",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:03Z",
@@ -134,15 +102,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "ended",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:03Z",
@@ -161,15 +120,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "ended",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:06Z"
@@ -194,14 +144,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:07Z",
-        "latest": "2026-01-01T00:00:07Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:07Z"
@@ -229,15 +171,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Say hi."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z"
@@ -266,17 +199,6 @@
         "n": 9,
         "text": "Hi. The tests pass\nand PR #58 is open."
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:09Z",
@@ -302,17 +224,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "ended",
-        "since": "2026-01-01T00:00:10Z",
-        "latest": "2026-01-01T00:00:10Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:10Z",
@@ -333,17 +244,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "ended",
-        "since": "2026-01-01T00:00:10Z",
-        "latest": "2026-01-01T00:00:10Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "ended",
         "since": "2026-01-01T00:00:10Z",

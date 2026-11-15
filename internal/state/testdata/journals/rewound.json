@@ -14,12 +14,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -44,14 +38,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:02Z"
@@ -79,15 +65,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -95,15 +72,6 @@
     },
     {
       "screen": "streaming",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -123,15 +91,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -139,15 +98,6 @@
     },
     {
       "screen": "rewound",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -168,15 +118,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:05Z",
@@ -185,15 +126,6 @@
     },
     {
       "screen": "rewound",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:05Z",
@@ -222,15 +154,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:09Z"
@@ -250,15 +173,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:09Z"
@@ -278,15 +192,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:09Z"
@@ -294,15 +199,6 @@
     },
     {
       "screen": "rewound-cleared",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:09Z"
@@ -323,15 +219,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:11Z",
@@ -360,15 +247,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z"
@@ -388,15 +266,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z"
@@ -404,15 +273,6 @@
     },
     {
       "screen": "narrow-working",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z"
@@ -420,15 +280,6 @@
     },
     {
       "screen": "menu-while-working",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z"
@@ -436,15 +287,6 @@
     },
     {
       "screen": "typing-while-working",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z"
@@ -452,15 +294,6 @@
     },
     {
       "screen": "streaming-typing",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z"
@@ -468,15 +301,6 @@
     },
     {
       "screen": "streaming",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z"
@@ -484,15 +308,6 @@
     },
     {
       "screen": "tool-running",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z"
@@ -500,15 +315,6 @@
     },
     {
       "screen": "compacting",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 200-word poem about the sea, no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z"
@@ -540,16 +346,6 @@
         "n": 12,
         "text": "The poem."
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:23Z",
-        "latest": "2026-01-01T00:00:23Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:23Z",
@@ -578,17 +374,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Ask me a colour."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:24Z",
@@ -616,17 +401,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:25Z",
-        "latest": "2026-01-01T00:00:25Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:25Z",
@@ -649,17 +423,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:25Z",
-        "latest": "2026-01-01T00:00:25Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:26Z",
@@ -688,17 +451,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:27Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 300-word poem about the sea."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:27Z",
@@ -719,17 +471,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:27Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 300-word poem about the sea."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:27Z",
@@ -738,17 +479,6 @@
     },
     {
       "screen": "rewound-after-declined",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:27Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 300-word poem about the sea."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:27Z",
@@ -770,17 +500,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:27Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a 300-word poem about the sea."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:28Z",
@@ -809,17 +528,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:31Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run the shell command sleep 20 and then reply with the word slept. Do not edit any files."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:31Z",
@@ -840,17 +548,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:31Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run the shell command sleep 20 and then reply with the word slept. Do not edit any files."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:32Z",
@@ -859,17 +556,6 @@
     },
     {
       "screen": "interrupted-prompt-restored",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:31Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run the shell command sleep 20 and then reply with the word slept. Do not edit any files."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:32Z",
@@ -878,17 +564,6 @@
     },
     {
       "screen": "interrupted-prompt-restored",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:31Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run the shell command sleep 20 and then reply with the word slept. Do not edit any files."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:32Z",
@@ -917,17 +592,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:35Z",
-        "latest": "2026-01-01T00:00:35Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Work on."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:35Z",
@@ -948,17 +612,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:35Z",
-        "latest": "2026-01-01T00:00:35Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Work on."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:35Z",
@@ -967,17 +620,6 @@
     },
     {
       "screen": "working",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:35Z",
-        "latest": "2026-01-01T00:00:35Z",
-        "last": "The poem.",
-        "last_stop": "The poem.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Work on."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:35Z",

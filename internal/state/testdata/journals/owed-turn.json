@@ -14,12 +14,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -44,14 +38,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:02Z"
@@ -80,15 +66,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -158,18 +135,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:04Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents.",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z",
@@ -178,18 +143,6 @@
     },
     {
       "screen": "fs-background-at-prompt",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:04Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents.",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z",
@@ -198,18 +151,6 @@
     },
     {
       "screen": "fs-subagent-elicit-answered",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:04Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents.",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z",
@@ -218,18 +159,6 @@
     },
     {
       "screen": "fs-background-at-prompt",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:04Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents.",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z",
@@ -260,18 +189,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z",
@@ -305,19 +222,6 @@
         "n": 6,
         "text": "the first finished"
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents.",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z",
@@ -338,19 +242,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents.",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z",
@@ -359,19 +250,6 @@
     },
     {
       "screen": "fs-narrow-done",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents.",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z",
@@ -393,19 +271,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents.",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:10Z",
@@ -446,18 +311,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:13Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two subagents.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:13Z",
@@ -491,16 +344,6 @@
         "n": 11,
         "text": "the second finished"
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "last": "the second finished",
-        "last_stop": "the second finished",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:14Z",
@@ -530,17 +373,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:15Z",
-        "last": "the second finished",
-        "last_stop": "the second finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two more."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:15Z",
@@ -610,18 +442,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:16Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two more.",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:15Z",
@@ -651,18 +471,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:17Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two more.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:15Z",
@@ -696,19 +504,6 @@
         "n": 15,
         "text": "one finished"
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:18Z",
-        "last": "one finished",
-        "last_stop": "one finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two more.",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:15Z",
@@ -729,19 +524,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:18Z",
-        "last": "one finished",
-        "last_stop": "one finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two more.",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:15Z",
@@ -772,18 +554,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:20Z",
-        "last": "one finished",
-        "last_stop": "one finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two more.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:15Z",
@@ -792,18 +562,6 @@
     },
     {
       "screen": "fs-thinking",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:20Z",
-        "last": "one finished",
-        "last_stop": "one finished",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Start two more.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:15Z",
@@ -836,16 +594,6 @@
       "reply": {
         "n": 18,
         "text": "both finished"
-      },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:22Z",
-        "latest": "2026-01-01T00:00:22Z",
-        "last": "both finished",
-        "last_stop": "both finished",
-        "branch": "main",
-        "session": "s1"
       },
       "look": {
         "state": "done",

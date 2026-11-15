@@ -43,7 +43,6 @@ type Tmux interface {
 	Start(id string) error
 	Respawn(pane, dir string, argv []string) error
 	SetOption(id, key, value string) error
-	KeepFirst(id, key, prefix, value string) (string, error)
 	Screens(panes []string) (map[string]string, error)
 	StyledScreen(pane string) (string, error)
 	Paste(pane, text string) error
@@ -134,10 +133,9 @@ type deps struct {
 	// foreground runs a program on this terminal until it ends and returns
 	// its exit status; err only when it could not start.
 	foreground func(argv []string) (int, error)
-	// takeQueued hands the hook's working files of an agent over to the
-	// prompt Claude took from its queue after an Esc (design §3.4, #88).
-	takeQueued agent.Taker
-	// removeState deletes an agent's state files once it is gone (design §3.4).
+	// removeState deletes what an agent keeps beside its repository once
+	// it is gone: its hook's working files, hq's record of it and its
+	// inbox (design §3.4).
 	removeState func(root, id string) error
 	// journal is the agents' journals, where an agent's state comes from:
 	// every look ingests the event files an agent's hook left into its
@@ -155,7 +153,7 @@ type deps struct {
 	killer    kills.Kill
 	traceKill func(k kills.Kill) error
 	readKills func() ([]kills.Kill, error)
-	// writeRecord keeps hq's record of an agent beside its state files, and
+	// writeRecord keeps hq's record of an agent beside its repository, and
 	// records reads those of a repository, for hq restore (design §3.3).
 	writeRecord func(root, id string, r state.Record) error
 	records     func(root string) ([]state.Record, error)
@@ -171,12 +169,12 @@ type deps struct {
 	held          func(root, id string) int
 	pending       func(root, id string) int
 	oldestMessage func(root, id string) (time.Time, bool)
-	// questions reads the question dialog an agent's state file reports
-	// open; leaveAnswer leaves the answer to it in the agent's inbox for
+	// questions reads the question dialog an agent's journal holds as the
+	// latest its hook reported; leaveAnswer leaves the answer to it in the agent's inbox for
 	// the hook that holds on it, answerTaken tells whether that hook took
 	// it, withdrawAnswer takes it back unless the hook took it first, and
-	// answersGot reads what Claude reports it got once the dialog's tool
-	// ended (hq answer, design §3.4, ADR 0013).
+	// answersGot reads from the journal what Claude reports it got once the
+	// dialog's tool ended (hq answer, design §3.4, ADR 0013).
 	questions      func(root, id string) (state.Questions, error)
 	leaveAnswer    func(root, id string, q state.Questions, decision []byte) error
 	answerTaken    func(root, id string, q state.Questions) bool
@@ -267,6 +265,7 @@ func defaultDeps() deps {
 		// writes out (claudeArgs): hq as it was called stands in.
 		session = []string{os.Args[0], sessionCommand}
 	}
+	journals := journal.Files{Dir: journal.Dir(os.Getenv)}
 	return deps{
 		tmux:        tmux.Client{Run: run, Socket: os.Getenv("HQ_TMUX_SOCKET"), Placeholder: placeholder, Session: session},
 		sbx:         sbx.Client{Run: run, Platform: plat},
@@ -307,9 +306,8 @@ func defaultDeps() deps {
 		rawTerminal: rawTerminal,
 		foreground:  func(argv []string) (int, error) { return run.Foreground(argv[0], argv[1:]...) },
 
-		takeQueued:  state.TakeQueued,
 		removeState: state.Remove,
-		journal:     journal.Files{Dir: journal.Dir(os.Getenv)},
+		journal:     journals,
 		folds:       agent.NewFolds(),
 		killer:      kills.Kill{By: kills.ByCLI},
 		traceKill:   func(k kills.Kill) error { return kills.Append(kills.Path(os.Getenv), k) },
@@ -325,11 +323,11 @@ func defaultDeps() deps {
 		pending:       state.Pending,
 		oldestMessage: state.Oldest,
 
-		questions:      state.ReadQuestions,
+		questions:      func(_, id string) (state.Questions, error) { return journalQuestions(journals, id) },
 		leaveAnswer:    state.LeaveAnswer,
 		answerTaken:    state.AnswerTaken,
 		withdrawAnswer: state.WithdrawAnswer,
-		answersGot:     state.ReadAnswers,
+		answersGot:     func(_, id string) (map[string]string, bool) { return journalAnswers(journals, id) },
 
 		announce:      state.Announce,
 		announced:     state.Announced,
@@ -397,7 +395,7 @@ func (d deps) store() agent.Store { return lookStore{d.journal, d.tmux.Screens} 
 // look is a look at the agents of the home windows ws (agent.Look), with
 // sbx's answer running.
 func (d deps) look(ws []tmux.Window, running agent.Sandboxes) []agent.Agent {
-	return agent.Look(ws, running, d.now(), d.store(), d.takeQueued, d.folds)
+	return agent.Look(ws, running, d.now(), d.store(), d.folds)
 }
 
 // collectAgents are the agents of the home windows ws with their state
@@ -406,8 +404,9 @@ func (d deps) collectAgents(ws []tmux.Window) []agent.Agent {
 	return agent.Collect(ws, d.journal, d.now(), d.folds)
 }
 
-// removeAgentFiles deletes what an agent leaves once it is gone: its state
-// files, its inbox, its journal and its event files (design §3.4).
+// removeAgentFiles deletes what an agent leaves once it is gone: its hook's
+// working files, its record, its inbox, its journal and its event files
+// (design §3.4).
 func removeAgentFiles(d deps, root, id string) {
 	_ = d.removeState(root, id)
 	_ = d.journal.Remove(root, id)

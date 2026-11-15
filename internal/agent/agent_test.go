@@ -87,7 +87,7 @@ func TestAnAgentOfAnotherGenerationIsOutdated(t *testing.T) {
 		s := newStore(nil)
 		s.Memory.Report("/w/app", "a1", state.Report{State: state.Working, Since: time.Unix(200, 0), Branch: "main"}, state.Detail{Reply: "on it"})
 		s.Memory.Report("/w/app", "a1", state.Report{State: state.Working, Since: time.Unix(201, 0), Branch: "main", Prompt: "go on"}, state.Detail{})
-		for _, a := range []Agent{Collect(ws, s, time.Unix(300, 0), nil)[0], Look(ws, Sandboxes{}, time.Unix(300, 0), s, nil, nil)[0]} {
+		for _, a := range []Agent{Collect(ws, s, time.Unix(300, 0), nil)[0], Look(ws, Sandboxes{}, time.Unix(300, 0), s, nil)[0]} {
 			if a.State != c.state || a.Last != c.last || a.Generation != c.generated || a.Outdated() != (c.state == state.Outdated) {
 				t.Errorf("generation %q, dead %v: %s %q generation %d outdated %v, want %s %q generation %d", c.gen, c.dead, a.State, a.Last, a.Generation, a.Outdated(), c.state, c.last, c.generated)
 			}

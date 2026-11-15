@@ -14,12 +14,6 @@
           }
         }
       ],
-      "old": {
-        "reported": false,
-        "state": "starting",
-        "since": "0001-01-01T00:00:00Z",
-        "latest": "0001-01-01T00:00:00Z"
-      },
       "look": {
         "state": "starting",
         "since": "2026-01-01T00:00:01Z"
@@ -44,14 +38,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:02Z"
@@ -79,15 +65,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -95,15 +72,6 @@
     },
     {
       "screen": "working",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -123,15 +91,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:05Z",
@@ -140,15 +99,6 @@
     },
     {
       "screen": "interrupted",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:05Z",
@@ -157,15 +107,6 @@
     },
     {
       "screen": "interrupted-80",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count to ten."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:05Z",
@@ -195,15 +136,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count again."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z"
@@ -223,15 +155,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Count again."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:09Z",
@@ -264,16 +187,6 @@
         "n": 7,
         "text": "Counted."
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:10Z",
-        "latest": "2026-01-01T00:00:10Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:10Z",
@@ -303,17 +216,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "List the files."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:11Z",
@@ -346,16 +248,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:12Z",
-        "latest": "2026-01-01T00:00:12Z",
-        "last": "Bash: List the files",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:12Z",
@@ -366,16 +258,6 @@
     },
     {
       "screen": "dialog-open",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:12Z",
-        "latest": "2026-01-01T00:00:12Z",
-        "last": "Bash: List the files",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:12Z",
@@ -398,16 +280,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:12Z",
-        "latest": "2026-01-01T00:00:12Z",
-        "last": "Bash: List the files",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:14Z",
@@ -416,16 +288,6 @@
     },
     {
       "screen": "permission-esc",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:12Z",
-        "latest": "2026-01-01T00:00:12Z",
-        "last": "Bash: List the files",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:14Z",
@@ -455,17 +317,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:16Z",
-        "latest": "2026-01-01T00:00:16Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "List them again."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:16Z",
@@ -498,16 +349,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:17Z",
-        "last": "Bash: List the files",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:17Z",
@@ -530,16 +371,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:17Z",
-        "last": "Bash: List the files",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:18Z",
@@ -569,17 +400,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:19Z",
-        "latest": "2026-01-01T00:00:19Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Ask me a colour."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:19Z",
@@ -607,17 +427,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:20Z",
-        "latest": "2026-01-01T00:00:20Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:20Z",
@@ -640,17 +449,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:20Z",
-        "latest": "2026-01-01T00:00:20Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:21Z",
@@ -659,17 +457,6 @@
     },
     {
       "screen": "declined-80",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:20Z",
-        "latest": "2026-01-01T00:00:20Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:21Z",
@@ -699,17 +486,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:23Z",
-        "latest": "2026-01-01T00:00:23Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Ask me again."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:23Z",
@@ -737,17 +513,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:24Z",
@@ -758,17 +523,6 @@
     },
     {
       "screen": "fs-ask-open",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:24Z",
@@ -791,17 +545,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:24Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:26Z",
@@ -831,17 +574,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:27Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Ask once more."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:27Z",
@@ -869,17 +601,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:28Z",
-        "latest": "2026-01-01T00:00:28Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:28Z",
@@ -902,17 +623,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:28Z",
-        "latest": "2026-01-01T00:00:28Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:29Z",
@@ -942,17 +652,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:30Z",
-        "latest": "2026-01-01T00:00:30Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Ask me a colour, and chat."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:30Z",
@@ -980,17 +679,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:31Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:31Z",
@@ -1011,17 +699,6 @@
           "facts": {}
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:31Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:31Z",
@@ -1030,17 +707,6 @@
     },
     {
       "screen": "fs-ask-chat-done",
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:31Z",
-        "last": "Which colour do you pick: red or blue?",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:31Z",
@@ -1070,17 +736,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:34Z",
-        "latest": "2026-01-01T00:00:34Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run a command."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:34Z",
@@ -1115,18 +770,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:34Z",
-        "latest": "2026-01-01T00:00:34Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run a command.",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:34Z",
@@ -1147,18 +790,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:34Z",
-        "latest": "2026-01-01T00:00:34Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Run a command.",
-        "acted": true
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:36Z",
@@ -1188,17 +819,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:37Z",
-        "latest": "2026-01-01T00:00:37Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a reply."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:37Z",
@@ -1219,17 +839,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:37Z",
-        "latest": "2026-01-01T00:00:37Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Write a reply."
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:38Z",
@@ -1258,17 +867,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:39Z",
-        "latest": "2026-01-01T00:00:39Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Work on."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:39Z",
@@ -1277,17 +875,6 @@
     },
     {
       "screen": "declined-then-working",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:39Z",
-        "latest": "2026-01-01T00:00:39Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Work on."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:39Z",
@@ -1296,17 +883,6 @@
     },
     {
       "screen": "interrupted-then-working",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:39Z",
-        "latest": "2026-01-01T00:00:39Z",
-        "last": "Counted.",
-        "last_stop": "Counted.",
-        "branch": "main",
-        "session": "s1",
-        "prompt": "Work on."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:39Z",
@@ -1339,16 +915,6 @@
         "n": 32,
         "text": "Done for now."
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:42Z",
-        "latest": "2026-01-01T00:00:42Z",
-        "last": "Done for now.",
-        "last_stop": "Done for now.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:42Z",
@@ -1357,16 +923,6 @@
     },
     {
       "screen": "interrupted",
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:42Z",
-        "latest": "2026-01-01T00:00:42Z",
-        "last": "Done for now.",
-        "last_stop": "Done for now.",
-        "branch": "main",
-        "session": "s1"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:42Z",

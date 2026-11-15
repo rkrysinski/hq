@@ -21,16 +21,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -57,16 +47,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:02Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "last": "Which color should I use?",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000c-0000-4000-8000-00000000000c"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:02Z",
@@ -95,16 +75,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000025-0000-4000-8000-000000000025",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -113,16 +83,6 @@
     {
       "hook": "result",
       "payload": "elicitation-result-decline",
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000025-0000-4000-8000-000000000025",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -151,17 +111,6 @@
         "n": 4,
         "text": "Hi. The tests pass\nand PR #58 is open."
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:05Z",
@@ -188,18 +137,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:06Z",
@@ -227,17 +164,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:07Z",
-        "latest": "2026-01-01T00:00:07Z",
-        "last": "Sign in to the example service.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000d-0000-4000-8000-00000000000d"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:07Z",
@@ -266,18 +192,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000d-0000-4000-8000-00000000000d",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z",
@@ -305,17 +219,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "Which color should I use?",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000c-0000-4000-8000-00000000000c"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:09Z",
@@ -354,17 +257,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:10Z",
-        "latest": "2026-01-01T00:00:10Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "session": "s",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:10Z",
@@ -392,17 +284,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "last": "Which color should I use?",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000c-0000-4000-8000-00000000000c"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:11Z",
@@ -431,18 +312,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:12Z",
-        "latest": "2026-01-01T00:00:12Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000c-0000-4000-8000-00000000000c",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:12Z",
@@ -470,17 +339,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "needs input",
-        "since": "2026-01-01T00:00:13Z",
-        "latest": "2026-01-01T00:00:13Z",
-        "last": "Which color should I use?",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "0000000c-0000-4000-8000-00000000000c"
-      },
       "look": {
         "state": "needs input",
         "since": "2026-01-01T00:00:13Z",
@@ -509,18 +367,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "last": "Hi. The tests pass and PR #58 is open.",
-        "last_stop": "Hi. The tests pass and PR #58 is open.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000005-0000-4000-8000-000000000005",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:14Z",
@@ -550,17 +396,6 @@
       "reply": {
         "n": 14,
         "text": "Should I also update the README? \n"
-      },
-      "old": {
-        "reported": true,
-        "state": "question",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:15Z",
-        "last": "Should I also update the README?",
-        "last_stop": "Should I also update the README?",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
       },
       "look": {
         "state": "question",

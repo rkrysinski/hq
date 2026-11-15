@@ -21,16 +21,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -113,19 +103,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:02Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z",
@@ -153,19 +130,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z",
@@ -217,19 +181,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:04Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z",
@@ -257,19 +208,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "last": "the first finished",
-        "last_stop": "the first finished",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z",
@@ -300,20 +238,6 @@
         "n": 6,
         "text": "the second finished"
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "last": "the second finished",
-        "last_stop": "the second finished",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z",
@@ -341,19 +265,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:07Z",
-        "last": "the second finished",
-        "last_stop": "the second finished",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z",
@@ -384,15 +295,6 @@
         "n": 8,
         "text": "all three finished"
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "last": "all three finished",
-        "last_stop": "all three finished",
-        "branch": "main"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:08Z",
@@ -419,18 +321,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "all three finished",
-        "last_stop": "all three finished",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:09Z",
@@ -482,19 +372,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:09Z",
-        "latest": "2026-01-01T00:00:10Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:09Z",
@@ -521,18 +398,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:11Z",
@@ -563,20 +428,6 @@
         "n": 12,
         "text": "stopped it"
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:12Z",
-        "last": "stopped it",
-        "last_stop": "stopped it",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word.",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:11Z",
@@ -604,19 +455,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:13Z",
-        "last": "stopped it",
-        "last_stop": "stopped it",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:11Z",
@@ -647,15 +485,6 @@
         "n": 14,
         "text": "it is stopped"
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:14Z",
-        "latest": "2026-01-01T00:00:14Z",
-        "last": "it is stopped",
-        "last_stop": "it is stopped",
-        "branch": "main"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:14Z",
@@ -682,18 +511,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:15Z",
-        "last": "it is stopped",
-        "last_stop": "it is stopped",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:15Z",
@@ -761,19 +578,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:15Z",
-        "latest": "2026-01-01T00:00:16Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:15Z",
@@ -800,18 +604,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:17Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:17Z",
@@ -842,20 +634,6 @@
         "n": 18,
         "text": "noted"
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:18Z",
-        "last": "noted",
-        "last_stop": "noted",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word.",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:17Z",
@@ -883,19 +661,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:19Z",
-        "last": "noted",
-        "last_stop": "noted",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:17Z",
@@ -926,20 +691,6 @@
         "n": 20,
         "text": "one finished"
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:20Z",
-        "last": "one finished",
-        "last_stop": "one finished",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word.",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:17Z",
@@ -967,19 +718,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:17Z",
-        "latest": "2026-01-01T00:00:21Z",
-        "last": "one finished",
-        "last_stop": "one finished",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:17Z",
@@ -1010,15 +748,6 @@
         "n": 22,
         "text": "both finished"
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:22Z",
-        "latest": "2026-01-01T00:00:22Z",
-        "last": "both finished",
-        "last_stop": "both finished",
-        "branch": "main"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:22Z",
@@ -1045,18 +774,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:23Z",
-        "latest": "2026-01-01T00:00:23Z",
-        "last": "both finished",
-        "last_stop": "both finished",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:23Z",
@@ -1108,19 +825,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:23Z",
-        "latest": "2026-01-01T00:00:24Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:23Z",
@@ -1147,19 +851,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:23Z",
-        "latest": "2026-01-01T00:00:25Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:23Z",
@@ -1190,15 +881,6 @@
         "n": 26,
         "text": "finished"
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:26Z",
-        "latest": "2026-01-01T00:00:26Z",
-        "last": "finished",
-        "last_stop": "finished",
-        "branch": "main"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:26Z",
@@ -1225,18 +907,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:27Z",
-        "last": "finished",
-        "last_stop": "finished",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:27Z",
@@ -1288,19 +958,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:28Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:27Z",
@@ -1328,19 +985,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:29Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:27Z",
@@ -1371,20 +1015,6 @@
         "n": 30,
         "text": "one finished"
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:27Z",
-        "latest": "2026-01-01T00:00:30Z",
-        "last": "one finished",
-        "last_stop": "one finished",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:27Z",
@@ -1411,19 +1041,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:31Z",
-        "latest": "2026-01-01T00:00:31Z",
-        "last": "one finished",
-        "last_stop": "one finished",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "queued": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:31Z",
@@ -1454,15 +1071,6 @@
         "n": 32,
         "text": "done"
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:32Z",
-        "latest": "2026-01-01T00:00:32Z",
-        "last": "done",
-        "last_stop": "done",
-        "branch": "main"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:32Z",
@@ -1489,18 +1097,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:33Z",
-        "latest": "2026-01-01T00:00:33Z",
-        "last": "done",
-        "last_stop": "done",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:33Z",
@@ -1552,19 +1148,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:33Z",
-        "latest": "2026-01-01T00:00:34Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:33Z",
@@ -1590,17 +1173,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:35Z",
-        "latest": "2026-01-01T00:00:35Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:35Z",
@@ -1627,18 +1199,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:36Z",
-        "latest": "2026-01-01T00:00:36Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:36Z",
@@ -1669,15 +1229,6 @@
         "n": 37,
         "text": "done"
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:37Z",
-        "latest": "2026-01-01T00:00:37Z",
-        "last": "done",
-        "last_stop": "done",
-        "branch": "main"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:37Z",
@@ -1704,18 +1255,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:38Z",
-        "latest": "2026-01-01T00:00:38Z",
-        "last": "done",
-        "last_stop": "done",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:38Z",
@@ -1783,19 +1322,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:38Z",
-        "latest": "2026-01-01T00:00:39Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:38Z",
@@ -1823,19 +1349,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:38Z",
-        "latest": "2026-01-01T00:00:40Z",
-        "last": "started",
-        "last_stop": "started",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:38Z",
@@ -1867,15 +1380,6 @@
         "n": 41,
         "text": "One finished. Go on?"
       },
-      "old": {
-        "reported": true,
-        "state": "question",
-        "since": "2026-01-01T00:00:41Z",
-        "latest": "2026-01-01T00:00:41Z",
-        "last": "One finished. Go on?",
-        "last_stop": "One finished. Go on?",
-        "branch": "main"
-      },
       "look": {
         "state": "question",
         "since": "2026-01-01T00:00:41Z",
@@ -1903,17 +1407,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:42Z",
-        "latest": "2026-01-01T00:00:42Z",
-        "last": "One finished. Go on?",
-        "last_stop": "One finished. Go on?",
-        "branch": "main",
-        "prompt": "<task-notification>\n<task-id>e2</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:42Z",
@@ -1943,15 +1436,6 @@
       "reply": {
         "n": 43,
         "text": "both finished"
-      },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:43Z",
-        "latest": "2026-01-01T00:00:43Z",
-        "last": "both finished",
-        "last_stop": "both finished",
-        "branch": "main"
       },
       "look": {
         "state": "done",

@@ -105,7 +105,7 @@ func TestTheLookAppendsAWakeUpOnce(t *testing.T) {
 	}
 	hook("000000001.prompt.1", prompted, map[string]any{"hook_event_name": "UserPromptSubmit", "prompt_id": "t1", "prompt": "Run the slow tests in a subagent."})
 	hook("000000002.answer.1", prompted.Add(time.Second), map[string]any{"hook_event_name": "PostToolUse", "prompt_id": "t1", "tool_name": "Agent", "tool_response": map[string]any{"status": "async_launched", "agentId": "sub1"}})
-	if a := Look(ws, Sandboxes{}, ended, s, nil, nil)[0]; a.State != state.Done || a.Last != declinedLine {
+	if a := Look(ws, Sandboxes{}, ended, s, nil)[0]; a.State != state.Done || a.Last != declinedLine {
 		t.Fatalf("ended by the user: %+v", a)
 	}
 	seen := s.journalOf(t, "a1")
@@ -113,7 +113,7 @@ func TestTheLookAppendsAWakeUpOnce(t *testing.T) {
 	s.screens["%1"] = capture(t, "fs-thinking")
 	hook("000000003.prompt.1", woken, map[string]any{"hook_event_name": "UserPromptSubmit", "prompt_id": "t2", "prompt": "<task-notification>\n<task-id>sub1</task-id>\n<status>completed</status>\n</task-notification>"})
 	for i := range 3 {
-		if a := Look(ws, Sandboxes{}, now.Add(time.Duration(i)*time.Second), s, nil, nil)[0]; a.State != state.Working || !a.Since.Equal(woken) {
+		if a := Look(ws, Sandboxes{}, now.Add(time.Duration(i)*time.Second), s, nil)[0]; a.State != state.Working || !a.Since.Equal(woken) {
 			t.Fatalf("woken: %+v", a)
 		}
 	}
@@ -142,7 +142,7 @@ func TestAHundredLooksAtTheSameScreenAddOneEvent(t *testing.T) {
 		if i >= 50 {
 			f = nil
 		}
-		Look([]tmux.Window{evWindow()}, Sandboxes{}, now.Add(time.Duration(i)*10*time.Millisecond), s, nil, f)
+		Look([]tmux.Window{evWindow()}, Sandboxes{}, now.Add(time.Duration(i)*10*time.Millisecond), s, f)
 	}
 	if es := since(s.journalOf(t, "a1"), basis); len(es) != 1 || es[0].Kind != state.KindTurnEnded || es[0].Basis != basis {
 		t.Fatalf("%d events: %s", len(es), journaltest.Kinds(es))
@@ -176,7 +176,7 @@ func TestOfEightLooksRacingOneEventStands(t *testing.T) {
 	for i := range 8 {
 		done.Go(func() {
 			r := racingStore{s, &ready}
-			shown[i] = Look([]tmux.Window{evWindow()}, Sandboxes{}, now.Add(time.Duration(i)*time.Millisecond), r, nil, nil)[0]
+			shown[i] = Look([]tmux.Window{evWindow()}, Sandboxes{}, now.Add(time.Duration(i)*time.Millisecond), r, nil)[0]
 		})
 	}
 	done.Wait()
@@ -222,7 +222,7 @@ func TestEvidenceALaterReportOvertookIsSetAside(t *testing.T) {
 	s := newStore(map[string]string{"%1": declinedScreen()})
 	s.report("a1", state.Report{State: state.Working, Since: now.Add(-time.Minute)})
 	basis := basisOf(t, s)
-	a := Look([]tmux.Window{evWindow()}, Sandboxes{}, now, overtakingStore{s, t}, nil, nil)[0]
+	a := Look([]tmux.Window{evWindow()}, Sandboxes{}, now, overtakingStore{s, t}, nil)[0]
 	es := since(s.journalOf(t, "a1"), basis)
 	if len(es) != 2 || es[0].Kind != "PostToolUse" || es[1].Kind != state.KindTurnEnded || es[1].Aside != state.AsideOvertaken || es[1].Basis != basis {
 		t.Fatalf("%+v", es)

@@ -21,16 +21,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000001-0000-4000-8000-000000000001",
-        "prompt": "Write a 400-word story about a whale. Use no tools."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -66,17 +56,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000001-0000-4000-8000-000000000001",
-        "prompt": "Write a 400-word story about a whale. Use no tools.",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -102,18 +81,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000001-0000-4000-8000-000000000001",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true,
-        "queued": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -147,18 +114,6 @@
         "tool_use_id": "toolu_01A7ZCC4auuaA39nGiGqMksE",
         "duration_ms": 25057,
         "agent_id": "a1"
-      },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000001-0000-4000-8000-000000000001",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true,
-        "queued": true
       },
       "look": {
         "state": "working",
@@ -195,17 +150,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:03Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000001-0000-4000-8000-000000000001",
-        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:03Z"
@@ -233,17 +177,6 @@
       "reply": {
         "n": 5,
         "text": "**The Song That Came Back**\n\nFor eleven years, the whale sang a song no other whale could answer."
-      },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "last": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer.",
-        "last_stop": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000001-0000-4000-8000-000000000001"
       },
       "look": {
         "state": "done",

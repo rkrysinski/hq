@@ -29,14 +29,11 @@ import (
 // digit, so no delivery of messages takes it, nor a dot.
 const answerPrefix = "answer."
 
-// Questions is the question dialog an agent's state file reports open, the
+// Questions is the question dialog an agent's hook reported open, the
 // agent's own AskUserQuestion: what it asks, as hq read shows it, and what
 // an answer to it needs.
 type Questions struct {
-	Ask *Ask
-	// Since is when the dialog was reported, the moment its id comes from
-	// (DialogID); zero when the questions were not read from a file.
-	Since   time.Time
+	Ask     *Ask
 	raw     []rawQuestion              // the questions as Claude gave them
 	input   map[string]json.RawMessage // the tool's input, the answers to be added
 	name    string                     // the name of the answer's file (answerName)
@@ -72,25 +69,11 @@ func DialogID(since time.Time) string {
 	return fmt.Sprintf("%06x", h.Sum32()&0xffffff)
 }
 
-// ReadQuestions returns the question dialog the state file of agent id of
-// the repository at root reports open, dated by the file.
-func ReadQuestions(root, id string) (Questions, error) {
-	if !idRE.MatchString(id) {
-		return Questions{}, errors.New("not an agent id")
-	}
-	data, info, err := readData(filepath.Join(Dir(root), id))
-	if err != nil {
-		return Questions{}, err
-	}
-	q, err := ParseQuestions(data)
-	q.Since = info.ModTime()
-	return q, err
-}
-
-// ParseQuestions reads the state file latest as the question dialog it
-// reports: a PermissionRequest of AskUserQuestion, not a subagent's.
-func ParseQuestions(latest []byte) (Questions, error) {
-	_, event := splitHeader(latest)
+// ParseQuestions reads the event file report, as the hook left it, as the
+// question dialog it reports: a PermissionRequest of AskUserQuestion, not a
+// subagent's.
+func ParseQuestions(report []byte) (Questions, error) {
+	_, event := splitHeader(report)
 	var p struct {
 		fullPayload
 		Input map[string]json.RawMessage `json:"tool_input"`
@@ -99,7 +82,7 @@ func ParseQuestions(latest []byte) (Questions, error) {
 		return Questions{}, errors.New("no question dialog of the agent's own is open")
 	}
 	_ = json.Unmarshal(event, &p.fullPayload)
-	q := Questions{Ask: p.ask(), input: p.Input, name: answerName(latest), payload: event}
+	q := Questions{Ask: p.ask(), input: p.Input, name: answerName(report), payload: event}
 	if json.Unmarshal(p.Input["questions"], &q.raw) != nil || len(q.raw) == 0 {
 		return Questions{}, errors.New("the dialog asks no questions")
 	}
@@ -110,8 +93,9 @@ func ParseQuestions(latest []byte) (Questions, error) {
 func (q Questions) Payload() []byte { return q.payload }
 
 // answerName names the answer's file for the dialog whose report is the
-// state file data: by the POSIX cksum of the file and its length, which
-// the hook takes of its payload as it wrote it, the same bytes.
+// event file data: by the POSIX cksum of the file and its length, which
+// the hook of kind hold takes of its payload as it wrote it, the same
+// bytes, and finds in the hook's note of its latest report (noteSuffix).
 func answerName(data []byte) string {
 	return fmt.Sprintf("%s%d.%d", answerPrefix, cksum(data), len(data))
 }
@@ -293,26 +277,12 @@ func WithdrawAnswer(root, id string, q Questions) bool {
 	return true
 }
 
-// ReadAnswers returns what Claude reports it got for a question dialog of
-// agent id, when the agent's state file is the end of the dialog's tool
-// (ParseAnswers).
-func ReadAnswers(root, id string) (map[string]string, bool) {
-	if !idRE.MatchString(id) {
-		return nil, false
-	}
-	data, _, err := readData(filepath.Join(Dir(root), id))
-	if err != nil {
-		return nil, false
-	}
-	return ParseAnswers(data)
-}
-
-// ParseAnswers reads the state file latest as the end of AskUserQuestion,
-// which the hook writes only when it closes the dialog, and returns the
+// ParseAnswers reads the event file report as the end of AskUserQuestion,
+// which the hook reports when it closes the dialog, and returns the
 // answers Claude reports, by question text, each one string; ok is false
 // for any other event.
-func ParseAnswers(latest []byte) (map[string]string, bool) {
-	_, event := splitHeader(latest)
+func ParseAnswers(report []byte) (map[string]string, bool) {
+	_, event := splitHeader(report)
 	var p struct {
 		Event    string `json:"hook_event_name"`
 		ToolName string `json:"tool_name"`

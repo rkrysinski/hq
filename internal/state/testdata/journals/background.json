@@ -21,16 +21,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -70,17 +60,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:01Z",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "acted": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z"
@@ -122,19 +101,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:03Z",
-        "last": "The tests are running in a subagent.",
-        "last_stop": "The tests are running in a subagent.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "background": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z",
@@ -162,19 +128,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:01Z",
-        "latest": "2026-01-01T00:00:04Z",
-        "last": "The tests are running in a subagent.",
-        "last_stop": "The tests are running in a subagent.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:01Z",
@@ -205,15 +158,6 @@
         "n": 5,
         "text": "The tests pass."
       },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:05Z",
-        "latest": "2026-01-01T00:00:05Z",
-        "last": "The tests pass.",
-        "last_stop": "The tests pass.",
-        "branch": "main"
-      },
       "look": {
         "state": "done",
         "since": "2026-01-01T00:00:05Z",
@@ -240,18 +184,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:06Z",
-        "latest": "2026-01-01T00:00:06Z",
-        "last": "The tests pass.",
-        "last_stop": "The tests pass.",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "prompt": "say hi"
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:06Z",
@@ -305,23 +237,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "question",
-        "since": "2026-01-01T00:00:07Z",
-        "latest": "2026-01-01T00:00:07Z",
-        "last": "A subagent runs the tests. Shall I also update the README?",
-        "last_stop": "A subagent runs the tests. Shall I also update the README?",
-        "branch": "main",
-        "worktree": "/w/app/.claude/worktrees/feat-42",
-        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
-        "own_tasks": [
-          {
-            "type": "shell",
-            "text": "npm run dev"
-          }
-        ]
-      },
       "look": {
         "state": "question",
         "since": "2026-01-01T00:00:07Z",
@@ -354,18 +269,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:08Z",
-        "last": "A subagent runs the tests. Shall I also update the README?",
-        "last_stop": "A subagent runs the tests. Shall I also update the README?",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word."
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z",
@@ -409,20 +312,6 @@
           }
         ]
       },
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:09Z",
-        "last": "The dev server is up.",
-        "last_stop": "The dev server is up.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word.",
-        "background": true,
-        "owed": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z",
@@ -450,19 +339,6 @@
           }
         }
       ],
-      "old": {
-        "reported": true,
-        "state": "working",
-        "since": "2026-01-01T00:00:08Z",
-        "latest": "2026-01-01T00:00:10Z",
-        "last": "The dev server is up.",
-        "last_stop": "The dev server is up.",
-        "branch": "main",
-        "worktree": "/w/app",
-        "session": "00000029-0000-4000-8000-000000000029",
-        "prompt": "Say hi in one word.\nThen say bye in one word.",
-        "woken": true
-      },
       "look": {
         "state": "working",
         "since": "2026-01-01T00:00:08Z",
@@ -492,15 +368,6 @@
       "reply": {
         "n": 11,
         "text": "The tests finished."
-      },
-      "old": {
-        "reported": true,
-        "state": "done",
-        "since": "2026-01-01T00:00:11Z",
-        "latest": "2026-01-01T00:00:11Z",
-        "last": "The tests finished.",
-        "last_stop": "The tests finished.",
-        "branch": "main"
       },
       "look": {
         "state": "done",
