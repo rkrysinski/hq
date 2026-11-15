@@ -206,6 +206,10 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | stop-subagent-monitor.json | Stop | the turn Claude took for a subagent's interim report: the agent's own watch and the subagent's watch running, both listed as type `shell` | real, 2.1.302, Opus 5.5 (high effort), G's managed settings, hq from the worktree of #99 (`qa-artifacts` `issue-99/`); paths normalized, printed with indentation | #99 |
 | stop-background-question.json | Stop | turn over with a question while a shell and a subagent run | unknown (as prompt-wake.json); normalized | 7cb35f8 (#38) |
 
+## Journals
+
+`journals/*.json` are fixture journals (#196): an agent's journal in steps, each a run of the hook on a payload above (or one written in the step: `inline`, compacted as Claude writes it; `raw`, one hq cannot read; `pad`, a field of that many bytes added), the events the ingest appended after it and what the old reading of the hook's working files (`state.Read`) gave. They are made, not captured: the integration test `TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads` runs each step's hook in a repository of its own and fails when the result differs from the file; `go test -tags integration ./internal/state -run TestTheFixtureJournals -update` writes them. Edited: each run is dated one second after the one before from 2026-01-01T00:00:01Z, the process id in an event file's name is 1, and a delivery names its messages 1, 2, ... A journal reported from an agent can be added as steps with its events and what its state should have been.
+
 ## Settings
 
 | fixture | what it is | real or hand-made | source |
