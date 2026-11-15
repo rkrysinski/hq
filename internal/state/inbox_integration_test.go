@@ -303,3 +303,63 @@ func TestEachMessageIsDeliveredOnceWhenHqAndTheHookRace(t *testing.T) {
 		t.Fatalf("left %v", left)
 	}
 }
+
+func TestHeldMessagesWaitForHqAloneInTheOrderSent(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	post(t, root, id, false, "first")
+	postFrom(t, root, id, true, false, "/probe second")
+	post(t, root, id, false, "third")
+	taken, err := Take(root, id)
+	if err != nil || len(taken) != 3 {
+		t.Fatalf("took %+v %v", taken, err)
+	}
+	// hq types the first in and holds the others for the agent's next
+	// prompt (#173).
+	if err := Hold(root, id, taken[1:]); err != nil {
+		t.Fatal(err)
+	}
+	if n, h := Pending(root, id), Held(root, id); n != 2 || h != 2 {
+		t.Fatalf("pending %d, held %d, want the 2 held", n, h)
+	}
+	if got, ok := Oldest(root, id); !ok || !got.Equal(taken[1].Sent) {
+		t.Fatalf("oldest %v %v, want %v", got, ok, taken[1].Sent)
+	}
+	// The hooks leave held messages alone and deliver only the others.
+	post(t, root, id, false, "sent meanwhile")
+	if o := decodeOutput(t, run(t, root, root, id, hook("stop", "[notify %s]"), fixture(t, "stop-to-block"))); o.Decision != "block" || o.Reason != labelled("sent meanwhile") {
+		t.Fatalf("stop: %+v", o)
+	}
+	post(t, root, id, false, "fourth")
+	taken, err = Take(root, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(texts(taken), "|"); got != "/probe second|third|fourth" {
+		t.Fatalf("took %q", got)
+	}
+	if !taken[0].Supervisor || taken[1].Supervisor {
+		t.Fatalf("senders: %+v", taken)
+	}
+	if Pending(root, id) != 0 {
+		t.Fatal("left after the take")
+	}
+	// A message without its time is held as sent now, after the others.
+	if err := Hold(root, id, []Message{{Text: "no time"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := Oldest(root, id); !ok || time.Since(got) > time.Minute {
+		t.Fatalf("held without a time: %v %v", got, ok)
+	}
+	if err := Hold(root, "not an id", taken); err == nil || Held(root, "not an id") != 0 {
+		t.Fatal("held for a bad id")
+	}
+	// A hold that fails holds none of them.
+	held := filepath.Join(InboxDir(root, id), "held")
+	os.RemoveAll(held)
+	os.WriteFile(held, nil, 0o644)
+	if err := Hold(root, id, taken); err == nil || Held(root, id) != 0 {
+		t.Fatal("held where the held directory cannot be")
+	}
+}

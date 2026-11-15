@@ -115,7 +115,7 @@ func runSend(env Env, d deps, args []string) error {
 			return err
 		}
 	}
-	how, err := deliver(d, a, now)
+	how, err := deliver(d, a, now, isCommand(text))
 	if err != nil {
 		return err
 	}
@@ -151,15 +151,42 @@ func findAgent(d deps, name string) (agent.Agent, error) {
 // deliver delivers what waits for the agent now, when it waits at its
 // prompt with nothing in the box, by typing it in; otherwise it leaves it
 // to the agent's hooks. An agent working only on background work waits at
-// its prompt too (agent.OnBackgroundWork). It returns how the message goes.
-func deliver(d deps, a agent.Agent, now bool) (string, error) {
+// its prompt too (agent.OnBackgroundWork). It returns how the message goes,
+// command saying the message starts with a slash command, which the hooks
+// deliver as text (#173).
+func deliver(d deps, a agent.Agent, now, command bool) (string, error) {
 	if atPrompt(a) {
-		return typeIn(d, a, boxWait)
+		return typeIn(d, a, boxWait, command)
 	}
-	if d.pending(a.RepoPath, a.ID) == 0 {
-		return fmt.Sprintf("delivered: %s took it with its hooks", a.Name), nil
+	if d.pending(a.RepoPath, a.ID) == d.held(a.RepoPath, a.ID) {
+		return tookWithHooks(a, command), nil
 	}
-	return queued(a, now), nil
+	return asText(queued(a, now), command), nil
+}
+
+// isCommand reports whether a message starts with a slash command, as
+// Claude Code takes a prompt typed in that starts with "/" (#173): hq types
+// such a message in so that the command runs, and says when the hooks may
+// deliver it instead, as text.
+func isCommand(text string) bool { return strings.HasPrefix(text, "/") }
+
+// asText adds to the line of a message left to the hooks that a slash
+// command it starts with arrives as text when they deliver it. Not that it
+// will: an agent back at its prompt before they do gets it typed in
+// (deliverWaiting).
+func asText(line string, command bool) string {
+	if !command {
+		return line
+	}
+	return line + "; if its hooks deliver it, the slash command arrives as text and does not run"
+}
+
+// tookWithHooks is the line of a message the agent's hooks took at once.
+func tookWithHooks(a agent.Agent, command bool) string {
+	if command {
+		return fmt.Sprintf("delivered: %s took it with its hooks, as text, so the slash command did not run", a.Name)
+	}
+	return fmt.Sprintf("delivered: %s took it with its hooks", a.Name)
 }
 
 // atPrompt reports whether the agent waits at its prompt, where hq types
@@ -182,7 +209,7 @@ func deliverWaiting(d deps, as []agent.Agent) {
 			continue
 		}
 		if at, ok := d.oldestMessage(a.RepoPath, a.ID); ok && d.now().Sub(at) >= waitingAfter {
-			_, _ = typeIn(d, a, 0)
+			_, _ = typeIn(d, a, 0, false)
 		}
 	}
 }
@@ -215,27 +242,34 @@ func queued(a agent.Agent, now bool) string {
 	return fmt.Sprintf("queued: %s %s", a.Name, when)
 }
 
-// typeIn types every message waiting for an agent that waits at its prompt
+// typeIn types the messages waiting for an agent that waits at its prompt
 // into the prompt box as its next prompt, oldest first, once the box is
 // empty (Claude's faint hints there aside) and at rest, which it waits for
 // up to within (boxAtRest); with anything in the box all that time (the
 // user typing), or a screen that does not show the box, the messages wait
 // and ride along with the next prompt sent there. They leave the inbox
-// first, so no hook delivers them too. A prompt made only of the
-// supervisor's messages is the supervisor's: the agent's hooks are told
-// before it is typed (spec §5). It returns once Claude has taken the
-// prompt out of the box, or leaveWait on (awaitBoxLeft).
-func typeIn(d deps, a agent.Agent, within time.Duration) (string, error) {
+// first, so no hook delivers them too. A message that starts with a slash
+// command is a prompt of its own (prompts): typeIn types the first prompt
+// in and holds the others for the agent's next prompts, which hq types in
+// one at a time as it finds the agent back at its prompt (deliverWaiting,
+// #173). A prompt made only of the supervisor's messages is the
+// supervisor's: the agent's hooks are told before it is typed (spec §5).
+// It returns once Claude has taken the prompt out of the box, or leaveWait
+// on (awaitBoxLeft). command says the message hq send left starts with a
+// slash command, for the line it returns.
+func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, error) {
 	if !boxAtRest(d, a, within) {
-		return fmt.Sprintf("queued: %s has something in its prompt box, delivered with its next prompt", a.Name), nil
+		return asText(fmt.Sprintf("queued: %s has something in its prompt box, delivered with its next prompt", a.Name), command), nil
 	}
-	msgs, err := d.takeMessages(a.RepoPath, a.ID)
+	all, err := d.takeMessages(a.RepoPath, a.ID)
 	if err != nil {
 		return "", envErr("cannot take the messages for %s: %v", a.Name, err)
 	}
-	if len(msgs) == 0 {
-		return fmt.Sprintf("delivered: %s took it with its hooks", a.Name), nil
+	if len(all) == 0 {
+		return tookWithHooks(a, command), nil
 	}
+	ps := prompts(all)
+	msgs := ps[0]
 	texts := make([]string, len(msgs))
 	supervised := a.Supervisable()
 	for i, m := range msgs {
@@ -244,7 +278,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration) (string, error) {
 	}
 	// Without the word the turn notifies, as the user's do: no failure.
 	supervised = supervised && d.announce(a.RepoPath, a.ID) == nil
-	err = d.tmux.Paste(a.Pane, strings.Join(texts, "\n\n"))
+	err = typePrompt(d, a.Pane, strings.Join(texts, "\n\n"))
 	if err == nil {
 		d.sleep(pasteSettle)
 		err = d.tmux.Submit(a.Pane)
@@ -253,17 +287,75 @@ func typeIn(d deps, a agent.Agent, within time.Duration) (string, error) {
 		if supervised {
 			_ = d.withdraw(a.RepoPath, a.ID)
 		}
-		// Back into the inbox: the hooks deliver them with the next prompt.
-		for _, m := range msgs {
+		// Back into the inbox, in the order sent: the hooks deliver them
+		// with the next prompt.
+		for _, m := range all {
 			_ = d.postMessage(a.RepoPath, a.ID, m, false)
 		}
 		return "", tmuxErr(err)
+	}
+	// The others wait for the agent's next prompts, where the hooks do not
+	// deliver them; held only now, so that a failure above leaves none
+	// held behind the ones it puts back.
+	if held := all[len(msgs):]; len(held) > 0 {
+		if err := d.holdMessages(a.RepoPath, a.ID, held); err != nil {
+			for _, m := range held {
+				_ = d.postMessage(a.RepoPath, a.ID, m, false)
+			}
+			return "", envErr("typed an earlier message into %s, but cannot hold the others for its next prompts (%v): they are left to its hooks", a.Name, err)
+		}
 	}
 	awaitBoxLeft(d, a)
 	if supervised {
 		awaitPrompt(d, a)
 	}
+	if len(ps) > 1 {
+		return fmt.Sprintf("queued: typed an earlier message into %s as its next prompt; this one follows as a prompt of its own once %s is back at its prompt", a.Name, a.Name), nil
+	}
 	return fmt.Sprintf("delivered: typed into %s as its next prompt", a.Name), nil
+}
+
+// prompts groups messages, oldest first, into the prompts hq types in, in
+// order: a run of messages that do not start with a slash command is one
+// prompt, joined as typeIn joins them, and a message that starts with one
+// is a prompt of its own, where Claude Code runs the command. Joined behind
+// another message's text a command would be text; joined before one, the
+// text would be the command's arguments (#173).
+func prompts(msgs []state.Message) [][]state.Message {
+	var ps [][]state.Message
+	for i, m := range msgs {
+		if i == 0 || isCommand(m.Text) || isCommand(msgs[i-1].Text) {
+			ps = append(ps, nil)
+		}
+		ps[len(ps)-1] = append(ps[len(ps)-1], m)
+	}
+	return ps
+}
+
+// typePrompt puts a prompt into the agent's prompt box, Enter not pressed:
+// pasted, as a terminal pastes it, so its lines stay one prompt; but a
+// slash command that Claude Code would collapse into "[Pasted text #N]",
+// and so not run (state.Collapses), has its command word typed and the
+// rest pasted after it, which Claude Code runs as the command with the
+// rest as its arguments, whatever their length (Claude Code 2.1.325, #173).
+func typePrompt(d deps, pane, text string) error {
+	if !isCommand(text) || !state.Collapses(text) {
+		return d.tmux.Paste(pane, text)
+	}
+	word, rest := text, ""
+	if i := strings.IndexAny(text, " \t\n"); i >= 0 {
+		word, rest = text[:i], text[i:]
+	}
+	if err := d.tmux.Type(pane, word); err != nil || rest == "" {
+		return err
+	}
+	if err := d.tmux.Paste(pane, rest); err != nil {
+		// Not the command word alone left in the box, which would keep
+		// the box from being empty and start the user's next prompt.
+		_ = d.tmux.Press(pane, "C-u")
+		return err
+	}
+	return nil
 }
 
 // boxAtRest reports whether the agent's prompt box is empty and at rest

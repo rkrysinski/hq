@@ -369,6 +369,25 @@ func (c Client) StyledScreen(pane string) (string, error) {
 	return string(out), err
 }
 
+// typeChunk bounds the text one send-keys of Type carries, in bytes: Claude
+// Code takes text typed in one burst of more than 800 characters as a
+// paste (state.Collapses), and parts typed one after another as typed
+// (Claude Code 2.1.325, #173).
+const typeChunk = 200
+
+// Type types text into a pane as keys, literally (send-keys -l), in parts
+// of at most typeChunk bytes, so that no word in it acts as a tmux key
+// name and Claude Code takes it as typed, not pasted: hq send types the
+// slash command a message starts with this way (#173).
+func (c Client) Type(pane, text string) error {
+	for _, part := range chunks(text, typeChunk) {
+		if _, err := c.tmux("send-keys", "-t", pane, "-l", "--", part); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Submit presses Enter in a pane.
 func (c Client) Submit(pane string) error { return c.Press(pane, "Enter") }
 
