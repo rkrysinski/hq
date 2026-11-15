@@ -1,0 +1,3 @@
+$ hq kill a -y; hq ls; ls $XDG_STATE_HOME/hq/journals
+killed a; the sandbox stays
+$

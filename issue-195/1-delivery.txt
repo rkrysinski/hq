@@ -1,0 +1,18 @@
+$ hq new a . "run a tool"; sleep 4; hq ls
+started a in repo (sandbox claude-repo); enter it with: hq go a
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   4s   Done: run a tool
+$ hq send a "hello there"; sleep 3; hq ls
+delivered: typed into a as its next prompt
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   4s   Done: hello there
+$ journal a
+7  hq  Launched  basis=0  start=new
+8  hook  SessionStart  basis=0  start=startup
+9  hook  UserPromptSubmit  basis=0
+10  hook  PostToolUse  basis=0
+11  hook  Stop  basis=0
+12  hq  delivery  basis=11  at=typed  messages=1794757497564351405-68694e2d
+13  hook  UserPromptSubmit  basis=0
+14  hook  Stop  basis=0
+$

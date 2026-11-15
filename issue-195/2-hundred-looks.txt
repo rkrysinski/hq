@@ -1,0 +1,14 @@
+$ for i in $(seq 100); do hq ls >/dev/null; done; hq ls; journal a   # after /exit typed into the agent
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    ended  1m   Done: hello there
+7  hq  Launched  basis=0  start=new
+8  hook  SessionStart  basis=0  start=startup
+9  hook  UserPromptSubmit  basis=0
+10  hook  PostToolUse  basis=0
+11  hook  Stop  basis=0
+12  hq  delivery  basis=11  at=typed  messages=1794757497564351405-68694e2d
+13  hook  UserPromptSubmit  basis=0
+14  hook  Stop  basis=0
+15  hook  SessionEnd  basis=0
+16  tmux  PaneDied  basis=15  from=2026-11-15T15:45:28Z
+$

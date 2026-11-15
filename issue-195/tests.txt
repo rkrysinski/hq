@@ -1,0 +1,46 @@
+--- PASS: TestTheLookAppendsWhatTheScreenShowsOnce (0.00s)
+--- PASS: TestTheLookAppendsAQueuedPromptTakenAndAWakeUp (0.00s)
+--- PASS: TestTheLookAppendsThePanesDeathAndTheSandboxNotRunning (0.00s)
+--- PASS: TestAHundredLooksAtTheSameScreenAddOneEvent (0.00s)
+--- PASS: TestOfEightLooksRacingOneEventStands (0.00s)
+--- PASS: TestEvidenceALaterReportOvertookIsSetAside (0.00s)
+--- PASS: TestALookWithoutAJournalAppendsNothing (0.00s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/agent	0.003s
+--- PASS: TestHqTypingAMessageInAppendsItsDeliveryBeforeTheTyping (0.00s)
+--- PASS: TestAFailedTypingWithdrawsItsDelivery (0.00s)
+--- PASS: TestAnAnswerIsAnEventBeforeItIsGiven (0.00s)
+--- PASS: TestLaunchRestartAndRelaunchAreEvents (0.00s)
+--- PASS: TestAnSbxTooOldEndsTheCommandBeforeAnythingIsIngested (0.00s)
+--- PASS: TestOnlyAnAnswerOfSbxIsAnSbxEvent (0.00s)
+--- PASS: TestEveryLookAppendsWhatItSaw (0.00s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/cli	0.007s
+--- PASS: TestTheBasisIsTheLastReportOfTheHook (0.00s)
+--- PASS: TestEvidenceIsTheSameByItsKindAndWhatItSaw (0.00s)
+--- PASS: TestHoldsLooksPastWhatWasSetAsideAndNotPastALaunch (0.00s)
+--- PASS: TestEvidenceIsOvertakenOnlyByALaterReport (0.00s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/journal	0.001s
+--- PASS: TestMemoryKeepsTheContract (0.03s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/journal/journaltest	0.026s
+--- PASS: TestOnlyAMessagesNameIsKept (0.00s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/state	0.001s
+--- PASS: TestFilesKeepTheContract (0.06s)
+--- PASS: TestOfEightProcessesAppendingTheSameEvidenceOneStands (0.00s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/journal	0.064s
+--- PASS: TestAMessageKeepsItsNameWhenHeldOrPutBack (0.01s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/state	0.007s
+--- PASS: TestTheJournalHoldsTheSessionInTheOrderTheHookReportedIt (3.73s)
+--- PASS: TestTwoAgentsInTwoRepositoriesNeverShareANumber (0.82s)
+--- PASS: TestTheJournalHoldsWhatHqDidAndSawBesideTheHooksReports (1.46s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/cli	6.019s
+ok  	github.com/rkrysinski/hq/internal/cli	0.014s
+ok  	github.com/rkrysinski/hq/internal/state	0.001s
+ok  	github.com/rkrysinski/hq/internal/state	0.115s
+ok  	github.com/rkrysinski/hq/internal/cli	32.576s
