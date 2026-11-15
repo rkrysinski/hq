@@ -1,0 +1,19 @@
+started b in repo (sandbox claude-repo); enter it with: hq go b
+NAME  REPO  BRANCH  STATE        AGE  LAST
+b     repo  main    needs input  2s   Which colour do you pick?
+a     repo  main    done         1m   Done: say again
+name      b
+repo      repo  /tmp/hq-stub-1195016276/repo
+branch    main
+worktree  /tmp/hq-stub-1195016276/repo
+sandbox   claude-repo
+state     needs input 3s
+pending   0
+last      Which colour do you pick?
+asks      dialog d2d1b1
+  Colour: Which colour do you pick?
+    1. Red - Pick red.
+    2. Blue - Pick blue.
+answer    hq answer b --dialog d2d1b1 N
+reply     none
+$

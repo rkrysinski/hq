@@ -1,0 +1,7 @@
+== a's window, as an agent of the previous hq: @hq_inbox 3
+@hq_inbox 3
+@hq_inbox 4
+NAME  REPO  BRANCH  STATE     AGE  LAST
+a     repo  -       outdated  -    started by an older hq: kill it and start it again
+b     repo  main    done      49s  Done: need your input
+$

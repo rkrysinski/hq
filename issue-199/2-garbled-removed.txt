@@ -1,0 +1,19 @@
+== before: 5b37e1daa299.ended
+5b37e1daa299.hq
+5b37e1daa299.last
+== garbled .last and .ended
+hq ls and hq read a: unchanged after garbling
+== removed: 5b37e1daa299.hq
+hq ls and hq read a: unchanged after removing
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   2m   Done: say hi
+name      a
+repo      repo  /tmp/hq-stub-1195016276/repo
+branch    main
+worktree  /tmp/hq-stub-1195016276/repo
+sandbox   claude-repo
+state     done 2m
+pending   0
+reply
+  Done: say hi
+$

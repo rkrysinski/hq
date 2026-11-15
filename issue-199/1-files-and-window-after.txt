@@ -1,0 +1,10 @@
+5b37e1daa299.ended  5b37e1daa299.hq  5b37e1daa299.last
+home window @1 of a:
+@hq_id 5b37e1daa299
+@hq_inbox 4
+@hq_name a
+@hq_new 1
+@hq_repo /tmp/hq-stub-1195016276/repo
+@hq_sandbox claude-repo
+@hq_started 1794766830.824
+$

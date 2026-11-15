@@ -1,0 +1,39 @@
+ls: cannot access '.git/hq/journals': No such file or directory
+answered: b is working
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     repo  main    done   4s   Done: need your input
+a     repo  main    done   1m   Done: say again
+pending   0
+reply
+  Done: need your input
+== agents dir: 5b37e1daa299.ended
+5b37e1daa299.hq
+5b37e1daa299.last
+bb49b05c973d.ended
+bb49b05c973d.hq
+bb49b05c973d.last
+$
+== agent b's screen:
+❯ need your input
+ ☐ Colour
+Which colour do you pick?
+❯ 1. Red
+  2. Blue
+Enter to select · ↑/↓ to navigate · Esc to cancel
+● User answered Claude's questions:
+  ⎿  · Which colour do you pick? → Blue
+  ⎿  Allowed by PermissionRequest hook
+== what the journal keeps of b's dialog (journals/ID.ask), report cut:
+ "n": 11,
+  "tool": "AskUserQuestion",
+  "questions": [
+    "header": "Colour",
+    "question": "Which colour do you pick?",
+    "options": [
+    ],
+    "multi_select": false
+  ]
+ "report": "branch main\n{\"cwd\":\"/tmp/hq-stub-1195016276/repo\",\"hook_even...",
+ "answered": true,
+  "Which colour do you pick?": "Blue"
+$

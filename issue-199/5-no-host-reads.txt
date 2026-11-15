@@ -1,0 +1,10 @@
+$ git grep -nE "KeepFirst|TakeQueued|state\.Read\(|ReadDetail|ReadQuestions|ReadAnswers|state\.Parse\(|\.stop\"|\.prev\"|hq_(state|since|last|ack|seen|stopped)" -- "*.go" ":!*_test.go"
+internal/state/read.go:88:var agentFiles = [...]string{"", ".stop", ".prev", noteSuffix, endedSuffix, keptSuffix, owedSuffix, supervisedSuffix, announcedSuffix, actedSuffix, queuedSuffix, recordSuffix}
+(exit 0)
+
+$ git grep -nE "hq_(turnend|restseen|dialogseen|answered|endseen|wokeseen)|\"(turnend|restseen|dialogseen|endseen|wokeseen)\"" -- "*.go" ":!*_test.go"
+(exit 1: no match)
+
+$ hook script size
+ok  	github.com/rkrysinski/hq/internal/state	0.001s [no tests to run]
+hook script of 10220 bytes (budget 10240): TestSettingsCarryIdentityAndOneHookPerEvent passes

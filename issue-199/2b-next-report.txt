@@ -1,0 +1,8 @@
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   43s  Done: say again
+reply
+  Done: say again
+== files now: 5b37e1daa299.ended
+5b37e1daa299.hq
+5b37e1daa299.last
+$

@@ -1,0 +1,2 @@
+30 fixture journals rebuilt with -update against origin/spec-165-agent-state-journal
+30 of 30 identical once the old reading (field "old") is left out

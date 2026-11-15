@@ -1,0 +1,11 @@
+$ go test -tags integration -count=1 -run "Notif" -v ./internal/state/ ./internal/platform/
+--- PASS: TestHookNotifiesOnStopAndInputNamingTheBranch (0.07s)
+--- PASS: TestATurnEndingWhileASubagentRunsLeavesTheAgentWorkingAndNotifiesNobody (0.05s)
+--- PASS: TestADialogNotifiedWhileTheAgentWaitsOnASubagentIsTheSubagents (0.03s)
+--- PASS: TestSubagentsThatFinishTogetherNotifyOnceWhenClaudeHasTakenItsTurnForEach (0.25s)
+--- PASS: TestBackgroundWorkIsKnownFromItsStartSoATurnTheUserInterruptedStillNotifiesOnce (0.11s)
+--- PASS: TestASupervisedTurnEndsWithoutANotificationButItsDialogNotifies (0.11s)
+--- PASS: TestAnyPromptOrMessageOfTheUsersMakesTheTurnNotify (0.36s)
+ok  	github.com/rkrysinski/hq/internal/state	0.992s
+--- PASS: TestNotificationSequencePerPlatform (0.00s)
+ok  	github.com/rkrysinski/hq/internal/platform	0.001s
