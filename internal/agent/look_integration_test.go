@@ -43,7 +43,7 @@ func TestTheLookHandsOverOnTheRealStateFilesOnce(t *testing.T) {
 	if err := os.Chtimes(filepath.Join(dir, id), asked, asked); err != nil {
 		t.Fatal(err)
 	}
-	w := tmux.Window{ID: "@1", Pane: "%1", Name: "a", Options: map[string]string{"id": id, "name": "a", "repo": root, "started": "100"}}
+	w := tmux.Window{ID: "@1", Pane: "%1", Name: "a", Options: map[string]string{GenerationOption: gen, "id": id, "name": "a", "repo": root, "started": "100"}}
 	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-queued-taken-thinking")}}
 
 	before := time.Now()

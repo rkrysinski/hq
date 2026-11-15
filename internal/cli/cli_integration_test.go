@@ -1449,7 +1449,7 @@ func TestRestoreBringsBackTheAgentsOfAKilledTmuxServer(t *testing.T) {
 	}
 	// An agent whose worktree went while tmux was down.
 	gone := filepath.Join(t.TempDir(), "worktree")
-	if err := state.WriteRecord(h.cwd, "0e0e0e", state.Record{Name: "w", Sandbox: "claude-app", Server: h.socket}); err != nil {
+	if err := state.WriteRecord(h.cwd, "0e0e0e", state.Record{Name: "w", Sandbox: "claude-app", Server: h.socket, Generation: version.Generation}); err != nil {
 		t.Fatal(err)
 	}
 	stop := `{"hook_event_name":"Stop","session_id":"0e0e0e0e-0000-4000-8000-00000000000e","cwd":"` + gone + `","last_assistant_message":"done"}`

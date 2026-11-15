@@ -94,12 +94,11 @@ func runSend(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	relaunch := fmt.Sprintf("relaunch it with %s, or kill it and start it again", restartCommand(a))
 	switch {
+	case a.Outdated():
+		return outdatedErr(a)
 	case a.State == state.Ended:
-		return usageErr("%s has ended and cannot receive messages; %s", a.Name, relaunch)
-	case !a.Inbox:
-		return usageErr("%s was started by an older hq and cannot receive messages; %s", a.Name, relaunch)
+		return usageErr("%s has ended and cannot receive messages; relaunch it with %s, or kill it and start it again", a.Name, restartCommand(a))
 	}
 	// The moment before the message is left: the reply it brings is a
 	// change after it, for hq wait --since.
@@ -205,7 +204,7 @@ func atPrompt(a agent.Agent) bool {
 // hq ls, hq read, hq wait and the list.
 func deliverWaiting(d deps, as []agent.Agent) {
 	for _, a := range as {
-		if !a.Inbox || !atPrompt(a) {
+		if !atPrompt(a) {
 			continue
 		}
 		if at, ok := d.oldestMessage(a.RepoPath, a.ID); ok && d.now().Sub(at) >= waitingAfter {
@@ -271,7 +270,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 	ps := prompts(all)
 	msgs := ps[0]
 	texts := make([]string, len(msgs))
-	supervised := a.Supervisable()
+	supervised := true
 	for i, m := range msgs {
 		texts[i] = m.Text
 		supervised = supervised && m.Supervisor

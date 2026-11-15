@@ -1,6 +1,10 @@
 package cli
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/rkrysinski/hq/internal/agent"
+)
 
 // Exit codes (spec §4.2).
 const (
@@ -27,6 +31,10 @@ func usageErr(format string, a ...any) error {
 func notFoundErr(format string, a ...any) error {
 	return &Error{Code: ExitNotFound, Msg: fmt.Sprintf(format, a...)}
 }
+
+// outdatedErr refuses an outdated agent (agent.Agent.Outdated): every
+// command but those that open or kill it.
+func outdatedErr(a agent.Agent) error { return usageErr("%s", a.OutdatedErr()) }
 
 func envErr(format string, a ...any) error {
 	return &Error{Code: ExitEnvironment, Msg: fmt.Sprintf(format, a...)}

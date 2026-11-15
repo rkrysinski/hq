@@ -147,8 +147,12 @@ func runWait(env Env, d deps, args []string) error {
 		deliverWaiting(d, as)
 		if first {
 			for _, n := range w.names {
-				if _, ok := agent.Find(as, n); !ok {
+				a, ok := agent.Find(as, n)
+				if !ok {
 					return notFoundErr("no agent '%s' (see hq ls)", n)
+				}
+				if a.Outdated() {
+					return outdatedErr(a)
 				}
 			}
 			// An agent already in its state when the call starts is not
@@ -202,14 +206,12 @@ func later(a, b time.Time) time.Time {
 	return a
 }
 
-// waitedOn are the agents named, or all when none are.
+// waitedOn are the agents named, or all when none are but the outdated
+// ones, whose state hq cannot read (spec §4.1).
 func waitedOn(as []agent.Agent, names []string) []agent.Agent {
-	if len(names) == 0 {
-		return as
-	}
 	var ws []agent.Agent
 	for _, a := range as {
-		if slices.Contains(names, a.Name) {
+		if len(names) == 0 && !a.Outdated() || slices.Contains(names, a.Name) {
 			ws = append(ws, a)
 		}
 	}

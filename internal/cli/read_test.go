@@ -76,7 +76,7 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 				{Header: "Colour", Question: "Which colour?", Options: []state.AskOption{{Label: "Red", Description: "Pick red."}, {Label: "Blue"}}},
 				{Question: "Which sizes?", MultiSelect: true, Options: []state.AskOption{{Label: "S"}, {Label: "M"}}},
 			}}},
-			"last      Which colour?\n\nasks      dialog ID\n  Colour: Which colour?\n    1. Red - Pick red.\n    2. Blue\n  Which sizes? (any of)\n    1. S\n    2. M\n"},
+			"last      Which colour?\n\nasks      dialog ID\n  Colour: Which colour?\n    1. Red - Pick red.\n    2. Blue\n  Which sizes? (any of)\n    1. S\n    2. M\n\nanswer    hq answer 42 --dialog ID N N,N\n"},
 		{"permission prompt", state.Report{State: state.NeedsInput, Last: "Bash: Create a file"},
 			state.Detail{Ask: &state.Ask{Tool: "Bash", Description: "Create a file", Command: "touch /tmp/x"}},
 			"last      Bash: Create a file\n\nasks      dialog ID\n  Bash: touch /tmp/x\n  Create a file\n"},
@@ -117,7 +117,7 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 		head := "state     " + tc.report.State + " 1m\npending   0\n"
 		_, rest, _ := strings.Cut(out, head)
 		rest, _, _ = strings.Cut(rest, "\nreply")
-		want := strings.Replace(tc.want, "dialog ID", "dialog "+state.DialogID(tc.report.Since), 1)
+		want := strings.ReplaceAll(tc.want, "dialog ID", "dialog "+state.DialogID(tc.report.Since))
 		if code != 0 || rest != strings.TrimSuffix(want, "\n")+"\n" {
 			t.Errorf("%s: exit %d %q\n%s", tc.name, code, errOut, out)
 		}
@@ -361,7 +361,7 @@ func TestReadShowsClaudesDialogAtTheStartOfASession(t *testing.T) {
 func TestCommandsSeeClaudesDialogAfterATurn(t *testing.T) {
 	f := readFakes()
 	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
-	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.tmux.windows[1].Options["inbox"] = generation
 	f.details["id-42"] = state.Detail{Reply: "hi"}
 	f.tmux.windows[1].Pane = "%4"
 	rule := strings.Repeat("─", 40)
@@ -419,7 +419,7 @@ func TestCommandsTakeADialogTheScreenClosedForGone(t *testing.T) {
 	f := readFakes()
 	f.states["id-42"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Minute), Last: "Claude Code needs your input", LastStop: "On it."}
 	f.details["id-42"] = state.Detail{Reply: "On it.", Ask: &state.Ask{Message: "Claude Code needs your input"}}
-	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.tmux.windows[1].Options["inbox"] = generation
 	f.tmux.windows[1].Pane = "%4"
 	rule := strings.Repeat("─", 40)
 	box := rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
@@ -458,7 +458,7 @@ func TestCommandsSeeClaudesDialogOnBackgroundWork(t *testing.T) {
 	f := readFakes()
 	f.states["id-42"] = state.Report{State: state.Working, Since: f.now.Add(-time.Hour), Latest: f.now.Add(-time.Minute), Background: true, Last: "It started."}
 	f.details["id-42"] = state.Detail{Reply: "It started."}
-	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.tmux.windows[1].Options["inbox"] = generation
 	f.tmux.windows[1].Pane = "%4"
 	f.tmux.screens = map[string]string{"%4": "● It started.\n✻ Waiting for 1 background agent to finish\n" + strings.Repeat("▔", 40) + "\n   Select model\n   Switch between Claude models.\n\n   ❯ 1. Default (recommended)\n     2. Opus 5.5\n"}
 	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 0s\n") || !strings.Contains(out, "\nasks      dialog "+state.DialogID(f.now)+"\n  Select model\n    1. Default (recommended)\n    2. Opus 5.5\n") {

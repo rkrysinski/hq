@@ -21,6 +21,7 @@ func sample() []Agent {
 		a("ask", "zeta", state.Question, time.Minute),
 		a("end", "alpha", state.Ended, time.Minute),
 		a("perm", "zeta", state.NeedsInput, time.Hour),
+		a("old", "zeta", state.Outdated, 2*time.Hour),
 	}
 }
 
@@ -38,9 +39,9 @@ func TestSorts(t *testing.T) {
 		sort func([]Agent)
 		want string
 	}{
-		{"attention: state, then newest first", SortAttention, "perm ask done w-new w-old end"},
-		{"repo: repository, then attention", SortRepo, "done w-new end perm ask w-old"},
-		{"state: attention order, then name", SortState, "perm ask done w-new w-old end"},
+		{"attention: state, then newest first", SortAttention, "old perm ask done w-new w-old end"},
+		{"repo: repository, then attention", SortRepo, "done w-new end old perm ask w-old"},
+		{"state: attention order, then name", SortState, "old perm ask done w-new w-old end"},
 	} {
 		as := sample()
 		tc.sort(as)
@@ -52,7 +53,17 @@ func TestSorts(t *testing.T) {
 	as := sample()
 	as[2].Since = t0.Add(-2 * time.Hour) // w-new is now the oldest
 	SortState(as)
-	if got := names(as); got != "perm ask done w-new w-old end" {
+	if got := names(as); got != "old perm ask done w-new w-old end" {
 		t.Errorf("state sort moved by age: %s", got)
+	}
+}
+
+// An outdated agent needs the user as one in an attention state does: only
+// they can clear it (#194).
+func TestAnOutdatedAgentNeedsYou(t *testing.T) {
+	for st, want := range map[string]bool{state.Outdated: true, state.NeedsInput: true, state.Question: true, state.Done: false, state.Working: false, state.Starting: false, state.Ended: false} {
+		if got := (Agent{State: st}).NeedsYou(); got != want {
+			t.Errorf("%s: needs you %v", st, got)
+		}
 	}
 }

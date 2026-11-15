@@ -255,8 +255,10 @@ func TestAnswerRefusesWhatHqDoesNotAnswer(t *testing.T) {
 			want: "hq: a asks in its reply, not in a dialog: answer it with hq send a TEXT\n"},
 		{name: "ended", report: state.Report{State: state.NeedsInput}, setup: func(f *fakes) { f.tmux.windows[1].PaneDead = true },
 			want: "hq: a has ended: it is at no dialog\n"},
-		{name: "older hq", report: state.Report{State: state.NeedsInput, Last: "Which colour?"}, setup: func(f *fakes) { f.tmux.windows[1].Options["inbox"] = "2" },
-			want: "hq: a was started by an older hq and cannot be answered from hq; relaunch it with hq sandbox restart app, or kill it and start it again\n"},
+		// An outdated agent is refused before anything of its dialog is read
+		// (#194).
+		{name: "outdated", report: state.Report{State: state.NeedsInput, Last: "Which colour?"}, setup: func(f *fakes) { f.tmux.windows[1].Options[genOption] = "2" },
+			want: "hq: a was started by an older hq: kill it and start it again\n"},
 	} {
 		f, _ := askFakes(t, "dialog-ask")
 		tc.report.Since = f.now.Add(-time.Minute)
@@ -451,11 +453,7 @@ func TestReadAndLsGiveTheDialogsID(t *testing.T) {
 			t.Errorf("%v:\n%s", cmd, out)
 		}
 	}
-	// Not answerable from hq: no command; no dialog: no id.
-	f.tmux.windows[1].Options["inbox"] = "2"
-	if _, out, _ := f.run("read", "a"); strings.Contains(out, "\nanswer ") || !strings.Contains(out, "asks      dialog "+id) {
-		t.Fatalf("older hq:\n%s", out)
-	}
+	// No dialog: no id.
 	f.states["id-a"] = state.Report{State: state.Working, Since: f.now}
 	for _, cmd := range [][]string{{"read", "a", "--json"}, {"ls", "--json"}} {
 		if _, out, _ := f.run(cmd...); strings.Contains(out, `"dialog"`) {
@@ -613,11 +611,12 @@ func TestAnswerPicksAnOptionOfADialogOfClaudesOwnWithKeys(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &got); err != nil || got.State != state.Done || got.NextSince.After(before) || before.Sub(got.NextSince) > time.Second {
 		t.Fatalf("json %q: %+v %v", out, got, err)
 	}
-	// An agent started by an older hq has no hooks hq needs for it.
+	// An outdated agent is refused, its dialog of Claude's own too, and
+	// nothing is pressed (#194).
 	f, c, id := ownDialogFakes(t)
-	f.tmux.windows[1].Options["inbox"] = "2"
-	if code, out, errOut := f.run("answer", "a", "--dialog", id, "2"); code != 0 || out != "answered: a is done\n" || c.picked != 1 {
-		t.Fatalf("older hq: exit %d %q %q", code, out, errOut)
+	f.tmux.windows[1].Options[genOption] = "2"
+	if code, out, errOut := f.run("answer", "a", "--dialog", id, "2"); code != ExitUsage || errOut != "hq: a was started by an older hq: kill it and start it again\n" || len(c.pressed) != 0 {
+		t.Fatalf("outdated: exit %d %q %q, pressed %v", code, out, errOut, c.pressed)
 	}
 }
 

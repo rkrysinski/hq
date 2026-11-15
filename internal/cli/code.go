@@ -35,6 +35,9 @@ func openCode(d deps, name string) (string, error) {
 	if !ok {
 		return "", notFoundErr("no agent '%s' (see hq ls)", name)
 	}
+	if a.Outdated() {
+		return "", outdatedErr(a)
+	}
 	dir := worktree(d, a)
 	if err := d.editor(dir); err != nil {
 		var pe *proc.Error

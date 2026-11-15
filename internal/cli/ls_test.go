@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
@@ -29,7 +30,7 @@ func sbxNotFound() error { return &proc.Error{Name: "sbx", Msg: "sbx not found",
 
 func agentWindow(id, name, repo string, started time.Time, dead bool) tmux.Window {
 	return tmux.Window{ID: id, Name: name, PaneDead: dead, Options: map[string]string{
-		"id": "id-" + name, "name": name, "repo": repo, "sandbox": "claude-x", "started": strconv.FormatInt(started.Unix(), 10),
+		"id": "id-" + name, "name": name, "repo": repo, "sandbox": "claude-x", "started": strconv.FormatInt(started.Unix(), 10), agent.GenerationOption: generation,
 	}}
 }
 

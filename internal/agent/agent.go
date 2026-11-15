@@ -17,6 +17,7 @@ import (
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 // Agent is one agent: its home window and what hq stored on it.
@@ -31,8 +32,7 @@ type Agent struct {
 	Alive      bool       `json:"-"` // the agent's pane's process runs
 	Docked     bool       `json:"-"` // its pane is in the dashboard's slot
 	New        bool       `json:"-"` // started with hq new, not yet reported (S2)
-	Inbox      bool       `json:"-"` // its hooks deliver messages (hq send, ADR 0012)
-	Hooks      int        `json:"-"` // the generation of its hooks, as hq stored it (see Supervisable)
+	Generation int        `json:"-"` // the generation of the hq that last launched it, as stored on its window (see Outdated)
 	ending     bool       // hq is taking the agent down (its sandbox restarting)
 	reported   bool       // its session has reported, so its sandbox has run
 	turnEnd    string     // a turn the user ended, as hq first saw it (see settle)
@@ -75,23 +75,29 @@ type Agent struct {
 	OwnTasks []state.Task `json:"-"`
 }
 
-// supervisingHooks is the generation of hooks from which they tell a
-// supervised turn.
-const supervisingHooks = 2
+// Outdated reports whether the agent is an outdated agent: its home window
+// carries a generation that is not this hq's (version.Generation), so hq
+// cannot read its state (FromWindows). It is listed as outdated, whatever
+// its pane does, until it is killed, and can only be opened or killed.
+func (a Agent) Outdated() bool { return a.State == state.Outdated }
 
-// Supervisable reports whether the agent's hooks tell a supervised turn,
-// whose end notifies nobody (spec §5). The hooks of an agent started by an
-// older hq do not: it notifies at every turn end until it is relaunched.
-func (a Agent) Supervisable() bool { return a.Hooks >= supervisingHooks }
+// StartedBy says which hq started an agent of generation gen, of another
+// generation than this hq's: an older one, or a newer one after a
+// downgrade.
+func StartedBy(gen int) string {
+	if gen > version.Generation {
+		return "started by a newer hq"
+	}
+	return "started by an older hq"
+}
 
-// answeringHooks is the generation of hooks from which they hold on a
-// question dialog for hq's answer (hq answer, design §3.4).
-const answeringHooks = 3
+// OutdatedLast is the last message of an outdated agent of generation gen,
+// which names the remedy.
+func OutdatedLast(gen int) string { return StartedBy(gen) + ": kill it and start it again" }
 
-// Answerable reports whether the agent's hooks take hq's answer to its
-// question dialog. Those of an agent started by an older hq do not, until
-// it is relaunched.
-func (a Agent) Answerable() bool { return a.Hooks >= answeringHooks }
+// OutdatedErr is the line every command but those that open or kill an
+// agent refuses an outdated agent with: its name and its last message.
+func (a Agent) OutdatedErr() string { return a.Name + " was " + OutdatedLast(a.Generation) }
 
 // Repo is the repository's display name.
 func (a Agent) Repo() string { return filepath.Base(a.RepoPath) }
@@ -140,8 +146,16 @@ func ParseStamp(s string) (time.Time, bool) {
 	return time.UnixMilli(int64(math.Round(f * 1000))), true
 }
 
+// GenerationOption is the user option of a home window that holds the
+// generation of the hq that last launched the agent (version.Generation).
+// It is named inbox since hq marked with it the agents whose hooks deliver
+// the messages hq send leaves (ADR 0012), counting up from 1.
+const GenerationOption = "inbox"
+
 // FromWindows returns the agents among hq's windows, in window order.
-// Windows without an hq id (the dashboard's own window) are not agents.
+// Windows without an hq id (the dashboard's own window) are not agents. An
+// agent of another generation is outdated, with OutdatedLast as its last
+// message.
 func FromWindows(ws []tmux.Window) []Agent {
 	var as []Agent
 	for _, w := range ws {
@@ -163,9 +177,13 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if w.PaneDead || a.ending {
 			a.State = state.Ended
 		}
+		a.Generation, _ = strconv.Atoi(o[GenerationOption])
+		if a.Generation != version.Generation {
+			// Nothing of its own is read: its state, its age and its
+			// branch are unknown to this hq (see Collect).
+			a.State, a.Last = state.Outdated, OutdatedLast(a.Generation)
+		}
 		a.New = o["new"] != "" && a.State == state.Starting
-		a.Inbox = o["inbox"] != ""
-		a.Hooks, _ = strconv.Atoi(o["inbox"])
 		as = append(as, a)
 	}
 	return as
@@ -224,6 +242,9 @@ func (s Sandboxes) Ends(a Agent) bool {
 func Collect(ws []tmux.Window, read func(root, id string) (state.Report, bool), sandboxes Sandboxes) []Agent {
 	as := FromWindows(ws)
 	for i := range as {
+		if as[i].Outdated() {
+			continue
+		}
 		as[i].Apply(read(as[i].RepoPath, as[i].ID))
 		if sandboxes.stopped(as[i]) {
 			as[i].State = state.Ended
@@ -399,8 +420,11 @@ func (a *Agent) adopt(r record, stored string) {
 // session's (hq sandbox restart relaunches an agent under its id, design
 // §3.6): it gives the last known message, branch and worktree until the
 // new session reports, but neither the state nor its time.
+//
+// An outdated agent's state files are its older hook's, which this hq does
+// not read: nothing is applied.
 func (a *Agent) Apply(r state.Report, ok bool) {
-	if !ok {
+	if !ok || a.Outdated() {
 		return
 	}
 	a.Last = r.Last
