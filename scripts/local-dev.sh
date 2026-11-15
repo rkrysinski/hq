@@ -4,7 +4,8 @@
 # names a tmux server private to this checkout (tmux -L), so agents started
 # here never appear in the user's hq session. XDG_CONFIG_HOME gives the
 # checkout its own preferences file, so QA never changes the user's sort,
-# view or update check; gh keeps the user's login through GH_CONFIG_DIR.
+# view or update check, and XDG_STATE_HOME its own journals and counter
+# (ADR 0018); gh keeps the user's login through GH_CONFIG_DIR.
 # The build is a dev build, which never looks for updates; to check update
 # behaviour, LOCAL_DEV_VERSION=vX.Y.Z bakes that version in, and
 # HQ_RELEASES_URL points hq at a stub release server (design §3.9).
@@ -53,7 +54,8 @@ STUB_ENV=/tmp/hq-stub-$ID
 TESTUTIL=$ROOT/internal/testutil
 GH_CONFIG_DIR=${GH_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/gh}
 XDG_CONFIG_HOME="$ROOT/.local-dev/config"
-export GH_CONFIG_DIR XDG_CONFIG_HOME
+XDG_STATE_HOME="$ROOT/.local-dev/state"
+export GH_CONFIG_DIR XDG_CONFIG_HOME XDG_STATE_HOME
 
 die() {
     echo "local-dev: $*" >&2
@@ -200,10 +202,11 @@ if [ -n "$mode" ]; then
 
     HOME=$STUB_ENV/home
     XDG_CONFIG_HOME=$HOME/.config
+    XDG_STATE_HOME=$HOME/.local/state
     SBX_STUB_DIR=$STUB_ENV/sbx
     SBX_STUB_CLAUDE=$STUB_ENV/claude
     WSL_STUB_ROOT=$STUB_ENV/win
-    export PATH HOME XDG_CONFIG_HOME SBX_STUB_DIR SBX_STUB_CLAUDE WSL_STUB_ROOT
+    export PATH HOME XDG_CONFIG_HOME XDG_STATE_HOME SBX_STUB_DIR SBX_STUB_CLAUDE WSL_STUB_ROOT
     if [ "$mode" = native ]; then
         HQ_PLATFORM=native
         export HQ_PLATFORM

@@ -21,8 +21,10 @@ func TestBinaryReportsErrorsOnStderrWithExitCode(t *testing.T) {
 		t.Fatalf("build: %v\n%s", err, out)
 	}
 
-	// Never the user's preferences, nor GitHub: nothing answers on port 1.
+	// Never the user's preferences or journals, nor GitHub: nothing
+	// answers on port 1.
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	t.Setenv("HQ_RELEASES_URL", "http://127.0.0.1:1/releases")
 	out, err := exec.Command(bin, "--version").Output()
 	if err != nil || string(out) != "hq v9.9.9\n" {
@@ -55,6 +57,7 @@ func TestTheUpdateCheckRunsInADetachedHq(t *testing.T) {
 	}
 	cfg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", cfg)
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	t.Setenv("HQ_RELEASES_URL", base)
 	if out, err := exec.Command(bin, "--version").Output(); err != nil || string(out) != "hq v0.1.0\n" {
 		t.Fatalf("--version before the check: %q %v", out, err)

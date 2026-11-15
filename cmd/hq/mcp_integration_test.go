@@ -89,7 +89,7 @@ func supervisorEnv(t *testing.T) *supervisor {
 	s := &supervisor{t: t, socket: testutil.TmuxSocket(t), bin: buildHQ(t)}
 	// Its own preferences file too: CI runners set XDG_CONFIG_HOME, which
 	// would otherwise share the runner's file between tests (#141).
-	s.env = append(os.Environ(), "PATH="+path+string(os.PathListSeparator)+os.Getenv("PATH"), "HQ_TMUX_SOCKET="+s.socket, "HOME="+t.TempDir(), "XDG_CONFIG_HOME="+t.TempDir(), "TMUX=")
+	s.env = append(os.Environ(), "PATH="+path+string(os.PathListSeparator)+os.Getenv("PATH"), "HQ_TMUX_SOCKET="+s.socket, "HOME="+t.TempDir(), "XDG_CONFIG_HOME="+t.TempDir(), "XDG_STATE_HOME="+t.TempDir(), "TMUX=")
 	return s
 }
 

@@ -1036,13 +1036,13 @@ func TestTheRefusalKnowsTheInputsOfKillAnswerAndSend(t *testing.T) {
 func TestMCPInstallRegistersHqWithSbx(t *testing.T) {
 	f := newFakes()
 	f.exe = "/Users/dev/.local/bin/hq"
-	f.env = map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET": "hq-dev", "HOME": "/Users/dev", "GITHUB_TOKEN": "secret"}
+	f.env = map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET": "hq-dev", "HOME": "/Users/dev", "GITHUB_TOKEN": "secret", "XDG_STATE_HOME": "/Users/dev/state"}
 	load := "load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)\n"
 	code, out, errOut := f.run("mcp", "install", "sbx")
 	if code != 0 || out != "added hq to sbx (sbx mcp inspect hq)\n"+load {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
-	want := []string{"/usr/bin/env", "PATH=/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET=hq-dev", f.exe, "mcp", "sbx"}
+	want := []string{"/usr/bin/env", "PATH=/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET=hq-dev", "XDG_STATE_HOME=/Users/dev/state", f.exe, "mcp", "sbx"}
 	if !slices.Equal(f.sbx.mcp["hq"], want) {
 		t.Fatalf("registered %q", f.sbx.mcp["hq"])
 	}

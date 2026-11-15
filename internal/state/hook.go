@@ -123,6 +123,20 @@ import (
 // names the agent itself, HQ_AGENT, so an agent that supervises through hq
 // does not end, answer or message itself (spec §4.1, design §3.12, #142).
 //
+// Beside those files it leaves each event a rule reads as a file of its
+// own in the main repository's .git/hq/events/$HQ_ID (ev, ADR 0018): the
+// branch line and the payload, copied under another name and renamed into
+// place, named by the count it keeps there (.n) and its pid, %09d.PID, so
+// the names sort in the order it wrote them. It writes one wherever it
+// writes the payload to the state file, .on or .stop: a turn end's with
+// .stop, before the state file (#123), any other just after the state file,
+// so the hook of kind hold sees a dialog's report as soon as it did before; for the end of a tool
+// (answer) only when it tells something new: the first of the agent's own
+// in the turn (.acted did not hold it), one that hands over a queued
+// prompt, starts background work or closes a dialog (x). Each delivery of
+// messages is an event file of its own (say): "delivery KIND", then the name
+// each message was left under in the inbox, a line each.
+//
 // It needs only sh, git, cat, mv, cp, mkdir, rm, grep, awk, sleep and
 // cksum, sends its own errors nowhere and always exits 0; it holds Claude
 // back only while a message is unread (design §3.4, §7.1): the hook of
@@ -131,15 +145,17 @@ import (
 const hookSource = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
 exec 2>/dev/null
 A='` + hookAwk + `'
+h=$1
 [ "$1" = refuse ] && { K=refuse N=$HQ_AGENT awk "$A"; exit 0; }
-q=
+q= x=
 b=$(git branch --show-current)
 l=${b:-${PWD##*/}}
 cd "${CLAUDE_PROJECT_DIR:-.}"
 g=$(git rev-parse --git-common-dir) || exit 0
 d=$g/hq/agents
+e=$g/` + eventsPath + `/$HQ_ID
 i=$g/hq/inbox/$HQ_ID
-mkdir -p "$d" || exit 0
+mkdir -p "$d" "$e" || exit 0
 f=$d/$HQ_ID
 t=$f.$$
 { printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" || { rm -f "$t"; exit 0; }
@@ -150,6 +166,7 @@ theirs() { ask && grep -q '"agent_id"' "$f"; }
 owes() { grep -q '^[^=]' "$f` + owedSuffix + `"; }
 owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" || rm -f "$t.o" "$f` + owedSuffix + `"; }
 put() { cp -f "${2:-$t}" "$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
+ev() { read -r j <"$e/.n" || j=0; j=$((j+1)); echo $j >"$t.j"; mv -f "$t.j" "$e/.n"; put "$e/$(printf %09d $j).$$" "$1"; }
 get() { K=get N=$1 awk "$A" "$2"; }
 turn() { get prompt_id "$1"; }
 queued() { n=$(turn "$f` + queuedSuffix + `") && [ -n "$n" ]; }
@@ -167,9 +184,9 @@ take() {
 }
 say() {
     [ "$u" ] && rm -f "$f` + supervisedSuffix + `"
-    printf '%s' "$1"; s=
-    for m in "$c"/*; do [ -f "$m" ] && printf '%s%s' "$s" '` + MessageLabel + `' && cat "$m" && s='\n\n'; done
-    rm -rf "$c"; printf '%s\n' "$2"
+    printf '%s' "$1"; s=; echo "` + deliveryKind + ` $h" >"$t.v"
+    for m in "$c"/*; do [ -f "$m" ] && printf '%s%s' "$s" '` + MessageLabel + `' && cat "$m" && s='\n\n' && echo "${m##*/}" >>"$t.v"; done
+    ev "$t.v"; rm -rf "$c" "$t.v"; printf '%s\n' "$2"
 }
 nap() { sleep .2 || sleep 1; }
 mine() { awk -v RS='\001' 'NR==FNR{p=$0;next}{s=$0==p}END{exit !s}' "$t" "$f"; }
@@ -181,13 +198,13 @@ hold) grep -q '"agent_id"' "$t" || { k=$(cksum <"$t") && a=$i/` + answerPrefix +
 stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
     K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; k=$?; owe
     queued && ! taken && [ "$n" = "$(turn "$t")" ] && {
-        put "$f.stop"; rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `"; put "$f" "$f` + queuedSuffix + `"; rm -f "$t"; exit 0; }
+        ev; put "$f.stop"; rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `"; put "$f" "$f` + queuedSuffix + `"; rm -f "$t"; exit 0; }
     rm -f "$f` + queuedSuffix + `"
-    [ $k = 0 ] && { rm -f "$f` + actedSuffix + `"; put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f"; rm -f "$t"; exit 0; } ;;
+    [ $k = 0 ] && { ev; rm -f "$f` + actedSuffix + `"; put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f"; rm -f "$t"; exit 0; } ;;
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
     if K=wake O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; then
         owe
-        works && { mv -f "$t" "$f` + keptSuffix + `"; rm -f "$t"; exit 0; }
+        works && { ev; mv -f "$t" "$f` + keptSuffix + `"; rm -f "$t"; exit 0; }
     else
         if mv -f "$f` + announcedSuffix + `" "$t.n"; then rm -f "$t.n"; [ "$u" ] || [ -f "$f` + supervisedSuffix + `" ] || owes || works || : >"$f` + supervisedSuffix + `"
         else rm -f "$f` + supervisedSuffix + `"; fi
@@ -195,11 +212,14 @@ prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","
         p=$(turn "$t") && [ -n "$p" ] && works && { [ "$p" = "$(turn "$f")" ] || [ "$p" = "$(cat "$f` + actedSuffix + `")" ]; } && q=1 && put "$f` + queuedSuffix + `"
     fi ;;
 answer) o=; grep -q '"agent_id"' "$t" || { o=1; p=$(turn "$t")
-        queued && ! taken && [ "$p" != "$n" ] && [ ! -f "$f` + keptSuffix + `" ] && put "$f" "$f` + queuedSuffix + `"
+        [ -f "$f` + actedSuffix + `" ] && [ "$p" = "$(cat "$f` + actedSuffix + `")" ] || x=1
+        queued && ! taken && [ "$p" != "$n" ] && [ ! -f "$f` + keptSuffix + `" ] && put "$f" "$f` + queuedSuffix + `" && x=1
         printf '%s\n' "$p" >"$f` + actedSuffix + `"; rm -f "$f` + queuedSuffix + `"; }
-    grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
+    grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `" && x=1
+    { ask && [ "$(tool "$f")" = "$(tool "$t")" ] || mcp; } && x=2
+    [ "$x" ] && ev
     grep -q '` + toolEndEvent + `' "$t" && [ "$o" ] && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
-    ask && [ "$(tool "$f")" = "$(tool "$t")" ] || mcp || { rm -f "$t"; exit 0; } ;;
+    [ "$x" = 2 ] || { rm -f "$t"; exit 0; } ;;
 input) ask && { rm -f "$t"; exit 0; } ;;
 result) form || { rm -f "$t"; exit 0; } ;;
 end) taken && grep -Eq '` + clearedSession + `' "$t" && { rm -f "$t"; exit 0; } ;;
@@ -208,8 +228,8 @@ start) taken && grep -Eq '` + clearedSession + `' "$t" && sid=$(get session_id "
 resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; }; rm -f "$t.p" ;;
 esac
 case $1 in dialog | answer | input | result) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
-[ "$1" = stop ] && put "$f.stop"
-mv -f "$t" "$f"; rm -f "$t"
+[ "$1" = stop ] && { put "$f.stop"; ev; }
+put "$f"; [ "$1" = stop ] || [ "$x" = 2 ] || ev; rm -f "$t"
 [ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && { owes || rm -f "$f` + supervisedSuffix + `"; exit 0; }
 case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$f" ;; esac
 exit 0`
@@ -584,3 +604,11 @@ func Settings(name, id, notify string) string {
 	})
 	return strings.TrimSpace(b.String())
 }
+
+// eventsPath is where, under the main repository's .git, the hook leaves
+// each agent's event files, a directory per agent (EventsDir).
+const eventsPath = "hq/events"
+
+// deliveryKind starts the first line of an event file that reports a
+// delivery of messages by the hook, followed by the hook's kind.
+const deliveryKind = "delivery"

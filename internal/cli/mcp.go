@@ -55,8 +55,8 @@ const (
 
 // mcpEnv are the variables hq mcp install passes on to the client's
 // hq when they are set: PATH, which finds tmux, sbx and gh, and those that
-// choose hq's tmux server and preferences.
-var mcpEnv = []string{"PATH", "HQ_TMUX_SOCKET", "TMUX_TMPDIR", "XDG_CONFIG_HOME"}
+// choose hq's tmux server, preferences and journals.
+var mcpEnv = []string{"PATH", "HQ_TMUX_SOCKET", "TMUX_TMPDIR", "XDG_CONFIG_HOME", "XDG_STATE_HOME"}
 
 // parseMCP reads hq mcp's arguments: whether to install, and the client,
 // Claude Desktop when none is named.

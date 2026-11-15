@@ -19,6 +19,7 @@ import (
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/iterm"
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform"
@@ -140,6 +141,10 @@ type deps struct {
 	readDetail func(root, id string) state.Detail
 	// removeState deletes an agent's state files once it is gone (design §3.4).
 	removeState func(root, id string) error
+	// journal is the agents' journals: every look ingests the event files
+	// an agent's hook left into its journal, and a kill removes it (ADR
+	// 0018, design §3.4).
+	journal journal.Store
 	// killer says who asks for the kills this command makes, for the
 	// trace (#147): the way it came, and in hq mcp the client and the
 	// calling agent when known. traceKill adds a kill to the trace and
@@ -296,6 +301,7 @@ func defaultDeps() deps {
 		takeQueued:  state.TakeQueued,
 		readDetail:  state.ReadDetail,
 		removeState: state.Remove,
+		journal:     journal.Files{Dir: journal.Dir(os.Getenv)},
 		killer:      kills.Kill{By: kills.ByCLI},
 		traceKill:   func(k kills.Kill) error { return kills.Append(kills.Path(os.Getenv), k) },
 		readKills:   func() ([]kills.Kill, error) { return kills.Read(kills.Path(os.Getenv)) },
@@ -360,6 +366,22 @@ func defaultDeps() deps {
 		},
 		serveMCP: func(s *mcp.Server) error { return s.Run(context.Background(), &mcp.StdioTransport{}) },
 	}
+}
+
+// readAgent reads agent id's state for a look at the agents (design
+// §3.4): it first ingests the event files the agent's hook left into its
+// journal, then reads its state file, which still decides its state. A
+// failed ingest fails no look: the files wait for the next one.
+func (d deps) readAgent(root, id string) (state.Report, bool) {
+	_ = d.journal.Ingest(root, id)
+	return d.readState(root, id)
+}
+
+// removeAgentFiles deletes what an agent leaves once it is gone: its state
+// files, its inbox, its journal and its event files (design §3.4).
+func removeAgentFiles(d deps, root, id string) {
+	_ = d.removeState(root, id)
+	_ = d.journal.Remove(root, id)
 }
 
 // executable is the path of the running hq, links resolved.
