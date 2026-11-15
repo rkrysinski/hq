@@ -65,6 +65,12 @@ func (r *mutationRepo) change() {
 		"func TestDouble(t *testing.T) {\n\tif lib.Double(4) != 8 {\n\t\tt.Fatal(\"Double(4)\")\n\t}\n}\n")
 }
 
+// Each real run of the tool installs it with an empty cache and starts as
+// many workers as there are cores, which loads the machine while the other
+// packages' integration tests run: so only two tests run it, this one and
+// the interrupted run. The passing run and a change without mutants are
+// proven by the unit tests of mutationReport.
+
 // isolated points the temporary directory and the shared build cache of
 // the test at empty directories of its own and returns them.
 func isolated(t *testing.T) (tmp, cache string) {
@@ -123,24 +129,9 @@ func TestMutationJudgesTheChangedLinesWithTheWholeUnitSuite(t *testing.T) {
 	assertEmpty(t, "the shared build cache", cache)
 }
 
-func TestMutationPassesWhenEveryMutantIsKilled(t *testing.T) {
-	r := newMutationRepo(t)
-	write(t, r.dir, "lib/lib.go", "package lib\n\n// Half halves x.\nfunc Half(x int) int { return x / 2 }\n\n"+
-		"// Neg negates x.\nfunc Neg(x int) int { return -x }\n")
-	write(t, r.dir, "lib/neg_test.go", "package lib\n\nimport \"testing\"\n\n"+
-		"func TestNeg(t *testing.T) {\n\tif Neg(2) != -2 {\n\t\tt.Fatal(\"Neg(2)\")\n\t}\n}\n")
-	sha := r.commit("README.md", "m, neg\n", "Neg")
-	isolated(t)
-	lines, failed, err := runMutationIn(t, r.dir, "main")
-	want := []string{"mutation: 2 killed, 0 alive, 0 timed out, 0 not covered against main on " + sha} // -x: arithmetic base and invert negatives
-	if err != nil || failed || !reflect.DeepEqual(lines, want) {
-		t.Errorf("got %q, failed %v, err %v; want %q", lines, failed, err, want)
-	}
-}
-
 func TestMutationWithNothingToMutate(t *testing.T) {
 	r := newMutationRepo(t)
-	isolated(t)
+	tmp, cache := isolated(t)
 	write(t, r.dir, "docs/notes.md", "notes\n")
 	write(t, r.dir, "lib/more_test.go", "package lib\n\nimport \"testing\"\n\nfunc TestMore(t *testing.T) {}\n")
 	sha := r.commit("scripts/run.sh", "#!/bin/sh\n", "No Go code")
@@ -149,15 +140,8 @@ func TestMutationWithNothingToMutate(t *testing.T) {
 	if err != nil || failed || !reflect.DeepEqual(lines, want) {
 		t.Errorf("documents and tests: got %q, failed %v, err %v; want %q", lines, failed, err, want)
 	}
-
-	// Go code without a mutant: the tool runs and finds none in these lines.
-	write(t, r.dir, "lib/name.go", "package lib\n\n// Name is the module's name.\nfunc Name() string { return \"m\" }\n")
-	sha = r.commit("README.md", "m, name\n", "Name")
-	lines, failed, err = runMutationIn(t, r.dir, "main")
-	want = []string{"mutation: no mutants in the lines changed against main on " + sha}
-	if err != nil || failed || !reflect.DeepEqual(lines, want) {
-		t.Errorf("Go without a mutant: got %q, failed %v, err %v; want %q", lines, failed, err, want)
-	}
+	assertEmpty(t, "the temporary directory", tmp) // nothing staged, no tool run
+	assertEmpty(t, "the shared build cache", cache)
 }
 
 func TestMutationRefusesABaseGitDoesNotKnow(t *testing.T) {
