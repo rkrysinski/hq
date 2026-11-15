@@ -114,6 +114,7 @@ func TestInstallThenUpdate(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("XDG_STATE_HOME", "")
 	hq := filepath.Join(home, ".local", "bin", "hq")
 	prefs := filepath.Join(home, ".config", "hq", "preferences.json")
 	knows := func(tag string) func() bool {

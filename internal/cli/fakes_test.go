@@ -15,6 +15,7 @@ import (
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/gh"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform"
@@ -545,10 +546,13 @@ func (r *fakeReleases) Generation(tag string) (int, bool, error) {
 }
 
 type fakes struct {
-	tmux  *fakeTmux
-	sbx   *fakeSbx
-	repos map[string]string // dir -> repository root
-	tops  map[string]string // dir -> top of its work tree
+	tmux *fakeTmux
+	sbx  *fakeSbx
+	// journal is the agents' journals, with the event files their hooks
+	// left (Leave).
+	journal *journaltest.Memory
+	repos   map[string]string // dir -> repository root
+	tops    map[string]string // dir -> top of its work tree
 	// edited are the directories VS Code opened on; editorErr fails it.
 	edited    []string
 	editorErr error
@@ -675,10 +679,11 @@ const supervisorMark = " (supervisor)"
 
 func newFakes() *fakes {
 	f := &fakes{
-		tmux:  &fakeTmux{version: "3.5a", argv: map[string][]string{}, started: map[string]bool{}, socket: "/tmp/tmux-501/default"},
-		env:   map[string]string{},
-		sbx:   &fakeSbx{},
-		repos: map[string]string{"/w/app": "/w/app", "/w/app/sub": "/w/app", "/w/app/.claude/worktrees/x": "/w/app", "/w/lib": "/w/lib"},
+		tmux:    &fakeTmux{version: "3.5a", argv: map[string][]string{}, started: map[string]bool{}, socket: "/tmp/tmux-501/default"},
+		env:     map[string]string{},
+		sbx:     &fakeSbx{},
+		journal: journaltest.NewMemory(),
+		repos:   map[string]string{"/w/app": "/w/app", "/w/app/sub": "/w/app", "/w/app/.claude/worktrees/x": "/w/app", "/w/lib": "/w/lib"},
 		tops: map[string]string{"/w/app": "/w/app", "/w/app/sub": "/w/app", "/w/app/.claude/worktrees/x": "/w/app/.claude/worktrees/x",
 			"/w/app/.claude/worktrees/x/sub": "/w/app/.claude/worktrees/x", "/w/lib": "/w/lib"},
 		dirs: map[string]bool{"/w/app": true, "/w/app/sub": true, "/w/lib": true, "/w/plain": true, "/w/app/.claude/worktrees/x": true},
@@ -752,9 +757,10 @@ func newFakes() *fakes {
 
 func (f *fakes) deps() deps {
 	return deps{
-		tmux:   f.tmux,
-		sbx:    f.sbx,
-		killer: kills.Kill{By: kills.ByCLI},
+		tmux:    f.tmux,
+		sbx:     f.sbx,
+		journal: f.journal,
+		killer:  kills.Kill{By: kills.ByCLI},
 		repoRoot: func(dir string) (string, bool) {
 			r, ok := f.repos[dir]
 			return r, ok

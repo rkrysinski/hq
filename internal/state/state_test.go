@@ -252,7 +252,8 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	// came on top of the elicitation's report (#100), well within the 24
 	// KiB of the settings. 10 KiB since kill, answer and send refuse the
 	// calling agent (#142): the walk of the tool's input took the script to
-	// about 9.6 KiB.
+	// about 9.6 KiB. The event files of ADR 0018 took it to 10,229 bytes
+	// (#193), while it writes the old files too.
 	if len(hookScript) > 10<<10 {
 		t.Errorf("hook script of %d bytes", len(hookScript))
 	}

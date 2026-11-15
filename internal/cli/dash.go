@@ -66,7 +66,7 @@ func dockOnEntry(d deps) {
 	if err != nil {
 		return
 	}
-	as := agent.Look(ws, d.readState, d.takeQueued, agent.Sandboxes{}, d.now(), d.tmux)
+	as := agent.Look(ws, d.readAgent, d.takeQueued, agent.Sandboxes{}, d.now(), d.tmux)
 	cursor, _ := d.tmux.SessionValue("cursor")
 	p := d.loadPrefs()
 	name, ok := dash.EntryDock(as, p.Sort, cursor)
@@ -171,7 +171,7 @@ func dockAs(d deps, name string, how func(window, title string) error) error {
 	if err != nil {
 		return err
 	}
-	a, ok := agent.Find(agent.Collect(ws, d.readState, agent.Sandboxes{}), name)
+	a, ok := agent.Find(agent.Collect(ws, d.readAgent, agent.Sandboxes{}), name)
 	if !ok {
 		return fmt.Errorf("no agent '%s'", name)
 	}
@@ -283,7 +283,7 @@ func listSource(d deps, pane string) dash.Source {
 			if err != nil {
 				return nil, err
 			}
-			as := agent.Look(ws, d.readState, d.takeQueued, running, d.now(), d.tmux)
+			as := agent.Look(ws, d.readAgent, d.takeQueued, running, d.now(), d.tmux)
 			keepTitles(d, ws, as)
 			return as, nil
 		},

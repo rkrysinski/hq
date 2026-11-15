@@ -1,0 +1,62 @@
+// Package journal keeps the agents' journals on the host (ADR 0018, design
+// §3.4): one per agent, in hq's directory under the user's state
+// directory, out of every sandbox's reach. The hook in the sandbox leaves
+// each event as a file of its own beside the repository (the sandbox
+// stream); the first hq process to see new event files appends them to the
+// agent's journal in the order of their names and removes them. Every
+// append takes the one lock of the state directory and gives each event
+// the next number of its one counter: host-wide, never reset, never used
+// twice.
+package journal
+
+import (
+	"path/filepath"
+
+	"github.com/rkrysinski/hq/internal/state"
+)
+
+// Store is the seam to the journals (design §7.2): ingest, append, read.
+// Files is the store; journaltest.Memory its in-memory fake.
+type Store interface {
+	// Ingest appends the event files the hook of agent id of the
+	// repository at root left to the agent's journal, in the order of
+	// their names, and removes them; each is appended exactly once,
+	// whatever processes ingest at once or die while they do.
+	Ingest(root, id string) error
+	// Append numbers events of hq's own (screen, tmux, sbx, hq) and
+	// appends them to the journal of agent id, as they are numbered.
+	Append(id string, events ...state.Event) ([]state.Event, error)
+	// Read is the journal of agent id, read under the lock.
+	Read(id string) (Journal, error)
+	// Remove deletes the journal of agent id and the event files its hook
+	// left in the repository at root, once the agent is gone.
+	Remove(root, id string) error
+}
+
+// Journal is an agent's journal as Read gives it.
+type Journal struct {
+	// Events are the agent's events in the order they were appended, their
+	// numbers rising.
+	Events []state.Event
+	// Reply is what the journal keeps of the latest turn end (Number 0
+	// when there is none).
+	Reply state.Reply
+	// Through is a number such that every event numbered up to it, of any
+	// agent, is in its journal: what the counter held when Events were read.
+	Through int64
+}
+
+// Dir is hq's directory under the user's state directory:
+// $XDG_STATE_HOME/hq, with ~/.local/state as the default; "" when neither
+// is known (a relative XDG_STATE_HOME is ignored, as the XDG rules say).
+func Dir(getenv func(string) string) string {
+	dir := getenv("XDG_STATE_HOME")
+	if !filepath.IsAbs(dir) {
+		home := getenv("HOME")
+		if !filepath.IsAbs(home) {
+			return ""
+		}
+		dir = filepath.Join(home, ".local", "state")
+	}
+	return filepath.Join(dir, "hq")
+}

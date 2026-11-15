@@ -211,7 +211,7 @@ func removeAgents(d deps, as, orphans []agent.Agent) error {
 		if err := traceKill(d, a); err != nil {
 			untraced, traceErr = append(untraced, a.Name), err
 		}
-		_ = d.removeState(a.RepoPath, a.ID)
+		removeAgentFiles(d, a.RepoPath, a.ID)
 	}
 	if traceErr == nil {
 		return killErr

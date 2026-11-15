@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -45,14 +46,15 @@ func TestMain(m *testing.M) {
 	}
 	// Nothing a test runs reads or writes the user's own files: the
 	// preferences file and the trace of kills live under a home of the
-	// tests' own (CI runners set XDG_CONFIG_HOME, #146). A test that needs
-	// its own sets it again.
+	// tests' own (CI runners set XDG_CONFIG_HOME, #146), and so do the
+	// journals. A test that needs its own sets it again.
 	home, err := os.MkdirTemp("", "hq-cli-home-")
 	if err != nil {
 		panic(err)
 	}
 	os.Setenv("HOME", home)
 	os.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	os.Setenv("XDG_STATE_HOME", filepath.Join(home, ".local", "state"))
 	code := m.Run()
 	os.RemoveAll(home)
 	os.Exit(code)
@@ -74,6 +76,8 @@ func newRealHQ(t *testing.T) *realHQ {
 	trace := filepath.Join(t.TempDir(), "kills.log")
 	d.traceKill = func(k kills.Kill) error { return kills.Append(trace, k) }
 	d.readKills = func() ([]kills.Kill, error) { return kills.Read(trace) }
+	// Journals and a counter of each test's own.
+	d.journal = journal.Files{Dir: filepath.Join(t.TempDir(), "hq")}
 	h.d = d
 	return h
 }

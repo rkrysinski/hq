@@ -250,7 +250,7 @@ func launchAgent(d deps, a agent.Agent, resume, prompt string, fresh bool) error
 		// A new agent that never ran leaves no record to restore; a
 		// restored one keeps its own.
 		if fresh {
-			_ = d.removeState(root, id)
+			removeAgentFiles(d, root, id)
 		}
 		return tmuxErr(err)
 	}

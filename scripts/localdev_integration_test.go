@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 var ids atomic.Int64
@@ -111,6 +112,22 @@ func TestStubNativeGivesTheStubSbxHqsOwnPath(t *testing.T) {
 	}
 	if out := d.must("--stub", "native", "ls"); !strings.Contains(out, "a ") {
 		t.Fatalf("ls: %s", out)
+	}
+}
+
+func TestStubGivesHqJournalsOfItsOwn(t *testing.T) {
+	d := newLocalDev(t)
+	d.must("--stub", "native", "new", "a", d.dir()+"/repo", "hello")
+	journals := filepath.Join(d.dir(), "home", ".local", "state", "hq", "journals")
+	for i := 0; ; i++ {
+		d.must("--stub", "native", "ls")
+		if entries, _ := os.ReadDir(journals); len(entries) > 0 {
+			break
+		}
+		if i == 50 {
+			t.Fatalf("no journal in %s", journals)
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
