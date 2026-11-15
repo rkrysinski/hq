@@ -93,7 +93,7 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		h := newHarness(t)
 		one, two := h.Root(), h.Root()
 		for i := range 3 {
-			name := fmt.Sprintf("00000000%d.1", i+1)
+			name := fmt.Sprintf("%09d.1", i+1)
 			h.Leave(one, "a1", name, prompt, at)
 			must(t, h.Store.Ingest(one, "a1"))
 			h.Leave(two, "b2", name, prompt, at)
