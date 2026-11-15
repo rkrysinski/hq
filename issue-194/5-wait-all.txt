@@ -1,0 +1,6 @@
+delivered: typed into a as its next prompt
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   Done: say more
+next: hq wait --since 2026-11-15T14:19:26.61652357Z
+exit 0
+$

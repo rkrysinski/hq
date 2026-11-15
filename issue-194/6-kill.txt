@@ -1,0 +1,11 @@
+a825cfdbe3ba
+a825cfdbe3ba.hq
+a825cfdbe3ba.stop
+killed old; the sandbox stays
+exit 0
+0
+2026-11-15 14:22:07  old in repo (sandbox claude-repo), by hq kill
+NAME   REPO  BRANCH  STATE     AGE  LAST
+newer  repo  -       outdated  -    started by a newer hq: kill it and start it again
+a      repo  main    done      2m   Done: say more
+$

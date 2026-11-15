@@ -1,0 +1,2 @@
+alive      internal/agent/agent.go:88:9 conditionals boundary
+mutation: 15 killed, 1 alive, 0 timed out, 0 not covered against spec-165-agent-state-journal on 80bfaac6bdb401e12e877bd267bc5d18b0661430

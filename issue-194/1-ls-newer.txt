@@ -1,0 +1,5 @@
+NAME   REPO  BRANCH  STATE     AGE  LAST
+newer  repo  -       outdated  -    started by a newer hq: kill it and start it again
+old    repo  -       outdated  -    started by an older hq: kill it and start it again
+a      repo  main    done      48s  Done: say more
+$

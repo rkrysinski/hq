@@ -1,0 +1,7 @@
+ended 3 agents; sandboxes stay
+exit 0
+2026-11-15 14:22:38  lost1 in repo (sandbox claude-repo), by hq kill
+2026-11-15 14:23:02  a in repo (sandbox claude-repo), by hq stop
+2026-11-15 14:23:02  lost2 in repo (sandbox claude-repo), by hq stop
+2026-11-15 14:23:02  newer in repo (sandbox claude-repo), by hq stop
+$

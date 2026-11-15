@@ -1,0 +1,7 @@
+hq pane dead: 0
+a pane dead: 0
+old pane dead: 1
+NAME  REPO  BRANCH  STATE     AGE  LAST
+old   repo  -       outdated  -    started by an older hq: kill it and start it again
+a     repo  main    done      23s  Done: say more
+$

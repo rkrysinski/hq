@@ -1,0 +1,8 @@
+hq: not restarting the sandbox claude-repo: old was started by an older hq: kill it and start it again; newer was started by a new
+er hq: kill it and start it again; nothing was stopped
+exit 1
+NAME   REPO  BRANCH  STATE     AGE  LAST
+newer  repo  -       outdated  -    started by a newer hq: kill it and start it again
+old    repo  -       outdated  -    started by an older hq: kill it and start it again
+a      repo  main    done      2m   Done: say more
+$

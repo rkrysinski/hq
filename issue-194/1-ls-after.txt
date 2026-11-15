@@ -1,0 +1,14 @@
+NAME  REPO  BRANCH  STATE     AGE  LAST
+old   repo  -       outdated  -    started by an older hq: kill it and start it again
+a     repo  main    done      1m   Done: say hi
+exit 0
+      "name": "old",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-524619124/repo",
+      "branch": "",
+      "state": "outdated",
+      "since": "2026-11-15T14:17:29.929Z",
+      "age_seconds": 83,
+      "last": "started by an older hq: kill it and start it again",
+      "sandbox": "claude-repo",
+$

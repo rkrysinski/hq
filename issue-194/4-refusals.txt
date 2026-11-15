@@ -1,0 +1,16 @@
+$ hq read old
+hq: old was started by an older hq: kill it and start it again
+exit 1
+$ hq send old hi
+hq: old was started by an older hq: kill it and start it again
+exit 1
+$ hq answer old --dialog abcdef 1
+hq: old was started by an older hq: kill it and start it again
+exit 1
+$ hq code old
+hq: old was started by an older hq: kill it and start it again
+exit 1
+$ hq wait old --timeout 2s
+hq: old was started by an older hq: kill it and start it again
+exit 1
+$

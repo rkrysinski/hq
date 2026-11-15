@@ -1,0 +1,12 @@
+{"name": "lost1", "sandbox": "claude-repo", "server": "hq-dev-524619124"}
+restored lost2 in repo (sandbox claude-repo)
+not restored lost1 in repo: it was started by an older hq (hq kill lost1 forgets it)
+exit 0
+killed lost1; the sandbox stays
+exit 0
+0
+NAME   REPO  BRANCH  STATE     AGE  LAST
+newer  repo  -       outdated  -    started by a newer hq: kill it and start it again
+lost2  repo  main    done      0s   Done: say hi
+a      repo  main    done      3m   Done: say more
+$
