@@ -1,0 +1,11 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE     AGE  LAST
+qa    repo  main    question  21s  Shall I go on?
+qa2   repo  main    working   4s   Done: background
+
+$ fold the journal of qa2 with state.Reduce (a throwaway tool, not committed)
+event 13 start    SessionStart       000000001.start.2374217
+event 14 prompt   UserPromptSubmit   000000002.prompt.2374246
+event 15 answer   PostToolUse        000000003.answer.2374270
+event 16 stop     Stop               000000004.stop.2374771
+reduced: state="working" last="Done: background" entered=14 changed=14 turn_ended=0 rests_on=[14 15 16] dialog=false

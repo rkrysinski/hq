@@ -1,0 +1,18 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE     AGE  LAST
+qa    repo  main    question  10s  Shall I go on?
+
+$ fold the journal of qa with state.Reduce (a throwaway tool, not committed)
+event 1 start    SessionStart       000000001.start.2355979
+event 2 prompt   UserPromptSubmit   000000002.prompt.2356007
+event 3 answer   PostToolUse        000000003.answer.2356068
+event 4 stop     Stop               000000004.stop.2356309
+event 5 prompt   UserPromptSubmit   000000005.prompt.2360590
+event 6 stop     Stop               000000006.stop.2360682
+event 7 prompt   UserPromptSubmit   000000007.prompt.2362266
+event 8 dialog   PermissionRequest  000000008.dialog.2362589
+event 9 answer   PostToolUse        000000009.answer.2365163
+event 10 stop     Stop               000000010.stop.2365238
+event 11 prompt   UserPromptSubmit   000000011.prompt.2367115
+event 12 stop     Stop               000000012.stop.2367143
+reduced: state="question" last="Shall I go on?" entered=12 changed=12 turn_ended=12 rests_on=[12] dialog=false

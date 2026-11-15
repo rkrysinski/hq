@@ -1,0 +1,21 @@
+$ go test -count=1 -v -run "TestTheReducer|TestFolding|TestTheTimePassed|TestTheResultNames|TestAReportHqCannotRead|TestOwnTasksTake|TestParseEventTakesTheHooksKind" ./internal/state
+=== RUN   TestParseEventTakesTheHooksKindFromTheFilesName
+--- PASS: TestParseEventTakesTheHooksKindFromTheFilesName (0.00s)
+=== RUN   TestTheReducerReadsEveryFixtureJournalAsTheOldReadingDid
+--- PASS: TestTheReducerReadsEveryFixtureJournalAsTheOldReadingDid (0.01s)
+=== RUN   TestFoldingOnFromAKeptPositionIsFoldingFromTheStart
+--- PASS: TestFoldingOnFromAKeptPositionIsFoldingFromTheStart (0.01s)
+=== RUN   TestTheTimePassedInChangesOnlyTheAge
+--- PASS: TestTheTimePassedInChangesOnlyTheAge (0.00s)
+=== RUN   TestTheResultNamesWhereTheStateWasEnteredAndWhereItChanged
+--- PASS: TestTheResultNamesWhereTheStateWasEnteredAndWhereItChanged (0.00s)
+=== RUN   TestTheResultNamesTheTurnEndOfTheLastCompletedTurn
+--- PASS: TestTheResultNamesTheTurnEndOfTheLastCompletedTurn (0.00s)
+=== RUN   TestTheResultNamesTheEventsTheStateRestsOn
+--- PASS: TestTheResultNamesTheEventsTheStateRestsOn (0.00s)
+=== RUN   TestAReportHqCannotReadIsStartingUnlessItIsTooLarge
+--- PASS: TestAReportHqCannotReadIsStartingUnlessItIsTooLarge (0.00s)
+=== RUN   TestOwnTasksTakeTheirTextsFromTheReply
+--- PASS: TestOwnTasksTakeTheirTextsFromTheReply (0.00s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/state	0.026s
