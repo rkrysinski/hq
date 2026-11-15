@@ -97,7 +97,12 @@ func writeTable(w io.Writer, rows []lsRow) error {
 	for _, r := range rows {
 		// LAST starts with the count of its own tasks, which --json lists.
 		last := agent.OwnPrefix(r.OwnTasks) + orDash(r.Last)
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, agent.Age(time.Duration(r.AgeSeconds)*time.Second), truncate(last, lastWidth))
+		// An outdated agent's state, and so its age, is unknown.
+		age := "-"
+		if r.State != state.Outdated {
+			age = agent.Age(time.Duration(r.AgeSeconds) * time.Second)
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, age, truncate(last, lastWidth))
 	}
 	return tw.Flush()
 }

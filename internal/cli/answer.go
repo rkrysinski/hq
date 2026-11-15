@@ -119,6 +119,9 @@ func answer(env Env, d deps, r answerRequest) error {
 	if err != nil {
 		return err
 	}
+	if a.Outdated() {
+		return outdatedErr(a)
+	}
 	det := d.readDetail(a.RepoPath, a.ID)
 	if err := answerable(a, det.Ask); err != nil {
 		return err
@@ -194,7 +197,6 @@ func answer(env Env, d deps, r answerRequest) error {
 // Claude's own that scrolls stay the user's at the agent (spec Phase 2).
 func answerable(a agent.Agent, ask *state.Ask) error {
 	at := fmt.Sprintf("answer it at the agent (hq go %s)", a.Name)
-	relaunch := fmt.Sprintf("relaunch it with %s, or kill it and start it again", restartCommand(a))
 	dialog := a.Dialog()
 	switch {
 	case a.State == state.Ended:
@@ -203,8 +205,6 @@ func answerable(a agent.Agent, ask *state.Ask) error {
 		return scrollsErr(a)
 	case dialog.Whose == agent.OwnDialog:
 		return nil
-	case !a.Answerable():
-		return usageErr("%s was started by an older hq and cannot be answered from hq; %s", a.Name, relaunch)
 	case a.State == state.Question:
 		return usageErr("%s asks in its reply, not in a dialog: answer it with hq send %s TEXT", a.Name, a.Name)
 	case !dialog.Open():

@@ -11,6 +11,7 @@ import (
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 const restoreUsage = "usage: hq restore [REPO]"
@@ -22,7 +23,7 @@ func server(d deps) string { return d.getenv("HQ_TMUX_SOCKET") }
 // keepRecord keeps hq's record of a beside its state files, for hq restore
 // (design §3.3, #140).
 func keepRecord(d deps, a agent.Agent) error {
-	if err := d.writeRecord(a.RepoPath, a.ID, state.Record{Name: a.Name, Sandbox: a.Sandbox, Server: server(d)}); err != nil {
+	if err := d.writeRecord(a.RepoPath, a.ID, state.Record{Name: a.Name, Sandbox: a.Sandbox, Server: server(d), Generation: version.Generation}); err != nil {
 		return envErr("could not keep a record of %s in %s: %v", a.Name, state.Dir(a.RepoPath), err)
 	}
 	return nil
@@ -62,7 +63,7 @@ func lostAgents(d deps, ws []tmux.Window, roots []string) []agent.Agent {
 			if r.Server != server(d) || checkName(r.Name) != nil || slices.ContainsFunc(live, taken) || slices.ContainsFunc(lost, taken) {
 				continue
 			}
-			lost = append(lost, agent.Agent{ID: r.ID, Name: r.Name, RepoPath: root, Sandbox: r.Sandbox})
+			lost = append(lost, agent.Agent{ID: r.ID, Name: r.Name, RepoPath: root, Sandbox: r.Sandbox, Generation: r.Generation})
 		}
 	}
 	return lost
@@ -146,13 +147,20 @@ type restorePlan struct {
 }
 
 // planRestore decides, for each lost agent, whether hq can bring it back
-// (#140): its sandbox must be one of its repository's, its worktree must
-// still be there, and it must have a conversation to continue, as hq
-// sandbox restart takes it from its latest report.
+// (#140): it must be of this hq's generation, as its record says (an
+// outdated agent's files are its older hook's, which hq does not read), its
+// sandbox must be one of its repository's, its worktree must still be
+// there, and it must have a conversation to continue, as hq sandbox restart
+// takes it from its latest report.
 func planRestore(d deps, all []sbx.Sandbox, lost []agent.Agent) []restorePlan {
 	var plans []restorePlan
 	for _, a := range lost {
 		p := restorePlan{a: a}
+		if a.Generation != version.Generation {
+			p.why = "it was " + agent.StartedBy(a.Generation)
+			plans = append(plans, p)
+			continue
+		}
 		r, ok := d.readState(a.RepoPath, a.ID)
 		switch {
 		case !slices.ContainsFunc(sbx.OfRepository(all, a.RepoPath, d.samePath), func(s sbx.Sandbox) bool { return s.Name == a.Sandbox }):

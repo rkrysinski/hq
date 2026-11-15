@@ -886,14 +886,7 @@ func TestAPromptWithAMessageOfTheUsersIsNotTheSupervisors(t *testing.T) {
 	if code, out, _ := g.run("send", "a", "open a PR"); code != 0 || out != "delivered: typed into a as its next prompt\n" {
 		t.Fatalf("exit %d %q", code, out)
 	}
-	// Hooks of an older hq know no supervised turn: nothing to tell them.
-	h := sendFakes(state.Done)
-	h.tmux.windows[1].Options["inbox"] = "1"
-	call(t, mcpSession(t, h), "send", map[string]any{"name": "a", "text": "open a PR"})
-	if len(h.tmux.submitted) != 1 {
-		t.Fatal("not typed into an agent with older hooks")
-	}
-	for name, f := range map[string]*fakes{"with the user's message": f, "from a shell": g, "older hooks": h} {
+	for name, f := range map[string]*fakes{"with the user's message": f, "from a shell": g} {
 		if len(f.announced) != 0 || len(f.withdrawn) != 0 {
 			t.Errorf("%s: announced %v, withdrawn %v", name, f.announced, f.withdrawn)
 		}

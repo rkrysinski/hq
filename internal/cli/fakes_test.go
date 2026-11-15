@@ -12,6 +12,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
@@ -25,6 +26,10 @@ import (
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
+
+// genOption is the home window's option that holds the agent's generation;
+// another value than generation makes it outdated.
+const genOption = agent.GenerationOption
 
 // fakeTmux is an in-memory tmux server.
 type fakeTmux struct {

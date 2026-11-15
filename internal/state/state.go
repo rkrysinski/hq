@@ -20,6 +20,9 @@ const (
 	NeedsInput = "needs input"
 	Done       = "done"
 	Ended      = "ended"
+	// Outdated is the state of an outdated agent (GLOSSARY.md), of another
+	// generation than the hq that looks: no hook's report counts for it.
+	Outdated = "outdated"
 )
 
 // Report is what an agent's state file says.

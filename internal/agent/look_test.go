@@ -65,7 +65,7 @@ func declinedScreen() string {
 
 // lookWindow is an agent's home window, started long before the look.
 func lookWindow(n string) tmux.Window {
-	return tmux.Window{ID: "@" + n, Pane: "%" + n, Name: "a" + n, Options: map[string]string{"id": "id" + n, "name": "a" + n, "started": "100"}}
+	return tmux.Window{ID: "@" + n, Pane: "%" + n, Name: "a" + n, Options: map[string]string{GenerationOption: gen, "id": "id" + n, "name": "a" + n, "started": "100"}}
 }
 
 func reportsOf(rs map[string]state.Report) func(root, id string) (state.Report, bool) {
@@ -329,5 +329,22 @@ func TestTheLookShowsOwnTasksOnlyWhileTheStateIsTheTurnEnds(t *testing.T) {
 	relaunched.Options["started"] = "990"
 	if a := look(relaunched, done, ready, Sandboxes{}); a.OwnTasks != nil {
 		t.Errorf("a report of the session before: %s %+v", a.State, a.OwnTasks)
+	}
+}
+
+// The look settles no outdated agent's screen and records nothing on its
+// window, its pane alive or dead (#194).
+func TestTheLookLeavesAnOutdatedAgentAlone(t *testing.T) {
+	ws := []tmux.Window{
+		{ID: "@1", Pane: "%1", Name: "a", Options: map[string]string{"id": "x", "started": "100"}},
+		{ID: "@2", Pane: "%2", Name: "b", PaneDead: true, Options: map[string]string{"id": "y", "started": "100", GenerationOption: "2"}},
+	}
+	read := func(root, id string) (state.Report, bool) {
+		return state.Report{State: state.Working, Since: time.Unix(200, 0)}, true
+	}
+	st := &fakeStore{screens: map[string]string{"%1": "❯ \n", "%2": "❯ \n"}}
+	as := Look(ws, read, nil, Sandboxes{}, time.Unix(300, 0), st)
+	if as[0].State != state.Outdated || as[1].State != state.Outdated || len(st.calls) != 0 {
+		t.Fatalf("%s %s, calls %v", as[0].State, as[1].State, st.calls)
 	}
 }

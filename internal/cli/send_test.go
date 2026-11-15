@@ -19,7 +19,7 @@ var emptyBox = "● Tests pass.\n" + strings.Repeat("─", 30) + "\n❯ \n" + st
 func sendFakes(st string) *fakes {
 	f := newLsFakes()
 	w := agentWindow("@4", "a", "/w/app", f.now.Add(-time.Minute), false)
-	w.Pane, w.Options["inbox"] = "%4", inboxHooks
+	w.Pane, w.Options["inbox"] = "%4", generation
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, w}
 	if st != "" {
 		f.states["id-a"] = state.Report{State: st, Since: f.now.Add(-time.Second)}
@@ -191,12 +191,12 @@ func TestSendRefusesAnAgentThatCannotReceive(t *testing.T) {
 	if code != ExitUsage || errOut != "hq: a has ended and cannot receive messages; relaunch it with hq sandbox restart app, or kill it and start it again\n" {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
-	// Hooks from an older hq ignore the inbox.
+	// An outdated agent: nothing is left for it (#194).
 	f = sendFakes(state.Done)
-	delete(f.tmux.windows[1].Options, "inbox")
+	delete(f.tmux.windows[1].Options, genOption)
 	code, _, errOut = f.run("send", "a", "hi")
-	if code != ExitUsage || errOut != "hq: a was started by an older hq and cannot receive messages; relaunch it with hq sandbox restart app, or kill it and start it again\n" {
-		t.Fatalf("exit %d %q", code, errOut)
+	if code != ExitUsage || errOut != "hq: a was started by an older hq: kill it and start it again\n" || len(f.inbox["id-a"]) != 0 {
+		t.Fatalf("exit %d %q, inbox %v", code, errOut, f.inbox)
 	}
 	// An agent of a setup's sandbox is relaunched with its setup (#136).
 	f = sendFakes(state.Done)
@@ -420,7 +420,7 @@ func TestAMessageLeftWaitingIsTypedInOnlyAtAnEmptyBoxAtRest(t *testing.T) {
 		"typing":    func(f *fakes) { f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1) },
 		"in box":    func(f *fakes) { f.tmux.screens["%4"] = inBox },
 		"panel":     func(f *fakes) { f.tmux.screens["%4"] = panel },
-		"no inbox":  func(f *fakes) { f.tmux.windows[1].Options["inbox"] = "" },
+		"outdated":  func(f *fakes) { f.tmux.windows[1].Options[genOption] = "" },
 	} {
 		f := waitingFakes()
 		change(f)

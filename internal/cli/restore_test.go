@@ -10,6 +10,7 @@ import (
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 // Sessions of the lost agents' conversations.
@@ -33,8 +34,8 @@ func lostFakes() *fakes {
 		{Name: "claude-lib", Status: "stopped", Workspaces: []string{"/w/lib"}},
 	}
 	f.records = map[string][]state.Record{
-		"/w/app": {{ID: "id-a", Name: "a", Sandbox: "claude-x"}, {ID: "id-d", Name: "d", Sandbox: "hq-local-app"}},
-		"/w/lib": {{ID: "id-c", Name: "c", Sandbox: "claude-lib"}},
+		"/w/app": {{ID: "id-a", Name: "a", Sandbox: "claude-x", Generation: version.Generation}, {ID: "id-d", Name: "d", Sandbox: "hq-local-app", Generation: version.Generation}},
+		"/w/lib": {{ID: "id-c", Name: "c", Sandbox: "claude-lib", Generation: version.Generation}},
 	}
 	f.states["id-a"] = state.Report{State: state.Working, SessionID: sessionA, Cwd: "/w/app/.claude/worktrees/x", Branch: "feat/a"}
 	f.states["id-c"] = state.Report{State: state.Done, SessionID: sessionC, Cwd: "/w/lib"}
@@ -72,7 +73,7 @@ func TestRestoreRelaunchesEveryAgentLostWithTmux(t *testing.T) {
 		}
 		o := w.Options
 		if w.Name != c.name || o["id"] != "id-"+c.name || o["repo"] != c.repo || o["sandbox"] != c.sandbox || o["started"] != agent.Stamp(f.now) ||
-			o["inbox"] != inboxHooks || o["new"] != "" || !f.tmux.started[w.ID] {
+			o[agent.GenerationOption] != generation || o["new"] != "" || !f.tmux.started[w.ID] {
 			t.Fatalf("restored window %+v", w)
 		}
 		argv := strings.Join(f.tmux.argv[w.ID], " ")
@@ -82,7 +83,7 @@ func TestRestoreRelaunchesEveryAgentLostWithTmux(t *testing.T) {
 	}
 	// The record is kept for the next time; a prompt hq mcp left word of
 	// went with the session, so the next prompt is the user's.
-	if got := f.recordOf("id-d"); got != (state.Record{ID: "id-d", Name: "d", Sandbox: "hq-local-app"}) {
+	if got := f.recordOf("id-d"); got != (state.Record{ID: "id-d", Name: "d", Sandbox: "hq-local-app", Generation: version.Generation}) {
 		t.Fatalf("record %+v", got)
 	}
 	if got := strings.Join(f.withdrawn, " "); got != "id-a id-d id-c" {
@@ -110,10 +111,10 @@ func TestRestoreRelaunchesEveryAgentLostWithTmux(t *testing.T) {
 func TestRestoreReportsTheAgentsItCannotRelaunch(t *testing.T) {
 	f := lostFakes()
 	f.records["/w/app"] = append(f.records["/w/app"],
-		state.Record{ID: "id-e", Name: "e", Sandbox: "claude-x"},
-		state.Record{ID: "id-g", Name: "g", Sandbox: "claude-x"},
-		state.Record{ID: "id-h", Name: "h", Sandbox: "hq-gone-app"},
-		state.Record{ID: "id-i", Name: "i", Sandbox: "claude-x"})
+		state.Record{ID: "id-e", Name: "e", Sandbox: "claude-x", Generation: version.Generation},
+		state.Record{ID: "id-g", Name: "g", Sandbox: "claude-x", Generation: version.Generation},
+		state.Record{ID: "id-h", Name: "h", Sandbox: "hq-gone-app", Generation: version.Generation},
+		state.Record{ID: "id-i", Name: "i", Sandbox: "claude-x", Generation: version.Generation})
 	f.states["id-e"] = state.Report{State: state.Done, SessionID: "0000000e-0000-4000-8000-00000000000e", Cwd: "/w/app/.claude/worktrees/gone"}
 	f.states["id-g"] = state.Report{State: state.Done} // a session that never had a prompt
 	f.states["id-h"] = state.Report{State: state.Done, SessionID: "0000000f-0000-4000-8000-00000000000f", Cwd: "/w/app"}
@@ -208,8 +209,8 @@ func TestRestoreEndsTheSessionStillRunningInTheSandbox(t *testing.T) {
 func TestSandboxRestartAlsoRestoresItsLostAgents(t *testing.T) {
 	f := sandboxFakes()
 	f.records = map[string][]state.Record{
-		"/w/app": {{ID: "id-e", Name: "e", Sandbox: "claude-x"}, {ID: "id-g", Name: "g", Sandbox: "claude-x"}},
-		"/w/lib": {{ID: "id-l", Name: "l", Sandbox: "claude-lib"}},
+		"/w/app": {{ID: "id-e", Name: "e", Sandbox: "claude-x", Generation: version.Generation}, {ID: "id-g", Name: "g", Sandbox: "claude-x", Generation: version.Generation}},
+		"/w/lib": {{ID: "id-l", Name: "l", Sandbox: "claude-lib", Generation: version.Generation}},
 	}
 	f.states["id-e"] = state.Report{State: state.Done, SessionID: sessionA, Cwd: "/w/app"}
 	f.states["id-l"] = state.Report{State: state.Done, SessionID: sessionC, Cwd: "/w/lib"}
@@ -272,7 +273,7 @@ func TestNewAndRelaunchKeepTheAgentsRecord(t *testing.T) {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 	w, _ := f.window("n")
-	if got := f.recordOf(w.Options["id"]); got != (state.Record{ID: w.Options["id"], Name: "n", Sandbox: "claude-app", Server: "hq-dev-9"}) {
+	if got := f.recordOf(w.Options["id"]); got != (state.Record{ID: w.Options["id"], Name: "n", Sandbox: "claude-app", Server: "hq-dev-9", Generation: version.Generation}) {
 		t.Fatalf("record %+v", got)
 	}
 
@@ -280,7 +281,7 @@ func TestNewAndRelaunchKeepTheAgentsRecord(t *testing.T) {
 	if code, _, errOut := f.run("sandbox", "restart", "app", "-y"); code != 0 {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
-	if got := f.recordOf("id-b"); got != (state.Record{ID: "id-b", Name: "b", Sandbox: "claude-x"}) {
+	if got := f.recordOf("id-b"); got != (state.Record{ID: "id-b", Name: "b", Sandbox: "claude-x", Generation: version.Generation}) {
 		t.Fatalf("record %+v", got)
 	}
 	if got := f.recordOf("id-c"); got.ID != "" {
@@ -306,7 +307,7 @@ func TestANewAgentThatCouldNotStartLeavesNoRecord(t *testing.T) {
 // could not bring back and why (#140).
 func TestRestoreReportsTheOthersWhenALaunchFails(t *testing.T) {
 	f := lostFakes()
-	f.records["/w/app"] = append(f.records["/w/app"], state.Record{ID: "id-g", Name: "g", Sandbox: "claude-x"})
+	f.records["/w/app"] = append(f.records["/w/app"], state.Record{ID: "id-g", Name: "g", Sandbox: "claude-x", Generation: version.Generation})
 	f.tmux.startErr = errors.New("start failed")
 	code, out, errOut := f.run("restore", "app")
 	if code != ExitEnvironment || out != "not restored g in app: it has no conversation to continue (hq kill g forgets it)\n" || errOut != "hq: start failed\n" {

@@ -86,6 +86,9 @@ func runSandbox(env Env, d deps, args []string) error {
 	if s.cmd == "rm" {
 		return sandboxRm(env, d, sbs, mine, s.yes)
 	}
+	if err := outdatedIn(sbs, mine); err != nil {
+		return err
+	}
 	// After a host restart tmux lists none of their agents: those it lost
 	// are restored, as hq restore does (#140).
 	ws, err := d.tmux.Windows()
@@ -275,6 +278,23 @@ func sandboxRm(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes bool)
 		return envErr("%s", strings.Join(msgs, "; "))
 	}
 	return nil
+}
+
+// outdatedIn refuses to restart the sandboxes while they hold an outdated
+// agent (of mine, their agents): the restart would relaunch it under this
+// hq, which cannot continue it, so the user kills it and starts it again
+// first.
+func outdatedIn(sbs []sbx.Sandbox, mine []agent.Agent) error {
+	var why []string
+	for _, a := range mine {
+		if a.Outdated() {
+			why = append(why, a.OutdatedErr())
+		}
+	}
+	if len(why) == 0 {
+		return nil
+	}
+	return usageErr("not restarting %s: %s; nothing was stopped", sandboxNames(sbs), strings.Join(why, "; "))
 }
 
 // restartCommand is the hq sandbox restart that relaunches a: its
@@ -469,11 +489,11 @@ func relaunchAgent(d deps, a agent.Agent, pane, resume string) error {
 	if err := d.tmux.Respawn(pane, a.RepoPath, argv); err != nil {
 		return tmuxErr(err)
 	}
-	for _, o := range [][2]string{{"ending", ""}, {"started", started}, {"new", ""}, {"inbox", inboxHooks}} {
+	for _, o := range [][2]string{{"ending", ""}, {"started", started}, {"new", ""}, {agent.GenerationOption, generation}} {
 		if err := d.tmux.SetOption(a.Window, o[0], o[1]); err != nil {
 			return tmuxErr(err)
 		}
 	}
-	// An agent an older hq started gets the record hq restore needs.
+	// Its record says the generation it now has, for hq restore.
 	return keepRecord(d, a)
 }

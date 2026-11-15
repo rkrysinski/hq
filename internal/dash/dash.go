@@ -900,6 +900,7 @@ var (
 	cChipKey  = cChip.Foreground(lipgloss.Color("#A78BFA")).Bold(true)
 	cStripGap = lipgloss.NewStyle().Background(cCursor)
 	cByState  = map[string]lipgloss.Style{
+		state.Outdated:   lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
 		state.NeedsInput: lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
 		state.Question:   lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
 		state.Done:       lipgloss.NewStyle().Foreground(lipgloss.Color("#34D399")),
@@ -1219,7 +1220,12 @@ func (c columns) row(a agent.Agent, now time.Time, cursor bool, strip string) st
 		case "STATE":
 			cells = append(cells, paint(st, fit("● "+a.State, col.w)))
 		case "AGE":
-			cells = append(cells, paint(cDim, fit(agent.Age(max(0, now.Sub(a.Since))), col.w)))
+			// An outdated agent's state, and so its age, is unknown.
+			age := ""
+			if !a.Outdated() {
+				age = agent.Age(max(0, now.Sub(a.Since)))
+			}
+			cells = append(cells, paint(cDim, fit(age, col.w)))
 		case "LAST":
 			// The count of its own tasks, dim, before the message (#78).
 			own := ansi.Truncate(agent.OwnPrefix(a.OwnTasks), col.w, "")

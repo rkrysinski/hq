@@ -104,6 +104,9 @@ func runRead(env Env, d deps, args []string) error {
 	if !ok {
 		return notFoundErr("no agent '%s' (see hq ls)", r.name)
 	}
+	if a.Outdated() {
+		return outdatedErr(a)
+	}
 	det := d.readDetail(a.RepoPath, a.ID)
 	if r.offset > 0 && replyChanged(det.ReplyAt, r.since) {
 		return usageErr("%s's reply changed since %s: read it again from its start, without --offset", a.Name, r.since.Format(time.RFC3339Nano))

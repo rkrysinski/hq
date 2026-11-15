@@ -97,7 +97,7 @@ func TestNewStartsAgentInRepositorysSandbox(t *testing.T) {
 	if !f.tmux.started[w.ID] {
 		t.Fatal("window not started")
 	}
-	if w.Options["inbox"] != "3" {
+	if w.Options["inbox"] != generation {
 		t.Fatalf("hooks that deliver messages, tell a supervised turn and hold for an answer not marked: %v", w.Options)
 	}
 	// hq new from a shell is the user's: its prompt is not announced as

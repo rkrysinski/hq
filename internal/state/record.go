@@ -27,6 +27,9 @@ type Record struct {
 	// Server is the tmux server its window is on: the -L socket name hq
 	// ran with, "" for the default server.
 	Server string `json:"server,omitempty"`
+	// Generation is the generation of the hq that last launched it
+	// (version.Generation); 0 in a record an hq kept before it had one.
+	Generation int `json:"generation,omitempty"`
 }
 
 // WriteRecord keeps r as the record of agent id of the repository at root,
