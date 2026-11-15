@@ -1,0 +1,4 @@
+$ hq update; echo "exit $?"
+hq: not updated to v0.4.0: it is of another generation (it names none, this hq 3) and agents exist; end them first with hq stop or hq kill NAME: a (done), b (ended), c (lost)
+exit 1
+$

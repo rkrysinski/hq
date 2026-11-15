@@ -1,0 +1,11 @@
+$ hq new a . hello
+started a in repo (sandbox claude-repo); enter it with: hq go a
+hq v0.3.0 is available - run hq update
+$ LOCAL_DEV_BEFORE=spec-165-agent-state-journal hq --before update; echo "exit $?"
+updated hq v0.1.0 -> v0.3.0
+exit 0
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   20s  Done: hello
+hq v0.3.0 is available - run hq update
+$

@@ -1,0 +1,9 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   1m   Done: hello
+b     repo  main    ended  4s   [session ended]
+hq v0.3.0 is available - run hq update
+$ hq update; echo "exit $?"
+hq: not updated to v0.3.0: it is of another generation (99, this hq 3) and agents exist; end them first with hq stop or hq kill NAME: a (done), b (ended), c (lost)
+exit 1
+$

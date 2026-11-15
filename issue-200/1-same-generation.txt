@@ -1,0 +1,14 @@
+$ hq new a . hello
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started a in repo (sandbox claude-repo); enter it with: hq go a
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   5s   Done: hello
+hq v0.2.0 is available - run hq update
+$ hq update
+updated hq v0.1.0 -> v0.2.0
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   12s  Done: hello
+hq v0.2.0 is available - run hq update
+$

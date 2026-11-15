@@ -1,0 +1,4 @@
+$ SBX_STUB_OLD=0.47.0 hq update; echo "exit $?"
+hq: not updated to v0.3.0: it is of another generation (99, this hq 3) and hq cannot tell whether agents exist: sbx 0.47.0 is too old, 0.48.0 or newer needed; update Docker Sandboxes
+exit 1
+$

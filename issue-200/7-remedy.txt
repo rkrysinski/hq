@@ -1,0 +1,19 @@
+$ hq stop -y
+ended 2 agents; sandboxes stay
+hq v0.3.0 is available - run hq update
+$ hq update; echo "exit $?"
+hq: not updated to v0.3.0: it is of another generation (99, this hq 3) and agents exist; end them first with hq stop or hq kill NAME: c (lost)
+exit 1
+$ hq kill c -y
+killed c; the sandbox stays
+hq v0.3.0 is available - run hq update
+$ hq update; echo "exit $?"
+updated hq v0.1.0 -> v0.3.0
+exit 0
+$ installer; echo "exit $?"
+hq install: installed hq v0.3.0 to ~/.local/bin/hq
+hq install: ~/.local/bin is not on PATH; add it in your shell's profile: export PATH="$HOME/.local/bin:$PATH"
+exit 0
+$ installed --version
+hq v0.3.0
+$

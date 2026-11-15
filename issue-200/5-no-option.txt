@@ -1,0 +1,7 @@
+$ hq update --force; echo "exit $?"
+hq: usage: hq update
+exit 1
+$ hq help | grep update
+  hq update                        replace hq with the latest release
+hq v0.3.0 is available - run hq update
+$

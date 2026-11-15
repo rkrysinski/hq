@@ -1,0 +1,16 @@
+$ installed --version
+hq v0.13.1
+$ hq new a . hello
+started a in repo (sandbox claude-repo); enter it with: hq go a
+hq v0.3.0 is available - run hq update
+$ installer; echo "exit $?"
+hq install: not updated to v0.3.0: the installed hq is from before generations and agents exist; end them first with hq stop or hq kill NAME: a
+exit 1
+$ hq kill a -y
+killed a; the sandbox stays
+hq v0.3.0 is available - run hq update
+$ installer; echo "exit $?"
+hq install: installed hq v0.3.0 to ~/.local/bin/hq
+hq install: ~/.local/bin is not on PATH; add it in your shell's profile: export PATH="$HOME/.local/bin:$PATH"
+exit 0
+$
