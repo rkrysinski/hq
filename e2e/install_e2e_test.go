@@ -3,6 +3,8 @@
 package e2e
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +27,29 @@ func release(t *testing.T, relDir, tag string) {
 	}
 	if err := os.WriteFile(filepath.Join(relDir, "latest"), []byte(tag+"\n"), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// otherGeneration makes the release in dir publish generation 99, which no
+// hq built from this source is, with its checksum.
+func otherGeneration(t *testing.T, dir string) {
+	t.Helper()
+	sums, err := os.ReadFile(filepath.Join(dir, "SHA256SUMS"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256([]byte("99\n"))
+	var lines []string
+	for _, l := range strings.Split(strings.TrimSpace(string(sums)), "\n") {
+		if strings.HasSuffix(l, " GENERATION") {
+			l = hex.EncodeToString(sum[:]) + "  GENERATION"
+		}
+		lines = append(lines, l)
+	}
+	for name, content := range map[string]string{"GENERATION": "99\n", "SHA256SUMS": strings.Join(lines, "\n") + "\n"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -185,16 +210,44 @@ func TestInstallThenUpdate(t *testing.T) {
 		t.Fatalf("update again: %q", out)
 	}
 
-	// A release whose binary does not match its checksum replaces nothing.
+	// A release of another generation, with an agent running: hq update and
+	// the install script refuse it, naming the agent, and replace nothing;
+	// once the agent is killed, the update goes through (ADR 0020).
+	t.Setenv("HQ_TMUX_SOCKET", socket)
+	repo := testutil.GitRepo(t, "app")
+	if code, out := run(t, hq, "new", "a", repo); code != 0 || !strings.Contains(out, "started a in app") {
+		t.Fatalf("new: %d %q", code, out)
+	}
 	release(t, relDir, "v0.3.0")
-	asset := filepath.Join(relDir, "v0.3.0", "hq-"+runtime.GOOS+"-"+runtime.GOARCH)
+	otherGeneration(t, filepath.Join(relDir, "v0.3.0"))
+	refusal := "not updated to v0.3.0: it is of another generation (99, this hq "
+	if code, out := run(t, hq, "update"); code != 1 || !strings.HasPrefix(out, "hq: "+refusal) ||
+		!strings.Contains(out, "end them first with hq stop or hq kill NAME: a (") {
+		t.Fatalf("update across generations: %d %q", code, out)
+	}
+	if out, err := install(); err == nil || !strings.HasPrefix(out, "hq install: "+refusal) || !strings.Contains(out, ": a (") {
+		t.Fatalf("install across generations: %v\n%s", err, out)
+	}
+	if _, out := run(t, hq, "--version"); !strings.HasPrefix(out, "hq v0.2.0\n") {
+		t.Fatalf("--version after a refused update: %q", out)
+	}
+	if code, out := run(t, hq, "kill", "a", "-y"); code != 0 {
+		t.Fatalf("kill: %d %q", code, out)
+	}
+	if code, out := run(t, hq, "update"); code != 0 || out != "updated hq v0.2.0 -> v0.3.0\n" {
+		t.Fatalf("update with no agent: %d %q", code, out)
+	}
+
+	// A release whose binary does not match its checksum replaces nothing.
+	release(t, relDir, "v0.4.0")
+	asset := filepath.Join(relDir, "v0.4.0", "hq-"+runtime.GOOS+"-"+runtime.GOARCH)
 	if err := os.WriteFile(asset, []byte("tampered"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if code, out := run(t, hq, "update"); code != 1 || !strings.Contains(out, "checksum mismatch") {
 		t.Fatalf("tampered update: %d %q", code, out)
 	}
-	if _, out := run(t, hq, "--version"); !strings.HasPrefix(out, "hq v0.2.0\n") {
+	if _, out := run(t, hq, "--version"); !strings.HasPrefix(out, "hq v0.3.0\n") {
 		t.Fatalf("--version after a refused update: %q", out)
 	}
 	if out, err := install(); err == nil || !strings.Contains(out, "checksum mismatch") {

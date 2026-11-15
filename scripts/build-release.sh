@@ -1,7 +1,9 @@
 #!/bin/sh
 # Build the files of a GitHub release: hq for each platform with the version
-# baked in, install.sh, and SHA256SUMS over them (design §3.9, §7.3). The
-# release workflow runs this on every v* tag and uploads OUTDIR.
+# baked in, install.sh, GENERATION (the generation of this hq, as it prints
+# it, which hq update and install.sh read before they replace an hq, ADR
+# 0020), and SHA256SUMS over them (design §3.9, §7.3). The release workflow
+# runs this on every v* tag and uploads OUTDIR.
 #
 # Usage: scripts/build-release.sh vX.Y.Z OUTDIR [GOOS/GOARCH...]
 #        (default: every platform hq ships for)
@@ -30,11 +32,17 @@ for p in $PLATFORMS; do
     echo "built hq-$os-$arch"
 done
 cp "$ROOT/scripts/install.sh" "$OUT/install.sh"
+# The generation comes from the source the binaries were built from, run for
+# this machine (a binary for another platform cannot run here).
+gen=$(cd "$ROOT" && go run ./cmd/hq __generation)
+case $gen in '' | *[!0-9]*) echo "build-release: no generation from hq: '$gen'" >&2; exit 1 ;; esac
+echo "$gen" >"$OUT/GENERATION"
+echo "wrote GENERATION ($gen)"
 
 cd "$OUT"
 if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum hq-* install.sh >SHA256SUMS
+    sha256sum hq-* install.sh GENERATION >SHA256SUMS
 else
-    shasum -a 256 hq-* install.sh >SHA256SUMS
+    shasum -a 256 hq-* install.sh GENERATION >SHA256SUMS
 fi
 echo "wrote SHA256SUMS"

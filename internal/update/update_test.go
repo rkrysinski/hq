@@ -1,8 +1,11 @@
 package update
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -102,5 +105,40 @@ func TestBase(t *testing.T) {
 	env[BaseEnv] = "http://127.0.0.1:8080/o/r/releases/"
 	if Base(getenv) != "http://127.0.0.1:8080/o/r/releases" {
 		t.Fatal(Base(getenv))
+	}
+}
+
+// sumsOf is a SHA256SUMS line for each file, as the release build writes it.
+func sumsOf(files map[string]string) []byte {
+	var b strings.Builder
+	for name, content := range files {
+		sum := sha256.Sum256([]byte(content))
+		b.WriteString(hex.EncodeToString(sum[:]) + "  " + name + "\n")
+	}
+	return []byte(b.String())
+}
+
+// A release's generation counts only once its checksum vouches for it, and
+// only as a number above zero (ADR 0020).
+func TestReadGeneration(t *testing.T) {
+	for want, data := range map[int]string{4: "4\n", 1: "1\n"} {
+		if gen, err := ReadGeneration(sumsOf(map[string]string{GenerationFile: data}), []byte(data)); err != nil || gen != want {
+			t.Fatalf("%q: %d %v", data, gen, err)
+		}
+	}
+	for name, tc := range map[string]struct{ sums, data string }{
+		"tampered":     {"4\n", "5\n"},
+		"not listed":   {"", "4\n"},
+		"not a number": {"four\n", "four\n"},
+		"zero":         {"0\n", "0\n"},
+		"negative":     {"-1\n", "-1\n"},
+	} {
+		sums := sumsOf(map[string]string{"hq-linux-amd64": "bin"})
+		if tc.sums != "" {
+			sums = sumsOf(map[string]string{GenerationFile: tc.sums})
+		}
+		if gen, err := ReadGeneration(sums, []byte(tc.data)); err == nil {
+			t.Errorf("%s: generation %d accepted", name, gen)
+		}
 	}
 }

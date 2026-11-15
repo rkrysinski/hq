@@ -14,7 +14,7 @@ Prerequisites: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`) 0.48.0 or 
 curl -fsSL https://github.com/rkrysinski/hq/releases/latest/download/install.sh | sh
 ```
 
-This installs `hq` to `~/.local/bin` and checks the prerequisites; no GitHub login is needed. `... | HQ_VERSION=vX.Y.Z sh` installs that release instead of the latest. On macOS with iTerm2 it also adds an iTerm2 profile named `hq` with Option as Esc+, which hq gives only to the tab the dashboard runs in, so the Alt chords work with no setup.
+This installs `hq` to `~/.local/bin` and checks the prerequisites; no GitHub login is needed. `... | HQ_VERSION=vX.Y.Z sh` installs that release instead of the latest. Run over an hq installed already, it is an update like `hq update` (below) and refuses a release of another generation in the same way while that hq has agents. On macOS with iTerm2 it also adds an iTerm2 profile named `hq` with Option as Esc+, which hq gives only to the tab the dashboard runs in, so the Alt chords work with no setup.
 
 ### Setting up sbx
 
@@ -84,6 +84,8 @@ hq works with any template, with one condition for `hq answer`: the template's o
 `HQ_PLATFORM=native` in `~/.bashrc`, once the way to the Linux `sbx`, is no longer needed and turns off the taskbar flash and `hq go` raising the window: remove it, open a new terminal and run `hq mcp install` again (`hq mcp install` says so while it is set).
 
 When a newer release is out, hq says so after a command's output (`hq v0.4.0 is available - run hq update`), in the dashboard's header and in `hq --version`; `hq update` moves to it. hq looks at most once a day, in the background, so no command waits for GitHub.
+
+Most releases update with your agents running, and they carry on untouched. A release that changes what agents report, or how hq keeps it, has another *generation*: an hq of one generation cannot read an agent started by another, so `hq update` (and the install command run over an installed hq) refuses such a release while any agent exists, running, ended or lost, and names them; nothing is replaced. End them with `hq stop` (and `hq kill NAME` for a lost one) and run `hq update` again. There is no option to update anyway.
 
 ## Everyday use
 

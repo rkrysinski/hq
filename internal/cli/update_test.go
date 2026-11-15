@@ -6,11 +6,17 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/prefs"
+	"github.com/rkrysinski/hq/internal/proc"
+	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/state"
+	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/update"
 	"github.com/rkrysinski/hq/internal/version"
 )
 
@@ -20,13 +26,29 @@ func withVersion(t *testing.T, v string) {
 	t.Cleanup(func() { version.Version = old })
 }
 
-// publish adds a release whose binary for the fake platform is content.
+// publish adds a release of this hq's generation whose binary for the fake
+// platform is content.
 func (f *fakes) publish(tag, content string) {
-	sum := sha256.Sum256([]byte(content))
-	f.releases.files[tag] = map[string][]byte{
-		"hq-testos-testarch": []byte(content),
-		"SHA256SUMS":         []byte(hex.EncodeToString(sum[:]) + "  hq-testos-testarch\n"),
+	f.publishOf(tag, content, strconv.Itoa(version.Generation))
+}
+
+// publishOf adds a release whose binary for the fake platform is content,
+// publishing the generation gen, or none when gen is empty (a release from
+// before generations).
+func (f *fakes) publishOf(tag, content, gen string) {
+	files := map[string][]byte{"hq-testos-testarch": []byte(content)}
+	if gen != "" {
+		files[update.GenerationFile] = []byte(gen + "\n")
 	}
+	var sums strings.Builder
+	for _, name := range []string{"hq-testos-testarch", update.GenerationFile} {
+		if data, ok := files[name]; ok {
+			sum := sha256.Sum256(data)
+			sums.WriteString(hex.EncodeToString(sum[:]) + "  " + name + "\n")
+		}
+	}
+	files[update.SumsFile] = []byte(sums.String())
+	f.releases.files[tag] = files
 	f.releases.latest = tag
 }
 
@@ -84,8 +106,11 @@ func TestUpdateChecksumMismatchReplacesNothing(t *testing.T) {
 func TestUpdateErrors(t *testing.T) {
 	withVersion(t, "v0.1.0")
 	f := newFakes()
-	if code, _, _ := f.run("update", "now"); code != ExitUsage {
-		t.Fatalf("args: exit %d", code)
+	// No option updates anyway (ADR 0020).
+	for _, arg := range []string{"now", "--force", "-f", "-y", "--yes"} {
+		if code, _, errOut := f.run("update", arg); code != ExitUsage || errOut != "hq: usage: hq update\n" {
+			t.Fatalf("%s: exit %d %q", arg, code, errOut)
+		}
 	}
 	f.releases.err = errors.New("no release at https://github.com/rkrysinski/hq/releases")
 	if code, _, errOut := f.run("update"); code != ExitEnvironment || errOut != "hq: could not read hq's releases: no release at https://github.com/rkrysinski/hq/releases\n" {
@@ -197,6 +222,8 @@ func TestUpdateDuties(t *testing.T) {
 		{[]string{chordCommand, "next"}, false, false},
 		{[]string{itermProfileCommand}, false, false},
 		{[]string{updateCheckCommand}, false, false},
+		{[]string{mayUpdateCommand, "v1.0.0", "4"}, false, false},
+		{[]string{generationCommand}, false, false},
 		{[]string{"nope"}, false, false},
 	} {
 		if check, notice := updateDuties(tc.args); check != tc.check || notice != tc.notice {
@@ -272,5 +299,185 @@ func TestDue(t *testing.T) {
 		if due(checked, now) != want {
 			t.Errorf("due(%d) != %v", checked, want)
 		}
+	}
+}
+
+// other is a generation that is not this hq's.
+var other = strconv.Itoa(version.Generation + 1)
+
+// inTheWayFakes has hq v0.1.0 installed as "old" and, on this tmux server,
+// the agent a working and b ended (its pane dead), in app's running
+// sandbox claude-x, and c lost in lib, whose sandbox claude-lib is stopped.
+func inTheWayFakes(t *testing.T) *fakes {
+	f := newLsFakes()
+	installed(t, f, "old")
+	f.sbx.sandboxes = []sbx.Sandbox{
+		{Name: "claude-x", Status: "running", Workspaces: []string{"/w/app"}},
+		{Name: "claude-lib", Status: "stopped", Workspaces: []string{"/w/lib"}},
+	}
+	f.tmux.windows = []tmux.Window{
+		{ID: "@0", Name: "hq", Options: map[string]string{}},
+		agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false),
+		agentWindow("@2", "b", "/w/app", f.now.Add(-time.Hour), true),
+	}
+	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Minute), Last: "on it"}
+	f.records = map[string][]state.Record{"/w/lib": {{ID: "id-c", Name: "c", Sandbox: "claude-lib", Generation: version.Generation}}}
+	return f
+}
+
+// replaced fails the test unless hq's binary holds want.
+func replaced(t *testing.T, f *fakes, want string) {
+	t.Helper()
+	if data, _ := os.ReadFile(f.exe); string(data) != want {
+		t.Fatalf("binary %q, want %q", data, want)
+	}
+}
+
+// An update within hq's generation goes through with agents running and
+// leaves them as they were (ADR 0020).
+func TestUpdateWithinTheGenerationLeavesTheAgents(t *testing.T) {
+	withVersion(t, "v0.1.0")
+	f := inTheWayFakes(t)
+	before := f.names()
+	f.publish("v0.2.0", "new")
+	if code, out, errOut := f.run("update"); code != 0 || out != "updated hq v0.1.0 -> v0.2.0\n" || errOut != "" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	replaced(t, f, "new")
+	if f.names() != before || len(f.sbx.calls) != 0 || len(f.records["/w/lib"]) != 1 {
+		t.Fatalf("agents touched: %q, sbx %q, records %v", f.names(), f.sbx.calls, f.records)
+	}
+}
+
+// An update across generations with no agent anywhere replaces hq.
+func TestUpdateAcrossGenerationsWithNoAgent(t *testing.T) {
+	for _, gen := range []string{other, ""} {
+		withVersion(t, "v0.1.0")
+		f := newLsFakes()
+		installed(t, f, "old")
+		f.publishOf("v0.2.0", "new", gen)
+		if code, out, errOut := f.run("update"); code != 0 || out != "updated hq v0.1.0 -> v0.2.0\n" {
+			t.Fatalf("generation %q: exit %d %q %q", gen, code, out, errOut)
+		}
+		replaced(t, f, "new")
+	}
+}
+
+// An update across generations is refused while any agent hq knows exists,
+// running, ended or lost: nothing is replaced, the exit code is 1, and the
+// line names the release, the reason, the remedy and each agent with its
+// state. A release that publishes no generation counts as another; a dev
+// build compares the same way (ADR 0020).
+func TestUpdateAcrossGenerationsIsRefusedWhileAgentsExist(t *testing.T) {
+	for _, tc := range []struct{ version, gen, theirs string }{
+		{"v0.1.0", other, other},
+		{"v0.1.0", "", "it names none"},
+		{"dev", other, other},
+	} {
+		withVersion(t, tc.version)
+		f := inTheWayFakes(t)
+		f.publishOf("v0.2.0", "new", tc.gen)
+		code, out, errOut := f.run("update")
+		want := "hq: not updated to v0.2.0: it is of another generation (" + tc.theirs + ", this hq " + generation +
+			") and agents exist; end them first with hq stop or hq kill NAME: a (working), b (ended), c (lost)\n"
+		if code != ExitUsage || out != "" || errOut != want {
+			t.Fatalf("%s, generation %q: exit %d %q\n%q\nwant\n%q", tc.version, tc.gen, code, out, errOut, want)
+		}
+		replaced(t, f, "old")
+	}
+	// Each kind of agent alone is in the way.
+	for name, only := range map[string]func(f *fakes){
+		"running": func(f *fakes) { f.tmux.windows = f.tmux.windows[:2]; f.records = nil },
+		"ended":   func(f *fakes) { f.tmux.windows = append(f.tmux.windows[:1], f.tmux.windows[2]); f.records = nil },
+		"lost":    func(f *fakes) { f.tmux.windows = nil },
+	} {
+		withVersion(t, "v0.1.0")
+		f := inTheWayFakes(t)
+		only(f)
+		f.publishOf("v0.2.0", "new", other)
+		if code, _, errOut := f.run("update"); code != ExitUsage || strings.Count(errOut, " (") != 2 {
+			t.Fatalf("%s: exit %d %q", name, code, errOut)
+		}
+		replaced(t, f, "old")
+	}
+}
+
+// When hq cannot tell whether agents exist, because sbx does not answer, is
+// too old or is not there, or tmux fails, an update across generations is
+// refused with the reason, exit code 1, and nothing is replaced; an update
+// within the generation does not ask (ADR 0020).
+func TestUpdateAcrossGenerationsIsRefusedWhenHqCannotTell(t *testing.T) {
+	refused := "hq: not updated to v0.2.0: it is of another generation (" + other + ", this hq " + generation + ") and hq cannot tell whether agents exist: "
+	for _, tc := range []struct {
+		sbxErr, tmuxErr error
+		why             string
+	}{
+		{sbxErr: &proc.Error{Name: "sbx", Msg: "no answer within 5s"}, why: "sbx: no answer within 5s"},
+		{sbxErr: &sbx.TooOldError{Version: "0.47.0"}, why: "sbx 0.47.0 is too old, 0.48.0 or newer needed; update Docker Sandboxes"},
+		{sbxErr: &proc.Error{Name: "sbx", Msg: "sbx not found", NotFound: true}, why: "sbx not found; install Docker Sandboxes"},
+		{tmuxErr: errors.New("tmux: lost server"), why: "tmux: lost server"},
+	} {
+		withVersion(t, "v0.1.0")
+		f := newLsFakes()
+		installed(t, f, "old")
+		f.sbx.err, f.tmux.windowsErr = tc.sbxErr, tc.tmuxErr
+		f.publishOf("v0.2.0", "new", other)
+		if code, _, errOut := f.run("update"); code != ExitUsage || errOut != refused+tc.why+"\n" {
+			t.Fatalf("exit %d %q, want %q", code, errOut, refused+tc.why)
+		}
+		replaced(t, f, "old")
+		f.publish("v0.2.0", "new")
+		if code, _, errOut := f.run("update"); code != 0 {
+			t.Fatalf("same generation: exit %d %q", code, errOut)
+		}
+		replaced(t, f, "new")
+	}
+}
+
+// A generation hq cannot read, or one its checksums do not vouch for, stops
+// the update before anything is replaced.
+func TestUpdateStopsOnAGenerationItCannotRead(t *testing.T) {
+	withVersion(t, "v0.1.0")
+	f := newLsFakes()
+	installed(t, f, "old")
+	f.publish("v0.2.0", "new")
+	f.releases.files["v0.2.0"][update.GenerationFile] = []byte(other + "\n")
+	if code, _, errOut := f.run("update"); code != ExitEnvironment || errOut != "hq: could not read the generation of hq v0.2.0: checksum mismatch for GENERATION; nothing was replaced\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	replaced(t, f, "old")
+}
+
+// install.sh asks the installed hq its generation, and then whether it may
+// replace it; the answer is hq update's (ADR 0020).
+func TestTheInstalledHqAnswersTheInstallScript(t *testing.T) {
+	f := inTheWayFakes(t)
+	if code, out, _ := f.run(generationCommand); code != 0 || out != generation+"\n" {
+		t.Fatalf("generation: exit %d %q", code, out)
+	}
+	if code, out, errOut := f.run(mayUpdateCommand, "v0.2.0", generation); code != 0 || out != "" || errOut != "" {
+		t.Fatalf("same generation: exit %d %q %q", code, out, errOut)
+	}
+	for _, gen := range []string{other, ""} {
+		code, out, errOut := f.run(mayUpdateCommand, "v0.2.0", gen)
+		if code != ExitUsage || out != "" || !strings.HasPrefix(errOut, "hq: not updated to v0.2.0: it is of another generation") ||
+			!strings.HasSuffix(errOut, ": a (working), b (ended), c (lost)\n") {
+			t.Fatalf("generation %q: exit %d %q %q", gen, code, out, errOut)
+		}
+	}
+	f = newLsFakes()
+	// Generation 1 is the first there can be.
+	for _, gen := range []string{other, "1"} {
+		if code, _, errOut := f.run(mayUpdateCommand, "v0.2.0", gen); code != 0 || errOut != "" {
+			t.Fatalf("no agent, generation %s: exit %d %q", gen, code, errOut)
+		}
+	}
+	for _, args := range [][]string{{}, {"v0.2.0"}, {"", other}, {"v0.2.0", "x"}, {"v0.2.0", "0"}, {"v0.2.0", other, "--force"}} {
+		if code, _, errOut := f.run(append([]string{mayUpdateCommand}, args...)...); code != ExitUsage || errOut != "hq: usage: hq __may-update TAG GENERATION\n" {
+			t.Fatalf("%q: exit %d %q", args, code, errOut)
+		}
+	}
+	if code, _, errOut := f.run(generationCommand, "x"); code != ExitUsage || errOut != "hq: usage: hq __generation\n" {
+		t.Fatalf("generation x: exit %d %q", code, errOut)
 	}
 }

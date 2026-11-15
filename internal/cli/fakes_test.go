@@ -25,6 +25,7 @@ import (
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/update"
 )
 
 // genOption is the home window's option that holds the agent's generation;
@@ -532,6 +533,15 @@ func (r *fakeReleases) Download(tag, dir string, files ...string) error {
 		}
 	}
 	return nil
+}
+
+func (r *fakeReleases) Generation(tag string) (int, bool, error) {
+	data, ok := r.files[tag][update.GenerationFile]
+	if !ok {
+		return 0, false, nil
+	}
+	gen, err := update.ReadGeneration(r.files[tag][update.SumsFile], data)
+	return gen, err == nil, err
 }
 
 type fakes struct {
