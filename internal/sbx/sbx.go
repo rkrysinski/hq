@@ -41,11 +41,11 @@ const MinVersion = "0.48.0"
 type TooOldError struct{ Version string }
 
 func (e *TooOldError) Error() string {
-	sbx := "sbx"
+	found := "sbx"
 	if e.Version != "" {
-		sbx += " " + e.Version
+		found += " " + e.Version
 	}
-	return sbx + " is too old, " + MinVersion + " or newer needed; update Docker Sandboxes"
+	return found + " is too old, " + MinVersion + " or newer needed; update Docker Sandboxes"
 }
 
 // List returns every sandbox. sbx ls --json prints their array; the object

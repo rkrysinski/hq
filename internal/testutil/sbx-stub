@@ -38,7 +38,11 @@ put() {
 }
 # unknown CMD FLAG fails as sbx fails a flag it does not know.
 unknown() {
-    printf 'error: unknown flag: %s\n  try: sbx %s --help\n' "$2" "$1" >&2
+    case $2 in
+    --*) what="flag: $2" ;;
+    *) what="shorthand flag: '${2#-}' in $2" ;;
+    esac
+    printf 'error: unknown %s\n  try: sbx %s --help\n' "$what" "$1" >&2
     exit 1
 }
 # create STATUS ARGS... is sbx create, and sbx run --detach, as ARGS

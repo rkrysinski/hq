@@ -181,3 +181,19 @@ func TestAnSbxOlderThanTheMinimum(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+// The stub refuses the spellings of an sbx older than 0.48 as sbx 0.48 and
+// newer refuse them (#172).
+func TestTheStubRefusesTheSpellingsBeforeTheMinimum(t *testing.T) {
+	bin, _ := testutil.SbxStub(t)
+	for _, c := range []struct{ args, want string }{
+		{"create --quiet claude /w/app", "error: unknown flag: --quiet; try: sbx create --help"},
+		{"create -q claude /w/app", "error: unknown shorthand flag: 'q' in -q; try: sbx create --help"},
+		{"run --detached --name x claude /w/app", "error: unknown flag: --detached; try: sbx run --help"},
+	} {
+		_, err := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}.run(strings.Fields(c.args)...)
+		if err == nil || !strings.HasSuffix(err.Error(), c.want) {
+			t.Errorf("%s: %v", c.args, err)
+		}
+	}
+}
