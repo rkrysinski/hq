@@ -34,7 +34,7 @@ func chord(d deps, action string) error {
 	if err != nil {
 		return tmuxErr(err)
 	}
-	as := agent.Look(ws, d.readAgent, d.takeQueued, agent.Sandboxes{}, d.now(), d.tmux)
+	as := agent.Look(ws, d.readAgent, d.takeQueued, agent.Sandboxes{}, d.now(), d.store())
 	var docked agent.Agent
 	for _, a := range as {
 		if a.Docked {

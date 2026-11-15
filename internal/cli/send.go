@@ -269,6 +269,11 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 	}
 	ps := prompts(all)
 	msgs := ps[0]
+	// The delivery is in the agent's journal before the prompt is typed,
+	// so the prompt Claude reports comes after it; it names only the
+	// messages of this prompt, which the held ones are not (#195).
+	names := messageNames(msgs)
+	appendEvent(d, a.ID, state.KindDelivery, state.Facts{At: state.AtTyped, Messages: names})
 	texts := make([]string, len(msgs))
 	supervised := true
 	for i, m := range msgs {
@@ -286,11 +291,12 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 		if supervised {
 			_ = d.withdraw(a.RepoPath, a.ID)
 		}
-		// Back into the inbox, in the order sent: the hooks deliver them
-		// with the next prompt.
+		// Back into the inbox, in the order sent, each under its name: the
+		// hooks deliver them with the next prompt.
 		for _, m := range all {
 			_ = d.postMessage(a.RepoPath, a.ID, m, false)
 		}
+		appendWithdrawn(d, a.ID, state.KindDelivery, names)
 		return "", tmuxErr(err)
 	}
 	// The others wait for the agent's next prompts, where the hooks do not

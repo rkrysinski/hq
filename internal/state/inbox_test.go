@@ -143,3 +143,22 @@ func TestInboxDirIsBesideTheStateFiles(t *testing.T) {
 		t.Fatal("a time for a bad id")
 	}
 }
+
+// A message keeps the name it was first left under (Message.Name) when hq
+// holds it or puts it back: a name of the inbox itself, never a path.
+func TestOnlyAMessagesNameIsKept(t *testing.T) {
+	name := messageName(time.Unix(0, 7), "0a0b0c0d", true, true)
+	for n, want := range map[string]bool{
+		name:                     true,
+		"":                       false,
+		".taken-1":               false,
+		"held":                   false,
+		"1/../../x":              false,
+		strings.Repeat("1", 100): true,
+		strings.Repeat("1", 101): false,
+	} {
+		if got := keptName(n); got != want {
+			t.Errorf("%q: %v, want %v", n, got, want)
+		}
+	}
+}

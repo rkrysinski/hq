@@ -12,6 +12,7 @@ import (
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/state"
 )
 
 const sandboxUsage = "usage: hq sandbox rm|restart REPO|SANDBOX [--setup NAME|--all-setups] [-y]"
@@ -355,6 +356,7 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 	// now on: sbx lists the sandbox as running until the stop is done, which
 	// takes seconds (S9).
 	for _, a := range mine {
+		appendEvent(d, a.ID, state.KindTakenDown, state.Facts{})
 		if err := d.tmux.SetOption(a.Window, "ending", "1"); err != nil {
 			return tmuxErr(err)
 		}
@@ -486,7 +488,9 @@ func relaunchAgent(d deps, a agent.Agent, pane, resume string) error {
 	// agent with: its next prompt is the user's.
 	_ = d.withdraw(a.RepoPath, a.ID)
 	argv := d.sbx.RunArgv(a.Sandbox, claudeArgs(a.Name, a.ID, resume, "")...)
+	appendEvent(d, a.ID, state.KindRelaunched, state.Facts{Session: resume})
 	if err := d.tmux.Respawn(pane, a.RepoPath, argv); err != nil {
+		appendWithdrawn(d, a.ID, state.KindRelaunched, nil)
 		return tmuxErr(err)
 	}
 	for _, o := range [][2]string{{"ending", ""}, {"started", started}, {"new", ""}, {agent.GenerationOption, generation}} {

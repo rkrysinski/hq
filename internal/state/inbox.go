@@ -50,6 +50,10 @@ type Message struct {
 	Supervisor bool
 	// Sent is when it was sent, for a message Take took: Hold keeps it.
 	Sent time.Time
+	// Name is the name it was left under in the inbox, for a message Take
+	// took: Hold, and Post putting it back, keep it, so every delivery of
+	// it names it as it was first left (spec #165, story 46).
+	Name string
 }
 
 // MessageLabel starts each message the hooks deliver, so Claude, and the
@@ -125,6 +129,12 @@ func messageName(at time.Time, random string, supervisor, now bool) string {
 	return name
 }
 
+// keptName reports whether name is one a message can keep: a message's
+// name, of no other directory.
+func keptName(name string) bool {
+	return isMessage(name) && filepath.Base(name) == name && len(name) <= 100
+}
+
 // isMessage reports whether a file in an inbox is a message: temporary
 // files and the directories deliveries take messages into start with a dot.
 func isMessage(name string) bool { return name != "" && name[0] >= '0' && name[0] <= '9' }
@@ -156,6 +166,9 @@ func Hold(root, id string, msgs []Message) error {
 			at = time.Now()
 		}
 		path, err := write(dir, m, false, at)
+		if errors.Is(err, fs.ErrExist) {
+			err = fmt.Errorf("a message named %s is held already", m.Name)
+		}
 		if err != nil {
 			// None of them held, so that a caller putting them back
 			// delivers none twice.
@@ -181,7 +194,8 @@ func Held(root, id string) int {
 // Post leaves m for agent id of the repository at root, sent at at; now
 // asks for delivery after Claude's next tool call. The message is written
 // beside the others and renamed into place, so a hook never reads half of
-// it.
+// it. A message Take took is put back under its name, which says when it
+// was sent and how (at and now aside).
 func Post(root, id string, m Message, now bool, at time.Time) error {
 	if !idRE.MatchString(id) {
 		return errors.New("not an agent id")
@@ -195,17 +209,31 @@ func Post(root, id string, m Message, now bool, at time.Time) error {
 }
 
 // write writes m, sent at at, into the directory dir of an inbox, beside
-// the others, and renames it into place; it returns its path.
+// the others, and renames it into place; it returns its path. A message
+// with a name (Message.Name) keeps it, and is not written over another of
+// that name (fs.ErrExist).
 func write(dir string, m Message, now bool, at time.Time) (string, error) {
-	r := make([]byte, 4)
-	_, _ = rand.Read(r)
-	name := messageName(at, hex.EncodeToString(r), m.Supervisor, now)
+	name := m.Name
+	if !keptName(name) {
+		r := make([]byte, 4)
+		_, _ = rand.Read(r)
+		name = messageName(at, hex.EncodeToString(r), m.Supervisor, now)
+	}
 	tmp := filepath.Join(dir, "."+name)
 	if err := os.WriteFile(tmp, encodeMessage(CleanMessage(m.Text)), 0o644); err != nil {
 		os.Remove(tmp)
 		return "", err
 	}
 	path := filepath.Join(dir, name)
+	if keptName(m.Name) {
+		// A link fails where the name is taken, as a rename would not.
+		err := os.Link(tmp, path)
+		os.Remove(tmp)
+		if err != nil {
+			return "", err
+		}
+		return path, nil
+	}
 	if err := os.Rename(tmp, path); err != nil {
 		os.Remove(tmp)
 		return "", err
@@ -275,7 +303,7 @@ func sentAt(name string) (time.Time, bool) {
 
 // Take takes every message waiting for agent id of the repository at root
 // out of its inbox, held ones included, oldest first, for hq to deliver
-// itself. A message a hook took first is not among them. A file that is no
+// itself, each with the name it was left under (Message.Name). A message a hook took first is not among them. A file that is no
 // message (a link, a file too big, one that does not decode) is taken and
 // dropped.
 func Take(root, id string) ([]Message, error) {
@@ -305,7 +333,7 @@ func Take(root, id string) ([]Message, error) {
 		}
 		if text, err := decodeMessage(data); err == nil && text != "" {
 			sent, _ := sentAt(base)
-			msgs = append(msgs, Message{Text: text, Supervisor: fromSupervisor(base), Sent: sent})
+			msgs = append(msgs, Message{Text: text, Supervisor: fromSupervisor(base), Sent: sent, Name: base})
 		}
 	}
 	return msgs, nil

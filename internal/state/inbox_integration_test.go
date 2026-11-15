@@ -363,3 +363,42 @@ func TestHeldMessagesWaitForHqAloneInTheOrderSent(t *testing.T) {
 		t.Fatal("held where the held directory cannot be")
 	}
 }
+
+// Taken, held and put back, a message keeps the name it was left under, so
+// every delivery of it names it as hq send left it (#195): the delivery
+// event of hq typing it in, and of the hook.
+func TestAMessageKeepsItsNameWhenHeldOrPutBack(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	post(t, root, id, true, "first")
+	post(t, root, id, false, "/probe second")
+	names := messages(InboxDir(root, id))
+	taken, err := Take(root, id)
+	if err != nil || len(taken) != 2 || taken[0].Name != names[0] || taken[1].Name != names[1] {
+		t.Fatalf("took %+v %v, names %v", taken, err, names)
+	}
+	if err := Hold(root, id, taken[1:]); err != nil {
+		t.Fatal(err)
+	}
+	if got := messages(filepath.Join(InboxDir(root, id), "held")); len(got) != 1 || got[0] != names[1] {
+		t.Fatalf("held %v", got)
+	}
+	// A held message of that name is there already: none is held twice.
+	if err := Hold(root, id, taken[1:]); err == nil || !strings.Contains(err.Error(), "held already") {
+		t.Fatalf("held twice: %v", err)
+	}
+	// The first put back after a failed typing, the held one taken again.
+	if err := Post(root, id, taken[0], false, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if got := messages(InboxDir(root, id)); len(got) != 1 || got[0] != names[0] || !strings.HasSuffix(got[0], ".now") {
+		t.Fatalf("put back %v, want %s", got, names[0])
+	}
+	if err := Post(root, id, taken[0], false, time.Now()); err == nil {
+		t.Fatal("put back over a message of its name")
+	}
+	again, err := Take(root, id)
+	if err != nil || len(again) != 2 || again[0].Name != names[0] || again[1].Name != names[1] || again[0].Text != "first" {
+		t.Fatalf("took again %+v %v", again, err)
+	}
+}

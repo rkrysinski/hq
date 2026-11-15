@@ -157,7 +157,7 @@ func agentsInTheWay(d deps) ([]string, *Error) {
 		running.Running[s.Name] = s.Running()
 	}
 	var in []string
-	for _, a := range agent.Look(ws, d.readState, d.takeQueued, running, d.now(), d.tmux) {
+	for _, a := range agent.Look(ws, d.readAgent, d.takeQueued, running, d.now(), d.store()) {
 		in = append(in, a.Name+" ("+a.State+")")
 	}
 	for _, a := range lostAgents(d, ws, knownRepositories(d, all)) {

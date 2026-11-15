@@ -95,7 +95,8 @@ func (m *Memory) Ingest(root, id string) error {
 	return nil
 }
 
-// Append numbers events and appends them to the journal of agent id
+// Append numbers events and appends them to the journal of agent id,
+// setting aside what the journal shows to be a duplicate or overtaken
 // (journal.Store).
 func (m *Memory) Append(id string, events ...state.Event) ([]state.Event, error) {
 	if !state.IsID(id) {
@@ -107,9 +108,10 @@ func (m *Memory) Append(id string, events ...state.Event) ([]state.Event, error)
 	for _, e := range events {
 		m.counter++
 		e.Number = m.counter
+		e.Aside = journal.Aside(m.journals[id], e)
 		out = append(out, e)
+		m.journals[id] = append(m.journals[id], e)
 	}
-	m.journals[id] = append(m.journals[id], out...)
 	return out, nil
 }
 

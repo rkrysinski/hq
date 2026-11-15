@@ -12,6 +12,7 @@ import (
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 	"github.com/rkrysinski/hq/internal/version"
 )
@@ -242,6 +243,12 @@ func launchAgent(d deps, a agent.Agent, resume, prompt string, fresh bool) error
 	// The first prompt of an agent the supervisor starts is the
 	// supervisor's (spec §5); without the word it notifies, as the user's.
 	supervised := d.supervisor && prompt != "" && d.announce(root, id) == nil
+	// The launch is in the agent's journal before its session can report.
+	how := "restore"
+	if fresh {
+		how = "new"
+	}
+	appendEvent(d, id, state.KindLaunched, state.Facts{Start: how, Session: resume})
 	if err := d.tmux.Start(win); err != nil {
 		if supervised {
 			_ = d.withdraw(root, id)
@@ -251,6 +258,8 @@ func launchAgent(d deps, a agent.Agent, resume, prompt string, fresh bool) error
 		// restored one keeps its own.
 		if fresh {
 			removeAgentFiles(d, root, id)
+		} else {
+			appendWithdrawn(d, id, state.KindLaunched, nil)
 		}
 		return tmuxErr(err)
 	}

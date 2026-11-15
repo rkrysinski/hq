@@ -22,9 +22,72 @@ type Event struct {
 	Kind   string    `json:"kind"`
 	Time   time.Time `json:"time"`
 	// File is the name of the event file an event of the hook came from.
-	File  string `json:"file,omitempty"`
+	File string `json:"file,omitempty"`
+	// Basis is the number of the last event of the hook an event of hq's
+	// own (screen, tmux, sbx, hq) was based on, 0 before the first: its
+	// place among the hook's events, which no clock decides.
+	Basis int64 `json:"basis,omitempty"`
+	// Aside is why the event was set aside, when it was: AsideDuplicate or
+	// AsideOvertaken. An event set aside stays in the journal and changes
+	// nothing.
+	Aside string `json:"aside,omitempty"`
 	Facts Facts  `json:"facts"`
 }
+
+// The two reasons an event is set aside (spec #165): another hq process
+// appended the same evidence first, or a report of the hook later than
+// the evidence's basis was appended before it.
+const (
+	AsideDuplicate = "duplicate"
+	AsideOvertaken = "overtaken"
+)
+
+// The kinds of hq's own events (#195), by source. From the screen, what a
+// look sees there that no hook reports: a turn the user ended, with its
+// line (Text); a screen first seen at rest, and one at rest at a tool the
+// user cut short, with its fingerprint (Screen); the decision, RestDelay
+// later with the screen unchanged, that the turn was rewound, or that the
+// turn Claude owed does not come, dated from the screen first seen at rest
+// (From); a dialog of Claude's own seen, with its fingerprint, and gone;
+// Claude at work after a dialog its hooks reported; Claude at work on a
+// prompt it took from its queue; Claude's wake-up after a turn the user
+// ended, first seen, dated from its report (From). From tmux, the pane's
+// death, dated by tmux (From, zero when tmux does not say). From sbx, the
+// sandbox not running, with the moment sbx was asked (Asked). From hq: the
+// agent launched (Start "new" or "restore") and relaunched, a restart
+// taking it down, a delivery of the messages typed in as its prompt
+// (KindDelivery, At "typed"), an answer given to its dialog (At "question"
+// or "own"), and either taken back when it did not reach the agent
+// (KindWithdrawn, At the kind withdrawn).
+const (
+	KindTurnEnded     = "TurnEnded"
+	KindAtRest        = "AtRest"
+	KindToolCut       = "ToolCut"
+	KindRewound       = "Rewound"
+	KindTurnNotTaken  = "TurnNotTaken"
+	KindOwnDialog     = "OwnDialog"
+	KindOwnDialogGone = "OwnDialogGone"
+	KindAtWork        = "AtWork"
+	KindTookQueued    = "TookQueued"
+	KindWokeUp        = "WokeUp"
+
+	KindPaneDied = "PaneDied"
+
+	KindNotRunning = "NotRunning"
+
+	KindLaunched   = "Launched"
+	KindRelaunched = "Relaunched"
+	KindTakenDown  = "TakenDown"
+	KindAnswer     = "Answer"
+	KindWithdrawn  = "Withdrawn"
+)
+
+// How hq delivered or answered, in an event's At.
+const (
+	AtTyped    = "typed"
+	AtQuestion = "question"
+	AtOwn      = "own"
+)
 
 // The sources of an event (spec #165): the agent's hook, its screen,
 // tmux, sbx and hq itself.
@@ -59,9 +122,19 @@ type Facts struct {
 	Subagent bool   `json:"subagent,omitempty"` // reported by one of the agent's subagents (agent_id)
 	Tool     string `json:"tool,omitempty"`     // the tool a dialog or a tool's end is about
 	Server   string `json:"server,omitempty"`   // the MCP server of an elicitation
-	Start    string `json:"start,omitempty"`    // how a session started (SessionStart's source)
+	Start    string `json:"start,omitempty"`    // how a session started (SessionStart's source), or how hq launched an agent ("new", "restore")
 	Reason   string `json:"reason,omitempty"`   // why a session ended (SessionEnd's reason)
 	Notice   string `json:"notice,omitempty"`   // the kind of a Notification
+	// Screen is the fingerprint of a screen at rest, or of a dialog of
+	// Claude's own (its title and text), which tells screens apart without
+	// keeping them.
+	Screen string `json:"screen,omitempty"`
+	// From is the earlier moment an event dates the state from: the screen
+	// first seen at rest for a decision that took time, the pane's death,
+	// the report of a wake-up.
+	From time.Time `json:"from,omitzero"`
+	// Asked is when hq asked sbx which sandboxes run.
+	Asked time.Time `json:"asked,omitzero"`
 	// Question says a turn end's reply ends with "?" (IsQuestion).
 	Question bool `json:"question,omitempty"`
 	// Tasks are the background tasks a turn end lists.
@@ -77,7 +150,8 @@ type Facts struct {
 	// Prompt is a prompt as it was sent (none for a wake-up), which the
 	// screen rules look for in the prompt box.
 	Prompt string `json:"prompt,omitempty"`
-	// Text is what a dialog asks, or what a Notification says, on one line.
+	// Text is what a dialog asks, or what a Notification says, on one
+	// line, or the line Claude printed for a turn the user ended.
 	Text string `json:"text,omitempty"`
 	// Messages are the messages a delivery delivered, each by the name it
 	// was left under in the inbox.
@@ -86,7 +160,9 @@ type Facts struct {
 	// file is named (prompt, stop, answer, dialog, input, result, start,
 	// resume, end): which of the hook's cases wrote it, which the reducer
 	// follows. For a delivery: stop, a stop it blocked; prompt; answer,
-	// after a tool's end.
+	// after a tool's end; or AtTyped for hq typing them in. For an event of
+	// hq's own, At says how it answered (AtQuestion, AtOwn) or what it took
+	// back.
 	At string `json:"at,omitempty"`
 	// Size is the size of an event file hq cannot read.
 	Size int64 `json:"size,omitempty"`
