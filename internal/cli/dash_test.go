@@ -208,6 +208,59 @@ func TestListProgramFailureIsReportedAfterCleanup(t *testing.T) {
 	}
 }
 
+func TestTheListLooksAtTheHqItWasStartedFrom(t *testing.T) {
+	f := newFakes()
+	f.env["TMUX_PANE"] = "%1"
+	var looks []bool
+	f.listRan = func(src dash.Source) error {
+		looks = append(looks, src.OtherGeneration())
+		f.disk.ino++
+		f.diskGeneration = version.Generation + 1
+		looks = append(looks, src.OtherGeneration())
+		return nil
+	}
+	f.run("__list")
+	if !reflect.DeepEqual(looks, []bool{false, true}) || f.generationAsks != 1 {
+		t.Fatalf("looks %v, %d asks", looks, f.generationAsks)
+	}
+}
+
+func TestTheListMakesWayForTheHqOnDiskInItsOwnPane(t *testing.T) {
+	f := newFakes()
+	f.env["TMUX_PANE"] = "%1"
+	f.listRan = func(src dash.Source) error {
+		src.Footer([]dash.Hint{{Key: "q", Label: "quit"}})
+		return dash.ErrUpdated
+	}
+	code, out, errOut := f.run("__list")
+	if code != ExitOK || out != "" || errOut != "" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	// The hq on disk runs its list in this process: the pane, its mark,
+	// the footer and the terminal stay, as the docked session and the
+	// cursor do in tmux.
+	if want := [][]string{{f.exe, "__list"}}; !reflect.DeepEqual(f.replaced, want) {
+		t.Fatalf("ran %q in place of the list, want %q", f.replaced, want)
+	}
+	if f.tmux.listPID != 4242 || f.tmux.footer == "" || len(f.tmux.left) != 0 {
+		t.Fatalf("list pid %d footer %q left %q", f.tmux.listPID, f.tmux.footer, f.tmux.left)
+	}
+}
+
+func TestAListThatCannotMakeWaySaysWhyAndKeepsTheTerminal(t *testing.T) {
+	f := newFakes()
+	f.env["TMUX_PANE"] = "%1"
+	f.listRan = func(dash.Source) error { return dash.ErrUpdated }
+	f.replaceErr = errors.New("exec format error")
+	code, out, errOut := f.run("__list")
+	if code != ExitEnvironment || errOut != "hq: cannot start the hq on disk, of another generation ("+f.exe+"): exec format error\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if out != clearScreen+quitHint+"\n" || f.tmux.listPID != 0 || f.tmux.footer != "" || len(f.tmux.left) != 0 {
+		t.Fatalf("printed %q list pid %d footer %q left %q", out, f.tmux.listPID, f.tmux.footer, f.tmux.left)
+	}
+}
+
 func TestListIsHiddenFromHelp(t *testing.T) {
 	if _, out, _ := runCLI("help"); strings.Contains(out, "__list") {
 		t.Fatal("help shows __list")
