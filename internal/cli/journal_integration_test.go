@@ -154,11 +154,17 @@ func TestTheJournalHoldsWhatHqDidAndSawBesideTheHooksReports(t *testing.T) {
 	h.waitReport("a", "done", "Done: hello there")
 	h.typeIn("a", "/exit")
 	h.waitReport("a", "ended", "Done: hello there")
-	h.ls()
-
-	j, err := h.d.journal.Read(h.agentID("a"))
-	if err != nil {
-		t.Fatal(err)
+	// The session reports its end a moment before its pane dies.
+	var j journal.Journal
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(100 * time.Millisecond) {
+		h.ls()
+		var err error
+		if j, err = h.d.journal.Read(h.agentID("a")); err != nil {
+			t.Fatal(err)
+		}
+		if strings.HasSuffix(journaltest.Kinds(j.Events), state.KindPaneDied) || time.Now().After(deadline) {
+			break
+		}
 	}
 	want := "Launched SessionStart UserPromptSubmit PostToolUse Stop delivery UserPromptSubmit Stop SessionEnd PaneDied"
 	if got := journaltest.Kinds(j.Events); got != want {
