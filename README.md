@@ -99,9 +99,12 @@ hq send NAME TEXT                # leave a message, delivered when the agent is 
 hq answer NAME --dialog ID N     # answer an agent's question dialog (hq read shows the id)
 hq kill NAME                     # end an agent's Claude session; the sandbox stays
 hq killed [NAME]                 # the agents hq killed: when, and who asked for it
+hq explain NAME [--all] [--json] # the events an agent's state rests on, no text of its conversation
 ```
 
 An agent gone from `hq ls` was killed or not: `hq killed` lists every kill, whether by `hq kill`, `hq stop`, the dashboard or a supervisor's `kill` tool (with its client and, when hq knows it, the calling agent).
+
+A row whose state looks wrong can be explained: `hq explain NAME` lists the events of the agent's journal its state and its dialog rest on, oldest first, each with its number, time, source (`hook`, `screen`, `tmux`, `sbx`, `hq`), what it was and the state after it; `--all` gives every event since the agent started, `--json` the same as data. It shows no prompt, reply, dialog question or message text, so its output can go into a public issue as it is.
 
 After the laptop sleeps, agents can fail with clock drift: `hq sandbox restart REPO` restarts the repository's sandbox and relaunches its agents, each continuing its conversation. A repository with agents on several setups has a sandbox per setup; `hq sandbox restart REPO --all-setups` restarts them all after one confirmation.
 

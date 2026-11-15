@@ -33,6 +33,7 @@ func commands() []command {
 		{"new", "NAME [DIR] [PROMPT]", "start an agent for the repository in DIR, with an optional first prompt", runNew},
 		{"ls", "[--json]", "list agents", runLs},
 		{"read", "NAME [--offset N --since TIME] [--json]", "show that agent in full: its last reply (a long one in pages) and what it asks", runRead},
+		{"explain", "NAME [--all] [--json]", "show the events that agent's state rests on, with no text of its conversation", runExplain},
 		{"wait", "[NAME...] [--json]", "wait until an agent is done, asks, needs input or ends", runWait},
 		{"go", "NAME", "enter that agent's session", runGo},
 		{"code", "NAME", "open VS Code on that agent's worktree", runCode},

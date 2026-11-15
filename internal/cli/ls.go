@@ -150,6 +150,18 @@ func asks(a agent.Agent, det state.Detail) *state.Ask {
 // so a single look tells the turn's end at once, like the list. Messages
 // left waiting for agents at their prompt are typed in (deliverWaiting).
 func gatherAgents(d deps) ([]agent.Agent, error) {
+	as, err := lookSettled(d, collect)
+	if err != nil {
+		return nil, err
+	}
+	deliverWaiting(d, as)
+	return as, nil
+}
+
+// lookSettled takes a look at the agents with collect once tmux is known
+// to be fit, and one more RestDelay later when a working agent's screen
+// is at rest (gatherAgents).
+func lookSettled(d deps, collect func(deps) ([]agent.Agent, error)) ([]agent.Agent, error) {
 	if err := checkTmux(d.tmux); err != nil {
 		return nil, err
 	}
@@ -159,11 +171,8 @@ func gatherAgents(d deps) ([]agent.Agent, error) {
 	}
 	if resting(as) {
 		d.sleep(agent.RestDelay)
-		if as, err = collect(d); err != nil {
-			return nil, err
-		}
+		return collect(d)
 	}
-	deliverWaiting(d, as)
 	return as, nil
 }
 
