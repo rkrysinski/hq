@@ -1,0 +1,30 @@
+NAME  REPO  BRANCH  STATE     AGE  LAST
+a     repo  main    done      39s  Done: hello
+b     repo  -       starting  43s  -
+state     starting 43s
+pending   0
+
+reply     none
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     repo  main    done   39s  -
+a     repo  main    done   39s  Done: hello
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,2 @@
+screen shows Interrupted after .004393125s; dashboard done after .270270751s more
+/exit typed into b: dashboard shows b ended after .056893958s

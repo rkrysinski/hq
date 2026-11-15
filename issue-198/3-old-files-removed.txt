@@ -1,0 +1,30 @@
+239183dd8e13  239183dd8e13.hq  e876638a688f  e876638a688f.hq  e876638a688f.stop
+239183dd8e13.hq	 e876638a688f.hq
+same
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     repo  main    done   5m   Interrupted
+a     repo  main    done   5m   Done: hello
+$ hq read a
+name      a
+repo      repo  /tmp/hq-stub-2744319230/repo
+branch    main
+worktree  /tmp/hq-stub-2744319230/repo
+sandbox   claude-repo
+state     done 5m
+pending   0
+
+reply
+  Done: hello
+$
+
+
+
+
+
+
+
+
+
+
+
+

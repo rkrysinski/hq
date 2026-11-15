@@ -1,0 +1,8 @@
+mutation: done in 1m12s
+alive      internal/journal/journaltest/journaltest.go:151:10 conditionals boundary
+alive      internal/journal/journaltest/report.go:52:15 conditionals negation
+alive      internal/journal/journaltest/report.go:64:17 conditionals boundary
+alive      internal/journal/journaltest/report.go:102:53 arithmetic base
+alive      internal/state/sees.go:216:66 conditionals boundary
+mutation: 114 killed, 5 alive, 0 timed out, 72 not covered against spec-165-agent-state-journal on ef2022cb2ebe9a5b06144da86ba8de9a659f2d0b
+exit status 1

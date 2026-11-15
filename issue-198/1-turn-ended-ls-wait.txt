@@ -1,0 +1,30 @@
+NAME  REPO  BRANCH  STATE    AGE  LAST
+a     repo  main    done     12s  Done: hello
+b     repo  main    working  11s  -
+$ hq wait b --since $S --timeout 10s; hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     repo  main    done   0s   Interrupted
+next: hq wait b --since 2026-11-15T17:31:13.694101154Z
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     repo  main    done   1s   Interrupted
+a     repo  main    done   22s  Done: hello
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

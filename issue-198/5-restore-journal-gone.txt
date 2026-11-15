@@ -1,0 +1,30 @@
+$ hq ls; hq restore; hq ls; sleep 6; hq ls; events a | tail -4
+restored a in repo (sandbox claude-repo)
+restored b in repo (sandbox claude-repo)
+not restored c in repo: its journal is gone (hq kill c forgets it)
+NAME  REPO  BRANCH  STATE     AGE  LAST
+b     repo  main    starting  0s   -
+a     repo  main    starting  0s   Done: hello
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     repo  main    done   2s   -
+a     repo  main    done   2s   Done: hello
+18	hq	Launched	17:37:48.192	basis 14
+20	hook	SessionStart	17:37:52.205
+22	hq	Launched	17:38:09.488	basis 20
+24	hook	SessionStart	17:38:13.503
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

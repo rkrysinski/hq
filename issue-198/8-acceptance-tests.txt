@@ -1,0 +1,22 @@
+--- PASS: TestOfEightLooksRacingOneEventStands (0.00s)
+--- PASS: TestTheLookAppendsAndShowsWhatEveryFixtureJournalSays (0.02s)
+--- PASS: TestALongRunningLookFoldsOnlyWhatIsNew (0.00s)
+--- PASS: TestTheClockMovedBetweenLooksChangesNothingButTheAges (0.00s)
+--- PASS: TestLooksAtOnceShowTheSameStateAndAge (0.00s)
+--- PASS: TestALookAtFifteenLongJournalsFoldsOnlyWhatIsNew (0.50s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/agent	0.533s
+--- PASS: TestAnSbxTooOldEndsTheCommandBeforeAnythingIsIngested (0.00s)
+--- PASS: TestOnlyAnAnswerOfSbxIsAnSbxEvent (0.00s)
+--- PASS: TestReadGivesAReplyOfSeveralMegabytesInFullAndInPages (0.18s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/cli	0.183s
+--- PASS: TestAnAppendReadsOnFromTheAppendBefore (0.01s)
+--- PASS: TestAnAppendToALongJournalIsQuick (1.22s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/journal	1.226s
+--- PASS: TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox (8.11s)
+--- PASS: TestRestoreBringsBackTheAgentsOfAKilledTmuxServer (3.67s)
+--- PASS: TestRemovingTheOldStateFilesAndWindowRecordsChangesNothing (1.05s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/cli	12.845s

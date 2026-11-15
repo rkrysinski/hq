@@ -1,0 +1,30 @@
+restarted the sandbox claude-repo; relaunched a, b
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     repo  main    done   0s   -
+a     repo  main    done   0s   Done: hello
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     repo  main    done   3s   -
+a     repo  main    done   3s   Done: hello
+1	hq	Launched	17:30:51.863
+3	hook	SessionStart	17:30:52.114
+4	hook	UserPromptSubmit	17:30:52.138
+5	hook	Stop	17:30:52.378
+9	hq	TakenDown	17:36:35.205	basis 5
+11	hq	Relaunched	17:36:35.320	basis 5
+13	hook	SessionEnd	17:36:35.213
+14	hook	SessionStart	17:36:35.531
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
