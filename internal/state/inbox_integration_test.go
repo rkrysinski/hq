@@ -366,7 +366,9 @@ func TestHeldMessagesWaitForHqAloneInTheOrderSent(t *testing.T) {
 
 // Taken, held and put back, a message keeps the name it was left under, so
 // every delivery of it names it as hq send left it (#195): the delivery
-// event of hq typing it in, and of the hook.
+// event of hq typing it in, and of the hook. Put back after a failed
+// typing, it loses its --now: the hooks deliver it with the next prompt,
+// not after a tool call, as before messages kept their names.
 func TestAMessageKeepsItsNameWhenHeldOrPutBack(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
@@ -391,14 +393,22 @@ func TestAMessageKeepsItsNameWhenHeldOrPutBack(t *testing.T) {
 	if err := Post(root, id, taken[0], false, time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	if got := messages(InboxDir(root, id)); len(got) != 1 || got[0] != names[0] || !strings.HasSuffix(got[0], ".now") {
-		t.Fatalf("put back %v, want %s", got, names[0])
+	first := strings.TrimSuffix(names[0], ".now")
+	if got := messages(InboxDir(root, id)); len(got) != 1 || got[0] != first || first == names[0] {
+		t.Fatalf("put back %v, want %s", got, first)
 	}
 	if err := Post(root, id, taken[0], false, time.Now()); err == nil {
 		t.Fatal("put back over a message of its name")
 	}
 	again, err := Take(root, id)
-	if err != nil || len(again) != 2 || again[0].Name != names[0] || again[1].Name != names[1] || again[0].Text != "first" {
+	if err != nil || len(again) != 2 || again[0].Name != first || again[1].Name != names[1] || again[0].Text != "first" {
 		t.Fatalf("took again %+v %v", again, err)
+	}
+	// Put back with --now asked again, it keeps the whole name.
+	if err := Post(root, id, taken[0], true, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if got := messages(InboxDir(root, id)); len(got) != 1 || got[0] != names[0] {
+		t.Fatalf("put back with now %v, want %s", got, names[0])
 	}
 }

@@ -52,7 +52,8 @@ type Message struct {
 	Sent time.Time
 	// Name is the name it was left under in the inbox, for a message Take
 	// took: Hold, and Post putting it back, keep it, so every delivery of
-	// it names it as it was first left (spec #165, story 46).
+	// it names it as it was first left (spec #165, story 46); Post drops
+	// its nowSuffix, which only the first delivery honours.
 	Name string
 }
 
@@ -195,17 +196,29 @@ func Held(root, id string) int {
 // asks for delivery after Claude's next tool call. The message is written
 // beside the others and renamed into place, so a hook never reads half of
 // it. A message Take took is put back under its name, which says when it
-// was sent and how (at and now aside).
+// was sent and by whom (at aside), less nowSuffix unless now asks for it
+// again: put back after hq failed to type it, it goes with the agent's
+// next prompt, as it did before messages kept their names.
 func Post(root, id string, m Message, now bool, at time.Time) error {
 	if !idRE.MatchString(id) {
 		return errors.New("not an agent id")
 	}
+	m.Name = backName(m.Name, now)
 	dir := InboxDir(root, id)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 	_, err := write(dir, m, now, at)
 	return err
+}
+
+// backName is the name a message Take took under name is put back under
+// (Post): name less nowSuffix, unless now asks for it again.
+func backName(name string, now bool) string {
+	if now {
+		return name
+	}
+	return strings.TrimSuffix(name, nowSuffix)
 }
 
 // write writes m, sent at at, into the directory dir of an inbox, beside

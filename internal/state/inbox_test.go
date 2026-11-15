@@ -162,3 +162,25 @@ func TestOnlyAMessagesNameIsKept(t *testing.T) {
 		}
 	}
 }
+
+// A message put back after hq failed to type it loses its --now, unless
+// that is asked for again, and keeps the rest of its name (#195).
+func TestAMessagePutBackLosesItsNowUnlessAskedAgain(t *testing.T) {
+	sent := time.Unix(0, 1700000000000000000)
+	now := messageName(sent, "0a1b2c3d", true, true)
+	plain := messageName(sent, "0a1b2c3d", true, false)
+	for _, tc := range []struct {
+		name string
+		now  bool
+		want string
+	}{
+		{now, false, plain},
+		{now, true, now},
+		{plain, false, plain},
+		{plain, true, plain},
+	} {
+		if got := backName(tc.name, tc.now); got != tc.want {
+			t.Errorf("backName(%s, %v) = %s, want %s", tc.name, tc.now, got, tc.want)
+		}
+	}
+}
