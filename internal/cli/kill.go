@@ -182,7 +182,8 @@ func sessionPattern(id string) string { return `HQ_ID":"` + id + `"` }
 // agent whose window is gone goes into the trace with who asked for it
 // (#147), before its files go, even when tmux then fails to remove the
 // next window; one the trace cannot take does not stop the others, and is
-// said once all are killed.
+// said once all are killed. The journals other agents left behind go with
+// them, where hq can tell they are left over (sweepJournals).
 func removeAgents(d deps, as, orphans []agent.Agent) error {
 	if err := waitEnded(d, as, orphans); err != nil {
 		return err
@@ -214,6 +215,7 @@ func removeAgents(d deps, as, orphans []agent.Agent) error {
 		}
 		removeAgentFiles(d, a.RepoPath, a.ID)
 	}
+	sweepJournals(d)
 	if traceErr == nil {
 		return killErr
 	}

@@ -141,6 +141,8 @@ func (s *replayStore) ReadFrom(_ string, from int64) (journal.Journal, error) {
 
 func (s *replayStore) Remove(string, string) error { return nil }
 
+func (s *replayStore) IDs() ([]string, error) { return nil, nil }
+
 func (s *replayStore) Screens(panes []string) (map[string]string, error) {
 	out := map[string]string{}
 	if s.screen != "" {

@@ -274,6 +274,25 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		}
 	})
 
+	t.Run("the ids are those of the agents with a journal", func(t *testing.T) {
+		h := newHarness(t)
+		root := h.Root()
+		ids, err := h.Store.IDs()
+		must(t, err)
+		expect(t, len(ids) == 0, "ids before any journal: %v", ids)
+		h.Leave(root, "b2", "000000001.1", prompt, at)
+		must(t, h.Store.Ingest(root, "b2"))
+		_, err = h.Store.Append("a1", state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: at})
+		must(t, err)
+		ids, err = h.Store.IDs()
+		must(t, err)
+		expect(t, strings.Join(ids, " ") == "a1 b2", "ids %v", ids)
+		must(t, h.Store.Remove(root, "b2"))
+		ids, err = h.Store.IDs()
+		must(t, err)
+		expect(t, strings.Join(ids, " ") == "a1", "ids after a removal %v", ids)
+	})
+
 	t.Run("the latest dialog keeps what it asks", func(t *testing.T) {
 		h := newHarness(t)
 		root := h.Root()

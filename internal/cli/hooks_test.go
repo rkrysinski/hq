@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/hex"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
@@ -52,6 +53,18 @@ func (j hookedJournal) Read(id string) (journal.Journal, error) {
 
 func (j hookedJournal) ReadFrom(id string, from int64) (journal.Journal, error) {
 	return j.Memory.ReadFrom(journalID(id), from)
+}
+
+// IDs are the agents' ids as hq knows them, the fakes' "id-" ones back
+// from their hex (journalID).
+func (j hookedJournal) IDs() ([]string, error) {
+	ids, err := j.Memory.IDs()
+	for i, id := range ids {
+		if b, err := hex.DecodeString(id); err == nil && strings.HasPrefix(string(b), "id-") {
+			ids[i] = string(b)
+		}
+	}
+	return ids, err
 }
 
 func (j hookedJournal) Remove(root, id string) error {

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -69,6 +70,44 @@ func lostAgents(d deps, ws []tmux.Window, roots []string) []agent.Agent {
 	return lost
 }
 
+// sweepJournals removes the journals left over from agents whose
+// repository was removed without hq (spec #165, Further Notes): a journal
+// goes once hq can tell that nothing stands for its agent any more, no
+// home window and no record. The journal names where its agent was last
+// launched (journal.Home): only an hq on that tmux server can tell that no
+// home window there has its id, and its repository holds its record, which
+// a removed repository holds no more. A journal that names no launch, or
+// another tmux server, stays, a small file in the state directory; so does
+// every journal when tmux cannot say which windows exist.
+func sweepJournals(d deps) {
+	ids, err := d.journal.IDs()
+	if err != nil || len(ids) == 0 {
+		return
+	}
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return
+	}
+	for _, id := range ids {
+		if slices.ContainsFunc(ws, func(w tmux.Window) bool { return w.Options["id"] == id }) {
+			continue
+		}
+		j, err := d.journal.Read(id)
+		if err != nil {
+			continue
+		}
+		repo, srv, ok := journal.Home(j.Events)
+		if !ok || srv != server(d) {
+			continue
+		}
+		records, err := d.records(repo)
+		if err != nil || slices.ContainsFunc(records, func(r state.Record) bool { return r.ID == id }) {
+			continue
+		}
+		_ = d.journal.Remove(repo, id)
+	}
+}
+
 func runRestore(env Env, d deps, args []string) error {
 	if len(args) > 1 || len(args) == 1 && strings.HasPrefix(args[0], "-") {
 		return usageErr(restoreUsage)
@@ -91,6 +130,7 @@ func runRestore(env Env, d deps, args []string) error {
 		return tmuxErr(err)
 	}
 	lost := lostAgents(d, ws, roots)
+	sweepJournals(d)
 	if len(lost) == 0 {
 		fmt.Fprintln(env.Stdout, "nothing to restore")
 		return nil

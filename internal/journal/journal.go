@@ -40,6 +40,21 @@ type Store interface {
 	// Remove deletes the journal of agent id and the event files its hook
 	// left in the repository at root, once the agent is gone.
 	Remove(root, id string) error
+	// IDs are the ids of the agents that have a journal, in their order.
+	IDs() ([]string, error)
+}
+
+// Home is where the agent of the journal events was last launched (its
+// latest launch that stands): the repository, which holds its record,
+// and the tmux server, which holds its home window. ok is false for a
+// journal that holds no such launch.
+func Home(events []state.Event) (repo, tmux string, ok bool) {
+	for i := len(events) - 1; i >= 0; i-- {
+		if e := events[i]; e.Source == state.SourceHQ && e.Kind == state.KindLaunched && e.Aside == "" && e.Facts.Repo != "" {
+			return e.Facts.Repo, e.Facts.Tmux, true
+		}
+	}
+	return "", "", false
 }
 
 // Journal is an agent's journal as Read gives it.

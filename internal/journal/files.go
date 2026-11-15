@@ -427,6 +427,28 @@ func (s Files) Remove(root, id string) error {
 	return errors.Join(errs...)
 }
 
+// IDs are the ids of the agents with a journal in the store (Store): the
+// files of the journals directory named for an id.
+func (s Files) IDs() ([]string, error) {
+	if s.Dir == "" {
+		return nil, errNoDir
+	}
+	entries, err := os.ReadDir(filepath.Join(s.Dir, journalsName))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, e := range entries {
+		if state.IsID(e.Name()) && e.Type().IsRegular() {
+			ids = append(ids, e.Name())
+		}
+	}
+	return ids, nil
+}
+
 // number gives events the next numbers of the counter, under the lock. The
 // counter is written before the events are appended: a process that dies
 // in between leaves numbers no event has, never one two events have.

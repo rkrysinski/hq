@@ -4,6 +4,7 @@ package journaltest
 
 import (
 	"errors"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -177,6 +178,14 @@ func (m *Memory) Reads(id string) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.reads[id]
+}
+
+// IDs are the ids of the agents with a journal, in their order
+// (journal.Store).
+func (m *Memory) IDs() ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return slices.Sorted(maps.Keys(m.journals)), nil
 }
 
 // Remove deletes the journal of agent id and the event files left for it

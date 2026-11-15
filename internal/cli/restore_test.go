@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -342,5 +343,56 @@ func TestRestoreNamesTheSandboxesHqWasLoadedInto(t *testing.T) {
 	code, out, _ := f.run("restore", "/w/app")
 	if code != 0 || !strings.HasSuffix(out, "\nhq was loaded into the sandbox claude-x; if it restarted, hq mcp load claude-x loads it again\n") || len(f.sbx.loads) != 0 {
 		t.Fatalf("exit %d %q", code, out)
+	}
+}
+
+// The journal of an agent whose repository was removed without hq goes once
+// hq can tell that nothing stands for it: no home window on the tmux server
+// it was launched on, which is this hq's, and no record in its repository
+// (spec #165, Further Notes). A lost agent's stays, as do a running agent's,
+// one of another tmux server's agent and one that names no launch; and every
+// journal stays while tmux cannot say which windows exist. hq restore sweeps
+// even with nothing to restore, and so does a kill.
+func TestTheJournalsLeftOverGoOnceNothingStandsForTheirAgent(t *testing.T) {
+	f := lostFakes()
+	f.records["/w/app"] = f.records["/w/app"][:1]
+	f.tmux.windows = []tmux.Window{agentWindow("@1", "b", "/w/app", f.now.Add(-time.Hour), false), agentWindow("@2", "e", "/w/app", f.now.Add(-time.Hour), false)}
+	f.tmux.sessions, f.tmux.next = 1, 3
+	launch := func(id, repo, server string) {
+		_, _ = f.journal.Append(journalID(id), state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: f.now, Facts: state.Facts{Start: "new", Repo: repo, Tmux: server}})
+	}
+	launch("id-gone", "/w/gone", "")
+	launch("id-d", "/w/app", "") // its record is gone: a repository that stays is no different
+	launch("id-a", "/w/app", "")
+	launch("id-b", "/w/app", "")
+	launch("id-e", "/w/gone", "")
+	launch("id-qa", "/w/gone", "qa")
+	_, _ = f.journal.Append(journalID("id-nolaunch"), state.Event{Source: state.SourceHQ, Kind: state.KindTakenDown, Time: f.now})
+	f.journal.Put(journalID("id-aside"), state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: f.now, Aside: state.AsideDuplicate, Facts: state.Facts{Repo: "/w/gone"}})
+	ids := func() string {
+		got, _ := f.deps().journal.IDs()
+		slices.Sort(got)
+		return strings.Join(got, " ")
+	}
+	f.tmux.windowsErr = errors.New("tmux: no answer")
+	sweepJournals(f.deps())
+	if got := ids(); got != "id-a id-aside id-b id-d id-e id-gone id-nolaunch id-qa" {
+		t.Fatalf("swept while tmux fails: %s", got)
+	}
+	f.tmux.windowsErr = nil
+	sweepJournals(f.deps())
+	if got := ids(); got != "id-a id-aside id-b id-e id-nolaunch id-qa" {
+		t.Fatalf("left %s", got)
+	}
+	// hq restore sweeps too, before it restores a and c: e's window is gone.
+	launch("id-gone", "/w/gone", "")
+	f.tmux.windows = f.tmux.windows[:1]
+	if code, out, errOut := f.run("restore"); code != 0 || ids() != "id-a id-aside id-b id-c id-nolaunch id-qa" {
+		t.Fatalf("restore: exit %d %q %q, left %s", code, out, errOut, ids())
+	}
+	// A kill takes its agent's journal, and sweeps the others'.
+	launch("id-gone", "/w/gone", "")
+	if code, out, errOut := f.run("kill", "b", "-y"); code != 0 || ids() != "id-a id-aside id-c id-nolaunch id-qa" {
+		t.Fatalf("kill: exit %d %q %q, left %s", code, out, errOut, ids())
 	}
 }

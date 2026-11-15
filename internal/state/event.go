@@ -187,7 +187,7 @@ type Facts struct {
 	// Repo and Tmux are, for a launch, the repository hq launched the agent
 	// in and the tmux server it runs on (the -L socket name, "" for the
 	// default server): where its record and its home window stand while
-	// the agent exists (Fold.Home).
+	// the agent exists (journal.Home).
 	Repo string `json:"repo,omitempty"`
 	Tmux string `json:"tmux,omitempty"`
 	// Size is the size of an event file hq cannot read.
