@@ -80,10 +80,14 @@ type Facts struct {
 	// Text is what a dialog asks, or what a Notification says, on one line.
 	Text string `json:"text,omitempty"`
 	// Messages are the messages a delivery delivered, each by the name it
-	// was left under in the inbox, and At the hook's kind it came with
-	// (stop: a stop it blocked, prompt, answer: after a tool's end).
+	// was left under in the inbox.
 	Messages []string `json:"messages,omitempty"`
-	At       string   `json:"at,omitempty"`
+	// At is the hook's kind an event of the hook came with, as its event
+	// file is named (prompt, stop, answer, dialog, input, result, start,
+	// resume, end): which of the hook's cases wrote it, which the reducer
+	// follows. For a delivery: stop, a stop it blocked; prompt; answer,
+	// after a tool's end.
+	At string `json:"at,omitempty"`
 	// Size is the size of an event file hq cannot read.
 	Size int64 `json:"size,omitempty"`
 }
@@ -176,13 +180,16 @@ func ParseEvent(name string, data []byte, at time.Time) (Event, *Reply) {
 	branch, raw := splitHeader(data)
 	var p eventPayload
 	if json.Unmarshal(raw, &p) != nil || p.Event == "" {
-		return unreadable(e, int64(len(data))), nil
+		e = unreadable(e, int64(len(data)))
+		e.Facts.Branch = Clean(branch)
+		return e, nil
 	}
 	e.Kind = Clean(p.Event)
 	f := Facts{
 		Branch: Clean(branch), Session: Clean(p.SessionID), Cwd: p.Cwd, Turn: Clean(p.PromptID),
 		Subagent: p.AgentID != "", Tool: Clean(p.ToolName), Server: Clean(p.Server),
 		Start: Clean(p.Source), Reason: Clean(p.Reason), Notice: Clean(p.Notification),
+		At: hookKind(name),
 	}
 	var reply *Reply
 	switch p.Event {
@@ -249,10 +256,24 @@ func parseDelivery(e Event, rest []byte) Event {
 	return e
 }
 
-// unreadable is e as an event file hq cannot read, of size bytes.
+// unreadable is e as an event file hq cannot read, of size bytes: what it
+// holds is gone, but the hook's kind its name gives.
 func unreadable(e Event, size int64) Event {
-	e.Kind, e.Facts = KindUnreadable, Facts{Size: size}
+	e.Kind, e.Facts = KindUnreadable, Facts{Size: size, At: hookKind(e.File)}
 	return e
+}
+
+// eventName is the name the hook gives an event file (ev): its count, the
+// hook's kind and its process id.
+var eventName = regexp.MustCompile(`^[0-9]{9}\.([a-z]+)\.[0-9]+$`)
+
+// hookKind is the hook's kind the event file named name came with, empty
+// for a name that does not give one.
+func hookKind(name string) string {
+	if m := eventName.FindStringSubmatch(name); m != nil {
+		return m[1]
+	}
+	return ""
 }
 
 // UnreadableEvent is the event of an event file named name hq cannot read

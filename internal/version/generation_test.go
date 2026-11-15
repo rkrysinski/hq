@@ -30,7 +30,7 @@ var pinned = struct {
 }{
 	generation: 3,
 	forms: map[string]string{
-		"the hook's script": "b1b3705c1e2166d0",
+		"the hook's script": "c4e6e672ee43eb48",
 		"the record":        "7d2c1be547e68487",
 		"the journal":       "192403435e5fcb77",
 	},

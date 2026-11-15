@@ -30,7 +30,7 @@ func leftEvents(t *testing.T, root, id string) []Event {
 		if e.Name() == ".n" {
 			continue
 		}
-		if !regexp.MustCompile(`^[0-9]{9}\.[0-9]+$`).MatchString(e.Name()) {
+		if !regexp.MustCompile(`^[0-9]{9}\.[a-z]+\.[0-9]+$`).MatchString(e.Name()) {
 			t.Fatalf("a file %q among the event files", e.Name())
 		}
 		data, info, err := ReadFile(filepath.Join(dir, e.Name()))

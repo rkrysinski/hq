@@ -128,14 +128,16 @@ import (
 // Beside those files it leaves each event a rule reads as a file of its
 // own in the main repository's .git/hq/events/$HQ_ID (ev, ADR 0018): the
 // branch line and the payload, copied under another name and renamed into
-// place, named by the count it keeps there (.n) and its pid, %09d.PID, so
-// the names sort in the order it wrote them. It writes one wherever it
+// place, named by the count it keeps there (.n), its kind and its pid,
+// %09d.KIND.PID, so the names sort in the order it wrote them and tell
+// which of its cases wrote each (Facts.At). It writes one wherever it
 // writes the payload to the state file, .on or .stop: a turn end's with
 // .stop, before the state file (#123), any other just after the state file,
 // so the hook of kind hold sees a dialog's report as soon as it did before; for the end of a tool
 // (answer) only when it tells something new: the first of the agent's own
-// in the turn (.acted did not hold it), one that hands over a queued
-// prompt, starts background work or closes a dialog (x). Each delivery of
+// in the turn (.acted did not hold it), one of the agent's own that drops
+// a queued prompt (.queued was there) or hands one over, one that starts
+// background work or closes a dialog (x). Each delivery of
 // messages is an event file of its own (say): "delivery KIND", then the name
 // each message was left under in the inbox, a line each.
 //
@@ -168,7 +170,7 @@ theirs() { ask && grep -q '"agent_id"' "$f"; }
 owes() { grep -q '^[^=]' "$f` + owedSuffix + `"; }
 owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" || rm -f "$t.o" "$f` + owedSuffix + `"; }
 put() { cp -f "${2:-$t}" "$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
-ev() { read -r j <"$e/.n" || j=0; j=$((j+1)); echo $j >"$t.j"; mv -f "$t.j" "$e/.n"; put "$e/$(printf %09d $j).$$" "$1"; }
+ev() { read -r j <"$e/.n" || j=0; j=$((j+1)); echo $j >"$t.j"; mv -f "$t.j" "$e/.n"; put "$e/$(printf %09d.$h $j).$$" "$1"; }
 get() { K=get N=$1 awk "$A" "$2"; }
 turn() { get prompt_id "$1"; }
 queued() { n=$(turn "$f` + queuedSuffix + `") && [ -n "$n" ]; }
@@ -216,7 +218,7 @@ prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","
 answer) o=; grep -q '"agent_id"' "$t" || { o=1; p=$(turn "$t")
         [ -f "$f` + actedSuffix + `" ] && [ "$p" = "$(cat "$f` + actedSuffix + `")" ] || x=1
         queued && ! taken && [ "$p" != "$n" ] && [ ! -f "$f` + keptSuffix + `" ] && put "$f" "$f` + queuedSuffix + `" && x=1
-        printf '%s\n' "$p" >"$f` + actedSuffix + `"; rm -f "$f` + queuedSuffix + `"; }
+        printf '%s\n' "$p" >"$f` + actedSuffix + `"; rm "$f` + queuedSuffix + `" && x=1; }
     grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `" && x=1
     { ask && [ "$(tool "$f")" = "$(tool "$t")" ] || mcp; } && x=2
     [ "$x" ] && ev

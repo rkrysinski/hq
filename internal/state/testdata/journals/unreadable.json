@@ -1,0 +1,218 @@
+{
+  "about": "Reports hq cannot read: one the hook got cut off is starting, with the last message kept; a turn end too large to read is done, saying so, and stays the last message.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:01Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 2,
+        "text": "Hi. The tests pass\nand PR #58 is open."
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      }
+    },
+    {
+      "hook": "prompt",
+      "raw": "{\"session_id\":\"0b1c2d3e",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "unreadable",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.prompt.1",
+          "facts": {
+            "branch": "main",
+            "at": "prompt",
+            "size": 35
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "starting",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000004.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:04Z",
+        "latest": "2026-01-01T00:00:04Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029",
+        "prompt": "Say hi in one word.\nThen say bye in one word."
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "pad": 16777216,
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "unreadable",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000005.stop.1",
+          "facts": {
+            "at": "stop",
+            "size": 16777853
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "latest": "2026-01-01T00:00:05Z",
+        "last": "[report too large to read: 16.0 MiB]"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "[report too large to read: 16.0 MiB]",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi"
+      }
+    },
+    {
+      "hook": "end",
+      "payload": "session-end",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "SessionEnd",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000007.end.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "reason": "prompt_input_exit",
+            "at": "end"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "ended",
+        "since": "2026-01-01T00:00:07Z",
+        "latest": "2026-01-01T00:00:07Z",
+        "last": "[report too large to read: 16.0 MiB]",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      }
+    }
+  ]
+}

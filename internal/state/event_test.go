@@ -146,3 +146,25 @@ func TestEventFilesAndIds(t *testing.T) {
 		t.Error("not too large")
 	}
 }
+
+// The hook names each event file by the case that wrote it, which the
+// reducer follows; a name without one gives none.
+func TestParseEventTakesTheHooksKindFromTheFilesName(t *testing.T) {
+	at := time.Unix(5, 0)
+	for name, kind := range map[string]string{
+		"000000001.start.42": "start", "000000012.answer.7": "answer", "000000001.42": "",
+		"000000001.Stop.42": "", "00000001.stop.42": "", "000000001.stop.": "", "x000000001.stop.42": "",
+	} {
+		if e, _ := ParseEvent(name, eventFile(t, "prompt"), at); e.Facts.At != kind || e.Kind != "UserPromptSubmit" {
+			t.Errorf("%s: %+v", name, e.Facts)
+		}
+	}
+	// A report hq cannot read keeps the case and the branch the hook
+	// wrote; a file too large to read the case.
+	if e, _ := ParseEvent("000000003.prompt.9", []byte("branch feat-42\n{\"session_id\":\"0b1c"), at); e.Kind != KindUnreadable || e.Facts.At != "prompt" || e.Facts.Branch != "feat-42" {
+		t.Errorf("cut off: %+v", e)
+	}
+	if e := UnreadableEvent("000000004.stop.9", maxFile+1, at); e.Facts.At != "stop" || e.Facts.Size != maxFile+1 {
+		t.Errorf("too large: %+v", e)
+	}
+}

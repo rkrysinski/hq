@@ -1,0 +1,363 @@
+{
+  "about": "The agent's own tasks: a shell command it left running, its own watch, the watch Claude arms for a published artifact (no own task); none once a dialog opens.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:01Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-own-monitor",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000011-0000-4000-8000-000000000011",
+            "cwd": "/w/app",
+            "turn": "00000008-0000-4000-8000-000000000008",
+            "tasks": [
+              {
+                "id": "bdsevxlfh",
+                "type": "shell",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 2,
+        "text": "I'm watching for `/w/flag` to appear (for up to 30 minutes).",
+        "tasks": [
+          {
+            "id": "bdsevxlfh",
+            "description": "qa/flag file appearance",
+            "command": "f=/w/flag; until [ -e \"$f\" ]; do sleep 0.5; done; echo \"flag file appeared: $f\""
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "last": "I'm watching for `/w/flag` to appear (for up to 30 minutes).",
+        "last_stop": "I'm watching for `/w/flag` to appear (for up to 30 minutes).",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000011-0000-4000-8000-000000000011",
+        "own_tasks": [
+          {
+            "type": "shell",
+            "text": "f=/w/flag; until [ -e \"$f\" ]; do sleep 0.5; done; echo \"flag file appeared: $f\""
+          }
+        ]
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "last": "I'm watching for `/w/flag` to appear (for up to 30 minutes).",
+        "last_stop": "I'm watching for `/w/flag` to appear (for up to 30 minutes).",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029",
+        "prompt": "Say hi in one word.\nThen say bye in one word."
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "post-tool-own-monitor",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000004.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000b-0000-4000-8000-00000000000b",
+            "cwd": "/w/app",
+            "turn": "00000010-0000-4000-8000-000000000010",
+            "tool": "Monitor",
+            "started": "=b46swdckt",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "last": "I'm watching for `/w/flag` to appear (for up to 30 minutes).",
+        "last_stop": "I'm watching for `/w/flag` to appear (for up to 30 minutes).",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029",
+        "prompt": "Say hi in one word.\nThen say bye in one word.",
+        "acted": true
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "Watching.",
+        "background_tasks": [
+          {
+            "id": "b46swdckt",
+            "type": "shell",
+            "status": "running",
+            "description": "Wait",
+            "command": "./wait.sh 60"
+          },
+          {
+            "id": "b99",
+            "type": "shell",
+            "status": "running",
+            "description": "Wait",
+            "command": "./wait.sh 60"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000005.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "b46swdckt",
+                "type": "shell",
+                "status": "running"
+              },
+              {
+                "id": "b99",
+                "type": "shell",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 5,
+        "text": "Watching.",
+        "tasks": [
+          {
+            "id": "b46swdckt",
+            "description": "Wait",
+            "command": "./wait.sh 60"
+          },
+          {
+            "id": "b99",
+            "description": "Wait",
+            "command": "./wait.sh 60"
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "latest": "2026-01-01T00:00:05Z",
+        "last": "Watching.",
+        "last_stop": "Watching.",
+        "branch": "main",
+        "own_tasks": [
+          {
+            "type": "monitor",
+            "text": "Wait"
+          },
+          {
+            "type": "shell",
+            "text": "./wait.sh 60"
+          }
+        ]
+      }
+    },
+    {
+      "hook": "input",
+      "payload": "notification",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "Notification",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000006.input.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "notice": "permission_prompt",
+            "text": "Claude needs your permission",
+            "at": "input"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Claude needs your permission",
+        "last_stop": "Watching.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000007.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "latest": "2026-01-01T00:00:07Z",
+        "last": "Watching.",
+        "last_stop": "Watching.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "Published.",
+        "background_tasks": [
+          {
+            "id": "m1",
+            "type": "monitor",
+            "status": "running",
+            "description": "live updates for artifact https://claude.ai/artifact/x (auto-armed on publish)"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000008.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "m1",
+                "type": "monitor",
+                "status": "running",
+                "artifact": true
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 8,
+        "text": "Published.",
+        "tasks": [
+          {
+            "id": "m1",
+            "description": "live updates for artifact https://claude.ai/artifact/x (auto-armed on publish)"
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:08Z",
+        "latest": "2026-01-01T00:00:08Z",
+        "last": "Published.",
+        "last_stop": "Published.",
+        "branch": "main"
+      }
+    }
+  ]
+}

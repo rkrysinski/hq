@@ -1,0 +1,453 @@
+{
+  "about": "Background work: a turn end while a subagent runs leaves the agent working at its prompt, Claude's wake-up works on, and the closing turn ends it; a question ends the turn whatever runs; the agent's own shell command is no background work; a wake-up while the agent is done works.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:01Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s",
+        "prompt_id": "0000001b-0000-4000-8000-00000000001b",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Agent",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {
+          "isAsync": true,
+          "status": "async_launched",
+          "agentId": "a58b43841609db047",
+          "description": "Run the tests"
+        }
+      },
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "Agent",
+            "started": "a58b43841609db047",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:01Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi",
+        "acted": true
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-background",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "00000013-0000-4000-8000-000000000013",
+            "tasks": [
+              {
+                "id": "a58b43841609db047",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 3,
+        "text": "The tests are running in a subagent.",
+        "tasks": [
+          {
+            "id": "a58b43841609db047",
+            "description": "Run the \"slow\" tests [all] {twice}"
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "last": "The tests are running in a subagent.",
+        "last_stop": "The tests are running in a subagent.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi",
+        "background": true
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-wake",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000004.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "00000027-0000-4000-8000-000000000027",
+            "wake": true,
+            "woke": "a58b43841609db047",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:04Z",
+        "last": "The tests are running in a subagent.",
+        "last_stop": "The tests are running in a subagent.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi",
+        "woken": true
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "The tests pass.",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000005.stop.1",
+          "facts": {
+            "branch": "main",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 5,
+        "text": "The tests pass."
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "latest": "2026-01-01T00:00:05Z",
+        "last": "The tests pass.",
+        "last_stop": "The tests pass.",
+        "branch": "main"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "The tests pass.",
+        "last_stop": "The tests pass.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-background-question",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000007.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "question": true,
+            "tasks": [
+              {
+                "id": "b9dicohbg",
+                "type": "shell",
+                "status": "running"
+              },
+              {
+                "id": "a58b43841609db047",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 7,
+        "text": "A subagent runs the tests. Shall I also update the README?",
+        "tasks": [
+          {
+            "id": "b9dicohbg",
+            "description": "Dev server",
+            "command": "npm run dev"
+          },
+          {
+            "id": "a58b43841609db047",
+            "description": "Run the \"slow\" tests [all] {twice}"
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "question",
+        "since": "2026-01-01T00:00:07Z",
+        "latest": "2026-01-01T00:00:07Z",
+        "last": "A subagent runs the tests. Shall I also update the README?",
+        "last_stop": "A subagent runs the tests. Shall I also update the README?",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "own_tasks": [
+          {
+            "type": "shell",
+            "text": "npm run dev"
+          }
+        ]
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000008.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "latest": "2026-01-01T00:00:08Z",
+        "last": "A subagent runs the tests. Shall I also update the README?",
+        "last_stop": "A subagent runs the tests. Shall I also update the README?",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029",
+        "prompt": "Say hi in one word.\nThen say bye in one word."
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-background-shell",
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000009.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tasks": [
+              {
+                "id": "b9dicohbg",
+                "type": "shell",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 9,
+        "text": "The dev server is up.",
+        "tasks": [
+          {
+            "id": "b9dicohbg",
+            "description": "Dev server",
+            "command": "npm run dev"
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "The dev server is up.",
+        "last_stop": "The dev server is up.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029",
+        "prompt": "Say hi in one word.\nThen say bye in one word.",
+        "background": true,
+        "owed": true
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-wake",
+      "events": [
+        {
+          "n": 10,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000010.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "00000027-0000-4000-8000-000000000027",
+            "wake": true,
+            "woke": "a58b43841609db047",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "latest": "2026-01-01T00:00:10Z",
+        "last": "The dev server is up.",
+        "last_stop": "The dev server is up.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029",
+        "prompt": "Say hi in one word.\nThen say bye in one word.",
+        "woken": true
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "The tests finished.",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 11,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:11Z",
+          "file": "000000011.stop.1",
+          "facts": {
+            "branch": "main",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 11,
+        "text": "The tests finished."
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:11Z",
+        "latest": "2026-01-01T00:00:11Z",
+        "last": "The tests finished.",
+        "last_stop": "The tests finished.",
+        "branch": "main"
+      }
+    }
+  ]
+}

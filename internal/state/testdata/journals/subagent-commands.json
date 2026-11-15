@@ -1,0 +1,407 @@
+{
+  "about": "Shell commands and watches: a watch a subagent started keeps the agent working while it runs and the agent's own watch is marked and shown as a watch; a subagent's shell command keeps it working; a subagent's tool that starts nothing is no event.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:01Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi"
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "post-tool-own-monitor",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000b-0000-4000-8000-00000000000b",
+            "cwd": "/w/app",
+            "turn": "00000010-0000-4000-8000-000000000010",
+            "tool": "Monitor",
+            "started": "=b46swdckt",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:01Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi",
+        "acted": true
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "post-tool-subagent-monitor",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000b-0000-4000-8000-00000000000b",
+            "cwd": "/w/app",
+            "turn": "00000020-0000-4000-8000-000000000020",
+            "subagent": true,
+            "tool": "Monitor",
+            "started": "~b3ukv3517",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:01Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi",
+        "acted": true
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "post-tool-subagent",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:01Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi",
+        "acted": true
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-subagent-monitor",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000004.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000b-0000-4000-8000-00000000000b",
+            "cwd": "/w/app",
+            "turn": "00000017-0000-4000-8000-000000000017",
+            "tasks": [
+              {
+                "id": "b46swdckt",
+                "type": "shell",
+                "status": "running"
+              },
+              {
+                "id": "b3ukv3517",
+                "type": "shell",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 4,
+        "text": "The subagent has started its `flag2` monitor and is waiting. `flag2` hasn't appeared yet, and the subagent will report again when it does.",
+        "tasks": [
+          {
+            "id": "b46swdckt",
+            "description": "qa flag1 watch",
+            "command": "until [ -e /w/app/flag1 ]; do sleep 0.5; done; echo \"flag1 appeared\""
+          },
+          {
+            "id": "b3ukv3517",
+            "description": "qa flag2 subagent watch",
+            "command": "until [ -e /w/app/flag2 ]; do sleep 0.5; done; echo \"flag2 appeared at $(date -u +%H:%M:%SZ)\""
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:05Z",
+        "last": "The subagent has started its `flag2` monitor and is waiting. `flag2` hasn't appeared yet, and the subagent will report again when it does.",
+        "last_stop": "The subagent has started its `flag2` monitor and is waiting. `flag2` hasn't appeared yet, and the subagent will report again when it does.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi",
+        "background": true
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "The subagent's watch ended.",
+        "background_tasks": [
+          {
+            "id": "b46swdckt",
+            "type": "shell",
+            "status": "running",
+            "description": "Wait",
+            "command": "./wait.sh 60"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000005.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "b46swdckt",
+                "type": "shell",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 5,
+        "text": "The subagent's watch ended.",
+        "tasks": [
+          {
+            "id": "b46swdckt",
+            "description": "Wait",
+            "command": "./wait.sh 60"
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "The subagent's watch ended.",
+        "last_stop": "The subagent's watch ended.",
+        "branch": "main",
+        "own_tasks": [
+          {
+            "type": "monitor",
+            "text": "Wait"
+          }
+        ]
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "latest": "2026-01-01T00:00:07Z",
+        "last": "The subagent's watch ended.",
+        "last_stop": "The subagent's watch ended.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029",
+        "prompt": "Say hi in one word.\nThen say bye in one word."
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s",
+        "agent_id": "a93b12c53c72bb31d",
+        "agent_type": "general-purpose",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {
+          "stdout": "",
+          "stderr": "",
+          "interrupted": false,
+          "backgroundTaskId": "b9dicohbg"
+        }
+      },
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000007.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s",
+            "subagent": true,
+            "tool": "Bash",
+            "started": "~b9dicohbg",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "latest": "2026-01-01T00:00:07Z",
+        "last": "The subagent's watch ended.",
+        "last_stop": "The subagent's watch ended.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029",
+        "prompt": "Say hi in one word.\nThen say bye in one word."
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-background-shell",
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000008.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tasks": [
+              {
+                "id": "b9dicohbg",
+                "type": "shell",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 8,
+        "text": "The dev server is up.",
+        "tasks": [
+          {
+            "id": "b9dicohbg",
+            "description": "Dev server",
+            "command": "npm run dev"
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "The dev server is up.",
+        "last_stop": "The dev server is up.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029",
+        "prompt": "Say hi in one word.\nThen say bye in one word.",
+        "background": true
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "The dev server stopped.",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000009.stop.1",
+          "facts": {
+            "branch": "main",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 9,
+        "text": "The dev server stopped."
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:10Z",
+        "latest": "2026-01-01T00:00:10Z",
+        "last": "The dev server stopped.",
+        "last_stop": "The dev server stopped.",
+        "branch": "main"
+      }
+    }
+  ]
+}

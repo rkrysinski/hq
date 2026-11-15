@@ -1,0 +1,184 @@
+{
+  "about": "Messages the hook delivers: a stop it blocks to deliver one is no turn end, only a delivery; the turn end after it is; a message delivered with the next prompt.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:01Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-to-block",
+      "messages": 1,
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "delivery",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.stop.1",
+          "facts": {
+            "messages": [
+              "1"
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "latest": "2026-01-01T00:00:01Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "prompt": "say hi"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-after-block",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "0000000f-0000-4000-8000-00000000000f",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 3,
+        "text": "PINEAPPLE"
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "last": "PINEAPPLE",
+        "last_stop": "PINEAPPLE",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "messages": 2,
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "delivery",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000004.prompt.1",
+          "facts": {
+            "messages": [
+              "1",
+              "2"
+            ],
+            "at": "prompt"
+          }
+        },
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000005.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:04Z",
+        "latest": "2026-01-01T00:00:04Z",
+        "last": "PINEAPPLE",
+        "last_stop": "PINEAPPLE",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000029-0000-4000-8000-000000000029",
+        "prompt": "Say hi in one word.\nThen say bye in one word."
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000006.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 6,
+        "text": "Hi. The tests pass\nand PR #58 is open."
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "latest": "2026-01-01T00:00:05Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      }
+    }
+  ]
+}
