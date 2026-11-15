@@ -1,0 +1,4 @@
+alive      internal/journal/journaltest/contract.go:88:75 conditionals boundary
+alive      internal/journal/journaltest/contract.go:111:43 conditionals boundary
+alive      internal/journal/journaltest/contract.go:111:70 conditionals boundary
+mutation: 75 killed, 3 alive, 0 timed out, 122 not covered against spec-165-agent-state-journal on 9127c180a672a33bc9add3392f4e9e0767a4ad13

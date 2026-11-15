@@ -1,0 +1,50 @@
+.  ..  .n  000000005.308464  000000006.308498  000000007.309399	 000000008.309439  000000009.309988
+$ hq ls; ls -a $S/repo/.git/hq/events/*/; jq -c '{n,source,kind,time,file}' $J/journals/*[0-9a-f]; jq -c '.facts' $J/journals/*[0-9a-f] | cut -c1-165
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    ended  8s   Done: needs input
+.  ..  .n
+{"n":1,"source":"hook","kind":"SessionStart","time":"2026-11-15T14:50:27.051354345Z","file":"000000001.300058"}
+{"n":2,"source":"hook","kind":"UserPromptSubmit","time":"2026-11-15T14:50:27.057795179Z","file":"000000002.300077"}
+{"n":3,"source":"hook","kind":"PostToolUse","time":"2026-11-15T14:50:27.266607554Z","file":"000000003.300103"}
+{"n":4,"source":"hook","kind":"Stop","time":"2026-11-15T14:50:27.474010262Z","file":"000000004.300194"}
+{"n":5,"source":"hook","kind":"UserPromptSubmit","time":"2026-11-15T14:50:56.876782901Z","file":"000000005.308464"}
+{"n":6,"source":"hook","kind":"PermissionRequest","time":"2026-11-15T14:50:57.087868735Z","file":"000000006.308498"}
+{"n":7,"source":"hook","kind":"PostToolUse","time":"2026-11-15T14:50:59.888680653Z","file":"000000007.309399"}
+{"n":8,"source":"hook","kind":"Stop","time":"2026-11-15T14:51:00.096775653Z","file":"000000008.309439"}
+{"n":9,"source":"hook","kind":"SessionEnd","time":"2026-11-15T14:51:01.890350279Z","file":"000000009.309988"}
+{"branch":"main","session":"fa4ec1a0-0000-4000-8000-000000049403","cwd":"/tmp/hq-stub-899134031/repo","start":"startup"}
+{"branch":"main","session":"fa4ec1a0-0000-4000-8000-000000049403","cwd":"/tmp/hq-stub-899134031/repo","prompt":"run a tool"}
+{"branch":"main","session":"fa4ec1a0-0000-4000-8000-000000049403","cwd":"/tmp/hq-stub-899134031/repo","tool":"Bash"}
+{"branch":"main","session":"fa4ec1a0-0000-4000-8000-000000049403","cwd":"/tmp/hq-stub-899134031/repo"}
+{"branch":"main","session":"fa4ec1a0-0000-4000-8000-000000049403","cwd":"/tmp/hq-stub-899134031/repo","prompt":"needs input"}
+{"branch":"main","session":"fa4ec1a0-0000-4000-8000-000000049403","cwd":"/tmp/hq-stub-899134031/repo","tool":"AskUserQuestion","text":"Which colour do you pick?"}
+{"branch":"main","session":"fa4ec1a0-0000-4000-8000-000000049403","cwd":"/tmp/hq-stub-899134031/repo","tool":"AskUserQuestion"}
+{"branch":"main","session":"fa4ec1a0-0000-4000-8000-000000049403","cwd":"/tmp/hq-stub-899134031/repo"}
+{"branch":"main","session":"fa4ec1a0-0000-4000-8000-000000049403","cwd":"/tmp/hq-stub-899134031/repo","reason":"prompt_input_exit"}
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,19 @@
+$ ln -s /etc/hostname $S/repo2/.git/hq/events/$I/000000100.1; hq ls >/dev/null; ls -a $S/repo2/.git/hq/events/$I; jq -c '{n,kind,file,facts}' $J/journals/$I | tail -2; ca
+t /etc/hostname | wc -c; ls -l $J $J/journals; ls -ld $J/journals
+.  ..  .n
+{"n":14,"kind":"unreadable","file":"000000099.1","facts":{"size":13}}
+{"n":15,"kind":"unreadable","file":"000000100.1","facts":{"size":13}}
+22
+/tmp/hq-stub-899134031/home/.local/state/hq:
+total 8
+-rw------- 1 agent agent    3 Nov 15 14:52 counter
+drwx------ 2 agent agent 4096 Nov 15 14:52 journals
+-rw------- 1 agent agent    0 Nov 15 14:50 lock
+/tmp/hq-stub-899134031/home/.local/state/hq/journals:
+total 16
+-rw------- 1 agent agent 1137 Nov 15 14:52 49424b060efe
+-rw------- 1 agent agent   74 Nov 15 14:51 49424b060efe.reply
+-rw------- 1 agent agent 2191 Nov 15 14:51 5f98dd1d9470
+-rw------- 1 agent agent   34 Nov 15 14:51 5f98dd1d9470.reply
+drwx------ 2 agent agent 4096 Nov 15 14:52 /tmp/hq-stub-899134031/home/.local/state/hq/journals
+$

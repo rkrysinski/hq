@@ -1,0 +1,7 @@
+$ ls $J/journals; hq kill a -y; ls $J/journals; ls $S/repo/.git/hq/events; hq stop -y; ls $J/journals; ls $S/repo2/.git/hq/events; cat $J/counter
+49424b060efe  49424b060efe.reply  5f98dd1d9470	5f98dd1d9470.reply
+killed a; the sandbox stays
+49424b060efe  49424b060efe.reply
+ended 1 agent; sandboxes stay
+15
+$

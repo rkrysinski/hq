@@ -1,0 +1,14 @@
+creating a sandbox for repo2 (first time only; log in to Claude when the session asks)
+started b in repo2 (sandbox claude-repo2); enter it with: hq go b
+$ hq send b 'hello from QA'
+queued: b is working, delivered when it stops
+$ hq ls; I=$(ls $S/repo2/.git/hq/events); A=$(ls $S/repo/.git/hq/events); jq -c '{n,kind,file,facts:(.facts|{at,messages})}' $J/journals/$I
+NAME  REPO   BRANCH  STATE  AGE  LAST
+b     repo2  main    done   4s   Answered: Message from the user (hq send): hello from QA
+a     repo   main    ended  54s  Done: needs input
+{"n":10,"kind":"SessionStart","file":"000000001.319670","facts":{"at":null,"messages":null}}
+{"n":11,"kind":"UserPromptSubmit","file":"000000002.319689","facts":{"at":null,"messages":null}}
+{"n":12,"kind":"delivery","file":"000000003.324084","facts":{"at":"stop","messages":["1794754303559163549-bc2c8077"]}}
+{"n":13,"kind":"Stop","file":"000000004.324167","facts":{"at":null,"messages":null}}
+$
+(the inbox of b held 1794754303559163549-bc2c8077 before the turn ended)
