@@ -83,12 +83,14 @@ type fakeTmux struct {
 	pasted    []string
 	submitted []string
 	// input is what reached the panes, in order: "type PANE TEXT" (Type),
-	// "paste PANE TEXT" and "enter PANE".
+	// "paste PANE TEXT", "enter PANE" and "press PANE KEY"; typeErr fails
+	// Type.
 	input    []string
 	onSubmit func()                 // called at each Submit: Claude takes the prompt
 	onPress  func(pane, key string) // called at each key Press presses
 	startErr error                  // fails releasing a new window
 	pasteErr error
+	typeErr  error
 }
 
 func (f *fakeTmux) LastScreen(pane string) (string, error) {
@@ -107,8 +109,8 @@ func (f *fakeTmux) Paste(pane, text string) error {
 }
 
 func (f *fakeTmux) Type(pane, text string) error {
-	if f.pasteErr != nil {
-		return f.pasteErr
+	if f.typeErr != nil {
+		return f.typeErr
 	}
 	f.input = append(f.input, "type "+pane+" "+text)
 	return nil
@@ -124,6 +126,7 @@ func (f *fakeTmux) Submit(pane string) error {
 }
 
 func (f *fakeTmux) Press(pane, key string) error {
+	f.input = append(f.input, "press "+pane+" "+key)
 	if f.onPress != nil {
 		f.onPress(pane, key)
 	}
@@ -842,6 +845,7 @@ func (f *fakes) deps() deps {
 			return nil
 		},
 		pending: func(_, id string) int { return len(f.held[id]) + len(f.inbox[id]) },
+		held:    func(_, id string) int { return len(f.held[id]) },
 		oldestMessage: func(_, id string) (time.Time, bool) {
 			at, ok := f.oldest[id]
 			return at, ok && len(f.held[id])+len(f.inbox[id]) > 0

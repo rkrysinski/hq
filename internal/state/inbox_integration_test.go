@@ -320,8 +320,8 @@ func TestHeldMessagesWaitForHqAloneInTheOrderSent(t *testing.T) {
 	if err := Hold(root, id, taken[1:]); err != nil {
 		t.Fatal(err)
 	}
-	if n := Pending(root, id); n != 2 {
-		t.Fatalf("pending %d, want the 2 held", n)
+	if n, h := Pending(root, id), Held(root, id); n != 2 || h != 2 {
+		t.Fatalf("pending %d, held %d, want the 2 held", n, h)
 	}
 	if got, ok := Oldest(root, id); !ok || !got.Equal(taken[1].Sent) {
 		t.Fatalf("oldest %v %v, want %v", got, ok, taken[1].Sent)
@@ -352,7 +352,14 @@ func TestHeldMessagesWaitForHqAloneInTheOrderSent(t *testing.T) {
 	if got, ok := Oldest(root, id); !ok || time.Since(got) > time.Minute {
 		t.Fatalf("held without a time: %v %v", got, ok)
 	}
-	if err := Hold(root, "not an id", taken); err == nil {
+	if err := Hold(root, "not an id", taken); err == nil || Held(root, "not an id") != 0 {
 		t.Fatal("held for a bad id")
+	}
+	// A hold that fails holds none of them.
+	held := filepath.Join(InboxDir(root, id), "held")
+	os.RemoveAll(held)
+	os.WriteFile(held, nil, 0o644)
+	if err := Hold(root, id, taken); err == nil || Held(root, id) != 0 {
+		t.Fatal("held where the held directory cannot be")
 	}
 }

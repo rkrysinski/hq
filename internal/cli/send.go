@@ -158,7 +158,7 @@ func deliver(d deps, a agent.Agent, now, command bool) (string, error) {
 	if atPrompt(a) {
 		return typeIn(d, a, boxWait, command)
 	}
-	if d.pending(a.RepoPath, a.ID) == 0 {
+	if d.pending(a.RepoPath, a.ID) == d.held(a.RepoPath, a.ID) {
 		return tookWithHooks(a, command), nil
 	}
 	return asText(queued(a, now), command), nil
@@ -270,14 +270,6 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 	}
 	ps := prompts(all)
 	msgs := ps[0]
-	if held := all[len(msgs):]; len(held) > 0 {
-		if err := d.holdMessages(a.RepoPath, a.ID, held); err != nil {
-			for _, m := range all {
-				_ = d.postMessage(a.RepoPath, a.ID, m, false)
-			}
-			return "", envErr("cannot hold the messages for %s: %v", a.Name, err)
-		}
-	}
 	texts := make([]string, len(msgs))
 	supervised := a.Supervisable()
 	for i, m := range msgs {
@@ -295,11 +287,23 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 		if supervised {
 			_ = d.withdraw(a.RepoPath, a.ID)
 		}
-		// Back into the inbox: the hooks deliver them with the next prompt.
-		for _, m := range msgs {
+		// Back into the inbox, in the order sent: the hooks deliver them
+		// with the next prompt.
+		for _, m := range all {
 			_ = d.postMessage(a.RepoPath, a.ID, m, false)
 		}
 		return "", tmuxErr(err)
+	}
+	// The others wait for the agent's next prompts, where the hooks do not
+	// deliver them; held only now, so that a failure above leaves none
+	// held behind the ones it puts back.
+	if held := all[len(msgs):]; len(held) > 0 {
+		if err := d.holdMessages(a.RepoPath, a.ID, held); err != nil {
+			for _, m := range held {
+				_ = d.postMessage(a.RepoPath, a.ID, m, false)
+			}
+			return "", envErr("typed an earlier message into %s, but cannot hold the others for its next prompts (%v): they are left to its hooks", a.Name, err)
+		}
 	}
 	awaitBoxLeft(d, a)
 	if supervised {
@@ -330,10 +334,10 @@ func prompts(msgs []state.Message) [][]state.Message {
 
 // typePrompt puts a prompt into the agent's prompt box, Enter not pressed:
 // pasted, as a terminal pastes it, so its lines stay one prompt; but a
-// slash command that Claude Code would collapse into a placeholder, and so
-// not run (state.Collapses), has its command word typed and the rest
-// pasted after it, which Claude Code runs as the command with the rest as
-// its arguments, whatever their length (Claude Code 2.1.325, #173).
+// slash command that Claude Code would collapse into "[Pasted text #N]",
+// and so not run (state.Collapses), has its command word typed and the
+// rest pasted after it, which Claude Code runs as the command with the
+// rest as its arguments, whatever their length (Claude Code 2.1.325, #173).
 func typePrompt(d deps, pane, text string) error {
 	if !isCommand(text) || !state.Collapses(text) {
 		return d.tmux.Paste(pane, text)
@@ -345,7 +349,13 @@ func typePrompt(d deps, pane, text string) error {
 	if err := d.tmux.Type(pane, word); err != nil || rest == "" {
 		return err
 	}
-	return d.tmux.Paste(pane, rest)
+	if err := d.tmux.Paste(pane, rest); err != nil {
+		// Not the command word alone left in the box, which would keep
+		// the box from being empty and start the user's next prompt.
+		_ = d.tmux.Press(pane, "C-u")
+		return err
+	}
+	return nil
 }
 
 // boxAtRest reports whether the agent's prompt box is empty and at rest

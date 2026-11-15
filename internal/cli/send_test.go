@@ -563,16 +563,67 @@ func TestSendTypesAWaitingCommandAsAPromptOfItsOwnInTheOrderSent(t *testing.T) {
 	}
 }
 
-func TestSendKeepsEveryMessageWhenHoldingFails(t *testing.T) {
+func TestSendLeavesTheOthersToTheHooksWhenHoldingFails(t *testing.T) {
 	f := sendFakes(state.Done)
 	f.inbox["id-a"] = []string{"first"}
 	f.holdErr = errors.New("disk full")
 	code, _, errOut := f.run("send", "a", "/probe second")
-	if code == 0 || !strings.Contains(errOut, "disk full") {
+	if code == 0 || !strings.Contains(errOut, "typed an earlier message into a, but cannot hold the others for its next prompts (disk full): they are left to its hooks") {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
-	if len(f.tmux.input) != 0 || strings.Join(f.inbox["id-a"], "|") != "first|/probe second" {
-		t.Fatalf("input %q inbox %q", f.tmux.input, f.inbox["id-a"])
+	if got := strings.Join(f.tmux.input, "|"); got != "paste %4 first|enter %4" || strings.Join(f.inbox["id-a"], "|") != "/probe second" {
+		t.Fatalf("input %q inbox %q", got, f.inbox["id-a"])
+	}
+}
+
+// A failure to type the first prompt in puts every message back for the
+// hooks, in the order sent, none of them held (#173).
+func TestSendPutsEveryMessageBackInOrderWhenTypingFails(t *testing.T) {
+	for name, fail := range map[string]func(*fakeTmux){
+		"paste": func(t *fakeTmux) { t.pasteErr = errors.New("no pane") },
+		"type":  func(t *fakeTmux) { t.typeErr = errors.New("no pane") },
+	} {
+		f := sendFakes(state.Done)
+		f.inbox["id-a"] = []string{"/probe one\ntwo\nthree\nfour", "second"}
+		fail(f.tmux)
+		if code, _, _ := f.run("send", "a", "/clear"); code == 0 {
+			t.Fatalf("%s: exit 0", name)
+		}
+		if got := strings.Join(f.inbox["id-a"], "|"); got != "/probe one\ntwo\nthree\nfour|second|/clear" || len(f.held["id-a"]) != 0 {
+			t.Fatalf("%s: inbox %q held %q", name, got, f.held["id-a"])
+		}
+	}
+}
+
+// A paste that fails after the command word was typed takes the word back
+// out of the box, so the box is empty again for the user and the next send.
+func TestSendTakesTheCommandWordBackWhenThePasteAfterItFails(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.tmux.pasteErr = errors.New("no pane")
+	if code, _, _ := f.run("send", "a", "/probe one\ntwo\nthree\nfour"); code == 0 {
+		t.Fatal("exit 0")
+	}
+	if got := strings.Join(f.tmux.input, "|"); got != "type %4 /probe|press %4 C-u" {
+		t.Fatalf("input %q", got)
+	}
+}
+
+// With messages held for an agent that is not at its prompt, a new message
+// its hooks take at once is still said to be taken: the held ones are not
+// the hooks' (#173).
+func TestSendSaysTheHooksTookItWhileOthersAreHeld(t *testing.T) {
+	f := sendFakes(state.Working)
+	f.held["id-a"] = []string{"/probe held"}
+	d := f.deps()
+	d.postMessage = func(string, string, state.Message, bool) error { return nil }
+	var out strings.Builder
+	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != "delivered: a took it with its hooks, as text, so the slash command did not run\n" {
+		t.Fatalf("%v %q", err, out.String())
+	}
+	// One left to the hooks beside the held: queued.
+	out.Reset()
+	if err := runSend(Env{Stdout: &out}, f.deps(), []string{"a", "go"}); err != nil || out.String() != "queued: a is working, delivered when it stops\n" {
+		t.Fatalf("%v %q", err, out.String())
 	}
 }
 

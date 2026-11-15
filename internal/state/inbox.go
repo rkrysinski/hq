@@ -149,16 +149,33 @@ func Hold(root, id string, msgs []Message) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
+	var written []string
 	for _, m := range msgs {
 		at := m.Sent
 		if at.IsZero() {
 			at = time.Now()
 		}
-		if err := write(dir, m, false, at); err != nil {
+		path, err := write(dir, m, false, at)
+		if err != nil {
+			// None of them held, so that a caller putting them back
+			// delivers none twice.
+			for _, p := range written {
+				os.Remove(p)
+			}
 			return err
 		}
+		written = append(written, path)
 	}
 	return nil
+}
+
+// Held is how many messages wait held for agent id of the repository at
+// root (Hold): Pending counts them too, but the hooks do not deliver them.
+func Held(root, id string) int {
+	if !idRE.MatchString(id) {
+		return 0
+	}
+	return len(messages(filepath.Join(InboxDir(root, id), heldDir)))
 }
 
 // Post leaves m for agent id of the repository at root, sent at at; now
@@ -173,25 +190,27 @@ func Post(root, id string, m Message, now bool, at time.Time) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	return write(dir, m, now, at)
+	_, err := write(dir, m, now, at)
+	return err
 }
 
 // write writes m, sent at at, into the directory dir of an inbox, beside
-// the others, and renames it into place.
-func write(dir string, m Message, now bool, at time.Time) error {
+// the others, and renames it into place; it returns its path.
+func write(dir string, m Message, now bool, at time.Time) (string, error) {
 	r := make([]byte, 4)
 	_, _ = rand.Read(r)
 	name := messageName(at, hex.EncodeToString(r), m.Supervisor, now)
 	tmp := filepath.Join(dir, "."+name)
 	if err := os.WriteFile(tmp, encodeMessage(CleanMessage(m.Text)), 0o644); err != nil {
 		os.Remove(tmp)
-		return err
+		return "", err
 	}
-	if err := os.Rename(tmp, filepath.Join(dir, name)); err != nil {
+	path := filepath.Join(dir, name)
+	if err := os.Rename(tmp, path); err != nil {
 		os.Remove(tmp)
-		return err
+		return "", err
 	}
-	return nil
+	return path, nil
 }
 
 // messages lists the messages waiting in dir, oldest first.
@@ -256,8 +275,9 @@ func sentAt(name string) (time.Time, bool) {
 
 // Take takes every message waiting for agent id of the repository at root
 // out of its inbox, held ones included, oldest first, for hq to deliver
-// itself. A message a hook took first is not among them. A file that is no message (a link, a
-// file too big, one that does not decode) is taken and dropped.
+// itself. A message a hook took first is not among them. A file that is no
+// message (a link, a file too big, one that does not decode) is taken and
+// dropped.
 func Take(root, id string) ([]Message, error) {
 	if !idRE.MatchString(id) {
 		return nil, errors.New("not an agent id")

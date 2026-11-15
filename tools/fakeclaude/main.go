@@ -90,8 +90,9 @@
 //     Code takes one: it runs as a turn like any prompt, and the fake
 //     appends to the file FAKE_CLAUDE_COMMANDS names, when set, a line for
 //     it: the command and its arguments (the rest of the prompt, its first
-//     space or newline dropped), each quoted. A prompt that begins with a
-//     paste Claude Code would show as a placeholder (state.Collapses: more
+//     space, tab or newline dropped), each quoted. A prompt that begins
+//     with a paste Claude Code collapses into "[Pasted text #N]"
+//     (state.Collapses: more
 //     than 3 lines, or more than 800 characters) is no command, as in
 //     Claude Code 2.1.325, whatever it starts with; one typed before such
 //     a paste, as "/probe" followed by it, is the command with the paste in
@@ -149,11 +150,11 @@ const (
 )
 
 // typed is a line typed, a bracketed paste in it as part of the line, its
-// lines kept; placeholder says it begins with a paste Claude Code shows as
-// a placeholder, so that it is no slash command (#173).
+// lines kept; collapsed says it begins with a paste Claude Code collapses
+// into "[Pasted text #N]", so that it is no slash command (#173).
 type typed struct {
-	text        string
-	placeholder bool
+	text      string
+	collapsed bool
 }
 
 // pasted is the line just scanned, or, when a bracketed paste starts in it,
@@ -172,8 +173,8 @@ func pasted(in *bufio.Scanner) typed {
 	before, paste, _ := strings.Cut(all, pasteStart)
 	paste, _, _ = strings.Cut(paste, pasteEnd)
 	return typed{
-		text:        strings.NewReplacer(pasteStart, "", pasteEnd, "").Replace(all),
-		placeholder: before == "" && state.Collapses(paste),
+		text:      strings.NewReplacer(pasteStart, "", pasteEnd, "").Replace(all),
+		collapsed: before == "" && state.Collapses(paste),
 	}
 }
 
@@ -277,7 +278,7 @@ func main() {
 	}
 	for in := range c.lines {
 		line := strings.TrimSpace(in.text)
-		command := !in.placeholder && strings.HasPrefix(line, "/")
+		command := !in.collapsed && strings.HasPrefix(line, "/")
 		switch line {
 		case "":
 		case "draft":
@@ -309,7 +310,7 @@ func main() {
 				continue
 			}
 			if command {
-				ran(line)
+				recordCommand(line)
 			}
 			c.turn(line)
 		}
@@ -683,15 +684,16 @@ func (c *claude) awaitAnswer(decided <-chan output) (map[string]string, string) 
 	}
 }
 
-// ran records a slash command that runs, the prompt that is it, in the
-// file FAKE_CLAUDE_COMMANDS names: the command and its arguments, quoted.
-func ran(prompt string) {
+// recordCommand records a slash command that runs, the prompt that is it,
+// in the file FAKE_CLAUDE_COMMANDS names: the command and its arguments,
+// quoted.
+func recordCommand(prompt string) {
 	path := os.Getenv("FAKE_CLAUDE_COMMANDS")
 	if path == "" {
 		return
 	}
 	name, args := prompt, ""
-	if i := strings.IndexAny(prompt, " \n"); i >= 0 {
+	if i := strings.IndexAny(prompt, " \t\n"); i >= 0 {
 		name, args = prompt[:i], prompt[i+1:]
 	}
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
