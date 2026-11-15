@@ -166,6 +166,40 @@ check: ok   e2e
 check: all 8 steps passed on 3e8066c7983ca6d0094b65f6242fa68c26a5ffda
 ```
 
+#### Round 2: the last completed turn (integration review of #210)
+
+| # | Finding | Check | Expected | Result | Evidence |
+|---|---------|-------|----------|--------|----------|
+| 10 | block: `TurnEnded` moves for a turn the user ended | a screen `TurnEnded` (`Interrupted`, then `User declined to answer questions`) and a `Rewound` after a turn the hook reported as done | `TurnEnded` stays at the hook's `Stop` | ✅ pass | `TestATurnTheUserEndedIsNoCompletedTurnButOneClaudeOwedThatDidNotComeIs` (was `TestATurnEndTheScreenShowedEndsTheLastCompletedTurn`), `TestADecisionThatTakesTimeIsAnEventAndTheTimePassedInDecidesNone` (`TurnEnded` 0 after the `Rewound`), commit cd8535f |
+| 11 | - | a `TurnNotTaken` after a `Stop` the hook kept working for background work | stays a completed turn: `TurnEnded` is the `TurnNotTaken`'s number, as before (now pinned by a test) | ✅ pass | same test, second journal; the field's comment and `docs/design/hq.md` say it |
+| 12 | - | nothing hq shows changes | states, ages and the 30 fixture journals as they were | ✅ pass | fixture journals untouched; `TestTheReducerGivesEveryFixtureJournalAsTheOldLookDid` and `TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads` pass in the full build |
+| 13 | - | full build and spec-wide mutation tests | pass, no mutant alive without a test or a reason | ✅ pass: the known equivalent at `agent.go:72:9` only | below |
+
+No QA through hq: no output reads `TurnEnded`. Pyramid unchanged: `unit 772, integration 264, e2e 3 (unit share 75%, minimum 74%)` (one test renamed and widened, none added). Thresholds, generation and fingerprint untouched.
+
+Mutation tests, spec-wide: `go run ./tools/testgate mutation origin/release-v0.14.0`
+
+```text
+alive      internal/agent/agent.go:72:9 conditionals boundary
+mutation: 530 killed, 1 alive, 0 timed out, 247 not covered against origin/release-v0.14.0 on cd8535fd1c265ff4df85e3e53c7ee3fbed90e2a2
+```
+
+- `agent.go:72:9`: equivalent, reason as above.
+
+Full build:
+
+```text
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: ok   unit
+check: ok   integration
+check: ok   coverage
+check: ok   e2e
+check: all 8 steps passed on cd8535fd1c265ff4df85e3e53c7ee3fbed90e2a2
+```
+
 #### Deviations
 
 - **Thresholds raised** (hq's rule, `docs/hq/testing.md`): `MinUnitShare` 0.50 to 0.74 (measured 770 of 1034 at a590bc2, 74%), `MinCoverage` 94.4 to 94.7 (measured 95.28%, less 0.5 rounded down).
@@ -177,4 +211,5 @@ check: all 8 steps passed on 3e8066c7983ca6d0094b65f6242fa68c26a5ffda
 - **D7**: the owe list stays the hook's lines with their marks, as `ID.owe` holds them, so the Go mirror of `hookAwk` reads line for line; the marks are now exported (`state.SubagentMark`, `state.MonitorMark`) and `hq explain` uses them.
 - **D10**: the reducer keeps its own copy of the hook's awk state machine: ADR 0018 decides that the host reads none of the hook's working files and the hook keeps deciding its notifications in the sandbox; the fixture journals, rebuilt by running the real hook, are what keeps the two in step.
 - **G1**: the older `collect`/`collectWith` of `hq ls` were renamed too (`lookNow`, `lookWith`), and `SettleDelay` became `OverruleDelay`; `agent.Collect` became `agent.FromJournals`.
+- **Round 2**: `TurnNotTaken` stays a completed turn (the orchestrator's decision): the turn it closes ended as work and the hook reported its end; it keeps giving the `TurnNotTaken`'s own number.
 - No issue created.
