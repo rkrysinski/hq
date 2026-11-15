@@ -208,6 +208,13 @@ type deps struct {
 	releases   Releases
 	asset      string // this platform's binary in a release
 	executable func() (string, error)
+	// stampFile tells one state of a file from another, askGeneration asks
+	// the hq at a path its generation, and replaceProcess runs a program in
+	// place of this one: how the list and hq mcp notice an update to
+	// another generation and step aside (design §3.11, §3.12).
+	stampFile      func(path string) (fileStamp, error)
+	askGeneration  func(exe string) (int, error)
+	replaceProcess func(argv []string) error
 	// itermProfile adds the iTerm2 profile hq when iTerm2 is present on
 	// macOS and reports whether it wrote it (design §3.7, §3.9).
 	itermProfile func() (bool, error)
@@ -339,6 +346,11 @@ func defaultDeps() deps {
 		releases:   update.Releases{Base: update.Base(os.Getenv), Agent: "hq/" + version.Version},
 		asset:      update.Asset(platform.OS, runtime.GOARCH),
 		executable: executable,
+		stampFile:  stampFile,
+		askGeneration: func(exe string) (int, error) {
+			return generationOf(exe, generationTimeout)
+		},
+		replaceProcess: replaceProcess,
 		itermProfile: func() (bool, error) {
 			home, _ := os.UserHomeDir()
 			return iterm.Install(platform.OS, home, "/")

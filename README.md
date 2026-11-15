@@ -85,7 +85,7 @@ hq works with any template, with one condition for `hq answer`: the template's o
 
 When a newer release is out, hq says so after a command's output (`hq v0.4.0 is available - run hq update`), in the dashboard's header and in `hq --version`; `hq update` moves to it. hq looks at most once a day, in the background, so no command waits for GitHub.
 
-Most releases update with your agents running, and they carry on untouched. A release that changes what agents report, or how hq keeps it, has another *generation*: an hq of one generation cannot read an agent started by another, so `hq update` (and the install command run over an installed hq) refuses such a release while any agent exists, running, ended or lost, and names them; nothing is replaced. End them with `hq stop` (and `hq kill NAME` for a lost one) and run `hq update` again. There is no option to update anyway.
+Most releases update with your agents running, and they carry on untouched. A release that changes what agents report, or how hq keeps it, has another *generation*: an hq of one generation cannot read an agent started by another, so `hq update` (and the install command run over an installed hq) refuses such a release while any agent exists, running, ended or lost, and names them; nothing is replaced. End them with `hq stop` (and `hq kill NAME` for a lost one) and run `hq update` again. There is no option to update anyway. A dashboard you left open restarts its list from the new hq by itself within a few seconds of such an update, keeping the docked session; a supervisor's `hq mcp` answers every call with `hq was updated: restart hq in this client` until you restart hq in that client.
 
 ## Everyday use
 
