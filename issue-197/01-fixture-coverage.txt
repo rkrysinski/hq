@@ -1,0 +1,48 @@
+acted-on.json               31 steps,  31 asserted
+background.json             11 steps,  11 asserted
+captured-with-styles.json   35 steps,  35 asserted
+dialog-verdict.json         61 steps,  61 asserted
+dialogs.json                14 steps,  14 asserted
+elicitations.json           15 steps,  15 asserted
+ended-by-user.json          43 steps,  43 asserted
+ends-pane.json              11 steps,  11 asserted
+ends-session.json           11 steps,  11 asserted
+ends.json                   13 steps,  13 asserted
+finish-together.json        43 steps,  43 asserted
+interrupted.json            10 steps,  10 asserted
+messages.json                5 steps,   5 asserted
+notifications.json           7 steps,   7 asserted
+owed-turn.json              22 steps,  22 asserted
+own-dialogs.json            42 steps,  42 asserted
+own-tasks.json               8 steps,   8 asserted
+queued-again.json           10 steps,  10 asserted
+queued-esc.json              4 steps,   4 asserted
+queued-taken.json           22 steps,  22 asserted
+queued-tool.json             6 steps,   6 asserted
+queued.json                 10 steps,  10 asserted
+restart.json                21 steps,  21 asserted
+rewound.json                37 steps,  37 asserted
+sessions.json                9 steps,   9 asserted
+subagent-commands.json      10 steps,  10 asserted
+subagent-dialogs.json       11 steps,  11 asserted
+turns.json                  11 steps,  11 asserted
+unreadable.json              7 steps,   7 asserted
+woken.json                  19 steps,  19 asserted
+screen fixtures in journals: 113 of 113; not in any: []
+  hq Launched            acted-on, captured-with-styles, dialog-verdict, ended-by-user, ends, ends-pane, ends-session, owed-turn, own-dialogs, queued-
+taken, restart, rewound, woken
+  hq Relaunched          ends-pane, ends-session, restart
+  hq TakenDown           restart
+  sbx NotRunning         ends, ends-pane, ends-session
+  screen AtRest          captured-with-styles, owed-turn, queued-taken, rewound
+  screen AtWork          acted-on, captured-with-styles, dialog-verdict, ended-by-user
+  screen OwnDialog       own-dialogs
+  screen OwnDialogGone   own-dialogs
+  screen Rewound         acted-on, captured-with-styles, rewound
+  screen TookQueued      queued-taken
+  screen ToolCut         acted-on
+  screen TurnEnded       ended-by-user, ends, own-dialogs, queued-taken, rewound, woken
+  screen TurnNotTaken    captured-with-styles, owed-turn
+  screen WokeUp          owed-turn, woken
+  tmux PaneDied          ends, ends-pane, ends-session, restart
+$

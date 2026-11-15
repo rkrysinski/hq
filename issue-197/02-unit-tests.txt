@@ -1,0 +1,11 @@
+--- PASS: TestTheReducerReadsEveryFixtureJournalAsTheOldReadingDid (0.01s)
+--- PASS: TestTheReducerGivesEveryFixtureJournalAsTheOldLookDid (0.01s)
+--- PASS: TestFoldingOnFromAKeptPositionIsFoldingFromTheStart (0.01s)
+--- PASS: TestTheTimePassedInChangesOnlyTheAge (0.00s)
+--- PASS: TestADecisionThatTakesTimeIsAnEventAndTheTimePassedInDecidesNone (0.00s)
+--- PASS: TestOfTwoSourcesOfEndedTheFirstDecides (0.00s)
+--- PASS: TestAnEventSetAsideChangesNothing (0.01s)
+--- PASS: TestTheDialogVerdictSaysWhoseSinceWhichEventAndWhatOpenedAndClosedIt (0.00s)
+--- PASS: TestEveryStateInTheFixturesHasAnEventThatStandsForIt (0.01s)
+ok  	github.com/rkrysinski/hq/internal/state	0.050s
+$

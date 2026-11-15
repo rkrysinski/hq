@@ -1,0 +1,13 @@
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a1    repo  main    ended  0s   User declined to answer questions
+reducer: ended since 16:30:51.822 (age 0s), entered at event 9, last "User declined to answer questions"
+    1 hq     Launched           basis 0
+    2 hook   SessionStart       basis 0
+    3 hook   UserPromptSubmit   basis 0
+    4 screen TurnEnded          basis 3
+    5 hq     delivery           basis 3
+    6 hook   UserPromptSubmit   basis 0
+    7 hook   PermissionRequest  basis 0
+    8 screen TurnEnded          basis 7
+    9 sbx    NotRunning         basis 7
+$

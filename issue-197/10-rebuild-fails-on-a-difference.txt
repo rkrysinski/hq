@@ -1,0 +1,16 @@
+ internal/state/testdata/journals/rewound.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+--- FAIL: TestTheReducerGivesEveryFixtureJournalAsTheOldLookDid (0.01s)
+    reduce_test.go:237: rewound.json, step 6 ( rewound):
+    reduce_test.go:237: rewound.json, step 7 ( rewound):
+--- FAIL: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads (0.07s)
+    --- FAIL: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/rewound.json (0.06s)
+        journals_integration_test.go:62: rebuilt journal differs from testdata/journals/rewound.json (go test -tags integration ./internal/state -run
+TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/rewound.json -update writes it):
+            line 162:
+             rebuilt             "kind": "Rewound",
+             committed           "kind": "AtRest",
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/state	0.077s
+FAIL
+$

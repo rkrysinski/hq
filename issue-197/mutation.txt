@@ -1,0 +1,2 @@
+alive      internal/state/seen.go:250:109 conditionals boundary
+mutation: 38 killed, 1 alive, 0 timed out, 43 not covered against spec-165-agent-state-journal on d276885c51c0b7d5211c320d861757a1eb4282a4

@@ -1,0 +1,8 @@
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a1    repo  main    done   21s  Interrupted
+reducer: done since 16:29:08.549 (age 21s), entered at event 4, last "Interrupted"
+    1 hq     Launched           basis 0
+    2 hook   SessionStart       basis 0
+    3 hook   UserPromptSubmit   basis 0
+    4 screen TurnEnded          basis 3
+$

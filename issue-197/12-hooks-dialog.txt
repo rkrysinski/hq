@@ -1,0 +1,13 @@
+delivered: typed into a1 as its next prompt
+NAME  REPO  BRANCH  STATE        AGE  LAST
+a1    repo  main    needs input  4s   Which colour do you pick?
+reducer: needs input since 16:29:55.705 (age 4s), entered at event 7, last "Which colour do you pick?", at a dialog of the hooks s
+ince event 7
+    1 hq     Launched           basis 0
+    2 hook   SessionStart       basis 0
+    3 hook   UserPromptSubmit   basis 0
+    4 screen TurnEnded          basis 3
+    5 hq     delivery           basis 3
+    6 hook   UserPromptSubmit   basis 0
+    7 hook   PermissionRequest  basis 0
+$
