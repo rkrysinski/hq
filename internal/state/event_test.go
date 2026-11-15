@@ -168,3 +168,16 @@ func TestParseEventTakesTheHooksKindFromTheFilesName(t *testing.T) {
 		t.Errorf("too large: %+v", e)
 	}
 }
+
+// An event file's name starts with the hook's count, a digit; the hook's
+// temporary files and its count start with a dot, and anything else is no
+// event file of the hook's.
+func TestAnEventFileIsNamedForTheHooksCount(t *testing.T) {
+	for name, want := range map[string]bool{
+		"000000001.stop.9": true, "9": true, "0": true, "": false, ".n": false, ".000000001.stop.9": false, "a1": false, "/": false, ":": false,
+	} {
+		if IsEventFile(name) != want {
+			t.Errorf("IsEventFile(%q) = %v", name, !want)
+		}
+	}
+}
