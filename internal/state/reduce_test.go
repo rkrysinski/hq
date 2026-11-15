@@ -286,6 +286,12 @@ func TestTheResultNamesWhereTheStateWasEnteredAndWhereItChanged(t *testing.T) {
 			t.Errorf("after %d: %s, entered %+v, changed %+v, since %v", tc.after, r.State, r.Entered, r.Changed, r.Since)
 		}
 	}
+	// A later end of the same tool, once the dialog is closed, is no
+	// report: the agent works since the answer.
+	later := append(journal[:6:6], hookEvent(7, "answer", "PostToolUse", Facts{Turn: "t1", Tool: "Read", Subagent: true, Started: "~b1"}))
+	if r := Reduce(later, Reply{}, atSecond(9)); r.State != Working || r.Entered.Number != 6 {
+		t.Errorf("a later tool's end: %s, entered %+v", r.State, r.Entered)
+	}
 	// A tool's end that leaves the agent starting changes nothing.
 	if r := Reduce(journal[1:2], Reply{}, atSecond(9)); r.Reported || r.Changed != (Mark{}) {
 		t.Errorf("before any report: %+v", r)
