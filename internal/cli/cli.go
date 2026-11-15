@@ -99,6 +99,10 @@ func run(env Env, d deps, args []string) error {
 		return runItermProfile(env, d, rest)
 	case updateCheckCommand:
 		return runUpdateCheck(env, d, rest)
+	case mayUpdateCommand:
+		return runMayUpdate(env, d, rest)
+	case generationCommand:
+		return runGeneration(env, d, rest)
 	case "--version", "-V":
 		fmt.Fprintf(env.Stdout, "hq %s\n%s", version.Version, updateHint(d))
 		return nil

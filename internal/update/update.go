@@ -37,6 +37,15 @@ func Base(getenv func(string) string) string {
 // SumsFile lists the SHA-256 of every file of a release.
 const SumsFile = "SHA256SUMS"
 
+// GenerationFile holds the generation of a release's hq (version.Generation),
+// published beside the binaries and listed in SumsFile (ADR 0020). A release
+// from before generations has none.
+const GenerationFile = "GENERATION"
+
+// maxGenerationFile bounds what hq reads of a release's GenerationFile: a
+// number and a newline.
+const maxGenerationFile = 64
+
 // Timeouts of Releases: a lookup is one small answer, a download a binary of
 // some megabytes.
 const (
@@ -118,8 +127,12 @@ func (r Releases) Download(tag, dir string, files ...string) error {
 	return nil
 }
 
+func (r Releases) fileURL(tag, file string) string {
+	return r.Base + "/download/" + url.PathEscape(tag) + "/" + url.PathEscape(file)
+}
+
 func (r Releases) download(tag, dir, file string) error {
-	u := r.Base + "/download/" + url.PathEscape(tag) + "/" + url.PathEscape(file)
+	u := r.fileURL(tag, file)
 	resp, err := r.get(u, r.DownloadTimeout, DownloadTimeout, true)
 	if err != nil {
 		return err
@@ -137,6 +150,67 @@ func (r Releases) download(tag, dir, file string) error {
 		return fmt.Errorf("%s: %v", u, err)
 	}
 	return out.Close()
+}
+
+// Generation returns the generation a release publishes, verified against
+// its SumsFile; published is false for a release that publishes none (one
+// from before generations), which counts as another generation.
+func (r Releases) Generation(tag string) (gen int, published bool, err error) {
+	data, found, err := r.small(tag, GenerationFile, maxGenerationFile)
+	if err != nil || !found {
+		return 0, false, err
+	}
+	sums, found, err := r.small(tag, SumsFile, maxSumsFile)
+	if err != nil {
+		return 0, false, err
+	}
+	if !found {
+		return 0, false, fmt.Errorf("%s has no %s", tag, SumsFile)
+	}
+	gen, err = ReadGeneration(sums, data)
+	return gen, err == nil, err
+}
+
+// maxSumsFile bounds what hq reads of a release's SumsFile.
+const maxSumsFile = 64 << 10
+
+// small reads a small file of a release, at most limit bytes; found is false
+// when the release has no such file.
+func (r Releases) small(tag, file string, limit int64) (data []byte, found bool, err error) {
+	u := r.fileURL(tag, file)
+	resp, err := r.get(u, r.LookupTimeout, LookupTimeout, true)
+	if err != nil {
+		return nil, false, err
+	}
+	defer resp.Body.Close()
+	switch resp.StatusCode {
+	case http.StatusOK:
+	case http.StatusNotFound:
+		return nil, false, nil
+	default:
+		return nil, false, fmt.Errorf("%s: %s", u, resp.Status)
+	}
+	data, err = io.ReadAll(io.LimitReader(resp.Body, limit+1))
+	if err != nil {
+		return nil, false, fmt.Errorf("%s: %v", u, err)
+	}
+	if int64(len(data)) > limit {
+		return nil, false, fmt.Errorf("%s: larger than %d bytes", u, limit)
+	}
+	return data, true, nil
+}
+
+// ReadGeneration reads a release's GenerationFile, data, once its line in
+// the release's SumsFile, sums, vouches for it: a number above zero.
+func ReadGeneration(sums, data []byte) (int, error) {
+	if err := Verify(sums, GenerationFile, data); err != nil {
+		return 0, err
+	}
+	gen, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil || gen < 1 {
+		return 0, fmt.Errorf("%s is not a generation: %q", GenerationFile, data)
+	}
+	return gen, nil
 }
 
 // Asset is the name of the binary for a platform in a release.

@@ -96,6 +96,9 @@ type Sandboxes interface {
 type Releases interface {
 	Latest() (string, error)
 	Download(tag, dir string, files ...string) error
+	// Generation is the generation a release publishes, verified against
+	// its checksums; published is false when it publishes none.
+	Generation(tag string) (gen int, published bool, err error)
 }
 
 // deps is everything a command needs from outside hq.
