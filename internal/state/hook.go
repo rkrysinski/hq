@@ -113,7 +113,9 @@ import (
 // it by renaming it and prints it, a decision hq wrote whole, as its
 // output. It ends with no output once the state file is no longer the
 // dialog's (answered at the terminal, the session ended, a dialog's report
-// never coming), never taking an answer after that, at Claude's SIGTERM
+// never coming; a state file newer than its copy that is not the dialog's
+// report tells it, should the dialog be answered before it first saw the
+// report there), never taking an answer after that, at Claude's SIGTERM
 // (its timeout, the session's end), and at once for a subagent's dialog
 // (agent_id), which hq does not answer.
 //
@@ -192,7 +194,7 @@ nap() { sleep .2 || sleep 1; }
 mine() { awk -v RS='\001' 'NR==FNR{p=$0;next}{s=$0==p}END{exit !s}' "$t" "$f"; }
 case $1 in
 hold) grep -q '"agent_id"' "$t" || { k=$(cksum <"$t") && a=$i/` + answerPrefix + `${k% *}.${k#* } && trap 'rm -f "$t"; exit 0' HUP TERM &&
-    { w=0; until mine || [ $((w+=1)) -gt 50 ]; do nap; done
+    { w=0; until mine || [ "$f" -nt "$t" ] || [ $((w+=1)) -gt 50 ]; do nap; done
     while mine; do mv -f "$a" "$t" && cat "$t" && break; nap; done; }; }
     rm -f "$t"; exit 0 ;;
 stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }

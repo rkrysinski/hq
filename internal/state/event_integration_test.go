@@ -3,7 +3,9 @@
 package state
 
 import (
+	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -218,5 +220,40 @@ func TestHookDeliveriesAreEventsNamingEachMessage(t *testing.T) {
 	}
 	if n := Held(root, id); n != 1 {
 		t.Errorf("held %d", n)
+	}
+}
+
+// A question dialog answered at the terminal before the hook that holds
+// on it first saw its report in the state file: the state file, newer
+// than the hold's copy and not the dialog's, ends the hold at once, not
+// after the 10 s it waits for a report that never comes (#193: the event
+// files made the dialog's report come a moment later).
+func TestTheHoldEndsWhenItsDialogWasAnsweredBeforeItSawIt(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	h := holding(hook("hold", ""))
+	cmd := exec.Command(h.Command, h.Args...)
+	cmd.Dir = root
+	cmd.Env = append(os.Environ(), "HQ_ID="+id, "CLAUDE_PROJECT_DIR="+root, hookEnv+"="+hookScript)
+	cmd.Stdin = bytes.NewReader(fixture(t, "dialog-ask"))
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	// Past the second of the hold's copy, for a shell that dates files
+	// by the second.
+	time.Sleep(1100 * time.Millisecond)
+	fire(t, root, root, id, "dialog", fixture(t, "dialog-ask"))
+	fire(t, root, root, id, "answer", fixture(t, "answer-ask"))
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		cmd.Process.Kill()
+		t.Fatal("the hold still waits for its dialog's report")
+	}
+	if left, _ := filepath.Glob(filepath.Join(Dir(root), id+".[0-9]*")); len(left) != 0 {
+		t.Errorf("left %v", left)
 	}
 }
