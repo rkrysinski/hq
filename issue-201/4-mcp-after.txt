@@ -1,0 +1,38 @@
+hq mcp pid 1523472, server hq dev
+instructions, last line: - A tool call that fails with `hq was updated: restart hq in this client` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. Tell the user that hq was updated and has to be restarted in this client; the tools work again after that.
+-- hq on disk unchanged, under strace -f -e trace=execve
+> list {}
+  isError=False {
+    "agents": [],
+    "next_since": "2026-11-15T15:23:31.226107625Z"
+  }
+> list {}
+  isError=False {
+    "agents": [],
+    "next_since": "2026-11-15T15:23:31.263586042Z"
+  }
+> go {"name": "nobody"}
+  isError=True hq: no agent 'nobody' (see hq ls)
+execve calls: 10, of them hq __generation: 0
+-- an update of the same generation
+$ mv v0.98.0 (generation 3) over <stub>/bin/hq
+> list {}
+  isError=False {
+    "agents": [],
+    "next_since": "2026-11-15T15:23:31.823959459Z"
+  }
+> new {"name": "a", "dir": "<stub>/repo", "prompt": "say hi"}
+  isError=False creating a sandbox for repo (first time only; log in to Claude when the session asks)
+  started a in repo (sandbox claude-repo); enter it with: hq go a
+-- an update to another generation
+$ mv v0.99.0 (generation 4) over <stub>/bin/hq
+> list {}
+  isError=True hq: hq was updated: restart hq in this client
+> read {"name": "a"}
+  isError=True hq: hq was updated: restart hq in this client
+> new {"name": "b", "dir": "<stub>/repo", "prompt": "say hi"}
+  isError=True hq: hq was updated: restart hq in this client
+> kill {"name": "a", "confirmed": true}
+  isError=True hq: hq was updated: restart hq in this client
+$ tmux -L <socket> list-windows -a -F '#{@hq_name}'
+  agents: a

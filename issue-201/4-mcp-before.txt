@@ -1,0 +1,62 @@
+hq mcp pid 1525718, server hq dev
+instructions, last line: - kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.
+-- hq on disk unchanged, under strace -f -e trace=execve
+> list {}
+  isError=False {
+    "agents": [],
+    "next_since": "2026-11-15T15:23:38.086615378Z"
+  }
+> list {}
+  isError=False {
+    "agents": [],
+    "next_since": "2026-11-15T15:23:38.123422337Z"
+  }
+> go {"name": "nobody"}
+  isError=True hq: no agent 'nobody' (see hq ls)
+execve calls: 10, of them hq __generation: 0
+-- an update of the same generation
+$ mv v0.98.0 (generation 3) over <stub>/bin/hq
+> list {}
+  isError=False {
+    "agents": [],
+    "next_since": "2026-11-15T15:23:38.68714742Z"
+  }
+> new {"name": "a", "dir": "<stub>/repo", "prompt": "say hi"}
+  isError=False creating a sandbox for repo (first time only; log in to Claude when the session asks)
+  started a in repo (sandbox claude-repo); enter it with: hq go a
+-- an update to another generation
+$ mv v0.99.0 (generation 4) over <stub>/bin/hq
+> list {}
+  isError=False {
+    "agents": [
+      {
+        "name": "a",
+        "repo": "repo",
+        "repo_path": "<stub>/repo",
+        "branch": "",
+        "state": "starting",
+        "since": "2026-11-15T15:23:38.955Z",
+        "age_seconds": 0,
+        "last": "",
+        "sandbox": "claude-repo",
+
+> read {"name": "a"}
+  isError=False {
+    "name": "a",
+    "repo": "repo",
+    "repo_path": "<stub>/repo",
+    "branch": "",
+    "state": "starting",
+    "since": "2026-11-15T15:23:38.955Z",
+    "age_seconds": 0,
+    "last": "",
+    "sandbox": "claude-repo",
+    "setup": "default",
+    "pending": 0,
+    "own_tasks": [
+> new {"name": "b", "dir": "<stub>/repo", "prompt": "say hi"}
+  isError=False started b in repo (sandbox claude-repo); enter it with: hq go b
+> kill {"name": "a", "confirmed": true}
+  isError=False killed a; the sandbox stays
+$ tmux -L <socket> list-windows -a -F '#{@hq_name}'
+  agents: b

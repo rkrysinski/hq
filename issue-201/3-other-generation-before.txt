@@ -1,0 +1,11 @@
+$ mv v0.99.0 (generation 4) over <stub>/bin/hq
+the header showed v0.99.0 after: never s
+list pid now: 1495686 (was 1495686)
+header:   hq  1 agent · 1 done                                                                                 Sun 15:22 · dev
+panes (role id list_pid height agent):
+  list %2 1495686 10 
+  spacer %3  17 
+   %1  17 
+  spacer %4  17 
+cursor: a
+layout: 03df,120x29,0,0[120x10,0,0,2,120x18,0,11{1x18,0,11,3,116x18,2,11,1,1x18,119,11,4}]
