@@ -1,0 +1,6 @@
+$ git log --oneline -1; go run ./tools/testgate mutation origin/dev; echo "exit $?"
+059aa10 (HEAD, origin/dev, origin/HEAD) Merge pull request #203 from rkrysinski/glossary-165-terms
+usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | platform [ROOT]
+exit status 2
+exit 1
+$

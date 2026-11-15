@@ -1,0 +1,31 @@
+== #151, empty shared test cache
+before: shared cache 1190404125 bytes; 9.8G free
+mutation: staging the tree in /tmp/hq-mutation-2432616993
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 16s
+mutation: 6 killed, 0 alive, 0 timed out, 1 not covered against d7546b3^1 on d7546b3da376aa3155cf715ce802afc99e36a313
+exit=0 wall=20s
+after: shared cache 1190404125 bytes; 9.8G free; leftover temp dirs: 0
+
+== #148, empty shared test cache
+before: shared cache 1190404125 bytes; 9.8G free
+mutation: staging the tree in /tmp/hq-mutation-2208578545
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 32s
+alive      internal/kills/kills.go:96:15 conditionals boundary
+mutation: 42 killed, 1 alive, 0 timed out, 23 not covered against af311ea^1 on af311ea2e68f532513281c348b9eea6ec709fbb2
+exit=1 wall=34s
+after: shared cache 1190404125 bytes; 9.8G free; leftover temp dirs: 0
+
+== #148, shared test cache filled (go test ./... answered 15 packages from the cache just before)
+before: shared cache 1220400831 bytes; 9.8G free
+mutation: staging the tree in /tmp/hq-mutation-177027437
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 32s
+alive      internal/kills/kills.go:96:15 conditionals boundary
+mutation: 42 killed, 1 alive, 0 timed out, 23 not covered against af311ea^1 on af311ea2e68f532513281c348b9eea6ec709fbb2
+exit=1 wall=35s
+after: shared cache 1220400831 bytes; 9.8G free; leftover temp dirs: 0

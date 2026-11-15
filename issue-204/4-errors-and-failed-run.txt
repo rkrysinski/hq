@@ -1,0 +1,37 @@
+$ testgate; echo "exit $?"
+usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | platform [ROOT] | mutation BASE
+exit 2
+$ testgate mutation; echo "exit $?"
+testgate: mutation needs the base the pull request goes into, for example: go run ./tools/testgate mutation origin/dev
+usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | platform [ROOT] | mutation BASE
+exit 2
+$ testgate mutation origin/no-such-branch; echo "exit $?"
+testgate: mutation: git does not know the base "origin/no-such-branch": pass the branch the pull request goes into, origin/dev for a single issue (git fetch origin dev first)
+exit 2
+$ git -c color.ui=never status --short; testgate mutation 059aa10^1 2>&1 | grep -v -E "^(ok|\?) "; echo "exit ${PIPESTATUS[0]}"
+?? internal/version/twice.go
+?? internal/version/twice_test.go
+mutation: staging the tree in /tmp/hq-mutation-4081426500
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+testgate: mutation: go-gremlins failed (do the unit tests pass?): exit status 1
+Starting...
+Gathering files diff...
+Gathering coverage...
+	github.com/rkrysinski/hq/cmd/hq		coverage: 0.0% of statements
+	github.com/rkrysinski/hq/internal/platform/platformtest		coverage: 0.0% of statements
+	github.com/rkrysinski/hq/internal/proc		coverage: 0.0% of statements
+	github.com/rkrysinski/hq/internal/repo		coverage: 0.0% of statements
+--- FAIL: TestTwice (0.00s)
+    twice_test.go:7: Twice(2) is not 5
+FAIL
+coverage: 0.0% of statements in ./...
+FAIL	github.com/rkrysinski/hq/internal/version	0.005s
+	github.com/rkrysinski/hq/tools/capture/elicit		coverage: 0.0% of statements
+	github.com/rkrysinski/hq/tools/fakeclaude		coverage: 0.0% of statements
+FAIL
+ERROR: failed to gather coverage: impossible to executeCoverage coverage: exit status 1
+exit 2
+$ ls -d /tmp/hq-mutation-* 2>/dev/null | wc -l
+0
+$

@@ -1,0 +1,17 @@
+$ git log --oneline -1; git status --short | wc -l; df -h / | tail -1; echo "shared build cache: $(du -sb ~/.cache/go-build | cut -f1) bytes"
+b0d2c82 (HEAD -> issue-204-mutation-gate) Keep the tool's status and the verdict apart; name the ticket implementer's run in agents.md
+0
+overlay          20G  9.2G  9.4G  50% /
+shared build cache: 1625989931 bytes
+$ go run ./tools/testgate mutation origin/dev; echo "exit $?"
+mutation: staging the tree in /tmp/hq-mutation-230272907
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 23s
+mutation: 16 killed, 0 alive, 0 timed out, 45 not covered against origin/dev on b0d2c826d24b76d546205dd2bda05a1034b0586a
+exit 0
+$ df -h / | tail -1; echo "shared build cache: $(du -sb ~/.cache/go-build | cut -f1) bytes"; ls -d /tmp/hq-mutation-* 2>/dev/null | wc -l
+overlay          20G  9.2G  9.4G  50% /
+shared build cache: 1625989931 bytes
+0
+$

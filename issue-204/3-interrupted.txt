@@ -1,0 +1,15 @@
+$ echo "shared build cache: $(du -sb ~/.cache/go-build | cut -f1) bytes"
+shared build cache: 1600504708 bytes
+$ testgate mutation caf3b6f^1; echo "exit $?"; runprocs
+mutation: staging the tree in /tmp/hq-mutation-2710374863
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+^Ctestgate: mutation: interrupted, nothing left behind
+exit 2
+processes of a run: 0
+$
+$ echo "shared build cache: $(du -sb ~/.cache/go-build | cut -f1) bytes"; ls -d /tmp/hq-mutation-* 2>/dev/null | wc -l
+shared build cache: 1600504708 bytes
+0
+$
+(measured outside the pane just before Ctrl-C) processes of a run: 3

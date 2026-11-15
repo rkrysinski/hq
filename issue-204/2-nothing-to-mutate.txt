@@ -1,0 +1,12 @@
+$ git show --stat --format=%s HEAD^2 | head -3
+Docs: the glossary has the terms of the journal spec
+ GLOSSARY.md | 16 ++++++++++++++++
+$ testgate mutation 059aa10^1; echo "exit $?"
+mutation: no mutants in the lines changed against 059aa10^1 on 059aa10c98cfdb3e0f6eb39d98d774922d579040
+exit 0
+$ echo "a note" >> GLOSSARY.md; git status --short
+ M GLOSSARY.md
+$ testgate mutation 059aa10^1; echo "exit $?"
+mutation: no mutants in the lines changed against 059aa10^1 on 059aa10c98cfdb3e0f6eb39d98d774922d579040 with uncommitted changes
+exit 0
+$

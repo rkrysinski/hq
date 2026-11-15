@@ -1,0 +1,22 @@
+$ git status --short | wc -l; git rev-parse --short HEAD; ls .claude/worktrees | wc -l
+0
+caf3b6f
+10
+$ df -h / | tail -1; echo "shared build cache: $(du -sb ~/.cache/go-build | cut -f1) bytes"
+overlay          20G  9.1G  9.5G  49% /
+shared build cache: 1518626447 bytes
+$ peak start; testgate mutation caf3b6f^1; echo "exit $?"; peak stop
+mutation: staging the tree in /tmp/hq-mutation-173416320
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 23s
+alive      tools/testgate/push.go:94:14 conditionals boundary
+alive      tools/testgate/push.go:167:12 conditionals boundary
+mutation: 23 killed, 2 alive, 0 timed out, 23 not covered against caf3b6f^1 on caf3b6faf88765602cf3a508dcca865aabf901d1
+exit 1
+largest temporary directory of the run: 752 MB
+$ df -h / | tail -1; echo "shared build cache: $(du -sb ~/.cache/go-build | cut -f1) bytes"; ls -d /tmp/hq-mutation-* 2>/dev/null | wc -l
+overlay          20G  9.1G  9.5G  49% /
+shared build cache: 1518626447 bytes
+0
+$

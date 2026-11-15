@@ -1,0 +1,9 @@
+before (origin/dev 059aa10):
+unit 674, integration 221, e2e 3 (unit share 75%, minimum 50%)
+after (b0d2c82):
+unit 685, integration 226, e2e 3 (unit share 75%, minimum 50%)
+coverage 94.60% (minimum 94.4%)
+
+$ git diff --stat origin/dev -- go.mod go.sum   (empty: unchanged)
+$ git grep -n 'v0\.6\.0' -- '*.go' 'docs/'
+tools/testgate/mutation.go:24:	gremlinsVersion = "v0.6.0"
