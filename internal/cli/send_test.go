@@ -574,6 +574,12 @@ func TestSendLeavesTheOthersToTheHooksWhenHoldingFails(t *testing.T) {
 	if got := strings.Join(f.tmux.input, "|"); got != "paste %4 first|enter %4" || strings.Join(f.inbox["id-a"], "|") != "/probe second" {
 		t.Fatalf("input %q inbox %q", got, f.inbox["id-a"])
 	}
+	// With nothing to hold, holding is not tried.
+	f = sendFakes(state.Done)
+	f.holdErr = errors.New("disk full")
+	if code, out, errOut := f.run("send", "a", "/probe alone"); code != 0 || out != "delivered: typed into a as its next prompt\n" {
+		t.Fatalf("nothing held: exit %d %q %q", code, out, errOut)
+	}
 }
 
 // A failure to type the first prompt in puts every message back for the
