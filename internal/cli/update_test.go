@@ -466,8 +466,11 @@ func TestTheInstalledHqAnswersTheInstallScript(t *testing.T) {
 		}
 	}
 	f = newLsFakes()
-	if code, _, errOut := f.run(mayUpdateCommand, "v0.2.0", other); code != 0 || errOut != "" {
-		t.Fatalf("no agent: exit %d %q", code, errOut)
+	// Generation 1 is the first there can be.
+	for _, gen := range []string{other, "1"} {
+		if code, _, errOut := f.run(mayUpdateCommand, "v0.2.0", gen); code != 0 || errOut != "" {
+			t.Fatalf("no agent, generation %s: exit %d %q", gen, code, errOut)
+		}
 	}
 	for _, args := range [][]string{{}, {"v0.2.0"}, {"", other}, {"v0.2.0", "x"}, {"v0.2.0", "0"}, {"v0.2.0", other, "--force"}} {
 		if code, _, errOut := f.run(append([]string{mayUpdateCommand}, args...)...); code != ExitUsage || errOut != "hq: usage: hq __may-update TAG GENERATION\n" {

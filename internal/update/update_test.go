@@ -121,8 +121,10 @@ func sumsOf(files map[string]string) []byte {
 // A release's generation counts only once its checksum vouches for it, and
 // only as a number above zero (ADR 0020).
 func TestReadGeneration(t *testing.T) {
-	if gen, err := ReadGeneration(sumsOf(map[string]string{GenerationFile: "4\n"}), []byte("4\n")); err != nil || gen != 4 {
-		t.Fatalf("%d %v", gen, err)
+	for want, data := range map[int]string{4: "4\n", 1: "1\n"} {
+		if gen, err := ReadGeneration(sumsOf(map[string]string{GenerationFile: data}), []byte(data)); err != nil || gen != want {
+			t.Fatalf("%q: %d %v", data, gen, err)
+		}
 	}
 	for name, tc := range map[string]struct{ sums, data string }{
 		"tampered":     {"4\n", "5\n"},
