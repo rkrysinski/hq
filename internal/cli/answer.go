@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -122,7 +123,7 @@ func answer(env Env, d deps, r answerRequest) error {
 	if a.Outdated() {
 		return outdatedErr(a)
 	}
-	det := d.readDetail(a.RepoPath, a.ID)
+	det := a.Detail()
 	if err := answerable(a, det.Ask); err != nil {
 		return err
 	}
@@ -136,8 +137,10 @@ func answer(env Env, d deps, r answerRequest) error {
 	if open.Whose == agent.OwnDialog {
 		return answerOwn(env, d, a, r)
 	}
+	// The dialog the hook holds on for the answer is the one the journal
+	// has open when it asks the same.
 	q, err := d.questions(a.RepoPath, a.ID)
-	if err != nil || state.DialogID(q.Since) != open.ID() {
+	if err != nil || !reflect.DeepEqual(q.Ask, det.Ask) {
 		return usageErr("%s's dialog changed meanwhile; read it again (hq read %s)", a.Name, a.Name)
 	}
 	decision, sent := q.Cancel(), map[string]string(nil)

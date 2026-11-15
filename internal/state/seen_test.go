@@ -175,8 +175,8 @@ func TestTheDialogVerdictSaysWhoseSinceWhichEventAndWhatOpenedAndClosedIt(t *tes
 		{2, NeedsInput, DialogVerdict{Open: true, Whose: DialogHooks, Opened: Mark{2, atSecond(2)}, RestsOn: []int64{2}}, atSecond(2), "Bash: ls", 2, 2},
 		{3, Working, DialogVerdict{Whose: DialogHooks, Opened: Mark{2, atSecond(2)}, Closed: Mark{3, atSecond(3)}, RestsOn: []int64{2, 3}}, atSecond(2), "", 3, 3},
 		{4, Done, DialogVerdict{Whose: DialogHooks, Opened: Mark{2, atSecond(2)}, Closed: Mark{3, atSecond(3)}, RestsOn: []int64{2, 3}}, atSecond(4), "", 4, 4},
-		{6, NeedsInput, DialogVerdict{Open: true, Whose: DialogOwn, Opened: Mark{5, atSecond(5)}, RestsOn: []int64{5}}, atSecond(5), "Change effort level?", 5, 5},
-		{7, Done, DialogVerdict{Whose: DialogOwn, Opened: Mark{5, atSecond(5)}, Closed: Mark{7, atSecond(7)}, RestsOn: []int64{5, 7}}, atSecond(4), "", 7, 4},
+		{6, NeedsInput, DialogVerdict{Open: true, Whose: DialogOwn, Opened: Mark{5, atSecond(5)}, Screen: "f1", RestsOn: []int64{5}}, atSecond(5), "Change effort level?", 5, 5},
+		{7, Done, DialogVerdict{Whose: DialogOwn, Opened: Mark{5, atSecond(5)}, Closed: Mark{7, atSecond(7)}, Screen: "f1", RestsOn: []int64{5, 7}}, atSecond(4), "", 7, 4},
 		{8, NeedsInput, DialogVerdict{Open: true, Whose: DialogSubagent, Opened: Mark{8, atSecond(8)}, RestsOn: []int64{8}}, atSecond(8), "Read: a", 8, 8},
 	} {
 		r := reducedAt(journal, tc.after)

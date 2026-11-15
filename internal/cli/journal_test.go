@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
-	"github.com/rkrysinski/hq/internal/state"
 )
 
 // hexIDs gives the fakes' agents ids as hq issues them, by name, so their
@@ -17,7 +16,6 @@ func hexIDs(f *fakes) map[string]string {
 			id := strings.Repeat(string(rune('a'+len(ids))), 2) + "01"
 			f.tmux.windows[i].Options["id"] = id
 			ids[name] = id
-			f.states[id] = state.Report{State: state.Done, Since: f.now}
 		}
 	}
 	return ids

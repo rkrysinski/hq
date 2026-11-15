@@ -44,25 +44,42 @@ func Aside(events []state.Event, e state.Event) string {
 // Claude taking a queued prompt, which hands the hook's report over to it
 // with no event of the hook (#88).
 func Holds(events []state.Event, e state.Event) bool {
-	slot, key := identity(e)
-	if slot == "" {
-		return false
+	ev := Evidence{}
+	for _, x := range events {
+		ev.Add(x)
 	}
-	for i := len(events) - 1; i >= 0; i-- {
-		x := events[i]
-		switch {
-		case x.Aside != "":
-		case x.Source == state.SourceHQ && (x.Kind == state.KindLaunched || x.Kind == state.KindRelaunched):
-			return false
-		case x.Source == state.SourceScreen && x.Kind == state.KindTookQueued && slot != "took queued":
-			return false
-		default:
-			if s, k := identity(x); s == slot {
-				return k == key
-			}
+	return ev.Holds(e)
+}
+
+// Evidence is what Holds reads of a journal, kept event by event, so a
+// long-running program need not keep the events themselves: for each kind
+// of record, what tells the latest event standing of that kind from
+// another (identity).
+type Evidence map[string]string
+
+// Add follows event e of the journal.
+func (ev Evidence) Add(e state.Event) {
+	switch {
+	case e.Aside != "":
+	case e.Source == state.SourceHQ && (e.Kind == state.KindLaunched || e.Kind == state.KindRelaunched):
+		clear(ev)
+	default:
+		slot, key := identity(e)
+		if e.Source == state.SourceScreen && e.Kind == state.KindTookQueued {
+			clear(ev)
+		}
+		if slot != "" {
+			ev[slot] = key
 		}
 	}
-	return false
+}
+
+// Holds reports whether the journal Add followed holds the evidence e
+// already (Holds).
+func (ev Evidence) Holds(e state.Event) bool {
+	slot, key := identity(e)
+	got, ok := ev[slot]
+	return slot != "" && ok && got == key
 }
 
 // identity is the kind of record an event of evidence is, slot, which a

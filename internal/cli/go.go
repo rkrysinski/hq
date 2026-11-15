@@ -42,7 +42,7 @@ func runGo(env Env, d deps, args []string) error {
 	if err != nil {
 		return tmuxErr(err)
 	}
-	a, ok := agent.Find(agent.Collect(ws, d.readAgent, agent.Sandboxes{}), name)
+	a, ok := agent.Find(d.collectAgents(ws), name)
 	if !ok {
 		return notFoundErr("no agent '%s' (see hq ls)", name)
 	}

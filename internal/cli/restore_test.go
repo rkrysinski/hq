@@ -118,13 +118,13 @@ func TestRestoreReportsTheAgentsItCannotRelaunch(t *testing.T) {
 	f.states["id-e"] = state.Report{State: state.Done, SessionID: "0000000e-0000-4000-8000-00000000000e", Cwd: "/w/app/.claude/worktrees/gone"}
 	f.states["id-g"] = state.Report{State: state.Done} // a session that never had a prompt
 	f.states["id-h"] = state.Report{State: state.Done, SessionID: "0000000f-0000-4000-8000-00000000000f", Cwd: "/w/app"}
-	// i never reported.
+	// i never reported, and its journal is gone.
 	code, out, errOut := f.run("restore", "app")
 	want := "restored a in app (sandbox claude-x)\nrestored d in app (sandbox hq-local-app)\n" +
 		"not restored e in app: its worktree /w/app/.claude/worktrees/gone is gone (hq kill e forgets it)\n" +
 		"not restored g in app: it has no conversation to continue (hq kill g forgets it)\n" +
 		"not restored h in app: its sandbox hq-gone-app is gone (hq kill h forgets it)\n" +
-		"not restored i in app: it has no conversation to continue (hq kill i forgets it)\n"
+		"not restored i in app: its journal is gone (hq kill i forgets it)\n"
 	if code != 0 || out != want {
 		t.Fatalf("exit %d\n%s%s", code, out, errOut)
 	}
@@ -217,7 +217,7 @@ func TestSandboxRestartAlsoRestoresItsLostAgents(t *testing.T) {
 	f.stdin = "y\n"
 	code, out, errOut := f.run("sandbox", "restart", "app")
 	if code != 0 || !strings.Contains(out, "Restart the sandbox claude-x? This ends and relaunches 2 agents (a, b) and restores 2 lost agents (e, g).") ||
-		!strings.HasSuffix(out, "restarted the sandbox claude-x; relaunched a, b; restored e\nnot restored g in app: it has no conversation to continue (hq kill g forgets it)\n") {
+		!strings.HasSuffix(out, "restarted the sandbox claude-x; relaunched a, b; restored e\nnot restored g in app: its journal is gone (hq kill g forgets it)\n") {
 		t.Fatalf("exit %d\n%s%s", code, out, errOut)
 	}
 	w, ok := f.window("e")
@@ -310,7 +310,7 @@ func TestRestoreReportsTheOthersWhenALaunchFails(t *testing.T) {
 	f.records["/w/app"] = append(f.records["/w/app"], state.Record{ID: "id-g", Name: "g", Sandbox: "claude-x", Generation: version.Generation})
 	f.tmux.startErr = errors.New("start failed")
 	code, out, errOut := f.run("restore", "app")
-	if code != ExitEnvironment || out != "not restored g in app: it has no conversation to continue (hq kill g forgets it)\n" || errOut != "hq: start failed\n" {
+	if code != ExitEnvironment || out != "not restored g in app: its journal is gone (hq kill g forgets it)\n" || errOut != "hq: start failed\n" {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
 	// The record of an agent that was already lost stays.

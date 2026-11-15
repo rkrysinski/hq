@@ -347,9 +347,10 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 	// report, read before the agents go. One that never reported starts fresh.
 	plans := planRestore(d, sbs, lost)
 	resume := map[string]string{}
+	agent.ReadStates(mine, d.journal, d.now(), d.folds)
 	for _, a := range mine {
-		if r, ok := d.readState(a.RepoPath, a.ID); ok && sessionID.MatchString(r.SessionID) {
-			resume[a.ID] = r.SessionID
+		if s := a.Session(); sessionID.MatchString(s) {
+			resume[a.ID] = s
 		}
 	}
 	// Stopping ends every session in the sandbox. The agents show ended from

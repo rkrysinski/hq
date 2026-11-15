@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
-	"github.com/rkrysinski/hq/internal/tmux"
 )
 
 // journaled gives agent name the id id, shaped as hq issues them so its
@@ -74,7 +74,6 @@ func TestHqTypingAMessageInAppendsItsDeliveryBeforeTheTyping(t *testing.T) {
 	f := sendFakes(state.Done)
 	journaled(f, "a", "a1")
 	f.inbox["a1"] = []string{"first"}
-	hookReport(f, "/w/app", "a1", "000000001.1", "Stop")
 	var atPaste []string
 	f.tmux.onPaste = func() { atPaste = append(atPaste, journaltest.Kinds(journalOf(t, f, "a1"))) }
 	submitted := f.tmux.onSubmit
@@ -97,23 +96,24 @@ func TestHqTypingAMessageInAppendsItsDeliveryBeforeTheTyping(t *testing.T) {
 		t.Fatalf("delivery %+v", d)
 	}
 	// The held command, typed in by a later look once the agent is back at
-	// its prompt; the prompt of the first comes before it.
+	// its prompt; the prompt of the first and its turn's end come before it.
 	f.now = f.now.Add(time.Minute)
+	hookReport(f, "/w/app", "a1", "000000009.1", "Stop")
 	if code, _, errOut := f.run("ls"); code != 0 {
 		t.Fatalf("ls: exit %d %s", code, errOut)
 	}
 	es = journalOf(t, f, "a1")
-	if got := journaltest.Kinds(es); got != "Stop delivery UserPromptSubmit delivery" {
+	if got := journaltest.Kinds(es); got != "Stop delivery UserPromptSubmit Stop delivery" {
 		t.Fatalf("journal %s", got)
 	}
-	if held := es[3]; held.Source != state.SourceHQ || strings.Join(held.Facts.Messages, " ") != fakeName("/probe") || held.Basis != es[2].Number {
+	if held := es[4]; held.Source != state.SourceHQ || strings.Join(held.Facts.Messages, " ") != fakeName("/probe") || held.Basis != es[3].Number {
 		t.Fatalf("held delivery %+v", held)
 	}
 	f.now = f.now.Add(time.Minute)
 	if code, _, _ := f.run("ls"); code != 0 {
 		t.Fatal("ls")
 	}
-	if es := journalOf(t, f, "a1"); len(es) != 5 || es[4].Kind != "UserPromptSubmit" || es[4].Number < es[3].Number {
+	if es := journalOf(t, f, "a1"); len(es) < 6 || es[5].Kind != "UserPromptSubmit" || es[5].Number < es[4].Number {
 		t.Fatalf("the command's prompt after its delivery: %s", journaltest.Kinds(es))
 	}
 }
@@ -130,7 +130,7 @@ func TestAFailedTypingWithdrawsItsDelivery(t *testing.T) {
 	}
 	es := journalOf(t, f, "a1")
 	names := fakeName("first") + " " + fakeName("second")
-	if got := journaltest.Kinds(es); got != "delivery Withdrawn" || strings.Join(es[1].Facts.Messages, " ") != names || es[1].Facts.At != state.KindDelivery || es[1].Source != state.SourceHQ {
+	if got := journaltest.Kinds(es); got != "Stop delivery Withdrawn" || strings.Join(es[2].Facts.Messages, " ") != names || es[2].Facts.At != state.KindDelivery || es[2].Source != state.SourceHQ {
 		t.Fatalf("journal %s: %+v", got, es)
 	}
 	var back []string
@@ -149,7 +149,7 @@ func TestAnAnswerIsAnEventBeforeItIsGiven(t *testing.T) {
 	f, id := askFakes(t, "dialog-ask")
 	journaled(f, "a", "a1")
 	var atLeave string
-	f.onLeaveAnswer = func() { atLeave = journaltest.Kinds(journalOf(t, f, "a1")) }
+	f.onLeaveAnswer = func() { atLeave = journaltest.Kinds(ofSource(journalOf(t, f, "a1"), state.SourceHQ)) }
 	// Its hook takes the cancel, and Claude ends the turn as at Esc.
 	f.onSleep = func() {
 		if f.answerLeft["a1"] != nil {
@@ -160,8 +160,8 @@ func TestAnAnswerIsAnEventBeforeItIsGiven(t *testing.T) {
 	if code, out, errOut := f.run("answer", "a", "--dialog", id, "--cancel"); code != 0 {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
-	es := journalOf(t, f, "a1")
-	if atLeave != state.KindAnswer || len(ofSource(es, state.SourceHQ)) != 1 || es[0].Source != state.SourceHQ || es[0].Facts.At != state.AtQuestion {
+	es := ofSource(journalOf(t, f, "a1"), state.SourceHQ)
+	if atLeave != state.KindAnswer || len(es) != 1 || es[0].Facts.At != state.AtQuestion {
 		t.Fatalf("at the leaving %q, journal %+v", atLeave, es)
 	}
 
@@ -170,7 +170,7 @@ func TestAnAnswerIsAnEventBeforeItIsGiven(t *testing.T) {
 	if code, _, _ := f.run("answer", "a", "--dialog", id, "1"); code == 0 {
 		t.Fatal("not taken: exit 0")
 	}
-	if got := journaltest.Kinds(journalOf(t, f, "a1")); got != "Answer Withdrawn" {
+	if got := journaltest.Kinds(ofSource(journalOf(t, f, "a1"), state.SourceHQ)); got != "Answer Withdrawn" {
 		t.Fatalf("not taken: %s", got)
 	}
 	f, id = askFakes(t, "dialog-ask")
@@ -179,7 +179,7 @@ func TestAnAnswerIsAnEventBeforeItIsGiven(t *testing.T) {
 	if code, _, _ := f.run("answer", "a", "--dialog", id, "1"); code == 0 {
 		t.Fatal("not left: exit 0")
 	}
-	if got := journaltest.Kinds(journalOf(t, f, "a1")); got != "Answer Withdrawn" {
+	if got := journaltest.Kinds(ofSource(journalOf(t, f, "a1"), state.SourceHQ)); got != "Answer Withdrawn" {
 		t.Fatalf("not left: %s", got)
 	}
 
@@ -240,7 +240,7 @@ func TestLaunchRestartAndRelaunchAreEvents(t *testing.T) {
 		if fail {
 			want = "Launched Withdrawn"
 		}
-		if es := journalOf(t, f, "a1"); journaltest.Kinds(es) != want || es[0].Facts.Start != "restore" || es[0].Facts.Session != sessionA {
+		if es := ofSource(journalOf(t, f, "a1"), state.SourceHQ); journaltest.Kinds(es) != want || es[0].Facts.Start != "restore" || es[0].Facts.Session != sessionA {
 			t.Fatalf("restored (start fails: %v): %+v", fail, es)
 		}
 	}
@@ -258,9 +258,10 @@ func TestLaunchRestartAndRelaunchAreEvents(t *testing.T) {
 	if got := journaltest.Kinds(ofSource(es, state.SourceHQ)); got != "TakenDown Relaunched" {
 		t.Fatalf("restart: %s", journaltest.Kinds(es))
 	}
+	basis := journal.Basis(es[:slices.IndexFunc(es, func(e state.Event) bool { return e.Source == state.SourceHQ })])
 	for _, e := range ofSource(es, state.SourceHQ) {
-		if e.Basis != es[0].Number {
-			t.Errorf("based on %d: %+v", es[0].Number, e)
+		if e.Basis != basis || basis == 0 {
+			t.Errorf("based on %d: %+v", basis, e)
 		}
 	}
 	f = sandboxFakes()
@@ -295,7 +296,6 @@ func TestAnSbxTooOldEndsTheCommandBeforeAnythingIsIngested(t *testing.T) {
 func TestOnlyAnAnswerOfSbxIsAnSbxEvent(t *testing.T) {
 	f := sendFakes(state.Done)
 	journaled(f, "a", "a1")
-	hookReport(f, "/w/app", "a1", "000000001.1", "Stop")
 	f.sbx.err = &sbx.TooOldError{Version: "0.47.0"}
 	if code, _, errOut := f.run("wait", "a", "--timeout", "1s"); code != 0 {
 		t.Fatalf("wait: exit %d %s", code, errOut)
@@ -320,7 +320,6 @@ func TestOnlyAnAnswerOfSbxIsAnSbxEvent(t *testing.T) {
 func TestEveryLookAppendsWhatItSaw(t *testing.T) {
 	f := sendFakes(state.Working)
 	journaled(f, "a", "a1")
-	hookReport(f, "/w/app", "a1", "000000001.1", "UserPromptSubmit")
 	f.tmux.screens["%4"] = declinedScreen
 	for range 3 {
 		if code, out, _ := f.run("ls"); code != 0 || !strings.Contains(out, "done") {
@@ -330,7 +329,7 @@ func TestEveryLookAppendsWhatItSaw(t *testing.T) {
 	}
 	es := journalOf(t, f, "a1")
 	screen := ofSource(es, state.SourceScreen)
-	if len(screen) != 1 || screen[0].Kind != state.KindTurnEnded || screen[0].Basis != es[0].Number || !slices.ContainsFunc(f.tmux.windows, func(w tmux.Window) bool { return w.Options["turnend"] != "" }) {
+	if len(screen) != 1 || screen[0].Kind != state.KindTurnEnded || screen[0].Basis != es[0].Number {
 		t.Fatalf("journal %s", journaltest.Kinds(es))
 	}
 }

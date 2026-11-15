@@ -1,6 +1,9 @@
 package agent
 
 import (
+	"math"
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/journal"
@@ -8,200 +11,270 @@ import (
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
-// A Store is where the look reads the agents' screens and keeps what it
-// saw on their windows (design §3.4). The tmux client is one. A Store that
-// is also Journals keeps it in the agents' journals too.
+// A Store is where the look reads the agents' journals and screens (design
+// §3.4): the journals' store, and tmux for the screens.
 type Store interface {
+	journal.Store
 	// Screens returns what the panes show, by pane id, in one call.
 	Screens(panes []string) (map[string]string, error)
-	// KeepFirst stores value as the window's option unless the option
-	// already holds a value that starts with prefix, and returns what the
-	// option holds then: the first value stored for a prefix wins.
-	KeepFirst(window, option, prefix, value string) (string, error)
 }
 
-// Journals are the agents' journals as the look reads them and appends to
-// them (journal.Store): every hq command's look has them; one without them
-// (a test of the window records alone) appends no event.
-type Journals interface {
-	// Read is the journal of agent id.
-	Read(id string) (journal.Journal, error)
-	// Append appends events of hq's own to the journal of agent id, setting
-	// aside a duplicate or an overtaken one.
-	Append(id string, events ...state.Event) ([]state.Event, error)
-}
-
-// A Taker hands an agent's state over to the prompt Claude took from its
-// queue after the user interrupted the turn it was queued in (#88), as
-// state.TakeQueued does; nil for a look that cannot (see settle).
+// A Taker hands the hook's working files of an agent over to the prompt
+// Claude took from its queue after the user interrupted the turn it was
+// queued in (#88), as state.TakeQueued does, so the hook goes on from it;
+// nil for a look that does not.
 type Taker func(root, id string) error
 
-// Look is the look at the agents' screens: the agents of the home windows
-// ws, collected with what their state files report and sbx's answer
-// (Collect), then settled by what their screens show at now that no hook
-// reports (design §3.4), as hq ls, the list and the chords show them. It
-// captures the screens of every agent the hooks leave unsettled in one
-// call, and keeps on the agents' windows, first-wins, what it saw first
-// (a turn the user ended, a screen at rest, a dialog of Claude's own, an
-// end nothing dates, Claude's wake-up), so that every hq process shows the
-// same moment; a record another process stored first is the one applied.
-// One thing it saw goes to the agent's state files instead: Claude at work
-// on a prompt it took from its queue after an Esc, which take hands the
-// state over to, once for all processes, and the look reads the report
-// again (#88).
-//
-// Whatever it saw that no hook reports, and the pane's death and sbx's
-// answer that end an agent, it appends to the agent's journal as an event
-// of the screen, tmux or sbx, based on the last event of the agent's hook
-// in its journal, unless the journal holds that evidence already
-// (journal.Holds): a screen that stays the same adds nothing. Of looks
-// that append the same evidence at once, the first wins and the others'
-// is set aside (#195). The window records still decide the state.
-//
-// It never fails. When the capture fails, the hooks' states stand, and a
-// turn end, a dialog answered or a dialog of Claude's own hq saw earlier
-// still applies; when a record cannot be written, it is not applied, and
-// the agent shows what this look saw; a journal that cannot be read or
-// written gets no event.
-//
-// One look may not be enough: an agent Resting needs one more, RestDelay
-// later, which is the caller's to take.
-func Look(ws []tmux.Window, read func(root, id string) (state.Report, bool), take Taker, sandboxes Sandboxes, now time.Time, store Store) []Agent {
-	as := Collect(ws, read, sandboxes)
-	for i := range as {
-		as[i].readJournal(store)
-		as[i].seeEnded(store, sandboxes, now)
+// Folds are the agents' journals as one hq process keeps them folded
+// (state.Fold), so that each look reads and folds only the events appended
+// since the one before (design §5.1): the list and hq wait keep one for as
+// long as they run. A nil Folds folds every journal from its start. One
+// look at a time uses it.
+type Folds struct {
+	mu sync.Mutex
+	by map[string]*folded
+}
+
+// NewFolds is an empty Folds.
+func NewFolds() *Folds { return &Folds{by: map[string]*folded{}} }
+
+// folded is an agent's journal folded up to position next: the fold, the
+// journal's reply and ask, the number of the last event of its hook
+// (journal.Basis) and the evidence it holds (journal.Evidence).
+type folded struct {
+	next     int64
+	fold     state.Fold
+	reply    state.Reply
+	ask      state.Asked
+	basis    int64
+	evidence journal.Evidence
+}
+
+// lock takes the Folds for one look and returns what lets it go.
+func (fs *Folds) lock() func() {
+	if fs == nil {
+		return func() {}
 	}
-	settleScreens(as, read, take, now, store)
+	fs.mu.Lock()
+	return fs.mu.Unlock
+}
+
+// of is the folded journal of agent id, fresh for a nil Folds.
+func (fs *Folds) of(id string) *folded {
+	if fs == nil {
+		return &folded{evidence: journal.Evidence{}}
+	}
+	f, ok := fs.by[id]
+	if !ok {
+		f = &folded{evidence: journal.Evidence{}}
+		fs.by[id] = f
+	}
+	return f
+}
+
+// update folds the events appended to agent id's journal since f's
+// position; a journal that no longer reaches it (removed meanwhile) is
+// folded anew from its start.
+func (f *folded) update(store journal.Store, id string) error {
+	j, err := store.ReadFrom(id, f.next)
+	if err != nil {
+		return err
+	}
+	if j.From != f.next {
+		*f = folded{evidence: journal.Evidence{}}
+	}
+	f.fold = f.fold.With(j.Events...)
+	for _, e := range j.Events {
+		f.evidence.Add(e)
+		if e.Source == state.SourceHook {
+			f.basis = e.Number
+		}
+	}
+	if j.Reply.Number != 0 {
+		f.reply = j.Reply
+	}
+	if j.Ask.Number != 0 {
+		f.ask = j.Ask
+	}
+	f.next = j.Next
+	return nil
+}
+
+// witness appends e, evidence the look saw at now, to agent id's journal,
+// based on the last event of its hook there, unless the journal holds it
+// already; the store sets it aside when another process appended it first,
+// or a later report overtook it. A journal that cannot be written gets no
+// event.
+func (f *folded) witness(store journal.Store, id string, e state.Event, now time.Time) {
+	e.Basis = f.basis
+	if e.Time.IsZero() {
+		e.Time = now
+	}
+	if f.evidence.Holds(e) {
+		return
+	}
+	out, err := store.Append(id, e)
+	if err != nil {
+		return
+	}
+	for _, x := range out {
+		f.evidence.Add(x)
+	}
+}
+
+// read gives agent a its state from its journal, the event files its hook
+// left ingested first: a journal that cannot be read leaves the agent as
+// its window says.
+func (a *Agent) read(store journal.Store, f *folded) bool {
+	if a.Outdated() {
+		return false
+	}
+	_ = store.Ingest(a.RepoPath, a.ID)
+	if f.update(store, a.ID) != nil {
+		a.unread()
+		return false
+	}
+	return true
+}
+
+// Collect is the agents of the home windows ws with their state as their
+// journals give it, the event files their hooks left ingested first, at
+// now: nothing is appended and no screen is read (design §3.4). hq go, hq
+// code and the dashboard's dock take it; the commands that show or act on
+// an agent's state take a Look.
+func Collect(ws []tmux.Window, store journal.Store, now time.Time, folds *Folds) []Agent {
+	as := FromWindows(ws)
+	ReadStates(as, store, now, folds)
+	return as
+}
+
+// ReadStates gives the agents, from their home windows (FromWindows), their
+// state as Collect does: an agent whose pane is dead is ended, as tmux
+// dates it, though only a look appends that.
+func ReadStates(as []Agent, store journal.Store, now time.Time, folds *Folds) {
+	defer folds.lock()()
 	for i := range as {
-		offer(store, &as[i], as[i].seeEnd(now), now)
-		offer(store, &as[i], as[i].seeWake(), now)
-		// Collect kept them for the hooks' state; the screens may have
-		// overruled it since.
-		as[i].keepOwnTasks()
-		as[i].journal = nil
+		a := &as[i]
+		f := folds.of(a.ID)
+		if !a.read(store, f) {
+			continue
+		}
+		if a.Alive {
+			a.apply(f, now, "", false)
+			continue
+		}
+		// The pane's death, which only a look appends, counts as tmux
+		// tells it.
+		dead := *f
+		e := state.Event{Number: math.MaxInt64, Source: state.SourceTmux, Kind: state.KindPaneDied, Time: now, Basis: f.basis}
+		e.Facts.From = a.deadAt
+		dead.fold = f.fold.With(e)
+		a.apply(&dead, now, "", false)
+	}
+}
+
+// Look is the look at the agents of the home windows ws at now (GLOSSARY.md,
+// design §3.4), as hq ls, hq read, hq wait, hq send, the list and the
+// chords take it: for each agent it ingests the event files its hook left
+// into its journal and folds the journal (state.Fold), appends what tmux,
+// sbx and its screen show that the journal does not hold yet, and folds
+// what it appended, so every hq process shows the same state from the
+// same journal. Of looks that append the same evidence at once, the first
+// wins and the others' is set aside (journal.Aside).
+//
+// What it appends: the pane's death, as tmux dates it; sbx's answer that
+// the agent's sandbox does not run, with the moment sbx was asked, when
+// that answer ends the agent (state.Fold.Stopped; an answer sbx did not
+// give ends nobody and is no event); what the screens of the agents the
+// hooks leave unsettled show (state.Fold.Sees), all captured in one call;
+// and Claude's wake-up after a turn the user ended (state.Fold.WakeUp).
+// When it sees Claude take a queued prompt after an Esc, take hands the
+// hook's working files over to it (#88).
+//
+// It never fails: a capture that fails appends nothing of the screens,
+// and what the journal holds still stands; a journal that cannot be read
+// leaves the agent as its window says, and one that cannot be written gets
+// no event. One look may not be enough: an agent Resting needs one more,
+// RestDelay later, which is the caller's to take.
+func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Store, take Taker, folds *Folds) []Agent {
+	defer folds.lock()()
+	as := FromWindows(ws)
+	fs := make([]*folded, len(as))
+	wakes := make([]*state.Event, len(as))
+	for i := range as {
+		a := &as[i]
+		f := folds.of(a.ID)
+		if !a.read(store, f) {
+			continue
+		}
+		fs[i] = f
+		if e, ok := f.fold.WakeUp(a.Alive); ok {
+			wakes[i] = &e
+		}
+		if !a.Alive {
+			e := state.Event{Source: state.SourceTmux, Kind: state.KindPaneDied}
+			e.Facts.From = a.deadAt
+			f.witness(store, a.ID, e, now)
+		}
+		if sandboxes.notRunning(*a) && f.fold.Stopped(sandboxes.Asked) {
+			e := state.Event{Source: state.SourceSbx, Kind: state.KindNotRunning}
+			e.Facts.Asked = sandboxes.Asked
+			f.witness(store, a.ID, e, now)
+		}
+		_ = f.update(store, a.ID)
+	}
+	screens := lookAtScreens(as, fs, now, store)
+	for i := range as {
+		a, f := &as[i], fs[i]
+		if f == nil {
+			continue
+		}
+		screen, captured := screens[a.Pane]
+		if captured {
+			events, resting := f.fold.Sees(screen, now)
+			a.resting = resting
+			for _, e := range events {
+				f.witness(store, a.ID, e, now)
+				if e.Kind == state.KindTookQueued {
+					// The prompt Claude took is no wake-up.
+					wakes[i] = nil
+					if take != nil {
+						_ = take(a.RepoPath, a.ID)
+					}
+				}
+			}
+		}
+		if wakes[i] != nil {
+			f.witness(store, a.ID, *wakes[i], now)
+		}
+		_ = f.update(store, a.ID)
+		a.apply(f, now, screen, captured)
 	}
 	return as
 }
 
-// readJournal reads the agent's journal for the look, which bases what it
-// appends on the last event of the agent's hook there. An outdated agent's
-// journal is not this hq's to read.
-func (a *Agent) readJournal(store Store) {
-	js, ok := store.(Journals)
-	if !ok || a.Outdated() {
-		return
-	}
-	j, err := js.Read(a.ID)
-	if err != nil {
-		return
-	}
-	a.journal, a.journaled, a.basis = j.Events, true, journal.Basis(j.Events)
-}
-
-// seeEnded appends the evidence that ends the agent: its pane's death, as
-// tmux dates it (zero when tmux does not), and its sandbox not running,
-// with the moment sbx was asked, when that answer ends it (stopped). An
-// answer sbx did not give (an sbx too old, one that failed or did not
-// answer in time) ends nobody and is no event.
-func (a *Agent) seeEnded(store Store, sandboxes Sandboxes, now time.Time) {
-	if !a.Alive {
-		e := state.Event{Source: state.SourceTmux, Kind: state.KindPaneDied, Time: now}
-		e.Facts.From = a.deadAt
-		a.witness(store, e)
-	}
-	if sandboxes.stopped(*a) && !sandboxes.Asked.IsZero() {
-		e := state.Event{Source: state.SourceSbx, Kind: state.KindNotRunning, Time: now}
-		e.Facts.Asked = sandboxes.Asked
-		a.witness(store, e)
-	}
-}
-
-// screenEvent is an event of what the look saw on the screen at now.
-func screenEvent(kind string, now time.Time) state.Event {
-	return state.Event{Source: state.SourceScreen, Kind: kind, Time: now}
-}
-
-// witness appends e, evidence the look saw, to the agent's journal, based
-// on the last event of its hook there, unless the journal holds it
-// already; the store sets it aside when another process appended it
-// first. It keeps what it appended, so one look appends nothing twice.
-func (a *Agent) witness(store Store, e state.Event) {
-	if !a.journaled {
-		return
-	}
-	e.Basis = a.basis
-	if journal.Holds(a.journal, e) {
-		return
-	}
-	if out, err := store.(Journals).Append(a.ID, e); err == nil {
-		a.journal = append(a.journal, out...)
-	}
-}
-
-// settleScreens looks at the screens of the agents whose turn the user may
-// have ended, or that wait at their prompt, in one capture.
-func settleScreens(as []Agent, read func(root, id string) (state.Report, bool), take Taker, now time.Time, store Store) {
+// lookAtScreens captures, in one call, the screens of the agents whose
+// turn the user may have ended or that wait at their prompt
+// (state.Fold.Unsettled), by pane; none when there are none or the capture
+// fails.
+func lookAtScreens(as []Agent, fs []*folded, now time.Time, store Store) map[string]string {
 	var panes []string
 	for i := range as {
-		if as[i].unsettled(now) {
+		if fs[i] != nil && as[i].Alive && fs[i].fold.Unsettled(now) {
 			panes = append(panes, as[i].Pane)
 		}
 	}
 	if len(panes) == 0 {
-		return
+		return nil
 	}
 	screens, err := store.Screens(panes)
 	if err != nil {
-		// What hq saw earlier stands without the screen: a turn end, a
-		// dialog of the hooks' answered, a dialog of Claude's own.
-		for i := range as {
-			if as[i].unsettled(now) {
-				as[i].recallSeen()
-			}
-		}
-		return
+		return nil
 	}
-	for i := range as {
-		if s, ok := screens[as[i].Pane]; ok && as[i].unsettled(now) {
-			r := as[i].settle(s, now)
-			if as[i].takeQueued {
-				as[i].witness(store, screenEvent(state.KindTookQueued, now))
-				as[i].handOver(read, take)
-				continue
-			}
-			offer(store, &as[i], r, now)
+	for p := range screens {
+		if !slices.Contains(panes, p) {
+			delete(screens, p)
 		}
 	}
-}
-
-// handOver hands the agent's state over to the prompt Claude took from its
-// queue (settle, Taker) and applies the report that gives: working on it
-// since now. Without a taker, or when the hand-over fails (a hook has just
-// taken the copy away, another process got there first), the hooks' word
-// stands for this look.
-func (a *Agent) handOver(read func(root, id string) (state.Report, bool), take Taker) {
-	a.takeQueued = false
-	if take == nil || take(a.RepoPath, a.ID) != nil {
-		return
-	}
-	a.Apply(read(a.RepoPath, a.ID))
-}
-
-// offer offers r to the agent's window and applies what it holds then,
-// unless the write failed, and appends its event, seen at now, to the
-// agent's journal (witness), whichever process stored the record first.
-func offer(store Store, a *Agent, r record, now time.Time) {
-	if r.Value == "" {
-		return
-	}
-	if stored, err := store.KeepFirst(a.Window, r.Option, r.Key, r.Value); err == nil {
-		a.adopt(r, stored)
-	}
-	if r.Event.Kind != "" {
-		if r.Event.Time.IsZero() {
-			r.Event.Time = now
-		}
-		a.witness(store, r.Event)
-	}
+	return screens
 }

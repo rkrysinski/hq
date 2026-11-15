@@ -162,10 +162,13 @@ func TestAnswerNamesTheOpenDialog(t *testing.T) {
 			t.Errorf("%v: exit %d %q", tc.args, code, errOut)
 		}
 	}
-	// The dialog changed between the look and the read of its questions.
-	q := f.questions["id-a"]
-	q.Since = q.Since.Add(time.Second)
-	f.questions["id-a"] = q
+	// The dialog changed between the look and the read of its questions:
+	// the hook holds on another.
+	other, err := state.ParseQuestions(stateFixture(t, "dialog-ask-several"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.questions["id-a"] = other
 	if code, _, errOut := f.run("answer", "a", "--dialog", id, "2"); code != ExitUsage || !strings.Contains(errOut, "a's dialog changed meanwhile") {
 		t.Errorf("changed: exit %d %q", code, errOut)
 	}

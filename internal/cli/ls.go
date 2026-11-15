@@ -113,7 +113,7 @@ func writeTable(w io.Writer, rows []lsRow) error {
 func newLsRow(d deps, a agent.Agent, now time.Time) lsRow {
 	var det state.Detail
 	if a.Dialog().Open() || a.State == state.Question {
-		det = d.readDetail(a.RepoPath, a.ID)
+		det = a.Detail()
 	}
 	return lsRowWithDetail(d, a, now, det)
 }
@@ -186,7 +186,7 @@ func collectWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
 	if err != nil {
 		return nil, tmuxErr(err)
 	}
-	return agent.Look(ws, d.readAgent, d.takeQueued, running, d.now(), d.store()), nil
+	return d.look(ws, running), nil
 }
 
 // runningSandboxes asks sbx which sandboxes run, noting when it asked; the

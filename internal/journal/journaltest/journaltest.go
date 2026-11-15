@@ -4,6 +4,7 @@ package journaltest
 
 import (
 	"errors"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -22,6 +23,11 @@ type Memory struct {
 	files    map[string]map[string]file // by root and id, then by name
 	journals map[string][]state.Event
 	replies  map[string]state.Reply
+	asks     map[string]state.Asked
+	// reads counts the events Read and ReadFrom gave, by agent id; hooks
+	// counts the event files Report left.
+	reads map[string]int
+	hooks int
 }
 
 // file is an event file a hook left: its content and its time.
@@ -32,7 +38,7 @@ type file struct {
 
 // NewMemory is an empty fake.
 func NewMemory() *Memory {
-	return &Memory{files: map[string]map[string]file{}, journals: map[string][]state.Event{}, replies: map[string]state.Reply{}}
+	return &Memory{files: map[string]map[string]file{}, journals: map[string][]state.Event{}, replies: map[string]state.Reply{}, asks: map[string]state.Asked{}, reads: map[string]int{}}
 }
 
 var _ journal.Store = (*Memory)(nil)
@@ -90,6 +96,9 @@ func (m *Memory) Ingest(root, id string) error {
 			r.Number = e.Number
 			m.replies[id] = *r
 		}
+		if a, ok := state.AskOf(e, f.data); ok {
+			m.asks[id] = state.Asked{Number: e.Number, Ask: a}
+		}
 		delete(m.files[k], n)
 	}
 	return nil
@@ -115,18 +124,58 @@ func (m *Memory) Append(id string, events ...state.Event) ([]state.Event, error)
 	return out, nil
 }
 
+// Put numbers events and appends them to the journal of agent id as they
+// are, setting nothing aside, for a test that needs a long journal fast.
+func (m *Memory) Put(id string, events ...state.Event) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, e := range events {
+		m.counter++
+		e.Number = m.counter
+		m.journals[id] = append(m.journals[id], e)
+	}
+}
+
 // Read is the journal of agent id (journal.Store).
-func (m *Memory) Read(id string) (journal.Journal, error) {
+func (m *Memory) Read(id string) (journal.Journal, error) { return m.ReadFrom(id, 0) }
+
+// ReadFrom is the journal of agent id from position from, an index into
+// its events (journal.Store).
+func (m *Memory) ReadFrom(id string, from int64) (journal.Journal, error) {
 	if !state.IsID(id) {
 		return journal.Journal{}, errors.New("not an agent id")
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return journal.Journal{
-		Events:  append([]state.Event(nil), m.journals[id]...),
-		Reply:   m.replies[id],
+	events := m.journals[id]
+	if from < 0 || from > int64(len(events)) {
+		from = 0
+	}
+	j := journal.Journal{
+		Events:  append([]state.Event(nil), events[from:]...),
 		Through: m.counter,
-	}, nil
+		From:    from,
+		Next:    int64(len(events)),
+	}
+	m.reads[id] += len(j.Events)
+	among := func(n int64) bool {
+		return slices.ContainsFunc(j.Events, func(e state.Event) bool { return e.Number == n })
+	}
+	if r := m.replies[id]; among(r.Number) {
+		j.Reply = r
+	}
+	if a := m.asks[id]; among(a.Number) {
+		j.Ask = a
+	}
+	return j, nil
+}
+
+// Reads is how many events Read and ReadFrom have given of agent id's
+// journal, for a test to see that a look reads only what is new.
+func (m *Memory) Reads(id string) int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.reads[id]
 }
 
 // Remove deletes the journal of agent id and the event files left for it
@@ -140,6 +189,7 @@ func (m *Memory) Remove(root, id string) error {
 	delete(m.files, agentKey(root, id))
 	delete(m.journals, id)
 	delete(m.replies, id)
+	delete(m.asks, id)
 	return nil
 }
 

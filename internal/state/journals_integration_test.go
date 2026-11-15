@@ -137,9 +137,7 @@ func rebuild(t *testing.T, fx state.JournalFixture) state.JournalFixture {
 			}
 			return os.Chtimes(filepath.Join(state.Dir(root), id), when, when)
 		}
-		w.Options = store.kept(w.Options)
-		as := agent.Look([]tmux.Window{w}, state.Read, take, sandboxes, when, store)
-		w.Options = store.kept(w.Options)
+		as := agent.Look([]tmux.Window{w}, sandboxes, when, store, take, nil)
 		j, err := store.Read(id)
 		if err != nil {
 			t.Fatal(err)
@@ -162,13 +160,11 @@ func rebuild(t *testing.T, fx state.JournalFixture) state.JournalFixture {
 }
 
 // lookStore is where the look of a fixture journal reads the agent's
-// screen, keeps its records on the agent's window and appends to its
-// journal: the screen of the step, the window's options, first-wins as
-// tmux keeps them, and the journal's store.
+// screen and its journal: the screen of the step, and the journal's
+// store.
 type lookStore struct {
 	journal.Files
-	screen  string
-	options map[string]string
+	screen string
 }
 
 func (s *lookStore) Screens(panes []string) (map[string]string, error) {
@@ -179,26 +175,6 @@ func (s *lookStore) Screens(panes []string) (map[string]string, error) {
 		}
 	}
 	return out, nil
-}
-
-func (s *lookStore) KeepFirst(_, option, prefix, value string) (string, error) {
-	if s.options == nil {
-		s.options = map[string]string{}
-	}
-	if !strings.HasPrefix(s.options[option], prefix) {
-		s.options[option] = value
-	}
-	return s.options[option], nil
-}
-
-// kept is the window's options o with the records the looks kept there.
-func (s *lookStore) kept(o map[string]string) map[string]string {
-	for _, k := range tmux.OptionKeys {
-		if v, ok := s.options[k]; ok {
-			o[k] = v
-		}
-	}
-	return o
 }
 
 // act does to the agent of window w what hq does as how at when: appends
@@ -213,16 +189,13 @@ func act(t *testing.T, store *lookStore, w *tmux.Window, id, how string, when ti
 	set := map[string]string{}
 	switch how {
 	case "launch", "restore":
-		// In a new home window: none of the old one's records.
+		// In a new home window.
 		e.Kind, e.Facts.Start = state.KindLaunched, "new"
 		set["started"], set["new"] = agent.Stamp(when), "1"
 		if how == "restore" {
 			e.Facts.Start, set["new"] = "restore", ""
 		}
-		for _, k := range []string{"ending", "turnend", "restseen", "dialogseen", "answered", "endseen", "wokeseen"} {
-			delete(w.Options, k)
-		}
-		store.options = nil
+		delete(w.Options, "ending")
 		w.PaneDead, w.DeadAt = false, time.Time{}
 	case "relaunch":
 		e.Kind = state.KindRelaunched

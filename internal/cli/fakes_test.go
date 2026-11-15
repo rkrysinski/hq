@@ -576,8 +576,16 @@ type fakes struct {
 	tty      bool   // stdin is a terminal
 	stdin    string // what the user types
 
-	states  map[string]state.Report // agent id -> its state file
-	details map[string]state.Detail // agent id -> what its state files hold in full
+	// states is what each agent id's hook reports last, and details what
+	// that holds in full (its reply, what its dialog asks): the fakes' hook
+	// leaves each new report in the agent's journal as Claude's payloads
+	// (hookedJournal); left is what it left last.
+	states  map[string]state.Report
+	details map[string]state.Detail
+	left    map[string]leftReport
+	// onAppend is called as hq appends events to agent id's journal, e.g.
+	// to have another process append first.
+	onAppend func(id string, events []state.Event)
 	// inbox is what waits for each agent id: the text, with " (supervisor)"
 	// when the supervisor sent it and " (now)" when sent with --now; postErr
 	// and takeErr fail posting and taking.
@@ -709,6 +717,7 @@ func newFakes() *fakes {
 		tty:  true,
 
 		states:  map[string]state.Report{},
+		left:    map[string]leftReport{},
 		inbox:   map[string][]string{},
 		held:    map[string][]string{},
 		oldest:  map[string]time.Time{},
@@ -776,7 +785,8 @@ func (f *fakes) deps() deps {
 	return deps{
 		tmux:    f.tmux,
 		sbx:     f.sbx,
-		journal: f.journal,
+		journal: hookedJournal{f.journal, f},
+		folds:   agent.NewFolds(),
 		killer:  kills.Kill{By: kills.ByCLI},
 		repoRoot: func(dir string) (string, bool) {
 			r, ok := f.repos[dir]
@@ -822,12 +832,7 @@ func (f *fakes) deps() deps {
 			f.rawOn++
 			return func() { f.rawOff++ }
 		},
-		notify:     "[notify %s]",
-		readDetail: func(_, id string) state.Detail { return f.details[id] },
-		readState: func(_, id string) (state.Report, bool) {
-			r, ok := f.states[id]
-			return r, ok
-		},
+		notify: "[notify %s]",
 		removeState: func(root, id string) error {
 			f.removed = append(f.removed, root+" "+id)
 			delete(f.states, id)

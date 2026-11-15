@@ -37,7 +37,8 @@ func Hook(branch string, payload map[string]any) []byte {
 // from one counter for every agent, rising in each journal, the latest
 // turn end's reply kept once, hq's own events appended, evidence set aside
 // as a duplicate or as overtaken (#195), one first append of writers
-// racing, a removed journal gone, and ids hq did not issue refused.
+// racing, a journal read on from a position, what the latest dialog asks
+// kept once, a removed journal gone, and ids hq did not issue refused.
 func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 	t.Helper()
 	at := time.Date(2026, 11, 15, 9, 0, 0, 0, time.UTC)
@@ -230,6 +231,65 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		j := read(t, h.Store, "a1")
 		got := asides(j.Events[1:])
 		expect(t, got == "- duplicate duplicate duplicate duplicate duplicate duplicate duplicate", "%s", got)
+	})
+
+	t.Run("read on from a position", func(t *testing.T) {
+		h := newHarness(t)
+		root := h.Root()
+		h.Leave(root, "a1", "000000001.1", prompt, at)
+		must(t, h.Store.Ingest(root, "a1"))
+		first := read(t, h.Store, "a1")
+		require(t, first.From == 0 && len(first.Events) == 1, "first read: %+v", first)
+		{
+			again, err := h.Store.ReadFrom("a1", first.Next)
+			must(t, err)
+			expect(t, len(again.Events) == 0 && again.Next == first.Next && again.From == first.Next, "nothing new: %+v", again)
+		}
+		h.Leave(root, "a1", "000000002.1", tool, at)
+		h.Leave(root, "a1", "000000003.1", stop("Done?"), at)
+		must(t, h.Store.Ingest(root, "a1"))
+		_, err := h.Store.Append("a1", state.Event{Source: state.SourceHQ, Kind: state.KindAnswer, Time: at})
+		must(t, err)
+		on, err := h.Store.ReadFrom("a1", first.Next)
+		must(t, err)
+		{
+			got := Kinds(on.Events)
+			expect(t, got == "PostToolUse Stop Answer" && on.From == first.Next && on.Reply.Text == "Done?" && on.Reply.Number == on.Events[1].Number, "the events since: %s, reply %+v", got, on.Reply)
+		}
+		{
+			// The reply is given with its turn end only.
+			after, err := h.Store.ReadFrom("a1", on.Next)
+			must(t, err)
+			expect(t, len(after.Events) == 0 && after.Reply.Number == 0, "after the turn end: %+v", after)
+		}
+		// A removed journal is read from the start again.
+		must(t, h.Store.Remove(root, "a1"))
+		h.Leave(root, "a1", "000000004.1", prompt, at)
+		must(t, h.Store.Ingest(root, "a1"))
+		{
+			fresh, err := h.Store.ReadFrom("a1", on.Next)
+			must(t, err)
+			expect(t, fresh.From == 0 && len(fresh.Events) == 1 && fresh.Events[0].Kind == "UserPromptSubmit", "after the removal: %+v", fresh)
+		}
+	})
+
+	t.Run("the latest dialog keeps what it asks", func(t *testing.T) {
+		h := newHarness(t)
+		root := h.Root()
+		dialog := Hook("feat-42", map[string]any{"hook_event_name": "PermissionRequest", "tool_name": "Bash", "tool_input": map[string]any{"command": "rm -rf build", "description": "Clean"}})
+		h.Leave(root, "a1", "000000001.1", dialog, at)
+		h.Leave(root, "a1", "000000002.1", tool, at)
+		must(t, h.Store.Ingest(root, "a1"))
+		j := read(t, h.Store, "a1")
+		require(t, j.Ask.Number == j.Events[0].Number && j.Ask.Ask != nil && j.Ask.Ask.Command == "rm -rf build" && j.Ask.Ask.Tool == "Bash", "ask %+v", j.Ask)
+		data, _ := json.Marshal(j.Events)
+		expect(t, !strings.Contains(string(data), "rm -rf"), "an event keeps the command: %s", data)
+		h.Leave(root, "a1", "000000003.1", Hook("feat-42", map[string]any{"hook_event_name": "Notification", "message": "Claude needs your permission"}), at)
+		must(t, h.Store.Ingest(root, "a1"))
+		{
+			j := read(t, h.Store, "a1")
+			expect(t, j.Ask.Number == j.Events[2].Number && j.Ask.Ask != nil && j.Ask.Ask.Message == "Claude needs your permission", "the next dialog: %+v", j.Ask)
+		}
 	})
 
 	t.Run("remove", func(t *testing.T) {

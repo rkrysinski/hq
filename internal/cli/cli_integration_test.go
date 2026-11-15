@@ -612,10 +612,10 @@ func TestAgentsOfASandboxStoppedOutsideHqAreEnded(t *testing.T) {
 		t.Fatalf("states %v", got)
 	}
 
-	// With sbx failing, hq ls shows what tmux and the hooks say.
+	// With sbx failing, hq ls shows what the journals hold: b's end stands.
 	h.d.pollSandboxes = sbx.Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: filepath.Join(t.TempDir(), "sbx")}}.List
 	code, out, errOut := h.run("ls")
-	if code != 0 || errOut != "" || strings.Count(out, " done ") != 2 {
+	if code != 0 || errOut != "" || strings.Count(out, " done ") != 1 || strings.Count(out, " ended ") != 1 {
 		t.Fatalf("sbx failing: exit %d %q %q", code, out, errOut)
 	}
 }
@@ -1457,7 +1457,11 @@ func TestRestoreBringsBackTheAgentsOfAKilledTmuxServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	stop := `{"hook_event_name":"Stop","session_id":"0e0e0e0e-0000-4000-8000-00000000000e","cwd":"` + gone + `","last_assistant_message":"done"}`
-	if err := os.WriteFile(filepath.Join(state.Dir(h.cwd), "0e0e0e"), []byte(stop), 0o600); err != nil {
+	// What its hook left before the server went, for hq to ingest.
+	if err := os.MkdirAll(state.EventsDir(h.cwd, "0e0e0e"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(state.EventsDir(h.cwd, "0e0e0e"), "000000001.stop.1"), []byte("branch main\n"+stop), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

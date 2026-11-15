@@ -161,17 +161,23 @@ func planRestore(d deps, all []sbx.Sandbox, lost []agent.Agent) []restorePlan {
 			plans = append(plans, p)
 			continue
 		}
-		r, ok := d.readState(a.RepoPath, a.ID)
+		// What its journal gives: the conversation to continue, and where.
+		read := []agent.Agent{a}
+		agent.ReadStates(read, d.journal, d.now(), d.folds)
+		r := read[0]
+		j, err := d.journal.Read(a.ID)
 		switch {
 		case !slices.ContainsFunc(sbx.OfRepository(all, a.RepoPath, d.samePath), func(s sbx.Sandbox) bool { return s.Name == a.Sandbox }):
 			p.why = "its sandbox " + a.Sandbox + " is gone"
-		case ok && r.Cwd != "" && worktreeGone(d, r.Cwd):
-			dir, _ := d.fromSbx(r.Cwd)
+		case err != nil || len(j.Events) == 0:
+			p.why = "its journal is gone"
+		case r.Worktree != "" && worktreeGone(d, r.Worktree):
+			dir, _ := d.fromSbx(r.Worktree)
 			p.why = "its worktree " + dir + " is gone"
-		case !ok || !sessionID.MatchString(r.SessionID):
+		case !sessionID.MatchString(r.Session()):
 			p.why = "it has no conversation to continue"
 		default:
-			p.resume = r.SessionID
+			p.resume = r.Session()
 		}
 		plans = append(plans, p)
 	}

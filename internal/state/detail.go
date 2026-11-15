@@ -72,6 +72,26 @@ type AskFieldOption struct {
 	Title string `json:"title,omitempty"`
 }
 
+// Asked is what the journal keeps of the latest dialog an agent's hook
+// reported, beside its event: the event's number and what the dialog asks
+// (nil when it asks nothing hq shows), for hq read (spec #165: an event
+// holds only what the rules read).
+type Asked struct {
+	Number int64 `json:"n"`
+	Ask    *Ask  `json:"ask,omitempty"`
+}
+
+// AskOf is what the dialog event e of the hook, read from the event file
+// data, asks, and whether e reports a dialog at all: a PermissionRequest,
+// an MCP elicitation's form or a Notification, as ParseDetail reads them.
+func AskOf(e Event, data []byte) (*Ask, bool) {
+	switch e.Kind {
+	case "PermissionRequest", "Elicitation", "Notification":
+		return ParseDetail(data, nil).Ask, true
+	}
+	return nil, false
+}
+
 // ReadDetail returns the detail of agent id of the repository at root:
 // empty until the agent's first event. A reply in a state file too large
 // to read is TooLarge, never nothing (#64).

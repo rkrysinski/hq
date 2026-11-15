@@ -31,6 +31,12 @@ type Store interface {
 	Append(id string, events ...state.Event) ([]state.Event, error)
 	// Read is the journal of agent id, read under the lock.
 	Read(id string) (Journal, error)
+	// ReadFrom is the journal of agent id from position from of a Journal
+	// read before (its Next), read under the lock: only the events
+	// appended since, so a long-running program folds only those (design
+	// §5.1). A position the journal no longer reaches (it was removed) reads
+	// it from the start, and From says so.
+	ReadFrom(id string, from int64) (Journal, error)
 	// Remove deletes the journal of agent id and the event files its hook
 	// left in the repository at root, once the agent is gone.
 	Remove(root, id string) error
@@ -42,8 +48,16 @@ type Journal struct {
 	// numbers rising.
 	Events []state.Event
 	// Reply is what the journal keeps of the latest turn end (Number 0
-	// when there is none).
+	// when there is none); read from a position, only when that turn end
+	// is among Events.
 	Reply state.Reply
+	// Ask is what the journal keeps of the latest dialog the hook
+	// reported: what it asks, for hq read (Number 0 when there is none);
+	// read from a position, only when that report is among Events.
+	Ask state.Asked
+	// From is the position Events were read from, and Next the position
+	// after them, for the next ReadFrom.
+	From, Next int64
 	// Through is a number such that every event numbered up to it, of any
 	// agent, is in its journal: what the counter held when Events were read.
 	Through int64

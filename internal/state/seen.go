@@ -145,12 +145,14 @@ type looked struct {
 func (f *Fold) look(reply *Reply) looked {
 	h := f.reading(reply)
 	s := f.seen
-	session := h.Reported && (s.launched.Time.IsZero() || !h.Since.Before(s.launched.Time))
+	session := f.session(h)
 	r := looked{Reduced: h}
 	if !session {
 		r.Reduced = Reduced{State: Starting, Since: s.launched.Time, Entered: s.launched, report: h.report}
 		if h.Reported {
-			r.Last, r.Branch, r.Worktree, r.Prompt, r.RestsOn = h.Last, h.Branch, h.Worktree, h.Prompt, h.RestsOn
+			// The previous session's report gives the session a relaunch
+			// continues too.
+			r.Last, r.Branch, r.Worktree, r.Prompt, r.Session, r.RestsOn = h.Last, h.Branch, h.Worktree, h.Prompt, h.Session, h.RestsOn
 		}
 		if s.launched.Number != 0 {
 			r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), s.launched.Number))
@@ -282,7 +284,7 @@ func (f *Fold) settled(r *looked, h Reduced) {
 	if o := s.own; waits && o.at(key) {
 		at := Mark{o.Number, o.Time}
 		r.State, r.Since, r.Last, r.Entered = NeedsInput, o.Time, o.Facts.Text, at
-		r.Dialog = DialogVerdict{Open: true, Whose: DialogOwn, Opened: at, RestsOn: []int64{o.Number}}
+		r.Dialog = DialogVerdict{Open: true, Whose: DialogOwn, Opened: at, Screen: o.Facts.Screen, RestsOn: []int64{o.Number}}
 		r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), o.Number))
 	}
 }

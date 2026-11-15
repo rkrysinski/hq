@@ -513,3 +513,82 @@ func TestTheStoreFailsWhereItCannotWrite(t *testing.T) {
 		t.Error("read with no number")
 	}
 }
+
+// An append reads on from what the append before kept beside the journal
+// (ID.held): a report the hook made in between overtakes a look's evidence
+// based on the one before it, the same evidence again is a duplicate, and
+// what was kept going beyond the journal, or spoilt, is read anew from the
+// journal's start.
+func TestAnAppendReadsOnFromTheAppendBefore(t *testing.T) {
+	root, dir := newRoot(t), t.TempDir()
+	s := journal.Files{Dir: dir}
+	const id = "a1"
+	at := time.Unix(1000, 0)
+	leave(t, root, id, "000000001.prompt.1", journaltest.Hook("main", map[string]any{"hook_event_name": "UserPromptSubmit"}), at)
+	if err := s.Ingest(root, id); err != nil {
+		t.Fatal(err)
+	}
+	ended := state.Event{Source: state.SourceScreen, Kind: state.KindTurnEnded, Time: at, Basis: 1}
+	asides := func(e state.Event) string {
+		t.Helper()
+		out, err := s.Append(id, e)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out[0].Aside
+	}
+	if got := asides(ended); got != "" {
+		t.Fatalf("first: %q", got)
+	}
+	if got := asides(ended); got != state.AsideDuplicate {
+		t.Fatalf("again: %q", got)
+	}
+	leave(t, root, id, "000000002.stop.1", journaltest.Hook("main", map[string]any{"hook_event_name": "Stop"}), at)
+	if err := s.Ingest(root, id); err != nil {
+		t.Fatal(err)
+	}
+	if got := asides(state.Event{Source: state.SourceScreen, Kind: state.KindAtRest, Time: at, Basis: 1}); got != state.AsideOvertaken {
+		t.Fatalf("after a report: %q", got)
+	}
+	held := filepath.Join(dir, "journals", id+".held")
+	for _, spoilt := range []string{`{"offset":99999999,"basis":0,"evidence":{}}`, `not json`} {
+		if err := os.WriteFile(held, []byte(spoilt), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if got := asides(state.Event{Source: state.SourceScreen, Kind: state.KindAtRest, Time: at, Basis: 1}); got != state.AsideOvertaken {
+			t.Fatalf("%s: %q", spoilt, got)
+		}
+	}
+	if err := s.Remove(root, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(held); !os.IsNotExist(err) {
+		t.Fatalf("kept after the removal: %v", err)
+	}
+}
+
+// With journals of 50,000 events, an append after the first reads only
+// what was appended since, well within the list's tick.
+func TestAnAppendToALongJournalIsQuick(t *testing.T) {
+	root, dir := newRoot(t), t.TempDir()
+	s := journal.Files{Dir: dir}
+	const id = "a1"
+	at := time.Unix(1000, 0)
+	for n := range 50 {
+		for i := range 1000 {
+			leave(t, root, id, fmt.Sprintf("%09d.prompt.1", n*1000+i+1), journaltest.Hook("main", map[string]any{"hook_event_name": "UserPromptSubmit", "prompt_id": fmt.Sprint(i)}), at)
+		}
+		if err := s.Ingest(root, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e := state.Event{Source: state.SourceScreen, Kind: state.KindTurnEnded, Time: at, Basis: 50_000}
+	if _, err := s.Append(id, e); err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now()
+	out, err := s.Append(id, e)
+	if took := time.Since(start); err != nil || took > 25*time.Millisecond || out[0].Aside != state.AsideDuplicate {
+		t.Fatalf("the second append took %v: %v %+v", took, err, out)
+	}
+}

@@ -134,20 +134,20 @@ type deps struct {
 	// foreground runs a program on this terminal until it ends and returns
 	// its exit status; err only when it could not start.
 	foreground func(argv []string) (int, error)
-	// readState reads an agent's state file (design §3.4).
-	readState func(root, id string) (state.Report, bool)
-	// takeQueued hands an agent's state over to the prompt Claude took
-	// from its queue after an Esc (design §3.4, #88).
+	// takeQueued hands the hook's working files of an agent over to the
+	// prompt Claude took from its queue after an Esc (design §3.4, #88).
 	takeQueued agent.Taker
-	// readDetail reads an agent's last reply in full and what it asks
-	// (design §3.4).
-	readDetail func(root, id string) state.Detail
 	// removeState deletes an agent's state files once it is gone (design §3.4).
 	removeState func(root, id string) error
-	// journal is the agents' journals: every look ingests the event files
-	// an agent's hook left into its journal, and a kill removes it (ADR
-	// 0018, design §3.4).
+	// journal is the agents' journals, where an agent's state comes from:
+	// every look ingests the event files an agent's hook left into its
+	// journal, appends what it sees and folds it, and a kill removes it
+	// (ADR 0018, design §3.4).
 	journal journal.Store
+	// folds keeps the journals folded for this process, so a long-running
+	// one (the list, hq wait) folds only the events new since its last
+	// look (design §5.1).
+	folds *agent.Folds
 	// killer says who asks for the kills this command makes, for the
 	// trace (#147): the way it came, and in hq mcp the client and the
 	// calling agent when known. traceKill adds a kill to the trace and
@@ -307,11 +307,10 @@ func defaultDeps() deps {
 		rawTerminal: rawTerminal,
 		foreground:  func(argv []string) (int, error) { return run.Foreground(argv[0], argv[1:]...) },
 
-		readState:   state.Read,
 		takeQueued:  state.TakeQueued,
-		readDetail:  state.ReadDetail,
 		removeState: state.Remove,
 		journal:     journal.Files{Dir: journal.Dir(os.Getenv)},
+		folds:       agent.NewFolds(),
 		killer:      kills.Kill{By: kills.ByCLI},
 		traceKill:   func(k kills.Kill) error { return kills.Append(kills.Path(os.Getenv), k) },
 		readKills:   func() ([]kills.Kill, error) { return kills.Read(kills.Path(os.Getenv)) },
@@ -383,24 +382,29 @@ func defaultDeps() deps {
 	}
 }
 
-// readAgent reads agent id's state for a look at the agents (design
-// §3.4): it first ingests the event files the agent's hook left into its
-// journal, then reads its state file, which still decides its state. A
-// failed ingest fails no look: the files wait for the next one.
-func (d deps) readAgent(root, id string) (state.Report, bool) {
-	_ = d.journal.Ingest(root, id)
-	return d.readState(root, id)
+// lookStore is where a look reads the agents' journals and screens
+// (agent.Store): the journals' store, and tmux.
+type lookStore struct {
+	journal.Store
+	screens func(panes []string) (map[string]string, error)
 }
 
-// lookStore is where a look reads the agents' screens and keeps what it
-// saw (agent.Store, agent.Journals): tmux, and the agents' journals.
-type lookStore struct {
-	Tmux
-	journal.Store
-}
+func (s lookStore) Screens(panes []string) (map[string]string, error) { return s.screens(panes) }
 
 // store is the look's store of these dependencies.
-func (d deps) store() agent.Store { return lookStore{d.tmux, d.journal} }
+func (d deps) store() agent.Store { return lookStore{d.journal, d.tmux.Screens} }
+
+// look is a look at the agents of the home windows ws (agent.Look), with
+// sbx's answer running.
+func (d deps) look(ws []tmux.Window, running agent.Sandboxes) []agent.Agent {
+	return agent.Look(ws, running, d.now(), d.store(), d.takeQueued, d.folds)
+}
+
+// collectAgents are the agents of the home windows ws with their state
+// from their journals, nothing appended and no screen read (agent.Collect).
+func (d deps) collectAgents(ws []tmux.Window) []agent.Agent {
+	return agent.Collect(ws, d.journal, d.now(), d.folds)
+}
 
 // removeAgentFiles deletes what an agent leaves once it is gone: its state
 // files, its inbox, its journal and its event files (design §3.4).

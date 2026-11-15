@@ -4,6 +4,7 @@ package cli
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -182,5 +183,57 @@ func TestTheJournalHoldsWhatHqDidAndSawBesideTheHooksReports(t *testing.T) {
 	}
 	if died.Source != state.SourceTmux || died.Facts.From.IsZero() || died.Facts.From.After(died.Time) || died.Basis != j.Events[8].Number {
 		t.Errorf("the pane's death %+v", died)
+	}
+}
+
+// Nothing hq shows comes from the hook's old state files or the records
+// the old look kept on the home windows: with them removed or spoilt by
+// hand, hq ls and hq read show every agent as before (#198).
+func TestRemovingTheOldStateFilesAndWindowRecordsChangesNothing(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	for _, name := range []string{"a", "b"} {
+		if code, _, errOut := h.run("new", name, "hello "+name); code != 0 {
+			t.Fatalf("new %s: exit %d %s", name, code, errOut)
+		}
+		h.waitReport(name, "done", "Done: hello "+name)
+	}
+	shown := func() string {
+		var out []string
+		for _, r := range h.ls() {
+			out = append(out, strings.Join([]string{r.Name, r.Branch, r.State, r.Since.String(), r.Last}, " "))
+		}
+		for _, name := range []string{"a", "b"} {
+			code, read, errOut := h.run("read", name)
+			if code != 0 {
+				t.Fatalf("read %s: exit %d %s", name, code, errOut)
+			}
+			out = append(out, read)
+		}
+		return strings.Join(out, "\n")
+	}
+	before := shown()
+	for _, name := range []string{"a", "b"} {
+		id := h.agentID(name)
+		for _, suffix := range []string{"", ".on", ".owe", ".acted", ".queued"} {
+			if err := os.Remove(filepath.Join(state.Dir(h.cwd), id+suffix)); err != nil && !os.IsNotExist(err) {
+				t.Fatal(err)
+			}
+		}
+		ws, _ := h.d.tmux.Windows()
+		for _, w := range ws {
+			if w.Options["id"] != id {
+				continue
+			}
+			for _, key := range []string{"turnend", "restseen", "answered", "dialogseen", "endseen"} {
+				if err := h.d.tmux.SetOption(w.ID, key, "1 2 spoilt"); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+	}
+	if after := shown(); after != before {
+		t.Fatalf("before\n%s\nafter\n%s", before, after)
 	}
 }

@@ -102,6 +102,9 @@ type DialogVerdict struct {
 	// Closed is the event at which it stopped being open: zero while it
 	// is.
 	Closed Mark
+	// Screen is the fingerprint of a dialog of Claude's own, its title and
+	// text (OwnFingerprint), as the screen that opened it showed it.
+	Screen string
 	// RestsOn are the numbers of the events the verdict rests on, oldest
 	// first.
 	RestsOn []int64
