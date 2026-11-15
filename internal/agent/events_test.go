@@ -149,21 +149,16 @@ func TestAHundredLooksAtTheSameScreenAddOneEvent(t *testing.T) {
 	}
 }
 
-// racingStore lets n looks read the journal before any of them appends:
-// all see the same evidence missing, and all append it.
+// racingStore holds every look's append until n looks are about to
+// append: all saw the same evidence missing, and all append it.
 type racingStore struct {
 	*memStore
-	read *sync.WaitGroup
-	once *sync.Once
-}
-
-func (s racingStore) ReadFrom(id string, from int64) (journal.Journal, error) {
-	defer s.once.Do(s.read.Done)
-	return s.memStore.ReadFrom(id, from)
+	ready *sync.WaitGroup
 }
 
 func (s racingStore) Append(id string, events ...state.Event) ([]state.Event, error) {
-	s.read.Wait()
+	s.ready.Done()
+	s.ready.Wait()
 	return s.memStore.Append(id, events...)
 }
 
@@ -175,12 +170,12 @@ func TestOfEightLooksRacingOneEventStands(t *testing.T) {
 	s := newStore(map[string]string{"%1": declinedScreen()})
 	s.report("a1", state.Report{State: state.Working, Since: now.Add(-time.Minute)})
 	basis := basisOf(t, s)
-	var read, done sync.WaitGroup
-	read.Add(8)
+	var ready, done sync.WaitGroup
+	ready.Add(8)
 	shown := make([]Agent, 8)
 	for i := range 8 {
 		done.Go(func() {
-			r := racingStore{s, &read, &sync.Once{}}
+			r := racingStore{s, &ready}
 			shown[i] = Look([]tmux.Window{evWindow()}, Sandboxes{}, now.Add(time.Duration(i)*time.Millisecond), r, nil, nil)[0]
 		})
 	}

@@ -113,13 +113,9 @@ func (f *folded) witness(store journal.Store, id string, e state.Event, now time
 	if f.evidence.Holds(e) {
 		return
 	}
-	out, err := store.Append(id, e)
-	if err != nil {
-		return
-	}
-	for _, x := range out {
-		f.evidence.Add(x)
-	}
+	// The fold, its evidence included, follows the append at the next
+	// update, which the look takes before it witnesses the same kind again.
+	_, _ = store.Append(id, e)
 }
 
 // read gives agent a its state from its journal, the event files its hook
