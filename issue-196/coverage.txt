@@ -1,1 +1,1 @@
-coverage 94.96% (minimum 94.4%)
+coverage 95.11% (minimum 94.4%)

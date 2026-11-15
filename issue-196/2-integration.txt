@@ -1,8 +1,8 @@
 $ go test -count=1 -tags integration -v -run "TestTheFixtureJournals|TestHookLeaves" ./internal/state
 === RUN   TestHookLeavesAnEventFileForEveryReportARuleReads
---- PASS: TestHookLeavesAnEventFileForEveryReportARuleReads (3.85s)
+--- PASS: TestHookLeavesAnEventFileForEveryReportARuleReads (0.97s)
 === RUN   TestHookLeavesEventsForTurnsTheStateFileDoesNotShow
---- PASS: TestHookLeavesEventsForTurnsTheStateFileDoesNotShow (0.37s)
+--- PASS: TestHookLeavesEventsForTurnsTheStateFileDoesNotShow (0.06s)
 === RUN   TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads
 === RUN   TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/background.json
 === RUN   TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/dialogs.json
@@ -21,23 +21,23 @@ $ go test -count=1 -tags integration -v -run "TestTheFixtureJournals|TestHookLea
 === RUN   TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/subagent-dialogs.json
 === RUN   TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/turns.json
 === RUN   TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/unreadable.json
---- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads (4.73s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/background.json (0.35s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/dialogs.json (0.26s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/elicitations.json (0.22s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/finish-together.json (1.31s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/interrupted.json (0.26s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/messages.json (0.15s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/notifications.json (0.24s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/own-tasks.json (0.35s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/queued-again.json (0.49s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/queued-esc.json (0.19s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/queued-tool.json (0.24s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/queued.json (0.24s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/sessions.json (0.09s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/subagent-commands.json (0.10s)
-    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/subagent-dialogs.json (0.09s)
+--- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads (1.18s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/background.json (0.07s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/dialogs.json (0.10s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/elicitations.json (0.08s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/finish-together.json (0.25s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/interrupted.json (0.06s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/messages.json (0.04s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/notifications.json (0.04s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/own-tasks.json (0.05s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/queued-again.json (0.06s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/queued-esc.json (0.03s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/queued-tool.json (0.04s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/queued.json (0.06s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/sessions.json (0.05s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/subagent-commands.json (0.06s)
+    --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/subagent-dialogs.json (0.06s)
     --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/turns.json (0.05s)
     --- PASS: TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads/unreadable.json (0.10s)
 PASS
-ok  	github.com/rkrysinski/hq/internal/state	8.954s
+ok  	github.com/rkrysinski/hq/internal/state	2.214s
