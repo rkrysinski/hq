@@ -128,6 +128,31 @@ func TestTheLookAppendsAWakeUpOnce(t *testing.T) {
 	}
 }
 
+// A look that appends what the screen shows of a woken agent, other than
+// Claude taking a queued prompt, appends the wake-up beside it: only the
+// prompt Claude took is no wake-up. Here the user ended the woken turn too
+// before the look.
+func TestTheLookAppendsAWakeUpBesideOtherEvidenceOfTheScreen(t *testing.T) {
+	now := time.Unix(1000, 0)
+	prompted, ended, woken := now.Add(-5*time.Minute), now.Add(-4*time.Minute), now.Add(-time.Minute)
+	s := newStore(map[string]string{"%1": declinedScreen()})
+	ws := []tmux.Window{evWindow()}
+	hook := func(name string, at time.Time, p map[string]any) {
+		s.Leave("/w/app", "a1", name, journaltest.Hook("main", p), at)
+	}
+	hook("000000001.prompt.1", prompted, map[string]any{"hook_event_name": "UserPromptSubmit", "prompt_id": "t1", "prompt": "Run the slow tests in a subagent."})
+	hook("000000002.answer.1", prompted.Add(time.Second), map[string]any{"hook_event_name": "PostToolUse", "prompt_id": "t1", "tool_name": "Agent", "tool_response": map[string]any{"status": "async_launched", "agentId": "sub1"}})
+	Look(ws, Sandboxes{}, ended, s, nil)
+	seen := s.journalOf(t, "a1")
+	basis := seen[len(seen)-1].Number
+	s.screens["%1"] = capture(t, "fs-esc-idle")
+	hook("000000003.prompt.1", woken, map[string]any{"hook_event_name": "UserPromptSubmit", "prompt_id": "t2", "prompt": "<task-notification>\n<task-id>sub1</task-id>\n<status>completed</status>\n</task-notification>"})
+	Look(ws, Sandboxes{}, now, s, nil)
+	if got := ofSourceKinds(since(s.journalOf(t, "a1"), basis), state.SourceScreen); got != state.KindTurnEnded+" "+state.KindWokeUp {
+		t.Fatalf("appended %q", got)
+	}
+}
+
 // A hundred looks at an agent whose screen stays the same add no event
 // after the first, with Folds kept or each look folding anew: the journal
 // holds it.
