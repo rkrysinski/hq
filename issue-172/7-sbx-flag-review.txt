@@ -1,0 +1,32 @@
+sbx version v0.48.0 5caf923e0587d376848f6f388eca3e0f5ca00e2d
+sbx ls --json                                                                                   accepted
+sbx create --no-progress --name hq-local-app --template img:x --static-mcp a,b claude /w/app    accepted
+sbx run --detach --name hq-local-app --template img:x --static-mcp a,b --model m --provider p claude /w/app accepted
+sbx run --name claude-app -- --settings {} hi                                                   accepted (parsed, then: not signed in)
+sbx version                                                                                     accepted
+sbx stop claude-app                                                                             accepted
+sbx rm --force claude-app                                                                       accepted
+sbx exec claude-app true                                                                        accepted (parsed, then: not signed in)
+sbx mcp inspect hq --json                                                                       accepted
+sbx mcp add hq --command /bin/hq --args mcp,serve                                               accepted
+sbx mcp load hq --sandbox claude-app                                                            accepted
+-- spellings before 0.48, as a control:
+sbx create --quiet claude /w/app                                                                REJECTED: error: unknown flag: --quiet
+sbx create -q claude /w/app                                                                     REJECTED: error: unknown shorthand flag: 'q' in -q
+sbx run --detached --name x claude /w/app                                                       REJECTED: error: unknown flag: --detached
+sbx version v0.53.0 2c62838074738845f8f1096ff5f8920df61152fb
+sbx ls --json                                                                                   accepted
+sbx create --no-progress --name hq-local-app --template img:x --static-mcp a,b claude /w/app    accepted
+sbx run --detach --name hq-local-app --template img:x --static-mcp a,b --model m --provider p claude /w/app accepted
+sbx run --name claude-app -- --settings {} hi                                                   accepted (parsed, then: not signed in)
+sbx version                                                                                     accepted
+sbx stop claude-app                                                                             accepted
+sbx rm --force claude-app                                                                       accepted
+sbx exec claude-app true                                                                        accepted (parsed, then: not signed in)
+sbx mcp inspect hq --json                                                                       accepted
+sbx mcp add hq --command /bin/hq --args mcp,serve                                               accepted
+sbx mcp load hq --sandbox claude-app                                                            accepted
+-- spellings before 0.48, as a control:
+sbx create --quiet claude /w/app                                                                REJECTED: error: unknown flag: --quiet
+sbx create -q claude /w/app                                                                     REJECTED: error: unknown shorthand flag: 'q' in -q
+sbx run --detached --name x claude /w/app                                                       REJECTED: error: unknown flag: --detached

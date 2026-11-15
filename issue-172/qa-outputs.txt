@@ -1,0 +1,59 @@
+# All runs in the stub environment of scripts/local-dev.sh, cwd /tmp/hq-stub-<id>/repo.
+
+## 1 before (release-v0.14.0 binary, stub as sbx 0.48+)
+$ LOCAL_DEV_BEFORE=origin/release-v0.14.0 hq-dev --before --stub native new a . 'say hi'; echo "exit $?"
+hq: sbx ls: json: cannot unmarshal array into Go value of type struct { Sandboxes []sbx.Sandbox "json:\"sandboxes\"" }
+exit 3
+
+## 2 after: hq new, hq ls
+$ hq-dev --stub native new a . 'say hi'; echo "exit $?"
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started a in repo (sandbox claude-repo); enter it with: hq go a
+exit 0
+$ hq-dev --stub native ls; echo "exit $?"; cat ../sbx/creates.log
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   24s  Done: say hi
+exit 0
+--no-progress claude /tmp/hq-stub-1098121687/repo
+
+## 3 hq sandbox restart, hq sandbox rm
+$ hq-dev --stub native sandbox restart -y .; echo "exit $?"; hq-dev --stub native ls
+restarted the sandbox claude-repo; relaunched a
+exit 0
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   Done: say hi
+$ hq-dev --stub native kill -y a; hq-dev --stub native sandbox rm -y .; echo "exit $?"; ls ../sbx/sandboxes
+killed a; the sandbox stays
+removed the sandbox claude-repo
+exit 0
+
+## 4 a setup with a model and a provider
+$ cat ../home/.config/hq/preferences.json
+{"sandboxes":{"local":{"model":"qwen-local","provider":"lmstudio"}}}
+$ hq-dev --stub native new b . 'say hi' --setup local; echo "exit $?"; cat ../sbx/creates.log; hq-dev --stub native ls
+creating the local sandbox hq-local-repo for repo (first time only; log in to Claude when the session asks)
+started b in repo (sandbox hq-local-repo); enter it with: hq go b
+exit 0
+run --detach --name hq-local-repo --model qwen-local --provider lmstudio claude /tmp/hq-stub-1098121687/repo
+NAME  REPO  BRANCH  STATE    AGE  LAST
+b     repo  main    working  0s   -
+
+## 5 an sbx older than 0.48 (SBX_STUB_OLD: the version it tells, none for no version)
+$ for v in 0.47.0 none; do SBX_STUB_OLD=$v hq-dev --stub native new c . hi; echo "new, SBX_STUB_OLD=$v: exit $?"; SBX_STUB_OLD=$v hq-dev --stub native ls; echo "ls, SBX_STUB_OLD=$v: exit $?"; done
+hq: sbx 0.47.0 is too old, 0.48.0 or newer needed; update Docker Sandboxes
+new, SBX_STUB_OLD=0.47.0: exit 3
+hq: sbx 0.47.0 is too old, 0.48.0 or newer needed; update Docker Sandboxes
+ls, SBX_STUB_OLD=0.47.0: exit 3
+hq: sbx is too old, 0.48.0 or newer needed; update Docker Sandboxes
+new, SBX_STUB_OLD=none: exit 3
+hq: sbx is too old, 0.48.0 or newer needed; update Docker Sandboxes
+ls, SBX_STUB_OLD=none: exit 3
+
+## 6 WSL, the stub as sbx.exe
+$ hq-dev --stub wsl-exe new a . 'say hi'; echo "exit $?"; hq-dev --stub wsl-exe ls; cat ../sbx/creates.log
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started a in repo (sandbox claude-repo); enter it with: hq go a
+exit 0
+NAME  REPO  BRANCH  STATE    AGE  LAST
+a     repo  main    working  0s   -
+--no-progress claude \\wsl.localhost\Stub\tmp\hq-stub-1098121687\repo
