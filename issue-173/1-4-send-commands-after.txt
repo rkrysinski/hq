@@ -1,0 +1,34 @@
+$ hq send a "$(printf '/probe first line of the brief\nsecond line\nthird line\nfourth line\nfifth line')"
+delivered: typed into a as its next prompt
+$ hq send a "/probe short first line $(printf '%900s' | tr ' ' x)"
+delivered: typed into a as its next prompt
+$ hq send a "/probe $(printf '%850s' | tr ' ' y)$(printf '\nand the rest')"
+delivered: typed into a as its next prompt
+$ hq send a "$(printf 'a plain message\nwith\nfour\nlines')"
+delivered: typed into a as its next prompt
+$ hq send a '/model claude-opus-5-5'
+delivered: typed into a as its next prompt
+$ cut -c1-100 ../commands.txt; awk '{print length($0)}' ../commands.txt
+"/probe" "first line of the brief\nsecond line\nthird line\nfourth line\nfifth line"
+"/probe" "short first line xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+"/probe" "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+"/model" "claude-opus-5-5"
+84
+928
+875
+26
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+

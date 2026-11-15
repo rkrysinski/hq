@@ -1,0 +1,15 @@
+<command-message>probe</command-message>
+<command-name>/probe</command-name>
+<command-args>first line of the brief
+second line
+third line
+fourth line
+fifth line</command-args>
+---
+Reply with exactly one line: PROBE OK, then the number of lines in these arguments: first line of the brief
+second line
+third line
+fourth line
+fifth line
+
+---

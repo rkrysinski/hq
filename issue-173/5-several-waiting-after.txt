@@ -1,0 +1,34 @@
+$ hq send a 'slow job two'
+delivered: typed into a as its next prompt
+$ hq send a 'first'; hq send a '/probe second'; hq send a 'third'
+queued: a is working, delivered when it stops
+queued: a is working, delivered when it stops; if its hooks deliver it, the slash command arrives as text and does not r
+un
+queued: a is working, delivered when it stops
+$ for i in 1 2 3 4 5 6 7 8; do hq ls | tail -1; sleep 3; done
+a     repo  main    done   0s   Interrupted
+a     repo  main    done   0s   Done: first
+a     repo  main    done   0s   Done: /probe second
+a     repo  main    done   0s   Done: third
+a     repo  main    done   3s   Done: third
+a     repo  main    done   7s   Done: third
+a     repo  main    done   10s  Done: third
+a     repo  main    done   13s  Done: third
+$ tail -1 ../commands.txt
+"/probe" "second"
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

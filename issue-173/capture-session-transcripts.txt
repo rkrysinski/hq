@@ -1,0 +1,44 @@
+
+
+<pasted_content id="6fad">
+/probe line one
+line two
+line three
+line four
+</pasted_content id="6fad">
+
+---
+<command-message>probe</command-message>
+<command-name>/probe</command-name>
+<command-args>typed-first-line
+l2
+l3
+l4
+l5
+l6</command-args>
+---
+<command-message>probe</command-message>
+<command-name>/probe</command-name>
+<command-args>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…(1115 characters)
+---
+<command-message>probe</command-message>
+<command-name>/probe</command-name>
+<command-args>queued-while-working</command-args>
+---
+<command-message>probe</command-message>
+<command-name>/probe</command-name>
+<command-args>B-command</command-args>
+---
+attachment queued_command: Say C2-PLAIN and nothing else.
+---
+<command-message>probe</command-message>
+<command-name>/probe</command-name>
+<command-args>B2-command</command-args>
+---
+<command-message>probe</command-message>
+<command-name>/probe</command-name>
+<command-args>first line rest
+second
+third
+fourth</command-args>
+---

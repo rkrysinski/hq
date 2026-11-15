@@ -1,0 +1,24 @@
+four
+lines^[[201~
+❯ a plain message
+  with
+  four
+  lines
+● Done on several lines.
+
+Done: a plain message
+with
+four
+lines
+────────────────────────────────────────
+❯
+────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+^[[200~/model claude-opus-5-5^[[201~
+❯ /model claude-opus-5-5
+● Done: /model claude-opus-5-5
+────────────────────────────────────────
+❯
+────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+

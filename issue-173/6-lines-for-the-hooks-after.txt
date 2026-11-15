@@ -1,0 +1,34 @@
+$ hq send a 'slow job'
+delivered: typed into a as its next prompt
+$ hq send a '/probe left to the hooks'
+queued: a is working, delivered when it stops; if its hooks deliver it, the slash command arrives as text and does not r
+un
+$ hq send a '/probe with now' --now --json
+{
+  "delivery": "queued: a is working, delivered after its next tool call, or when it stops; if its hooks deliver it, the
+slash command arrives as text and does not run",
+  "next_since": "2026-11-15T13:32:57.019348531Z"
+}
+$ hq send a 'a plain one'
+queued: a is working, delivered when it stops
+$ hq ls; wc -l < ../commands.txt
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   7s   Answered: Message from the user (hq send): /probe left to t…
+4
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

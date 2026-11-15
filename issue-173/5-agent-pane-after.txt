@@ -1,0 +1,24 @@
+────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+^[[200~first^[[201~
+❯ first
+● Done: first
+────────────────────────────────────────
+❯
+────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+^[[200~/probe second^[[201~
+❯ /probe second
+● Done: /probe second
+────────────────────────────────────────
+❯
+────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+^[[200~third^[[201~
+❯ third
+● Done: third
+────────────────────────────────────────
+❯
+────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+
