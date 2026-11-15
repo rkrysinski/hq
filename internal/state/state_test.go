@@ -150,7 +150,8 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	// calling agent (#142): the walk of the tool's input took the script to
 	// about 9.6 KiB. The event files of ADR 0018 took it to 10,229 bytes
 	// (#193), while it writes the old files too, and 10,236 with the case
-	// that wrote each in its name (#196).
+	// that wrote each in its name (#196). Without the old files and with
+	// the notes the hook keeps for itself instead, 10,220 (#199).
 	if len(hookScript) > 10<<10 {
 		t.Errorf("hook script of %d bytes", len(hookScript))
 	}
