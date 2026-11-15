@@ -13,14 +13,14 @@ import (
 // time AGE is counted to is passed in and changes nothing else.
 //
 // It reads the events of the agent's hook first. The hook decides part of
-// the state inside the sandbox from its own working files (design §3.4);
-// the reducer keeps what those files would hold, from the events alone, as
-// the hook's cases write them (Facts.At), and reads the hook's state off it
-// as Read reads the files (reading). Then it reads what hq saw and did
-// (seen.go): the screen, tmux, sbx and hq itself, as the look reads them
-// beside the hook's report. After every event of the fixture journals in
-// testdata/journals it gives what Read and the look gave for the same
-// payloads, screens, pane and sbx answer.
+// the state inside the sandbox from its own working files (design §3.4),
+// which hq on the host never reads; the reducer keeps what the hook would
+// know, from the events alone, as the hook's cases report them (Facts.At),
+// and reads the hook's state off it (reading). Then it reads what hq saw
+// and did (seen.go): the screen, tmux, sbx and hq itself, as the look
+// reads them beside the hook's report. After every event of the fixture
+// journals in testdata/journals it gives what the old look gave for the
+// same payloads, screens, pane and sbx answer.
 
 // Mark is an event of the journal as the reducer's result names it: its
 // number, from the one count of the state directory, and its time.
@@ -74,15 +74,17 @@ type Reduced struct {
 	// Latest is the time of its latest report: Since, or the later time of
 	// an event that left it working without restarting its time.
 	Latest time.Time
-	// Background, Owed, Woken, Acted and Queued are as the old reading's
-	// Report has them: what the rules on the agent's screen read.
+	// Background, Owed, Woken, Acted and Queued are what the rules on the
+	// agent's screen read: a turn end kept while background work runs,
+	// all of it finished, a wake-up Claude gave itself, a tool of the
+	// agent's own ended in the turn, a prompt waiting in Claude's queue.
 	Background, Owed, Woken, Acted, Queued bool
 	// RestsOn are the numbers of the events the state rests on, oldest
 	// first.
 	RestsOn []int64
 	// report is the hook's report the state comes from, which the evidence
-	// of the screen is keyed by: the state file's report, or the event kept
-	// beside it when that is later (Latest).
+	// of the screen is keyed by: the hook's latest noted report, or the
+	// event kept beside it when that is later (Latest).
 	report Mark
 }
 
@@ -125,12 +127,14 @@ const (
 // empty journal. A Fold is a value: With leaves the one it is called on
 // as it was.
 type Fold struct {
-	// file, stop, prev, kept, owed, acted and queued are what the hook's
-	// working files hold (records of design §3.4): the state file (ID),
-	// the latest turn end (ID.stop), the report before a resumed session
-	// (ID.prev), the event kept beside the state file (ID.on), the list
-	// of background work (ID.owe), the turn Claude has acted on (ID.acted:
+	// file, stop, kept, owed, acted and queued are what the hook knows
+	// from its working files (design §3.4): the latest report it took for
+	// the state (its note, ID.last), the latest turn end (ID.ended), the
+	// event it kept beside the note (marked by ID.on), the list of
+	// background work (ID.owe), the turn Claude has acted on (ID.acted:
 	// the tool's end that marked it) and the queued prompt (ID.queued).
+	// prev is the report before a resumed session, which gives it its
+	// branch, worktree and last message.
 	file, kept *written
 	stop, prev *Event
 	owed       []string
@@ -238,8 +242,8 @@ func (f Fold) Result(reply Reply, now time.Time) Reduced {
 }
 
 // add follows event e of the hook through the hook's case that wrote it
-// (hookSource): what each of its working files holds afterwards. An event
-// of a case the reducer does not know is written to the state file.
+// (hookSource): what it knows afterwards. An event of a case the reducer
+// does not know is taken as its latest report.
 func (f *Fold) add(e Event) {
 	at := Mark{e.Number, e.Time}
 	switch e.Facts.At {
@@ -279,8 +283,8 @@ func (f *Fold) atStop(e Event, at Mark) {
 	}
 	f.queued, f.acted, f.stop = nil, nil, &e
 	if keeps {
-		// Background work still runs: kept beside the state file, which
-		// it replaces only when the agent was not working (nor at a
+		// Background work still runs: kept beside the latest report,
+		// which it replaces only when the agent was not working (nor at a
 		// subagent's dialog).
 		w := &written{e, at}
 		f.kept = w
@@ -344,7 +348,7 @@ func (f *Fold) atToolEnd(e Event, at Mark) {
 	}
 }
 
-// write makes e the state file's report.
+// write makes e the latest report the hook took for the state.
 func (f *Fold) write(e Event, at Mark) { f.file = &written{e, at} }
 
 // forget drops what a session's start or end drops.
@@ -352,7 +356,7 @@ func (f *Fold) forget() {
 	f.kept, f.owed, f.started, f.acted, f.queued = nil, nil, nil, nil, nil
 }
 
-// works, ask, form and theirs say what the state file's report is: a
+// works, ask, form and theirs say what that report is: a
 // prompt or a tool's end (the agent works), a dialog, an MCP elicitation's
 // form, a dialog one of the agent's subagents opened.
 func (f *Fold) works() bool {
@@ -490,7 +494,7 @@ func message(e *Event, reply *Reply) string {
 	return Clean(reply.Text)
 }
 
-// reading is the state f's files give, as Read reads them; reply is the
+// reading is the state the hook's reports give; reply is the
 // journal's reply of its latest turn end (nil: no texts).
 func (f *Fold) reading(reply *Reply) (r Reduced) {
 	if f.file == nil {
@@ -502,7 +506,7 @@ func (f *Fold) reading(reply *Reply) (r Reduced) {
 	defer func() { r.RestsOn = sortedNumbers(rests) }()
 	if c.Kind == KindUnreadable && c.Facts.Size > maxFile {
 		// A report too large to read is a turn end with a reply too long
-		// to keep (Read).
+		// to keep (#64).
 		r.State, r.Last = Done, TooLarge(c.Facts.Size)
 		return r
 	}
@@ -568,7 +572,7 @@ func (f *Fold) reading(reply *Reply) (r Reduced) {
 	return r
 }
 
-// parse reads report c of the state file as Parse reads it, with stop the
+// parse reads the hook's latest report c, with stop the
 // latest turn end's message and prev the report before a resumed session.
 // subagent says the report is a dialog one of the agent's subagents
 // opened, before that a resumed session took what prev gave.

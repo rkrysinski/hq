@@ -10,7 +10,7 @@ import (
 // at d's now, based on the last event of the agent's hook in its journal.
 // hq appends it before it acts, so whatever the agent then reports comes
 // after it in the journal. A journal that cannot be read or written fails
-// nothing hq does: the window records still decide the state.
+// nothing hq does.
 func appendEvent(d deps, id, kind string, facts state.Facts) {
 	j, err := d.journal.Read(id)
 	if err != nil {

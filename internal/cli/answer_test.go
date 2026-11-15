@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -39,6 +40,63 @@ func askFakes(t *testing.T, fixture string) (*fakes, string) {
 	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: since, Last: q.Ask.Questions[0].Question, LastStop: "On it."}
 	f.details["id-a"] = state.Detail{Reply: "On it.", Ask: q.Ask}
 	return f, state.DialogID(since)
+}
+
+// hq answer reads the question dialog and what Claude got for it from the
+// agent's journal, as its hook reported them, never from the hook's own
+// files (#199): the dialog's report, whose answer is named by its cksum,
+// and once the dialog's tool ended the answers it carried.
+func TestHqAnswerReadsTheDialogAndItsAnswersFromTheJournal(t *testing.T) {
+	m := journaltest.NewMemory()
+	if _, err := journalQuestions(m, "a1"); err == nil {
+		t.Fatal("questions before any report")
+	}
+	if _, ok := journalAnswers(m, "a1"); ok {
+		t.Fatal("answers before any report")
+	}
+	report := stateFixture(t, "dialog-ask-several")
+	m.Leave("/w/app", "a1", "000000001.dialog.1", report, time.Unix(100, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	q, err := journalQuestions(m, "a1")
+	want, _ := state.ParseQuestions(report)
+	if err != nil || !reflect.DeepEqual(q, want) || q.Ask == nil {
+		t.Fatalf("questions %+v %v, want %+v", q, err, want)
+	}
+	if _, ok := journalAnswers(m, "a1"); ok {
+		t.Fatal("answers while the dialog is open")
+	}
+	m.Leave("/w/app", "a1", "000000002.answer.1", stateFixture(t, "answer-ask-several"), time.Unix(101, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := journalAnswers(m, "a1"); !ok || got["Which name?"] != "Gamma typed" {
+		t.Fatalf("answers %v %v", got, ok)
+	}
+	// A dialog whose tool reports no answers: none, not unknown.
+	m.Leave("/w/app", "a1", "000000003.dialog.1", report, time.Unix(102, 0))
+	m.Leave("/w/app", "a1", "000000004.answer.1", journaltest.Hook("main", map[string]any{"hook_event_name": "PostToolUse", "tool_name": state.AskTool}), time.Unix(102, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := journalAnswers(m, "a1"); !ok || got == nil || len(got) != 0 {
+		t.Fatalf("no answers: %v %v", got, ok)
+	}
+	// A permission prompt is no question dialog hq answers.
+	m.Leave("/w/app", "a1", "000000005.dialog.1", stateFixture(t, "dialog-bash"), time.Unix(102, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := journalQuestions(m, "a1"); err == nil {
+		t.Fatal("questions of a permission prompt")
+	}
+	if _, err := journalQuestions(m, "../a1"); err == nil {
+		t.Fatal("questions of an id hq did not issue")
+	}
+	if _, ok := journalAnswers(m, "../a1"); ok {
+		t.Fatal("answers of an id hq did not issue")
+	}
 }
 
 // declinedScreen is the agent's screen after its question dialog was

@@ -206,7 +206,7 @@ func IsID(id string) bool { return idRE.MatchString(id) }
 // event file: the hook's temporary files and its count start with a dot.
 func IsEventFile(name string) bool { return isMessage(name) }
 
-// ReadFile reads a file the sandbox writes as a state file is read (design
+// ReadFile reads a file the sandbox writes as hq reads such a file (design
 // §7.3): a regular file, never through a link, of at most 16 MiB. Over
 // that, size is its size and err says so.
 func ReadFile(path string) (data []byte, info os.FileInfo, err error) {

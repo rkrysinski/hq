@@ -368,7 +368,7 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 		}
 	}
 	// A relaunched agent keeps its id, so its old session must be done
-	// writing its state file before the new one starts; sbx stop usually
+	// reporting before the new one starts; sbx stop usually
 	// returns after that.
 	if err := waitEnded(d, mine, nil); err != nil {
 		return err
@@ -477,7 +477,7 @@ func forgetLoaded(d deps, removed []sbx.Sandbox) error {
 
 // relaunchAgent starts a new Claude session in the agent's own pane,
 // wherever the pane is, under the agent's id, resuming the Claude session
-// resume when it is set. Its start moves to now: what its state file says
+// resume when it is set. Its start moves to now: what its journal says
 // until the new session reports is the previous session's, which gives the
 // branch and the last message but not the state (design §3.6). The window
 // stops being ending before it gets its new start: a refresh in between

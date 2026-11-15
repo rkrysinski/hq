@@ -505,7 +505,7 @@ func eventFiles(dir string) []string {
 	return names
 }
 
-// readEvent reads the event file name in dir as a state file is read
+// readEvent reads the event file name in dir as hq reads what the sandbox writes
 // (design §7.3): a regular file, never through a link, of at most 16 MiB;
 // one hq cannot read is an event that says so, with its size. ok is false
 // for a file that is gone; data is what the file holds.

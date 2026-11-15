@@ -13,5 +13,7 @@ var Version = "dev"
 // relaunches carries on its home window and in its record. An agent of
 // another generation is an outdated agent, whose state hq cannot read: it
 // is listed as outdated and can only be opened or killed. It changes
-// exactly when one of the two forms changes.
-const Generation = 3
+// exactly when one of the two forms changes: 4 since the hook writes no
+// state file and no copy of its latest turn end beside the repository, and
+// hq keeps no records on the home windows (#199).
+const Generation = 4

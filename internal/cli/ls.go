@@ -176,7 +176,7 @@ func lookSettled(d deps, collect func(deps) ([]agent.Agent, error)) ([]agent.Age
 	return as, nil
 }
 
-// collect gathers the agents with their state from tmux, the state files,
+// collect gathers the agents with their state from tmux, their journals,
 // sbx and their screens (design §5.1, agent.Look). When sbx fails or does
 // not answer in time, the states come from tmux and the hooks alone; an sbx
 // too old for hq fails it (#172).

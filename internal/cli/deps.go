@@ -175,11 +175,11 @@ type deps struct {
 	// it, withdrawAnswer takes it back unless the hook took it first, and
 	// answersGot reads from the journal what Claude reports it got once the
 	// dialog's tool ended (hq answer, design §3.4, ADR 0013).
-	questions      func(root, id string) (state.Questions, error)
+	questions      func(store journal.Store, id string) (state.Questions, error)
 	leaveAnswer    func(root, id string, q state.Questions, decision []byte) error
 	answerTaken    func(root, id string, q state.Questions) bool
 	withdrawAnswer func(root, id string, q state.Questions) bool
-	answersGot     func(root, id string) (map[string]string, bool)
+	answersGot     func(store journal.Store, id string) (map[string]string, bool)
 	// supervisor says the commands run for the supervisor, in hq mcp: the
 	// prompts and the messages they give agents are its own, not the
 	// user's, and a turn made only of them notifies nobody (spec §5).
@@ -265,7 +265,6 @@ func defaultDeps() deps {
 		// writes out (claudeArgs): hq as it was called stands in.
 		session = []string{os.Args[0], sessionCommand}
 	}
-	journals := journal.Files{Dir: journal.Dir(os.Getenv)}
 	return deps{
 		tmux:        tmux.Client{Run: run, Socket: os.Getenv("HQ_TMUX_SOCKET"), Placeholder: placeholder, Session: session},
 		sbx:         sbx.Client{Run: run, Platform: plat},
@@ -307,7 +306,7 @@ func defaultDeps() deps {
 		foreground:  func(argv []string) (int, error) { return run.Foreground(argv[0], argv[1:]...) },
 
 		removeState: state.Remove,
-		journal:     journals,
+		journal:     journal.Files{Dir: journal.Dir(os.Getenv)},
 		folds:       agent.NewFolds(),
 		killer:      kills.Kill{By: kills.ByCLI},
 		traceKill:   func(k kills.Kill) error { return kills.Append(kills.Path(os.Getenv), k) },
@@ -323,11 +322,11 @@ func defaultDeps() deps {
 		pending:       state.Pending,
 		oldestMessage: state.Oldest,
 
-		questions:      func(_, id string) (state.Questions, error) { return journalQuestions(journals, id) },
+		questions:      journalQuestions,
 		leaveAnswer:    state.LeaveAnswer,
 		answerTaken:    state.AnswerTaken,
 		withdrawAnswer: state.WithdrawAnswer,
-		answersGot:     func(_, id string) (map[string]string, bool) { return journalAnswers(journals, id) },
+		answersGot:     journalAnswers,
 
 		announce:      state.Announce,
 		announced:     state.Announced,

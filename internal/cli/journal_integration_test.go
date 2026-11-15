@@ -4,6 +4,7 @@ package cli
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -186,10 +187,12 @@ func TestTheJournalHoldsWhatHqDidAndSawBesideTheHooksReports(t *testing.T) {
 	}
 }
 
-// Nothing hq shows comes from the hook's old state files or the records
-// the old look kept on the home windows: with them removed or spoilt by
-// hand, hq ls and hq read show every agent as before (#198).
-func TestRemovingTheOldStateFilesAndWindowRecordsChangesNothing(t *testing.T) {
+// An agent started by this hq leaves no state file and no copy of its
+// latest turn end beside the repository, and its home window carries none
+// of the records the old look kept there; nothing hq shows comes from the
+// hook's own working files: with them removed or garbled by hand, hq ls
+// and hq read show every agent as before (#198, #199).
+func TestTheHooksWorkingFilesAndTheHomeWindowsHoldNothingHqReads(t *testing.T) {
 	testutil.FakeClaude(t)
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")
@@ -216,9 +219,9 @@ func TestRemovingTheOldStateFilesAndWindowRecordsChangesNothing(t *testing.T) {
 	before := shown()
 	for _, name := range []string{"a", "b"} {
 		id := h.agentID(name)
-		for _, suffix := range []string{"", ".on", ".owe", ".acted", ".queued"} {
-			if err := os.Remove(filepath.Join(state.Dir(h.cwd), id+suffix)); err != nil && !os.IsNotExist(err) {
-				t.Fatal(err)
+		for _, old := range []string{id, id + ".stop", id + ".prev"} {
+			if _, err := os.Lstat(filepath.Join(state.Dir(h.cwd), old)); !os.IsNotExist(err) {
+				t.Errorf("%s left %s: %v", name, old, err)
 			}
 		}
 		ws, _ := h.d.tmux.Windows()
@@ -226,11 +229,36 @@ func TestRemovingTheOldStateFilesAndWindowRecordsChangesNothing(t *testing.T) {
 			if w.Options["id"] != id {
 				continue
 			}
-			for _, key := range []string{"turnend", "restseen", "answered", "dialogseen", "endseen"} {
-				if err := h.d.tmux.SetOption(w.ID, key, "1 2 spoilt"); err != nil {
-					t.Fatal(err)
+			out, err := exec.Command("tmux", "-u", "-L", h.socket, "show-options", "-w", "-t", w.ID).Output()
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, key := range []string{"turnend", "restseen", "dialogseen", "answered", "endseen", "wokeseen"} {
+				if strings.Contains(string(out), "@hq_"+key+" ") {
+					t.Errorf("%s's home window carries @hq_%s:\n%s", name, key, out)
 				}
 			}
+		}
+		entries, _ := os.ReadDir(state.Dir(h.cwd))
+		var garbled int
+		for _, e := range entries {
+			n := e.Name()
+			if !strings.HasPrefix(n, id+".") || strings.HasSuffix(n, ".hq") {
+				continue
+			}
+			garbled++
+			path := filepath.Join(state.Dir(h.cwd), n)
+			if name == "a" {
+				err := os.WriteFile(path, []byte("{\"hook_event_name\":\"SessionEnd\"}\n"), 0o644)
+				if err != nil {
+					t.Fatal(err)
+				}
+			} else if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if garbled == 0 {
+			t.Errorf("%s: no working files of its hook", name)
 		}
 	}
 	if after := shown(); after != before {

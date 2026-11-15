@@ -10,7 +10,7 @@
 //   - a prompt containing "question" gets a reply ending in "?";
 //   - a prompt containing "lines" gets a reply of two paragraphs;
 //   - a prompt containing "long" gets a reply of about 82,000 characters, past
-//     what hq once read of a state file (#64), and only its first line on
+//     what hq once read of a report (#64), and only its first line on
 //     the screen;
 //   - a prompt containing "input" first opens a question dialog, as
 //     AskUserQuestion does: PermissionRequest at once, its hooks run side

@@ -131,7 +131,7 @@ func TestTheCancelIsADenyThatInterrupts(t *testing.T) {
 }
 
 // The answer's file is named for the dialog's report, by the POSIX cksum of
-// the state file the hook can take too: another report, the same questions
+// the event file the hook of kind hold takes too: another report, the same questions
 // asked in another turn included, names another.
 func TestTheAnswersFileIsNamedForTheDialogsReport(t *testing.T) {
 	for _, tc := range []struct {

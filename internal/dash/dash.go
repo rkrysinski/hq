@@ -22,7 +22,7 @@ import (
 
 // Source is what the list program reads and drives.
 type Source struct {
-	// Agents collects the agents from tmux and the state files; running is
+	// Agents collects the agents from tmux and their journals; running is
 	// the latest answer of sbx, which says nothing while unknown (design §5.1).
 	Agents func(running agent.Sandboxes) ([]agent.Agent, error)
 	// Running asks sbx which sandboxes run; it may take seconds.

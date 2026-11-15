@@ -131,8 +131,8 @@ func replyChanged(replyAt, since time.Time) bool {
 	return replyAt.After(since.Add(waitSettle))
 }
 
-// newReadView joins the agent as hq ls shows it with what its state files
-// hold in full, its reply from offset.
+// newReadView joins the agent as hq ls shows it with what its journal
+// holds in full, its reply from offset.
 func newReadView(row lsRow, det state.Detail, worktree string, offset int) (readView, error) {
 	page, next, err := replyPage(det.Reply, offset)
 	if err != nil {

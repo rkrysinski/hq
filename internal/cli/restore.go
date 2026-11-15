@@ -20,7 +20,7 @@ const restoreUsage = "usage: hq restore [REPO]"
 // default server (design §3.2).
 func server(d deps) string { return d.getenv("HQ_TMUX_SOCKET") }
 
-// keepRecord keeps hq's record of a beside its state files, for hq restore
+// keepRecord keeps hq's record of a beside its repository, for hq restore
 // (design §3.3, #140).
 func keepRecord(d deps, a agent.Agent) error {
 	if err := d.writeRecord(a.RepoPath, a.ID, state.Record{Name: a.Name, Sandbox: a.Sandbox, Server: server(d), Generation: version.Generation}); err != nil {
@@ -194,7 +194,7 @@ func worktreeGone(d deps, cwd string) bool {
 // endLost ends the sessions of the lost agents to restore that still run
 // in their sandbox, and waits for them as hq kill does: tmux going takes
 // only the host side of sbx run, and Claude runs on in the sandbox, which
-// would write the same state files as the restored session. A sandbox sbx
+// would report under the same id as the restored session. A sandbox sbx
 // lists as not running is left alone: sbx exec would start it.
 func endLost(d deps, all []sbx.Sandbox, plans []restorePlan) error {
 	var orphans []agent.Agent

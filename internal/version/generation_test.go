@@ -28,11 +28,11 @@ var pinned = struct {
 	generation int
 	forms      map[string]string
 }{
-	generation: 3,
+	generation: 4,
 	forms: map[string]string{
-		"the hook's script": "c4e6e672ee43eb48",
+		"the hook's script": "5bb801fd0e8b231f",
 		"the record":        "7d2c1be547e68487",
-		"the journal":       "011ab9a84f03f908",
+		"the journal":       "09b9b406982c4b2c",
 	},
 }
 
@@ -40,12 +40,12 @@ var pinned = struct {
 // fingerprint changes with it: the hook set and script hq injects into
 // every agent it starts (state.Settings, ADR 0009), hq's record of an
 // agent for hq restore (state.Record), and the journal (ADR 0018): an
-// event, one a line, and the reply kept beside it.
+// event, one a line, and the reply and the dialog kept beside it.
 func forms() map[string]string {
 	return map[string]string{
 		"the hook's script": state.Settings("NAME", "ID", "NOTIFY"),
 		"the record":        form(reflect.TypeOf(state.Record{})),
-		"the journal":       form(reflect.TypeOf(state.Event{})) + "\n" + form(reflect.TypeOf(state.Reply{})),
+		"the journal":       form(reflect.TypeOf(state.Event{})) + "\n" + form(reflect.TypeOf(state.Reply{})) + "\n" + form(reflect.TypeOf(state.Asked{})),
 	}
 }
 

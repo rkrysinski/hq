@@ -750,8 +750,9 @@ func TestKillEndsASessionThatOutlivedItsPane(t *testing.T) {
 	a, _ := agent.Find(agent.FromWindows(ws), "a")
 	// Claude runs on in the sandbox after its host-side sbx run ended
 	// (#101): a process with the agent's id in its arguments, which on
-	// SIGTERM writes its state file on the way out, as SessionEnd does.
-	file := filepath.Join(state.Dir(h.cwd), a.ID)
+	// SIGTERM writes beside the repository on the way out, as its hook does
+	// at SessionEnd.
+	file := filepath.Join(state.Dir(h.cwd), a.ID+".last")
 	claude := exec.Command("sh", "-c", `trap 'echo "branch main" >"$0"; exit 0' TERM; while :; do sleep 0.1; done`, file, `HQ_ID":"`+a.ID+`"`)
 	if err := claude.Start(); err != nil {
 		t.Fatal(err)
@@ -777,14 +778,14 @@ func TestKillEndsASessionThatOutlivedItsPane(t *testing.T) {
 		t.Fatal("the session still runs after the kill")
 	}
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
-		t.Fatalf("state file left behind: %v", err)
+		t.Fatalf("the hook's note left behind: %v", err)
 	}
 	if rows := h.ls(); len(rows) != 0 {
 		t.Fatalf("rows %+v", rows)
 	}
 }
 
-func TestKillAndStopRemoveTheirAgentsStateFiles(t *testing.T) {
+func TestKillAndStopRemoveTheirAgentsFiles(t *testing.T) {
 	testutil.FakeClaude(t)
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")
@@ -811,7 +812,7 @@ func TestKillAndStopRemoveTheirAgentsStateFiles(t *testing.T) {
 		}
 		return strings.Join(names, " ")
 	}
-	if got := files(); !strings.Contains(got, id["a"]+".stop") || !strings.Contains(got, id["b"]+".stop") {
+	if got := files(); !strings.Contains(got, id["a"]+".last") || !strings.Contains(got, id["b"]+".last") {
 		t.Fatalf("before: %q", got)
 	}
 
@@ -912,7 +913,7 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 	}
 }
 
-// An agent an older hq started has state files but no record (#147):
+// An agent an older hq started has a journal but no record (#147):
 // hq sandbox restart relaunches it all the same, continuing its
 // conversation, keeps its files and gives it the record hq restore reads.
 func TestSandboxRestartRelaunchesAnAgentWithoutARecordAndRecordsIt(t *testing.T) {
@@ -943,7 +944,7 @@ func TestSandboxRestartRelaunchesAnAgentWithoutARecordAndRecordsIt(t *testing.T)
 	}
 	h.waitPane("coolify", "fake claude: resumed "+session.SessionID)
 	if _, ok := h.d.readState(h.cwd, id); !ok {
-		t.Fatal("its state file went")
+		t.Fatal("its journal went")
 	}
 	rs, _ := h.d.records(h.cwd)
 	if len(rs) != 1 || rs[0].ID != id || rs[0].Name != "coolify" || rs[0].Sandbox != "claude-app" || rs[0].Server != h.socket {

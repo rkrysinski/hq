@@ -23,9 +23,9 @@ const (
 	// waitEvery is how often it looks, as the list does.
 	waitEvery = 250 * time.Millisecond
 	// waitSettle is how long after a moment a look is sure to see every
-	// state entered by then: a state file's time is set as the hook writes
-	// it, a moment before it is moved into place, and a moment hq saw is
-	// taken just before it is stored on the window. A look reports only
+	// state entered by then: an event file's time is set as the hook
+	// writes it, a moment before it is moved into place, and a moment hq
+	// saw is taken just before its event is appended. A look reports only
 	// what entered its state at least this long before it began, and its
 	// moment, the next call's --since, is that far back, so what a look
 	// could not see yet falls to the next one.

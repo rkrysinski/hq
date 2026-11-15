@@ -16,6 +16,7 @@ import (
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/gh"
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
@@ -592,11 +593,11 @@ type fakes struct {
 	withdrawn   []string
 	promptLost  bool
 	announceErr error
-	removed     []string // "repo id" of each agent whose state files were removed
+	removed     []string // "repo id" of each agent whose files were removed
 	// records are hq's records of agents, by repository (hq restore).
 	records map[string][]state.Record
 
-	// questions is the question dialog each agent id's state file reports
+	// questions is the question dialog each agent id's journal holds
 	// open (none: no question dialog); answerLeft the answer waiting in
 	// its inbox for the hook, until the hook takes it or hq takes it back
 	// (withdrawals counts those); leaveErr fails leaving it; got is what
@@ -908,7 +909,7 @@ func (f *fakes) deps() deps {
 			return nil
 		},
 
-		questions: func(_, id string) (state.Questions, error) {
+		questions: func(_ journal.Store, id string) (state.Questions, error) {
 			q, ok := f.questions[id]
 			if !ok {
 				return q, errors.New("no question dialog")
@@ -934,7 +935,7 @@ func (f *fakes) deps() deps {
 			f.withdrawals++
 			return true
 		},
-		answersGot: func(_, id string) (map[string]string, bool) {
+		answersGot: func(_ journal.Store, id string) (map[string]string, bool) {
 			g, ok := f.got[id]
 			return g, ok
 		},

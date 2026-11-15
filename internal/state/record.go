@@ -10,15 +10,14 @@ import (
 	"strings"
 )
 
-// recordSuffix names, beside an agent's state files, hq's record of the
-// agent (WriteRecord).
+// recordSuffix names, in Dir, hq's record of the agent (WriteRecord).
 const recordSuffix = ".hq"
 
 // maxRecord caps what hq reads from a record: one is a few dozen bytes.
 const maxRecord = 4 << 10
 
-// Record is hq's own record of an agent, kept beside its state files: what
-// its home window holds that hq needs to bring the agent back when the
+// Record is hq's own record of an agent, kept in Dir beside its repository:
+// what its home window holds that hq needs to bring the agent back when the
 // window is gone with its tmux server (hq restore, design §3.3, #140).
 type Record struct {
 	ID      string `json:"-"`       // the agent's id, the record's name

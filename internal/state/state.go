@@ -23,7 +23,9 @@ const (
 	Outdated = "outdated"
 )
 
-// Report is what an agent's state file says.
+// Report is an agent's state as a hook's reports give it: what the tests
+// describe an agent by, which the fake journal turns into the event files
+// its hook leaves (journaltest.ReportFiles).
 type Report struct {
 	State string
 	Since time.Time // host modification time of the file (design §7.1)
@@ -187,10 +189,10 @@ func IsQuestion(message string) bool {
 	return strings.HasSuffix(strings.TrimRightFunc(message, unicode.IsSpace), "?")
 }
 
-// maxLast caps the message kept from a state file.
+// maxLast caps the message kept from a report.
 const maxLast = 500
 
-// Clean makes text from a state file safe to show on one line: escape
+// Clean makes text from a report safe to show on one line: escape
 // sequences and control characters go, whitespace runs become one space
 // (design §7.3).
 func Clean(s string) string {

@@ -38,7 +38,8 @@ func Hook(branch string, payload map[string]any) []byte {
 // turn end's reply kept once, hq's own events appended, evidence set aside
 // as a duplicate or as overtaken (#195), one first append of writers
 // racing, a journal read on from a position, what the latest dialog asks
-// kept once, a removed journal gone, and ids hq did not issue refused.
+// kept once, with a question dialog's report and the answers Claude got,
+// a removed journal gone, and ids hq did not issue refused.
 func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 	t.Helper()
 	at := time.Date(2026, 11, 15, 9, 0, 0, 0, time.UTC)
@@ -289,6 +290,44 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		{
 			j := read(t, h.Store, "a1")
 			expect(t, j.Ask.Number == j.Events[2].Number && j.Ask.Ask != nil && j.Ask.Ask.Message == "Claude needs your permission", "the next dialog: %+v", j.Ask)
+		}
+	})
+
+	t.Run("a question dialog keeps its report and then the answers Claude got", func(t *testing.T) {
+		h := newHarness(t)
+		root := h.Root()
+		ask := Hook("feat-42", map[string]any{"hook_event_name": "PermissionRequest", "prompt_id": "p1", "tool_name": state.AskTool, "tool_input": map[string]any{"questions": []any{map[string]any{"question": "Red or blue?", "options": []any{map[string]any{"label": "Red"}, map[string]any{"label": "Blue"}}}}}})
+		answered := func(answers map[string]any) []byte {
+			return Hook("feat-42", map[string]any{"hook_event_name": "PostToolUse", "prompt_id": "p1", "tool_name": state.AskTool, "tool_input": map[string]any{"answers": answers}})
+		}
+		h.Leave(root, "a1", "000000001.1", ask, at)
+		must(t, h.Store.Ingest(root, "a1"))
+		j := read(t, h.Store, "a1")
+		require(t, j.Ask.Report == string(ask) && !j.Ask.Answered && j.Ask.Answers == nil, "the dialog: %+v", j.Ask)
+		// Its tool's end in a later ingest, after a tool of another kind.
+		h.Leave(root, "a1", "000000002.1", tool, at)
+		h.Leave(root, "a1", "000000003.1", answered(map[string]any{"Red or blue?": "Blue"}), at)
+		must(t, h.Store.Ingest(root, "a1"))
+		{
+			j := read(t, h.Store, "a1")
+			expect(t, j.Ask.Number == j.Events[0].Number && j.Ask.Report == string(ask) && j.Ask.Answered && j.Ask.Answers["Red or blue?"] == "Blue", "answered: %+v", j.Ask)
+		}
+		// A dialog and its end in one ingest, the end with no answers; a
+		// permission prompt keeps no report, and its tool's end no answers.
+		h.Leave(root, "a1", "000000004.1", ask, at)
+		h.Leave(root, "a1", "000000005.1", answered(nil), at)
+		must(t, h.Store.Ingest(root, "a1"))
+		{
+			j := read(t, h.Store, "a1")
+			expect(t, j.Ask.Number == j.Events[3].Number && j.Ask.Answered && len(j.Ask.Answers) == 0, "answered at once: %+v", j.Ask)
+		}
+		h.Leave(root, "a1", "000000006.1", Hook("feat-42", map[string]any{"hook_event_name": "PermissionRequest", "tool_name": "Bash", "tool_input": map[string]any{"command": "make"}}), at)
+		must(t, h.Store.Ingest(root, "a1"))
+		h.Leave(root, "a1", "000000007.1", answered(map[string]any{"Red or blue?": "Red"}), at)
+		must(t, h.Store.Ingest(root, "a1"))
+		{
+			j := read(t, h.Store, "a1")
+			expect(t, j.Ask.Number == j.Events[5].Number && j.Ask.Report == "" && !j.Ask.Answered && j.Ask.Answers == nil, "a permission prompt: %+v", j.Ask)
 		}
 	})
 

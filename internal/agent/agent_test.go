@@ -79,6 +79,8 @@ func TestAnAgentOfAnotherGenerationIsOutdated(t *testing.T) {
 		{gen: current, dead: true, state: state.Ended, last: "on it", generated: version.Generation},
 		{gen: "", state: state.Outdated, last: older},
 		{gen: "1", state: state.Outdated, last: older, generated: 1},
+		// Started by an hq whose hook still wrote the state files (#199).
+		{gen: "3", state: state.Outdated, last: older, generated: 3},
 		{gen: strconv.Itoa(version.Generation - 1), dead: true, state: state.Outdated, last: older, generated: version.Generation - 1},
 		{gen: strconv.Itoa(version.Generation + 1), state: state.Outdated, last: newer, generated: version.Generation + 1},
 		{gen: "x", state: state.Outdated, last: older},

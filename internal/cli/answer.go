@@ -140,7 +140,7 @@ func answer(env Env, d deps, r answerRequest) error {
 	}
 	// The dialog the hook holds on for the answer is the one the journal
 	// has open when it asks the same.
-	q, err := d.questions(a.RepoPath, a.ID)
+	q, err := d.questions(d.journal, a.ID)
 	if err != nil || !reflect.DeepEqual(q.Ask, det.Ask) {
 		return usageErr("%s's dialog changed meanwhile; read it again (hq read %s)", a.Name, a.Name)
 	}
@@ -314,7 +314,7 @@ func awaitClosed(d deps, a agent.Agent, open agent.Dialog) (agent.Agent, map[str
 		if now.Dialog().ID() != open.ID() {
 			// Read after the look at the agent: the tool's end that moved it
 			// off the dialog is then there to read, not yet to come.
-			got, ok := d.answersGot(a.RepoPath, a.ID)
+			got, ok := d.answersGot(d.journal, a.ID)
 			if !ok {
 				got = nil
 			}

@@ -275,7 +275,7 @@ func runList(env Env, d deps, args []string) error {
 	return nil
 }
 
-// listSource connects the list program to tmux, the state files and sbx.
+// listSource connects the list program to tmux, the journals and sbx.
 func listSource(d deps, pane string) dash.Source {
 	return dash.Source{
 		Agents: func(running agent.Sandboxes) ([]agent.Agent, error) {

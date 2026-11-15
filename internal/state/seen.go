@@ -109,10 +109,9 @@ func (f *Fold) see(e Event) bool {
 
 // handOver follows Claude at work on the prompt it took from its queue
 // after the user interrupted the turn it was queued in, which no hook
-// reports (#88): the look hands the hook's state over to it (TakeQueued),
-// so the queued prompt becomes the state file's report, dated by the
-// event, and the kept event goes, as does the mark of a turn acted on that
-// is the queued prompt's. With no prompt queued (the hook took it away
+// reports (#88): the state is handed over to it, so the queued prompt
+// becomes the latest report, dated by the event, and the kept event goes,
+// as does the mark of a turn acted on that is the queued prompt's. With no prompt queued (the hook took it away
 // first) nothing is handed over.
 func (f *Fold) handOver(e Event) {
 	if f.queued == nil {
