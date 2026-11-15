@@ -199,7 +199,7 @@ func FromWindows(ws []tmux.Window) []Agent {
 
 // EndedLast is the last message of an agent that ended without one: it
 // never reported a message before its session went (spec S7, the mocks).
-const EndedLast = "[session ended]"
+const EndedLast = state.EndedLast
 
 // Sandboxes is sbx's answer to which sandboxes run, with the moment hq
 // asked for it. hq keeps an answer for up to a second, and reads the agents
@@ -643,7 +643,7 @@ const ownLast = "="
 
 // Rewound is the last message of a turn the user rewound: an early Esc
 // that put the prompt back in the box, which Claude reports nowhere.
-const Rewound = "Interrupted"
+const Rewound = state.RewoundLast
 
 // settle applies the screen of an unsettled agent: a dialog its hooks
 // reported, of its own and not a subagent's, closes when the screen shows
@@ -778,7 +778,7 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 	}
 	a.Since = now
 	e := screenEvent(state.KindOwnDialog, now)
-	e.Facts.Screen = fp
+	e.Facts.Screen, e.Facts.Text = fp, a.Last
 	return record{"dialogseen", key + fp + " ", key + fp + " " + nanos(now), e}
 }
 

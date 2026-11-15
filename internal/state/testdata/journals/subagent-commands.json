@@ -30,6 +30,10 @@
         "worktree": "/w/app/.claude/worktrees/feat-42",
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -63,6 +67,10 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -97,6 +105,10 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -112,6 +124,10 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -173,6 +189,11 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "background": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "The subagent has started its `flag2` monitor and is waiting. `flag2` hasn't appeared yet, and the subagent will report again when it does."
       }
     },
     {
@@ -235,6 +256,17 @@
             "text": "Wait"
           }
         ]
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "The subagent's watch ended.",
+        "own_tasks": [
+          {
+            "type": "monitor",
+            "text": "Wait"
+          }
+        ]
       }
     },
     {
@@ -268,6 +300,11 @@
         "worktree": "/w/app",
         "session": "00000029-0000-4000-8000-000000000029",
         "prompt": "Say hi in one word.\nThen say bye in one word."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "The subagent's watch ended."
       }
     },
     {
@@ -316,6 +353,11 @@
         "worktree": "/w/app",
         "session": "00000029-0000-4000-8000-000000000029",
         "prompt": "Say hi in one word.\nThen say bye in one word."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "The subagent's watch ended."
       }
     },
     {
@@ -367,6 +409,11 @@
         "session": "00000029-0000-4000-8000-000000000029",
         "prompt": "Say hi in one word.\nThen say bye in one word.",
         "background": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "The dev server is up."
       }
     },
     {
@@ -401,6 +448,11 @@
         "last": "The dev server stopped.",
         "last_stop": "The dev server stopped.",
         "branch": "main"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "The dev server stopped."
       }
     }
   ]

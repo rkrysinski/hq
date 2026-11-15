@@ -1,0 +1,603 @@
+{
+  "about": "A restart takes the agent down, ended since then, and relaunches it in the same pane: until the new session reports, the agent is starting since the relaunch, with what the previous session's report gives (its last message, branch and worktree) but not its state; a session's end the old session reports while it is taken down dates its end; a restore launches it again the same way.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "old": {
+        "reported": false,
+        "state": "starting",
+        "since": "0001-01-01T00:00:00Z",
+        "latest": "0001-01-01T00:00:00Z"
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "at": "start"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Say hi."
+      },
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Say hi.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Say hi."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000003.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 4,
+        "text": "Hi. The tests pass\nand PR #58 is open."
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:04Z",
+        "latest": "2026-01-01T00:00:04Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:04Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hq": "take down",
+      "events": [
+        {
+          "n": 5,
+          "source": "hq",
+          "kind": "TakenDown",
+          "time": "2026-01-01T00:00:05Z",
+          "basis": 4,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:04Z",
+        "latest": "2026-01-01T00:00:04Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:04Z",
+        "latest": "2026-01-01T00:00:04Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "end",
+      "payload": "session-end",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "SessionEnd",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000004.end.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "reason": "prompt_input_exit",
+            "at": "end"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "ended",
+        "since": "2026-01-01T00:00:07Z",
+        "latest": "2026-01-01T00:00:07Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hq": "relaunch",
+      "events": [
+        {
+          "n": 7,
+          "source": "hq",
+          "kind": "Relaunched",
+          "time": "2026-01-01T00:00:08Z",
+          "basis": 6,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "ended",
+        "since": "2026-01-01T00:00:07Z",
+        "latest": "2026-01-01T00:00:07Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "old": {
+        "reported": true,
+        "state": "ended",
+        "since": "2026-01-01T00:00:07Z",
+        "latest": "2026-01-01T00:00:07Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "resume",
+      "payload": "session-start-resume",
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000005.resume.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app",
+            "start": "resume",
+            "at": "resume"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:10Z",
+        "latest": "2026-01-01T00:00:10Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Say hi again."
+      },
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:11Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Say hi again.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "latest": "2026-01-01T00:00:11Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Say hi again."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hq": "take down",
+      "events": [
+        {
+          "n": 10,
+          "source": "hq",
+          "kind": "TakenDown",
+          "time": "2026-01-01T00:00:12Z",
+          "basis": 9,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "latest": "2026-01-01T00:00:11Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Say hi again."
+      },
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:12Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "latest": "2026-01-01T00:00:11Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Say hi again."
+      },
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:12Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hq": "relaunch",
+      "events": [
+        {
+          "n": 11,
+          "source": "hq",
+          "kind": "Relaunched",
+          "time": "2026-01-01T00:00:14Z",
+          "basis": 9,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "latest": "2026-01-01T00:00:11Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Say hi again."
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "latest": "2026-01-01T00:00:11Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Say hi again."
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "sbx": "stopped",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "latest": "2026-01-01T00:00:11Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Say hi again."
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 12,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:17Z",
+          "file": "000000007.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "at": "start"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:17Z",
+        "latest": "2026-01-01T00:00:17Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:17Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "pane": "dead",
+      "events": [
+        {
+          "n": 13,
+          "source": "tmux",
+          "kind": "PaneDied",
+          "time": "2026-01-01T00:00:18Z",
+          "basis": 12,
+          "facts": {
+            "from": "2026-01-01T00:00:18Z"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:17Z",
+        "latest": "2026-01-01T00:00:17Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:18Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hq": "restore",
+      "events": [
+        {
+          "n": 14,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:19Z",
+          "basis": 12,
+          "facts": {
+            "start": "restore"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:17Z",
+        "latest": "2026-01-01T00:00:17Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:19Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:17Z",
+        "latest": "2026-01-01T00:00:17Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:19Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "resume",
+      "payload": "session-start-resume",
+      "events": [
+        {
+          "n": 15,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:21Z",
+          "file": "000000008.resume.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app",
+            "start": "resume",
+            "at": "resume"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:21Z",
+        "latest": "2026-01-01T00:00:21Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:21Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    }
+  ]
+}

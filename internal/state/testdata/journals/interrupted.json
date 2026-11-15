@@ -30,6 +30,10 @@
         "worktree": "/w/app/.claude/worktrees/feat-42",
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -74,6 +78,10 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -118,6 +126,10 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -162,6 +174,10 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -196,6 +212,10 @@
         "prompt": "say hi",
         "woken": true,
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -235,6 +255,11 @@
         "prompt": "say hi",
         "background": true,
         "owed": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "the first finished"
       }
     },
     {
@@ -270,6 +295,11 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "woken": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "the first finished"
       }
     },
     {
@@ -309,6 +339,11 @@
         "prompt": "say hi",
         "background": true,
         "owed": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "the second finished"
       }
     },
     {
@@ -344,6 +379,11 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "woken": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "the second finished"
       }
     },
     {
@@ -378,6 +418,11 @@
         "last": "all finished",
         "last_stop": "all finished",
         "branch": "main"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "all finished"
       }
     }
   ]

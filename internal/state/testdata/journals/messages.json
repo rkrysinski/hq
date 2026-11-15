@@ -30,6 +30,10 @@
         "worktree": "/w/app/.claude/worktrees/feat-42",
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -60,6 +64,10 @@
         "worktree": "/w/app/.claude/worktrees/feat-42",
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -95,6 +103,11 @@
         "branch": "main",
         "worktree": "/w/app",
         "session": "00000029-0000-4000-8000-000000000029"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "PINEAPPLE"
       }
     },
     {
@@ -143,6 +156,11 @@
         "worktree": "/w/app",
         "session": "00000029-0000-4000-8000-000000000029",
         "prompt": "Say hi in one word.\nThen say bye in one word."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:04Z",
+        "last": "PINEAPPLE"
       }
     },
     {
@@ -178,6 +196,11 @@
         "branch": "main",
         "worktree": "/w/app/.claude/worktrees/feat-42",
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Hi. The tests pass and PR #58 is open."
       }
     }
   ]

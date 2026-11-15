@@ -112,7 +112,7 @@ func TestTheLookAppendsWhatTheScreenShowsOnce(t *testing.T) {
 			}},
 		{"a dialog of Claude's own, seen and gone", state.Report{State: state.Done, Since: asked}, []look{{0, ownDialog, state.KindOwnDialog}, {time.Second, ownDialog, ""}, {2 * time.Second, ready, state.KindOwnDialogGone}, {3 * time.Second, ready, ""}, {4 * time.Second, ownDialog, state.KindOwnDialog}},
 			func(t *testing.T, es []state.Event) {
-				if es[0].Facts.Screen == "" || es[2].Facts.Screen != es[0].Facts.Screen {
+				if es[0].Facts.Screen == "" || es[2].Facts.Screen != es[0].Facts.Screen || es[0].Facts.Text != "Change effort level?" {
 					t.Errorf("dialogs %+v %+v", es[0].Facts, es[2].Facts)
 				}
 			}},

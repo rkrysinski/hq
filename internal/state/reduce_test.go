@@ -13,10 +13,12 @@ import (
 )
 
 // JournalFixture is a fixture journal (testdata/journals): an agent's
-// journal in steps, each what one run of the hook left, and what the old
-// reading of the hook's working files (Read) gave after it. The steps'
-// hook, payload, inline, raw, pad, messages and in say how the integration
-// test rebuilds the journal (TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads);
+// journal in steps, each what one run of the hook, or what hq did, left in
+// it with what the look then saw, and what the old reading of the hook's
+// working files (Read) and the old look (agent.Look) gave after it. The
+// steps' hook, payload, inline, raw, pad, messages, in, hq, screen, pane,
+// sbx and asked say how the integration test rebuilds the journal
+// (TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads);
 // the rest it writes. A journal reported from an agent can be added with
 // its steps' events and what the state should have been.
 type JournalFixture struct {
@@ -24,11 +26,18 @@ type JournalFixture struct {
 	Steps []JournalStep `json:"steps"`
 }
 
-// JournalStep is one run of the hook in a fixture journal.
+// JournalStep is one step of a fixture journal, a second after the one
+// before: what hq does to the agent (HQ), then a run of the hook (Hook),
+// then a look at the agent, with what its pane shows (Screen), its pane
+// (Pane) and sbx's answer (Sbx) as they are then.
 type JournalStep struct {
+	// HQ is what hq does to the agent first: launch it (as hq new) or
+	// restore it, relaunch it (as hq sandbox restart), take it down (as a
+	// restart, before its sandbox stops).
+	HQ string `json:"hq,omitempty"`
 	// Hook is the hook's kind it runs as (refuse, prompt, stop, answer,
-	// dialog, input, result, start, resume, end).
-	Hook string `json:"hook"`
+	// dialog, input, result, start, resume, end), none when empty.
+	Hook string `json:"hook,omitempty"`
 	// Payload names the payload of testdata it is given; Inline is one
 	// written here (given compact, as Claude writes it); Raw is one hq
 	// cannot read.
@@ -43,14 +52,40 @@ type JournalStep struct {
 	// In names the branch of a worktree the hook runs in, the repository
 	// when empty.
 	In string `json:"in,omitempty"`
+	// Screen names the screen of testdata the agent's pane shows to the
+	// look from this step on (screen-NAME.txt); none until the first.
+	Screen string `json:"screen,omitempty"`
+	// Pane is the agent's pane from this step on, until a relaunch: dead,
+	// as tmux dates it now, or dead-undated, a death tmux gives no time.
+	Pane string `json:"pane,omitempty"`
+	// Sbx is sbx's answer from this step on: stopped, the agent's sandbox
+	// not listed, or running; asked Asked seconds after the step (before
+	// it, when negative).
+	Sbx   string `json:"sbx,omitempty"`
+	Asked int    `json:"asked,omitempty"`
 	// Events are what the ingest appended to the journal after the run,
 	// their times as the test dated the files, their names with the
 	// process id 1 and the names of messages counted from 1.
 	Events []Event `json:"events,omitempty"`
 	// Reply is the journal's reply when the run changed it.
 	Reply *Reply `json:"reply,omitempty"`
-	// Old is what the old reading gave after the run.
-	Old OldReading `json:"old"`
+	// Old is what the old reading gave after the step, and Look what the
+	// old look gave.
+	Old  OldReading `json:"old"`
+	Look *OldLook   `json:"look,omitempty"`
+}
+
+// OldLook is what the old look (agent.Look) gave of the agent after a
+// step: its state, the moment it counts from, its last message, its own
+// tasks and its dialog verdict, whose dialog it is at (hooks, subagent,
+// own) since when.
+type OldLook struct {
+	State       string    `json:"state"`
+	Since       time.Time `json:"since"`
+	Last        string    `json:"last,omitempty"`
+	OwnTasks    []Task    `json:"own_tasks,omitempty"`
+	Dialog      string    `json:"dialog,omitempty"`
+	DialogSince time.Time `json:"dialog_since,omitzero"`
 }
 
 // OldReading is what Read gave of the hook's working files, and the
@@ -79,6 +114,9 @@ type OldReading struct {
 // OldReadingOf is what a fixture journal holds of r, the report Read gave
 // (ok false: none yet).
 func OldReadingOf(r Report, ok bool) OldReading {
+	if !ok {
+		r.State = Starting
+	}
 	return OldReading{
 		Reported: ok, State: r.State, Since: r.Since.UTC(), Latest: r.Latest.UTC(),
 		Last: r.Last, LastStop: r.LastStop, Branch: r.Branch, Worktree: r.Cwd, Session: r.SessionID, Prompt: r.Prompt,
@@ -127,7 +165,7 @@ func asOld(r Reduced, old OldReading) OldReading {
 		Reported: r.Reported, State: r.State, Since: r.Since, Latest: r.Latest,
 		Last: r.Last, LastStop: r.LastStop, Branch: r.Branch, Worktree: r.Worktree, Session: r.Session, Prompt: r.Prompt,
 		Background: r.Background, Owed: r.Owed, Woken: r.Woken, Acted: r.Acted, Queued: r.Queued,
-		Subagent: r.Dialog.Subagent, OwnTasks: r.OwnTasks,
+		Subagent: r.Dialog.Open && r.Dialog.Whose == DialogSubagent, OwnTasks: r.OwnTasks,
 	}
 	if strings.HasPrefix(old.Prompt, wakePrefix) && o.Prompt == "" {
 		o.Prompt = old.Prompt
@@ -145,10 +183,43 @@ func jsonOf(t *testing.T, v any) string {
 	return string(b)
 }
 
-// The reducer gives, after every report of every fixture journal, the
-// state, last message, own tasks and dialog verdict the old reading gave
-// for the same reports, and the rest of what it read too.
+// The reducer reads the hook's state after every step of every fixture
+// journal as the old reading read the hook's working files: the state,
+// last message, own tasks and subagent's dialog, and the rest of what it
+// read too.
 func TestTheReducerReadsEveryFixtureJournalAsTheOldReadingDid(t *testing.T) {
+	for name, fx := range fixtureJournals(t) {
+		var events []Event
+		reply := Reply{}
+		for i, step := range fx.Steps {
+			events = append(events, step.Events...)
+			if step.Reply != nil {
+				reply = *step.Reply
+			}
+			f := Fold{}.With(events...)
+			r := f.reading(&reply)
+			if got, want := jsonOf(t, asOld(r, step.Old)), jsonOf(t, step.Old); got != want {
+				t.Errorf("%s, step %d (%s %s%s):\n got %s\nwant %s", name, i, step.Hook, step.Payload, step.Raw, got, want)
+			}
+		}
+	}
+}
+
+// asLook is what the old look would have to give for the reducer's result
+// r.
+func asLook(r Reduced) *OldLook {
+	l := &OldLook{State: r.State, Since: r.Since.UTC(), Last: r.Last, OwnTasks: r.OwnTasks}
+	if r.Dialog.Open {
+		l.Dialog, l.DialogSince = r.Dialog.Whose, r.Dialog.Opened.Time.UTC()
+	}
+	return l
+}
+
+// The reducer gives, after every step of every fixture journal, the state,
+// the moment it counts from, the last message, the own tasks and the
+// dialog verdict the old look gave for the same payloads, screens, pane
+// and sbx answer, its age counted to the moment passed in.
+func TestTheReducerGivesEveryFixtureJournalAsTheOldLookDid(t *testing.T) {
 	now := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
 	for name, fx := range fixtureJournals(t) {
 		var events []Event
@@ -159,10 +230,13 @@ func TestTheReducerReadsEveryFixtureJournalAsTheOldReadingDid(t *testing.T) {
 				reply = *step.Reply
 			}
 			r := Reduce(events, reply, now)
-			if got, want := jsonOf(t, asOld(r, step.Old)), jsonOf(t, step.Old); got != want {
-				t.Errorf("%s, step %d (%s %s%s):\n got %s\nwant %s", name, i, step.Hook, step.Payload, step.Raw, got, want)
+			if step.Look == nil {
+				t.Fatalf("%s, step %d: no look", name, i)
 			}
-			if r.Reported && r.Age != now.Sub(r.Since) {
+			if got, want := jsonOf(t, asLook(r)), jsonOf(t, step.Look); got != want {
+				t.Errorf("%s, step %d (%s%s %s%s%s):\n got %s\nwant %s", name, i, step.HQ, step.Hook, step.Payload, step.Raw, step.Screen, got, want)
+			}
+			if !r.Since.IsZero() && r.Age != now.Sub(r.Since) {
 				t.Errorf("%s, step %d: age %v since %v", name, i, r.Age, r.Since)
 			}
 		}
@@ -355,19 +429,19 @@ func TestTheResultNamesTheEventsTheStateRestsOn(t *testing.T) {
 		rests, dialog []int64
 	}{
 		{1, Working, []int64{1}, nil},
-		{2, Working, []int64{1, 2}, nil},              // acted on
-		{4, Working, []int64{1, 2, 3, 4}, nil},        // background work
-		{5, NeedsInput, []int64{4, 5}, []int64{4, 5}}, // a subagent's form
-		{6, Working, []int64{2, 3, 4, 6}, nil},        // answered: the background work again
-		{7, Working, []int64{7}, nil},                 // Claude's wake-up, written over the answer
-		{8, Question, []int64{8}, nil},
+		{2, Working, []int64{1, 2}, nil},                    // acted on
+		{4, Working, []int64{1, 2, 3, 4}, nil},              // background work
+		{5, NeedsInput, []int64{4, 5}, []int64{4, 5}},       // a subagent's form
+		{6, Working, []int64{2, 3, 4, 6}, []int64{4, 5, 6}}, // answered: the background work again; the form closed
+		{7, Working, []int64{7}, []int64{4, 5, 6}},          // Claude's wake-up, written over the answer
+		{8, Question, []int64{8}, []int64{4, 5, 6}},
 	} {
 		r := reducedAt(journal, tc.after)
 		if r.State != tc.state || !slices.Equal(r.RestsOn, tc.rests) || !slices.Equal(r.Dialog.RestsOn, tc.dialog) {
 			t.Errorf("after %d: %s, rests on %v, the dialog on %v", tc.after, r.State, r.RestsOn, r.Dialog.RestsOn)
 		}
 	}
-	if r := reducedAt(journal, 5); !r.Dialog.Open || !r.Dialog.Subagent || r.Dialog.Opened != (Mark{5, atSecond(5)}) {
+	if r := reducedAt(journal, 5); !r.Dialog.Open || r.Dialog.Whose != DialogSubagent || r.Dialog.Opened != (Mark{5, atSecond(5)}) {
 		t.Errorf("the subagent's form: %+v", r.Dialog)
 	}
 }

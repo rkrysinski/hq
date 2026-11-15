@@ -73,7 +73,8 @@ func TestEvidenceIsTheSameByItsKindAndWhatItSaw(t *testing.T) {
 }
 
 // What was set aside holds nothing, and a launch or a relaunch starts every
-// kind of evidence over.
+// kind of evidence over, as Claude taking a queued prompt starts every
+// other kind over (#88).
 func TestHoldsLooksPastWhatWasSetAsideAndNotPastALaunch(t *testing.T) {
 	rest := ev(0, state.SourceScreen, state.KindAtRest, 1)
 	aside := rest
@@ -92,10 +93,15 @@ func TestHoldsLooksPastWhatWasSetAsideAndNotPastALaunch(t *testing.T) {
 		{"before a launch", []state.Event{rest, ev(0, state.SourceHQ, state.KindLaunched, 1)}, false},
 		{"before a relaunch", []state.Event{rest, ev(0, state.SourceHQ, state.KindRelaunched, 1)}, false},
 		{"before another event of hq", []state.Event{rest, ev(0, state.SourceHQ, state.KindTakenDown, 1)}, true},
+		{"before a queued prompt taken", []state.Event{rest, ev(0, state.SourceScreen, state.KindTookQueued, 1)}, false},
 	} {
 		if got := Holds(tc.events, rest); got != tc.want {
 			t.Errorf("%s: %v", tc.name, got)
 		}
+	}
+	took := ev(0, state.SourceScreen, state.KindTookQueued, 1)
+	if !Holds([]state.Event{took, rest}, took) {
+		t.Error("a queued prompt taken does not start itself over")
 	}
 }
 

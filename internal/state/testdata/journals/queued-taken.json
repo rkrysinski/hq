@@ -1,0 +1,714 @@
+{
+  "about": "Esc on a turn with a prompt queued: Claude at work below the turn's Interrupted line takes the queued prompt, which no hook reports; the look hands the state over to it, working since then, and an Esc on that turn ends it with its line; a prompt still queued above the box is not taken.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "old": {
+        "reported": false,
+        "state": "starting",
+        "since": "0001-01-01T00:00:00Z",
+        "latest": "0001-01-01T00:00:00Z"
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "at": "start"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools.",
+        "prompt_id": "q1"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "q1",
+            "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "prompt_id": "q1"
+      },
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000003.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "q1",
+            "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:04Z",
+        "latest": "2026-01-01T00:00:04Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "queued": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:04Z"
+      }
+    },
+    {
+      "screen": "fs-queued-at-work",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:04Z",
+        "latest": "2026-01-01T00:00:04Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "queued": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:04Z"
+      }
+    },
+    {
+      "screen": "fs-queued-taken-thinking",
+      "events": [
+        {
+          "n": 5,
+          "source": "screen",
+          "kind": "TookQueued",
+          "time": "2026-01-01T00:00:06Z",
+          "basis": 4,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-queued-taken-thinking",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-queued-taken-streaming",
+      "events": [
+        {
+          "n": 6,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:08Z",
+          "basis": 4,
+          "facts": {
+            "screen": "85071496e01aba8a"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-queued-taken-tool",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {},
+        "prompt_id": "q2"
+      },
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000004.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "q2",
+            "tool": "Bash",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "tock 25",
+        "background_tasks": [],
+        "prompt_id": "q2"
+      },
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:11Z",
+          "file": "000000005.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "q2",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 8,
+        "text": "tock 25"
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:11Z",
+        "latest": "2026-01-01T00:00:11Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "tock 25"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools.",
+        "prompt_id": "q3"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:12Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "q3",
+            "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:12Z",
+        "latest": "2026-01-01T00:00:12Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:12Z",
+        "last": "tock 25"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "prompt_id": "q3"
+      },
+      "events": [
+        {
+          "n": 10,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:13Z",
+          "file": "000000007.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "q3",
+            "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:13Z",
+        "latest": "2026-01-01T00:00:13Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "queued": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:13Z",
+        "last": "tock 25"
+      }
+    },
+    {
+      "screen": "fs-queued-taken-shown-thinking",
+      "events": [
+        {
+          "n": 11,
+          "source": "screen",
+          "kind": "TookQueued",
+          "time": "2026-01-01T00:00:14Z",
+          "basis": 10,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z",
+        "latest": "2026-01-01T00:00:14Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "tock 25"
+      }
+    },
+    {
+      "screen": "fs-queued-taken-shown-tool",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z",
+        "latest": "2026-01-01T00:00:14Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "tock 25"
+      }
+    },
+    {
+      "screen": "fs-esc-twice",
+      "events": [
+        {
+          "n": 12,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:16Z",
+          "basis": 10,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z",
+        "latest": "2026-01-01T00:00:14Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:16Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "screen": "fs-esc-twice",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z",
+        "latest": "2026-01-01T00:00:14Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:16Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools.",
+        "prompt_id": "q4"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 13,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:18Z",
+          "file": "000000008.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "q4",
+            "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:18Z",
+        "latest": "2026-01-01T00:00:18Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:18Z",
+        "last": "tock 25"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "prompt_id": "q4"
+      },
+      "events": [
+        {
+          "n": 14,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:19Z",
+          "file": "000000009.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "q4",
+            "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:19Z",
+        "latest": "2026-01-01T00:00:19Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "queued": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:19Z",
+        "last": "tock 25"
+      }
+    },
+    {
+      "screen": "fs-queued-taken-streaming",
+      "events": [
+        {
+          "n": 15,
+          "source": "screen",
+          "kind": "TookQueued",
+          "time": "2026-01-01T00:00:20Z",
+          "basis": 14,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:20Z",
+        "latest": "2026-01-01T00:00:20Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "tock 25"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {},
+        "prompt_id": "q5"
+      },
+      "events": [
+        {
+          "n": 16,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:21Z",
+          "file": "000000010.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "q5",
+            "tool": "Bash",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:20Z",
+        "latest": "2026-01-01T00:00:20Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "tock 25"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "tock 25",
+        "background_tasks": [],
+        "prompt_id": "q5"
+      },
+      "events": [
+        {
+          "n": 17,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:22Z",
+          "file": "000000011.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "q5",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 17,
+        "text": "tock 25"
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:22Z",
+        "latest": "2026-01-01T00:00:22Z",
+        "last": "tock 25",
+        "last_stop": "tock 25",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:22Z",
+        "last": "tock 25"
+      }
+    }
+  ]
+}

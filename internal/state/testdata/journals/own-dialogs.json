@@ -1,0 +1,1331 @@
+{
+  "about": "Dialogs of Claude's own, which no hook reports, read off the screen of an agent at its prompt: at the start of a session, after a turn, a question or a turn the user ended, and over background work Claude owes it no turn for; needs input since the dialog was first seen, its title the last message, the same dialog wherever its cursor is; gone, the agent is back as its hooks say; never read over a dialog of its hooks'.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "old": {
+        "reported": false,
+        "state": "starting",
+        "since": "0001-01-01T00:00:00Z",
+        "latest": "0001-01-01T00:00:00Z"
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "at": "start"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "screen": "own-trust",
+      "events": [
+        {
+          "n": 3,
+          "source": "screen",
+          "kind": "OwnDialog",
+          "time": "2026-01-01T00:00:03Z",
+          "basis": 2,
+          "facts": {
+            "screen": "f8906d5c201c673b",
+            "text": "Accessing workspace:"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "Accessing workspace:",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "own-trust",
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "Accessing workspace:",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "own-auto-mode",
+      "events": [
+        {
+          "n": 4,
+          "source": "screen",
+          "kind": "OwnDialog",
+          "time": "2026-01-01T00:00:05Z",
+          "basis": 2,
+          "facts": {
+            "screen": "69eeb0c7a58df2cc",
+            "text": "Make auto mode your default permission mode?"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Make auto mode your default permission mode?",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:05Z"
+      }
+    },
+    {
+      "screen": "start-ready",
+      "events": [
+        {
+          "n": 5,
+          "source": "screen",
+          "kind": "OwnDialogGone",
+          "time": "2026-01-01T00:00:06Z",
+          "basis": 2,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "screen": "fs-start-ready",
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Say hi."
+      },
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Say hi.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "latest": "2026-01-01T00:00:08Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Say hi."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000003.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 7,
+        "text": "Hi. The tests pass\nand PR #58 is open."
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "screen": "own-effort",
+      "events": [
+        {
+          "n": 8,
+          "source": "screen",
+          "kind": "OwnDialog",
+          "time": "2026-01-01T00:00:10Z",
+          "basis": 7,
+          "facts": {
+            "screen": "20427212abffb6b5",
+            "text": "Change effort level?"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Change effort level?",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:10Z"
+      }
+    },
+    {
+      "screen": "own-effort-80",
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Change effort level?",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:10Z"
+      }
+    },
+    {
+      "screen": "own-effort",
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Change effort level?",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:10Z"
+      }
+    },
+    {
+      "screen": "fs-narrow-done",
+      "events": [
+        {
+          "n": 9,
+          "source": "screen",
+          "kind": "OwnDialogGone",
+          "time": "2026-01-01T00:00:13Z",
+          "basis": 7,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "screen": "own-effort-low",
+      "events": [
+        {
+          "n": 10,
+          "source": "screen",
+          "kind": "OwnDialog",
+          "time": "2026-01-01T00:00:14Z",
+          "basis": 7,
+          "facts": {
+            "screen": "11cb01bc49eccfc9",
+            "text": "Change effort level?"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "Change effort level?",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "screen": "own-effort-low-down",
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "Change effort level?",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "screen": "effort-low-set",
+      "events": [
+        {
+          "n": 11,
+          "source": "screen",
+          "kind": "OwnDialogGone",
+          "time": "2026-01-01T00:00:16Z",
+          "basis": 7,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "screen": "own-switch-model",
+      "events": [
+        {
+          "n": 12,
+          "source": "screen",
+          "kind": "OwnDialog",
+          "time": "2026-01-01T00:00:17Z",
+          "basis": 7,
+          "facts": {
+            "screen": "9dae2f8a65012df4",
+            "text": "Switch model?"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:17Z",
+        "last": "Switch model?",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:17Z"
+      }
+    },
+    {
+      "screen": "own-switch-model-down",
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:17Z",
+        "last": "Switch model?",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:17Z"
+      }
+    },
+    {
+      "screen": "switch-model-kept",
+      "events": [
+        {
+          "n": 13,
+          "source": "screen",
+          "kind": "OwnDialogGone",
+          "time": "2026-01-01T00:00:19Z",
+          "basis": 7,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "screen": "own-model",
+      "events": [
+        {
+          "n": 14,
+          "source": "screen",
+          "kind": "OwnDialog",
+          "time": "2026-01-01T00:00:20Z",
+          "basis": 7,
+          "facts": {
+            "screen": "e510129c42a85ce2",
+            "text": "Select model"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "Select model",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:20Z"
+      }
+    },
+    {
+      "screen": "own-model-2304",
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "Select model",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:20Z"
+      }
+    },
+    {
+      "screen": "own-model",
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "latest": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "Select model",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:20Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Ask me something."
+      },
+      "events": [
+        {
+          "n": 15,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:23Z",
+          "file": "000000004.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Ask me something.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:23Z",
+        "latest": "2026-01-01T00:00:23Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Ask me something."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:23Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-question",
+      "events": [
+        {
+          "n": 16,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:24Z",
+          "file": "000000005.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "question": true,
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 16,
+        "text": "Should I also update the README? \n"
+      },
+      "old": {
+        "reported": true,
+        "state": "question",
+        "since": "2026-01-01T00:00:24Z",
+        "latest": "2026-01-01T00:00:24Z",
+        "last": "Should I also update the README?",
+        "last_stop": "Should I also update the README?",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "question",
+        "since": "2026-01-01T00:00:24Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "screen": "own-model",
+      "events": [
+        {
+          "n": 17,
+          "source": "screen",
+          "kind": "OwnDialog",
+          "time": "2026-01-01T00:00:25Z",
+          "basis": 16,
+          "facts": {
+            "screen": "e510129c42a85ce2",
+            "text": "Select model"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "question",
+        "since": "2026-01-01T00:00:24Z",
+        "latest": "2026-01-01T00:00:24Z",
+        "last": "Should I also update the README?",
+        "last_stop": "Should I also update the README?",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:25Z",
+        "last": "Select model",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:25Z"
+      }
+    },
+    {
+      "screen": "fs-start-ready",
+      "events": [
+        {
+          "n": 18,
+          "source": "screen",
+          "kind": "OwnDialogGone",
+          "time": "2026-01-01T00:00:26Z",
+          "basis": 16,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "question",
+        "since": "2026-01-01T00:00:24Z",
+        "latest": "2026-01-01T00:00:24Z",
+        "last": "Should I also update the README?",
+        "last_stop": "Should I also update the README?",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "question",
+        "since": "2026-01-01T00:00:24Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Count to ten."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 19,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:27Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Count to ten.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "latest": "2026-01-01T00:00:27Z",
+        "last": "Should I also update the README?",
+        "last_stop": "Should I also update the README?",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Count to ten."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "screen": "interrupted",
+      "events": [
+        {
+          "n": 20,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:28Z",
+          "basis": 19,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "latest": "2026-01-01T00:00:27Z",
+        "last": "Should I also update the README?",
+        "last_stop": "Should I also update the README?",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Count to ten."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:28Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "screen": "own-effort",
+      "events": [
+        {
+          "n": 21,
+          "source": "screen",
+          "kind": "OwnDialog",
+          "time": "2026-01-01T00:00:29Z",
+          "basis": 19,
+          "facts": {
+            "screen": "20427212abffb6b5",
+            "text": "Change effort level?"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "latest": "2026-01-01T00:00:27Z",
+        "last": "Should I also update the README?",
+        "last_stop": "Should I also update the README?",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Count to ten."
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "Change effort level?",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:29Z"
+      }
+    },
+    {
+      "screen": "interrupted",
+      "events": [
+        {
+          "n": 22,
+          "source": "screen",
+          "kind": "OwnDialogGone",
+          "time": "2026-01-01T00:00:30Z",
+          "basis": 19,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "latest": "2026-01-01T00:00:27Z",
+        "last": "Should I also update the README?",
+        "last_stop": "Should I also update the README?",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Count to ten."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:28Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Start a subagent."
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 23,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:31Z",
+          "file": "000000007.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Start a subagent.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "latest": "2026-01-01T00:00:31Z",
+        "last": "Should I also update the README?",
+        "last_stop": "Should I also update the README?",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Start a subagent."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Agent",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {
+          "isAsync": true,
+          "status": "async_launched",
+          "agentId": "a1",
+          "description": "Run the tests"
+        }
+      },
+      "events": [
+        {
+          "n": 24,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:32Z",
+          "file": "000000008.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Agent",
+            "started": "a1",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "latest": "2026-01-01T00:00:31Z",
+        "last": "Should I also update the README?",
+        "last_stop": "Should I also update the README?",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Start a subagent.",
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "a1",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 25,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:33Z",
+          "file": "000000009.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tasks": [
+              {
+                "id": "a1",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 25,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "a1",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "latest": "2026-01-01T00:00:33Z",
+        "last": "started",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Start a subagent.",
+        "background": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "last": "started"
+      }
+    },
+    {
+      "screen": "own-model-background",
+      "events": [
+        {
+          "n": 26,
+          "source": "screen",
+          "kind": "OwnDialog",
+          "time": "2026-01-01T00:00:34Z",
+          "basis": 25,
+          "facts": {
+            "screen": "e510129c42a85ce2",
+            "text": "Select model"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "latest": "2026-01-01T00:00:33Z",
+        "last": "started",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Start a subagent.",
+        "background": true
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:34Z",
+        "last": "Select model",
+        "dialog": "own",
+        "dialog_since": "2026-01-01T00:00:34Z"
+      }
+    },
+    {
+      "screen": "fs-model-closed-background",
+      "events": [
+        {
+          "n": 27,
+          "source": "screen",
+          "kind": "OwnDialogGone",
+          "time": "2026-01-01T00:00:35Z",
+          "basis": 25,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "latest": "2026-01-01T00:00:33Z",
+        "last": "started",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Start a subagent.",
+        "background": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>a1</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 28,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:36Z",
+          "file": "000000010.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "wake": true,
+            "woke": "a1",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "latest": "2026-01-01T00:00:36Z",
+        "last": "started",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Start a subagent.",
+        "woken": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "It finished.",
+        "background_tasks": []
+      },
+      "screen": "fs-elicit-done",
+      "events": [
+        {
+          "n": 29,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:37Z",
+          "file": "000000011.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 29,
+        "text": "It finished."
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:37Z",
+        "latest": "2026-01-01T00:00:37Z",
+        "last": "It finished.",
+        "last_stop": "It finished.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:37Z",
+        "last": "It finished."
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Ask me a colour."
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 30,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:38Z",
+          "file": "000000012.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Ask me a colour.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:38Z",
+        "latest": "2026-01-01T00:00:38Z",
+        "last": "It finished.",
+        "last_stop": "It finished.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Ask me a colour."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:38Z",
+        "last": "It finished."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "elicitation",
+      "events": [
+        {
+          "n": 31,
+          "source": "hook",
+          "kind": "Elicitation",
+          "time": "2026-01-01T00:00:39Z",
+          "file": "000000013.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000c-0000-4000-8000-00000000000c",
+            "cwd": "/w/app",
+            "turn": "00000021-0000-4000-8000-000000000021",
+            "server": "elicit",
+            "text": "Which color should I use?",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:39Z",
+        "latest": "2026-01-01T00:00:39Z",
+        "last": "Which color should I use?",
+        "last_stop": "It finished.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000c-0000-4000-8000-00000000000c"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:39Z",
+        "last": "Which color should I use?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:39Z"
+      }
+    },
+    {
+      "screen": "fs-elicit-open",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:39Z",
+        "latest": "2026-01-01T00:00:39Z",
+        "last": "Which color should I use?",
+        "last_stop": "It finished.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000c-0000-4000-8000-00000000000c"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:39Z",
+        "last": "Which color should I use?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:39Z"
+      }
+    },
+    {
+      "screen": "timeout-elicit-open",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:39Z",
+        "latest": "2026-01-01T00:00:39Z",
+        "last": "Which color should I use?",
+        "last_stop": "It finished.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000c-0000-4000-8000-00000000000c"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:39Z",
+        "last": "Which color should I use?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:39Z"
+      }
+    },
+    {
+      "screen": "own-effort",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:39Z",
+        "latest": "2026-01-01T00:00:39Z",
+        "last": "Which color should I use?",
+        "last_stop": "It finished.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000c-0000-4000-8000-00000000000c"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:39Z",
+        "last": "Which color should I use?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:39Z"
+      }
+    }
+  ]
+}

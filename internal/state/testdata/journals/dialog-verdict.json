@@ -1,0 +1,1880 @@
+{
+  "about": "The dialog verdict: the hooks open needs input; the screen closes a dialog of theirs only on clear evidence, Claude at work, after which the agent works since the dialog's report with its turn's last message; an unclear screen (the dialog, a bare box, a narrow footer) keeps it open; a subagent's dialog closes by its hooks only.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "old": {
+        "reported": false,
+        "state": "starting",
+        "since": "0001-01-01T00:00:00Z",
+        "latest": "0001-01-01T00:00:00Z"
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "at": "start"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Ask me a colour."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Ask me a colour.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Ask me a colour."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000003.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 4,
+        "text": "Hi. The tests pass\nand PR #58 is open."
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:04Z",
+        "latest": "2026-01-01T00:00:04Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:04Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Ask me a colour."
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000004.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Ask me a colour.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:05Z",
+        "latest": "2026-01-01T00:00:05Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Ask me a colour."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-ask",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000005.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "AskUserQuestion",
+            "text": "Which colour do you pick: red or blue?",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-ask-open",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-ask-several-open",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-ask-multi-open",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-ask-multi-picked",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-ask-text-typed",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-ask-review",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-ask-hook-ignored",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "ask-hook-timeout",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-streaming",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-ask-several-answered",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "ask-hook-answered",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "ask-hook-denied",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "screen": "fs-ask-answered-thinking",
+      "events": [
+        {
+          "n": 7,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:19Z",
+          "basis": 6,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "screen": "fs-ask-answered-tool",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "screen": "fs-streaming",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "latest": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "answer-ask",
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:22Z",
+          "file": "000000006.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "AskUserQuestion",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:22Z",
+        "latest": "2026-01-01T00:00:22Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:22Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-ask",
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:23Z",
+          "file": "000000007.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "AskUserQuestion",
+            "text": "Which colour do you pick: red or blue?",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:23Z",
+        "latest": "2026-01-01T00:00:23Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:23Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:23Z"
+      }
+    },
+    {
+      "screen": "fs-narrow-ask-open",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:23Z",
+        "latest": "2026-01-01T00:00:23Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:23Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:23Z"
+      }
+    },
+    {
+      "screen": "fs-narrow-ask-answered",
+      "events": [
+        {
+          "n": 10,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:25Z",
+          "basis": 9,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:23Z",
+        "latest": "2026-01-01T00:00:23Z",
+        "last": "Which colour do you pick: red or blue?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42",
+        "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:23Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "elicitation",
+      "events": [
+        {
+          "n": 11,
+          "source": "hook",
+          "kind": "Elicitation",
+          "time": "2026-01-01T00:00:26Z",
+          "file": "000000008.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000c-0000-4000-8000-00000000000c",
+            "cwd": "/w/app",
+            "turn": "00000021-0000-4000-8000-000000000021",
+            "server": "elicit",
+            "text": "Which color should I use?",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:26Z",
+        "latest": "2026-01-01T00:00:26Z",
+        "last": "Which color should I use?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000c-0000-4000-8000-00000000000c"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:26Z",
+        "last": "Which color should I use?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:26Z"
+      }
+    },
+    {
+      "screen": "fs-elicit-open",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:26Z",
+        "latest": "2026-01-01T00:00:26Z",
+        "last": "Which color should I use?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000c-0000-4000-8000-00000000000c"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:26Z",
+        "last": "Which color should I use?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:26Z"
+      }
+    },
+    {
+      "screen": "fs-elicit-hook-running",
+      "events": [
+        {
+          "n": 12,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:28Z",
+          "basis": 11,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:26Z",
+        "latest": "2026-01-01T00:00:26Z",
+        "last": "Which color should I use?",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000c-0000-4000-8000-00000000000c"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:26Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "result",
+      "payload": "elicitation-result-accept",
+      "events": [
+        {
+          "n": 13,
+          "source": "hook",
+          "kind": "ElicitationResult",
+          "time": "2026-01-01T00:00:29Z",
+          "file": "000000009.result.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000025-0000-4000-8000-000000000025",
+            "cwd": "/w/app",
+            "turn": "00000015-0000-4000-8000-000000000015",
+            "server": "elicit",
+            "at": "result"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "latest": "2026-01-01T00:00:29Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000025-0000-4000-8000-000000000025",
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "screen": "fs-elicit-answered",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "latest": "2026-01-01T00:00:29Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000025-0000-4000-8000-000000000025",
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "screen": "fs-elicit-esc-tool",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "latest": "2026-01-01T00:00:29Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000025-0000-4000-8000-000000000025",
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "elicitation-url",
+      "events": [
+        {
+          "n": 14,
+          "source": "hook",
+          "kind": "Elicitation",
+          "time": "2026-01-01T00:00:32Z",
+          "file": "000000010.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000d-0000-4000-8000-00000000000d",
+            "cwd": "/w/app",
+            "turn": "0000001a-0000-4000-8000-00000000001a",
+            "server": "elicit",
+            "text": "Sign in to the example service.",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:32Z",
+        "latest": "2026-01-01T00:00:32Z",
+        "last": "Sign in to the example service.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000d-0000-4000-8000-00000000000d"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:32Z",
+        "last": "Sign in to the example service.",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:32Z"
+      }
+    },
+    {
+      "screen": "fs-elicit-answered",
+      "events": [
+        {
+          "n": 15,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:33Z",
+          "basis": 14,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:32Z",
+        "latest": "2026-01-01T00:00:32Z",
+        "last": "Sign in to the example service.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000d-0000-4000-8000-00000000000d"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:32Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "input",
+      "payload": "notification",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:32Z",
+        "latest": "2026-01-01T00:00:32Z",
+        "last": "Sign in to the example service.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000d-0000-4000-8000-00000000000d"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:32Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "screen": "fs-manual-tool",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:32Z",
+        "latest": "2026-01-01T00:00:32Z",
+        "last": "Sign in to the example service.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000d-0000-4000-8000-00000000000d"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:32Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "List the files"
+        }
+      },
+      "events": [
+        {
+          "n": 16,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:36Z",
+          "file": "000000011.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Bash",
+            "text": "Bash: List the files",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:36Z",
+        "latest": "2026-01-01T00:00:36Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:36Z",
+        "last": "Bash: List the files",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:36Z"
+      }
+    },
+    {
+      "screen": "ask-pretooluse-running",
+      "events": [
+        {
+          "n": 17,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:37Z",
+          "basis": 16,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:36Z",
+        "latest": "2026-01-01T00:00:36Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:36Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "List the files"
+        }
+      },
+      "events": [
+        {
+          "n": 18,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:38Z",
+          "file": "000000012.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Bash",
+            "text": "Bash: List the files",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:38Z",
+        "latest": "2026-01-01T00:00:38Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:38Z",
+        "last": "Bash: List the files",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:38Z"
+      }
+    },
+    {
+      "screen": "compacting",
+      "events": [
+        {
+          "n": 19,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:39Z",
+          "basis": 18,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:38Z",
+        "latest": "2026-01-01T00:00:38Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:38Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "List the files"
+        }
+      },
+      "events": [
+        {
+          "n": 20,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:40Z",
+          "file": "000000013.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Bash",
+            "text": "Bash: List the files",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:40Z",
+        "latest": "2026-01-01T00:00:40Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:40Z",
+        "last": "Bash: List the files",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:40Z"
+      }
+    },
+    {
+      "screen": "fs-narrow-working",
+      "events": [
+        {
+          "n": 21,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:41Z",
+          "basis": 20,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:40Z",
+        "latest": "2026-01-01T00:00:40Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:40Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "List the files"
+        }
+      },
+      "events": [
+        {
+          "n": 22,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:42Z",
+          "file": "000000014.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Bash",
+            "text": "Bash: List the files",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:42Z",
+        "latest": "2026-01-01T00:00:42Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:42Z",
+        "last": "Bash: List the files",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:42Z"
+      }
+    },
+    {
+      "screen": "fs-later-tool-running",
+      "events": [
+        {
+          "n": 23,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:43Z",
+          "basis": 22,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:42Z",
+        "latest": "2026-01-01T00:00:42Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:42Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "List the files"
+        }
+      },
+      "events": [
+        {
+          "n": 24,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:44Z",
+          "file": "000000015.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Bash",
+            "text": "Bash: List the files",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:44Z",
+        "latest": "2026-01-01T00:00:44Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:44Z",
+        "last": "Bash: List the files",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:44Z"
+      }
+    },
+    {
+      "screen": "fs-queued-taken-tool",
+      "events": [
+        {
+          "n": 25,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:45Z",
+          "basis": 24,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:44Z",
+        "latest": "2026-01-01T00:00:44Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:44Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "List the files"
+        }
+      },
+      "events": [
+        {
+          "n": 26,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:46Z",
+          "file": "000000016.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Bash",
+            "text": "Bash: List the files",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:46Z",
+        "latest": "2026-01-01T00:00:46Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:46Z",
+        "last": "Bash: List the files",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:46Z"
+      }
+    },
+    {
+      "screen": "fs-tool-failed-working",
+      "events": [
+        {
+          "n": 27,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:47Z",
+          "basis": 26,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:46Z",
+        "latest": "2026-01-01T00:00:46Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:46Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "List the files"
+        }
+      },
+      "events": [
+        {
+          "n": 28,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:48Z",
+          "file": "000000017.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Bash",
+            "text": "Bash: List the files",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:48Z",
+        "latest": "2026-01-01T00:00:48Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:48Z",
+        "last": "Bash: List the files",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:48Z"
+      }
+    },
+    {
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 29,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:49Z",
+          "basis": 28,
+          "facts": {}
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:48Z",
+        "latest": "2026-01-01T00:00:48Z",
+        "last": "Bash: List the files",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:48Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Start a subagent."
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 30,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:50Z",
+          "file": "000000018.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Start a subagent.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:50Z",
+        "latest": "2026-01-01T00:00:50Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Start a subagent."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:50Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Agent",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {
+          "isAsync": true,
+          "status": "async_launched",
+          "agentId": "a1",
+          "description": "Run the tests"
+        }
+      },
+      "events": [
+        {
+          "n": 31,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:51Z",
+          "file": "000000019.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Agent",
+            "started": "a1",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:50Z",
+        "latest": "2026-01-01T00:00:50Z",
+        "last": "Hi. The tests pass and PR #58 is open.",
+        "last_stop": "Hi. The tests pass and PR #58 is open.",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Start a subagent.",
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:50Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "a1",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "screen": "fs-background-at-prompt",
+      "events": [
+        {
+          "n": 32,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:52Z",
+          "file": "000000020.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tasks": [
+              {
+                "id": "a1",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 32,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "a1",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:50Z",
+        "latest": "2026-01-01T00:00:52Z",
+        "last": "started",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Start a subagent.",
+        "background": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:50Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "mcp__elicit__ask_color",
+        "tool_input": {
+          "description": "Pick a colour"
+        },
+        "agent_id": "sa1"
+      },
+      "events": [
+        {
+          "n": 33,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:53Z",
+          "file": "000000021.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "subagent": true,
+            "tool": "mcp__elicit__ask_color",
+            "text": "mcp__elicit__ask_color: Pick a colour",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:53Z",
+        "latest": "2026-01-01T00:00:53Z",
+        "last": "mcp__elicit__ask_color: Pick a colour",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "subagent": true
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:53Z",
+        "last": "mcp__elicit__ask_color: Pick a colour",
+        "dialog": "subagent",
+        "dialog_since": "2026-01-01T00:00:53Z"
+      }
+    },
+    {
+      "screen": "fs-subagent-elicit-open",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:53Z",
+        "latest": "2026-01-01T00:00:53Z",
+        "last": "mcp__elicit__ask_color: Pick a colour",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "subagent": true
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:53Z",
+        "last": "mcp__elicit__ask_color: Pick a colour",
+        "dialog": "subagent",
+        "dialog_since": "2026-01-01T00:00:53Z"
+      }
+    },
+    {
+      "screen": "fs-subagent-elicit-answered",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:53Z",
+        "latest": "2026-01-01T00:00:53Z",
+        "last": "mcp__elicit__ask_color: Pick a colour",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "subagent": true
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:53Z",
+        "last": "mcp__elicit__ask_color: Pick a colour",
+        "dialog": "subagent",
+        "dialog_since": "2026-01-01T00:00:53Z"
+      }
+    },
+    {
+      "screen": "fs-later-tool-running",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:53Z",
+        "latest": "2026-01-01T00:00:53Z",
+        "last": "mcp__elicit__ask_color: Pick a colour",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "subagent": true
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:53Z",
+        "last": "mcp__elicit__ask_color: Pick a colour",
+        "dialog": "subagent",
+        "dialog_since": "2026-01-01T00:00:53Z"
+      }
+    },
+    {
+      "screen": "fs-subagent-elicit-hook-running",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:53Z",
+        "latest": "2026-01-01T00:00:53Z",
+        "last": "mcp__elicit__ask_color: Pick a colour",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "subagent": true
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:53Z",
+        "last": "mcp__elicit__ask_color: Pick a colour",
+        "dialog": "subagent",
+        "dialog_since": "2026-01-01T00:00:53Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "mcp__elicit__ask_color",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {},
+        "agent_id": "sa1"
+      },
+      "screen": "fs-background-at-prompt",
+      "events": [
+        {
+          "n": 34,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:58Z",
+          "file": "000000022.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "subagent": true,
+            "tool": "mcp__elicit__ask_color",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:58Z",
+        "latest": "2026-01-01T00:00:58Z",
+        "last": "started",
+        "last_stop": "started",
+        "branch": "main",
+        "session": "s1",
+        "background": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:58Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "elicitation-subagent",
+      "events": [
+        {
+          "n": 35,
+          "source": "hook",
+          "kind": "Elicitation",
+          "time": "2026-01-01T00:00:59Z",
+          "file": "000000023.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000c-0000-4000-8000-00000000000c",
+            "cwd": "/w/app",
+            "turn": "00000012-0000-4000-8000-000000000012",
+            "server": "elicit",
+            "text": "Which color should I use?",
+            "at": "dialog"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:59Z",
+        "latest": "2026-01-01T00:00:59Z",
+        "last": "Which color should I use?",
+        "last_stop": "started",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000c-0000-4000-8000-00000000000c",
+        "subagent": true
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:59Z",
+        "last": "Which color should I use?",
+        "dialog": "subagent",
+        "dialog_since": "2026-01-01T00:00:59Z"
+      }
+    },
+    {
+      "screen": "fs-elicit-answered",
+      "old": {
+        "reported": true,
+        "state": "needs input",
+        "since": "2026-01-01T00:00:59Z",
+        "latest": "2026-01-01T00:00:59Z",
+        "last": "Which color should I use?",
+        "last_stop": "started",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "0000000c-0000-4000-8000-00000000000c",
+        "subagent": true
+      },
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:59Z",
+        "last": "Which color should I use?",
+        "dialog": "subagent",
+        "dialog_since": "2026-01-01T00:00:59Z"
+      }
+    },
+    {
+      "hook": "result",
+      "payload": "elicitation-result-accept-subagent",
+      "events": [
+        {
+          "n": 36,
+          "source": "hook",
+          "kind": "ElicitationResult",
+          "time": "2026-01-01T00:01:01Z",
+          "file": "000000024.result.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000005-0000-4000-8000-000000000005",
+            "cwd": "/w/app",
+            "turn": "00000022-0000-4000-8000-000000000022",
+            "server": "elicit",
+            "at": "result"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:01:01Z",
+        "latest": "2026-01-01T00:01:01Z",
+        "last": "started",
+        "last_stop": "started",
+        "branch": "main",
+        "worktree": "/w/app",
+        "session": "00000005-0000-4000-8000-000000000005",
+        "background": true,
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:01:01Z",
+        "last": "started"
+      }
+    }
+  ]
+}

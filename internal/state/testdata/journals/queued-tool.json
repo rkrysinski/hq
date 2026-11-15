@@ -30,6 +30,10 @@
         "worktree": "/w/app",
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Write a 400-word story about a whale. Use no tools."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -72,6 +76,10 @@
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Write a 400-word story about a whale. Use no tools.",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -105,6 +113,10 @@
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
         "acted": true,
         "queued": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
       }
     },
     {
@@ -147,6 +159,10 @@
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
         "acted": true,
         "queued": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
       }
     },
     {
@@ -189,6 +205,10 @@
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
       }
     },
     {
@@ -224,6 +244,11 @@
         "branch": "main",
         "worktree": "/w/app",
         "session": "00000001-0000-4000-8000-000000000001"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer."
       }
     }
   ]

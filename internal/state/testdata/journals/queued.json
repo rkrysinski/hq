@@ -30,6 +30,10 @@
         "worktree": "/w/app",
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Write a 400-word story about a whale. Use no tools."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -62,6 +66,10 @@
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
         "queued": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
       }
     },
     {
@@ -98,6 +106,11 @@
         "worktree": "/w/app",
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer."
       }
     },
     {
@@ -133,6 +146,11 @@
         "branch": "main",
         "worktree": "/w/app",
         "session": "00000006-0000-4000-8000-000000000006"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:04Z",
+        "last": "I ran the command in the foreground. It printed all 25 lines, one per second."
       }
     },
     {
@@ -166,6 +184,11 @@
         "worktree": "/w/app",
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Write a 400-word story about a whale. Use no tools."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "I ran the command in the foreground. It printed all 25 lines, one per second."
       }
     },
     {
@@ -200,6 +223,11 @@
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
         "queued": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "I ran the command in the foreground. It printed all 25 lines, one per second."
       }
     },
     {
@@ -236,6 +264,11 @@
         "worktree": "/w/app",
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer."
       }
     },
     {
@@ -252,6 +285,11 @@
         "worktree": "/w/app",
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer."
       }
     },
     {
@@ -285,6 +323,11 @@
         "worktree": "/w/app",
         "session": "00000006-0000-4000-8000-000000000006",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer."
       }
     },
     {
@@ -320,6 +363,11 @@
         "branch": "main",
         "worktree": "/w/app",
         "session": "00000006-0000-4000-8000-000000000006"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "I ran the command in the foreground. It printed all 25 lines, one per second."
       }
     }
   ]

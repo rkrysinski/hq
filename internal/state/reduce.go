@@ -12,13 +12,15 @@ import (
 // agent's journal into its state. It does no I/O and takes no clock: the
 // time AGE is counted to is passed in and changes nothing else.
 //
-// This part of it reads the events of the agent's hook. The hook decides
-// part of the state inside the sandbox from its own working files (design
-// §3.4); the reducer keeps what those files would hold, from the events
-// alone, as the hook's cases write them (Facts.At), and reads the state
-// off it as Read reads the files: the same state, last message, own tasks
-// and dialog verdict after every report (the fixture journals in
-// testdata/journals hold the two side by side).
+// It reads the events of the agent's hook first. The hook decides part of
+// the state inside the sandbox from its own working files (design §3.4);
+// the reducer keeps what those files would hold, from the events alone, as
+// the hook's cases write them (Facts.At), and reads the hook's state off it
+// as Read reads the files (reading). Then it reads what hq saw and did
+// (seen.go): the screen, tmux, sbx and hq itself, as the look reads them
+// beside the hook's report. After every event of the fixture journals in
+// testdata/journals it gives what Read and the look gave for the same
+// payloads, screens, pane and sbx answer.
 
 // Mark is an event of the journal as the reducer's result names it: its
 // number, from the one count of the state directory, and its time.
@@ -32,16 +34,20 @@ type Mark struct {
 // TurnEnded), what the row shows, and the events each rests on.
 type Reduced struct {
 	State string
-	// Reported says the hook has made a report the state comes from; until
-	// then the agent is starting.
+	// Reported says the hook has made a report of the agent's session the
+	// state comes from (one since its latest launch); until then the agent
+	// is starting.
 	Reported bool
 	// Since is the moment the state counts from (AGE), and Age the time
 	// from it to the moment passed in.
 	Since time.Time
 	Age   time.Duration
-	// Entered is the event at which the agent last entered its state, by
-	// today's rule for entering (design §3.4, "Entered after a moment"):
-	// the report its state comes from.
+	// Entered is the event at which the agent last entered its state: the
+	// report its state comes from, or the event that decided it otherwise
+	// (a turn end the screen showed, the pane's death, ...). For a decision
+	// dated from an earlier moment (a rewound turn, from its screen first
+	// seen at rest; an end, from the pane's death) its time is the deciding
+	// event's, and Since that earlier moment.
 	Entered Mark
 	// Changed is the event at which its state, or the dialog it is at,
 	// last changed: a report that leaves both as they were does not move it.
@@ -74,20 +80,42 @@ type Reduced struct {
 	// RestsOn are the numbers of the events the state rests on, oldest
 	// first.
 	RestsOn []int64
+	// report is the hook's report the state comes from, which the evidence
+	// of the screen is keyed by: the state file's report, or the event kept
+	// beside it when that is later (Latest).
+	report Mark
 }
 
-// DialogVerdict is whether the agent is at a dialog its hooks reported,
-// whose, and the events that opened it (GLOSSARY.md, "Dialog verdict").
+// DialogVerdict is whether the agent is at a dialog, whose, since which
+// event, and the events that opened and closed it (GLOSSARY.md, "Dialog
+// verdict"). While no dialog is open it names the last one the agent was
+// at, if any, with the event that closed it.
 type DialogVerdict struct {
 	Open bool
-	// Subagent says one of the agent's subagents opened it.
-	Subagent bool
-	// Opened is the event that reported it.
+	// Whose is whose dialog it is: DialogHooks, DialogSubagent or
+	// DialogOwn; "" when the agent was never at one.
+	Whose string
+	// Opened is the event that opened it: the report of the hooks', the
+	// screen that first showed one of Claude's own. Its time is when the
+	// dialog opened.
 	Opened Mark
+	// Closed is the event at which it stopped being open: zero while it
+	// is.
+	Closed Mark
 	// RestsOn are the numbers of the events the verdict rests on, oldest
 	// first.
 	RestsOn []int64
 }
+
+// Whose dialog an agent is at, in its dialog verdict: one its hooks
+// reported (a question dialog, a permission prompt, Claude's
+// Notification), one of its subagents', as their hooks reported it, or one
+// of Claude's own, which only its screen shows.
+const (
+	DialogHooks    = "hooks"
+	DialogSubagent = "subagent"
+	DialogOwn      = "own"
+)
 
 // Fold is a journal folded up to an event: the position a long-running
 // program keeps, to fold only the events after it. Its zero value is an
@@ -107,7 +135,19 @@ type Fold struct {
 	queued     *Event
 	// started are the events that started the background work owed
 	// names, by the task's id.
-	started   map[string]int64
+	started map[string]int64
+	// wakeUp is the latest wake-up of Claude's kept beside a working
+	// report: what the agent works on since, after a turn the user ended
+	// (seen.go).
+	wakeUp Mark
+	// seen is what hq saw of the agent and did to it (seen.go), and before
+	// what it was before the latest launch, which a launch withdrawn puts
+	// back.
+	seen   seen
+	before *seen
+	// dialog is the last dialog verdict with a dialog open, closed at the
+	// event that ended it.
+	dialog    DialogVerdict
 	changed   Mark
 	was       verdictKey
 	turnEnded int64
@@ -123,9 +163,9 @@ type written struct {
 
 // verdictKey is what Changed follows: the state and the dialog.
 type verdictKey struct {
-	state    string
-	subagent bool
-	dialog   int64
+	state  string
+	whose  string
+	dialog int64
 }
 
 // Reduce folds the journal events, with reply the journal's reply of its
@@ -135,24 +175,45 @@ func Reduce(events []Event, reply Reply, now time.Time) Reduced {
 }
 
 // With is the fold of f's journal and events, the events that follow in
-// the journal, in its order.
+// the journal, in its order. An event set aside changes nothing.
 func (f Fold) With(events ...Event) Fold {
 	f.owed = slices.Clip(f.owed)
 	f.started = maps.Clone(f.started)
+	f.seen.ends = slices.Clip(f.seen.ends)
 	if f.was == (verdictKey{}) {
 		f.was.state = Starting
 	}
 	for _, e := range events {
-		if e.Source != SourceHook || e.Kind == KindDelivery {
+		if e.Aside != "" || e.Kind == KindDelivery {
 			continue
 		}
-		f.add(e)
-		r := f.reading(nil)
-		key := verdictKey{r.State, r.Dialog.Subagent, r.Dialog.Opened.Number}
+		stop := false
+		if e.Source == SourceHook {
+			f.add(e)
+			stop = e.Facts.At == "stop" && f.file.Number == e.Number
+		} else if !f.see(e) {
+			continue
+		}
+		r := f.look(nil)
+		key := verdictKey{r.State, r.Dialog.Whose, r.Dialog.Opened.Number}
+		if !r.Dialog.Open {
+			key.whose = ""
+		}
 		if key != f.was {
 			f.was, f.changed = key, Mark{e.Number, e.Time}
 		}
-		if e.Facts.At == "stop" && f.file.Number == e.Number && (r.State == Done || r.State == Question) {
+		if r.Dialog.Open {
+			f.dialog = r.Dialog
+		} else if f.dialog.Open {
+			f.dialog.Open, f.dialog.Closed = false, Mark{e.Number, e.Time}
+			f.dialog.RestsOn = sortedNumbers(append(slices.Clone(f.dialog.RestsOn), e.Number))
+		}
+		if stop {
+			if h := f.reading(nil); h.State == Done || h.State == Question {
+				f.turnEnded = e.Number
+			}
+		}
+		if r.turnEndBy == e.Number && r.State == Done {
 			f.turnEnded = e.Number
 		}
 	}
@@ -162,11 +223,14 @@ func (f Fold) With(events ...Event) Fold {
 // Result is the agent's state from f, with reply the journal's reply of
 // its latest turn end, its age counted to now.
 func (f Fold) Result(reply Reply, now time.Time) Reduced {
-	r := f.reading(&reply)
-	if r.Reported {
+	r := f.look(&reply).Reduced
+	if !r.Since.IsZero() {
 		r.Age = now.Sub(r.Since)
 	}
 	r.Changed, r.TurnEnded = f.changed, f.turnEnded
+	if !r.Dialog.Open {
+		r.Dialog = f.dialog
+	}
 	return r
 }
 
@@ -234,7 +298,7 @@ func (f *Fold) atPrompt(e Event, at Mark) {
 		f.wake(e.Facts.Woke)
 		if f.works() {
 			// The agent works on, since the same moment.
-			f.kept = &written{e, at}
+			f.kept, f.wakeUp = &written{e, at}, at
 			return
 		}
 	} else {
@@ -430,7 +494,7 @@ func (f *Fold) reading(reply *Reply) (r Reduced) {
 		return Reduced{State: Starting}
 	}
 	c, at := f.file.Event, f.file.at
-	r = Reduced{Reported: true, Since: at.Time, Latest: at.Time, Entered: at}
+	r = Reduced{Reported: true, Since: at.Time, Latest: at.Time, Entered: at, report: at}
 	rests := []int64{at.Number, c.Number}
 	defer func() { r.RestsOn = sortedNumbers(rests) }()
 	if c.Kind == KindUnreadable && c.Facts.Size > maxFile {
@@ -455,6 +519,7 @@ func (f *Fold) reading(reply *Reply) (r Reduced) {
 			r.LastStop = r.Last
 			r.Owed = !f.busy(k.Facts.Tasks)
 			r.Latest = laterOf(r.Latest, k.at.Time)
+			r.report = laterMark(r.report, k.at)
 			rests = append(rests, k.at.Number)
 			for _, l := range f.owed {
 				if n, ok := f.started[strings.TrimLeft(l, subagentMark+monitorMark+heldMark)]; ok {
@@ -464,6 +529,7 @@ func (f *Fold) reading(reply *Reply) (r Reduced) {
 		case k.Kind == "UserPromptSubmit" && r.State == Working:
 			r.Woken = true
 			r.Latest = laterOf(r.Latest, k.at.Time)
+			r.report = laterMark(r.report, k.at)
 			rests = append(rests, k.at.Number)
 		case k.Kind == KindTurnEnd && r.State == NeedsInput:
 			// A dialog reported after a turn that ended with background
@@ -488,7 +554,10 @@ func (f *Fold) reading(reply *Reply) (r Reduced) {
 		}
 	}
 	if r.State == NeedsInput {
-		r.Dialog = DialogVerdict{Open: true, Subagent: subagent, Opened: at, RestsOn: []int64{at.Number}}
+		r.Dialog = DialogVerdict{Open: true, Whose: DialogHooks, Opened: at, RestsOn: []int64{at.Number}}
+		if subagent {
+			r.Dialog.Whose = DialogSubagent
+		}
 		if byKept {
 			r.Dialog.RestsOn = sortedNumbers([]int64{at.Number, f.kept.at.Number})
 		}
@@ -575,6 +644,14 @@ func (f *Fold) ownTasks(c Event, reply *Reply) []Task {
 		ts = append(ts, Task{Type: kind, Text: CleanText(s)})
 	}
 	return ts
+}
+
+// laterMark is b when it is later than a, else a.
+func laterMark(a, b Mark) Mark {
+	if b.Time.After(a.Time) {
+		return b
+	}
+	return a
 }
 
 // laterOf is the later of a and b.

@@ -40,7 +40,9 @@ func Aside(events []state.Event, e state.Event) string {
 // kind of record (a turn's end, a screen at rest, a dialog of Claude's own,
 // ...) is the same evidence, since the agent was last launched. A screen
 // that changes and comes back, or a dialog that closes and opens again, is
-// new evidence; a launch or a relaunch starts every kind over.
+// new evidence; a launch or a relaunch starts every kind over, and so does
+// Claude taking a queued prompt, which hands the hook's report over to it
+// with no event of the hook (#88).
 func Holds(events []state.Event, e state.Event) bool {
 	slot, key := identity(e)
 	if slot == "" {
@@ -51,6 +53,8 @@ func Holds(events []state.Event, e state.Event) bool {
 		switch {
 		case x.Aside != "":
 		case x.Source == state.SourceHQ && (x.Kind == state.KindLaunched || x.Kind == state.KindRelaunched):
+			return false
+		case x.Source == state.SourceScreen && x.Kind == state.KindTookQueued && slot != "took queued":
 			return false
 		default:
 			if s, k := identity(x); s == slot {

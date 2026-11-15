@@ -30,6 +30,10 @@
         "worktree": "/w/app/.claude/worktrees/feat-42",
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -76,6 +80,10 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -126,6 +134,11 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "background": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "The tests are running in a subagent."
       }
     },
     {
@@ -161,6 +174,11 @@
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi",
         "woken": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "The tests are running in a subagent."
       }
     },
     {
@@ -195,6 +213,11 @@
         "last": "The tests pass.",
         "last_stop": "The tests pass.",
         "branch": "main"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "The tests pass."
       }
     },
     {
@@ -228,6 +251,11 @@
         "worktree": "/w/app/.claude/worktrees/feat-42",
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
         "prompt": "say hi"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "The tests pass."
       }
     },
     {
@@ -293,6 +321,17 @@
             "text": "npm run dev"
           }
         ]
+      },
+      "look": {
+        "state": "question",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "A subagent runs the tests. Shall I also update the README?",
+        "own_tasks": [
+          {
+            "type": "shell",
+            "text": "npm run dev"
+          }
+        ]
       }
     },
     {
@@ -326,6 +365,11 @@
         "worktree": "/w/app",
         "session": "00000029-0000-4000-8000-000000000029",
         "prompt": "Say hi in one word.\nThen say bye in one word."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "A subagent runs the tests. Shall I also update the README?"
       }
     },
     {
@@ -378,6 +422,11 @@
         "prompt": "Say hi in one word.\nThen say bye in one word.",
         "background": true,
         "owed": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "The dev server is up."
       }
     },
     {
@@ -413,6 +462,11 @@
         "session": "00000029-0000-4000-8000-000000000029",
         "prompt": "Say hi in one word.\nThen say bye in one word.",
         "woken": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "The dev server is up."
       }
     },
     {
@@ -447,6 +501,11 @@
         "last": "The tests finished.",
         "last_stop": "The tests finished.",
         "branch": "main"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "The tests finished."
       }
     }
   ]

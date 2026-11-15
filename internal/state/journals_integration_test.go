@@ -12,13 +12,17 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/testutil"
+	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 var update = flag.Bool("update", false, "write the fixture journals as they are rebuilt")
@@ -66,39 +70,76 @@ func TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads(t *test
 // it, so each run of the hook dates what it wrote apart.
 var firstStep = time.Date(2026, 1, 1, 0, 0, 1, 0, time.UTC)
 
-// rebuild runs fx's steps through the hook and the ingest in a repository
-// and a state directory of their own.
+// rebuild runs fx's steps through hq, the hook, the ingest and the look
+// in a repository and a state directory of their own.
 func rebuild(t *testing.T, fx state.JournalFixture) state.JournalFixture {
 	t.Helper()
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	store := journal.Files{Dir: t.TempDir()}
+	store := &lookStore{Files: journal.Files{Dir: t.TempDir()}}
 	script := hookScript(t)
 	worktrees := map[string]string{}
 	var seen int
 	var reply int64
+	w := tmux.Window{ID: "@1", Pane: "%1", Name: "agent-17", Options: map[string]string{
+		"id": id, "name": "agent-17", "repo": root, "sandbox": "claude-app", agent.GenerationOption: strconv.Itoa(version.Generation),
+	}}
+	var sandboxes agent.Sandboxes
 	out := state.JournalFixture{About: fx.About}
 	for i, step := range fx.Steps {
 		when := firstStep.Add(time.Duration(i) * time.Second)
+		act(t, store, &w, id, step.HQ, when)
 		for m := range step.Messages {
 			if err := state.Post(root, id, state.Message{Text: fmt.Sprintf("message %d", m+1)}, false, when); err != nil {
 				t.Fatal(err)
 			}
 		}
-		cwd := root
-		if step.In != "" {
-			if worktrees[step.In] == "" {
-				wt := filepath.Join(filepath.Dir(root), strings.ReplaceAll(step.In, "/", "-"))
-				testutil.Git(t, root, "worktree", "add", "-q", "-b", step.In, wt)
-				worktrees[step.In] = wt
+		if step.Hook != "" {
+			cwd := root
+			if step.In != "" {
+				if worktrees[step.In] == "" {
+					wt := filepath.Join(filepath.Dir(root), strings.ReplaceAll(step.In, "/", "-"))
+					testutil.Git(t, root, "worktree", "add", "-q", "-b", step.In, wt)
+					worktrees[step.In] = wt
+				}
+				cwd = worktrees[step.In]
 			}
-			cwd = worktrees[step.In]
+			runHook(t, script, cwd, root, id, step.Hook, payloadOf(t, step))
+			dateFiles(t, when, state.Dir(root), state.EventsDir(root, id))
 		}
-		runHook(t, script, cwd, root, id, step.Hook, payloadOf(t, step))
-		dateFiles(t, when, state.Dir(root), state.EventsDir(root, id))
 		if err := store.Ingest(root, id); err != nil {
 			t.Fatal(err)
 		}
+		switch step.Pane {
+		case "dead":
+			w.PaneDead, w.DeadAt = true, when
+		case "dead-undated":
+			w.PaneDead, w.DeadAt = true, time.Time{}
+		}
+		switch step.Sbx {
+		case "stopped":
+			sandboxes = agent.Sandboxes{Running: map[string]bool{}, Asked: when.Add(time.Duration(step.Asked) * time.Second)}
+		case "running":
+			sandboxes = agent.Sandboxes{Running: map[string]bool{"claude-app": true}, Asked: when.Add(time.Duration(step.Asked) * time.Second)}
+		}
+		if step.Screen != "" {
+			data, err := os.ReadFile(filepath.Join("testdata", "screen-"+step.Screen+".txt"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			// A capture with its styles (-e) is read as the look captures
+			// a pane, without them.
+			store.screen = styles.ReplaceAllString(string(data), "")
+		}
+		take := func(root, id string) error {
+			if err := state.TakeQueued(root, id); err != nil {
+				return err
+			}
+			return os.Chtimes(filepath.Join(state.Dir(root), id), when, when)
+		}
+		w.Options = store.kept(w.Options)
+		as := agent.Look([]tmux.Window{w}, state.Read, take, sandboxes, when, store)
+		w.Options = store.kept(w.Options)
 		j, err := store.Read(id)
 		if err != nil {
 			t.Fatal(err)
@@ -114,9 +155,106 @@ func rebuild(t *testing.T, fx state.JournalFixture) state.JournalFixture {
 			s.Reply, reply = &r, r.Number
 		}
 		s.Old = state.OldReadingOf(state.Read(root, id))
+		s.Look = oldLookOf(as[0])
 		out.Steps = append(out.Steps, s)
 	}
 	return out
+}
+
+// lookStore is where the look of a fixture journal reads the agent's
+// screen, keeps its records on the agent's window and appends to its
+// journal: the screen of the step, the window's options, first-wins as
+// tmux keeps them, and the journal's store.
+type lookStore struct {
+	journal.Files
+	screen  string
+	options map[string]string
+}
+
+func (s *lookStore) Screens(panes []string) (map[string]string, error) {
+	out := map[string]string{}
+	if s.screen != "" {
+		for _, p := range panes {
+			out[p] = s.screen
+		}
+	}
+	return out, nil
+}
+
+func (s *lookStore) KeepFirst(_, option, prefix, value string) (string, error) {
+	if s.options == nil {
+		s.options = map[string]string{}
+	}
+	if !strings.HasPrefix(s.options[option], prefix) {
+		s.options[option] = value
+	}
+	return s.options[option], nil
+}
+
+// kept is the window's options o with the records the looks kept there.
+func (s *lookStore) kept(o map[string]string) map[string]string {
+	for _, k := range tmux.OptionKeys {
+		if v, ok := s.options[k]; ok {
+			o[k] = v
+		}
+	}
+	return o
+}
+
+// act does to the agent of window w what hq does as how at when: appends
+// its event to the agent's journal, as hq does before it acts, and sets
+// what hq sets on the window.
+func act(t *testing.T, store *lookStore, w *tmux.Window, id, how string, when time.Time) {
+	t.Helper()
+	if how == "" {
+		return
+	}
+	e := state.Event{Source: state.SourceHQ, Time: when}
+	set := map[string]string{}
+	switch how {
+	case "launch", "restore":
+		// In a new home window: none of the old one's records.
+		e.Kind, e.Facts.Start = state.KindLaunched, "new"
+		set["started"], set["new"] = agent.Stamp(when), "1"
+		if how == "restore" {
+			e.Facts.Start, set["new"] = "restore", ""
+		}
+		for _, k := range []string{"ending", "turnend", "restseen", "dialogseen", "answered", "endseen", "wokeseen"} {
+			delete(w.Options, k)
+		}
+		store.options = nil
+		w.PaneDead, w.DeadAt = false, time.Time{}
+	case "relaunch":
+		e.Kind = state.KindRelaunched
+		set["ending"], set["started"], set["new"] = "", agent.Stamp(when), ""
+		w.PaneDead, w.DeadAt = false, time.Time{}
+	case "take down":
+		e.Kind = state.KindTakenDown
+		set["ending"] = "1"
+	default:
+		t.Fatalf("hq %q", how)
+	}
+	j, err := store.Read(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.Basis = journal.Basis(j.Events)
+	if _, err := store.Append(id, e); err != nil {
+		t.Fatal(err)
+	}
+	for k, v := range set {
+		w.Options[k] = v
+	}
+}
+
+// oldLookOf is what a fixture journal holds of agent a as the old look
+// gave it.
+func oldLookOf(a agent.Agent) *state.OldLook {
+	l := &state.OldLook{State: a.State, Since: a.Since.UTC(), Last: a.Last, OwnTasks: a.OwnTasks}
+	if d := a.Dialog(); d.Open() {
+		l.Dialog, l.DialogSince = map[agent.Whose]string{agent.HooksDialog: state.DialogHooks, agent.SubagentDialog: state.DialogSubagent, agent.OwnDialog: state.DialogOwn}[d.Whose], d.Since.UTC()
+	}
+	return l
 }
 
 // hookScript is the hook's script as hq injects it (state.Settings).
@@ -193,6 +331,9 @@ func dateFiles(t *testing.T, when time.Time, dirs ...string) {
 	}
 }
 
+// styles are the escapes of a capture taken with its styles.
+var styles = regexp.MustCompile("\x1b\\[[0-9;:]*m")
+
 // pid is the process id in the name of an event file.
 var pid = regexp.MustCompile(`\.[0-9]+$`)
 
@@ -201,6 +342,12 @@ var pid = regexp.MustCompile(`\.[0-9]+$`)
 // their place in it.
 func normalized(e state.Event) state.Event {
 	e.Time = e.Time.UTC()
+	if !e.Facts.From.IsZero() {
+		e.Facts.From = e.Facts.From.UTC()
+	}
+	if !e.Facts.Asked.IsZero() {
+		e.Facts.Asked = e.Facts.Asked.UTC()
+	}
 	e.File = pid.ReplaceAllString(e.File, ".1")
 	for i := range e.Facts.Messages {
 		e.Facts.Messages[i] = fmt.Sprint(i + 1)

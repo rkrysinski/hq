@@ -30,6 +30,10 @@
         "worktree": "/w/app",
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Write a 400-word story about a whale. Use no tools."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -87,6 +91,10 @@
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Write a 400-word story about a whale. Use no tools.",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
       }
     },
     {
@@ -120,6 +128,10 @@
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
         "acted": true,
         "queued": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
       }
     },
     {
@@ -156,6 +168,11 @@
         "worktree": "/w/app",
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:04Z",
+        "last": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer."
       }
     },
     {
@@ -190,6 +207,11 @@
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:04Z",
+        "last": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer."
       }
     },
     {
@@ -234,6 +256,11 @@
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
         "acted": true,
         "queued": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer."
       }
     },
     {
@@ -270,6 +297,11 @@
         "worktree": "/w/app",
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "I ran the command in the foreground. It printed all 25 lines, one per second."
       }
     },
     {
@@ -329,6 +361,11 @@
         "session": "00000001-0000-4000-8000-000000000001",
         "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
         "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "I ran the command in the foreground. It printed all 25 lines, one per second."
       }
     },
     {
@@ -362,6 +399,11 @@
         "worktree": "/w/app",
         "session": "00000029-0000-4000-8000-000000000029",
         "prompt": "Say hi in one word.\nThen say bye in one word."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "I ran the command in the foreground. It printed all 25 lines, one per second."
       }
     },
     {
@@ -397,6 +439,11 @@
         "branch": "main",
         "worktree": "/w/app/.claude/worktrees/feat-42",
         "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Hi. The tests pass and PR #58 is open."
       }
     }
   ]

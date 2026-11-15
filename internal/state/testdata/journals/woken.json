@@ -1,0 +1,674 @@
+{
+  "about": "Claude's wake-up after a turn the user ended while a subagent ran: the hooks know nothing of that end, so the agent works since the wake-up, which the look keeps, also once a later turn end of the same work no longer tells it; a later wake-up keeps the first.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "old": {
+        "reported": false,
+        "state": "starting",
+        "since": "0001-01-01T00:00:00Z",
+        "latest": "0001-01-01T00:00:00Z"
+      },
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "at": "start"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "latest": "2026-01-01T00:00:02Z",
+        "branch": "main",
+        "worktree": "/w/app/.claude/worktrees/feat-42"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Agent",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {
+          "isAsync": true,
+          "status": "async_launched",
+          "agentId": "a1",
+          "description": "Run the tests"
+        }
+      },
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000003.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Agent",
+            "started": "a1",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Agent",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {
+          "isAsync": true,
+          "status": "async_launched",
+          "agentId": "a2",
+          "description": "Run the tests"
+        }
+      },
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000004.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Agent",
+            "started": "a2",
+            "at": "answer"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "interrupted",
+      "events": [
+        {
+          "n": 6,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:06Z",
+          "basis": 5,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "acted": true
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "screen": "interrupted",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:03Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "acted": true
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>a1</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000005.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "wake": true,
+            "woke": "a1",
+            "at": "prompt"
+          }
+        },
+        {
+          "n": 8,
+          "source": "screen",
+          "kind": "WokeUp",
+          "time": "2026-01-01T00:00:08Z",
+          "basis": 7,
+          "facts": {
+            "from": "2026-01-01T00:00:08Z"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:08Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "woken": true,
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z"
+      }
+    },
+    {
+      "screen": "interrupted-then-woken",
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:08Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "woken": true,
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z"
+      }
+    },
+    {
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:08Z",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "woken": true,
+        "acted": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "the first finished",
+        "background_tasks": [
+          {
+            "id": "a2",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:11Z",
+          "file": "000000006.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tasks": [
+              {
+                "id": "a2",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 9,
+        "text": "the first finished",
+        "tasks": [
+          {
+            "id": "a2",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:11Z",
+        "last": "the first finished",
+        "last_stop": "the first finished",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "background": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:11Z",
+        "last": "the first finished",
+        "last_stop": "the first finished",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "background": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>a2</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 10,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:13Z",
+          "file": "000000007.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "wake": true,
+            "woke": "a2",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:13Z",
+        "last": "the first finished",
+        "last_stop": "the first finished",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "woken": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "latest": "2026-01-01T00:00:13Z",
+        "last": "the first finished",
+        "last_stop": "the first finished",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Run ./wait.sh 300 in a subagent, twice.",
+        "woken": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "both finished",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 11,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:15Z",
+          "file": "000000008.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 11,
+        "text": "both finished"
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:15Z",
+        "latest": "2026-01-01T00:00:15Z",
+        "last": "both finished",
+        "last_stop": "both finished",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "both finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Count to ten."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 12,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:16Z",
+          "file": "000000009.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Count to ten.",
+            "at": "prompt"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:16Z",
+        "latest": "2026-01-01T00:00:16Z",
+        "last": "both finished",
+        "last_stop": "both finished",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Count to ten."
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:16Z",
+        "last": "both finished"
+      }
+    },
+    {
+      "screen": "interrupted",
+      "events": [
+        {
+          "n": 13,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:17Z",
+          "basis": 12,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:16Z",
+        "latest": "2026-01-01T00:00:16Z",
+        "last": "both finished",
+        "last_stop": "both finished",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Count to ten."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:17Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>a9</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 14,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:18Z",
+          "file": "000000010.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "wake": true,
+            "woke": "a9",
+            "at": "prompt"
+          }
+        },
+        {
+          "n": 15,
+          "source": "screen",
+          "kind": "WokeUp",
+          "time": "2026-01-01T00:00:18Z",
+          "basis": 14,
+          "facts": {
+            "from": "2026-01-01T00:00:18Z"
+          }
+        }
+      ],
+      "old": {
+        "reported": true,
+        "state": "working",
+        "since": "2026-01-01T00:00:16Z",
+        "latest": "2026-01-01T00:00:18Z",
+        "last": "both finished",
+        "last_stop": "both finished",
+        "branch": "main",
+        "session": "s1",
+        "prompt": "Count to ten.",
+        "woken": true
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:18Z",
+        "last": "both finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "Counted.",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 16,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:19Z",
+          "file": "000000011.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "at": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 16,
+        "text": "Counted."
+      },
+      "old": {
+        "reported": true,
+        "state": "done",
+        "since": "2026-01-01T00:00:19Z",
+        "latest": "2026-01-01T00:00:19Z",
+        "last": "Counted.",
+        "last_stop": "Counted.",
+        "branch": "main",
+        "session": "s1"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:19Z",
+        "last": "Counted."
+      }
+    }
+  ]
+}
