@@ -446,3 +446,17 @@ func TestNewWithoutASetupNeverUsesASetupsSandbox(t *testing.T) {
 		t.Fatalf("created %v, window %+v", f.sbx.created, f.tmux.windows[len(f.tmux.windows)-1].Options)
 	}
 }
+
+// hq new with an sbx too old for hq says so in one line and exits 3, before
+// it creates anything (#172).
+func TestNewSaysAnSbxIsTooOld(t *testing.T) {
+	f := newFakes()
+	f.sbx.err = &sbx.TooOldError{}
+	code, _, errOut := f.run("new", "a")
+	if code != ExitEnvironment || errOut != "hq: sbx is too old, 0.48.0 or newer needed; update Docker Sandboxes\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if len(f.sbx.created) != 0 || len(f.tmux.windows) != 0 {
+		t.Fatalf("created %q, windows %d", f.sbx.created, len(f.tmux.windows))
+	}
+}

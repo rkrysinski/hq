@@ -3,6 +3,7 @@
 package sbx
 
 import (
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -13,7 +14,8 @@ import (
 	"github.com/rkrysinski/hq/internal/testutil"
 )
 
-// Contract against the stub, which mirrors the real sbx's JSON (sbx v0.45).
+// Contract against the stub, which mirrors the real sbx's JSON (sbx 0.48 and
+// newer, #172).
 func TestCreateThenListFindsSandboxByWorkspace(t *testing.T) {
 	bin, _ := testutil.SbxStub(t)
 	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
@@ -42,7 +44,7 @@ func TestCreateWithTemplateAndStaticMCP(t *testing.T) {
 		t.Fatal(err)
 	}
 	log, _ := os.ReadFile(dir + "/creates.log")
-	if got := strings.TrimSpace(string(log)); got != `--quiet --template sbx-image:local --static-mcp pencil,docs claude F:\w\app` {
+	if got := strings.TrimSpace(string(log)); got != `--no-progress --template sbx-image:local --static-mcp pencil,docs claude F:\w\app` {
 		t.Fatalf("created with %q", got)
 	}
 	if all, _ := c.List(); len(all) != 1 || all[0].Name != "claude-app" {
@@ -57,7 +59,7 @@ func TestCreateWithTemplateAndStaticMCP(t *testing.T) {
 
 // A repository's sandboxes of several setups, on one workspace, are told
 // apart by name: a setup's is created under its name, through sbx run
-// --detached with a model, and found again beside the default (#135).
+// --detach with a model, and found again beside the default (#135).
 func TestSandboxesOfSeveralSetupsOnOneWorkspace(t *testing.T) {
 	bin, dir := testutil.SbxStub(t)
 	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
@@ -73,8 +75,8 @@ func TestSandboxesOfSeveralSetupsOnOneWorkspace(t *testing.T) {
 	}
 	log, _ := os.ReadFile(dir + "/creates.log")
 	if got := strings.Split(strings.TrimSpace(string(log)), "\n"); len(got) != 3 ||
-		got[1] != `run --detached --name hq-local-app --model qwen-local --provider lmstudio claude F:\w\app` ||
-		got[2] != `--quiet --name hq-plain-app claude F:\w\app` {
+		got[1] != `run --detach --name hq-local-app --model qwen-local --provider lmstudio claude F:\w\app` ||
+		got[2] != `--no-progress --name hq-plain-app claude F:\w\app` {
 		t.Fatalf("created with %q", got)
 	}
 	all, err := c.List()
@@ -158,5 +160,24 @@ func TestWSLCreateThenListThroughSbxExe(t *testing.T) {
 	all, err := c.List()
 	if err != nil || len(all) != 1 || all[0].Name != "claude-app" || all[0].Workspaces[0] != "/home/dev/app" {
 		t.Fatalf("%+v %v", all, err)
+	}
+}
+
+// An sbx older than 0.48 is told apart by its sbx ls, with the version it
+// tells or none, and refuses the spellings hq uses now (#172).
+func TestAnSbxOlderThanTheMinimum(t *testing.T) {
+	bin, _ := testutil.SbxStub(t)
+	c := Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: bin}}
+	for _, v := range []struct{ told, want string }{{"0.47.0", "0.47.0"}, {"none", ""}} {
+		t.Setenv("SBX_STUB_OLD", v.told)
+		_, err := c.List()
+		var old *TooOldError
+		if !errors.As(err, &old) || old.Version != v.want {
+			t.Fatalf("%s: %v", v.told, err)
+		}
+	}
+	err := c.Create("/w/app", Options{})
+	if err == nil || !strings.HasSuffix(err.Error(), "error: unknown flag: --no-progress; try: sbx create --help") {
+		t.Fatalf("%v", err)
 	}
 }

@@ -32,26 +32,63 @@ type Client struct {
 	Platform platform.Platform
 }
 
-// List returns every sandbox.
+// MinVersion is the oldest sbx hq supports: 0.48.0 changed the JSON of
+// sbx ls and the flags of sbx create and sbx run (#172).
+const MinVersion = "0.48.0"
+
+// TooOldError is an sbx older than MinVersion; Version is the version sbx
+// told, "" when it told none.
+type TooOldError struct{ Version string }
+
+func (e *TooOldError) Error() string {
+	sbx := "sbx"
+	if e.Version != "" {
+		sbx += " " + e.Version
+	}
+	return sbx + " is too old, " + MinVersion + " or newer needed; update Docker Sandboxes"
+}
+
+// List returns every sandbox. sbx ls --json prints their array; the object
+// that holds them under "sandboxes" is what an sbx older than MinVersion
+// prints, a TooOldError.
 func (c Client) List() ([]Sandbox, error) {
 	out, err := c.run("ls", "--json")
 	if err != nil {
 		return nil, err
 	}
-	var v struct {
-		Sandboxes []Sandbox `json:"sandboxes"`
-	}
-	if err := json.Unmarshal(out, &v); err != nil {
+	var all []Sandbox
+	if err := json.Unmarshal(out, &all); err != nil {
+		var old struct {
+			Sandboxes json.RawMessage `json:"sandboxes"`
+		}
+		if json.Unmarshal(out, &old) == nil && old.Sandboxes != nil {
+			return nil, &TooOldError{Version: c.version()}
+		}
 		return nil, fmt.Errorf("sbx ls: %w", err)
 	}
-	for _, s := range v.Sandboxes {
+	for _, s := range all {
 		for i, ws := range s.Workspaces {
 			if s.Workspaces[i], err = c.Platform.FromSbx(ws); err != nil {
 				return nil, err
 			}
 		}
 	}
-	return v.Sandboxes, nil
+	return all, nil
+}
+
+// version is the version sbx version tells ("sbx version v0.48.0 <commit>",
+// before 0.48 with a colon after version), without its v; "" when it tells
+// none.
+func (c Client) version() string {
+	out, err := c.run("version")
+	if err != nil {
+		return ""
+	}
+	f := strings.Fields(strings.ReplaceAll(string(out), ":", " "))
+	if len(f) < 3 || f[0] != "sbx" || f[1] != "version" {
+		return ""
+	}
+	return strings.TrimPrefix(f[2], "v")
 }
 
 // Options are what a sandbox is created with besides its workspace; the
@@ -66,7 +103,7 @@ type Options struct {
 }
 
 // Create creates a Claude sandbox for the workspace. sbx create takes no
-// model, so one with a model or provider is created by sbx run --detached,
+// model, so one with a model or provider is created by sbx run --detach,
 // which starts it without a session; given to a sandbox that exists,
 // --model would recreate it, so it is only ever given here.
 func (c Client) Create(workspace string, o Options) error {
@@ -75,9 +112,9 @@ func (c Client) Create(workspace string, o Options) error {
 		return err
 	}
 	withModel := o.Model != "" || o.Provider != ""
-	args := []string{"create", "--quiet"}
+	args := []string{"create", "--no-progress"}
 	if withModel {
-		args = []string{"run", "--detached"}
+		args = []string{"run", "--detach"}
 	}
 	if o.Name != "" {
 		args = append(args, "--name", o.Name)
