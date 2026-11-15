@@ -20,6 +20,14 @@ _Avoid_: tab, session, worker
 An agent whose place in tmux went with the tmux server (a host restart) while hq keeps what it needs to bring it back with `hq restore`; it holds its name until restored or killed.
 _Avoid_: orphan, missing agent, dead agent
 
+**Generation**:
+The number a release of hq carries for the form of what agents report and of how hq keeps it; it changes exactly when one of the two changes. An agent has the generation of the hq that last launched it.
+_Avoid_: hooks version, format version, protocol version
+
+**Outdated agent**:
+An agent whose generation is not the running hq's, so hq cannot read its state; it is listed as `outdated` and can only be opened or killed.
+_Avoid_: old agent, stale agent, legacy agent, agent started by an older hq
+
 **Trace of kills**:
 The user's own record of every agent hq killed: when, and who asked for it (the command line, the dashboard, or a supervisor's MCP client), shown by `hq killed`.
 _Avoid_: kill log, audit log, history
@@ -79,6 +87,14 @@ _Avoid_: silent turn, supervised agent, muted turn
 **Look**:
 One reading of every agent's state at a moment: what its hooks report, what sbx says of its sandbox, and what its screen shows that no hook reports, read the same by every hq process. `hq ls`, `hq read`, `hq wait`, `hq send`, the list and the chords each take a look; a screen at rest may need a second one.
 _Avoid_: collection, refresh, poll, settling
+
+**Event**:
+One thing hq learned about an agent: what it was, when, and its source - the agent's hook, its screen, tmux, sbx, or hq itself. Every event has a number from one count for the whole host, never used twice; an event hq recorded but did not act on, because another hq process recorded the same thing first or a later report overtook it, is set aside.
+_Avoid_: record, report, marker, log entry
+
+**Journal**:
+An agent's events in the order hq learned them, kept on the host, out of the sandbox's reach, for as long as the agent exists; the agent's state is worked out from its journal and from nothing else.
+_Avoid_: history, log, event log, state file
 
 **Question dialog**:
 A dialog a tool opens to ask the user to pick or type an answer, as AskUserQuestion and an MCP elicitation do; its answer continues the agent's turn. A permission prompt and a dialog of Claude's own are not question dialogs.
