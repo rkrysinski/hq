@@ -1,0 +1,23 @@
+
+$ hq new qa2 gone say hi
+creating a sandbox for gone (first time only; log in to Claude when the session asks)
+started qa2 in gone (sandbox claude-gone); enter it with: hq go qa2
+
+$ the journals (qa2 is 084def67fb79)
+084def67fb79
+1391cabb7751
+
+$ qa2's launch in its journal names its repository and tmux server
+"kind":"Launched","time":"2026-11-15T19:11:44.744038405Z","facts":{"start":"new","repo":"/tmp/hq-stub-ID/gone","tmux":"hq-dev-ID"}}
+
+$ tmux kill-window qa2 (not hq), then rm -rf the repository gone
+
+$ hq restore
+nothing to restore
+
+$ the journals
+1391cabb7751
+
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+qa1   repo  main    done   10s  Done: say hi

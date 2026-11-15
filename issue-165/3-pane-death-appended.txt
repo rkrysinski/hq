@@ -1,0 +1,24 @@
+
+$ hq new qa3 repo say hi
+started qa3 in repo (sandbox claude-repo); enter it with: hq go qa3
+
+$ kill -9 qa3's pane's process: the pane dies, no hook reports it, no look follows
+
+$ kinds in qa3's journal
+"kind":"Launched" 
+
+$ hq code qa3 (reads the journals without a look)
+hq: VS Code's code command not found; in VS Code run "Shell Command: Install 'code' command in PATH"
+
+$ kinds in qa3's journal
+"kind":"Launched" "kind":"SessionStart" "kind":"UserPromptSubmit" "kind":"Stop" "kind":"SessionEnd" "kind":"PaneDied" 
+
+$ hq explain qa3
+name      qa3
+state     ended 1s, since 2026-11-15 19:11:54.888
+rests on  10
+dialog    at none, never at one
+
+the state rests on, oldest first
+  N   TIME                     SOURCE  WHAT                 STATE
+  10  2026-11-15 19:11:54.888  hook    session end (other)  ended

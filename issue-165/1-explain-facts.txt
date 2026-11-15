@@ -1,0 +1,63 @@
+
+$ hq new qa1 repo say hi
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started qa1 in repo (sandbox claude-repo); enter it with: hq go qa1
+
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+qa1   repo  main    done   3s   Done: say hi
+
+$ hq explain qa1 --all
+name      qa1
+state     done 4s, since 2026-11-15 19:11:39.047
+rests on  4
+dialog    at none, never at one
+
+every event, oldest first
+  N  TIME                     SOURCE  WHAT                     STATE
+  1  2026-11-15 19:11:38.608  hq      launched (new)           starting
+  2  2026-11-15 19:11:38.825  hook    session start (startup)  done
+  3  2026-11-15 19:11:38.832  hook    prompt                   working
+  4  2026-11-15 19:11:39.047  hook    turn end                 done
+
+$ hq explain qa1 --all --json (head)
+{
+  "name": "qa1",
+  "state": "done",
+  "since": "2026-11-15T19:11:39.047951235Z",
+  "age_seconds": 4,
+  "rests_on": [
+    4
+  ],
+  "dialog": {
+    "open": false,
+    "whose": "",
+    "opened": 0,
+    "closed": 0,
+    "rests_on": []
+  },
+  "events": [
+    {
+      "n": 1,
+      "time": "2026-11-15T19:11:38.608460027Z",
+      "source": "hq",
+      "kind": "Launched",
+      "what": "launched (new)",
+      "state": "starting",
+      "facts": {
+        "start": "new"
+      }
+    },
+    {
+      "n": 2,
+      "time": "2026-11-15T19:11:38.825601443Z",
+      "source": "hook",
+      "kind": "SessionStart",
+      "what": "session start (startup)",
+      "state": "done",
+      "facts": {
+        "hook": "start",
+        "start": "startup"
+      }
+    },
+    {
