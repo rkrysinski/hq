@@ -106,7 +106,7 @@ func AskedOf(e Event, data []byte) (Asked, bool) {
 // file data, is the end of its tool (ParseAnswers), and reports whether
 // it is.
 func (a *Asked) Answer(e Event, data []byte) bool {
-	if a.Report == "" || e.Kind != "PostToolUse" || e.Facts.Tool != AskTool {
+	if a.Report == "" || e.Kind != KindToolEnd || e.Facts.Tool != AskTool {
 		return false
 	}
 	got, ok := ParseAnswers(data)
@@ -122,7 +122,7 @@ func (a *Asked) Answer(e Event, data []byte) bool {
 // an MCP elicitation's form or a Notification, as ParseDetail reads them.
 func AskOf(e Event, data []byte) (*Ask, bool) {
 	switch e.Kind {
-	case "PermissionRequest", "Elicitation", "Notification":
+	case KindPermission, KindElicitation, KindNotification:
 		return ParseDetail(data, nil).Ask, true
 	}
 	return nil, false
@@ -142,13 +142,13 @@ func ParseDetail(latest, lastStop []byte) Detail {
 		d.Reply = CleanText(stop.AssistantMessage)
 	}
 	switch p.Event {
-	case "Stop":
+	case KindTurnEnd:
 		d.Reply = CleanText(p.AssistantMessage)
-	case "PermissionRequest":
+	case KindPermission:
 		d.Ask = p.ask()
-	case "Elicitation":
+	case KindElicitation:
 		d.Ask = p.elicitation()
-	case "Notification":
+	case KindNotification:
 		if m := Clean(p.Message); m != "" {
 			d.Ask = &Ask{Message: m}
 		}

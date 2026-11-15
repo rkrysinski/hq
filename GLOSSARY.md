@@ -92,6 +92,10 @@ _Avoid_: collection, refresh, poll, settling
 One thing hq learned about an agent: what it was, when, and its source - the agent's hook, its screen, tmux, sbx, or hq itself. Every event has a number from one count for the whole host, never used twice. An event of hq's own carries its basis, the number of the last event of the hook it was based on; an event hq recorded but did not act on, because another hq process recorded the same thing first (a duplicate) or a later report overtook its basis (overtaken), is set aside.
 _Avoid_: record, report, marker, log entry
 
+**Evidence**:
+An event of what a look saw of an agent that no hook reports: what its screen shows, tmux's word that its pane died, sbx's that its sandbox does not run. The same evidence stands once in a journal, since the agent was last launched: of hq processes that see it at once, the first to append it wins, and evidence a later report of the hook overtook is set aside.
+_Avoid_: observation, sighting, marker
+
 **Journal**:
 An agent's events in the order hq learned them, kept on the host, out of the sandbox's reach, for as long as the agent exists; the agent's state is worked out from its journal and from nothing else.
 _Avoid_: history, log, event log, state file

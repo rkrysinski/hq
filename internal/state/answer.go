@@ -78,7 +78,7 @@ func ParseQuestions(report []byte) (Questions, error) {
 		fullPayload
 		Input map[string]json.RawMessage `json:"tool_input"`
 	}
-	if json.Unmarshal(event, &p) != nil || p.Event != "PermissionRequest" || p.ToolName != AskTool || p.AgentID != "" {
+	if json.Unmarshal(event, &p) != nil || p.Event != KindPermission || p.ToolName != AskTool || p.AgentID != "" {
 		return Questions{}, errors.New("no question dialog of the agent's own is open")
 	}
 	_ = json.Unmarshal(event, &p.fullPayload)
@@ -204,7 +204,7 @@ func encodeDecision(decision map[string]any) []byte {
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
 	enc.SetEscapeHTML(false)
-	_ = enc.Encode(map[string]any{"hookSpecificOutput": map[string]any{"hookEventName": "PermissionRequest", "decision": decision}})
+	_ = enc.Encode(map[string]any{"hookSpecificOutput": map[string]any{"hookEventName": KindPermission, "decision": decision}})
 	return bytes.TrimSpace(b.Bytes())
 }
 
@@ -290,7 +290,7 @@ func ParseAnswers(report []byte) (map[string]string, bool) {
 			Answers map[string]string `json:"answers"`
 		} `json:"tool_input"`
 	}
-	if json.Unmarshal(event, &p) != nil || p.Event != "PostToolUse" || p.ToolName != AskTool {
+	if json.Unmarshal(event, &p) != nil || p.Event != KindToolEnd || p.ToolName != AskTool {
 		return nil, false
 	}
 	if p.Input.Answers == nil {
