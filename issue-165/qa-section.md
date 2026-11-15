@@ -10,10 +10,10 @@
 | 6 | S6 | `hq update` across generations with an agent recorded on another tmux server | refused, naming `x (on tmux server qa)` | ✅ pass | `TestUpdateAcrossGenerationsIsRefusedForAnAgentOfAnotherTmuxServer` |
 | 7 | S7 | the generation's pin covers `state.ParseEvent` | a change of the facts taken fails the pin | ✅ pass: form `the events taken` (probes of every hook event); fingerprints renewed, generation stays 4 | `TestTheGenerationFollowsTheForms`, `TestTheProbesShowEveryFactTheHostTakes` |
 | 8 | G1-G3, D1-D9 | names and smells fixed; `hq explain --json` shows the renamed facts | `hook` in place of `at`, no repository or tmux server shown | ✅ pass | [screenshot](#1-explain-after-the-renames), [txt](https://github.com/rkrysinski/hq/blob/3780a744840ddea7bdf9fe77bdbf65fa8acd2bc3/issue-165/1-explain-facts.txt) |
-| 9 | - | full build and mutation tests | pass, no mutant alive | ✅ pass | below |
+| 9 | - | full build and spec-wide mutation tests | pass, no mutant alive without a test or a reason | ✅ pass: one equivalent mutant, its reason below | below |
 
-Pyramid before: `unit 764, integration 264, e2e 3 (unit share 74%, minimum 50%)`. After: `unit 771, integration 264, e2e 3 (unit share 74%, minimum 74%)`. Coverage after: 95.28% (minimum 94.7%, was 94.4%).
-Tests added: unit `TestAMessagePutBackLosesItsNowUnlessAskedAgain`, `TestUpdateAcrossGenerationsIsRefusedForAnAgentOfAnotherTmuxServer`, `TestTheJournalsLeftOverGoOnceNothingStandsForTheirAgent`, `TestTheHomeIsWhereTheLatestLaunchThatStandsWas`, `TestSetAsideReadsTheEventsBeforeInTheSameAppend`, `TestTheProbesShowEveryFactTheHostTakes`, `TestAnEventFileIsNamedForTheHooksCount`, the store contract's ids case (run on the fake as unit, on the files as integration); changed: `TestFromJournalsAppendsOnlyAPanesDeathAndCapturesNoScreen` (unit), `TestAMessageKeepsItsNameWhenHeldOrPutBack` (integration); the 30 fixture journals rebuilt for `hook`. End-to-end: none.
+Pyramid before: `unit 764, integration 264, e2e 3 (unit share 74%, minimum 50%)`. After: `unit 772, integration 264, e2e 3 (unit share 75%, minimum 74%)` (74.5% exactly, under 0.75, so the minimum stays 0.74). Coverage after: 95.28% (minimum 94.7%, was 94.4%).
+Tests added: unit `TestAMessagePutBackLosesItsNowUnlessAskedAgain`, `TestUpdateAcrossGenerationsIsRefusedForAnAgentOfAnotherTmuxServer`, `TestTheJournalsLeftOverGoOnceNothingStandsForTheirAgent`, `TestTheHomeIsWhereTheLatestLaunchThatStandsWas`, `TestSetAsideReadsTheEventsBeforeInTheSameAppend`, `TestTheProbesShowEveryFactTheHostTakes`, `TestAnEventFileIsNamedForTheHooksCount`, `TestTheLookAppendsAWakeUpBesideOtherEvidenceOfTheScreen`, the store contract's ids case (run on the fake as unit, on the files as integration); changed: `TestFromJournalsAppendsOnlyAPanesDeathAndCapturesNoScreen` (unit), `TestAMessageKeepsItsNameWhenHeldOrPutBack` (integration); the 30 fixture journals rebuilt for `hook`. End-to-end: none.
 
 #### 1. explain after the renames
 ![1 after](https://github.com/rkrysinski/hq/blob/3780a744840ddea7bdf9fe77bdbf65fa8acd2bc3/issue-165/1-explain-facts.png?raw=true)
@@ -141,13 +141,16 @@ the state rests on, oldest first
   10  2026-11-15 19:11:54.888  hook    session end (other)  ended
 ```
 
-Mutation tests: `go run ./tools/testgate mutation spec-165-agent-state-journal`
+Mutation tests, spec-wide: `go run ./tools/testgate mutation origin/release-v0.14.0`
 
 ```text
-mutation: 109 killed, 0 alive, 0 timed out, 6 not covered against spec-165-agent-state-journal on 912453a3703b9c212a76762c0cf4f5afdc47fce3
+alive      internal/agent/agent.go:72:9 conditionals boundary
+mutation: 529 killed, 1 alive, 0 timed out, 247 not covered against origin/release-v0.14.0 on 3e8066c7983ca6d0094b65f6242fa68c26a5ffda
 ```
 
-The first run, before the last test, left one alive (`internal/state/event.go:234:85 conditionals boundary`, `IsEventFile` on a name starting with `9`), killed by `TestAnEventFileIsNamedForTheHooksCount`.
+- `agent.go:72:9`: equivalent: `StartedBy` is reached only for an agent of another generation than this hq's (`FromWindows`, `OutdatedErr` behind `Outdated`, `hq restore` and `hq explain` behind `Generation != version.Generation`), so `gen > version.Generation` and `>=` never differ.
+
+The spec-wide run on 912453a also left `internal/agent/look.go:228:15 conditionals negation` alive (a wake-up dropped after any screen event but the prompt Claude took), killed by `TestTheLookAppendsAWakeUpBesideOtherEvidenceOfTheScreen`. The run against the integration branch before it left `internal/state/event.go:234:85 conditionals boundary`, killed by `TestAnEventFileIsNamedForTheHooksCount`.
 
 Full build:
 
@@ -160,7 +163,7 @@ check: ok   unit
 check: ok   integration
 check: ok   coverage
 check: ok   e2e
-check: all 8 steps passed on 912453a3703b9c212a76762c0cf4f5afdc47fce3
+check: all 8 steps passed on 3e8066c7983ca6d0094b65f6242fa68c26a5ffda
 ```
 
 #### Deviations
