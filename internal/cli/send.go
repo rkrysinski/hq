@@ -136,7 +136,7 @@ type sendOutput struct {
 // findAgent collects the agents as hq ls does, turns the user ended
 // included, and returns the one named name.
 func findAgent(d deps, name string) (agent.Agent, error) {
-	as, err := collect(d)
+	as, err := lookNow(d)
 	if err != nil {
 		return agent.Agent{}, err
 	}
@@ -273,7 +273,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 	// so the prompt Claude reports comes after it; it names only the
 	// messages of this prompt, which the held ones are not (#195).
 	names := messageNames(msgs)
-	appendEvent(d, a.ID, state.KindDelivery, state.Facts{At: state.AtTyped, Messages: names})
+	appendEvent(d, a.ID, state.KindDelivery, state.Facts{Messages: names})
 	texts := make([]string, len(msgs))
 	supervised := true
 	for i, m := range msgs {

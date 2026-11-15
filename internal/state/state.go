@@ -144,8 +144,8 @@ const AskTool = "AskUserQuestion"
 // and a watch the agent itself keeps with the Monitor tool (=ID), which
 // Claude Code 2.1.302 lists as a shell (#99). Neither is owed a turn.
 const (
-	subagentMark = "~"
-	monitorMark  = "="
+	SubagentMark = "~"
+	MonitorMark  = "="
 )
 
 // artifactWatch ends the description of the watch Claude arms when the

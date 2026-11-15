@@ -17,7 +17,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "prompt": "Write a 400-word story about a whale. Use no tools.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -67,7 +67,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -92,7 +92,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -116,7 +116,7 @@
             "session": "00000001-0000-4000-8000-000000000001",
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -146,7 +146,7 @@
             "cwd": "/w/app",
             "turn": "0000002b-0000-4000-8000-00000000002b",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -181,7 +181,7 @@
             "cwd": "/w/app",
             "turn": "0000002b-0000-4000-8000-00000000002b",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -206,7 +206,7 @@
             "session": "00000006-0000-4000-8000-000000000006",
             "cwd": "/w/app",
             "turn": "0000002b-0000-4000-8000-00000000002b",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -261,7 +261,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -287,7 +287,7 @@
             "cwd": "/w/app",
             "turn": "00000023-0000-4000-8000-000000000023",
             "prompt": "Say hi in one word.\nThen say bye in one word.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -312,7 +312,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

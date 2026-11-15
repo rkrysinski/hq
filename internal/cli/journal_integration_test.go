@@ -176,7 +176,7 @@ func TestTheJournalHoldsWhatHqDidAndSawBesideTheHooksReports(t *testing.T) {
 	if launched.Source != state.SourceHQ || launched.Facts.Start != "new" || launched.Basis != 0 {
 		t.Errorf("launched %+v", launched)
 	}
-	if typed.Source != state.SourceHQ || typed.Facts.At != state.AtTyped || len(typed.Facts.Messages) != 1 || typed.Basis != j.Events[4].Number {
+	if typed.Source != state.SourceHQ || typed.Facts.Hook != "" || len(typed.Facts.Messages) != 1 || typed.Basis != j.Events[4].Number {
 		t.Errorf("typed %+v", typed)
 	}
 	if prompt.Source != state.SourceHook || prompt.Facts.Prompt != "hello there" || prompt.Number <= typed.Number {

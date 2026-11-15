@@ -17,7 +17,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -81,7 +81,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -126,7 +126,7 @@
             "branch": "main",
             "wake": true,
             "woke": "a1",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -167,7 +167,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -204,7 +204,7 @@
             "branch": "main",
             "wake": true,
             "woke": "a2",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -230,7 +230,7 @@
           "file": "000000006.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -261,7 +261,7 @@
             "branch": "main",
             "wake": true,
             "woke": "a3",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -287,7 +287,7 @@
           "file": "000000008.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -317,7 +317,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -358,7 +358,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -394,7 +394,7 @@
             "cwd": "/w/app",
             "turn": "00000023-0000-4000-8000-000000000023",
             "prompt": "Say hi in one word.\nThen say bye in one word.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -420,7 +420,7 @@
           "file": "000000012.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -451,7 +451,7 @@
             "branch": "main",
             "wake": true,
             "woke": "b1",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -477,7 +477,7 @@
           "file": "000000014.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -507,7 +507,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -560,7 +560,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -600,7 +600,7 @@
             "cwd": "/w/app",
             "turn": "00000023-0000-4000-8000-000000000023",
             "prompt": "Say hi in one word.\nThen say bye in one word.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -626,7 +626,7 @@
           "file": "000000018.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -657,7 +657,7 @@
             "branch": "main",
             "wake": true,
             "woke": "b2",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -683,7 +683,7 @@
           "file": "000000020.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -714,7 +714,7 @@
             "branch": "main",
             "wake": true,
             "woke": "b3",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -740,7 +740,7 @@
           "file": "000000022.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -770,7 +770,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -811,7 +811,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -847,7 +847,7 @@
           "facts": {
             "branch": "main",
             "wake": true,
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -873,7 +873,7 @@
           "file": "000000026.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -903,7 +903,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -944,7 +944,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -981,7 +981,7 @@
             "branch": "main",
             "wake": true,
             "woke": "c9",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -1007,7 +1007,7 @@
           "file": "000000030.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -1037,7 +1037,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -1063,7 +1063,7 @@
           "file": "000000032.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -1093,7 +1093,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -1134,7 +1134,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -1169,7 +1169,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "clear",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -1195,7 +1195,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -1221,7 +1221,7 @@
           "file": "000000037.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -1251,7 +1251,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -1304,7 +1304,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -1345,7 +1345,7 @@
             "branch": "main",
             "wake": true,
             "woke": "e1",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -1372,7 +1372,7 @@
           "facts": {
             "branch": "main",
             "question": true,
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -1403,7 +1403,7 @@
             "branch": "main",
             "wake": true,
             "woke": "e2",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -1429,7 +1429,7 @@
           "file": "000000043.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

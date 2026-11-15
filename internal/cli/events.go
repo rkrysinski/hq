@@ -24,7 +24,7 @@ func appendEvent(d deps, id, kind string, facts state.Facts) {
 // messages went back into the inbox, the answer was not taken, the session
 // did not start.
 func appendWithdrawn(d deps, id, kind string, messages []string) {
-	appendEvent(d, id, state.KindWithdrawn, state.Facts{At: kind, Messages: messages})
+	appendEvent(d, id, state.KindWithdrawn, state.Facts{Withdrawn: kind, Messages: messages})
 }
 
 // messageNames are the names msgs were left under in the inbox.

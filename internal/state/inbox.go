@@ -340,7 +340,7 @@ func Take(root, id string) ([]Message, error) {
 		if os.Rename(filepath.Join(dir, n), p) != nil {
 			continue // a hook took it first
 		}
-		data, _, err := readData(p)
+		data, _, err := ReadFile(p)
 		if err != nil {
 			continue
 		}

@@ -17,7 +17,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "prompt": "Write a 400-word story about a whale. Use no tools.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -52,7 +52,7 @@
             "session": "s",
             "turn": "00000019-0000-4000-8000-000000000019",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -77,7 +77,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -146,7 +146,7 @@
             "session": "s",
             "turn": "00000019-0000-4000-8000-000000000019",
             "tool": "Read",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -170,7 +170,7 @@
             "session": "00000001-0000-4000-8000-000000000001",
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

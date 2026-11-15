@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -121,7 +120,7 @@ func (s Files) Ingest(root, id string) error {
 		}
 		if a, ok := state.AskedOf(e, data); ok {
 			ask, dialog = &a, len(events)
-		} else if e.Kind == "PostToolUse" {
+		} else if e.Kind == state.KindToolEnd {
 			// The end of a question dialog's tool, reported in an ingest
 			// after the dialog's own: its answers join the dialog kept.
 			if ask == nil {
@@ -248,7 +247,7 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := h.setAside(events)
+	out := h.SetAside(events)
 	if err := s.number(out); err != nil {
 		return nil, err
 	}
@@ -259,7 +258,7 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	if err := appendAt(path, from, lines); err != nil {
 		return nil, err
 	}
-	h.follow(out)
+	h.Follow(out...)
 	h.Offset = from + int64(len(lines))
 	// One not written leaves the one before, which holds less: the next
 	// append reads on from there.
@@ -267,15 +266,13 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	return out, nil
 }
 
-// held is what Append reads of a journal to set events aside (Aside), kept
-// beside it (heldSuffix) so that an append reads only the events appended
-// since the one before, however long the journal: up to byte Offset, the
-// number of the hook's last event (Basis) and the evidence that stands
-// (Evidence).
+// held is what Append reads of a journal to set events aside (Standing),
+// kept beside it (heldSuffix) so that an append reads only the events
+// appended since the one before, however long the journal: up to byte
+// Offset.
 type held struct {
-	Offset   int64    `json:"offset"`
-	Basis    int64    `json:"basis"`
-	Evidence Evidence `json:"evidence"`
+	Offset int64 `json:"offset"`
+	Standing
 }
 
 // readHeld is what the journal at path holds for Append, read on from what
@@ -284,47 +281,18 @@ type held struct {
 func readHeld(path string) (held, error) {
 	var h held
 	if !readJSON(path+heldSuffix, &h) || h.Offset > size(path) || h.Evidence == nil {
-		h = held{Evidence: Evidence{}}
+		h = held{Standing: NewStanding()}
 	}
 	events, at, next, err := readEventsFrom(path, h.Offset)
 	if err != nil {
 		return held{}, err
 	}
 	if at != h.Offset {
-		h = held{Evidence: Evidence{}}
+		h = held{Standing: NewStanding()}
 	}
-	h.follow(events)
+	h.Follow(events...)
 	h.Offset = next
 	return h, nil
-}
-
-// follow adds events of the journal to what it holds.
-func (h *held) follow(events []state.Event) {
-	for _, e := range events {
-		h.Evidence.Add(e)
-		if e.Source == state.SourceHook {
-			h.Basis = e.Number
-		}
-	}
-}
-
-// setAside is events, to be appended after what the journal holds, each
-// marked with why it is set aside, if it is (Aside): against the journal
-// and the events before it.
-func (h held) setAside(events []state.Event) []state.Event {
-	h.Evidence = maps.Clone(h.Evidence)
-	out := make([]state.Event, 0, len(events))
-	for _, e := range events {
-		switch {
-		case (e.Source == state.SourceScreen || e.Source == state.SourceSbx) && h.Basis > e.Basis:
-			e.Aside = state.AsideOvertaken
-		case h.Evidence.Holds(e):
-			e.Aside = state.AsideDuplicate
-		}
-		out = append(out, e)
-		h.follow([]state.Event{e})
-	}
-	return out
 }
 
 // Read is the journal of agent id (Store): none for an agent with no

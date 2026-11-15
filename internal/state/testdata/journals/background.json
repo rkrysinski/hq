@@ -17,7 +17,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -56,7 +56,7 @@
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "Agent",
             "started": "a58b43841609db047",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -87,7 +87,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -124,7 +124,7 @@
             "turn": "00000027-0000-4000-8000-000000000027",
             "wake": true,
             "woke": "a58b43841609db047",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -150,7 +150,7 @@
           "file": "000000005.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -180,7 +180,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -218,7 +218,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -265,7 +265,7 @@
             "cwd": "/w/app",
             "turn": "00000023-0000-4000-8000-000000000023",
             "prompt": "Say hi in one word.\nThen say bye in one word.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -297,7 +297,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -335,7 +335,7 @@
             "turn": "00000027-0000-4000-8000-000000000027",
             "wake": true,
             "woke": "a58b43841609db047",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -361,7 +361,7 @@
           "file": "000000011.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

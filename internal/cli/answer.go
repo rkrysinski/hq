@@ -158,7 +158,7 @@ func answer(env Env, d deps, r answerRequest) error {
 	left := lookedAt(d.now())
 	// The answer is in the agent's journal before the hook can give it, so
 	// what Claude reports of it comes after it (#195).
-	appendEvent(d, a.ID, state.KindAnswer, state.Facts{At: state.AtQuestion})
+	appendEvent(d, a.ID, state.KindAnswer, state.Facts{Whose: state.DialogHooks})
 	if err := d.leaveAnswer(a.RepoPath, a.ID, q, decision); err != nil {
 		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
 		if errors.Is(err, state.ErrAnswerWaiting) {
@@ -395,7 +395,7 @@ func answerOwn(env Env, d deps, a agent.Agent, r answerRequest) error {
 	if err := moveTo(d, a, open, v, pick); err != nil {
 		return err
 	}
-	appendEvent(d, a.ID, state.KindAnswer, state.Facts{At: state.AtOwn})
+	appendEvent(d, a.ID, state.KindAnswer, state.Facts{Whose: state.DialogOwn})
 	if err := d.tmux.Press(a.Pane, "Enter"); err != nil {
 		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
 		return tmuxErr(err)

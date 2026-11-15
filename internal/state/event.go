@@ -5,7 +5,6 @@ import (
 	"cmp"
 	"encoding/json"
 	"errors"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -54,11 +53,12 @@ const (
 // ended, first seen, dated from its report (From). From tmux, the pane's
 // death, dated by tmux (From, zero when tmux does not say). From sbx, the
 // sandbox not running, with the moment sbx was asked (Asked). From hq: the
-// agent launched (Start "new" or "restore") and relaunched, a restart
-// taking it down, a delivery of the messages typed in as its prompt
-// (KindDelivery, At "typed"), an answer given to its dialog (At "question"
-// or "own"), and either taken back when it did not reach the agent
-// (KindWithdrawn, At the kind withdrawn).
+// agent launched (Start "new" or "restore", with its repository and tmux
+// server) and relaunched, a restart taking it down, a delivery of the
+// messages typed in as its prompt (KindDelivery), an answer given to its
+// dialog (Whose), and either taken back when it did not reach the agent
+// (KindWithdrawn, Withdrawn the kind taken back). The kinds of hq's own
+// events are unique across their sources.
 const (
 	KindTurnEnded     = "TurnEnded"
 	KindAtRest        = "AtRest"
@@ -82,13 +82,6 @@ const (
 	KindWithdrawn  = "Withdrawn"
 )
 
-// How hq delivered or answered, in an event's At.
-const (
-	AtTyped    = "typed"
-	AtQuestion = "question"
-	AtOwn      = "own"
-)
-
 // The sources of an event (spec #165): the agent's hook, its screen,
 // tmux, sbx and hq itself.
 const (
@@ -99,15 +92,39 @@ const (
 	SourceHQ     = "hq"
 )
 
-// The kinds of an event of the hook besides the hook events Claude names
-// (UserPromptSubmit, Stop, PermissionRequest, ...): a delivery of messages,
-// and an event file hq cannot read.
+// The kinds of an event of the hook: the hook events Claude names that a
+// rule reads (hook_event_name), a delivery of messages, and an event file
+// hq cannot read.
 const (
-	KindDelivery   = deliveryKind
-	KindUnreadable = "unreadable"
+	KindPrompt   = "UserPromptSubmit"
+	KindToolEnd  = "PostToolUse"
+	KindToolFail = "PostToolUseFailure"
 	// KindTurnEnd is the hook event that ends a turn, whose reply the
 	// journal keeps once, for the latest (Reply).
-	KindTurnEnd = "Stop"
+	KindTurnEnd           = "Stop"
+	KindPermission        = "PermissionRequest"
+	KindElicitation       = "Elicitation"
+	KindElicitationResult = "ElicitationResult"
+	KindNotification      = "Notification"
+	KindSessionStart      = "SessionStart"
+	KindSessionEnd        = "SessionEnd"
+
+	KindDelivery   = deliveryKind
+	KindUnreadable = "unreadable"
+)
+
+// The hook's cases, as its event files name them (Facts.Hook): which of
+// the hook's cases wrote an event of the hook, which the reducer follows.
+const (
+	CasePrompt = "prompt"
+	CaseStop   = "stop"
+	CaseAnswer = "answer"
+	CaseDialog = "dialog"
+	CaseInput  = "input"
+	CaseResult = "result"
+	CaseStart  = "start"
+	CaseResume = "resume"
+	CaseEnd    = "end"
 )
 
 // Facts are what an event holds beside its kind and time: only what a rule
@@ -154,16 +171,25 @@ type Facts struct {
 	// line, or the line Claude printed for a turn the user ended.
 	Text string `json:"text,omitempty"`
 	// Messages are the messages a delivery delivered, each by the name it
-	// was left under in the inbox.
+	// was left under in the inbox; a delivery of hq's own typed them in.
 	Messages []string `json:"messages,omitempty"`
-	// At is the hook's kind an event of the hook came with, as its event
-	// file is named (prompt, stop, answer, dialog, input, result, start,
-	// resume, end): which of the hook's cases wrote it, which the reducer
-	// follows. For a delivery: stop, a stop it blocked; prompt; answer,
-	// after a tool's end; or AtTyped for hq typing them in. For an event of
-	// hq's own, At says how it answered (AtQuestion, AtOwn) or what it took
+	// Hook is the hook's case an event of the hook came with, as its event
+	// file is named (CasePrompt, CaseStop, ...). For the hook's delivery,
+	// the case it delivered at: CaseStop, a stop it blocked; CasePrompt,
+	// with the next prompt; CaseAnswer, after a tool's end.
+	Hook string `json:"hook,omitempty"`
+	// Whose is whose dialog an answer of hq's went to: its hooks' (a
+	// question dialog, DialogHooks) or Claude's own (DialogOwn).
+	Whose string `json:"whose,omitempty"`
+	// Withdrawn is the kind of the event of hq's own a KindWithdrawn takes
 	// back.
-	At string `json:"at,omitempty"`
+	Withdrawn string `json:"withdrawn,omitempty"`
+	// Repo and Tmux are, for a launch, the repository hq launched the agent
+	// in and the tmux server it runs on (the -L socket name, "" for the
+	// default server): where its record and its home window stand while
+	// the agent exists (Fold.Home).
+	Repo string `json:"repo,omitempty"`
+	Tmux string `json:"tmux,omitempty"`
 	// Size is the size of an event file hq cannot read.
 	Size int64 `json:"size,omitempty"`
 }
@@ -203,15 +229,9 @@ func EventsDir(root, id string) string { return filepath.Join(root, ".git", even
 func IsID(id string) bool { return idRE.MatchString(id) }
 
 // IsEventFile reports whether a file in an agent's events directory is an
-// event file: the hook's temporary files and its count start with a dot.
-func IsEventFile(name string) bool { return isMessage(name) }
-
-// ReadFile reads a file the sandbox writes as hq reads such a file (design
-// §7.3): a regular file, never through a link, of at most 16 MiB. Over
-// that, size is its size and err says so.
-func ReadFile(path string) (data []byte, info os.FileInfo, err error) {
-	return readData(path)
-}
+// event file: its name starts with the hook's count, a digit, where the
+// hook's temporary files and its count start with a dot.
+func IsEventFile(name string) bool { return name != "" && name[0] >= '0' && name[0] <= '9' }
 
 // TooLargeSize is the size of the file a ReadFile error refused as too
 // large to read.
@@ -265,11 +285,11 @@ func ParseEvent(name string, data []byte, at time.Time) (Event, *Reply) {
 		Branch: Clean(branch), Session: Clean(p.SessionID), Cwd: p.Cwd, Turn: Clean(p.PromptID),
 		Subagent: p.AgentID != "", Tool: Clean(p.ToolName), Server: Clean(p.Server),
 		Start: Clean(p.Source), Reason: Clean(p.Reason), Notice: Clean(p.Notification),
-		At: hookKind(name),
+		Hook: hookKind(name),
 	}
 	var reply *Reply
 	switch p.Event {
-	case "UserPromptSubmit":
+	case KindPrompt:
 		f.Wake = strings.HasPrefix(p.Prompt, wakePrefix)
 		if m := wakeTask.FindStringSubmatch(p.Prompt); m != nil {
 			f.Woke = Clean(m[1])
@@ -277,11 +297,11 @@ func ParseEvent(name string, data []byte, at time.Time) (Event, *Reply) {
 		if !f.Wake {
 			f.Prompt = p.Prompt
 		}
-	case "PostToolUse", "PostToolUseFailure":
+	case KindToolEnd, KindToolFail:
 		f.Started = p.started()
-	case "PermissionRequest":
+	case KindPermission:
 		f.Text = p.dialogText()
-	case "Elicitation", "Notification":
+	case KindElicitation, KindNotification:
 		f.Text = Clean(p.Message)
 	case KindTurnEnd:
 		f.Question = IsQuestion(p.AssistantMessage)
@@ -307,12 +327,12 @@ func (p eventPayload) started() string {
 		return ""
 	case p.AgentID != "":
 		if id := cmp.Or(r.BackgroundTaskID, r.TaskID); id != "" {
-			return subagentMark + Clean(id)
+			return SubagentMark + Clean(id)
 		}
 	case r.Status == "async_launched":
 		return Clean(cmp.Or(r.AgentID, r.TaskID))
 	case p.ToolName == "Monitor" && r.TaskID != "":
-		return monitorMark + Clean(r.TaskID)
+		return MonitorMark + Clean(r.TaskID)
 	}
 	return ""
 }
@@ -323,7 +343,7 @@ func (p eventPayload) started() string {
 func parseDelivery(e Event, rest []byte) Event {
 	e.Kind = KindDelivery
 	lines := strings.Split(string(rest), "\n")
-	e.Facts.At = Clean(lines[0])
+	e.Facts.Hook = Clean(lines[0])
 	for _, l := range lines[1:] {
 		if messageNameRE.MatchString(l) {
 			e.Facts.Messages = append(e.Facts.Messages, l)
@@ -335,7 +355,7 @@ func parseDelivery(e Event, rest []byte) Event {
 // unreadable is e as an event file hq cannot read, of size bytes: what it
 // holds is gone, but the hook's kind its name gives.
 func unreadable(e Event, size int64) Event {
-	e.Kind, e.Facts = KindUnreadable, Facts{Size: size, At: hookKind(e.File)}
+	e.Kind, e.Facts = KindUnreadable, Facts{Size: size, Hook: hookKind(e.File)}
 	return e
 }
 

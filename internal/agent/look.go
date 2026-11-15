@@ -10,9 +10,9 @@ import (
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
-// A Store is where the look reads the agents' journals and screens (design
-// §3.4): the journals' store, and tmux for the screens.
-type Store interface {
+// Sources are where a look reads and appends (design §3.4): the journals'
+// store, and tmux for the screens.
+type Sources interface {
 	journal.Store
 	// Screens returns what the panes show, by pane id, in one call.
 	Screens(panes []string) (map[string]string, error)
@@ -32,16 +32,18 @@ type Folds struct {
 func NewFolds() *Folds { return &Folds{by: map[string]*folded{}} }
 
 // folded is an agent's journal folded up to position next: the fold, the
-// journal's reply and ask, the number of the last event of its hook
-// (journal.Basis) and the evidence it holds (journal.Evidence).
+// journal's reply and ask, and what decides whether evidence appended now
+// stands (journal.Standing).
 type folded struct {
 	next     int64
 	fold     state.Fold
 	reply    state.Reply
 	ask      state.Asked
-	basis    int64
-	evidence journal.Evidence
+	standing journal.Standing
 }
+
+// newFolded is an empty journal folded.
+func newFolded() *folded { return &folded{standing: journal.NewStanding()} }
 
 // lock takes the Folds for one look and returns what lets it go.
 func (fs *Folds) lock() func() {
@@ -55,11 +57,11 @@ func (fs *Folds) lock() func() {
 // of is the folded journal of agent id, fresh for a nil Folds.
 func (fs *Folds) of(id string) *folded {
 	if fs == nil {
-		return &folded{evidence: journal.Evidence{}}
+		return newFolded()
 	}
 	f, ok := fs.by[id]
 	if !ok {
-		f = &folded{evidence: journal.Evidence{}}
+		f = newFolded()
 		fs.by[id] = f
 	}
 	return f
@@ -74,15 +76,10 @@ func (f *folded) update(store journal.Store, id string) error {
 		return err
 	}
 	if j.From != f.next {
-		*f = folded{evidence: journal.Evidence{}}
+		*f = *newFolded()
 	}
 	f.fold = f.fold.With(j.Events...)
-	for _, e := range j.Events {
-		f.evidence.Add(e)
-		if e.Source == state.SourceHook {
-			f.basis = e.Number
-		}
-	}
+	f.standing.Follow(j.Events...)
 	if j.Reply.Number != 0 {
 		f.reply = j.Reply
 	}
@@ -99,11 +96,11 @@ func (f *folded) update(store journal.Store, id string) error {
 // or a later report overtook it. A journal that cannot be written gets no
 // event.
 func (f *folded) witness(store journal.Store, id string, e state.Event, now time.Time) {
-	e.Basis = f.basis
+	e.Basis = f.standing.Basis
 	if e.Time.IsZero() {
 		e.Time = now
 	}
-	if f.evidence.Holds(e) {
+	if f.standing.Evidence.Holds(e) {
 		return
 	}
 	// The fold, its evidence included, follows the append at the next
@@ -174,13 +171,13 @@ func ReadStates(as []Agent, store journal.Store, now time.Time, folds *Folds) {
 // sbx and its screen show that the journal does not hold yet, and folds
 // what it appended, so every hq process shows the same state from the
 // same journal. Of looks that append the same evidence at once, the first
-// wins and the others' is set aside (journal.Aside).
+// wins and the others' is set aside (journal.Standing).
 //
 // What it appends: the pane's death, as tmux dates it; sbx's answer that
 // the agent's sandbox does not run, with the moment sbx was asked, when
 // that answer ends the agent (state.Fold.Stopped; an answer sbx did not
-// give ends nobody and is no event); what the screens of the agents the
-// hooks leave unsettled show (state.Fold.Sees), all captured in one call;
+// give ends nobody and is no event); what the screens that may show what
+// no hook reports show (state.Fold.Sees), all captured in one call;
 // and Claude's wake-up after a turn the user ended (state.Fold.WakeUp).
 // It reads none of the hook's working files and writes none: what it sees
 // of Claude taking a queued prompt after an Esc is an event like any other
@@ -191,7 +188,7 @@ func ReadStates(as []Agent, store journal.Store, now time.Time, folds *Folds) {
 // leaves the agent as its window says, and one that cannot be written gets
 // no event. One look may not be enough: an agent Resting needs one more,
 // RestDelay later, which is the caller's to take.
-func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Store, folds *Folds) []Agent {
+func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Sources, folds *Folds) []Agent {
 	defer folds.lock()()
 	as := FromWindows(ws)
 	fs := make([]*folded, len(as))
@@ -245,12 +242,12 @@ func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Store, fol
 
 // lookAtScreens captures, in one call, the screens of the agents whose
 // turn the user may have ended or that wait at their prompt
-// (state.Fold.Unsettled), by pane; none when there are none or the capture
+// (state.Fold.ScreenMayTell), by pane; none when there are none or the capture
 // fails.
-func lookAtScreens(as []Agent, fs []*folded, now time.Time, store Store) map[string]string {
+func lookAtScreens(as []Agent, fs []*folded, now time.Time, store Sources) map[string]string {
 	var panes []string
 	for i := range as {
-		if fs[i] != nil && as[i].Alive && fs[i].fold.Unsettled(now) {
+		if fs[i] != nil && as[i].Alive && fs[i].fold.ScreenMayTell(now) {
 			panes = append(panes, as[i].Pane)
 		}
 	}

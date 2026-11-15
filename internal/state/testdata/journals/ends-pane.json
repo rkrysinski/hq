@@ -84,7 +84,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "startup",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -111,7 +111,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Count to ten.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -138,7 +138,7 @@
           "facts": {
             "branch": "main",
             "session": "s1",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

@@ -22,7 +22,7 @@ const EndedLast = "[session ended]"
 type seen struct {
 	// launched is the latest launch or relaunch; zero when the journal
 	// holds none, and then every report is of the agent's session.
-	launched Mark
+	launched Ref
 	// ends are the events that say the agent ended, in their order: its
 	// pane's death, its sandbox not running (counted only while no report
 	// is newer than the moment sbx was asked), a restart taking it down.
@@ -47,60 +47,61 @@ type evidence struct {
 func (x *evidence) at(key int64) bool { return x != nil && x.key == key }
 
 // see follows event e of hq's own (screen, tmux, sbx, hq), and reports
-// whether it is one the reducer reads.
+// whether it is one the reducer reads. Their kinds are unique across
+// their sources, so the kind alone tells them.
 func (f *Fold) see(e Event) bool {
 	h := f.reading(nil)
 	key := h.report.Number
 	s := &f.seen
 	mark := &evidence{Event: e, key: key}
-	switch e.Source + " " + e.Kind {
-	case SourceScreen + " " + KindTurnEnded, SourceScreen + " " + KindRewound, SourceScreen + " " + KindTurnNotTaken:
+	switch e.Kind {
+	case KindTurnEnded, KindRewound, KindTurnNotTaken:
 		// The first turn end seen for a report stands.
 		if !s.turnEnd.at(key) {
 			s.turnEnd = mark
 		}
-	case SourceScreen + " " + KindAtRest, SourceScreen + " " + KindToolCut:
+	case KindAtRest, KindToolCut:
 		if !s.atRest.at(key) || s.atRest.Facts.Screen != e.Facts.Screen {
 			s.atRest = mark
 		}
-	case SourceScreen + " " + KindAtWork:
+	case KindAtWork:
 		if !s.atWork.at(key) {
 			s.atWork = mark
 		}
-	case SourceScreen + " " + KindOwnDialog:
+	case KindOwnDialog:
 		// The same dialog seen again, wherever its cursor is, is the one
 		// first seen; another, or one opened again, counts anew.
 		if !s.own.at(key) || s.own.Facts.Screen != e.Facts.Screen {
 			s.own = mark
 		}
-	case SourceScreen + " " + KindOwnDialogGone:
+	case KindOwnDialogGone:
 		if s.own.at(key) {
 			s.own = nil
 		}
-	case SourceScreen + " " + KindTookQueued:
+	case KindTookQueued:
 		f.handOver(e)
-	case SourceScreen + " " + KindWokeUp:
+	case KindWokeUp:
 		if s.turnEnd != nil {
 			s.woke = &evidence{Event: e, key: h.Entered.Number, after: s.turnEnd.Number}
 		}
-	case SourceTmux + " " + KindPaneDied, SourceHQ + " " + KindTakenDown:
+	case KindPaneDied, KindTakenDown:
 		s.ends = append(s.ends, e)
-	case SourceSbx + " " + KindNotRunning:
+	case KindNotRunning:
 		// An answer that carries no moment asked ends nobody.
 		if e.Facts.Asked.IsZero() {
 			return false
 		}
 		s.ends = append(s.ends, e)
-	case SourceHQ + " " + KindLaunched, SourceHQ + " " + KindRelaunched:
+	case KindLaunched, KindRelaunched:
 		b := f.seen
 		b.ends = slices.Clip(b.ends)
-		f.before = &b
-		f.seen = seen{launched: Mark{e.Number, e.Time}}
-	case SourceHQ + " " + KindWithdrawn:
-		if (e.Facts.At != KindLaunched && e.Facts.At != KindRelaunched) || f.before == nil {
+		f.beforeLaunch = &b
+		f.seen = seen{launched: RefOf(e)}
+	case KindWithdrawn:
+		if (e.Facts.Withdrawn != KindLaunched && e.Facts.Withdrawn != KindRelaunched) || f.beforeLaunch == nil {
 			return false
 		}
-		f.seen, f.before = *f.before, nil
+		f.seen, f.beforeLaunch = *f.beforeLaunch, nil
 	default:
 		return false
 	}
@@ -111,14 +112,14 @@ func (f *Fold) see(e Event) bool {
 // after the user interrupted the turn it was queued in, which no hook
 // reports (#88): the state is handed over to it, so the queued prompt
 // becomes the latest report, dated by the event, and the kept event goes,
-// as does the mark of a turn acted on that is the queued prompt's. With no prompt queued (the hook took it away
-// first) nothing is handed over.
+// as does the mark of a turn acted on that is the queued prompt's. With
+// no prompt queued (the hook took it away first) nothing is handed over.
 func (f *Fold) handOver(e Event) {
 	if f.queued == nil {
 		return
 	}
 	q := *f.queued
-	f.file, f.kept, f.queued = &written{q, Mark{e.Number, e.Time}}, nil, nil
+	f.report, f.beside, f.queued = &written{q, RefOf(e)}, nil, nil
 	if f.acted != nil && f.acted.Facts.Turn == q.Facts.Turn {
 		f.acted = nil
 	}
@@ -140,7 +141,7 @@ type looked struct {
 // a restart takes down has ended (ended); while its session runs, a turn
 // end its screen showed, Claude at work after a dialog its hooks reported,
 // Claude's wake-up after a turn the user ended and a dialog of Claude's
-// own overrule its hooks (settled).
+// own overrule its hooks (overrule).
 func (f *Fold) look(reply *Reply) looked {
 	h := f.reading(reply)
 	s := f.seen
@@ -154,13 +155,13 @@ func (f *Fold) look(reply *Reply) looked {
 			r.Last, r.Branch, r.Worktree, r.Prompt, r.Session, r.RestsOn = h.Last, h.Branch, h.Worktree, h.Prompt, h.Session, h.RestsOn
 		}
 		if s.launched.Number != 0 {
-			r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), s.launched.Number))
+			r.restOn(s.launched.Number)
 		}
 	}
 	switch {
 	case f.ended(&r.Reduced, session):
 	case session && r.State != Starting:
-		f.settled(&r, h)
+		f.overrule(&r, h)
 	}
 	if r.State != NeedsInput {
 		r.Dialog = DialogVerdict{}
@@ -202,18 +203,18 @@ func (f *Fold) ended(r *Reduced, session bool) bool {
 		if by == nil {
 			return false
 		}
-		r.State, r.Entered = Ended, Mark{by.Number, by.Time}
+		r.State, r.Entered = Ended, RefOf(*by)
 		switch from := by.Facts.From; {
 		case by.Kind == KindPaneDied && !from.IsZero():
 			r.Since = laterOf(r.Since, from)
 		default:
 			r.Since = laterOf(base, by.Time)
 		}
-		r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), by.Number))
+		r.restOn(by.Number)
 	}
 	if te := f.seen.turnEnd; session && te.at(r.report.Number) && te.Kind != KindTurnNotTaken {
 		r.Last = turnEndLast(te.Event, r.Last)
-		r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), te.Number))
+		r.restOn(te.Number)
 	}
 	if r.Last == "" {
 		r.Last = EndedLast
@@ -234,8 +235,8 @@ func turnEndLast(e Event, last string) string {
 	return last
 }
 
-// settled applies to r what the screen showed for the hook's report h of
-// a session that runs (agent.settle): Claude's wake-up after a turn the
+// overrule applies to r what the screen showed for the hook's report h of
+// a session that runs, which overrules the hooks: Claude's wake-up after a turn the
 // user ended dates the work since; a turn end the screen showed makes the
 // agent done, since it was seen (since the screen was first seen at rest,
 // for a decision that took time), with its line; else Claude at work after
@@ -245,7 +246,7 @@ func turnEndLast(e Event, last string) string {
 // or working only on background work Claude owes it no turn for) is at a
 // dialog of Claude's own while the screen shows one, since it was first
 // seen, with its title as the last message.
-func (f *Fold) settled(r *looked, h Reduced) {
+func (f *Fold) overrule(r *looked, h Reduced) {
 	s := f.seen
 	key := h.report.Number
 	if te := s.turnEnd; r.State == Working && te != nil && !te.at(key) && te.key >= h.Entered.Number && te.key < key {
@@ -253,19 +254,19 @@ func (f *Fold) settled(r *looked, h Reduced) {
 		// counts from its prompt, and the agent works since Claude woke it.
 		switch w := s.woke; {
 		case w != nil && w.key == h.Entered.Number && w.after == te.Number:
-			r.Since, r.Entered = w.Facts.From, Mark{w.Number, w.Time}
+			r.Since, r.Entered = w.Facts.From, RefOf(w.Event)
 			if f.wakeUp.Time.Equal(w.Facts.From) {
 				r.Entered = f.wakeUp
 			}
-			r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), te.Number, w.Number))
+			r.restOn(te.Number, w.Number)
 		case h.Woken:
 			r.Since, r.Entered = h.Latest, h.report
-			r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), te.Number))
+			r.restOn(te.Number)
 		}
 	}
 	switch te, w := s.turnEnd, s.atWork; {
 	case te.at(key):
-		r.State, r.Last, r.Entered, r.turnEndBy = Done, turnEndLast(te.Event, r.Last), Mark{te.Number, te.Time}, te.Number
+		r.State, r.Last, r.Entered, r.turnEndBy = Done, turnEndLast(te.Event, r.Last), RefOf(te.Event), te.Number
 		rests := []int64{te.Number}
 		r.Since = te.Time
 		if te.Kind != KindTurnEnded {
@@ -274,16 +275,16 @@ func (f *Fold) settled(r *looked, h Reduced) {
 				rests = append(rests, s.atRest.Number)
 			}
 		}
-		r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), rests...))
+		r.restOn(rests...)
 	case r.State == NeedsInput && r.Dialog.Whose == DialogHooks && w.at(key):
-		r.State, r.Last, r.Entered = Working, h.LastStop, Mark{w.Number, w.Time}
-		r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), w.Number))
+		r.State, r.Last, r.Entered = Working, h.LastStop, RefOf(w.Event)
+		r.restOn(w.Number)
 	}
 	waits := r.State == Done || r.State == Question || r.State == Working && r.Background && !r.Owed
 	if o := s.own; waits && o.at(key) {
-		at := Mark{o.Number, o.Time}
+		at := RefOf(o.Event)
 		r.State, r.Since, r.Last, r.Entered = NeedsInput, o.Time, o.Facts.Text, at
 		r.Dialog = DialogVerdict{Open: true, Whose: DialogOwn, Opened: at, Screen: o.Facts.Screen, RestsOn: []int64{o.Number}}
-		r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), o.Number))
+		r.restOn(o.Number)
 	}
 }

@@ -214,7 +214,7 @@ func TestTheTimePassedInChangesOnlyTheAge(t *testing.T) {
 			t.Errorf("%s:\n%+v\n%+v", name, one, other)
 		}
 	}
-	if r := Reduce(nil, Reply{}, now); r.Reported || r.State != Starting || r.Age != 0 || r.Entered != (Mark{}) {
+	if r := Reduce(nil, Reply{}, now); r.Reported || r.State != Starting || r.Age != 0 || r.Entered != (Ref{}) {
 		t.Errorf("an empty journal: %+v", r)
 	}
 }
@@ -225,7 +225,7 @@ func atSecond(n int64) time.Time { return time.Date(2026, 1, 1, 0, 0, int(n), 0,
 // hookEvent is event n of the hook, of kind, as the hook's case at wrote
 // it, with facts.
 func hookEvent(n int64, hookCase, kind string, f Facts) Event {
-	f.At = hookCase
+	f.Hook = hookCase
 	return Event{Number: n, Source: SourceHook, Kind: kind, Time: atSecond(n), Facts: f}
 }
 
@@ -278,7 +278,7 @@ func TestTheResultNamesWhereTheStateWasEnteredAndWhereItChanged(t *testing.T) {
 		{8, NeedsInput, 8, 8},
 	} {
 		r := reducedAt(journal, tc.after)
-		if r.State != tc.state || r.Entered != (Mark{tc.entered, atSecond(tc.entered)}) || r.Changed != (Mark{tc.changed, atSecond(tc.changed)}) || !r.Since.Equal(atSecond(tc.entered)) {
+		if r.State != tc.state || r.Entered != (Ref{tc.entered, atSecond(tc.entered)}) || r.Changed != (Ref{tc.changed, atSecond(tc.changed)}) || !r.Since.Equal(atSecond(tc.entered)) {
 			t.Errorf("after %d: %s, entered %+v, changed %+v, since %v", tc.after, r.State, r.Entered, r.Changed, r.Since)
 		}
 	}
@@ -289,7 +289,7 @@ func TestTheResultNamesWhereTheStateWasEnteredAndWhereItChanged(t *testing.T) {
 		t.Errorf("a later tool's end: %s, entered %+v", r.State, r.Entered)
 	}
 	// A tool's end that leaves the agent starting changes nothing.
-	if r := Reduce(journal[1:2], Reply{}, atSecond(9)); r.Reported || r.Changed != (Mark{}) {
+	if r := Reduce(journal[1:2], Reply{}, atSecond(9)); r.Reported || r.Changed != (Ref{}) {
 		t.Errorf("before any report: %+v", r)
 	}
 }
@@ -363,7 +363,7 @@ func TestTheResultNamesTheEventsTheStateRestsOn(t *testing.T) {
 			t.Errorf("after %d: %s, rests on %v, the dialog on %v", tc.after, r.State, r.RestsOn, r.Dialog.RestsOn)
 		}
 	}
-	if r := reducedAt(journal, 5); !r.Dialog.Open || r.Dialog.Whose != DialogSubagent || r.Dialog.Opened != (Mark{5, atSecond(5)}) {
+	if r := reducedAt(journal, 5); !r.Dialog.Open || r.Dialog.Whose != DialogSubagent || r.Dialog.Opened != (Ref{5, atSecond(5)}) {
 		t.Errorf("the subagent's form: %+v", r.Dialog)
 	}
 }

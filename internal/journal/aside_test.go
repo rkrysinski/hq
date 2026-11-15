@@ -1,6 +1,7 @@
 package journal
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -66,7 +67,7 @@ func TestEvidenceIsTheSameByItsKindAndWhatItSaw(t *testing.T) {
 	} {
 		events := []state.Event{ev(1, state.SourceHook, "UserPromptSubmit", 0), tc.first}
 		events[1].Number = 2
-		if got := Holds(events, tc.then); got != tc.same {
+		if got := StandingOf(events).Evidence.Holds(tc.then); got != tc.same {
 			t.Errorf("%s: holds %v", tc.name, got)
 		}
 	}
@@ -95,12 +96,12 @@ func TestHoldsLooksPastWhatWasSetAsideAndNotPastALaunch(t *testing.T) {
 		{"before another event of hq", []state.Event{rest, ev(0, state.SourceHQ, state.KindTakenDown, 1)}, true},
 		{"before a queued prompt taken", []state.Event{rest, ev(0, state.SourceScreen, state.KindTookQueued, 1)}, false},
 	} {
-		if got := Holds(tc.events, rest); got != tc.want {
+		if got := StandingOf(tc.events).Evidence.Holds(rest); got != tc.want {
 			t.Errorf("%s: %v", tc.name, got)
 		}
 	}
 	took := ev(0, state.SourceScreen, state.KindTookQueued, 1)
-	if !Holds([]state.Event{took, rest}, took) {
+	if !StandingOf([]state.Event{took, rest}).Evidence.Holds(took) {
 		t.Error("a queued prompt taken does not start itself over")
 	}
 }
@@ -120,11 +121,32 @@ func TestEvidenceIsOvertakenOnlyByALaterReport(t *testing.T) {
 		{ev(0, state.SourceTmux, state.KindPaneDied, 1), ""},
 		{ev(0, state.SourceHQ, state.KindDelivery, 1), ""},
 	} {
-		if got := Aside(events, tc.e); got != tc.want {
+		if got := StandingOf(events).Aside(tc.e); got != tc.want {
 			t.Errorf("%s %s on %d: %q, want %q", tc.e.Source, tc.e.Kind, tc.e.Basis, got, tc.want)
 		}
 	}
-	if got := Aside(append(events, ev(3, state.SourceScreen, state.KindAtWork, 2)), ev(0, state.SourceScreen, state.KindAtWork, 2)); got != state.AsideDuplicate {
+	if got := StandingOf(append(events, ev(3, state.SourceScreen, state.KindAtWork, 2))).Aside(ev(0, state.SourceScreen, state.KindAtWork, 2)); got != state.AsideDuplicate {
 		t.Errorf("the same again: %q", got)
+	}
+}
+
+// Events appended together are set aside against the journal and against
+// one another, as one after the other: the second of two of the same
+// evidence is a duplicate, and evidence based on a report that an event
+// before it in the same append overtook is overtaken. What it is called on
+// stays as it was.
+func TestSetAsideReadsTheEventsBeforeInTheSameAppend(t *testing.T) {
+	s := StandingOf([]state.Event{ev(1, state.SourceHook, "UserPromptSubmit", 0)})
+	rest := ev(0, state.SourceScreen, state.KindAtRest, 1)
+	out := s.SetAside([]state.Event{rest, rest, ev(2, state.SourceHook, "PostToolUse", 0), ev(0, state.SourceSbx, state.KindNotRunning, 1)})
+	var got []string
+	for _, e := range out {
+		got = append(got, e.Aside)
+	}
+	if strings.Join(got, ",") != ",duplicate,,overtaken" {
+		t.Fatalf("set aside %q", got)
+	}
+	if s.Basis != 1 || len(s.Evidence) != 0 {
+		t.Fatalf("changed what it was called on: %+v", s)
 	}
 }

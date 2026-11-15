@@ -37,7 +37,7 @@ func TestADecisionThatTakesTimeIsAnEventAndTheTimePassedInDecidesNone(t *testing
 	}
 	journal = append(journal, seenEvent(3, SourceScreen, KindRewound, 1, Facts{Screen: "f1", From: atSecond(2)}))
 	r := Reduce(journal, Reply{}, atSecond(9))
-	if r.State != Done || r.Last != RewoundLast || !r.Since.Equal(atSecond(2)) || r.Entered != (Mark{3, atSecond(3)}) || r.TurnEnded != 3 || !slices.Equal(r.RestsOn, []int64{1, 2, 3}) {
+	if r.State != Done || r.Last != RewoundLast || !r.Since.Equal(atSecond(2)) || r.Entered != (Ref{3, atSecond(3)}) || r.TurnEnded != 3 || !slices.Equal(r.RestsOn, []int64{1, 2, 3}) {
 		t.Errorf("rewound: %+v", r)
 	}
 
@@ -60,7 +60,7 @@ func TestADecisionThatTakesTimeIsAnEventAndTheTimePassedInDecidesNone(t *testing
 		seenEvent(3, SourceTmux, KindPaneDied, 2, Facts{From: atSecond(2).Add(500 * time.Millisecond)}),
 	}
 	r = Reduce(died, Reply{}, atSecond(9))
-	if r.State != Ended || !r.Since.Equal(atSecond(2).Add(500*time.Millisecond)) || r.Entered != (Mark{3, atSecond(3)}) || r.Last != EndedLast {
+	if r.State != Ended || !r.Since.Equal(atSecond(2).Add(500*time.Millisecond)) || r.Entered != (Ref{3, atSecond(3)}) || r.Last != EndedLast {
 		t.Errorf("the pane's death: %+v", r)
 	}
 	// One tmux gives no time for counts from the event, never from before
@@ -172,12 +172,12 @@ func TestTheDialogVerdictSaysWhoseSinceWhichEventAndWhatOpenedAndClosedIt(t *tes
 		last           string
 		changed, enter int64
 	}{
-		{2, NeedsInput, DialogVerdict{Open: true, Whose: DialogHooks, Opened: Mark{2, atSecond(2)}, RestsOn: []int64{2}}, atSecond(2), "Bash: ls", 2, 2},
-		{3, Working, DialogVerdict{Whose: DialogHooks, Opened: Mark{2, atSecond(2)}, Closed: Mark{3, atSecond(3)}, RestsOn: []int64{2, 3}}, atSecond(2), "", 3, 3},
-		{4, Done, DialogVerdict{Whose: DialogHooks, Opened: Mark{2, atSecond(2)}, Closed: Mark{3, atSecond(3)}, RestsOn: []int64{2, 3}}, atSecond(4), "", 4, 4},
-		{6, NeedsInput, DialogVerdict{Open: true, Whose: DialogOwn, Opened: Mark{5, atSecond(5)}, Screen: "f1", RestsOn: []int64{5}}, atSecond(5), "Change effort level?", 5, 5},
-		{7, Done, DialogVerdict{Whose: DialogOwn, Opened: Mark{5, atSecond(5)}, Closed: Mark{7, atSecond(7)}, Screen: "f1", RestsOn: []int64{5, 7}}, atSecond(4), "", 7, 4},
-		{8, NeedsInput, DialogVerdict{Open: true, Whose: DialogSubagent, Opened: Mark{8, atSecond(8)}, RestsOn: []int64{8}}, atSecond(8), "Read: a", 8, 8},
+		{2, NeedsInput, DialogVerdict{Open: true, Whose: DialogHooks, Opened: Ref{2, atSecond(2)}, RestsOn: []int64{2}}, atSecond(2), "Bash: ls", 2, 2},
+		{3, Working, DialogVerdict{Whose: DialogHooks, Opened: Ref{2, atSecond(2)}, Closed: Ref{3, atSecond(3)}, RestsOn: []int64{2, 3}}, atSecond(2), "", 3, 3},
+		{4, Done, DialogVerdict{Whose: DialogHooks, Opened: Ref{2, atSecond(2)}, Closed: Ref{3, atSecond(3)}, RestsOn: []int64{2, 3}}, atSecond(4), "", 4, 4},
+		{6, NeedsInput, DialogVerdict{Open: true, Whose: DialogOwn, Opened: Ref{5, atSecond(5)}, Screen: "f1", RestsOn: []int64{5}}, atSecond(5), "Change effort level?", 5, 5},
+		{7, Done, DialogVerdict{Whose: DialogOwn, Opened: Ref{5, atSecond(5)}, Closed: Ref{7, atSecond(7)}, Screen: "f1", RestsOn: []int64{5, 7}}, atSecond(4), "", 7, 4},
+		{8, NeedsInput, DialogVerdict{Open: true, Whose: DialogSubagent, Opened: Ref{8, atSecond(8)}, RestsOn: []int64{8}}, atSecond(8), "Read: a", 8, 8},
 	} {
 		r := reducedAt(journal, tc.after)
 		if r.State != tc.state || !reflect.DeepEqual(r.Dialog, tc.dialog) || !r.Since.Equal(tc.since) || r.Last != tc.last || r.Changed.Number != tc.changed || r.Entered.Number != tc.enter {
@@ -247,16 +247,16 @@ func TestARelaunchWithdrawnLeavesTheAgentTakenDown(t *testing.T) {
 		t.Errorf("relaunched: %+v", r)
 	}
 	// Withdrawn of anything else leaves the relaunch standing.
-	if r := Reduce(append(slices.Clone(journal), seenEvent(5, SourceHQ, KindWithdrawn, 2, Facts{At: KindAnswer})), Reply{}, atSecond(9)); r.State != Starting {
+	if r := Reduce(append(slices.Clone(journal), seenEvent(5, SourceHQ, KindWithdrawn, 2, Facts{Withdrawn: KindAnswer})), Reply{}, atSecond(9)); r.State != Starting {
 		t.Errorf("an answer withdrawn: %+v", r)
 	}
-	journal = append(journal, seenEvent(5, SourceHQ, KindWithdrawn, 2, Facts{At: KindRelaunched}))
+	journal = append(journal, seenEvent(5, SourceHQ, KindWithdrawn, 2, Facts{Withdrawn: KindRelaunched}))
 	if r := Reduce(journal, Reply{}, atSecond(9)); r.State != Ended || !r.Since.Equal(atSecond(3)) {
 		t.Errorf("withdrawn: %+v", r)
 	}
 	// Withdrawn of anything else, or with no launch to withdraw, changes
 	// nothing.
-	for _, w := range []Event{seenEvent(6, SourceHQ, KindWithdrawn, 2, Facts{At: KindAnswer}), seenEvent(6, SourceHQ, KindWithdrawn, 2, Facts{At: KindRelaunched})} {
+	for _, w := range []Event{seenEvent(6, SourceHQ, KindWithdrawn, 2, Facts{Withdrawn: KindAnswer}), seenEvent(6, SourceHQ, KindWithdrawn, 2, Facts{Withdrawn: KindRelaunched})} {
 		if r := Reduce(append(slices.Clone(journal), w), Reply{}, atSecond(9)); r.State != Ended || !r.Since.Equal(atSecond(3)) {
 			t.Errorf("%+v: %+v", w.Facts, r)
 		}

@@ -35,7 +35,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "startup",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -84,7 +84,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "/probe one two three",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -115,7 +115,7 @@
             "session": "s1",
             "tool": "Bash",
             "text": "Bash: Probe",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -163,7 +163,7 @@
           "facts": {
             "branch": "main",
             "session": "s1",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -276,7 +276,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Add 3 and 3.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -362,7 +362,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "What is 4+4?",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -440,7 +440,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Start two subagents.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -496,7 +496,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -540,7 +540,7 @@
             "session": "s1",
             "wake": true,
             "woke": "a1",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -569,7 +569,7 @@
           "facts": {
             "branch": "main",
             "session": "s1",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

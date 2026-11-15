@@ -34,7 +34,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "startup",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -61,7 +61,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Say hi.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -85,7 +85,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -139,7 +139,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "reason": "prompt_input_exit",
-            "at": "end"
+            "hook": "end"
           }
         }
       ],
@@ -189,7 +189,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app",
             "start": "resume",
-            "at": "resume"
+            "hook": "resume"
           }
         }
       ],
@@ -217,7 +217,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Say hi again.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -300,7 +300,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "startup",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -372,7 +372,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app",
             "start": "resume",
-            "at": "resume"
+            "hook": "resume"
           }
         }
       ],

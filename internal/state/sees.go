@@ -15,10 +15,10 @@ import (
 // the fold that reads them back (seen.go); the screen rules themselves
 // (screen.go, owndialog.go) decide what the screen shows.
 
-// SettleDelay is how old the hooks' report must be before the agent's
+// OverruleDelay is how old the hooks' report must be before the agent's
 // screen can overrule it: Claude draws and runs its hooks independently,
 // so for a moment the screen may lag behind the report.
-const SettleDelay = 500 * time.Millisecond
+const OverruleDelay = 500 * time.Millisecond
 
 // RestDelay is how long the screen of a working agent must stay at rest,
 // unchanged, before hq takes the turn for one the user rewound (design
@@ -71,22 +71,22 @@ func (f Fold) TakenDown() bool {
 	return false
 }
 
-// Unsettled reports whether the screen of the agent, its pane alive, may
-// show at now what no hook reports (design §3.4): its session runs and
-// has reported, SettleDelay or more before now, that it works, so the
+// ScreenMayTell reports whether the screen of the agent, its pane alive,
+// may show at now what no hook reports (design §3.4): its session runs and
+// has reported, OverruleDelay or more before now, that it works, so the
 // user may have ended its turn; that it needs input, so the user may have
 // ended its turn or answered a dialog no hook reports the end of; or that
 // it waits at its prompt, done, with a question, or working only on
 // background work, where Claude may show a dialog of its own (Sees).
-func (f Fold) Unsettled(now time.Time) bool {
+func (f Fold) ScreenMayTell(now time.Time) bool {
 	h := f.reading(nil)
 	r := f.look(nil)
-	return f.session(h) && r.State != Starting && r.State != Ended && now.Sub(h.Latest) >= SettleDelay
+	return f.session(h) && r.State != Starting && r.State != Ended && now.Sub(h.Latest) >= OverruleDelay
 }
 
-// Sees is what a look at now appends of the screen of an unsettled agent
-// (Unsettled), and whether that screen is at rest in a way one more look,
-// RestDelay later, decides (resting).
+// Sees is what a look at now appends of the screen of an agent, when that
+// screen may tell (ScreenMayTell), and whether it is at rest in a way one
+// more look, RestDelay later, decides (resting).
 //
 // A dialog its hooks reported, its own and not a subagent's, closes when
 // the screen shows Claude at work (KindAtWork): an MCP elicitation's

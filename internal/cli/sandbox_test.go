@@ -302,13 +302,13 @@ func TestARelaunchedAgentsEndCountsFromItsPanesDeathNotFromTheRestart(t *testing
 	// The list looks all through the restart, and appends the ends it
 	// sees (#104).
 	d := f.deps()
-	f.tmux.onSet = func(string, string) { agent.Look(f.tmux.windows, agent.Sandboxes{}, f.now, d.store(), nil) }
+	f.tmux.onSet = func(string, string) { agent.Look(f.tmux.windows, agent.Sandboxes{}, f.now, d.sources(), nil) }
 	if code, _, errOut := f.run("sandbox", "restart", "app", "-y"); code != 0 {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 	f.tmux.onSet = nil
 	// Relaunched, neither is seen ended as its new session starts.
-	for _, a := range agent.Look(f.tmux.windows, agent.Sandboxes{}, f.now, d.store(), nil) {
+	for _, a := range agent.Look(f.tmux.windows, agent.Sandboxes{}, f.now, d.sources(), nil) {
 		if (a.Name == "a" || a.Name == "b") && a.State != state.Starting {
 			t.Fatalf("%s is %s as its new session starts", a.Name, a.State)
 		}

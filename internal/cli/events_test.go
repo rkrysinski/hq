@@ -92,7 +92,7 @@ func TestHqTypingAMessageInAppendsItsDeliveryBeforeTheTyping(t *testing.T) {
 	}
 	es := journalOf(t, f, "a1")
 	d := es[1]
-	if d.Source != state.SourceHQ || d.Kind != state.KindDelivery || d.Facts.At != state.AtTyped || strings.Join(d.Facts.Messages, " ") != fakeName("first") || d.Basis != es[0].Number || d.Time.IsZero() {
+	if d.Source != state.SourceHQ || d.Kind != state.KindDelivery || d.Facts.Hook != "" || strings.Join(d.Facts.Messages, " ") != fakeName("first") || d.Basis != es[0].Number || d.Time.IsZero() {
 		t.Fatalf("delivery %+v", d)
 	}
 	// The held command, typed in by a later look once the agent is back at
@@ -130,7 +130,7 @@ func TestAFailedTypingWithdrawsItsDelivery(t *testing.T) {
 	}
 	es := journalOf(t, f, "a1")
 	names := fakeName("first") + " " + fakeName("second")
-	if got := journaltest.Kinds(es); got != "Stop delivery Withdrawn" || strings.Join(es[2].Facts.Messages, " ") != names || es[2].Facts.At != state.KindDelivery || es[2].Source != state.SourceHQ {
+	if got := journaltest.Kinds(es); got != "Stop delivery Withdrawn" || strings.Join(es[2].Facts.Messages, " ") != names || es[2].Facts.Withdrawn != state.KindDelivery || es[2].Source != state.SourceHQ {
 		t.Fatalf("journal %s: %+v", got, es)
 	}
 	var back []string
@@ -161,7 +161,7 @@ func TestAnAnswerIsAnEventBeforeItIsGiven(t *testing.T) {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
 	es := ofSource(journalOf(t, f, "a1"), state.SourceHQ)
-	if atLeave != state.KindAnswer || len(es) != 1 || es[0].Facts.At != state.AtQuestion {
+	if atLeave != state.KindAnswer || len(es) != 1 || es[0].Facts.Whose != state.DialogHooks {
 		t.Fatalf("at the leaving %q, journal %+v", atLeave, es)
 	}
 
@@ -196,7 +196,7 @@ func TestAnAnswerIsAnEventBeforeItIsGiven(t *testing.T) {
 	if code, _, errOut := f.run("answer", "a", "--dialog", id, "2"); code != 0 {
 		t.Fatalf("own: exit %d %s", code, errOut)
 	}
-	if es := ofSource(journalOf(t, f, "a1"), state.SourceHQ); atEnter != state.KindAnswer || len(es) != 1 || es[0].Facts.At != state.AtOwn {
+	if es := ofSource(journalOf(t, f, "a1"), state.SourceHQ); atEnter != state.KindAnswer || len(es) != 1 || es[0].Facts.Whose != state.DialogOwn {
 		t.Fatalf("own: at Enter %q, journal %+v", atEnter, es)
 	}
 }

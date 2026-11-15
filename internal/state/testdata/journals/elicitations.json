@@ -17,7 +17,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -43,7 +43,7 @@
             "turn": "00000021-0000-4000-8000-000000000021",
             "server": "elicit",
             "text": "Which color should I use?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -71,7 +71,7 @@
             "cwd": "/w/app",
             "turn": "00000015-0000-4000-8000-000000000015",
             "server": "elicit",
-            "at": "result"
+            "hook": "result"
           }
         }
       ],
@@ -103,7 +103,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -133,7 +133,7 @@
             "cwd": "/w/app",
             "turn": "00000023-0000-4000-8000-000000000023",
             "prompt": "Say hi in one word.\nThen say bye in one word.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -160,7 +160,7 @@
             "turn": "0000001a-0000-4000-8000-00000000001a",
             "server": "elicit",
             "text": "Sign in to the example service.",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -188,7 +188,7 @@
             "cwd": "/w/app",
             "turn": "0000001a-0000-4000-8000-00000000001a",
             "server": "elicit",
-            "at": "result"
+            "hook": "result"
           }
         }
       ],
@@ -215,7 +215,7 @@
             "turn": "00000021-0000-4000-8000-000000000021",
             "server": "elicit",
             "text": "Which color should I use?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -253,7 +253,7 @@
             "session": "s",
             "turn": "00000023-0000-4000-8000-000000000023",
             "tool": "mcp__elicit__ask_color",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -280,7 +280,7 @@
             "turn": "00000021-0000-4000-8000-000000000021",
             "server": "elicit",
             "text": "Which color should I use?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -308,7 +308,7 @@
             "cwd": "/w/app",
             "turn": "00000009-0000-4000-8000-000000000009",
             "server": "elicit",
-            "at": "result"
+            "hook": "result"
           }
         }
       ],
@@ -335,7 +335,7 @@
             "turn": "00000021-0000-4000-8000-000000000021",
             "server": "elicit",
             "text": "Which color should I use?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -363,7 +363,7 @@
             "cwd": "/w/app",
             "turn": "0000002a-0000-4000-8000-00000000002a",
             "server": "elicit",
-            "at": "result"
+            "hook": "result"
           }
         }
       ],
@@ -389,7 +389,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "question": true,
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

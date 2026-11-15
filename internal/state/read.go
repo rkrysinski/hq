@@ -109,11 +109,12 @@ func Remove(root, id string) error {
 	return errors.Join(errs...)
 }
 
-// readData reads a regular file of at most maxFile bytes, never following a
-// symbolic link, so a link planted in the repository cannot make hq read
+// ReadFile reads a file the sandbox writes as hq reads such a file (design
+// §7.3): a regular file of at most maxFile bytes (16 MiB), never following
+// a symbolic link, so a link planted in the repository cannot make hq read
 // and show another file. A larger regular file is a tooLargeError, with
-// its information.
-func readData(path string) ([]byte, os.FileInfo, error) {
+// its information (TooLargeSize).
+func ReadFile(path string) ([]byte, os.FileInfo, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return nil, nil, err

@@ -116,14 +116,12 @@ func (m *Memory) Append(id string, events ...state.Event) ([]state.Event, error)
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var out []state.Event
-	for _, e := range events {
+	out := journal.StandingOf(m.journals[id]).SetAside(events)
+	for i := range out {
 		m.counter++
-		e.Number = m.counter
-		e.Aside = journal.Aside(m.journals[id], e)
-		out = append(out, e)
-		m.journals[id] = append(m.journals[id], e)
+		out[i].Number = m.counter
 	}
+	m.journals[id] = append(m.journals[id], out...)
 	return out, nil
 }
 

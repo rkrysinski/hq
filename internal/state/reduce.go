@@ -15,19 +15,22 @@ import (
 // It reads the events of the agent's hook first. The hook decides part of
 // the state inside the sandbox from its own working files (design §3.4),
 // which hq on the host never reads; the reducer keeps what the hook would
-// know, from the events alone, as the hook's cases report them (Facts.At),
+// know, from the events alone, as the hook's cases report them (Facts.Hook),
 // and reads the hook's state off it (reading). Then it reads what hq saw
 // and did (seen.go): the screen, tmux, sbx and hq itself, as the look
 // reads them beside the hook's report. After every event of the fixture
 // journals in testdata/journals it gives what the old look gave for the
 // same payloads, screens, pane and sbx answer.
 
-// Mark is an event of the journal as the reducer's result names it: its
+// Ref is an event of the journal as the reducer's result refers to it: its
 // number, from the one count of the state directory, and its time.
-type Mark struct {
+type Ref struct {
 	Number int64     `json:"n"`
 	Time   time.Time `json:"time"`
 }
+
+// RefOf is the reference to event e.
+func RefOf(e Event) Ref { return Ref{e.Number, e.Time} }
 
 // Reduced is an agent's state as the reducer folds it from the agent's
 // journal: what #166's public numbers are taken from (Entered, Changed,
@@ -48,10 +51,10 @@ type Reduced struct {
 	// dated from an earlier moment (a rewound turn, from its screen first
 	// seen at rest; an end, from the pane's death) its time is the deciding
 	// event's, and Since that earlier moment.
-	Entered Mark
+	Entered Ref
 	// Changed is the event at which its state, or the dialog it is at,
 	// last changed: a report that leaves both as they were does not move it.
-	Changed Mark
+	Changed Ref
 	// TurnEnded is the number of the event that ended the last completed
 	// turn: a turn end the hook reported as done or question; 0 before
 	// the first.
@@ -85,7 +88,7 @@ type Reduced struct {
 	// report is the hook's report the state comes from, which the evidence
 	// of the screen is keyed by: the hook's latest noted report, or the
 	// event kept beside it when that is later (Latest).
-	report Mark
+	report Ref
 }
 
 // DialogVerdict is whether the agent is at a dialog, whose, since which
@@ -100,10 +103,10 @@ type DialogVerdict struct {
 	// Opened is the event that opened it: the report of the hooks', the
 	// screen that first showed one of Claude's own. Its time is when the
 	// dialog opened.
-	Opened Mark
+	Opened Ref
 	// Closed is the event at which it stopped being open: zero while it
 	// is.
-	Closed Mark
+	Closed Ref
 	// Screen is the fingerprint of a dialog of Claude's own, its title and
 	// text (OwnFingerprint), as the screen that opened it showed it.
 	Screen string
@@ -127,7 +130,7 @@ const (
 // empty journal. A Fold is a value: With leaves the one it is called on
 // as it was.
 type Fold struct {
-	// file, stop, kept, owed, acted and queued are what the hook knows
+	// report, stop, beside, owed, acted and queued are what the hook knows
 	// from its working files (design §3.4): the latest report it took for
 	// the state (its note, ID.last), the latest turn end (ID.ended), the
 	// event it kept beside the note (marked by ID.on), the list of
@@ -135,28 +138,31 @@ type Fold struct {
 	// the tool's end that marked it) and the queued prompt (ID.queued).
 	// prev is the report before a resumed session, which gives it its
 	// branch, worktree and last message.
-	file, kept *written
-	stop, prev *Event
-	owed       []string
-	acted      *Event
-	queued     *Event
+	report, beside *written
+	stop, prev     *Event
+	owed           []string
+	acted          *Event
+	queued         *Event
 	// started are the events that started the background work owed
 	// names, by the task's id.
 	started map[string]int64
 	// wakeUp is the latest wake-up of Claude's kept beside a working
 	// report: what the agent works on since, after a turn the user ended
 	// (seen.go).
-	wakeUp Mark
-	// seen is what hq saw of the agent and did to it (seen.go), and before
-	// what it was before the latest launch, which a launch withdrawn puts
-	// back.
-	seen   seen
-	before *seen
+	wakeUp Ref
+	// seen is what hq saw of the agent and did to it (seen.go), and
+	// beforeLaunch what it was before the latest launch, which a launch
+	// withdrawn puts back.
+	seen         seen
+	beforeLaunch *seen
 	// dialog is the last dialog verdict with a dialog open, closed at the
 	// event that ended it.
-	dialog    DialogVerdict
-	changed   Mark
-	was       verdictKey
+	dialog DialogVerdict
+	// verdict is the state and dialog the event changed last changed them
+	// to (Reduced.Changed), and turnEnded the number of the event that
+	// ended the last completed turn.
+	verdict   verdictKey
+	changed   Ref
 	turnEnded int64
 }
 
@@ -165,7 +171,7 @@ type Fold struct {
 // tool's end).
 type written struct {
 	Event
-	at Mark
+	at Ref
 }
 
 // verdictKey is what Changed follows: the state and the dialog.
@@ -187,8 +193,8 @@ func (f Fold) With(events ...Event) Fold {
 	f.owed = slices.Clip(f.owed)
 	f.started = maps.Clone(f.started)
 	f.seen.ends = slices.Clip(f.seen.ends)
-	if f.was == (verdictKey{}) {
-		f.was.state = Starting
+	if f.verdict == (verdictKey{}) {
+		f.verdict.state = Starting
 	}
 	for _, e := range events {
 		if e.Aside != "" || e.Kind == KindDelivery {
@@ -197,7 +203,7 @@ func (f Fold) With(events ...Event) Fold {
 		stop := false
 		if e.Source == SourceHook {
 			f.add(e)
-			stop = e.Facts.At == "stop" && f.file.Number == e.Number
+			stop = e.Facts.Hook == CaseStop && f.report.Number == e.Number
 		} else if !f.see(e) {
 			continue
 		}
@@ -206,14 +212,14 @@ func (f Fold) With(events ...Event) Fold {
 		if !r.Dialog.Open {
 			key.whose = ""
 		}
-		if key != f.was {
-			f.was, f.changed = key, Mark{e.Number, e.Time}
+		if key != f.verdict {
+			f.verdict, f.changed = key, RefOf(e)
 		}
 		if r.Dialog.Open {
 			f.dialog = r.Dialog
 		} else if f.dialog.Open {
-			f.dialog.Open, f.dialog.Closed = false, Mark{e.Number, e.Time}
-			f.dialog.RestsOn = sortedNumbers(append(slices.Clone(f.dialog.RestsOn), e.Number))
+			f.dialog.Open, f.dialog.Closed = false, RefOf(e)
+			f.dialog.restOn(e.Number)
 		}
 		if stop {
 			if h := f.reading(nil); h.State == Done || h.State == Question {
@@ -245,23 +251,23 @@ func (f Fold) Result(reply Reply, now time.Time) Reduced {
 // (hookSource): what it knows afterwards. An event of a case the reducer
 // does not know is taken as its latest report.
 func (f *Fold) add(e Event) {
-	at := Mark{e.Number, e.Time}
-	switch e.Facts.At {
-	case "stop":
+	at := RefOf(e)
+	switch e.Facts.Hook {
+	case CaseStop:
 		f.atStop(e, at)
-	case "prompt":
+	case CasePrompt:
 		f.atPrompt(e, at)
-	case "answer":
+	case CaseAnswer:
 		f.atToolEnd(e, at)
-	case "start", "end":
+	case CaseStart, CaseEnd:
 		f.write(e, at)
 		f.forget()
-	case "resume":
+	case CaseResume:
 		// The report before a resumed session is kept for its branch,
 		// worktree and last message, unless it is itself a resumed start,
 		// which keeps the one before it.
-		if f.file != nil && !(f.file.Kind == "SessionStart" && f.file.Facts.Start == resumeSource) {
-			f.prev = &f.file.Event
+		if f.report != nil && !(f.report.Kind == KindSessionStart && f.report.Facts.Start == resumeSource) {
+			f.prev = &f.report.Event
 		}
 		f.write(e, at)
 		f.forget()
@@ -272,13 +278,13 @@ func (f *Fold) add(e Event) {
 
 // atStop follows a turn end (the hook's stop; a stop it blocked to deliver
 // messages leaves no event).
-func (f *Fold) atStop(e Event, at Mark) {
+func (f *Fold) atStop(e Event, at Ref) {
 	keeps := f.keep(e.Facts.Tasks, e.Facts.Question)
 	if f.pending() && f.queued.Facts.Turn == e.Facts.Turn {
 		// Claude takes the queued prompt as a turn of its own: the agent
 		// works on it from now.
-		f.stop, f.kept, f.acted = &e, nil, nil
-		f.file = &written{*f.queued, at}
+		f.stop, f.beside, f.acted = &e, nil, nil
+		f.report = &written{*f.queued, at}
 		return
 	}
 	f.queued, f.acted, f.stop = nil, nil, &e
@@ -287,25 +293,25 @@ func (f *Fold) atStop(e Event, at Mark) {
 		// which it replaces only when the agent was not working (nor at a
 		// subagent's dialog).
 		w := &written{e, at}
-		f.kept = w
+		f.beside = w
 		if !f.works() && !f.theirs() {
-			f.file = w
+			f.report = w
 		}
 		return
 	}
-	f.kept = nil
-	f.file = &written{e, at}
+	f.beside = nil
+	f.report = &written{e, at}
 }
 
 // atPrompt follows a prompt: one of the user's, one Claude queues while
 // the agent works, or Claude's wake-up after background work finished.
-func (f *Fold) atPrompt(e Event, at Mark) {
+func (f *Fold) atPrompt(e Event, at Ref) {
 	queued := false
 	if e.Facts.Wake {
 		f.wake(e.Facts.Woke)
 		if f.works() {
 			// The agent works on, since the same moment.
-			f.kept, f.wakeUp = &written{e, at}, at
+			f.beside, f.wakeUp = &written{e, at}, at
 			return
 		}
 	} else {
@@ -313,9 +319,9 @@ func (f *Fold) atPrompt(e Event, at Mark) {
 			return strings.HasPrefix(l, heldMark) || l == paidMark
 		})
 		queued = e.Facts.Turn != "" && f.works() &&
-			(e.Facts.Turn == f.file.Facts.Turn || f.acted != nil && e.Facts.Turn == f.acted.Facts.Turn)
+			(e.Facts.Turn == f.report.Facts.Turn || f.acted != nil && e.Facts.Turn == f.acted.Facts.Turn)
 	}
-	f.kept = nil
+	f.beside = nil
 	if queued {
 		f.queued = &e
 	} else {
@@ -326,12 +332,12 @@ func (f *Fold) atPrompt(e Event, at Mark) {
 
 // atToolEnd follows the end of a tool (the hook's answer): the hook leaves
 // an event only for one that tells something new.
-func (f *Fold) atToolEnd(e Event, at Mark) {
+func (f *Fold) atToolEnd(e Event, at Ref) {
 	if !e.Facts.Subagent {
-		if f.pending() && e.Facts.Turn != f.queued.Facts.Turn && f.kept == nil {
+		if f.pending() && e.Facts.Turn != f.queued.Facts.Turn && f.beside == nil {
 			// A tool of a turn Claude runs for the queued prompt after an
 			// Esc on the turn at work: hand over.
-			f.file = &written{*f.queued, at}
+			f.report = &written{*f.queued, at}
 		}
 		f.acted, f.queued = &e, nil
 	}
@@ -340,36 +346,36 @@ func (f *Fold) atToolEnd(e Event, at Mark) {
 		if f.started == nil {
 			f.started = map[string]int64{}
 		}
-		f.started[strings.TrimLeft(s, subagentMark+monitorMark)] = e.Number
+		f.started[strings.TrimLeft(s, SubagentMark+MonitorMark)] = e.Number
 	}
-	if f.ask() && f.file.Facts.Tool == e.Facts.Tool || f.form() && f.file.Facts.Server != "" && strings.HasPrefix(e.Facts.Tool, "mcp__"+f.file.Facts.Server+"__") {
+	if f.ask() && f.report.Facts.Tool == e.Facts.Tool || f.form() && f.report.Facts.Server != "" && strings.HasPrefix(e.Facts.Tool, "mcp__"+f.report.Facts.Server+"__") {
 		// The tool of the open dialog ran, or a tool of the form's server.
 		f.write(e, at)
 	}
 }
 
 // write makes e the latest report the hook took for the state.
-func (f *Fold) write(e Event, at Mark) { f.file = &written{e, at} }
+func (f *Fold) write(e Event, at Ref) { f.report = &written{e, at} }
 
 // forget drops what a session's start or end drops.
 func (f *Fold) forget() {
-	f.kept, f.owed, f.started, f.acted, f.queued = nil, nil, nil, nil, nil
+	f.beside, f.owed, f.started, f.acted, f.queued = nil, nil, nil, nil, nil
 }
 
 // works, ask, form and theirs say what that report is: a
 // prompt or a tool's end (the agent works), a dialog, an MCP elicitation's
 // form, a dialog one of the agent's subagents opened.
 func (f *Fold) works() bool {
-	return f.file != nil && (f.file.Kind == "UserPromptSubmit" || f.file.Kind == "PostToolUse" || f.file.Kind == "PostToolUseFailure")
+	return f.report != nil && (f.report.Kind == KindPrompt || f.report.Kind == KindToolEnd || f.report.Kind == KindToolFail)
 }
 
 func (f *Fold) ask() bool {
-	return f.file != nil && (f.file.Kind == "PermissionRequest" || f.file.Kind == "Elicitation")
+	return f.report != nil && (f.report.Kind == KindPermission || f.report.Kind == KindElicitation)
 }
 
-func (f *Fold) form() bool { return f.file != nil && f.file.Kind == "Elicitation" }
+func (f *Fold) form() bool { return f.report != nil && f.report.Kind == KindElicitation }
 
-func (f *Fold) theirs() bool { return f.ask() && f.file.Facts.Subagent }
+func (f *Fold) theirs() bool { return f.ask() && f.report.Facts.Subagent }
 
 // pending says a queued prompt waits in Claude's queue: Claude has not
 // taken it at a turn end of the turn it was queued in.
@@ -378,7 +384,7 @@ func (f *Fold) pending() bool {
 }
 
 // The marks of the hook's list of background work beside those of
-// subagentMark and monitorMark: a task that has held back a turn end, and
+// SubagentMark and MonitorMark: a task that has held back a turn end, and
 // the line that says Claude has woken for a task since.
 const (
 	heldMark = "!"
@@ -395,9 +401,9 @@ func (f *Fold) keep(tasks []EventTask, question bool) bool {
 		switch {
 		case l == paidMark:
 			paid = true
-		case strings.HasPrefix(l, subagentMark):
+		case strings.HasPrefix(l, SubagentMark):
 			theirs[l[1:]] = true
-		case strings.HasPrefix(l, monitorMark):
+		case strings.HasPrefix(l, MonitorMark):
 			watch[l[1:]] = true
 		case strings.HasPrefix(l, heldMark):
 			held[l[1:]] = true
@@ -409,8 +415,8 @@ func (f *Fold) keep(tasks []EventTask, question bool) bool {
 	var owed, mine, watched []string
 	for _, t := range tasks {
 		switch {
-		case t.Status != "running":
-		case t.Type != ShellTask && t.Type != MonitorTask:
+		case !t.running():
+		case !t.shellOrWatch():
 			owed = append(owed, t.ID)
 		case theirs[t.ID]:
 			mine = append(mine, t.ID)
@@ -426,10 +432,10 @@ func (f *Fold) keep(tasks []EventTask, question bool) bool {
 	}
 	for _, id := range mine {
 		keeps = true
-		out = append(out, subagentMark+id)
+		out = append(out, SubagentMark+id)
 	}
 	for _, id := range watched {
-		out = append(out, monitorMark+id)
+		out = append(out, MonitorMark+id)
 	}
 	for _, l := range f.owed {
 		if was[l] && !running[l] {
@@ -446,7 +452,7 @@ func (f *Fold) keep(tasks []EventTask, question bool) bool {
 		}
 	}
 	f.owed = slices.Compact(slices.Sorted(slices.Values(slices.DeleteFunc(out, func(l string) bool {
-		return strings.TrimLeft(l, subagentMark+monitorMark+heldMark) == ""
+		return strings.TrimLeft(l, SubagentMark+MonitorMark+heldMark) == ""
 	}))))
 	return keeps && !question
 }
@@ -497,13 +503,13 @@ func message(e *Event, reply *Reply) string {
 // reading is the state the hook's reports give; reply is the
 // journal's reply of its latest turn end (nil: no texts).
 func (f *Fold) reading(reply *Reply) (r Reduced) {
-	if f.file == nil {
+	if f.report == nil {
 		return Reduced{State: Starting}
 	}
-	c, at := f.file.Event, f.file.at
+	c, at := f.report.Event, f.report.at
 	r = Reduced{Reported: true, Since: at.Time, Latest: at.Time, Entered: at, report: at}
 	rests := []int64{at.Number, c.Number}
-	defer func() { r.RestsOn = sortedNumbers(rests) }()
+	defer func() { r.restOn(rests...) }()
 	if c.Kind == KindUnreadable && c.Facts.Size > maxFile {
 		// A report too large to read is a turn end with a reply too long
 		// to keep (#64).
@@ -518,7 +524,7 @@ func (f *Fold) reading(reply *Reply) (r Reduced) {
 		rests = append(rests, f.prev.Number)
 	}
 	byKept := false
-	if k := f.kept; k != nil {
+	if k := f.beside; k != nil {
 		switch {
 		case k.Kind == KindTurnEnd && (r.State == Working || k.at.Number == at.Number):
 			r.State, r.Background = Working, true
@@ -529,11 +535,11 @@ func (f *Fold) reading(reply *Reply) (r Reduced) {
 			r.report = laterMark(r.report, k.at)
 			rests = append(rests, k.at.Number)
 			for _, l := range f.owed {
-				if n, ok := f.started[strings.TrimLeft(l, subagentMark+monitorMark+heldMark)]; ok {
+				if n, ok := f.started[strings.TrimLeft(l, SubagentMark+MonitorMark+heldMark)]; ok {
 					rests = append(rests, n)
 				}
 			}
-		case k.Kind == "UserPromptSubmit" && r.State == Working:
+		case k.Kind == KindPrompt && r.State == Working:
 			r.Woken = true
 			r.Latest = laterOf(r.Latest, k.at.Time)
 			r.report = laterMark(r.report, k.at)
@@ -566,7 +572,7 @@ func (f *Fold) reading(reply *Reply) (r Reduced) {
 			r.Dialog.Whose = DialogSubagent
 		}
 		if byKept {
-			r.Dialog.RestsOn = sortedNumbers([]int64{at.Number, f.kept.at.Number})
+			r.Dialog.restOn(f.beside.at.Number)
 		}
 	}
 	return r
@@ -583,22 +589,22 @@ func parse(r *Reduced, c *Event, stop string, prev *Event) (subagent, before boo
 	}
 	r.Session, r.Worktree = c.Facts.Session, c.Facts.Cwd
 	switch c.Kind {
-	case "UserPromptSubmit", "PostToolUse", "PostToolUseFailure":
+	case KindPrompt, KindToolEnd, KindToolFail:
 		r.State, r.Prompt, r.Woken = Working, c.Facts.Prompt, c.Facts.Wake
-	case "PermissionRequest", "Notification":
+	case KindPermission, KindNotification:
 		r.State, subagent = NeedsInput, c.Facts.Subagent
 		r.Last = cmp.Or(c.Facts.Text, r.Last)
-	case "Elicitation":
+	case KindElicitation:
 		r.State = NeedsInput
 		r.Last = cmp.Or(c.Facts.Text, c.Facts.Server, r.Last)
-	case "ElicitationResult":
+	case KindElicitationResult:
 		r.State, r.Acted = Working, true
 	case KindTurnEnd:
 		r.State = Done
 		if c.Facts.Question {
 			r.State = Question
 		}
-	case "SessionStart":
+	case KindSessionStart:
 		r.State = Done
 		if c.Facts.Start == newSource {
 			r.Session = ""
@@ -609,32 +615,39 @@ func parse(r *Reduced, c *Event, stop string, prev *Event) (subagent, before boo
 				r.Branch, r.Worktree, r.Last, r.LastStop, before = b.Branch, b.Worktree, b.Last, b.LastStop, true
 			}
 		}
-	case "SessionEnd":
+	case KindSessionEnd:
 		r.State = Ended
 	}
 	return subagent, before
 }
 
-// busy says turn end tasks lists background work that still runs: a task
-// that is neither a shell command nor a watch, or one of those one of the
-// agent's subagents started (payload.busy).
+// busy says turn end tasks lists background work that still runs
+// (EventTask.background, payload.busy).
 func (f *Fold) busy(tasks []EventTask) bool {
-	theirs := f.marked(subagentMark)
-	for _, t := range tasks {
-		if t.Status == "running" && (t.Type != ShellTask && t.Type != MonitorTask || theirs[t.ID]) {
-			return true
-		}
-	}
-	return false
+	theirs := f.marked(SubagentMark)
+	return slices.ContainsFunc(tasks, func(t EventTask) bool { return t.background(theirs) })
+}
+
+// running says the task still runs.
+func (t EventTask) running() bool { return t.Status == "running" }
+
+// shellOrWatch says the task is a shell command or a watch (a monitor).
+func (t EventTask) shellOrWatch() bool { return t.Type == ShellTask || t.Type == MonitorTask }
+
+// background says the task is background work that still runs: a task
+// that is neither a shell command nor a watch, or one of those one of the
+// agent's subagents started (theirs, by id).
+func (t EventTask) background(theirs map[string]bool) bool {
+	return t.running() && (!t.shellOrWatch() || theirs[t.ID])
 }
 
 // ownTasks are the agent's own tasks turn end c lists (payload.ownTasks),
 // with their texts from reply.
 func (f *Fold) ownTasks(c Event, reply *Reply) []Task {
-	theirs, watches := f.marked(subagentMark), f.marked(monitorMark)
+	theirs, watches := f.marked(SubagentMark), f.marked(MonitorMark)
 	var ts []Task
 	for i, t := range c.Facts.Tasks {
-		if t.Status != "running" || t.Type != ShellTask && t.Type != MonitorTask || theirs[t.ID] || t.Artifact {
+		if !t.running() || t.background(theirs) || t.Artifact {
 			continue
 		}
 		var text TaskTexts
@@ -654,7 +667,7 @@ func (f *Fold) ownTasks(c Event, reply *Reply) []Task {
 }
 
 // laterMark is b when it is later than a, else a.
-func laterMark(a, b Mark) Mark {
+func laterMark(a, b Ref) Ref {
 	if b.Time.After(a.Time) {
 		return b
 	}
@@ -672,4 +685,14 @@ func laterOf(a, b time.Time) time.Time {
 // sortedNumbers are ns, rising, each once.
 func sortedNumbers(ns []int64) []int64 {
 	return slices.Compact(slices.Sorted(slices.Values(ns)))
+}
+
+// restOn adds the events numbered ns to those the state rests on.
+func (r *Reduced) restOn(ns ...int64) {
+	r.RestsOn = sortedNumbers(append(slices.Clone(r.RestsOn), ns...))
+}
+
+// restOn adds the events numbered ns to those the verdict rests on.
+func (v *DialogVerdict) restOn(ns ...int64) {
+	v.RestsOn = sortedNumbers(append(slices.Clone(v.RestsOn), ns...))
 }

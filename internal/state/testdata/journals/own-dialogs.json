@@ -34,7 +34,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "startup",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -141,7 +141,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Say hi.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -165,7 +165,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -403,7 +403,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Ask me something.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -429,7 +429,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "question": true,
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -503,7 +503,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Count to ten.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -593,7 +593,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Start a subagent.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -631,7 +631,7 @@
             "session": "s1",
             "tool": "Agent",
             "started": "a1",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -674,7 +674,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -755,7 +755,7 @@
             "session": "s1",
             "wake": true,
             "woke": "a1",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -784,7 +784,7 @@
           "facts": {
             "branch": "main",
             "session": "s1",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -817,7 +817,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Ask me a colour.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -844,7 +844,7 @@
             "turn": "00000021-0000-4000-8000-000000000021",
             "server": "elicit",
             "text": "Which color should I use?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],

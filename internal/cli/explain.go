@@ -72,23 +72,25 @@ type explainEvent struct {
 // name the user's work or session (Branch, Cwd, Session) or stands for a
 // screen's text (Screen).
 type explainFacts struct {
-	At       string            `json:"at,omitempty"`
-	Turn     string            `json:"turn,omitempty"`
-	Subagent bool              `json:"subagent,omitempty"`
-	Tool     string            `json:"tool,omitempty"`
-	Server   string            `json:"server,omitempty"`
-	Start    string            `json:"start,omitempty"`
-	Reason   string            `json:"reason,omitempty"`
-	Notice   string            `json:"notice,omitempty"`
-	From     time.Time         `json:"from,omitzero"`
-	Asked    time.Time         `json:"asked,omitzero"`
-	Question bool              `json:"question,omitempty"`
-	Tasks    []state.EventTask `json:"tasks,omitempty"`
-	Started  string            `json:"started,omitempty"`
-	Wake     bool              `json:"wake,omitempty"`
-	Woke     string            `json:"woke,omitempty"`
-	Messages []string          `json:"messages,omitempty"`
-	Size     int64             `json:"size,omitempty"`
+	Hook      string            `json:"hook,omitempty"`
+	Whose     string            `json:"whose,omitempty"`
+	Withdrawn string            `json:"withdrawn,omitempty"`
+	Turn      string            `json:"turn,omitempty"`
+	Subagent  bool              `json:"subagent,omitempty"`
+	Tool      string            `json:"tool,omitempty"`
+	Server    string            `json:"server,omitempty"`
+	Start     string            `json:"start,omitempty"`
+	Reason    string            `json:"reason,omitempty"`
+	Notice    string            `json:"notice,omitempty"`
+	From      time.Time         `json:"from,omitzero"`
+	Asked     time.Time         `json:"asked,omitzero"`
+	Question  bool              `json:"question,omitempty"`
+	Tasks     []state.EventTask `json:"tasks,omitempty"`
+	Started   string            `json:"started,omitempty"`
+	Wake      bool              `json:"wake,omitempty"`
+	Woke      string            `json:"woke,omitempty"`
+	Messages  []string          `json:"messages,omitempty"`
+	Size      int64             `json:"size,omitempty"`
 }
 
 // explainArgs are hq explain's arguments.
@@ -128,7 +130,7 @@ func runExplain(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	as, err := lookSettled(d, func(d deps) ([]agent.Agent, error) { return collectWith(d, runningSandboxes(d)) })
+	as, err := lookDecided(d, func(d deps) ([]agent.Agent, error) { return lookWith(d, runningSandboxes(d)) })
 	if err != nil {
 		return err
 	}
@@ -215,7 +217,7 @@ func explainEventOf(e state.Event, after string) explainEvent {
 		Number: e.Number, Time: e.Time.UTC(), Source: state.Clean(e.Source), Kind: state.Clean(e.Kind),
 		What: eventWhat(e) + asideWhy(e.Aside), what: eventWhat(e), State: after, Aside: state.Clean(e.Aside), Basis: e.Basis,
 		Facts: explainFacts{
-			At: state.Clean(f.At), Turn: state.Clean(f.Turn), Subagent: f.Subagent, Tool: state.Clean(f.Tool),
+			Hook: state.Clean(f.Hook), Whose: state.Clean(f.Whose), Withdrawn: state.Clean(f.Withdrawn), Turn: state.Clean(f.Turn), Subagent: f.Subagent, Tool: state.Clean(f.Tool),
 			Server: state.Clean(f.Server), Start: state.Clean(f.Start), Reason: state.Clean(f.Reason),
 			Notice: state.Clean(f.Notice), From: f.From.UTC(), Asked: f.Asked.UTC(), Question: f.Question, Tasks: tasks,
 			Started: state.Clean(f.Started), Wake: f.Wake, Woke: state.Clean(f.Woke), Messages: messages, Size: f.Size,
@@ -282,7 +284,7 @@ func hookWhat(e state.Event) string {
 	f := e.Facts
 	var what string
 	switch e.Kind {
-	case "UserPromptSubmit":
+	case state.KindPrompt:
 		what = "prompt"
 		if f.Wake {
 			what = "Claude's wake-up when background work finished"
@@ -308,31 +310,31 @@ func hookWhat(e state.Event) string {
 		if len(running) > 0 {
 			what += ", running: " + strings.Join(running, ", ")
 		}
-	case "PermissionRequest":
+	case state.KindPermission:
 		what = "dialog of tool " + state.Clean(f.Tool)
-	case "Notification":
+	case state.KindNotification:
 		what = "notification"
 		if f.Notice != "" {
 			what += " (" + state.Clean(f.Notice) + ")"
 		}
-	case "Elicitation":
+	case state.KindElicitation:
 		what = "MCP elicitation of server " + state.Clean(f.Server)
-	case "ElicitationResult":
+	case state.KindElicitationResult:
 		what = "MCP elicitation answered"
-	case "PostToolUse", "PostToolUseFailure":
+	case state.KindToolEnd, state.KindToolFail:
 		what = "end of tool " + state.Clean(f.Tool)
-		if e.Kind == "PostToolUseFailure" {
+		if e.Kind == state.KindToolFail {
 			what = "failed " + what
 		}
 		if s := f.Started; s != "" {
 			what += ", started " + startedWhat(s)
 		}
-	case "SessionStart":
+	case state.KindSessionStart:
 		what = "session start (" + state.Clean(f.Start) + ")"
-	case "SessionEnd":
+	case state.KindSessionEnd:
 		what = "session end (" + state.Clean(f.Reason) + ")"
 	case state.KindDelivery:
-		what = deliveryWhat(f)
+		what = deliveryWhat(e)
 	case state.KindUnreadable:
 		what = "an event file hq cannot read, " + strconv.FormatInt(f.Size, 10) + " bytes"
 	default:
@@ -345,34 +347,36 @@ func hookWhat(e state.Event) string {
 }
 
 // startedWhat says what background work a tool started, as the hook's
-// list names it: ID, ~ID for a subagent's, =ID for a watch of the agent's
-// own.
+// list names it: ID, state.SubagentMark and ID for a subagent's,
+// state.MonitorMark and ID for a watch of the agent's own.
 func startedWhat(s string) string {
-	switch {
-	case strings.HasPrefix(s, "~"):
-		return "a subagent's background task " + state.Clean(s[1:])
-	case strings.HasPrefix(s, "="):
-		return "its own watch " + state.Clean(s[1:])
+	if id, ok := strings.CutPrefix(s, state.SubagentMark); ok {
+		return "a subagent's background task " + state.Clean(id)
+	}
+	if id, ok := strings.CutPrefix(s, state.MonitorMark); ok {
+		return "its own watch " + state.Clean(id)
 	}
 	return "background work " + state.Clean(s)
 }
 
-// deliveryWhat says how a delivery delivered how many messages.
-func deliveryWhat(f state.Facts) string {
-	n := len(f.Messages)
+// deliveryWhat says how delivery e delivered how many messages: the hook,
+// at the case it delivered at, or hq typing them in.
+func deliveryWhat(e state.Event) string {
+	n := len(e.Facts.Messages)
 	what := "delivery of " + strconv.Itoa(n) + " message"
 	if n != 1 {
 		what += "s"
 	}
-	switch f.At {
-	case "stop":
-		return what + ", at a turn end the hook held back"
-	case "prompt":
-		return what + ", with the next prompt"
-	case "answer":
-		return what + ", after a tool's end"
-	case state.AtTyped:
+	if e.Source == state.SourceHQ {
 		return what + ", typed in by hq"
+	}
+	switch e.Facts.Hook {
+	case state.CaseStop:
+		return what + ", at a turn end the hook held back"
+	case state.CasePrompt:
+		return what + ", with the next prompt"
+	case state.CaseAnswer:
+		return what + ", after a tool's end"
 	}
 	return what
 }
@@ -388,14 +392,14 @@ func hqWhat(e state.Event) string {
 	case state.KindTakenDown:
 		return "taken down for a restart"
 	case state.KindAnswer:
-		if f.At == state.AtOwn {
+		if f.Whose == state.DialogOwn {
 			return "answered a dialog of Claude's own"
 		}
 		return "answered its question dialog"
 	case state.KindWithdrawn:
-		return "took back what it appended as " + state.Clean(f.At) + ": it did not reach the agent"
+		return "took back what it appended as " + state.Clean(f.Withdrawn) + ": it did not reach the agent"
 	case state.KindDelivery:
-		return deliveryWhat(f)
+		return deliveryWhat(e)
 	}
 	return ""
 }

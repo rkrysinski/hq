@@ -17,7 +17,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -41,7 +41,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -67,7 +67,7 @@
           "file": "000000003.prompt.1",
           "facts": {
             "branch": "main",
-            "at": "prompt",
+            "hook": "prompt",
             "size": 35
           }
         }
@@ -94,7 +94,7 @@
             "cwd": "/w/app",
             "turn": "00000023-0000-4000-8000-000000000023",
             "prompt": "Say hi in one word.\nThen say bye in one word.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -116,7 +116,7 @@
           "time": "2026-01-01T00:00:05Z",
           "file": "000000005.stop.1",
           "facts": {
-            "at": "stop",
+            "hook": "stop",
             "size": 16777853
           }
         }
@@ -143,7 +143,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -168,7 +168,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "reason": "prompt_input_exit",
-            "at": "end"
+            "hook": "end"
           }
         }
       ],

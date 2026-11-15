@@ -34,7 +34,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "startup",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -62,7 +62,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Run ./wait.sh 300 in a subagent, twice.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -99,7 +99,7 @@
             "session": "s1",
             "tool": "Agent",
             "started": "a1",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -136,7 +136,7 @@
             "session": "s1",
             "tool": "Agent",
             "started": "a2",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -192,7 +192,7 @@
             "session": "s1",
             "wake": true,
             "woke": "a1",
-            "at": "prompt"
+            "hook": "prompt"
           }
         },
         {
@@ -257,7 +257,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -303,7 +303,7 @@
             "session": "s1",
             "wake": true,
             "woke": "a2",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -338,7 +338,7 @@
           "facts": {
             "branch": "main",
             "session": "s1",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -371,7 +371,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Count to ten.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -420,7 +420,7 @@
             "session": "s1",
             "wake": true,
             "woke": "a9",
-            "at": "prompt"
+            "hook": "prompt"
           }
         },
         {
@@ -458,7 +458,7 @@
           "facts": {
             "branch": "main",
             "session": "s1",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

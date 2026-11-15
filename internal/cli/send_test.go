@@ -259,7 +259,7 @@ func TestKillRemovesTheMessagesWaitingForIt(t *testing.T) {
 
 func TestQueuedSaysWhenAnEndedAgentsMessagesGo(t *testing.T) {
 	f := sendFakes(state.Done)
-	as, _ := collect(f.deps())
+	as, _ := lookNow(f.deps())
 	a := as[0]
 	a.State = state.Ended
 	if got := queued(a, false); got != "queued: a has ended; delivered once it is relaunched" {

@@ -118,13 +118,11 @@ type replayStore struct {
 func (s *replayStore) Ingest(string, string) error { return nil }
 
 func (s *replayStore) Append(_ string, es ...state.Event) ([]state.Event, error) {
-	var out []state.Event
-	for _, e := range es {
-		e.Number = int64(len(s.events)) + 1
-		e.Aside = journal.Aside(s.events, e)
-		s.events = append(s.events, e)
-		out = append(out, e)
+	out := journal.StandingOf(s.events).SetAside(es)
+	for i := range out {
+		out[i].Number = int64(len(s.events)) + int64(i) + 1
 	}
+	s.events = append(s.events, out...)
 	return out, nil
 }
 
@@ -287,7 +285,7 @@ func mustJSON(t *testing.T, v any) string {
 	return string(b)
 }
 
-func TestTheLookCapturesTheScreensOfAllUnsettledAgentsInOneCall(t *testing.T) {
+func TestTheLookCapturesEveryScreenThatMayTellInOneCall(t *testing.T) {
 	now := time.Unix(1000, 0)
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2"), lookWindow("3"), lookWindow("4")}
 	ws[3].PaneDead, ws[3].DeadAt = true, now.Add(-time.Minute)
@@ -303,17 +301,17 @@ func TestTheLookCapturesTheScreensOfAllUnsettledAgentsInOneCall(t *testing.T) {
 		t.Fatalf("captures: %s", got)
 	}
 	if as[0].State != state.Done || as[0].Last != declinedLine || !as[0].Since.Equal(now) {
-		t.Fatalf("settled: %+v", as[0])
+		t.Fatalf("no screen to tell: %+v", as[0])
 	}
 	if as[2].State != state.Working || as[3].State != state.Ended {
 		t.Fatalf("the others: %+v %+v", as[2], as[3])
 	}
 
-	// No agent is unsettled: no capture at all.
+	// No screen may tell: no capture at all.
 	s = newStore(nil)
 	s.look(ws[2:], rs, Sandboxes{}, now)
 	if len(s.captures) != 0 {
-		t.Fatalf("captures with nothing unsettled: %v", s.captures)
+		t.Fatalf("captures with no screen that may tell: %v", s.captures)
 	}
 }
 
@@ -599,9 +597,9 @@ func TestALookAtFifteenLongJournalsFoldsOnlyWhatIsNew(t *testing.T) {
 		ws = append(ws, w)
 		events := make([]state.Event, 0, 50_000)
 		for n := range 50_000 {
-			e := state.Event{Source: state.SourceHook, Kind: "UserPromptSubmit", Time: now.Add(time.Duration(n-50_000) * time.Second), Facts: state.Facts{At: "prompt", Turn: "t" + strconv.Itoa(n)}}
+			e := state.Event{Source: state.SourceHook, Kind: "UserPromptSubmit", Time: now.Add(time.Duration(n-50_000) * time.Second), Facts: state.Facts{Hook: "prompt", Turn: "t" + strconv.Itoa(n)}}
 			if n%2 == 1 {
-				e.Kind, e.Facts.At = state.KindTurnEnd, "stop"
+				e.Kind, e.Facts.Hook = state.KindTurnEnd, "stop"
 			}
 			events = append(events, e)
 		}
@@ -615,7 +613,7 @@ func TestALookAtFifteenLongJournalsFoldsOnlyWhatIsNew(t *testing.T) {
 	}
 	s.read = 0
 	for _, w := range ws {
-		s.Put(w.Options["id"], state.Event{Source: state.SourceHook, Kind: "UserPromptSubmit", Time: now, Facts: state.Facts{At: "prompt", Turn: "next"}})
+		s.Put(w.Options["id"], state.Event{Source: state.SourceHook, Kind: "UserPromptSubmit", Time: now, Facts: state.Facts{Hook: "prompt", Turn: "next"}})
 	}
 	start := time.Now()
 	as := Look(ws, Sandboxes{}, now.Add(time.Second), s, folds)

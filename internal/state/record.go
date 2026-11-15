@@ -84,7 +84,7 @@ func Records(root string) ([]Record, error) {
 		if !ok || !idRE.MatchString(id) {
 			continue
 		}
-		data, info, err := readData(filepath.Join(Dir(root), e.Name()))
+		data, info, err := ReadFile(filepath.Join(Dir(root), e.Name()))
 		if err != nil || info.Size() > maxRecord {
 			continue
 		}

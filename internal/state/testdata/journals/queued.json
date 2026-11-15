@@ -17,7 +17,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "prompt": "Write a 400-word story about a whale. Use no tools.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -42,7 +42,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -66,7 +66,7 @@
             "session": "00000001-0000-4000-8000-000000000001",
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -95,7 +95,7 @@
             "session": "00000006-0000-4000-8000-000000000006",
             "cwd": "/w/app",
             "turn": "0000002b-0000-4000-8000-00000000002b",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -125,7 +125,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "prompt": "Write a 400-word story about a whale. Use no tools.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -151,7 +151,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -176,7 +176,7 @@
             "session": "00000001-0000-4000-8000-000000000001",
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -215,7 +215,7 @@
             "cwd": "/w/app",
             "turn": "00000019-0000-4000-8000-000000000019",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -240,7 +240,7 @@
             "session": "00000006-0000-4000-8000-000000000006",
             "cwd": "/w/app",
             "turn": "0000002b-0000-4000-8000-00000000002b",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

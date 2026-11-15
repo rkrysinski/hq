@@ -5,18 +5,18 @@ import (
 	"time"
 )
 
-// An agent's screen can overrule its hooks' report from SettleDelay after
+// An agent's screen can overrule its hooks' report from OverruleDelay after
 // that report on, not a moment before.
-func TestTheScreenOverrulesAReportFromSettleDelayOn(t *testing.T) {
+func TestTheScreenOverrulesAReportFromOverruleDelayOn(t *testing.T) {
 	f := Fold{}.With(userPrompt(1, "t1"))
-	if f.Unsettled(atSecond(1).Add(SettleDelay - time.Nanosecond)) {
-		t.Error("unsettled before SettleDelay")
+	if f.ScreenMayTell(atSecond(1).Add(OverruleDelay - time.Nanosecond)) {
+		t.Error("may tell before OverruleDelay")
 	}
-	if !f.Unsettled(atSecond(1).Add(SettleDelay)) {
-		t.Error("settled at SettleDelay")
+	if !f.ScreenMayTell(atSecond(1).Add(OverruleDelay)) {
+		t.Error("may not tell at OverruleDelay")
 	}
-	if (Fold{}).Unsettled(atSecond(9)) {
-		t.Error("unsettled before any report")
+	if (Fold{}).ScreenMayTell(atSecond(9)) {
+		t.Error("may tell before any report")
 	}
 }
 

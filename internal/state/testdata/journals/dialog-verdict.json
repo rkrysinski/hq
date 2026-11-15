@@ -34,7 +34,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "startup",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -62,7 +62,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Ask me a colour.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -86,7 +86,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -119,7 +119,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Ask me a colour.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -146,7 +146,7 @@
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "AskUserQuestion",
             "text": "Which colour do you pick: red or blue?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -328,7 +328,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "AskUserQuestion",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -355,7 +355,7 @@
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "AskUserQuestion",
             "text": "Which colour do you pick: red or blue?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -412,7 +412,7 @@
             "turn": "00000021-0000-4000-8000-000000000021",
             "server": "elicit",
             "text": "Which color should I use?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -468,7 +468,7 @@
             "cwd": "/w/app",
             "turn": "00000015-0000-4000-8000-000000000015",
             "server": "elicit",
-            "at": "result"
+            "hook": "result"
           }
         }
       ],
@@ -511,7 +511,7 @@
             "turn": "0000001a-0000-4000-8000-00000000001a",
             "server": "elicit",
             "text": "Sign in to the example service.",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -580,7 +580,7 @@
             "session": "s1",
             "tool": "Bash",
             "text": "Bash: List the files",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -632,7 +632,7 @@
             "session": "s1",
             "tool": "Bash",
             "text": "Bash: List the files",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -684,7 +684,7 @@
             "session": "s1",
             "tool": "Bash",
             "text": "Bash: List the files",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -736,7 +736,7 @@
             "session": "s1",
             "tool": "Bash",
             "text": "Bash: List the files",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -788,7 +788,7 @@
             "session": "s1",
             "tool": "Bash",
             "text": "Bash: List the files",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -840,7 +840,7 @@
             "session": "s1",
             "tool": "Bash",
             "text": "Bash: List the files",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -892,7 +892,7 @@
             "session": "s1",
             "tool": "Bash",
             "text": "Bash: List the files",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -941,7 +941,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Start a subagent.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -979,7 +979,7 @@
             "session": "s1",
             "tool": "Agent",
             "started": "a1",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -1023,7 +1023,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -1067,7 +1067,7 @@
             "subagent": true,
             "tool": "mcp__elicit__ask_color",
             "text": "mcp__elicit__ask_color: Pick a colour",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -1144,7 +1144,7 @@
             "session": "s1",
             "subagent": true,
             "tool": "mcp__elicit__ask_color",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -1171,7 +1171,7 @@
             "turn": "00000012-0000-4000-8000-000000000012",
             "server": "elicit",
             "text": "Which color should I use?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -1209,7 +1209,7 @@
             "cwd": "/w/app",
             "turn": "00000022-0000-4000-8000-000000000022",
             "server": "elicit",
-            "at": "result"
+            "hook": "result"
           }
         }
       ],

@@ -34,7 +34,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "startup",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -64,7 +64,7 @@
             "session": "s1",
             "turn": "t1",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -97,7 +97,7 @@
             "session": "s1",
             "turn": "t1",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -195,7 +195,7 @@
             "session": "s1",
             "turn": "t2",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -228,7 +228,7 @@
             "session": "s1",
             "turn": "t2",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -312,7 +312,7 @@
             "session": "s1",
             "turn": "t3",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -345,7 +345,7 @@
             "session": "s1",
             "turn": "t3",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -429,7 +429,7 @@
             "session": "s1",
             "turn": "t4",
             "prompt": "Run a command.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -462,7 +462,7 @@
             "turn": "t4",
             "tool": "Bash",
             "text": "Bash: Run a command",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],

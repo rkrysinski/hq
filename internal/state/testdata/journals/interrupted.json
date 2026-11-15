@@ -17,7 +17,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -54,7 +54,7 @@
             "session": "s",
             "tool": "Agent",
             "started": "a1",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -91,7 +91,7 @@
             "session": "s",
             "tool": "Agent",
             "started": "a2",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -128,7 +128,7 @@
             "session": "s",
             "tool": "Workflow",
             "started": "w3",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -154,7 +154,7 @@
             "branch": "main",
             "wake": true,
             "woke": "a1",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -179,7 +179,7 @@
           "file": "000000006.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -210,7 +210,7 @@
             "branch": "main",
             "wake": true,
             "woke": "a2",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -236,7 +236,7 @@
           "file": "000000008.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -267,7 +267,7 @@
             "branch": "main",
             "wake": true,
             "woke": "w3",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -293,7 +293,7 @@
           "file": "000000010.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

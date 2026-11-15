@@ -379,22 +379,22 @@ func defaultDeps() deps {
 	}
 }
 
-// lookStore is where a look reads the agents' journals and screens
-// (agent.Store): the journals' store, and tmux.
-type lookStore struct {
+// lookSources are where a look reads and appends (agent.Sources): the
+// journals' store, and tmux for the screens.
+type lookSources struct {
 	journal.Store
 	screens func(panes []string) (map[string]string, error)
 }
 
-func (s lookStore) Screens(panes []string) (map[string]string, error) { return s.screens(panes) }
+func (s lookSources) Screens(panes []string) (map[string]string, error) { return s.screens(panes) }
 
-// store is the look's store of these dependencies.
-func (d deps) store() agent.Store { return lookStore{d.journal, d.tmux.Screens} }
+// sources are the look's sources of these dependencies.
+func (d deps) sources() agent.Sources { return lookSources{d.journal, d.tmux.Screens} }
 
 // look is a look at the agents of the home windows ws (agent.Look), with
 // sbx's answer running.
 func (d deps) look(ws []tmux.Window, running agent.Sandboxes) []agent.Agent {
-	return agent.Look(ws, running, d.now(), d.store(), d.folds)
+	return agent.Look(ws, running, d.now(), d.sources(), d.folds)
 }
 
 // fromJournals are the agents of the home windows ws with their state

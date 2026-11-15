@@ -150,7 +150,7 @@ func asks(a agent.Agent, det state.Detail) *state.Ask {
 // so a single look tells the turn's end at once, like the list. Messages
 // left waiting for agents at their prompt are typed in (deliverWaiting).
 func gatherAgents(d deps) ([]agent.Agent, error) {
-	as, err := lookSettled(d, collect)
+	as, err := lookDecided(d, lookNow)
 	if err != nil {
 		return nil, err
 	}
@@ -158,39 +158,39 @@ func gatherAgents(d deps) ([]agent.Agent, error) {
 	return as, nil
 }
 
-// lookSettled takes a look at the agents with collect once tmux is known
-// to be fit, and one more RestDelay later when a working agent's screen
-// is at rest (gatherAgents).
-func lookSettled(d deps, collect func(deps) ([]agent.Agent, error)) ([]agent.Agent, error) {
+// lookDecided takes a look at the agents with look once tmux is known to
+// be fit, and one more RestDelay later when a working agent's screen is at
+// rest, which that look decides (gatherAgents).
+func lookDecided(d deps, look func(deps) ([]agent.Agent, error)) ([]agent.Agent, error) {
 	if err := checkTmux(d.tmux); err != nil {
 		return nil, err
 	}
-	as, err := collect(d)
+	as, err := look(d)
 	if err != nil {
 		return nil, err
 	}
 	if resting(as) {
 		d.sleep(agent.RestDelay)
-		return collect(d)
+		return look(d)
 	}
 	return as, nil
 }
 
-// collect gathers the agents with their state from tmux, their journals,
+// lookNow is a look at the agents, their state from tmux, their journals,
 // sbx and their screens (design §5.1, agent.Look). When sbx fails or does
 // not answer in time, the states come from tmux and the hooks alone; an sbx
 // too old for hq fails it (#172).
-func collect(d deps) ([]agent.Agent, error) {
+func lookNow(d deps) ([]agent.Agent, error) {
 	running, err := askSandboxes(d)
 	if err != nil {
 		return nil, sbxErr(err)
 	}
-	return collectWith(d, running)
+	return lookWith(d, running)
 }
 
-// collectWith is collect with sbx's answer given: which sandboxes run, and
+// lookWith is lookNow with sbx's answer given: which sandboxes run, and
 // when hq asked.
-func collectWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
+func lookWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
 	ws, err := d.tmux.Windows()
 	if err != nil {
 		return nil, tmuxErr(err)

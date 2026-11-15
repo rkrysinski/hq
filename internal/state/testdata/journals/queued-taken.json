@@ -34,7 +34,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "startup",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -64,7 +64,7 @@
             "session": "s1",
             "turn": "q1",
             "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -93,7 +93,7 @@
             "session": "s1",
             "turn": "q1",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -183,7 +183,7 @@
             "session": "s1",
             "turn": "q2",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -212,7 +212,7 @@
             "branch": "main",
             "session": "s1",
             "turn": "q2",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -247,7 +247,7 @@
             "session": "s1",
             "turn": "q3",
             "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -277,7 +277,7 @@
             "session": "s1",
             "turn": "q3",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -362,7 +362,7 @@
             "session": "s1",
             "turn": "q4",
             "prompt": "Write a 400-word story about a lighthouse keeper. Use no tools.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -392,7 +392,7 @@
             "session": "s1",
             "turn": "q4",
             "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -444,7 +444,7 @@
             "session": "s1",
             "turn": "q5",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -474,7 +474,7 @@
             "branch": "main",
             "session": "s1",
             "turn": "q5",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

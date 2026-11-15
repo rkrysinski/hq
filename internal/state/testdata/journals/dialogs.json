@@ -17,7 +17,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -43,7 +43,7 @@
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "Bash",
             "text": "Bash: Create empty probe file in /tmp",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -92,7 +92,7 @@
             "session": "s",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "Read",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -120,7 +120,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -146,7 +146,7 @@
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "AskUserQuestion",
             "text": "Which colour do you pick: red or blue?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -174,7 +174,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "AskUserQuestion",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -199,7 +199,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "question": true,
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -229,7 +229,7 @@
             "cwd": "/w/app",
             "turn": "00000023-0000-4000-8000-000000000023",
             "prompt": "Say hi in one word.\nThen say bye in one word.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -256,7 +256,7 @@
             "turn": "0000000a-0000-4000-8000-00000000000a",
             "tool": "AskUserQuestion",
             "text": "Which color?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -284,7 +284,7 @@
             "cwd": "/w/app",
             "turn": "0000000a-0000-4000-8000-00000000000a",
             "tool": "AskUserQuestion",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -311,7 +311,7 @@
             "turn": "0000002d-0000-4000-8000-00000000002d",
             "tool": "AskUserQuestion",
             "text": "Which colour?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -339,7 +339,7 @@
             "cwd": "/w/app",
             "turn": "00000024-0000-4000-8000-000000000024",
             "tool": "AskUserQuestion",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -364,7 +364,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

@@ -109,7 +109,7 @@ func TestParseEventTakesOnlyWhatTheRulesRead(t *testing.T) {
 
 func TestParseEventOfADelivery(t *testing.T) {
 	e, r := ParseEvent("000000004.9", []byte("delivery prompt\n0000000001700000000-0a1b2c3d.sup\n../../etc\n0000000001700000001-1a2b3c4d.now\n"), time.Unix(5, 0))
-	if r != nil || e.Kind != KindDelivery || e.Facts.At != "prompt" || e.Source != SourceHook ||
+	if r != nil || e.Kind != KindDelivery || e.Facts.Hook != "prompt" || e.Source != SourceHook ||
 		strings.Join(e.Facts.Messages, " ") != "0000000001700000000-0a1b2c3d.sup 0000000001700000001-1a2b3c4d.now" {
 		t.Errorf("%+v %+v", e, r)
 	}
@@ -155,16 +155,16 @@ func TestParseEventTakesTheHooksKindFromTheFilesName(t *testing.T) {
 		"000000001.start.42": "start", "000000012.answer.7": "answer", "000000001.42": "",
 		"000000001.Stop.42": "", "00000001.stop.42": "", "000000001.stop.": "", "x000000001.stop.42": "",
 	} {
-		if e, _ := ParseEvent(name, eventFile(t, "prompt"), at); e.Facts.At != kind || e.Kind != "UserPromptSubmit" {
+		if e, _ := ParseEvent(name, eventFile(t, "prompt"), at); e.Facts.Hook != kind || e.Kind != "UserPromptSubmit" {
 			t.Errorf("%s: %+v", name, e.Facts)
 		}
 	}
 	// A report hq cannot read keeps the case and the branch the hook
 	// wrote; a file too large to read the case.
-	if e, _ := ParseEvent("000000003.prompt.9", []byte("branch feat-42\n{\"session_id\":\"0b1c"), at); e.Kind != KindUnreadable || e.Facts.At != "prompt" || e.Facts.Branch != "feat-42" {
+	if e, _ := ParseEvent("000000003.prompt.9", []byte("branch feat-42\n{\"session_id\":\"0b1c"), at); e.Kind != KindUnreadable || e.Facts.Hook != "prompt" || e.Facts.Branch != "feat-42" {
 		t.Errorf("cut off: %+v", e)
 	}
-	if e := UnreadableEvent("000000004.stop.9", maxFile+1, at); e.Facts.At != "stop" || e.Facts.Size != maxFile+1 {
+	if e := UnreadableEvent("000000004.stop.9", maxFile+1, at); e.Facts.Hook != "stop" || e.Facts.Size != maxFile+1 {
 		t.Errorf("too large: %+v", e)
 	}
 }

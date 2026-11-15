@@ -149,7 +149,7 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		h.Leave(root, "a1", "000000001.1", []byte("delivery stop\n0001-ab.sup\n0002-cd\n"), at)
 		must(t, h.Store.Ingest(root, "a1"))
 		e := read(t, h.Store, "a1").Events[0]
-		expect(t, e.Kind == state.KindDelivery && e.Facts.At == "stop" && strings.Join(e.Facts.Messages, " ") == "0001-ab.sup 0002-cd", "%+v", e)
+		expect(t, e.Kind == state.KindDelivery && e.Facts.Hook == state.CaseStop && strings.Join(e.Facts.Messages, " ") == "0001-ab.sup 0002-cd", "%+v", e)
 	})
 
 	t.Run("hq's own events", func(t *testing.T) {
@@ -176,7 +176,7 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		rest := state.Event{Source: state.SourceScreen, Kind: state.KindAtRest, Time: at, Basis: basis, Facts: state.Facts{Screen: "f1"}}
 		other := rest
 		other.Facts.Screen = "f2"
-		typed := state.Event{Source: state.SourceHQ, Kind: state.KindDelivery, Time: at, Basis: basis, Facts: state.Facts{At: state.AtTyped, Messages: []string{"0001-ab"}}}
+		typed := state.Event{Source: state.SourceHQ, Kind: state.KindDelivery, Time: at, Basis: basis, Facts: state.Facts{Messages: []string{"0001-ab"}}}
 		out, err := h.Store.Append("a1", rest, rest, other, rest, typed, typed)
 		require(t, err == nil && len(out) == 6, "%v %+v", err, out)
 		{

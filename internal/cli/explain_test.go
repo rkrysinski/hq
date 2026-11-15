@@ -30,7 +30,7 @@ func explainFakes(events ...state.Event) *fakes {
 
 // hookEvent is an event of the hook of kind, at the hook's case at, at t.
 func hookEvent(kind, at string, t time.Time, facts state.Facts) state.Event {
-	facts.At = at
+	facts.Hook = at
 	return state.Event{Source: state.SourceHook, Kind: kind, Time: t, Facts: facts}
 }
 
@@ -157,7 +157,7 @@ func TestExplainJSONGivesTheSameEventsAsData(t *testing.T) {
 		}
 		last := v.Events[len(v.Events)-1]
 		if last.Source != state.SourceHook || last.Kind != state.KindTurnEnd || last.State != state.Working || last.What != "turn end, running: subagent a58b4" ||
-			last.Facts.At != "stop" || len(last.Facts.Tasks) != 1 || last.Facts.Tasks[0].ID != "a58b4" || last.Facts.Turn != "t1" {
+			last.Facts.Hook != "stop" || len(last.Facts.Tasks) != 1 || last.Facts.Tasks[0].ID != "a58b4" || last.Facts.Turn != "t1" {
 			t.Fatalf("all %v: last %+v", all, last)
 		}
 	}
@@ -223,10 +223,10 @@ func TestEventWhatTellsEveryKind(t *testing.T) {
 		{hook("PostToolUse", state.Facts{Tool: "Monitor", Started: "=m1"}), "end of tool Monitor, started its own watch m1"},
 		{hook("SessionStart", state.Facts{Start: "resume"}), "session start (resume)"},
 		{hook("SessionEnd", state.Facts{Reason: "prompt_input_exit"}), "session end (prompt_input_exit)"},
-		{hook(state.KindDelivery, state.Facts{At: "stop", Messages: []string{"1"}}), "delivery of 1 message, at a turn end the hook held back"},
-		{hook(state.KindDelivery, state.Facts{At: "prompt", Messages: []string{"1", "2"}}), "delivery of 2 messages, with the next prompt"},
-		{hook(state.KindDelivery, state.Facts{At: "answer", Messages: []string{"1"}}), "delivery of 1 message, after a tool's end"},
-		{hook(state.KindDelivery, state.Facts{At: "other"}), "delivery of 0 messages"},
+		{hook(state.KindDelivery, state.Facts{Hook: "stop", Messages: []string{"1"}}), "delivery of 1 message, at a turn end the hook held back"},
+		{hook(state.KindDelivery, state.Facts{Hook: "prompt", Messages: []string{"1", "2"}}), "delivery of 2 messages, with the next prompt"},
+		{hook(state.KindDelivery, state.Facts{Hook: "answer", Messages: []string{"1"}}), "delivery of 1 message, after a tool's end"},
+		{hook(state.KindDelivery, state.Facts{Hook: "other"}), "delivery of 0 messages"},
 		{hook(state.KindUnreadable, state.Facts{Size: 20 << 20}), "an event file hq cannot read, 20971520 bytes"},
 		{hook("PreCompact", state.Facts{}), "PreCompact"},
 		{of(state.SourceScreen, state.KindTurnEnded, state.Facts{Text: "Interrupted"}), "a turn the user ended (Esc)"},
@@ -247,10 +247,10 @@ func TestEventWhatTellsEveryKind(t *testing.T) {
 		{of(state.SourceHQ, state.KindLaunched, state.Facts{Start: "restore"}), "launched (restore)"},
 		{of(state.SourceHQ, state.KindRelaunched, state.Facts{}), "relaunched"},
 		{of(state.SourceHQ, state.KindTakenDown, state.Facts{}), "taken down for a restart"},
-		{of(state.SourceHQ, state.KindAnswer, state.Facts{At: state.AtQuestion}), "answered its question dialog"},
-		{of(state.SourceHQ, state.KindAnswer, state.Facts{At: state.AtOwn}), "answered a dialog of Claude's own"},
-		{of(state.SourceHQ, state.KindWithdrawn, state.Facts{At: state.KindDelivery}), "took back what it appended as delivery: it did not reach the agent"},
-		{of(state.SourceHQ, state.KindDelivery, state.Facts{At: state.AtTyped, Messages: []string{"1", "2"}}), "delivery of 2 messages, typed in by hq"},
+		{of(state.SourceHQ, state.KindAnswer, state.Facts{Whose: state.DialogHooks}), "answered its question dialog"},
+		{of(state.SourceHQ, state.KindAnswer, state.Facts{Whose: state.DialogOwn}), "answered a dialog of Claude's own"},
+		{of(state.SourceHQ, state.KindWithdrawn, state.Facts{Withdrawn: state.KindDelivery}), "took back what it appended as delivery: it did not reach the agent"},
+		{of(state.SourceHQ, state.KindDelivery, state.Facts{Messages: []string{"1", "2"}}), "delivery of 2 messages, typed in by hq"},
 		{of(state.SourceHQ, "Other", state.Facts{}), "Other"},
 	} {
 		if got := eventWhat(tc.e); got != tc.want {

@@ -34,7 +34,7 @@
             "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "start": "startup",
-            "at": "start"
+            "hook": "start"
           }
         }
       ],
@@ -61,7 +61,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Count to ten.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -132,7 +132,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Count again.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -179,7 +179,7 @@
           "facts": {
             "branch": "main",
             "session": "s1",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -212,7 +212,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "List the files.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -244,7 +244,7 @@
             "session": "s1",
             "tool": "Bash",
             "text": "Bash: List the files",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -313,7 +313,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "List them again.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -345,7 +345,7 @@
             "session": "s1",
             "tool": "Bash",
             "text": "Bash: List the files",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -396,7 +396,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Ask me a colour.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -423,7 +423,7 @@
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "AskUserQuestion",
             "text": "Which colour do you pick: red or blue?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -482,7 +482,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Ask me again.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -509,7 +509,7 @@
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "AskUserQuestion",
             "text": "Which colour do you pick: red or blue?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -570,7 +570,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Ask once more.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -597,7 +597,7 @@
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "AskUserQuestion",
             "text": "Which colour do you pick: red or blue?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -648,7 +648,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Ask me a colour, and chat.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -675,7 +675,7 @@
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "AskUserQuestion",
             "text": "Which colour do you pick: red or blue?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -732,7 +732,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Run a command.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -766,7 +766,7 @@
             "session": "s1",
             "turn": "t9",
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -815,7 +815,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Write a reply.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -863,7 +863,7 @@
             "branch": "main",
             "session": "s1",
             "prompt": "Work on.",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -907,7 +907,7 @@
           "facts": {
             "branch": "main",
             "session": "s1",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

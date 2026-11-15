@@ -17,7 +17,7 @@
             "cwd": "/w/app/.claude/worktrees/feat-42",
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "prompt": "say hi",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -56,7 +56,7 @@
             "turn": "0000001b-0000-4000-8000-00000000001b",
             "tool": "Agent",
             "started": "a58b43841609db047",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -87,7 +87,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -124,7 +124,7 @@
             "turn": "00000012-0000-4000-8000-000000000012",
             "server": "elicit",
             "text": "Which color should I use?",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -152,7 +152,7 @@
             "cwd": "/w/app",
             "turn": "00000022-0000-4000-8000-000000000022",
             "server": "elicit",
-            "at": "result"
+            "hook": "result"
           }
         }
       ],
@@ -185,7 +185,7 @@
             "subagent": true,
             "tool": "Bash",
             "text": "Bash: List the files",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -224,7 +224,7 @@
             "session": "s",
             "subagent": true,
             "tool": "Bash",
-            "at": "answer"
+            "hook": "answer"
           }
         }
       ],
@@ -265,7 +265,7 @@
                 "status": "running"
               }
             ],
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],
@@ -303,7 +303,7 @@
             "subagent": true,
             "tool": "mcp__elicit__ask_color",
             "text": "mcp__elicit__ask_color",
-            "at": "dialog"
+            "hook": "dialog"
           }
         }
       ],
@@ -332,7 +332,7 @@
             "turn": "00000027-0000-4000-8000-000000000027",
             "wake": true,
             "woke": "a58b43841609db047",
-            "at": "prompt"
+            "hook": "prompt"
           }
         }
       ],
@@ -358,7 +358,7 @@
           "file": "000000011.stop.1",
           "facts": {
             "branch": "main",
-            "at": "stop"
+            "hook": "stop"
           }
         }
       ],

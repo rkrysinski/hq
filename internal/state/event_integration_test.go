@@ -50,7 +50,7 @@ func eventKinds(events []Event) string {
 	for _, e := range events {
 		k := e.Kind
 		if k == KindDelivery {
-			k += "@" + e.Facts.At
+			k += "@" + e.Facts.Hook
 		}
 		ks = append(ks, k)
 	}
@@ -158,7 +158,7 @@ func TestHookDeliveriesAreEventsNamingEachMessage(t *testing.T) {
 		entries, _ := os.ReadDir(InboxDir(root, id))
 		var names []string
 		for _, e := range entries {
-			if isMessage(e.Name()) && !e.IsDir() {
+			if IsEventFile(e.Name()) && !e.IsDir() {
 				names = append(names, e.Name())
 			}
 		}

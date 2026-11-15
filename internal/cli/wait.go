@@ -140,7 +140,7 @@ func runWait(env Env, d deps, args []string) error {
 	var found []agent.Agent         // what the first look with a hit returned
 	for first := true; ; first = false {
 		at := d.now()
-		as, err := collectWith(d, sbxs.running(at, first))
+		as, err := lookWith(d, sbxs.running(at, first))
 		if err != nil {
 			return err
 		}
