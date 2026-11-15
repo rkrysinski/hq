@@ -359,6 +359,12 @@ func TestMCPSendLeavesTheMessageAsHqSendDoes(t *testing.T) {
 	if out, _ := call(t, cs, "send", map[string]any{"name": "a", "text": "use the v2 API", "now": true}); !strings.Contains(out, `"delivery": "queued: a is working, delivered after its next tool call, or when it stops"`) {
 		t.Fatalf("now: %q", out)
 	}
+	// A slash command left to the hooks: the line says it arrives as text
+	// (#173), in --json's delivery as in hq send's line.
+	if out, _ := call(t, cs, "send", map[string]any{"name": "a", "text": "/probe #12"}); !strings.Contains(out, `"delivery": "queued: a is working, delivered when it stops; if its hooks deliver it, the slash command arrives as text and does not run"`) {
+		t.Fatalf("command: %q", out)
+	}
+	f.inbox["id-a"] = f.inbox["id-a"][:2]
 	// Marked the supervisor's: a turn they start notifies nobody (spec §5).
 	if got := strings.Join(f.inbox["id-a"], "|"); got != "Any blockers? Answer briefly when you finish. (supervisor)|use the v2 API (supervisor) (now)" {
 		t.Fatalf("inbox %q", got)

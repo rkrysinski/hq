@@ -82,10 +82,13 @@ type fakeTmux struct {
 	// panes Enter was pressed in; pasteErr fails the paste.
 	pasted    []string
 	submitted []string
-	onSubmit  func()                 // called at each Submit: Claude takes the prompt
-	onPress   func(pane, key string) // called at each key Press presses
-	startErr  error                  // fails releasing a new window
-	pasteErr  error
+	// input is what reached the panes, in order: "type PANE TEXT" (Type),
+	// "paste PANE TEXT" and "enter PANE".
+	input    []string
+	onSubmit func()                 // called at each Submit: Claude takes the prompt
+	onPress  func(pane, key string) // called at each key Press presses
+	startErr error                  // fails releasing a new window
+	pasteErr error
 }
 
 func (f *fakeTmux) LastScreen(pane string) (string, error) {
@@ -99,11 +102,21 @@ func (f *fakeTmux) Paste(pane, text string) error {
 		return f.pasteErr
 	}
 	f.pasted = append(f.pasted, pane+" "+text)
+	f.input = append(f.input, "paste "+pane+" "+text)
+	return nil
+}
+
+func (f *fakeTmux) Type(pane, text string) error {
+	if f.pasteErr != nil {
+		return f.pasteErr
+	}
+	f.input = append(f.input, "type "+pane+" "+text)
 	return nil
 }
 
 func (f *fakeTmux) Submit(pane string) error {
 	f.submitted = append(f.submitted, pane)
+	f.input = append(f.input, "enter "+pane)
 	if f.onSubmit != nil {
 		f.onSubmit()
 	}
@@ -541,6 +554,10 @@ type fakes struct {
 	// when the supervisor sent it and " (now)" when sent with --now; postErr
 	// and takeErr fail posting and taking.
 	inbox map[string][]string
+	// held is what hq holds for each agent id to type in later (#173), as
+	// inbox has it; holdErr fails holding.
+	held    map[string][]string
+	holdErr error
 	// oldest is when the oldest message waiting for each agent id was sent
 	// (none: unknown, as for messages put in inbox directly).
 	oldest  map[string]time.Time
@@ -640,6 +657,7 @@ func newFakes() *fakes {
 
 		states:  map[string]state.Report{},
 		inbox:   map[string][]string{},
+		held:    map[string][]string{},
 		oldest:  map[string]time.Time{},
 		details: map[string]state.Detail{},
 
@@ -798,18 +816,35 @@ func (f *fakes) deps() deps {
 				return nil, f.takeErr
 			}
 			var msgs []state.Message
-			for _, text := range f.inbox[id] {
+			for _, text := range append(f.held[id], f.inbox[id]...) {
 				text, supervisor := strings.CutSuffix(text, supervisorMark)
 				msgs = append(msgs, state.Message{Text: text, Supervisor: supervisor})
 			}
 			delete(f.inbox, id)
+			delete(f.held, id)
 			delete(f.oldest, id)
 			return msgs, nil
 		},
-		pending: func(_, id string) int { return len(f.inbox[id]) },
+		holdMessages: func(_, id string, msgs []state.Message) error {
+			if f.holdErr != nil {
+				return f.holdErr
+			}
+			if _, ok := f.oldest[id]; !ok {
+				f.oldest[id] = f.now
+			}
+			for _, m := range msgs {
+				text := m.Text
+				if m.Supervisor {
+					text += supervisorMark
+				}
+				f.held[id] = append(f.held[id], text)
+			}
+			return nil
+		},
+		pending: func(_, id string) int { return len(f.held[id]) + len(f.inbox[id]) },
 		oldestMessage: func(_, id string) (time.Time, bool) {
 			at, ok := f.oldest[id]
-			return at, ok && len(f.inbox[id]) > 0
+			return at, ok && len(f.held[id])+len(f.inbox[id]) > 0
 		},
 		announce: func(_, id string) error {
 			if f.announceErr != nil {

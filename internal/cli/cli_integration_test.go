@@ -1526,3 +1526,73 @@ func TestNewAndLsSayAnSbxIsTooOld(t *testing.T) {
 		t.Fatalf("created %q", log)
 	}
 }
+
+// commandsRun waits until the fake Claude has run n slash commands and
+// returns them, each "NAME ARGS" quoted as it records them.
+func commandsRun(t *testing.T, path string, n int) []string {
+	t.Helper()
+	var lines []string
+	for deadline := time.Now().Add(stateWait); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
+		b, _ := os.ReadFile(path)
+		if lines = strings.Split(strings.TrimSuffix(string(b), "\n"), "\n"); len(b) > 0 && len(lines) >= n {
+			return lines
+		}
+	}
+	t.Fatalf("not %d commands run: %q", n, lines)
+	return nil
+}
+
+func TestSendRunsACommandWhateverItsLengthAndInTheOrderSent(t *testing.T) {
+	testutil.FakeClaude(t)
+	commands := filepath.Join(t.TempDir(), "commands")
+	t.Setenv("FAKE_CLAUDE_COMMANDS", commands)
+	h := newRealHQ(t)
+	r := testutil.GitRepo(t, "app")
+	h.cwd = r
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	const typed = "delivered: typed into a as its next prompt"
+
+	// More than 3 lines, and over 800 characters with a short first line:
+	// the command runs with the rest as its arguments (#173).
+	h.waitAtRest("a")
+	h.send(typed, "a", "/probe one\ntwo\nthree\nfour")
+	h.waitReport("a", "done", "Done: /probe one two three four")
+	long := strings.Repeat("x", 900)
+	h.waitAtRest("a")
+	h.send(typed, "a", "/probe short\n"+long)
+	if got := commandsRun(t, commands, 2); got[0] != `"/probe" "one\ntwo\nthree\nfour"` || got[1] != `"/probe" "short\n`+long+`"` {
+		t.Fatalf("commands %q", got)
+	}
+
+	// A plain message over the limits arrives whole, as one prompt, and
+	// runs nothing.
+	h.waitRow("a", "done", func(r lsRow) bool { return strings.HasPrefix(r.Last, "Done: /probe short xxx") })
+	h.waitAtRest("a")
+	h.send(typed, "a", "plain /probe\nb\nc\nd")
+	h.waitReport("a", "done", "Done: plain /probe b c d")
+
+	// Several waiting, a command among them: each command a prompt of its
+	// own, in the order sent, typed in as the agent is back at its prompt.
+	ws, _ := h.d.tmux.Windows()
+	a, _ := agent.Find(agent.FromWindows(ws), "a")
+	h.waitAtRest("a")
+	for i, text := range []string{"first", "/probe second"} {
+		if err := state.Post(r, a.ID, state.Message{Text: text}, false, time.Now().Add(time.Duration(i-60)*time.Second)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h.send("queued: typed an earlier message into a as its next prompt; this one follows as a prompt of its own once a is back at its prompt", "a", "third")
+	h.waitReport("a", "done", "Done: third")
+	if got := commandsRun(t, commands, 3); len(got) != 3 || got[2] != `"/probe" "second"` {
+		t.Fatalf("commands %q", got)
+	}
+	if hist := h.history("a"); !(strings.Index(hist, "❯ first") < strings.Index(hist, "❯ /probe second") && strings.Index(hist, "❯ /probe second") < strings.Index(hist, "❯ third")) || !strings.Contains(hist, "❯ first") {
+		t.Fatalf("not in the order sent:\n%s", hist)
+	}
+	if rows := h.ls(); rows[0].Pending != 0 {
+		t.Fatalf("pending %+v", rows)
+	}
+}

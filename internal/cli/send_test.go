@@ -337,7 +337,7 @@ func TestSendRightAfterASlashCommandWaitsForTheBoxToSettle(t *testing.T) {
 	f.tmux.screens["%4"] = inBox
 	start = f.now
 	code, out, _ = f.run("send", "a", "/effort medium")
-	if code != 0 || out != "queued: a has something in its prompt box, delivered with its next prompt\n" || len(f.tmux.pasted) != 0 {
+	if code != 0 || out != "queued: a has something in its prompt box, delivered with its next prompt; if its hooks deliver it, the slash command arrives as text and does not run\n" || len(f.tmux.pasted) != 0 {
 		t.Fatalf("exit %d %q pasted %v", code, out, f.tmux.pasted)
 	}
 	if waited := f.now.Sub(start); waited < boxWait || waited > boxWait+time.Second {
@@ -459,5 +459,175 @@ func TestSendTypesIntoABoxWithASuggestionAboveAFooterWithANotice(t *testing.T) {
 	f.tmux.screens["%4"] = readFixture(t, "screen-styled-agent-notice-suggestion.txt")
 	if code, out, _ := f.run("send", "a", "hi"); code != 0 || out != "delivered: typed into a as its next prompt\n" || len(f.tmux.pasted) != 1 {
 		t.Fatalf("exit %d %q pasted %v", code, out, f.tmux.pasted)
+	}
+}
+
+// A message that starts with a slash command and that Claude Code would
+// collapse into a placeholder, so that it is no command (state.Collapses),
+// is typed as its command word and the rest pasted after it: the command
+// runs with the rest as its arguments, whatever the length (#173).
+func TestSendTypesACommandOverTheLimitsAsItsWordAndPastesTheRest(t *testing.T) {
+	long := strings.Repeat("x", 900)
+	for name, tc := range map[string]struct{ text, typed, pasted string }{
+		"more than 3 lines":           {"/probe one\ntwo\nthree\nfour", "/probe", " one\ntwo\nthree\nfour"},
+		"over 800 characters":         {"/probe " + long, "/probe", " " + long},
+		"a first line over the limit": {"/probe " + long + "\nmore", "/probe", " " + long + "\nmore"},
+		"the command on a line alone": {"/probe\none\ntwo\nthree", "/probe", "\none\ntwo\nthree"},
+	} {
+		f := sendFakes(state.Done)
+		code, out, errOut := f.run("send", "a", tc.text)
+		if code != 0 || out != "delivered: typed into a as its next prompt\n" {
+			t.Fatalf("%s: exit %d %q %q", name, code, out, errOut)
+		}
+		want := []string{"type %4 " + tc.typed, "paste %4 " + tc.pasted, "enter %4"}
+		if strings.Join(f.tmux.input, "|") != strings.Join(want, "|") {
+			t.Errorf("%s: input %q, want %q", name, f.tmux.input, want)
+		}
+	}
+}
+
+// A command word over the limit itself is typed too: Type keeps each part
+// under it.
+func TestSendTypesACommandWithNothingAfterItWhole(t *testing.T) {
+	f := sendFakes(state.Done)
+	word := "/" + strings.Repeat("x", 900)
+	if code, _, errOut := f.run("send", "a", word); code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if got := strings.Join(f.tmux.input, "|"); got != "type %4 "+word+"|enter %4" {
+		t.Fatalf("input %q", got)
+	}
+}
+
+// A short command and a plain message of any length are pasted as before:
+// Claude Code runs the one and gives the model the other whole.
+func TestSendPastesAShortCommandAndAPlainMessageWhole(t *testing.T) {
+	for _, text := range []string{
+		"/model claude-opus-5-5",
+		"/probe one\ntwo\nthree",
+		"plain\nwith\nfour\nlines",
+		strings.Repeat("plain ", 200),
+		"a path /like/this\nand\nmore\nlines",
+	} {
+		f := sendFakes(state.Done)
+		if code, out, _ := f.run("send", "a", text); code != 0 || out != "delivered: typed into a as its next prompt\n" {
+			t.Fatalf("%.20q: exit %d %q", text, code, out)
+		}
+		if got := strings.Join(f.tmux.input, "|"); got != "paste %4 "+strings.TrimSpace(text)+"|enter %4" {
+			t.Errorf("%.20q: input %.60q", text, got)
+		}
+	}
+}
+
+// With several messages waiting, a slash command is a prompt of its own,
+// never joined behind another message's text: hq types the first prompt
+// in and holds the others, out of the hooks' reach, for the agent's next
+// prompts, one at a time and in the order sent (#173).
+func TestSendTypesAWaitingCommandAsAPromptOfItsOwnInTheOrderSent(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.inbox["id-a"] = []string{"first", "second", "/probe third", "/clear"}
+	code, out, _ := f.run("send", "a", "fourth")
+	if code != 0 || out != "queued: typed an earlier message into a as its next prompt; this one follows as a prompt of its own once a is back at its prompt\n" {
+		t.Fatalf("exit %d %q", code, out)
+	}
+	if got := strings.Join(f.tmux.input, "|"); got != "paste %4 first\n\nsecond|enter %4" {
+		t.Fatalf("input %q", got)
+	}
+	if got := strings.Join(f.held["id-a"], "|"); got != "/probe third|/clear|fourth" || len(f.inbox["id-a"]) != 0 {
+		t.Fatalf("held %q inbox %q", got, f.inbox["id-a"])
+	}
+	// The next looks at the agent back at its prompt type in the next
+	// prompt each.
+	for i, want := range []string{"paste %4 /probe third", "paste %4 /clear", "paste %4 fourth"} {
+		f.tmux.input = nil
+		f.now = f.now.Add(time.Minute)
+		if code, _, errOut := f.run("ls"); code != 0 {
+			t.Fatalf("ls: exit %d %s", code, errOut)
+		}
+		if got := strings.Join(f.tmux.input, "|"); got != want+"|enter %4" {
+			t.Fatalf("look %d: input %q, want %q", i, got, want)
+		}
+	}
+	if len(f.held["id-a"]) != 0 {
+		t.Fatalf("held %q", f.held["id-a"])
+	}
+	// The message just sent is typed in when it is the first prompt, and
+	// those after it are held.
+	f = sendFakes(state.Done)
+	f.inbox["id-a"] = []string{"/probe first"}
+	if code, out, _ := f.run("send", "a", "second"); code != 0 || !strings.HasPrefix(out, "queued: typed an earlier message into a") {
+		t.Fatalf("exit %d %q", code, out)
+	}
+	if got := strings.Join(f.tmux.input, "|"); got != "paste %4 /probe first|enter %4" || strings.Join(f.held["id-a"], "|") != "second" {
+		t.Fatalf("input %q held %q", got, f.held["id-a"])
+	}
+}
+
+func TestSendKeepsEveryMessageWhenHoldingFails(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.inbox["id-a"] = []string{"first"}
+	f.holdErr = errors.New("disk full")
+	code, _, errOut := f.run("send", "a", "/probe second")
+	if code == 0 || !strings.Contains(errOut, "disk full") {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if len(f.tmux.input) != 0 || strings.Join(f.inbox["id-a"], "|") != "first|/probe second" {
+		t.Fatalf("input %q inbox %q", f.tmux.input, f.inbox["id-a"])
+	}
+}
+
+// A message that starts with a slash command and that the agent's hooks
+// deliver reaches Claude as text, so the command does not run: hq says so
+// wherever it leaves one to them (#173), and not where it types it in.
+func TestSendSaysAnyCommandItLeavesToTheHooksArrivesAsText(t *testing.T) {
+	const asText = "; if its hooks deliver it, the slash command arrives as text and does not run\n"
+	for name, tc := range map[string]struct {
+		state  string
+		screen string
+		args   []string
+		want   string
+	}{
+		"working":     {state.Working, emptyBox, nil, "queued: a is working, delivered when it stops" + asText},
+		"working now": {state.Working, emptyBox, []string{"--now"}, "queued: a is working, delivered after its next tool call, or when it stops" + asText},
+		"dialog":      {state.NeedsInput, "Do you want to proceed?\n❯ 1. Yes\n  2. No\nEsc to cancel\n", nil, "queued: a needs input, delivered once its dialog is closed, when it stops" + asText},
+		"box":         {state.Done, strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1), nil, "queued: a has something in its prompt box, delivered with its next prompt" + asText},
+	} {
+		f := sendFakes(tc.state)
+		f.tmux.screens["%4"] = tc.screen
+		code, out, _ := f.run(append([]string{"send", "a", "/probe go"}, tc.args...)...)
+		if code != 0 || out != tc.want {
+			t.Errorf("%s: exit %d %q, want %q", name, code, out, tc.want)
+		}
+		// A plain message: the line as before.
+		f = sendFakes(tc.state)
+		f.tmux.screens["%4"] = tc.screen
+		if _, out, _ := f.run(append([]string{"send", "a", "go"}, tc.args...)...); out != strings.TrimSuffix(tc.want, asText)+"\n" {
+			t.Errorf("%s, plain: %q", name, out)
+		}
+	}
+	// --json carries the same line.
+	f := sendFakes(state.Working)
+	if _, out, _ := f.run("send", "a", "/probe go", "--json"); !strings.Contains(out, `"delivery": "queued: a is working, delivered when it stops`+strings.TrimSuffix(asText, "\n")+`"`) {
+		t.Errorf("json: %q", out)
+	}
+	// Starting.
+	f = sendFakes("")
+	if _, out, _ := f.run("send", "a", "/probe go"); out != "queued: a is starting, delivered with its first prompt, or when it stops"+asText {
+		t.Errorf("starting: %q", out)
+	}
+	// Taken by the hooks at once, while it works or as a turn begins: it
+	// did not run.
+	const taken = "delivered: a took it with its hooks, as text, so the slash command did not run\n"
+	d := sendFakes(state.Working).deps()
+	d.pending = func(string, string) int { return 0 }
+	var out strings.Builder
+	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != taken {
+		t.Errorf("taken: %v %q", err, out.String())
+	}
+	d = sendFakes(state.Done).deps()
+	d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
+	out.Reset()
+	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != taken {
+		t.Errorf("taken at rest: %v %q", err, out.String())
 	}
 }

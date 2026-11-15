@@ -631,3 +631,39 @@ func TestPressSendsOneKeyAsTheTerminalSendsIt(t *testing.T) {
 		t.Fatal("a pane that is gone is an error")
 	}
 }
+
+// hq send types a slash command in with Type (#173): every character
+// reaches the program as typed, a word that names a tmux key included,
+// and no bracketed paste wraps it.
+func TestTypeTypesTheTextAsItIs(t *testing.T) {
+	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	got := filepath.Join(dir, "got")
+	id, err := c.NewWindow("w", dir, nil, []string{"sh", "-c", `printf '\033[?2004h'; stty raw -echo; echo ready; exec dd bs=1 2>/dev/null >>"$0"`, got})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Start(id); err != nil {
+		t.Fatal(err)
+	}
+	ws, _ := c.Windows()
+	pane := ws[len(ws)-1].Pane
+	eventually(t, "the program", func() bool {
+		s, _ := c.Screens([]string{pane})
+		return strings.Contains(s[pane], "ready")
+	})
+	want := "/probe Enter C-c; zażółć " + strings.Repeat("x", 300)
+	if err := c.Type(pane, want); err != nil {
+		t.Fatal(err)
+	}
+	var b []byte
+	if !waitFor(func() bool { b, _ = os.ReadFile(got); return len(b) >= len(want) }) || string(b) != want {
+		t.Fatalf("got %q", b)
+	}
+	if err := c.Type("%999", "x"); err == nil {
+		t.Fatal("a pane that is gone is an error")
+	}
+}
