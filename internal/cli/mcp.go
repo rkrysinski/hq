@@ -480,7 +480,8 @@ const mcpInstructions = `hq runs Claude Code agents, each working on one task in
 - An agent done or in question with own_tasks: a shell command or watch of its own still runs, which it started and left running at its turn end. Claude takes another turn when one ends, so wait for it again if you need that result; a dev server may never end. The list is that turn end's and may be stale until its next turn end.
 - An agent that needs input has a dialog open (a permission, questions with options, an MCP server's form, or a dialog of Claude Code's own such as Change effort level? after /effort; read gives them, with the dialog's id). Never answer a permission or any other dialog, with send or otherwise: tell the user which agent waits and what it asks; they answer it in hq (go shows them the agent). A question dialog (asks with questions) and a dialog of Claude Code's own are the exception: answer them with answer, only on the user's word. The picker of /model is not one hq answers: send /model with the model's name instead, whose Switch model? is. Tell the user which agent asks what, and pass on what they pick, or your pick when they told you to choose for them; never on your own initiative. hq notifies them of the dialog itself, also on a turn you started.
 - An agent in the state outdated was started by another hq than the one serving you, so hq cannot read its state: read, send, answer and a wait that names it fail, and a wait on every agent leaves it out. Do not wait on it: tell the user which agent it is; they can open it (go) to finish or save its work by hand, and it has to be killed and started again.
-- kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.`
+- kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.
+- A tool call that fails with ` + "`" + hqUpdated + "`" + ` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. Tell the user that hq was updated and has to be restarted in this client; the tools work again after that.`
 
 // Tool inputs.
 type (
@@ -536,6 +537,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	// What its tools give agents is the supervisor's, not the user's.
 	d.supervisor = true
 	s := mcp.NewServer(&mcp.Implementation{Name: "hq", Title: "hq", Version: version.Version}, &mcp.ServerOptions{Instructions: mcpInstructions})
+	s.AddReceivingMiddleware(stepAside(watchOnDisk(d)))
 	no, yes := false, true
 
 	mcp.AddTool(s, &mcp.Tool{
@@ -683,6 +685,22 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 		return callCommand(d, runKill, in.Name, "-y")
 	})
 	return s
+}
+
+// stepAside fails every tool call once the hq on disk is of another
+// generation than this hq mcp (design §3.12): an agent it started would
+// carry a hook the installed hq cannot read. Each call looks at the file
+// first; the rest of the protocol goes on, so the client can still say why.
+func stepAside(disk *onDisk) mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+			if method == "tools/call" && disk.otherGeneration() {
+				r, _, _ := toolResult("", usageErr(hqUpdated))
+				return r, nil
+			}
+			return next(ctx, method, req)
+		}
+	}
 }
 
 // waitLimit is how long the wait tool waits for the client, as its

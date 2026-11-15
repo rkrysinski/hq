@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -239,14 +240,26 @@ func keepTitles(d deps, ws []tmux.Window, as []agent.Agent) {
 // the terminal back: every client leaves hq's session, a plain terminal
 // detached to the shell it had before hq. The docked session stays in the
 // slot and the list pane keeps a shell with the hint, where hq finds no list
-// running and starts it again (design §3.1, §3.11).
+// running and starts it again (design §3.1, §3.11). When the hq on disk
+// turns out to be of another generation, the list runs that hq's list in
+// its place instead, in the same process: the pane, its mark, the docked
+// session, the cursor and the layout stay.
 func runList(env Env, d deps, args []string) error {
 	if len(args) != 0 {
 		return usageErr("usage: hq %s", listCommand)
 	}
 	pane := d.getenv("TMUX_PANE")
 	_ = d.tmux.MarkList(pane, d.pid)
-	err := d.runList(listSource(d, pane))
+	src, disk := listSource(d, pane), watchOnDisk(d)
+	src.OtherGeneration = disk.otherGeneration
+	err := d.runList(src)
+	if errors.Is(err, dash.ErrUpdated) {
+		// It returns only when the hq on disk could not be started.
+		if err = d.replaceProcess([]string{disk.exe, listCommand}); err == nil {
+			return nil
+		}
+		err = envErr("cannot start the hq on disk, of another generation (%s): %v", disk.exe, err)
+	}
 	_ = d.tmux.SetFooter("")
 	// Unmarked before leaving, so an hq run at once starts the list again.
 	_ = d.tmux.MarkList(pane, 0)

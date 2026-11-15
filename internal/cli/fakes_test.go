@@ -27,6 +27,7 @@ import (
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 	"github.com/rkrysinski/hq/internal/update"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 // genOption is the home window's option that holds the agent's generation;
@@ -618,6 +619,18 @@ type fakes struct {
 
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
+	// disk is the hq on disk at exe, as stampFile gives it (diskErr: it
+	// cannot be looked at); diskGeneration is the generation it answers
+	// (generationErr: it cannot be asked), generationAsks how often it was
+	// asked. replaced are the programs run in place of hq (replaceErr: that
+	// fails).
+	disk           fileStamp
+	diskErr        error
+	diskGeneration int
+	generationErr  error
+	generationAsks int
+	replaced       [][]string
+	replaceErr     error
 	// profiles counts the asks for the iTerm2 profile; profileWrote and
 	// profileErr are the answer.
 	profiles     int
@@ -710,6 +723,9 @@ func newFakes() *fakes {
 
 		releases: &fakeReleases{files: map[string]map[string][]byte{}},
 		exe:      "/nonexistent/hq",
+
+		disk:           fileStamp{ino: 1, size: 100, modified: 1},
+		diskGeneration: version.Generation,
 	}
 	// The hook of the prompt typed in takes hq's word that it is the
 	// supervisor's.
@@ -937,6 +953,23 @@ func (f *fakes) deps() deps {
 		releases:   f.releases,
 		asset:      "hq-testos-testarch",
 		executable: func() (string, error) { return f.exe, nil },
+		stampFile: func(path string) (fileStamp, error) {
+			if path != f.exe {
+				return fileStamp{}, errors.New("no file " + path)
+			}
+			return f.disk, f.diskErr
+		},
+		askGeneration: func(exe string) (int, error) {
+			if exe != f.exe {
+				return 0, errors.New("no hq at " + exe)
+			}
+			f.generationAsks++
+			return f.diskGeneration, f.generationErr
+		},
+		replaceProcess: func(argv []string) error {
+			f.replaced = append(f.replaced, argv)
+			return f.replaceErr
+		},
 		itermProfile: func() (bool, error) {
 			f.profiles++
 			return f.profileWrote, f.profileErr
