@@ -1,0 +1,50 @@
+name      q
+state     question 41s, since 2026-11-15 17:56:30.321
+rests on  10
+dialog    at none, never at one
+
+the state rests on, oldest first
+  N   TIME                     SOURCE  WHAT                             STATE
+  10  2026-11-15 17:56:30.321  hook    turn end, the reply ends with ?  question
+exit 0
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

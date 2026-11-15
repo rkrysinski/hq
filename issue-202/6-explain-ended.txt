@@ -1,0 +1,50 @@
+NAME  REPO  BRANCH  STATE        AGE  LAST
+d     repo  main    needs input  1m   Which colour do you pick?
+bg    repo  main    working      1m   Done: start background work
+q     repo  main    ended        2s   Shall I go on?
+name      q
+state     ended 2s, since 2026-11-15 17:57:52.097
+rests on  14
+dialog    at none, never at one
+
+the state rests on, oldest first
+  N   TIME                     SOURCE  WHAT                 STATE
+  14  2026-11-15 17:57:52.097  hook    session end (other)  ended
+exit 0
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

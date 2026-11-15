@@ -1,0 +1,50 @@
+name      bg
+state     working 32s, since 2026-11-15 17:56:22.118
+rests on  5 6 7
+dialog    at none, never at one
+
+the state rests on, oldest first
+  N  TIME                     SOURCE  WHAT                                                         STATE
+  5  2026-11-15 17:56:22.118  hook    prompt                                                       working
+  6  2026-11-15 17:56:22.123  hook    end of tool Agent, started background work a000000000000001  working
+  7  2026-11-15 17:56:22.330  hook    turn end, running: subagent a000000000000001                 working
+exit 0
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

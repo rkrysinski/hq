@@ -1,0 +1,50 @@
+hq - one console for many Claude Code agents
+
+Usage:
+  hq dash                          open the dashboard (also: hq alone)
+  hq new NAME [DIR] [PROMPT]       start an agent for the repository in DIR, with an optional first prompt
+  hq ls [--json]                   list agents
+  hq read NAME [--offset N --since TIME] [--json] show that agent in full: its last reply (a long one in pages) and what it asks
+  hq explain NAME [--all] [--json] show the events that agent's state rests on, with no text of its conversation
+  hq wait [NAME...] [--json]       wait until an agent is done, asks, needs input or ends
+  hq go NAME                       enter that agent's session
+  hq code NAME                     open VS Code on that agent's worktree
+  hq send NAME TEXT [--now]        leave a message for that agent, delivered when it is ready
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

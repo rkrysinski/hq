@@ -1,0 +1,50 @@
+name      d
+state     needs input 47s, since 2026-11-15 17:56:36.316
+rests on  13
+dialog    at a dialog, its hooks', opened at 13
+rests on  13
+
+every event, oldest first
+  N   TIME                     SOURCE  WHAT                            STATE
+  3   2026-11-15 17:56:35.893  hq      launched (new)                  starting
+  11  2026-11-15 17:56:36.104  hook    session start (startup)         done
+  12  2026-11-15 17:56:36.110  hook    prompt                          working
+  13  2026-11-15 17:56:36.316  hook    dialog of tool AskUserQuestion  needs input
+exit 0
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

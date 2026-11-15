@@ -1,0 +1,85 @@
+{
+  "name": "bg",
+  "state": "working",
+  "since": "2026-11-15T17:56:22.118155373Z",
+  "age_seconds": 150,
+  "rests_on": [
+    5,
+    6,
+    7
+  ],
+  "dialog": {
+    "open": false,
+    "whose": "",
+    "opened": 0,
+    "closed": 0,
+    "rests_on": []
+  },
+  "events": [
+    {
+      "n": 1,
+      "time": "2026-11-15T17:56:21.901826165Z",
+      "source": "hq",
+      "kind": "Launched",
+      "what": "launched (new)",
+      "state": "starting",
+      "facts": {
+        "start": "new"
+      }
+    },
+    {
+      "n": 4,
+      "time": "2026-11-15T17:56:22.11252779Z",
+      "source": "hook",
+      "kind": "SessionStart",
+      "what": "session start (startup)",
+      "state": "done",
+      "facts": {
+        "at": "start",
+        "start": "startup"
+      }
+    },
+    {
+      "n": 5,
+      "time": "2026-11-15T17:56:22.118155373Z",
+      "source": "hook",
+      "kind": "UserPromptSubmit",
+      "what": "prompt",
+      "state": "working",
+      "facts": {
+        "at": "prompt"
+      }
+    },
+    {
+      "n": 6,
+      "time": "2026-11-15T17:56:22.123404873Z",
+      "source": "hook",
+      "kind": "PostToolUse",
+      "what": "end of tool Agent, started background work a000000000000001",
+      "state": "working",
+      "facts": {
+        "at": "answer",
+        "tool": "Agent",
+        "started": "a000000000000001"
+      }
+    },
+    {
+      "n": 7,
+      "time": "2026-11-15T17:56:22.330416081Z",
+      "source": "hook",
+      "kind": "Stop",
+      "what": "turn end, running: subagent a000000000000001",
+      "state": "working",
+      "facts": {
+        "at": "stop",
+        "tasks": [
+          {
+            "id": "a000000000000001",
+            "type": "subagent",
+            "status": "running"
+          }
+        ]
+      }
+    }
+  ]
+}

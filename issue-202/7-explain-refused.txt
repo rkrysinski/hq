@@ -1,0 +1,50 @@
+hq: no agent 'nobody' (see hq ls)
+exit 2
+NAME  REPO  BRANCH  STATE     AGE  LAST
+d     repo  -       outdated  -    started by an older hq: kill it and start it again
+bg    repo  main    working   1m   Done: start background work
+q     repo  main    ended     19s  Shall I go on?
+hq: d was started by an older hq: kill it and start it again
+exit 1
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
