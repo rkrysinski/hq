@@ -104,7 +104,10 @@ func runRead(env Env, d deps, args []string) error {
 	if !ok {
 		return notFoundErr("no agent '%s' (see hq ls)", r.name)
 	}
-	det := d.readDetail(a.RepoPath, a.ID)
+	if a.Outdated() {
+		return outdatedErr(a)
+	}
+	det := a.Detail()
 	if r.offset > 0 && replyChanged(det.ReplyAt, r.since) {
 		return usageErr("%s's reply changed since %s: read it again from its start, without --offset", a.Name, r.since.Format(time.RFC3339Nano))
 	}
@@ -128,8 +131,8 @@ func replyChanged(replyAt, since time.Time) bool {
 	return replyAt.After(since.Add(waitSettle))
 }
 
-// newReadView joins the agent as hq ls shows it with what its state files
-// hold in full, its reply from offset.
+// newReadView joins the agent as hq ls shows it with what its journal
+// holds in full, its reply from offset.
 func newReadView(row lsRow, det state.Detail, worktree string, offset int) (readView, error) {
 	page, next, err := replyPage(det.Reply, offset)
 	if err != nil {

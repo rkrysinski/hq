@@ -10,10 +10,10 @@ import (
 	"testing"
 )
 
-// hq's record of an agent is kept beside its state files, read back with
-// its id, replaced when hq writes it again, and removed with the agent
-// (#140).
-func TestARecordIsKeptBesideTheStateFilesAndGoesWithTheAgent(t *testing.T) {
+// hq's record of an agent is kept beside its hook's working files, read
+// back with its id, replaced when hq writes it again, and removed with the
+// agent (#140).
+func TestARecordIsKeptBesideTheHooksWorkingFilesAndGoesWithTheAgent(t *testing.T) {
 	root := t.TempDir()
 	if got, err := Records(root); err != nil || len(got) != 0 {
 		t.Fatalf("a repository without agents: %v %v", got, err)

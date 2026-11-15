@@ -1,0 +1,407 @@
+{
+  "about": "MCP elicitations: a form reported as it is drawn and closed when it is answered at the agent (accepted, declined, cancelled) or by a tool of its server; a URL form; a result with no form open is no event.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "elicitation",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "Elicitation",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000c-0000-4000-8000-00000000000c",
+            "cwd": "/w/app",
+            "turn": "00000021-0000-4000-8000-000000000021",
+            "server": "elicit",
+            "text": "Which color should I use?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:02Z",
+        "last": "Which color should I use?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "result",
+      "payload": "elicitation-result-accept",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "ElicitationResult",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.result.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000025-0000-4000-8000-000000000025",
+            "cwd": "/w/app",
+            "turn": "00000015-0000-4000-8000-000000000015",
+            "server": "elicit",
+            "hook": "result"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "result",
+      "payload": "elicitation-result-decline",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000004.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 4,
+        "text": "Hi. The tests pass\nand PR #58 is open."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000005.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "elicitation-url",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "Elicitation",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000006.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000d-0000-4000-8000-00000000000d",
+            "cwd": "/w/app",
+            "turn": "0000001a-0000-4000-8000-00000000001a",
+            "server": "elicit",
+            "text": "Sign in to the example service.",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "Sign in to the example service.",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:07Z"
+      }
+    },
+    {
+      "hook": "result",
+      "payload": "elicitation-result-url-accept",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "ElicitationResult",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000007.result.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000d-0000-4000-8000-00000000000d",
+            "cwd": "/w/app",
+            "turn": "0000001a-0000-4000-8000-00000000001a",
+            "server": "elicit",
+            "hook": "result"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "elicitation",
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "Elicitation",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000008.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000c-0000-4000-8000-00000000000c",
+            "cwd": "/w/app",
+            "turn": "00000021-0000-4000-8000-000000000021",
+            "server": "elicit",
+            "text": "Which color should I use?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Which color should I use?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:09Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s",
+        "prompt_id": "00000023-0000-4000-8000-000000000023",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "mcp__elicit__ask_color",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {
+          "content": []
+        }
+      },
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000009.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "tool": "mcp__elicit__ask_color",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "elicitation",
+      "events": [
+        {
+          "n": 10,
+          "source": "hook",
+          "kind": "Elicitation",
+          "time": "2026-01-01T00:00:11Z",
+          "file": "000000010.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000c-0000-4000-8000-00000000000c",
+            "cwd": "/w/app",
+            "turn": "00000021-0000-4000-8000-000000000021",
+            "server": "elicit",
+            "text": "Which color should I use?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "Which color should I use?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:11Z"
+      }
+    },
+    {
+      "hook": "result",
+      "payload": "elicitation-result-decline",
+      "events": [
+        {
+          "n": 11,
+          "source": "hook",
+          "kind": "ElicitationResult",
+          "time": "2026-01-01T00:00:12Z",
+          "file": "000000011.result.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000c-0000-4000-8000-00000000000c",
+            "cwd": "/w/app",
+            "turn": "00000009-0000-4000-8000-000000000009",
+            "server": "elicit",
+            "hook": "result"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:12Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "elicitation",
+      "events": [
+        {
+          "n": 12,
+          "source": "hook",
+          "kind": "Elicitation",
+          "time": "2026-01-01T00:00:13Z",
+          "file": "000000012.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000c-0000-4000-8000-00000000000c",
+            "cwd": "/w/app",
+            "turn": "00000021-0000-4000-8000-000000000021",
+            "server": "elicit",
+            "text": "Which color should I use?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:13Z",
+        "last": "Which color should I use?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:13Z"
+      }
+    },
+    {
+      "hook": "result",
+      "payload": "elicitation-result-cancel",
+      "events": [
+        {
+          "n": 13,
+          "source": "hook",
+          "kind": "ElicitationResult",
+          "time": "2026-01-01T00:00:14Z",
+          "file": "000000013.result.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000005-0000-4000-8000-000000000005",
+            "cwd": "/w/app",
+            "turn": "0000002a-0000-4000-8000-00000000002a",
+            "server": "elicit",
+            "hook": "result"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-question",
+      "events": [
+        {
+          "n": 14,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:15Z",
+          "file": "000000014.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "question": true,
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 14,
+        "text": "Should I also update the README? \n"
+      },
+      "look": {
+        "state": "question",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "Should I also update the README?"
+      }
+    }
+  ]
+}

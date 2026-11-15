@@ -1,0 +1,605 @@
+{
+  "about": "Background work that finishes together leaves the agent at its prompt owed a turn by Claude: the turn comes at once, so a screen at rest for RestDelay says it does not come, and the agent is done with its turn's own message, counted from when the screen was first seen at rest; the turn coming keeps it working, and one that comes late starts the work again; on background work still running only a dialog of Claude's own is read off the screen.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Start two subagents."
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Start two subagents.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "a1",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          },
+          {
+            "id": "a2",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "screen": "background-three",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000003.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tasks": [
+              {
+                "id": "a1",
+                "type": "subagent",
+                "status": "running"
+              },
+              {
+                "id": "a2",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 4,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "a1",
+            "description": "Run the tests"
+          },
+          {
+            "id": "a2",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "started"
+      }
+    },
+    {
+      "screen": "fs-background-at-prompt",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "started"
+      }
+    },
+    {
+      "screen": "fs-subagent-elicit-answered",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "started"
+      }
+    },
+    {
+      "screen": "fs-background-at-prompt",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>a1</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000004.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "wake": true,
+            "woke": "a1",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "the first finished",
+        "background_tasks": []
+      },
+      "screen": "fs-narrow-done",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000005.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 6,
+        "text": "the first finished"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "screen": "fs-narrow-done",
+      "events": [
+        {
+          "n": 7,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:10Z",
+          "basis": 6,
+          "facts": {
+            "screen": "29b628ef95112a04"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "screen": "fs-narrow-done",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "screen": "fs-narrow-done",
+      "events": [
+        {
+          "n": 8,
+          "source": "screen",
+          "kind": "TurnNotTaken",
+          "time": "2026-01-01T00:00:12Z",
+          "basis": 6,
+          "facts": {
+            "screen": "29b628ef95112a04",
+            "from": "2026-01-01T00:00:10Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>a2</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:13Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "wake": true,
+            "woke": "a2",
+            "hook": "prompt"
+          }
+        },
+        {
+          "n": 10,
+          "source": "screen",
+          "kind": "WokeUp",
+          "time": "2026-01-01T00:00:13Z",
+          "basis": 9,
+          "facts": {
+            "from": "2026-01-01T00:00:13Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:13Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "the second finished",
+        "background_tasks": []
+      },
+      "screen": "fs-elicit-done",
+      "events": [
+        {
+          "n": 11,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:14Z",
+          "file": "000000007.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 11,
+        "text": "the second finished"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "the second finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Start two more."
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 12,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:15Z",
+          "file": "000000008.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Start two more.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "the second finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "b1",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          },
+          {
+            "id": "b2",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 13,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:16Z",
+          "file": "000000009.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tasks": [
+              {
+                "id": "b1",
+                "type": "subagent",
+                "status": "running"
+              },
+              {
+                "id": "b2",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 13,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "b1",
+            "description": "Run the tests"
+          },
+          {
+            "id": "b2",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>b1</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 14,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:17Z",
+          "file": "000000010.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "wake": true,
+            "woke": "b1",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "one finished",
+        "background_tasks": []
+      },
+      "screen": "fs-elicit-done",
+      "events": [
+        {
+          "n": 15,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:18Z",
+          "file": "000000011.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 15,
+        "text": "one finished"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "one finished"
+      }
+    },
+    {
+      "screen": "fs-elicit-done",
+      "events": [
+        {
+          "n": 16,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:19Z",
+          "basis": 15,
+          "facts": {
+            "screen": "9051b3387fefe656"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "one finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>b2</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 17,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:20Z",
+          "file": "000000012.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "wake": true,
+            "woke": "b2",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "one finished"
+      }
+    },
+    {
+      "screen": "fs-thinking",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "one finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "both finished",
+        "background_tasks": []
+      },
+      "screen": "fs-elicit-done",
+      "events": [
+        {
+          "n": 18,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:22Z",
+          "file": "000000013.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 18,
+        "text": "both finished"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:22Z",
+        "last": "both finished"
+      }
+    }
+  ]
+}

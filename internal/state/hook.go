@@ -8,112 +8,127 @@ import (
 
 // hookSource runs inside the sandbox on each lifecycle event, in Claude's
 // current directory, with the event payload on stdin, the event's kind in $1
-// and, on stop, dialog and input, the notification sequence in $2. It writes
-// the branch checked out there as a header line, then the payload, to the
-// main repository's .git/hq/agents/$HQ_ID, replacing it in one step, and
-// keeps the latest Stop event beside it (.stop) for the last message,
-// written before the state file, so a reader that sees a Stop there finds
-// it in .stop too and no copy of the hook's beside them (#123). An
-// open dialog (the latest event is a PermissionRequest, or an Elicitation:
-// an MCP server's form, which dialog reports too and decides nothing, so
-// Claude draws it) decides three kinds: answer (a tool ran) is written only
-// when it closes that dialog, the same tool having run (for a form, a tool
-// of its server: some other Elicitation hook answered it), input (Claude's
-// Notification) only when no dialog is open, so a dialog is reported once,
-// when it opens, and result (the form answered at the agent,
-// ElicitationResult) only when it closes a form (design §3.4, #100). A resumed
-// session (resume) first keeps the event before it (.prev) for the branch,
-// worktree and last message, unless that event is itself a resumed start,
-// which keeps the one it kept. On stop,
-// dialog and input it then prints the desktop notification for Claude to
-// write to its terminal (design §3.5).
+// and, on stop, dialog and input, the notification sequence in $2. It
+// reports each event a rule reads as a file of its own in the main
+// repository's .git/hq/events/$HQ_ID (ev, ADR 0018): the branch checked out
+// there as a header line, then the payload, copied under another name and
+// renamed into place, named by the count it keeps there (.n), its kind and
+// its pid, %09d.KIND.PID, so the names sort in the order it wrote them and
+// tell which of its cases wrote each (Facts.At). hq on the host learns an
+// agent's state from those files alone (#199).
+//
+// For its own rules it keeps notes in the main repository's
+// .git/hq/agents, which hq on the host never reads: of the latest event it
+// takes for the agent's state, only what those rules read ($HQ_ID.last,
+// K=note in hookAwk: the event's kind, the turn's id, the tool, the MCP
+// server, whether a subagent reported it, and its cksum), replaced in one
+// step, and the same of the latest turn end it reported (.ended). It keeps
+// no state file and no copy of the turn end. It writes an event file with
+// each such report: just after the note, so the hook of kind hold sees a
+// dialog's report there as soon as it can; a turn end it keeps beside the
+// note (.on, below), and of the ends of a tool (answer) only one that tells
+// something new: the first of the agent's own in the turn (.acted did not
+// hold it), one of the agent's own that drops a queued prompt (.queued was
+// there) or hands one over, one that starts background work or closes a
+// dialog (x). An open dialog (the latest event is a PermissionRequest, or
+// an Elicitation: an MCP server's form, which dialog reports too and
+// decides nothing, so Claude draws it) decides three kinds: answer (a tool
+// ran) is taken for the state only when it closes that dialog, the same
+// tool having run (for a form, a tool of its server: some other
+// Elicitation hook answered it), input (Claude's Notification) only when
+// no dialog is open, so a dialog is reported once, when it opens, and
+// result (the form answered at the agent, ElicitationResult) only when it
+// closes a form (design §3.4, #100). On stop, dialog and input it then
+// prints the desktop notification for Claude to write to its terminal
+// (design §3.5).
 //
 // It also delivers the messages hq send left in the agent's inbox (ADR
-// 0012): it takes them out of the inbox by renaming them, so each is
-// delivered once, and prints them, oldest first, as Claude's hook output.
-// On stop it blocks the stop with them as the reason, so Claude goes on
-// and stops again; the blocked stop is not reported and notifies nobody,
-// and the agent stays working. On prompt they ride along with the prompt;
-// on the end of a tool (PostToolUse only, and not a subagent's) they come
-// with its result, but only once one of them asks for that (--now). With
-// no message waiting it prints what it printed before.
+// 0012): it takes them out of the inbox by renaming them, only the files
+// whose names start with a digit, so each is delivered once and none hq
+// holds back is (held/), and prints them, oldest first, as Claude's hook
+// output. On stop it blocks the stop with them as the reason, so Claude
+// goes on and stops again; the blocked stop is not reported and notifies
+// nobody, and the agent stays working. On prompt they ride along with the
+// prompt; on the end of a tool (PostToolUse only, and not a subagent's)
+// they come with its result, but only once one of them asks for that
+// (--now). With no message waiting it prints what it printed before. Each
+// delivery is an event file of its own (say): "delivery KIND", then the
+// name each message was left under in the inbox, a line each.
 //
 // A turn that ends while background work still runs (hookAwk) is not the
 // agent's end: Claude goes on by itself when that work has finished, with
 // a prompt of its own (wakeEvent). Such a stop, and such a prompt while
-// the agent works, are kept beside the state file (.on, Report.Kept) and
-// leave the file alone, so the agent stays working since the user's
-// prompt; the stop still gives the last message (.stop) and notifies
-// nobody. When the file does not say working, the stop is written there
-// too, and Kept reads it as working; but not over a subagent's dialog
-// (its PermissionRequest carries agent_id), which is still open: the
-// agent needs input until it is answered. Any other prompt, stop or
-// session event drops what was kept. An id owed a turn (.owe) lasts
-// until Claude wakes for it; one that has held back a turn end (!) goes
-// with the user's next prompt, or at the next Stop when no wake-up for a
-// task came in between, so a turn that never comes holds back one turn
-// end, which the host sees by the agent at rest (design §3.4); a wake-up
-// that names no task, or a session's start or end, forgets them all. On
-// answer it first marks that Claude has acted on the turn when the tool is
-// the agent's own (.acted, Report.Acted, holding the turn's prompt_id), and
-// adds to .owe the background work the tool started, if any (hookAwk); the
-// mark lasts until the next prompt, stop (a kept one too) or session event,
-// but a wake-up kept while the agent works goes on with the same turn and
-// leaves it, as do a stop blocked to deliver messages and a prompt Claude
-// queues.
+// the agent works, are reported, marked as kept (.on) and leave the note
+// alone, so the agent stays working since the user's prompt; the stop
+// notifies nobody. When the note does not say working, the stop is noted
+// too; but not over a subagent's dialog (its PermissionRequest carries
+// agent_id), which is still open: the agent needs input until it is
+// answered. Any other prompt, stop or session event drops the mark. An id
+// owed a turn (.owe) lasts until Claude wakes for it; one that has held
+// back a turn end (!) goes with the user's next prompt, or at the next
+// Stop when no wake-up for a task came in between, so a turn that never
+// comes holds back one turn end, which the host sees by the agent at rest
+// (design §3.4); a wake-up that names no task, or a session's start or
+// end, forgets them all. On answer it first marks that Claude has acted on
+// the turn when the tool is the agent's own (.acted, holding the turn's
+// prompt_id), and adds to .owe the background work the tool started, if
+// any (hookAwk); the mark lasts until the next prompt, stop (a kept one
+// too) or session event, but a wake-up kept while the agent works goes on
+// with the same turn and leaves it, as do a stop blocked to deliver
+// messages and a prompt Claude queues.
 //
 // Claude runs the prompt hook when it queues a prompt typed while the
 // agent works, with the prompt_id of the turn at work, and no hook when it
-// takes it (design §3.4, #82). Such a prompt (the state file says working,
-// and its prompt_id is the state file's or .acted's) is written as any
-// other and kept beside the state file (.queued). Claude takes it into the
-// turn at the next end of a tool of the agent's own, which drops it, or
-// right after the turn's Stop, when no tool of its own has ended since: a
-// Stop with the prompt_id of .queued hands over (a stop blocked to deliver
-// messages goes on with the same turn, and Claude takes nothing into it).
-// It gives .stop and makes the state file the queued prompt anew, so the
+// takes it (design §3.4, #82). Such a prompt (the note says working, and
+// its prompt_id is the note's or .acted's) is reported as any other and
+// copied beside the note (.queued). Claude takes it into the turn at the
+// next end of a tool of the agent's own, which drops it, or right after
+// the turn's Stop, when no tool of its own has ended since: a Stop with
+// the prompt_id of .queued hands over (a stop blocked to deliver messages
+// goes on with the same turn, and Claude takes nothing into it). It notes
+// the turn end (.ended) and makes the note the queued prompt's, so the
 // agent works on it from now, and notifies nobody. .queued stays, its
-// prompt_id now .stop's, for a /clear queued before the prompt, which
+// prompt_id now .ended's, for a /clear queued before the prompt, which
 // Claude runs in between: its SessionEnd leaves every file alone, and its
-// SessionStart writes the queued prompt again under the new session's id,
+// SessionStart reports the queued prompt again under the new session's id,
 // then forgets what a session's start forgets. Or the user interrupts the
 // turn with Esc, which fires no Stop, and Claude runs the queued prompt at
 // once as a turn of its own, under a prompt_id of its own, with no hook
 // until its first tool ends (#88): the end of a tool of the agent's own
-// whose prompt_id is not .queued's (the turn at work's, which the state
-// file holds too), .queued still pending (not taken at a Stop) and no
-// wake-up kept (.on: Claude went on with the turn at work), hands over the
-// same way, less .stop, and the mark that Claude has acted is that turn's.
-// hq hands over before that when the agent's screen shows it (TakeQueued).
+// whose prompt_id is not .queued's (the turn at work's, which the note
+// holds too), .queued still pending (not taken at a Stop) and no wake-up
+// kept (.on: Claude went on with the turn at work), hands over the same
+// way, less .ended, and the mark that Claude has acted is that turn's.
 // Any other prompt, stop or session event drops .queued.
 //
 // It also knows whether the turn is a supervised turn (spec §5, design
 // §3.5): one whose every prompt came from the supervisor, whose end
-// notifies nobody. The mark is a file beside the state file (.sup), there
-// while everything the agent works on or owes a turn for is the
-// supervisor's. A prompt that is not Claude's own takes hq's word that it
-// is the supervisor's (.next, Announce) and sets the mark, unless something
-// of the user's may be under way: a message of theirs rides along,
-// background work is owed a turn (held back or not; a line of .owe but the
-// mark of the agent's own watch, =ID) or the state file says working, with
-// no mark there already. A prompt without that word, and any
-// message of the user's the hook delivers (one whose name lacks
-// supervisorSuffix), removes the mark. On stop it prints no notification
-// while the mark is there, and removes it when no turn is owed any more;
-// dialog and input notify regardless, and Claude's wake-ups leave the mark
-// alone, so closing turns follow the turn that started the work. A
-// session's start or end removes it.
+// notifies nobody. The mark is a file beside the note (.sup), there while
+// everything the agent works on or owes a turn for is the supervisor's. A
+// prompt that is not Claude's own takes hq's word that it is the
+// supervisor's (.next, Announce) and sets the mark, unless something of
+// the user's may be under way: a message of theirs rides along, background
+// work is owed a turn (held back or not; a line of .owe but the mark of
+// the agent's own watch, =ID) or the note says working, with no mark there
+// already. A prompt without that word, and any message of the user's the
+// hook delivers (one whose name lacks supervisorSuffix), removes the mark.
+// On stop it prints no notification while the mark is there, and removes
+// it when no turn is owed any more; dialog and input notify regardless,
+// and Claude's wake-ups leave the mark alone, so closing turns follow the
+// turn that started the work. A session's start or end removes it.
 //
-// On hold, the kind of a second hook on a question dialog's PermissionRequest
-// (AskUserQuestion), run beside the dialog's own, it writes nothing and
-// holds for hq's answer (hq answer, ADR 0013): once the state file is the
-// dialog's report, the same bytes as its own copy of the payload (the
-// dialog's hook may report it a moment later), it looks every 0.2 s for the
-// answer hq leaves in the inbox, named for that report by its cksum, takes
-// it by renaming it and prints it, a decision hq wrote whole, as its
-// output. It ends with no output once the state file is no longer the
-// dialog's (answered at the terminal, the session ended, a dialog's report
-// never coming), never taking an answer after that, at Claude's SIGTERM
+// On hold, the kind of a second hook on a question dialog's
+// PermissionRequest (AskUserQuestion), run beside the dialog's own, it
+// writes nothing and holds for hq's answer (hq answer, ADR 0013): once the
+// note is the dialog's report, of the same cksum as its own copy of the
+// payload (the dialog's hook may report it a moment later), it looks every
+// 0.2 s for the answer hq leaves in the inbox, named for that report by
+// its cksum, takes it by renaming it and prints it, a decision hq wrote
+// whole, as its output. It ends with no output once the note is no longer
+// the dialog's (answered at the terminal, the session ended, a dialog's
+// report never coming; a note newer than its copy that is not the dialog's
+// report tells it, should the dialog be answered before it first saw the
+// report there), never taking an answer after that, at Claude's SIGTERM
 // (its timeout, the session's end), and at once for a subagent's dialog
 // (agent_id), which hq does not answer.
 //
@@ -124,38 +139,44 @@ import (
 // does not end, answer or message itself (spec §4.1, design §3.12, #142).
 //
 // It needs only sh, git, cat, mv, cp, mkdir, rm, grep, awk, sleep and
-// cksum, sends its own errors nowhere and always exits 0; it holds Claude
-// back only while a message is unread (design §3.4, §7.1): the hook of
-// kind hold waits while its dialog is open, which Claude still draws and
-// takes an answer at.
+// cksum, sends its own errors nowhere and always exits 0, removing its copy
+// of the payload as it exits; it holds Claude back only while a message is
+// unread (design §3.4, §7.1): the hook of kind hold waits while its dialog
+// is open, which Claude still draws and takes an answer at.
 const hookSource = `case $HQ_ID in '' | *[!0123456789abcdef]*) exit 0 ;; esac
 exec 2>/dev/null
 A='` + hookAwk + `'
+h=$1
 [ "$1" = refuse ] && { K=refuse N=$HQ_AGENT awk "$A"; exit 0; }
-q=
+q= x=
 b=$(git branch --show-current)
 l=${b:-${PWD##*/}}
 cd "${CLAUDE_PROJECT_DIR:-.}"
 g=$(git rev-parse --git-common-dir) || exit 0
 d=$g/hq/agents
+e=$g/` + eventsPath + `/$HQ_ID
 i=$g/hq/inbox/$HQ_ID
-mkdir -p "$d" || exit 0
+mkdir -p "$d" "$e" || exit 0
 f=$d/$HQ_ID
+y=$f` + noteSuffix + `
 t=$f.$$
-{ printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" || { rm -f "$t"; exit 0; }
-works() { grep -Eq '` + workingEvent + `' "$f"; }
-ask() { grep -Eq '` + dialogEvent + `' "$f"; }
-form() { grep -q '` + elicitEvent + `' "$f"; }
-theirs() { ask && grep -q '"agent_id"' "$f"; }
+trap 'rm -f "$t"' 0
+{ printf '%s %s\n' ` + branchHeader + ` "$b" && cat; } >"$t" || exit 0
+works() { grep -Eq '` + workingEvent + `' "$y"; }
+ask() { grep -Eq '` + dialogEvent + `' "$y"; }
+form() { grep -q '` + elicitEvent + `' "$y"; }
+theirs() { ask && grep -q '"agent_id"' "$y"; }
 owes() { grep -q '^[^=]' "$f` + owedSuffix + `"; }
 owe() { [ -s "$t.o" ] && mv -f "$t.o" "$f` + owedSuffix + `" || rm -f "$t.o" "$f` + owedSuffix + `"; }
 put() { cp -f "${2:-$t}" "$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
+note() { C=$(cksum <"${2:-$t}") K=note awk "$A" "${2:-$t}" >"$t.c" && mv -f "$t.c" "$1"; rm -f "$t.c"; }
+ev() { read -r j <"$e/.n" || j=0; j=$((j+1)); echo $j >"$t.j"; mv -f "$t.j" "$e/.n"; put "$e/$(printf %09d.$h $j).$$" "$1"; }
 get() { K=get N=$1 awk "$A" "$2"; }
 turn() { get prompt_id "$1"; }
 queued() { n=$(turn "$f` + queuedSuffix + `") && [ -n "$n" ]; }
-taken() { queued && [ "$n" = "$(turn "$f.stop")" ]; }
+taken() { queued && [ "$n" = "$(turn "$f` + endedSuffix + `")" ]; }
 tool() { awk 'match($0, /"tool_name"[[:blank:]]*:[[:blank:]]*"[^"]*"/) { print substr($0, RSTART, RLENGTH); exit }' "$1"; }
-mcp() { form && v=$(get mcp_server_name "$f") && case $(tool "$t") in *\"mcp__"$v"__*) ;; *) false ;; esac; }
+mcp() { form && v=$(get mcp_server_name "$y") && case $(tool "$t") in *\"mcp__"$v"__*) ;; *) false ;; esac; }
 soon() { for m in "$i"/[0-9]*` + nowSuffix + `; do [ -f "$m" ] && return 0; done; return 1; }
 take() {
     u=; c=$i/.taken.$$
@@ -167,51 +188,53 @@ take() {
 }
 say() {
     [ "$u" ] && rm -f "$f` + supervisedSuffix + `"
-    printf '%s' "$1"; s=
-    for m in "$c"/*; do [ -f "$m" ] && printf '%s%s' "$s" '` + MessageLabel + `' && cat "$m" && s='\n\n'; done
-    rm -rf "$c"; printf '%s\n' "$2"
+    printf '%s' "$1"; s=; echo "` + deliveryKind + ` $h" >"$t.v"
+    for m in "$c"/*; do [ -f "$m" ] && printf '%s%s' "$s" '` + MessageLabel + `' && cat "$m" && s='\n\n' && echo "${m##*/}" >>"$t.v"; done
+    ev "$t.v"; rm -rf "$c" "$t.v"; printf '%s\n' "$2"
 }
 nap() { sleep .2 || sleep 1; }
-mine() { awk -v RS='\001' 'NR==FNR{p=$0;next}{s=$0==p}END{exit !s}' "$t" "$f"; }
+mine() { grep -qx "$k" "$y"; }
 case $1 in
 hold) grep -q '"agent_id"' "$t" || { k=$(cksum <"$t") && a=$i/` + answerPrefix + `${k% *}.${k#* } && trap 'rm -f "$t"; exit 0' HUP TERM &&
-    { w=0; until mine || [ $((w+=1)) -gt 50 ]; do nap; done
+    { w=0; until mine || [ "$y" -nt "$t" ] || [ $((w+=1)) -gt 50 ]; do nap; done
     while mine; do mv -f "$a" "$t" && cat "$t" && break; nap; done; }; }
-    rm -f "$t"; exit 0 ;;
-stop) take && { rm -f "$t"; say '{"decision":"block","reason":"' '"}'; exit 0; }
+    exit 0 ;;
+stop) take && { say '{"decision":"block","reason":"' '"}'; exit 0; }
     K=keep O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; k=$?; owe
     queued && ! taken && [ "$n" = "$(turn "$t")" ] && {
-        put "$f.stop"; rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `"; put "$f" "$f` + queuedSuffix + `"; rm -f "$t"; exit 0; }
+        ev; note "$f` + endedSuffix + `"; rm -f "$f` + keptSuffix + `" "$f` + actedSuffix + `"; note "$y" "$f` + queuedSuffix + `"; exit 0; }
     rm -f "$f` + queuedSuffix + `"
-    [ $k = 0 ] && { rm -f "$f` + actedSuffix + `"; put "$f.stop"; put "$f` + keptSuffix + `"; works || theirs || mv -f "$t" "$f"; rm -f "$t"; exit 0; } ;;
+    [ $k = 0 ] && { ev; rm -f "$f` + actedSuffix + `"; note "$f` + endedSuffix + `"; : >"$f` + keptSuffix + `"; works || theirs || note "$y"; exit 0; } ;;
 prompt) take && say '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"' '"}}'
     if K=wake O=$f` + owedSuffix + ` awk "$A" "$t" >"$t.o"; then
         owe
-        works && { mv -f "$t" "$f` + keptSuffix + `"; rm -f "$t"; exit 0; }
+        works && { ev; : >"$f` + keptSuffix + `"; exit 0; }
     else
         if mv -f "$f` + announcedSuffix + `" "$t.n"; then rm -f "$t.n"; [ "$u" ] || [ -f "$f` + supervisedSuffix + `" ] || owes || works || : >"$f` + supervisedSuffix + `"
         else rm -f "$f` + supervisedSuffix + `"; fi
         grep -v '^[!+]' "$f` + owedSuffix + `" >"$t.o"; owe
-        p=$(turn "$t") && [ -n "$p" ] && works && { [ "$p" = "$(turn "$f")" ] || [ "$p" = "$(cat "$f` + actedSuffix + `")" ]; } && q=1 && put "$f` + queuedSuffix + `"
+        p=$(turn "$t") && [ -n "$p" ] && works && { [ "$p" = "$(turn "$y")" ] || [ "$p" = "$(cat "$f` + actedSuffix + `")" ]; } && q=1 && put "$f` + queuedSuffix + `"
     fi ;;
 answer) o=; grep -q '"agent_id"' "$t" || { o=1; p=$(turn "$t")
-        queued && ! taken && [ "$p" != "$n" ] && [ ! -f "$f` + keptSuffix + `" ] && put "$f" "$f` + queuedSuffix + `"
-        printf '%s\n' "$p" >"$f` + actedSuffix + `"; rm -f "$f` + queuedSuffix + `"; }
-    grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `"
+        [ -f "$f` + actedSuffix + `" ] && [ "$p" = "$(cat "$f` + actedSuffix + `")" ] || x=1
+        queued && ! taken && [ "$p" != "$n" ] && [ ! -f "$f` + keptSuffix + `" ] && note "$y" "$f` + queuedSuffix + `" && x=1
+        printf '%s\n' "$p" >"$f` + actedSuffix + `"; rm "$f` + queuedSuffix + `" && x=1; }
+    grep -Eq '` + startedEvent + `' "$t" && w=$(K=tool awk "$A" "$t") && [ -n "$w" ] && printf '%s\n' "$w" >>"$f` + owedSuffix + `" && x=1
+    { ask && [ "$(tool "$y")" = "$(tool "$t")" ] || mcp; } && x=2
+    [ "$x" ] && ev
     grep -q '` + toolEndEvent + `' "$t" && [ "$o" ] && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
-    ask && [ "$(tool "$f")" = "$(tool "$t")" ] || mcp || { rm -f "$t"; exit 0; } ;;
-input) ask && { rm -f "$t"; exit 0; } ;;
-result) form || { rm -f "$t"; exit 0; } ;;
-end) taken && grep -Eq '` + clearedSession + `' "$t" && { rm -f "$t"; exit 0; } ;;
+    [ "$x" = 2 ] || exit 0 ;;
+input) ask && exit 0 ;;
+result) form || exit 0 ;;
+end) taken && grep -Eq '` + clearedSession + `' "$t" && exit 0 ;;
 start) taken && grep -Eq '` + clearedSession + `' "$t" && sid=$(get session_id "$t") &&
     S=$sid K=session awk "$A" "$f` + queuedSuffix + `" >"$t.c" && mv -f "$t.c" "$t"; rm -f "$t.c" ;;
-resume) { grep -q '` + startEvent + `' "$f" && grep -q '` + resumed + `' "$f"; } || { cp -f "$f" "$t.p" && mv -f "$t.p" "$f.prev"; }; rm -f "$t.p" ;;
 esac
 case $1 in dialog | answer | input | result) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
-[ "$1" = stop ] && put "$f.stop"
-mv -f "$t" "$f"; rm -f "$t"
+[ "$1" = stop ] && note "$f` + endedSuffix + `"
+note "$y"; [ "$x" = 2 ] || ev
 [ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && { owes || rm -f "$f` + supervisedSuffix + `"; exit 0; }
-case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$f" ;; esac
+case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$t" ;; esac
 exit 0`
 
 // hookScript is hookSource as it travels in the settings: without the
@@ -225,33 +248,26 @@ var hookScript = func() string {
 	return strings.Join(lines, "\n")
 }()
 
-// dialogEvent is what the hook's grep -E finds in a state file whose
-// latest event opened a dialog: a PermissionRequest, or an MCP
+// dialogEvent is what the hook's grep -E finds in its note of an event
+// that opened a dialog: a PermissionRequest, or an MCP
 // elicitation's form (elicitEvent), with or without spaces.
 const dialogEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"(PermissionRequest|Elicitation)"`
 
-// elicitEvent is what the hook's grep finds in a state file whose latest
-// event is an MCP elicitation's form, drawn and not yet answered.
+// elicitEvent is what the hook's grep finds in its note of an MCP
+// elicitation's form, drawn and not yet answered.
 const elicitEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"Elicitation"`
 
 // toolEndEvent is what the hook's grep finds in the payload of a tool that
 // ended successfully, whose result can carry messages (PostToolUse).
 const toolEndEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"PostToolUse"`
 
-// startEvent and resumed are what the hook's grep finds in a state file
-// whose latest event started a resumed session.
-const (
-	startEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"SessionStart"`
-	resumed    = `"source"[[:blank:]]*:[[:blank:]]*"` + resumeSource + `"`
-)
-
 // clearedSession is what the hook's grep -E finds in the payload of the
 // SessionEnd and the SessionStart of /clear.
 const clearedSession = `"(reason|source)"[[:blank:]]*:[[:blank:]]*"clear"`
 
-// workingEvent is what the hook's grep -E finds in a state file that says
-// the agent works: its latest event is a prompt, or the end of the tool of
-// a dialog (PostToolUse or PostToolUseFailure).
+// workingEvent is what the hook's grep -E finds in its note when the agent
+// works: the event noted is a prompt, or the end of the tool of a dialog
+// (PostToolUse or PostToolUseFailure).
 const workingEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"(UserPromptSubmit|PostToolUse)`
 
 // startedEvent is what the hook's grep -E finds in the payload of a tool
@@ -264,8 +280,8 @@ const startedEvent = `async_launched|"(backgroundTaskId|taskId)"`
 // Claude gives itself when background work has finished (design §3.4).
 const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 
-// hookAwk is the awk program of the hook. It reads the state file or the
-// payload as one record.
+// hookAwk is the awk program of the hook. It reads the payload, or a note
+// or copy the hook keeps, as one record.
 //
 // With K=keep it succeeds for the payload of a Stop that leaves the agent
 // working (spec §5): background work still runs, or has finished without
@@ -325,7 +341,13 @@ const wakeEvent = `"prompt"[ \t\r\n]*:[ \t\r\n]*"` + wakePrefix
 // the input's own, never a word inside its text; one with an escape is not
 // taken for N, since an agent's name needs none.
 //
-// Otherwise it prints the notification for the event in the state file: on
+// With K=note it prints the hook's note of the payload: each key-value
+// pair of the event's kind, the turn's id, the tool and the MCP server, as
+// the payload holds it, "agent_id" when a subagent reported it, and the
+// cksum C of the payload; so the hook's grep and get read the note as they
+// read the payload, and the hook of kind hold finds its dialog's by C.
+//
+// Otherwise it prints the notification for the event in the payload: on
 // dialog and input "Needs input: <branch>", on stop "Question: <branch>"
 // when the last assistant message ends with "?" (the rule of IsQuestion,
 // for which question walks the message's JSON string to its end), else
@@ -430,6 +452,13 @@ NR == 1 && K == "wake" {
         else if (x != "") print x
     }
     if (paid) print "+"
+    next
+}
+NR == 1 && K == "note" {
+    split("hook_event_name prompt_id tool_name mcp_server_name", a)
+    for (i in a) for (s = $0; match(s, "\"" a[i] "\"[ \t\r\n]*:[ \t\r\n]*\"[^\"]*\""); s = substr(s, RSTART + RLENGTH)) print substr(s, RSTART, RLENGTH)
+    if (/"agent_id"/) print "\"agent_id\""
+    print ENVIRON["C"]
     next
 }
 NR == 1 && K == "refuse" { refused($0); next }
@@ -584,3 +613,11 @@ func Settings(name, id, notify string) string {
 	})
 	return strings.TrimSpace(b.String())
 }
+
+// eventsPath is where, under the main repository's .git, the hook leaves
+// each agent's event files, a directory per agent (EventsDir).
+const eventsPath = "hq/events"
+
+// deliveryKind starts the first line of an event file that reports a
+// delivery of messages by the hook, followed by the hook's kind.
+const deliveryKind = "delivery"

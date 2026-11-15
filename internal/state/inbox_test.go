@@ -143,3 +143,44 @@ func TestInboxDirIsBesideTheStateFiles(t *testing.T) {
 		t.Fatal("a time for a bad id")
 	}
 }
+
+// A message keeps the name it was first left under (Message.Name) when hq
+// holds it or puts it back: a name of the inbox itself, never a path.
+func TestOnlyAMessagesNameIsKept(t *testing.T) {
+	name := messageName(time.Unix(0, 7), "0a0b0c0d", true, true)
+	for n, want := range map[string]bool{
+		name:                     true,
+		"":                       false,
+		".taken-1":               false,
+		"held":                   false,
+		"1/../../x":              false,
+		strings.Repeat("1", 100): true,
+		strings.Repeat("1", 101): false,
+	} {
+		if got := keptName(n); got != want {
+			t.Errorf("%q: %v, want %v", n, got, want)
+		}
+	}
+}
+
+// A message put back after hq failed to type it loses its --now, unless
+// that is asked for again, and keeps the rest of its name (#195).
+func TestAMessagePutBackLosesItsNowUnlessAskedAgain(t *testing.T) {
+	sent := time.Unix(0, 1700000000000000000)
+	now := messageName(sent, "0a1b2c3d", true, true)
+	plain := messageName(sent, "0a1b2c3d", true, false)
+	for _, tc := range []struct {
+		name string
+		now  bool
+		want string
+	}{
+		{now, false, plain},
+		{now, true, now},
+		{plain, false, plain},
+		{plain, true, plain},
+	} {
+		if got := backName(tc.name, tc.now); got != tc.want {
+			t.Errorf("backName(%s, %v) = %s, want %s", tc.name, tc.now, got, tc.want)
+		}
+	}
+}

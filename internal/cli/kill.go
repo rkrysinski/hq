@@ -154,9 +154,9 @@ func plural(n int, word string) string {
 // list does.
 func endAgents(d deps, as []agent.Agent) error {
 	sandboxes := runningSandboxes(d)
+	agent.ReadStates(as, d.journal, d.now(), d.folds)
 	var orphans []agent.Agent // signalled sessions without a live pane
 	for _, a := range as {
-		a.Apply(d.readState(a.RepoPath, a.ID))
 		if sandboxes.Ends(a) {
 			continue
 		}
@@ -175,13 +175,15 @@ func sessionPattern(id string) string { return `HQ_ID":"` + id + `"` }
 
 // removeAgents waits up to endWait for the agents' sessions to exit, orphans
 // (sessions whose pane died) included, then removes their home windows and
-// their state files (design §3.4): nothing reads those once the window is
-// gone, and an ended session's last hook has written. Only these agents'
+// what they keep beside the repository and their journals (design §3.4):
+// nothing reads those once the window is gone, and an ended session's last
+// hook has written. Only these agents'
 // files go; a file that cannot be removed does not stop the removal. Each
 // agent whose window is gone goes into the trace with who asked for it
 // (#147), before its files go, even when tmux then fails to remove the
 // next window; one the trace cannot take does not stop the others, and is
-// said once all are killed.
+// said once all are killed. The journals other agents left behind go with
+// them, where hq can tell they are left over (sweepJournals).
 func removeAgents(d deps, as, orphans []agent.Agent) error {
 	if err := waitEnded(d, as, orphans); err != nil {
 		return err
@@ -211,8 +213,9 @@ func removeAgents(d deps, as, orphans []agent.Agent) error {
 		if err := traceKill(d, a); err != nil {
 			untraced, traceErr = append(untraced, a.Name), err
 		}
-		_ = d.removeState(a.RepoPath, a.ID)
+		removeAgentFiles(d, a.RepoPath, a.ID)
 	}
+	sweepJournals(d)
 	if traceErr == nil {
 		return killErr
 	}

@@ -1,0 +1,1447 @@
+{
+  "about": "Background work that finishes together: a turn end with nothing running holds back the agent's end while Claude owes a turn; a turn owed for a subagent the user stopped; a turn that never comes holds back one turn end; the user's prompt, a session started over and a wake-up naming no task forget what is owed; a question ends the turn whatever is owed.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "a1",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          },
+          {
+            "id": "a2",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          },
+          {
+            "id": "a3",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "a1",
+                "type": "subagent",
+                "status": "running"
+              },
+              {
+                "id": "a2",
+                "type": "subagent",
+                "status": "running"
+              },
+              {
+                "id": "a3",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 2,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "a1",
+            "description": "Run the tests"
+          },
+          {
+            "id": "a2",
+            "description": "Run the tests"
+          },
+          {
+            "id": "a3",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>a1</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.prompt.1",
+          "facts": {
+            "branch": "main",
+            "wake": true,
+            "woke": "a1",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "the first finished",
+        "background_tasks": [
+          {
+            "id": "a3",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000004.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "a3",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 4,
+        "text": "the first finished",
+        "tasks": [
+          {
+            "id": "a3",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>a2</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000005.prompt.1",
+          "facts": {
+            "branch": "main",
+            "wake": true,
+            "woke": "a2",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "the second finished",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000006.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 6,
+        "text": "the second finished"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "the second finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>a3</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000007.prompt.1",
+          "facts": {
+            "branch": "main",
+            "wake": true,
+            "woke": "a3",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z",
+        "last": "the second finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "all three finished",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000008.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 8,
+        "text": "all three finished"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "all three finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000009.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "all three finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "b1",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 10,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000010.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "b1",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 10,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "b1",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 11,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:11Z",
+          "file": "000000011.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "stopped it",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 12,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:12Z",
+          "file": "000000012.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 12,
+        "text": "stopped it"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "stopped it"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>b1</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 13,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:13Z",
+          "file": "000000013.prompt.1",
+          "facts": {
+            "branch": "main",
+            "wake": true,
+            "woke": "b1",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "stopped it"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "it is stopped",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 14,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:14Z",
+          "file": "000000014.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 14,
+        "text": "it is stopped"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "it is stopped"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 15,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:15Z",
+          "file": "000000015.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "it is stopped"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "b2",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          },
+          {
+            "id": "b3",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 16,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:16Z",
+          "file": "000000016.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "b2",
+                "type": "subagent",
+                "status": "running"
+              },
+              {
+                "id": "b3",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 16,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "b2",
+            "description": "Run the tests"
+          },
+          {
+            "id": "b3",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:15Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 17,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:17Z",
+          "file": "000000017.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:17Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "noted",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 18,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:18Z",
+          "file": "000000018.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 18,
+        "text": "noted"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:17Z",
+        "last": "noted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>b2</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 19,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:19Z",
+          "file": "000000019.prompt.1",
+          "facts": {
+            "branch": "main",
+            "wake": true,
+            "woke": "b2",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:17Z",
+        "last": "noted"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "one finished",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 20,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:20Z",
+          "file": "000000020.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 20,
+        "text": "one finished"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:17Z",
+        "last": "one finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>b3</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 21,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:21Z",
+          "file": "000000021.prompt.1",
+          "facts": {
+            "branch": "main",
+            "wake": true,
+            "woke": "b3",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:17Z",
+        "last": "one finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "both finished",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 22,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:22Z",
+          "file": "000000022.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 22,
+        "text": "both finished"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:22Z",
+        "last": "both finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 23,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:23Z",
+          "file": "000000023.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:23Z",
+        "last": "both finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "b4",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 24,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:24Z",
+          "file": "000000024.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "b4",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 24,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "b4",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:23Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<status>completed</status>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 25,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:25Z",
+          "file": "000000025.prompt.1",
+          "facts": {
+            "branch": "main",
+            "wake": true,
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:23Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "finished",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 26,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:26Z",
+          "file": "000000026.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 26,
+        "text": "finished"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:26Z",
+        "last": "finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 27,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:27Z",
+          "file": "000000027.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "last": "finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "c1",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 28,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:28Z",
+          "file": "000000028.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "c1",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 28,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "c1",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>c9</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 29,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:29Z",
+          "file": "000000029.prompt.1",
+          "facts": {
+            "branch": "main",
+            "wake": true,
+            "woke": "c9",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "one finished",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 30,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:30Z",
+          "file": "000000030.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 30,
+        "text": "one finished"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "last": "one finished"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 31,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:31Z",
+          "file": "000000031.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "last": "one finished"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "done",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 32,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:32Z",
+          "file": "000000032.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 32,
+        "text": "done"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:32Z",
+        "last": "done"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 33,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:33Z",
+          "file": "000000033.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:33Z",
+        "last": "done"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "d1",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 34,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:34Z",
+          "file": "000000034.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "d1",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 34,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "d1",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:33Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start-clear",
+      "events": [
+        {
+          "n": 35,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:35Z",
+          "file": "000000035.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "clear",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:35Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 36,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:36Z",
+          "file": "000000036.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:36Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "done",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 37,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:37Z",
+          "file": "000000037.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 37,
+        "text": "done"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:37Z",
+        "last": "done"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 38,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:38Z",
+          "file": "000000038.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:38Z",
+        "last": "done"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "e1",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          },
+          {
+            "id": "e2",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "events": [
+        {
+          "n": 39,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:39Z",
+          "file": "000000039.stop.1",
+          "facts": {
+            "branch": "main",
+            "tasks": [
+              {
+                "id": "e1",
+                "type": "subagent",
+                "status": "running"
+              },
+              {
+                "id": "e2",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 39,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "e1",
+            "description": "Run the tests"
+          },
+          {
+            "id": "e2",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:38Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>e1</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 40,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:40Z",
+          "file": "000000040.prompt.1",
+          "facts": {
+            "branch": "main",
+            "wake": true,
+            "woke": "e1",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:38Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "One finished. Go on?",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 41,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:41Z",
+          "file": "000000041.stop.1",
+          "facts": {
+            "branch": "main",
+            "question": true,
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 41,
+        "text": "One finished. Go on?"
+      },
+      "look": {
+        "state": "question",
+        "since": "2026-01-01T00:00:41Z",
+        "last": "One finished. Go on?"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>e2</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "events": [
+        {
+          "n": 42,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:42Z",
+          "file": "000000042.prompt.1",
+          "facts": {
+            "branch": "main",
+            "wake": true,
+            "woke": "e2",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:42Z",
+        "last": "One finished. Go on?"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "hook_event_name": "Stop",
+        "last_assistant_message": "both finished",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 43,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:43Z",
+          "file": "000000043.stop.1",
+          "facts": {
+            "branch": "main",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 43,
+        "text": "both finished"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:43Z",
+        "last": "both finished"
+      }
+    }
+  ]
+}

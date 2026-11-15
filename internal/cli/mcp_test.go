@@ -18,6 +18,7 @@ import (
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 // mcpSession connects an MCP client in memory to hq's MCP server on the
@@ -886,14 +887,7 @@ func TestAPromptWithAMessageOfTheUsersIsNotTheSupervisors(t *testing.T) {
 	if code, out, _ := g.run("send", "a", "open a PR"); code != 0 || out != "delivered: typed into a as its next prompt\n" {
 		t.Fatalf("exit %d %q", code, out)
 	}
-	// Hooks of an older hq know no supervised turn: nothing to tell them.
-	h := sendFakes(state.Done)
-	h.tmux.windows[1].Options["inbox"] = "1"
-	call(t, mcpSession(t, h), "send", map[string]any{"name": "a", "text": "open a PR"})
-	if len(h.tmux.submitted) != 1 {
-		t.Fatal("not typed into an agent with older hooks")
-	}
-	for name, f := range map[string]*fakes{"with the user's message": f, "from a shell": g, "older hooks": h} {
+	for name, f := range map[string]*fakes{"with the user's message": f, "from a shell": g} {
 		if len(f.announced) != 0 || len(f.withdrawn) != 0 {
 			t.Errorf("%s: announced %v, withdrawn %v", name, f.announced, f.withdrawn)
 		}
@@ -1036,13 +1030,13 @@ func TestTheRefusalKnowsTheInputsOfKillAnswerAndSend(t *testing.T) {
 func TestMCPInstallRegistersHqWithSbx(t *testing.T) {
 	f := newFakes()
 	f.exe = "/Users/dev/.local/bin/hq"
-	f.env = map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET": "hq-dev", "HOME": "/Users/dev", "GITHUB_TOKEN": "secret"}
+	f.env = map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET": "hq-dev", "HOME": "/Users/dev", "GITHUB_TOKEN": "secret", "XDG_STATE_HOME": "/Users/dev/state"}
 	load := "load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)\n"
 	code, out, errOut := f.run("mcp", "install", "sbx")
 	if code != 0 || out != "added hq to sbx (sbx mcp inspect hq)\n"+load {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
-	want := []string{"/usr/bin/env", "PATH=/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET=hq-dev", f.exe, "mcp", "sbx"}
+	want := []string{"/usr/bin/env", "PATH=/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET=hq-dev", "XDG_STATE_HOME=/Users/dev/state", f.exe, "mcp", "sbx"}
 	if !slices.Equal(f.sbx.mcp["hq"], want) {
 		t.Fatalf("registered %q", f.sbx.mcp["hq"])
 	}
@@ -1273,5 +1267,82 @@ func TestMCPKillLeavesATraceOfTheClientAndTheCallingAgent(t *testing.T) {
 	call(t, cs, "kill", map[string]any{"name": "a", "confirmed": true})
 	if len(f.kills) != 1 || f.kills[0].Client != "sbx" || f.kills[0].Caller != "" {
 		t.Fatalf("trace %+v", f.kills)
+	}
+}
+
+// stepAsideCalls is a call of every tool hq mcp offers, each of which would
+// change something or read an agent of the fakes goFakes gives.
+var stepAsideCalls = []struct {
+	tool string
+	args map[string]any
+}{
+	{"list", nil},
+	{"read", map[string]any{"name": "a"}},
+	{"wait", map[string]any{"since": "2026-09-27T12:00:00Z", "timeout": 1}},
+	{"new", map[string]any{"name": "42", "dir": "/w/lib", "prompt": "work on issue #42"}},
+	{"send", map[string]any{"name": "a", "text": "and the tests?"}},
+	{"answer", map[string]any{"name": "a", "dialog": "abcdef", "cancel": true, "confirmed": true}},
+	{"go", map[string]any{"name": "a"}},
+	{"kill", map[string]any{"name": "a", "confirmed": true}},
+}
+
+func TestMCPAfterAnUpdateToAnotherGenerationEveryCallFails(t *testing.T) {
+	f := goFakes()
+	f.sbx.sandboxes = sandboxesFor("/w/lib")
+	cs := mcpSession(t, f)
+	if out, isErr := call(t, cs, "list", nil); isErr {
+		t.Fatalf("list before the update: %q", out)
+	}
+	f.disk.ino++
+	f.diskGeneration = version.Generation + 1
+	windows := len(f.tmux.windows)
+	for _, c := range stepAsideCalls {
+		if out, isErr := call(t, cs, c.tool, c.args); !isErr || out != "hq: "+hqUpdated+"\n" {
+			t.Errorf("%s: %v %q", c.tool, isErr, out)
+		}
+	}
+	// It started no agent and changed nothing.
+	if len(f.tmux.windows) != windows || len(f.inbox) != 0 || f.tmux.docked != "" || len(f.announced) != 0 {
+		t.Fatalf("windows %+v inbox %v docked %q announced %v", f.tmux.windows, f.inbox, f.tmux.docked, f.announced)
+	}
+	if f.generationAsks != 1 {
+		t.Errorf("the hq on disk asked %d times, want once", f.generationAsks)
+	}
+	// The instructions say what the line means and what to do.
+	for _, want := range []string{"fails with `hq was updated: restart hq in this client` means hq was updated to another generation", "do not call again", "Tell the user that hq was updated and has to be restarted in this client"} {
+		if !strings.Contains(cs.InitializeResult().Instructions, want) {
+			t.Errorf("instructions have no %q", want)
+		}
+	}
+}
+
+func TestMCPAfterAnUpdateOfTheSameGenerationServesAsBefore(t *testing.T) {
+	f := goFakes()
+	f.sbx.sandboxes = sandboxesFor("/w/lib")
+	cs := mcpSession(t, f)
+	f.disk.ino++
+	if out, isErr := call(t, cs, "list", nil); isErr {
+		t.Fatalf("list: %q", out)
+	}
+	if out, isErr := call(t, cs, "go", map[string]any{"name": "a"}); isErr || f.tmux.docked != "@4" {
+		t.Fatalf("go: %v %q", isErr, out)
+	}
+	if out, isErr := call(t, cs, "new", map[string]any{"name": "42", "dir": "/w/lib", "prompt": "work on issue #42"}); isErr || !strings.HasPrefix(out, "started 42") {
+		t.Fatalf("new: %v %q", isErr, out)
+	}
+	if f.generationAsks != 1 {
+		t.Errorf("the hq on disk asked %d times, want once", f.generationAsks)
+	}
+}
+
+func TestMCPLeftAsItWasAsksTheHqOnDiskNothing(t *testing.T) {
+	f := goFakes()
+	f.sbx.sandboxes = sandboxesFor("/w/lib")
+	cs := mcpSession(t, f)
+	for _, c := range stepAsideCalls {
+		call(t, cs, c.tool, c.args)
+	}
+	if f.generationAsks != 0 {
+		t.Fatalf("the hq on disk asked %d times while unchanged", f.generationAsks)
 	}
 }

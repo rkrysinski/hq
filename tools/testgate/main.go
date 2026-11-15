@@ -37,11 +37,11 @@ const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
-	MinUnitShare = 0.50
+	MinUnitShare = 0.74
 	// MinCoverage is the lowest allowed statement coverage of internal/, in
 	// percent: 0.5 points under CI's figure, rounded down to a tenth, so a
 	// PR that changes nothing about tests stays above it (#42).
-	MinCoverage = 94.4
+	MinCoverage = 94.7
 )
 
 func main() {

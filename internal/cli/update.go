@@ -5,9 +5,13 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/prefs"
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/update"
 	"github.com/rkrysinski/hq/internal/version"
 )
@@ -37,6 +41,13 @@ func runUpdate(env Env, d deps, args []string) error {
 		fmt.Fprintf(env.Stdout, "hq %s is up to date (latest release %s)\n", current, latest)
 		return nil
 	}
+	gen, published, err := d.releases.Generation(latest)
+	if err != nil {
+		return envErr("could not read the generation of hq %s: %v; nothing was replaced", latest, err)
+	}
+	if err := mayUpdate(d, latest, gen, published); err != nil {
+		return err
+	}
 	exe, err := d.executable()
 	if err != nil {
 		return envErr("cannot find the running hq: %v", err)
@@ -65,6 +76,125 @@ func runUpdate(env Env, d deps, args []string) error {
 	}
 	fmt.Fprintf(env.Stdout, "updated hq %s -> %s\n", current, latest)
 	return nil
+}
+
+// mayUpdateCommand is the hidden command install.sh asks the installed hq
+// before it replaces it: may it be replaced by release TAG of generation
+// GEN (empty when the release publishes none)? It answers as hq update
+// does, refusing with its line and exit code 1 (ADR 0020).
+const mayUpdateCommand = "__may-update"
+
+// generationCommand is the hidden command that prints this hq's
+// generation; an hq from before generations does not know it, which is
+// how install.sh tells one from the other (ADR 0020).
+const generationCommand = "__generation"
+
+func runMayUpdate(_ Env, d deps, args []string) error {
+	usage := usageErr("usage: hq %s TAG GENERATION", mayUpdateCommand)
+	if len(args) != 2 || args[0] == "" {
+		return usage
+	}
+	gen, published := 0, args[1] != ""
+	if published {
+		var err error
+		if gen, err = strconv.Atoi(args[1]); err != nil || gen < 1 {
+			return usage
+		}
+	}
+	return mayUpdate(d, args[0], gen, published)
+}
+
+func runGeneration(env Env, _ deps, args []string) error {
+	if len(args) != 0 {
+		return usageErr("usage: hq %s", generationCommand)
+	}
+	fmt.Fprintln(env.Stdout, version.Generation)
+	return nil
+}
+
+// mayUpdate applies the update rule to release tag, of generation gen
+// (published false when it publishes none, which counts as another): an
+// update within this hq's generation goes through whatever agents exist;
+// one across generations is refused while any agent hq knows exists, or
+// while hq cannot tell whether one does, with exit code 1 (spec §4.1, ADR
+// 0020). No option lets it through.
+func mayUpdate(d deps, tag string, gen int, published bool) error {
+	if published && gen == version.Generation {
+		return nil
+	}
+	theirs := "it names none"
+	if published {
+		theirs = strconv.Itoa(gen)
+	}
+	refused := fmt.Sprintf("not updated to %s: it is of another generation (%s, this hq %d)", tag, theirs, version.Generation)
+	in, err := agentsInTheWay(d)
+	if err != nil {
+		return usageErr("%s and hq cannot tell whether agents exist: %s", refused, err.Msg)
+	}
+	if len(in) == 0 {
+		return nil
+	}
+	return usageErr("%s and agents exist; end them first with hq stop or hq kill NAME: %s", refused, strings.Join(in, ", "))
+}
+
+// agentsInTheWay lists every agent hq knows, each with its state, as an
+// update across generations names them: the agents of this tmux server in
+// any state, ended ones included, as hq ls shows them, then its lost agents
+// in every repository hq knows (lostAgents), then the agents those
+// repositories hold records of on another tmux server, running or lost
+// there (elsewhere). Asking sbx is not optional here: when it fails, does
+// not answer in time or is too old, hq cannot know the lost agents, and
+// that is the error.
+func agentsInTheWay(d deps) ([]string, *Error) {
+	asked := d.now()
+	all, err := d.pollSandboxes()
+	if err != nil {
+		return nil, asError(sbxErr(err))
+	}
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return nil, asError(tmuxErr(err))
+	}
+	var in []string
+	for _, a := range d.look(ws, agent.SandboxesOf(all, asked)) {
+		in = append(in, a.Name+" ("+a.State+")")
+	}
+	roots := knownRepositories(d, all)
+	for _, a := range lostAgents(d, ws, roots) {
+		in = append(in, a.Name+" (lost)")
+	}
+	for _, r := range elsewhere(d, roots) {
+		in = append(in, r.Name+" (on "+serverName(r.Server)+")")
+	}
+	return in, nil
+}
+
+// elsewhere are the records the repositories at roots hold of agents hq
+// started on another tmux server than this one: this hq cannot see their
+// windows, so each may run there or be lost, and an update would leave it
+// outdated either way (story 22 of #165). Each counts once, by its id.
+func elsewhere(d deps, roots []string) []state.Record {
+	var out []state.Record
+	for _, root := range roots {
+		records, _ := d.records(root)
+		slices.SortStableFunc(records, func(a, b state.Record) int { return strings.Compare(a.Name, b.Name) })
+		for _, r := range records {
+			if r.Server == server(d) || checkName(r.Name) != nil || slices.ContainsFunc(out, func(o state.Record) bool { return o.ID == r.ID }) {
+				continue
+			}
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// serverName names the tmux server of -L socket name s, "" being the
+// default server.
+func serverName(s string) string {
+	if s == "" {
+		return "the default tmux server"
+	}
+	return "tmux server " + s
 }
 
 func (d deps) rememberLatest(latest string) {

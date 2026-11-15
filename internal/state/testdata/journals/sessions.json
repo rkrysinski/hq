@@ -1,0 +1,238 @@
+{
+  "about": "Sessions: a resumed session keeps the branch, worktree and last message of the report before it, also when it is resumed again at once; a session started over with /clear; a new one.",
+  "steps": [
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "in": "feat-42",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "feat-42",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-question",
+      "in": "feat-42",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.stop.1",
+          "facts": {
+            "branch": "feat-42",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "question": true,
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 3,
+        "text": "Should I also update the README? \n"
+      },
+      "look": {
+        "state": "question",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "end",
+      "payload": "session-end",
+      "in": "feat-42",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "SessionEnd",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000004.end.1",
+          "facts": {
+            "branch": "feat-42",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "reason": "prompt_input_exit",
+            "hook": "end"
+          }
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:04Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "resume",
+      "payload": "session-start-resume",
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000005.resume.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app",
+            "start": "resume",
+            "hook": "resume"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "resume",
+      "payload": "session-start-resume",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000006.resume.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app",
+            "start": "resume",
+            "hook": "resume"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000007.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start-clear",
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000008.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "clear",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000009.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Should I also update the README?"
+      }
+    }
+  ]
+}

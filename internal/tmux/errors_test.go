@@ -18,7 +18,6 @@ func TestEveryCommandReportsTmuxsFailure(t *testing.T) {
 		"Version":         func() error { _, err := c.Version(); return err },
 		"NewWindow":       func() error { _, err := c.NewWindow("a", "/w", nil, []string{"true"}); return err },
 		"SetOption":       func() error { return c.SetOption("@1", "new", "1") },
-		"KeepFirst":       func() error { _, err := c.KeepFirst("@1", "turnend", "1", "1 x"); return err },
 		"Screens":         func() error { _, err := c.Screens([]string{"%1"}); return err },
 		"Paste":           func() error { return c.Paste("%1", "hi") },
 		"StyledScreen":    func() error { _, err := c.StyledScreen("%1"); return err },

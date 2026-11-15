@@ -1,0 +1,382 @@
+{
+  "about": "Dialogs the hooks report: a permission prompt, reported once (the notification after it is no event), left open by another tool's end and closed when its own tool runs; question dialogs of one and of several questions, answered at the terminal and by a hook.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-bash",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "Bash",
+            "text": "Bash: Create empty probe file in /tmp",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:02Z",
+        "last": "Bash: Create empty probe file in /tmp",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "input",
+      "payload": "notification",
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:02Z",
+        "last": "Bash: Create empty probe file in /tmp",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s",
+        "prompt_id": "0000001b-0000-4000-8000-00000000001b",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Read",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {
+          "file": "a"
+        }
+      },
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000003.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "Read",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:02Z",
+        "last": "Bash: Create empty probe file in /tmp",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "answer-bash",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000004.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "Bash",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:05Z"
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-ask",
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000005.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "AskUserQuestion",
+            "text": "Which colour do you pick: red or blue?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "answer-ask",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000006.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "AskUserQuestion",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-question",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000007.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "question": true,
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 7,
+        "text": "Should I also update the README? \n"
+      },
+      "look": {
+        "state": "question",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000008.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-ask-several",
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000009.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000c-0000-4000-8000-00000000000c",
+            "cwd": "/w/app",
+            "turn": "0000000a-0000-4000-8000-00000000000a",
+            "tool": "AskUserQuestion",
+            "text": "Which color?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Which color?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:10Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "answer-ask-several",
+      "events": [
+        {
+          "n": 10,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:11Z",
+          "file": "000000010.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000000c-0000-4000-8000-00000000000c",
+            "cwd": "/w/app",
+            "turn": "0000000a-0000-4000-8000-00000000000a",
+            "tool": "AskUserQuestion",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-ask-three",
+      "events": [
+        {
+          "n": 11,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:12Z",
+          "file": "000000011.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0000002c-0000-4000-8000-00000000002c",
+            "cwd": "/w/app",
+            "turn": "0000002d-0000-4000-8000-00000000002d",
+            "tool": "AskUserQuestion",
+            "text": "Which colour?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:12Z",
+        "last": "Which colour?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:12Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "answer-ask-hook",
+      "events": [
+        {
+          "n": 12,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:13Z",
+          "file": "000000012.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000016-0000-4000-8000-000000000016",
+            "cwd": "/w/app",
+            "turn": "00000024-0000-4000-8000-000000000024",
+            "tool": "AskUserQuestion",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:13Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "events": [
+        {
+          "n": 13,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:14Z",
+          "file": "000000013.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 13,
+        "text": "Hi. The tests pass\nand PR #58 is open."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    }
+  ]
+}

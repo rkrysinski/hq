@@ -52,6 +52,11 @@ type fakeSource struct {
 
 	delivered []string // the agents given to Deliver, by name, a round per entry
 
+	// other is whether the hq on disk is of another generation;
+	// generationChecks counts the looks at it.
+	other            bool
+	generationChecks int
+
 	collects, polls, layouts int
 	seen                     []agent.Sandboxes // sbx's answer as given to Agents
 	footer                   []Hint
@@ -118,6 +123,10 @@ func (f *fakeSource) source() Source {
 			return f.prs[repo], f.prErr
 		},
 		Browse: func(url string) error { f.browsed = append(f.browsed, url); return nil },
+		OtherGeneration: func() bool {
+			f.generationChecks++
+			return f.other
+		},
 		Deliver: func(as []agent.Agent) {
 			var names []string
 			for _, a := range as {
@@ -227,7 +236,7 @@ func TestEmptyListShowsHowToStart(t *testing.T) {
 func TestRowsInAttentionOrderWithCountsInTheHeader(t *testing.T) {
 	f := &fakeSource{agents: []agent.Agent{
 		ag("idm", state.Working, 3*time.Second, "Running mvn verify ..."),
-		ag("spike", state.Ended, time.Hour, agent.EndedLast), // as Collect gives it
+		ag("spike", state.Ended, time.Hour, agent.EndedLast), // as FromJournals gives it
 		ag("43", state.Done, 11*time.Minute, "PR #58 opened"),
 		ag("42", state.NeedsInput, 2*time.Minute, "Which Entra tenant?"),
 		ag("agent", state.Question, 6*time.Minute, "Changelog too?"),
@@ -1891,5 +1900,94 @@ func TestEachLookDeliversTheMessagesLeftWaitingOneRoundAtATime(t *testing.T) {
 	_ = do(update(m, agentsMsg{agents: as}))
 	if len(f.delivered) != 2 {
 		t.Fatalf("delivered %q", f.delivered)
+	}
+}
+
+// ticks feeds m n ticks, running what each asks for, and returns every
+// message that came of them.
+func ticks(m Model, n int) (Model, []tea.Msg) {
+	var got []tea.Msg
+	var run func(cmd tea.Cmd)
+	run = func(cmd tea.Cmd) {
+		for _, msg := range msgs(cmd) {
+			got = append(got, msg)
+			var next tea.Cmd
+			m, next = update(m, msg)
+			run(next)
+		}
+	}
+	for range n {
+		var cmd tea.Cmd
+		m, cmd = update(m, tickMsg{})
+		run(cmd)
+	}
+	return m, got
+}
+
+func TestTheListLooksAtTheHqOnDiskEveryTwoSeconds(t *testing.T) {
+	f := &fakeSource{}
+	m := started(f, 100, 10)
+	m, _ = ticks(m, 7)
+	if f.generationChecks != 0 {
+		t.Fatalf("%d looks within 7 ticks", f.generationChecks)
+	}
+	m, _ = ticks(m, 1)
+	if f.generationChecks != 1 {
+		t.Fatalf("%d looks after 8 ticks (2 s), want 1", f.generationChecks)
+	}
+	ticks(m, 8)
+	if f.generationChecks != 2 {
+		t.Fatalf("%d looks after 16 ticks, want 2", f.generationChecks)
+	}
+}
+
+func TestOneLookAtTheHqOnDiskAtATime(t *testing.T) {
+	f := &fakeSource{}
+	m := New(f.source())
+	cmd := m.checkGeneration()
+	if cmd == nil || m.checkGeneration() != nil {
+		t.Fatal("a second look started while one is under way")
+	}
+	m = do(m, cmd)
+	if m.checkingGeneration || m.checkGeneration() == nil {
+		t.Fatal("no look after the answer")
+	}
+}
+
+func TestAnUpdateOfTheSameGenerationLeavesTheListRunning(t *testing.T) {
+	f := &fakeSource{}
+	m := started(f, 100, 10)
+	m, got := ticks(m, 16)
+	for _, msg := range got {
+		if _, ok := msg.(tea.QuitMsg); ok {
+			t.Fatal("the list quit")
+		}
+	}
+	if m.updated || outcome(m, nil) != nil {
+		t.Fatal("the list made way")
+	}
+}
+
+func TestTheListMakesWayForAnHqOfAnotherGeneration(t *testing.T) {
+	f := &fakeSource{other: true}
+	m := started(f, 100, 10)
+	m, got := ticks(m, 8)
+	quit := false
+	for _, msg := range got {
+		_, ok := msg.(tea.QuitMsg)
+		quit = quit || ok
+	}
+	if !quit || !m.updated {
+		t.Fatalf("the list did not quit for the new hq (quit %v)", quit)
+	}
+	if err := outcome(m, nil); !errors.Is(err, ErrUpdated) {
+		t.Fatalf("Run would return %v", err)
+	}
+	// q quits for the user, not for an update; a failed program says why.
+	if outcome(New(f.source()), nil) != nil {
+		t.Fatal("q taken for an update")
+	}
+	if err := outcome(m, errors.New("no terminal")); err == nil || errors.Is(err, ErrUpdated) {
+		t.Fatalf("a failure became %v", err)
 	}
 }

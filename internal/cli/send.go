@@ -94,12 +94,11 @@ func runSend(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	relaunch := fmt.Sprintf("relaunch it with %s, or kill it and start it again", restartCommand(a))
 	switch {
+	case a.Outdated():
+		return outdatedErr(a)
 	case a.State == state.Ended:
-		return usageErr("%s has ended and cannot receive messages; %s", a.Name, relaunch)
-	case !a.Inbox:
-		return usageErr("%s was started by an older hq and cannot receive messages; %s", a.Name, relaunch)
+		return usageErr("%s has ended and cannot receive messages; relaunch it with %s, or kill it and start it again", a.Name, restartCommand(a))
 	}
 	// The moment before the message is left: the reply it brings is a
 	// change after it, for hq wait --since.
@@ -137,7 +136,7 @@ type sendOutput struct {
 // findAgent collects the agents as hq ls does, turns the user ended
 // included, and returns the one named name.
 func findAgent(d deps, name string) (agent.Agent, error) {
-	as, err := collect(d)
+	as, err := lookNow(d)
 	if err != nil {
 		return agent.Agent{}, err
 	}
@@ -205,7 +204,7 @@ func atPrompt(a agent.Agent) bool {
 // hq ls, hq read, hq wait and the list.
 func deliverWaiting(d deps, as []agent.Agent) {
 	for _, a := range as {
-		if !a.Inbox || !atPrompt(a) {
+		if !atPrompt(a) {
 			continue
 		}
 		if at, ok := d.oldestMessage(a.RepoPath, a.ID); ok && d.now().Sub(at) >= waitingAfter {
@@ -270,8 +269,13 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 	}
 	ps := prompts(all)
 	msgs := ps[0]
+	// The delivery is in the agent's journal before the prompt is typed,
+	// so the prompt Claude reports comes after it; it names only the
+	// messages of this prompt, which the held ones are not (#195).
+	names := messageNames(msgs)
+	appendEvent(d, a.ID, state.KindDelivery, state.Facts{Messages: names})
 	texts := make([]string, len(msgs))
-	supervised := a.Supervisable()
+	supervised := true
 	for i, m := range msgs {
 		texts[i] = m.Text
 		supervised = supervised && m.Supervisor
@@ -287,11 +291,12 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 		if supervised {
 			_ = d.withdraw(a.RepoPath, a.ID)
 		}
-		// Back into the inbox, in the order sent: the hooks deliver them
-		// with the next prompt.
+		// Back into the inbox, in the order sent, each under its name: the
+		// hooks deliver them with the next prompt.
 		for _, m := range all {
 			_ = d.postMessage(a.RepoPath, a.ID, m, false)
 		}
+		appendWithdrawn(d, a.ID, state.KindDelivery, names)
 		return "", tmuxErr(err)
 	}
 	// The others wait for the agent's next prompts, where the hooks do not

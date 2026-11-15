@@ -12,7 +12,9 @@ import (
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 // newArgs is hq new's arguments after parsing; setup "" is the default.
@@ -120,12 +122,9 @@ func claudeArgs(name, id, resume, prompt string) []string {
 	return args
 }
 
-// inboxHooks is the inbox option of every agent hq starts or relaunches
-// from now on, the generation of its hooks: from 1 they deliver messages
-// (ADR 0012), from 2 they also tell a supervised turn (spec §5,
-// agent.Supervisable), from 3 they hold on a question dialog for hq's
-// answer (hq answer, agent.Answerable).
-const inboxHooks = "3"
+// generation is what every agent hq starts or relaunches carries as its
+// home window's agent.GenerationOption: this hq's generation.
+var generation = strconv.Itoa(version.Generation)
 
 func runNew(env Env, d deps, args []string) error {
 	cwd, err := d.getwd()
@@ -214,7 +213,7 @@ func launchAgent(d deps, a agent.Agent, resume, prompt string, fresh bool) error
 	}
 	opts := map[string]string{
 		"id": id, "name": name, "repo": root, "sandbox": sandbox,
-		"started": agent.Stamp(d.now()), "inbox": inboxHooks,
+		"started": agent.Stamp(d.now()), agent.GenerationOption: generation,
 	}
 	if fresh {
 		opts["new"] = "1"
@@ -244,6 +243,12 @@ func launchAgent(d deps, a agent.Agent, resume, prompt string, fresh bool) error
 	// The first prompt of an agent the supervisor starts is the
 	// supervisor's (spec §5); without the word it notifies, as the user's.
 	supervised := d.supervisor && prompt != "" && d.announce(root, id) == nil
+	// The launch is in the agent's journal before its session can report.
+	how := "restore"
+	if fresh {
+		how = "new"
+	}
+	appendEvent(d, id, state.KindLaunched, state.Facts{Start: how, Session: resume, Repo: root, Tmux: server(d)})
 	if err := d.tmux.Start(win); err != nil {
 		if supervised {
 			_ = d.withdraw(root, id)
@@ -252,7 +257,9 @@ func launchAgent(d deps, a agent.Agent, resume, prompt string, fresh bool) error
 		// A new agent that never ran leaves no record to restore; a
 		// restored one keeps its own.
 		if fresh {
-			_ = d.removeState(root, id)
+			removeAgentFiles(d, root, id)
+		} else {
+			appendWithdrawn(d, id, state.KindLaunched, nil)
 		}
 		return tmuxErr(err)
 	}

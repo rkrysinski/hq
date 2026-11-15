@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -35,11 +36,67 @@ func askFakes(t *testing.T, fixture string) (*fakes, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	q.Since = since
 	f.questions["id-a"] = q
 	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: since, Last: q.Ask.Questions[0].Question, LastStop: "On it."}
 	f.details["id-a"] = state.Detail{Reply: "On it.", Ask: q.Ask}
 	return f, state.DialogID(since)
+}
+
+// hq answer reads the question dialog and what Claude got for it from the
+// agent's journal, as its hook reported them, never from the hook's own
+// files (#199): the dialog's report, whose answer is named by its cksum,
+// and once the dialog's tool ended the answers it carried.
+func TestHqAnswerReadsTheDialogAndItsAnswersFromTheJournal(t *testing.T) {
+	m := journaltest.NewMemory()
+	if _, err := journalQuestions(m, "a1"); err == nil {
+		t.Fatal("questions before any report")
+	}
+	if _, ok := journalAnswers(m, "a1"); ok {
+		t.Fatal("answers before any report")
+	}
+	report := stateFixture(t, "dialog-ask-several")
+	m.Leave("/w/app", "a1", "000000001.dialog.1", report, time.Unix(100, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	q, err := journalQuestions(m, "a1")
+	want, _ := state.ParseQuestions(report)
+	if err != nil || !reflect.DeepEqual(q, want) || q.Ask == nil {
+		t.Fatalf("questions %+v %v, want %+v", q, err, want)
+	}
+	if _, ok := journalAnswers(m, "a1"); ok {
+		t.Fatal("answers while the dialog is open")
+	}
+	m.Leave("/w/app", "a1", "000000002.answer.1", stateFixture(t, "answer-ask-several"), time.Unix(101, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := journalAnswers(m, "a1"); !ok || got["Which name?"] != "Gamma typed" {
+		t.Fatalf("answers %v %v", got, ok)
+	}
+	// A dialog whose tool reports no answers: none, not unknown.
+	m.Leave("/w/app", "a1", "000000003.dialog.1", report, time.Unix(102, 0))
+	m.Leave("/w/app", "a1", "000000004.answer.1", journaltest.Hook("main", map[string]any{"hook_event_name": "PostToolUse", "tool_name": state.AskTool}), time.Unix(102, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := journalAnswers(m, "a1"); !ok || got == nil || len(got) != 0 {
+		t.Fatalf("no answers: %v %v", got, ok)
+	}
+	// A permission prompt is no question dialog hq answers.
+	m.Leave("/w/app", "a1", "000000005.dialog.1", stateFixture(t, "dialog-bash"), time.Unix(102, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := journalQuestions(m, "a1"); err == nil {
+		t.Fatal("questions of a permission prompt")
+	}
+	if _, err := journalQuestions(m, "../a1"); err == nil {
+		t.Fatal("questions of an id hq did not issue")
+	}
+	if _, ok := journalAnswers(m, "../a1"); ok {
+		t.Fatal("answers of an id hq did not issue")
+	}
 }
 
 // declinedScreen is the agent's screen after its question dialog was
@@ -162,10 +219,13 @@ func TestAnswerNamesTheOpenDialog(t *testing.T) {
 			t.Errorf("%v: exit %d %q", tc.args, code, errOut)
 		}
 	}
-	// The dialog changed between the look and the read of its questions.
-	q := f.questions["id-a"]
-	q.Since = q.Since.Add(time.Second)
-	f.questions["id-a"] = q
+	// The dialog changed between the look and the read of its questions:
+	// the hook holds on another.
+	other, err := state.ParseQuestions(stateFixture(t, "dialog-ask-several"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.questions["id-a"] = other
 	if code, _, errOut := f.run("answer", "a", "--dialog", id, "2"); code != ExitUsage || !strings.Contains(errOut, "a's dialog changed meanwhile") {
 		t.Errorf("changed: exit %d %q", code, errOut)
 	}
@@ -255,8 +315,10 @@ func TestAnswerRefusesWhatHqDoesNotAnswer(t *testing.T) {
 			want: "hq: a asks in its reply, not in a dialog: answer it with hq send a TEXT\n"},
 		{name: "ended", report: state.Report{State: state.NeedsInput}, setup: func(f *fakes) { f.tmux.windows[1].PaneDead = true },
 			want: "hq: a has ended: it is at no dialog\n"},
-		{name: "older hq", report: state.Report{State: state.NeedsInput, Last: "Which colour?"}, setup: func(f *fakes) { f.tmux.windows[1].Options["inbox"] = "2" },
-			want: "hq: a was started by an older hq and cannot be answered from hq; relaunch it with hq sandbox restart app, or kill it and start it again\n"},
+		// An outdated agent is refused before anything of its dialog is read
+		// (#194).
+		{name: "outdated", report: state.Report{State: state.NeedsInput, Last: "Which colour?"}, setup: func(f *fakes) { f.tmux.windows[1].Options[genOption] = "2" },
+			want: "hq: a was started by an older hq: kill it and start it again\n"},
 	} {
 		f, _ := askFakes(t, "dialog-ask")
 		tc.report.Since = f.now.Add(-time.Minute)
@@ -451,11 +513,7 @@ func TestReadAndLsGiveTheDialogsID(t *testing.T) {
 			t.Errorf("%v:\n%s", cmd, out)
 		}
 	}
-	// Not answerable from hq: no command; no dialog: no id.
-	f.tmux.windows[1].Options["inbox"] = "2"
-	if _, out, _ := f.run("read", "a"); strings.Contains(out, "\nanswer ") || !strings.Contains(out, "asks      dialog "+id) {
-		t.Fatalf("older hq:\n%s", out)
-	}
+	// No dialog: no id.
 	f.states["id-a"] = state.Report{State: state.Working, Since: f.now}
 	for _, cmd := range [][]string{{"read", "a", "--json"}, {"ls", "--json"}} {
 		if _, out, _ := f.run(cmd...); strings.Contains(out, `"dialog"`) {
@@ -613,11 +671,12 @@ func TestAnswerPicksAnOptionOfADialogOfClaudesOwnWithKeys(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &got); err != nil || got.State != state.Done || got.NextSince.After(before) || before.Sub(got.NextSince) > time.Second {
 		t.Fatalf("json %q: %+v %v", out, got, err)
 	}
-	// An agent started by an older hq has no hooks hq needs for it.
+	// An outdated agent is refused, its dialog of Claude's own too, and
+	// nothing is pressed (#194).
 	f, c, id := ownDialogFakes(t)
-	f.tmux.windows[1].Options["inbox"] = "2"
-	if code, out, errOut := f.run("answer", "a", "--dialog", id, "2"); code != 0 || out != "answered: a is done\n" || c.picked != 1 {
-		t.Fatalf("older hq: exit %d %q %q", code, out, errOut)
+	f.tmux.windows[1].Options[genOption] = "2"
+	if code, out, errOut := f.run("answer", "a", "--dialog", id, "2"); code != ExitUsage || errOut != "hq: a was started by an older hq: kill it and start it again\n" || len(c.pressed) != 0 {
+		t.Fatalf("outdated: exit %d %q %q, pressed %v", code, out, errOut, c.pressed)
 	}
 }
 

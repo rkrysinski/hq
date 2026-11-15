@@ -5,6 +5,7 @@
 package dash
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -21,7 +22,7 @@ import (
 
 // Source is what the list program reads and drives.
 type Source struct {
-	// Agents collects the agents from tmux and the state files; running is
+	// Agents collects the agents from tmux and their journals; running is
 	// the latest answer of sbx, which says nothing while unknown (design §5.1).
 	Agents func(running agent.Sandboxes) ([]agent.Agent, error)
 	// Running asks sbx which sandboxes run; it may take seconds.
@@ -68,7 +69,17 @@ type Source struct {
 	// Deliver types in the messages left waiting for agents at their
 	// prompt, as a look found them (#125); it may take seconds.
 	Deliver func(as []agent.Agent)
+	// OtherGeneration reports whether the hq on disk, the one this list was
+	// started from, was replaced by one of another generation; then the list
+	// makes way for it (Run returns ErrUpdated). It looks at the file, and
+	// asks the new hq only once the file changed (design §3.11).
+	OtherGeneration func() bool
 }
+
+// ErrUpdated is what Run returns when the list ended to make way for the hq
+// on disk, of another generation: its caller starts that hq's list in its
+// place, the docked session, the cursor and the layout staying in tmux.
+var ErrUpdated = errors.New("hq on disk is of another generation")
 
 // Sorts, cycled with s (spec §6.2). The list shows every agent (ADR 0016).
 const (
@@ -189,6 +200,9 @@ const (
 	// however slowly, leaves at most 6 s between answers; 8 s means at
 	// least one poll failed or timed out.
 	sbxStale = 8 * time.Second
+	// generationEvery is how often the list looks at the hq on disk: an
+	// update to another generation is taken over within 5 s (design §3.11).
+	generationEvery = 8 // ticks
 )
 
 // Rows is how many agents the list shows: 6, or 3 in a terminal below 24
@@ -230,6 +244,9 @@ type (
 		prs  map[string]gh.PR
 		err  error
 	}
+	// generationMsg says whether a look found the hq on disk of another
+	// generation.
+	generationMsg struct{ other bool }
 )
 
 // Model is the list program's state.
@@ -294,6 +311,12 @@ type Model struct {
 	delivering    bool      // a round of Source.Deliver is under way
 	polled        time.Time // when sbx last answered
 	began         time.Time // when the list program started
+
+	// checkingGeneration is true while a look at the hq on disk is under
+	// way; updated once the list ended to make way for an hq of another
+	// generation.
+	checkingGeneration bool
+	updated            bool
 }
 
 // New is the list program before its first refresh, in the sort the user
@@ -570,6 +593,17 @@ func (m *Model) deliver(as []agent.Agent) tea.Cmd {
 	}
 }
 
+// checkGeneration looks at the hq on disk in the background, one look at a
+// time.
+func (m *Model) checkGeneration() tea.Cmd {
+	if m.checkingGeneration || m.src.OtherGeneration == nil {
+		return nil
+	}
+	m.checkingGeneration = true
+	other := m.src.OtherGeneration
+	return func() tea.Msg { return generationMsg{other()} }
+}
+
 func (m Model) checkUpdate() tea.Cmd {
 	return func() tea.Msg { return newerMsg{m.src.NewerRelease()} }
 }
@@ -596,7 +630,16 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		if m.ticks%sbxEvery == 0 {
 			cmds = append(cmds, m.poll())
 		}
+		if m.ticks%generationEvery == 0 {
+			cmds = append(cmds, m.checkGeneration())
+		}
 		return m, tea.Batch(cmds...)
+	case generationMsg:
+		m.checkingGeneration = false
+		if msg.other {
+			m.updated = true
+			return m, tea.Quit
+		}
 	case agentsMsg:
 		m.err = msg.err
 		if msg.err == nil {
@@ -900,6 +943,7 @@ var (
 	cChipKey  = cChip.Foreground(lipgloss.Color("#A78BFA")).Bold(true)
 	cStripGap = lipgloss.NewStyle().Background(cCursor)
 	cByState  = map[string]lipgloss.Style{
+		state.Outdated:   lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
 		state.NeedsInput: lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
 		state.Question:   lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A524")),
 		state.Done:       lipgloss.NewStyle().Foreground(lipgloss.Color("#34D399")),
@@ -1219,7 +1263,12 @@ func (c columns) row(a agent.Agent, now time.Time, cursor bool, strip string) st
 		case "STATE":
 			cells = append(cells, paint(st, fit("● "+a.State, col.w)))
 		case "AGE":
-			cells = append(cells, paint(cDim, fit(agent.Age(max(0, now.Sub(a.Since))), col.w)))
+			// An outdated agent's state, and so its age, is unknown.
+			age := ""
+			if !a.Outdated() {
+				age = agent.Age(max(0, now.Sub(a.Since)))
+			}
+			cells = append(cells, paint(cDim, fit(age, col.w)))
 		case "LAST":
 			// The count of its own tasks, dim, before the message (#78).
 			own := ansi.Truncate(agent.OwnPrefix(a.OwnTasks), col.w, "")
@@ -1266,8 +1315,19 @@ func orDash(s string) string {
 	return s
 }
 
-// Run runs the list program on the terminal until q.
+// Run runs the list program on the terminal until q, or until it makes way
+// for an hq of another generation (ErrUpdated).
 func Run(src Source) error {
-	_, err := tea.NewProgram(New(src), tea.WithAltScreen(), tea.WithMouseCellMotion()).Run()
-	return err
+	return outcome(tea.NewProgram(New(src), tea.WithAltScreen(), tea.WithMouseCellMotion()).Run())
+}
+
+// outcome is how the list program that ended as final, err ended.
+func outcome(final tea.Model, err error) error {
+	if err != nil {
+		return err
+	}
+	if m, ok := final.(Model); ok && m.updated {
+		return ErrUpdated
+	}
+	return nil
 }

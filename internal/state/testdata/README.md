@@ -206,6 +206,10 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | stop-subagent-monitor.json | Stop | the turn Claude took for a subagent's interim report: the agent's own watch and the subagent's watch running, both listed as type `shell` | real, 2.1.302, Opus 5.5 (high effort), G's managed settings, hq from the worktree of #99 (`qa-artifacts` `issue-99/`); paths normalized, printed with indentation | #99 |
 | stop-background-question.json | Stop | turn over with a question while a shell and a subagent run | unknown (as prompt-wake.json); normalized | 7cb35f8 (#38) |
 
+## Journals
+
+`journals/*.json` are fixture journals (#196, #197): an agent's journal in steps, each what hq does to the agent first (`hq`: launch, restore, relaunch, take down), a run of the hook on a payload above (or one written in the step: `inline`, compacted as Claude writes it; `raw`, one hq cannot read; `pad`, a field of that many bytes added), then a look at the agent with what its pane shows from then on (`screen`, a screen fixture above, a `screen-styled-*` one without its styles, as the look captures a pane), its pane (`pane`: dead, dated by tmux, or dead-undated) and sbx's answer from then on (`sbx`: stopped or running, asked `asked` seconds after the step); the events appended after it, and what the old reading of the hook's working files (`state.Read`) and the old look (`agent.Look`) gave. They are made, not captured: the integration test `TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads` runs each step in a repository and a state directory of its own and fails when the result differs from the file; `go test -tags integration ./internal/state -run TestTheFixtureJournals -update` writes them. Edited: each step is dated one second after the one before from 2026-01-01T00:00:01Z, the process id in an event file's name is 1, and a delivery names its messages 1, 2, ... A journal reported from an agent can be added as steps with its events and what its state should have been.
+
 ## Settings
 
 | fixture | what it is | real or hand-made | source |

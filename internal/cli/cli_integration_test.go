@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -45,14 +46,15 @@ func TestMain(m *testing.M) {
 	}
 	// Nothing a test runs reads or writes the user's own files: the
 	// preferences file and the trace of kills live under a home of the
-	// tests' own (CI runners set XDG_CONFIG_HOME, #146). A test that needs
-	// its own sets it again.
+	// tests' own (CI runners set XDG_CONFIG_HOME, #146), and so do the
+	// journals. A test that needs its own sets it again.
 	home, err := os.MkdirTemp("", "hq-cli-home-")
 	if err != nil {
 		panic(err)
 	}
 	os.Setenv("HOME", home)
 	os.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	os.Setenv("XDG_STATE_HOME", filepath.Join(home, ".local", "state"))
 	code := m.Run()
 	os.RemoveAll(home)
 	os.Exit(code)
@@ -74,6 +76,8 @@ func newRealHQ(t *testing.T) *realHQ {
 	trace := filepath.Join(t.TempDir(), "kills.log")
 	d.traceKill = func(k kills.Kill) error { return kills.Append(trace, k) }
 	d.readKills = func() ([]kills.Kill, error) { return kills.Read(trace) }
+	// Journals and a counter of each test's own.
+	d.journal = journal.Files{Dir: filepath.Join(t.TempDir(), "hq")}
 	h.d = d
 	return h
 }
@@ -608,10 +612,10 @@ func TestAgentsOfASandboxStoppedOutsideHqAreEnded(t *testing.T) {
 		t.Fatalf("states %v", got)
 	}
 
-	// With sbx failing, hq ls shows what tmux and the hooks say.
+	// With sbx failing, hq ls shows what the journals hold: b's end stands.
 	h.d.pollSandboxes = sbx.Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: filepath.Join(t.TempDir(), "sbx")}}.List
 	code, out, errOut := h.run("ls")
-	if code != 0 || errOut != "" || strings.Count(out, " done ") != 2 {
+	if code != 0 || errOut != "" || strings.Count(out, " done ") != 1 || strings.Count(out, " ended ") != 1 {
 		t.Fatalf("sbx failing: exit %d %q %q", code, out, errOut)
 	}
 }
@@ -746,8 +750,9 @@ func TestKillEndsASessionThatOutlivedItsPane(t *testing.T) {
 	a, _ := agent.Find(agent.FromWindows(ws), "a")
 	// Claude runs on in the sandbox after its host-side sbx run ended
 	// (#101): a process with the agent's id in its arguments, which on
-	// SIGTERM writes its state file on the way out, as SessionEnd does.
-	file := filepath.Join(state.Dir(h.cwd), a.ID)
+	// SIGTERM writes beside the repository on the way out, as its hook does
+	// at SessionEnd.
+	file := filepath.Join(state.Dir(h.cwd), a.ID+".last")
 	claude := exec.Command("sh", "-c", `trap 'echo "branch main" >"$0"; exit 0' TERM; while :; do sleep 0.1; done`, file, `HQ_ID":"`+a.ID+`"`)
 	if err := claude.Start(); err != nil {
 		t.Fatal(err)
@@ -773,14 +778,14 @@ func TestKillEndsASessionThatOutlivedItsPane(t *testing.T) {
 		t.Fatal("the session still runs after the kill")
 	}
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
-		t.Fatalf("state file left behind: %v", err)
+		t.Fatalf("the hook's note left behind: %v", err)
 	}
 	if rows := h.ls(); len(rows) != 0 {
 		t.Fatalf("rows %+v", rows)
 	}
 }
 
-func TestKillAndStopRemoveTheirAgentsStateFiles(t *testing.T) {
+func TestKillAndStopRemoveTheirAgentsFiles(t *testing.T) {
 	testutil.FakeClaude(t)
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")
@@ -807,7 +812,7 @@ func TestKillAndStopRemoveTheirAgentsStateFiles(t *testing.T) {
 		}
 		return strings.Join(names, " ")
 	}
-	if got := files(); !strings.Contains(got, id["a"]+".stop") || !strings.Contains(got, id["b"]+".stop") {
+	if got := files(); !strings.Contains(got, id["a"]+".last") || !strings.Contains(got, id["b"]+".last") {
 		t.Fatalf("before: %q", got)
 	}
 
@@ -908,7 +913,7 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 	}
 }
 
-// An agent an older hq started has state files but no record (#147):
+// An agent an older hq started has a journal but no record (#147):
 // hq sandbox restart relaunches it all the same, continuing its
 // conversation, keeps its files and gives it the record hq restore reads.
 func TestSandboxRestartRelaunchesAnAgentWithoutARecordAndRecordsIt(t *testing.T) {
@@ -939,7 +944,7 @@ func TestSandboxRestartRelaunchesAnAgentWithoutARecordAndRecordsIt(t *testing.T)
 	}
 	h.waitPane("coolify", "fake claude: resumed "+session.SessionID)
 	if _, ok := h.d.readState(h.cwd, id); !ok {
-		t.Fatal("its state file went")
+		t.Fatal("its journal went")
 	}
 	rs, _ := h.d.records(h.cwd)
 	if len(rs) != 1 || rs[0].ID != id || rs[0].Name != "coolify" || rs[0].Sandbox != "claude-app" || rs[0].Server != h.socket {
@@ -1449,11 +1454,15 @@ func TestRestoreBringsBackTheAgentsOfAKilledTmuxServer(t *testing.T) {
 	}
 	// An agent whose worktree went while tmux was down.
 	gone := filepath.Join(t.TempDir(), "worktree")
-	if err := state.WriteRecord(h.cwd, "0e0e0e", state.Record{Name: "w", Sandbox: "claude-app", Server: h.socket}); err != nil {
+	if err := state.WriteRecord(h.cwd, "0e0e0e", state.Record{Name: "w", Sandbox: "claude-app", Server: h.socket, Generation: version.Generation}); err != nil {
 		t.Fatal(err)
 	}
 	stop := `{"hook_event_name":"Stop","session_id":"0e0e0e0e-0000-4000-8000-00000000000e","cwd":"` + gone + `","last_assistant_message":"done"}`
-	if err := os.WriteFile(filepath.Join(state.Dir(h.cwd), "0e0e0e"), []byte(stop), 0o600); err != nil {
+	// What its hook left before the server went, for hq to ingest.
+	if err := os.MkdirAll(state.EventsDir(h.cwd, "0e0e0e"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(state.EventsDir(h.cwd, "0e0e0e"), "000000001.stop.1"), []byte("branch main\n"+stop), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

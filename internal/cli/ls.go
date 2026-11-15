@@ -97,7 +97,12 @@ func writeTable(w io.Writer, rows []lsRow) error {
 	for _, r := range rows {
 		// LAST starts with the count of its own tasks, which --json lists.
 		last := agent.OwnPrefix(r.OwnTasks) + orDash(r.Last)
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, agent.Age(time.Duration(r.AgeSeconds)*time.Second), truncate(last, lastWidth))
+		// An outdated agent's state, and so its age, is unknown.
+		age := "-"
+		if r.State != state.Outdated {
+			age = agent.Age(time.Duration(r.AgeSeconds) * time.Second)
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, age, truncate(last, lastWidth))
 	}
 	return tw.Flush()
 }
@@ -108,7 +113,7 @@ func writeTable(w io.Writer, rows []lsRow) error {
 func newLsRow(d deps, a agent.Agent, now time.Time) lsRow {
 	var det state.Detail
 	if a.Dialog().Open() || a.State == state.Question {
-		det = d.readDetail(a.RepoPath, a.ID)
+		det = a.Detail()
 	}
 	return lsRowWithDetail(d, a, now, det)
 }
@@ -145,43 +150,52 @@ func asks(a agent.Agent, det state.Detail) *state.Ask {
 // so a single look tells the turn's end at once, like the list. Messages
 // left waiting for agents at their prompt are typed in (deliverWaiting).
 func gatherAgents(d deps) ([]agent.Agent, error) {
-	if err := checkTmux(d.tmux); err != nil {
-		return nil, err
-	}
-	as, err := collect(d)
+	as, err := lookDecided(d, lookNow)
 	if err != nil {
 		return nil, err
-	}
-	if resting(as) {
-		d.sleep(agent.RestDelay)
-		if as, err = collect(d); err != nil {
-			return nil, err
-		}
 	}
 	deliverWaiting(d, as)
 	return as, nil
 }
 
-// collect gathers the agents with their state from tmux, the state files,
+// lookDecided takes a look at the agents with look once tmux is known to
+// be fit, and one more RestDelay later when a working agent's screen is at
+// rest, which that look decides (gatherAgents).
+func lookDecided(d deps, look func(deps) ([]agent.Agent, error)) ([]agent.Agent, error) {
+	if err := checkTmux(d.tmux); err != nil {
+		return nil, err
+	}
+	as, err := look(d)
+	if err != nil {
+		return nil, err
+	}
+	if resting(as) {
+		d.sleep(agent.RestDelay)
+		return look(d)
+	}
+	return as, nil
+}
+
+// lookNow is a look at the agents, their state from tmux, their journals,
 // sbx and their screens (design §5.1, agent.Look). When sbx fails or does
 // not answer in time, the states come from tmux and the hooks alone; an sbx
 // too old for hq fails it (#172).
-func collect(d deps) ([]agent.Agent, error) {
+func lookNow(d deps) ([]agent.Agent, error) {
 	running, err := askSandboxes(d)
 	if err != nil {
 		return nil, sbxErr(err)
 	}
-	return collectWith(d, running)
+	return lookWith(d, running)
 }
 
-// collectWith is collect with sbx's answer given: which sandboxes run, and
+// lookWith is lookNow with sbx's answer given: which sandboxes run, and
 // when hq asked.
-func collectWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
+func lookWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
 	ws, err := d.tmux.Windows()
 	if err != nil {
 		return nil, tmuxErr(err)
 	}
-	return agent.Look(ws, d.readState, d.takeQueued, running, d.now(), d.tmux), nil
+	return d.look(ws, running), nil
 }
 
 // runningSandboxes asks sbx which sandboxes run, noting when it asked; the
@@ -205,11 +219,7 @@ func askSandboxes(d deps) (agent.Sandboxes, error) {
 		}
 		return agent.Sandboxes{}, nil
 	}
-	running := map[string]bool{}
-	for _, s := range sbs {
-		running[s.Name] = s.Running()
-	}
-	return agent.Sandboxes{Running: running, Asked: asked}, nil
+	return agent.SandboxesOf(sbs, asked), nil
 }
 
 // resting reports whether a working agent's screen is at rest in a way one

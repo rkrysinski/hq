@@ -76,7 +76,7 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 				{Header: "Colour", Question: "Which colour?", Options: []state.AskOption{{Label: "Red", Description: "Pick red."}, {Label: "Blue"}}},
 				{Question: "Which sizes?", MultiSelect: true, Options: []state.AskOption{{Label: "S"}, {Label: "M"}}},
 			}}},
-			"last      Which colour?\n\nasks      dialog ID\n  Colour: Which colour?\n    1. Red - Pick red.\n    2. Blue\n  Which sizes? (any of)\n    1. S\n    2. M\n"},
+			"last      Which colour?\n\nasks      dialog ID\n  Colour: Which colour?\n    1. Red - Pick red.\n    2. Blue\n  Which sizes? (any of)\n    1. S\n    2. M\n\nanswer    hq answer 42 --dialog ID N N,N\n"},
 		{"permission prompt", state.Report{State: state.NeedsInput, Last: "Bash: Create a file"},
 			state.Detail{Ask: &state.Ask{Tool: "Bash", Description: "Create a file", Command: "touch /tmp/x"}},
 			"last      Bash: Create a file\n\nasks      dialog ID\n  Bash: touch /tmp/x\n  Create a file\n"},
@@ -117,7 +117,7 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 		head := "state     " + tc.report.State + " 1m\npending   0\n"
 		_, rest, _ := strings.Cut(out, head)
 		rest, _, _ = strings.Cut(rest, "\nreply")
-		want := strings.Replace(tc.want, "dialog ID", "dialog "+state.DialogID(tc.report.Since), 1)
+		want := strings.ReplaceAll(tc.want, "dialog ID", "dialog "+state.DialogID(tc.report.Since))
 		if code != 0 || rest != strings.TrimSuffix(want, "\n")+"\n" {
 			t.Errorf("%s: exit %d %q\n%s", tc.name, code, errOut, out)
 		}
@@ -191,7 +191,8 @@ func TestReadJSONHasWhatLsHasAndTheAgentInFull(t *testing.T) {
 			t.Errorf("%s: %s, want %s", k, got, want)
 		}
 	}
-	// Nothing asked: null, not missing.
+	// Nothing asked, and no reply yet: null, not missing.
+	_ = f.deps().journal.Remove("/w/app", "id-42")
 	f.states["id-42"] = state.Report{State: state.Working, Since: f.now}
 	f.details["id-42"] = state.Detail{}
 	_, out, _ = f.run("read", "42", "--json")
@@ -211,7 +212,7 @@ type readJSON struct {
 // longReply is a reply of 82k characters, as in #64, some of them more
 // than a byte long.
 func longReply() string {
-	return strings.Repeat("Recon: the API answers in 120 ms; zażółć gęślą jaźń. \n", 1500)
+	return strings.TrimSuffix(strings.Repeat("Recon: the API answers in 120 ms; zażółć gęślą jaźń.\n", 1500), "\n")
 }
 
 func TestReplyPageCutsAReplyIntoPagesOfWholeCharacters(t *testing.T) {
@@ -361,7 +362,7 @@ func TestReadShowsClaudesDialogAtTheStartOfASession(t *testing.T) {
 func TestCommandsSeeClaudesDialogAfterATurn(t *testing.T) {
 	f := readFakes()
 	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
-	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.tmux.windows[1].Options["inbox"] = generation
 	f.details["id-42"] = state.Detail{Reply: "hi"}
 	f.tmux.windows[1].Pane = "%4"
 	rule := strings.Repeat("─", 40)
@@ -398,7 +399,7 @@ func TestADialogAfterATurnTheUserEndedNeedsInput(t *testing.T) {
 	since := f.now.Add(-time.Hour)
 	f.states["id-42"] = state.Report{State: state.Working, Since: since, Prompt: "go"}
 	f.tmux.windows[1].Pane = "%4"
-	f.tmux.windows[1].Options["turnend"] = strconv.FormatInt(since.UnixNano(), 10) + " " + strconv.FormatInt(since.Add(time.Minute).UnixNano(), 10) + " Interrupted"
+	f.seen("/w/app", "id-42", state.SourceScreen, state.KindTurnEnded, state.Facts{Text: "Interrupted"}, since.Add(time.Minute))
 	f.tmux.screens = map[string]string{"%4": "⎿  Interrupted\n" + strings.Repeat("▔", 40) + "\n   Change effort level?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"}
 	if code, out, _ := f.run("ls"); code != 0 || !strings.Contains(out, "needs input") || !strings.Contains(out, "Change effort level?") {
 		t.Fatalf("ls: exit %d\n%s", code, out)
@@ -419,7 +420,7 @@ func TestCommandsTakeADialogTheScreenClosedForGone(t *testing.T) {
 	f := readFakes()
 	f.states["id-42"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Minute), Last: "Claude Code needs your input", LastStop: "On it."}
 	f.details["id-42"] = state.Detail{Reply: "On it.", Ask: &state.Ask{Message: "Claude Code needs your input"}}
-	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.tmux.windows[1].Options["inbox"] = generation
 	f.tmux.windows[1].Pane = "%4"
 	rule := strings.Repeat("─", 40)
 	box := rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
@@ -458,7 +459,7 @@ func TestCommandsSeeClaudesDialogOnBackgroundWork(t *testing.T) {
 	f := readFakes()
 	f.states["id-42"] = state.Report{State: state.Working, Since: f.now.Add(-time.Hour), Latest: f.now.Add(-time.Minute), Background: true, Last: "It started."}
 	f.details["id-42"] = state.Detail{Reply: "It started."}
-	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.tmux.windows[1].Options["inbox"] = generation
 	f.tmux.windows[1].Pane = "%4"
 	f.tmux.screens = map[string]string{"%4": "● It started.\n✻ Waiting for 1 background agent to finish\n" + strings.Repeat("▔", 40) + "\n   Select model\n   Switch between Claude models.\n\n   ❯ 1. Default (recommended)\n     2. Opus 5.5\n"}
 	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 0s\n") || !strings.Contains(out, "\nasks      dialog "+state.DialogID(f.now)+"\n  Select model\n    1. Default (recommended)\n    2. Opus 5.5\n") {
@@ -505,5 +506,48 @@ reply
 	}
 	if err := json.Unmarshal([]byte(out), &v); err != nil || v.Last != "Waiting for the background task to report back." || len(v.OwnTasks) != 3 || v.OwnTasks[1].Text != "cd app &&\n"+long {
 		t.Fatalf("%v %+v", err, v)
+	}
+}
+
+// A reply of several megabytes comes whole from the journal: hq read
+// --json gives its size, and its pages, the first, one inside and the
+// last, are those of the whole reply.
+func TestReadGivesAReplyOfSeveralMegabytesInFullAndInPages(t *testing.T) {
+	f := readFakes()
+	reply := strings.TrimSpace(strings.Repeat("a reply of several megabytes, zażółć ", 100_000))
+	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
+	f.details["id-42"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
+	offsets := []int{0}
+	for {
+		_, next, err := replyPage(reply, offsets[len(offsets)-1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if next == nil {
+			break
+		}
+		offsets = append(offsets, *next)
+	}
+	if len(reply) < 3<<20 || len(offsets) < 90 {
+		t.Fatalf("%d bytes in %d pages", len(reply), len(offsets))
+	}
+	since := ""
+	for _, offset := range []int{0, offsets[len(offsets)/2], offsets[len(offsets)-1]} {
+		args := []string{"read", "42", "--json"}
+		if offset > 0 {
+			args = append(args, "--offset", strconv.Itoa(offset), "--since", since)
+		}
+		code, out, errOut := f.run(args...)
+		var v readJSON
+		if code != 0 || json.Unmarshal([]byte(out), &v) != nil || v.ReplySize != len(reply) {
+			t.Fatalf("%v: exit %d %q\n%.300s", args, code, errOut, out)
+		}
+		want, next, _ := replyPage(reply, offset)
+		if v.Reply != want || (next == nil) != (v.NextOffset == nil) {
+			t.Fatalf("%v: %d bytes, next %v", args, len(v.Reply), v.NextOffset)
+		}
+		if offset == 0 {
+			since = v.NextSince
+		}
 	}
 }

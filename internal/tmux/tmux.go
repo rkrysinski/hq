@@ -50,17 +50,12 @@ type Client struct {
 }
 
 // OptionKeys are the user options hq stores on a home window: new marks an
-// agent started with hq new (not relaunched), for the list's S2; turnend
-// when hq first saw a turn the user ended; restseen when hq first saw a
-// working agent's screen at rest; dialogseen when hq first saw a dialog of
-// Claude's own on the screen of an agent at its prompt; answered when hq
-// first saw Claude at work after a dialog its hooks reported; endseen when hq
-// first saw the agent ended, where tmux cannot tell (design §3.4); inbox
-// marks an agent whose
-// hooks deliver the messages hq send leaves (ADR 0012), which agents
-// started by an older hq lack, and counts their generation: from 2 they
-// also tell a supervised turn (spec §5).
-var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "turnend", "restseen", "dialogseen", "answered", "endseen", "wokeseen", "inbox"}
+// agent started with hq new (not relaunched), for the list's S2; inbox
+// holds the generation of the hq that last launched the agent
+// (agent.GenerationOption), named for the hooks that deliver the messages
+// hq send leaves (ADR 0012), which it first marked. What hq sees of an
+// agent goes to its journal, never onto its window (ADR 0018).
+var OptionKeys = []string{"id", "name", "repo", "sandbox", "started", "ending", "new", "inbox"}
 
 func (c Client) tmux(args ...string) ([]byte, error) {
 	return c.Run.Run("tmux", c.global(args)...)
@@ -255,28 +250,6 @@ func (e CommandTooLong) Error() string {
 func (c Client) SetOption(id, key, value string) error {
 	_, err := c.tmux("set-option", "-w", "-t", id, "@hq_"+key, value)
 	return err
-}
-
-// KeepFirst stores value as one of OptionKeys on a window unless the
-// option already holds a value that starts with prefix, and returns what
-// the option holds then: the first value stored for a prefix wins, however
-// many hq processes store one at once (design §3.4). The check, the store
-// and the read run in one tmux call, which the server carries out without
-// running another client's commands in between. prefix is plain text: no
-// glob or format characters.
-func (c Client) KeepFirst(id, key, prefix, value string) (string, error) {
-	if strings.ContainsAny(prefix, "*?[]\\#{},") {
-		return "", errors.New("tmux: prefix " + strconv.Quote(prefix) + " is not plain")
-	}
-	opt := "@hq_" + key
-	// Empty (false) when the option starts with prefix, 1 otherwise.
-	unset := "#{?#{m:" + prefix + "*,#{" + opt + "}},,1}"
-	out, err := c.read("if-shell", "-F", "-t", id, unset, "set-option -w -t "+id+" "+opt+" "+tmuxQuote(value),
-		";", "display-message", "-p", "-t", id, "#{"+opt+"}")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(string(out), "\n"), nil
 }
 
 // screenMark starts the line Screens prints before each pane's screen.

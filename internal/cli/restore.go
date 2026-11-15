@@ -8,9 +8,11 @@ import (
 	"strings"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 const restoreUsage = "usage: hq restore [REPO]"
@@ -19,10 +21,10 @@ const restoreUsage = "usage: hq restore [REPO]"
 // default server (design §3.2).
 func server(d deps) string { return d.getenv("HQ_TMUX_SOCKET") }
 
-// keepRecord keeps hq's record of a beside its state files, for hq restore
+// keepRecord keeps hq's record of a beside its repository, for hq restore
 // (design §3.3, #140).
 func keepRecord(d deps, a agent.Agent) error {
-	if err := d.writeRecord(a.RepoPath, a.ID, state.Record{Name: a.Name, Sandbox: a.Sandbox, Server: server(d)}); err != nil {
+	if err := d.writeRecord(a.RepoPath, a.ID, state.Record{Name: a.Name, Sandbox: a.Sandbox, Server: server(d), Generation: version.Generation}); err != nil {
 		return envErr("could not keep a record of %s in %s: %v", a.Name, state.Dir(a.RepoPath), err)
 	}
 	return nil
@@ -62,10 +64,48 @@ func lostAgents(d deps, ws []tmux.Window, roots []string) []agent.Agent {
 			if r.Server != server(d) || checkName(r.Name) != nil || slices.ContainsFunc(live, taken) || slices.ContainsFunc(lost, taken) {
 				continue
 			}
-			lost = append(lost, agent.Agent{ID: r.ID, Name: r.Name, RepoPath: root, Sandbox: r.Sandbox})
+			lost = append(lost, agent.Agent{ID: r.ID, Name: r.Name, RepoPath: root, Sandbox: r.Sandbox, Generation: r.Generation})
 		}
 	}
 	return lost
+}
+
+// sweepJournals removes the journals left over from agents whose
+// repository was removed without hq (spec #165, Further Notes): a journal
+// goes once hq can tell that nothing stands for its agent any more, no
+// home window and no record. The journal names where its agent was last
+// launched (journal.Home): only an hq on that tmux server can tell that no
+// home window there has its id, and its repository holds its record, which
+// a removed repository holds no more. A journal that names no launch, or
+// another tmux server, stays, a small file in the state directory; so does
+// every journal when tmux cannot say which windows exist.
+func sweepJournals(d deps) {
+	ids, err := d.journal.IDs()
+	if err != nil || len(ids) == 0 {
+		return
+	}
+	ws, err := d.tmux.Windows()
+	if err != nil {
+		return
+	}
+	for _, id := range ids {
+		if slices.ContainsFunc(ws, func(w tmux.Window) bool { return w.Options["id"] == id }) {
+			continue
+		}
+		j, err := d.journal.Read(id)
+		if err != nil {
+			continue
+		}
+		repo, srv, ok := journal.Home(j.Events)
+		if !ok || srv != server(d) {
+			continue
+		}
+		records, err := d.records(repo)
+		if err != nil || slices.ContainsFunc(records, func(r state.Record) bool { return r.ID == id }) {
+			continue
+		}
+		_ = d.journal.Remove(repo, id)
+	}
 }
 
 func runRestore(env Env, d deps, args []string) error {
@@ -90,6 +130,7 @@ func runRestore(env Env, d deps, args []string) error {
 		return tmuxErr(err)
 	}
 	lost := lostAgents(d, ws, roots)
+	sweepJournals(d)
 	if len(lost) == 0 {
 		fmt.Fprintln(env.Stdout, "nothing to restore")
 		return nil
@@ -146,24 +187,37 @@ type restorePlan struct {
 }
 
 // planRestore decides, for each lost agent, whether hq can bring it back
-// (#140): its sandbox must be one of its repository's, its worktree must
-// still be there, and it must have a conversation to continue, as hq
-// sandbox restart takes it from its latest report.
+// (#140): it must be of this hq's generation, as its record says (an
+// outdated agent's files are its older hook's, which hq does not read), its
+// sandbox must be one of its repository's, its worktree must still be
+// there, and it must have a conversation to continue, as hq sandbox restart
+// takes it from its latest report.
 func planRestore(d deps, all []sbx.Sandbox, lost []agent.Agent) []restorePlan {
 	var plans []restorePlan
 	for _, a := range lost {
 		p := restorePlan{a: a}
-		r, ok := d.readState(a.RepoPath, a.ID)
+		if a.Generation != version.Generation {
+			p.why = "it was " + agent.StartedBy(a.Generation)
+			plans = append(plans, p)
+			continue
+		}
+		// What its journal gives: the conversation to continue, and where.
+		read := []agent.Agent{a}
+		agent.ReadStates(read, d.journal, d.now(), d.folds)
+		r := read[0]
+		j, err := d.journal.Read(a.ID)
 		switch {
 		case !slices.ContainsFunc(sbx.OfRepository(all, a.RepoPath, d.samePath), func(s sbx.Sandbox) bool { return s.Name == a.Sandbox }):
 			p.why = "its sandbox " + a.Sandbox + " is gone"
-		case ok && r.Cwd != "" && worktreeGone(d, r.Cwd):
-			dir, _ := d.fromSbx(r.Cwd)
+		case err != nil || len(j.Events) == 0:
+			p.why = "its journal is gone"
+		case r.Worktree != "" && worktreeGone(d, r.Worktree):
+			dir, _ := d.fromSbx(r.Worktree)
 			p.why = "its worktree " + dir + " is gone"
-		case !ok || !sessionID.MatchString(r.SessionID):
+		case !sessionID.MatchString(r.Session()):
 			p.why = "it has no conversation to continue"
 		default:
-			p.resume = r.SessionID
+			p.resume = r.Session()
 		}
 		plans = append(plans, p)
 	}
@@ -180,7 +234,7 @@ func worktreeGone(d deps, cwd string) bool {
 // endLost ends the sessions of the lost agents to restore that still run
 // in their sandbox, and waits for them as hq kill does: tmux going takes
 // only the host side of sbx run, and Claude runs on in the sandbox, which
-// would write the same state files as the restored session. A sandbox sbx
+// would report under the same id as the restored session. A sandbox sbx
 // lists as not running is left alone: sbx exec would start it.
 func endLost(d deps, all []sbx.Sandbox, plans []restorePlan) error {
 	var orphans []agent.Agent

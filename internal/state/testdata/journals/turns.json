@@ -1,0 +1,221 @@
+{
+  "about": "Turns of a session: its start, a prompt, tools of the agent's own (the first marks the turn acted on, the next tells nothing), a turn end done, a pasted prompt, a turn end with a question, calls hq's refuse hook denies or lets through (no event), the session's end.",
+  "steps": [
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "post-tool",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000007-0000-4000-8000-000000000007",
+            "tool": "Bash",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "post-tool",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "refuse",
+      "payload": "pre-tool-kill",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "refuse",
+      "payload": "pre-tool-answer",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "refuse",
+      "payload": "pre-tool-send",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000004.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 4,
+        "text": "Hi. The tests pass\nand PR #58 is open."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000005.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-question",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000006.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "question": true,
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 6,
+        "text": "Should I also update the README? \n"
+      },
+      "look": {
+        "state": "question",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Should I also update the README?"
+      }
+    },
+    {
+      "hook": "end",
+      "payload": "session-end",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "SessionEnd",
+          "time": "2026-01-01T00:00:11Z",
+          "file": "000000007.end.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "reason": "prompt_input_exit",
+            "hook": "end"
+          }
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "Should I also update the README?"
+      }
+    }
+  ]
+}

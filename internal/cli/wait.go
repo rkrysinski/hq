@@ -23,9 +23,9 @@ const (
 	// waitEvery is how often it looks, as the list does.
 	waitEvery = 250 * time.Millisecond
 	// waitSettle is how long after a moment a look is sure to see every
-	// state entered by then: a state file's time is set as the hook writes
-	// it, a moment before it is moved into place, and a moment hq saw is
-	// taken just before it is stored on the window. A look reports only
+	// state entered by then: an event file's time is set as the hook
+	// writes it, a moment before it is moved into place, and a moment hq
+	// saw is taken just before its event is appended. A look reports only
 	// what entered its state at least this long before it began, and its
 	// moment, the next call's --since, is that far back, so what a look
 	// could not see yet falls to the next one.
@@ -140,15 +140,19 @@ func runWait(env Env, d deps, args []string) error {
 	var found []agent.Agent         // what the first look with a hit returned
 	for first := true; ; first = false {
 		at := d.now()
-		as, err := collectWith(d, sbxs.running(at, first))
+		as, err := lookWith(d, sbxs.running(at, first))
 		if err != nil {
 			return err
 		}
 		deliverWaiting(d, as)
 		if first {
 			for _, n := range w.names {
-				if _, ok := agent.Find(as, n); !ok {
+				a, ok := agent.Find(as, n)
+				if !ok {
 					return notFoundErr("no agent '%s' (see hq ls)", n)
+				}
+				if a.Outdated() {
+					return outdatedErr(a)
 				}
 			}
 			// An agent already in its state when the call starts is not
@@ -202,14 +206,12 @@ func later(a, b time.Time) time.Time {
 	return a
 }
 
-// waitedOn are the agents named, or all when none are.
+// waitedOn are the agents named, or all when none are but the outdated
+// ones, whose state hq cannot read (spec §4.1).
 func waitedOn(as []agent.Agent, names []string) []agent.Agent {
-	if len(names) == 0 {
-		return as
-	}
 	var ws []agent.Agent
 	for _, a := range as {
-		if slices.Contains(names, a.Name) {
+		if len(names) == 0 && !a.Outdated() || slices.Contains(names, a.Name) {
 			ws = append(ws, a)
 		}
 	}

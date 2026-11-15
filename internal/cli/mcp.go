@@ -55,8 +55,8 @@ const (
 
 // mcpEnv are the variables hq mcp install passes on to the client's
 // hq when they are set: PATH, which finds tmux, sbx and gh, and those that
-// choose hq's tmux server and preferences.
-var mcpEnv = []string{"PATH", "HQ_TMUX_SOCKET", "TMUX_TMPDIR", "XDG_CONFIG_HOME"}
+// choose hq's tmux server, preferences and journals.
+var mcpEnv = []string{"PATH", "HQ_TMUX_SOCKET", "TMUX_TMPDIR", "XDG_CONFIG_HOME", "XDG_STATE_HOME"}
 
 // parseMCP reads hq mcp's arguments: whether to install, and the client,
 // Claude Desktop when none is named.
@@ -479,7 +479,9 @@ const mcpInstructions = `hq runs Claude Code agents, each working on one task in
 - To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout; then call it again.
 - An agent done or in question with own_tasks: a shell command or watch of its own still runs, which it started and left running at its turn end. Claude takes another turn when one ends, so wait for it again if you need that result; a dev server may never end. The list is that turn end's and may be stale until its next turn end.
 - An agent that needs input has a dialog open (a permission, questions with options, an MCP server's form, or a dialog of Claude Code's own such as Change effort level? after /effort; read gives them, with the dialog's id). Never answer a permission or any other dialog, with send or otherwise: tell the user which agent waits and what it asks; they answer it in hq (go shows them the agent). A question dialog (asks with questions) and a dialog of Claude Code's own are the exception: answer them with answer, only on the user's word. The picker of /model is not one hq answers: send /model with the model's name instead, whose Switch model? is. Tell the user which agent asks what, and pass on what they pick, or your pick when they told you to choose for them; never on your own initiative. hq notifies them of the dialog itself, also on a turn you started.
-- kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.`
+- An agent in the state outdated was started by another hq than the one serving you, so hq cannot read its state: read, send, answer and a wait that names it fail, and a wait on every agent leaves it out. Do not wait on it: tell the user which agent it is; they can open it (go) to finish or save its work by hand, and it has to be killed and started again.
+- kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.
+- A tool call that fails with ` + "`" + hqUpdated + "`" + ` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. Tell the user that hq was updated and has to be restarted in this client; the tools work again after that.`
 
 // Tool inputs.
 type (
@@ -535,6 +537,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	// What its tools give agents is the supervisor's, not the user's.
 	d.supervisor = true
 	s := mcp.NewServer(&mcp.Implementation{Name: "hq", Title: "hq", Version: version.Version}, &mcp.ServerOptions{Instructions: mcpInstructions})
+	s.AddReceivingMiddleware(stepAside(watchOnDisk(d)))
 	no, yes := false, true
 
 	mcp.AddTool(s, &mcp.Tool{
@@ -561,7 +564,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "list",
 		Description: "List every agent as JSON (agents), those that need the user first: name, repo, branch, state, since and age_seconds (in that state), last (its last message, one line), sandbox, setup (the setup of its sandbox, as new takes it: default, or the one it was started on), pending (messages waiting for it), dialog (while it needs input: the open dialog's id, for answer), own_tasks (while it is done or in question: the shell commands and watches of its own still running at that turn end, each with its type, shell or monitor, and text, the command or the watch's description; [] when none) and asks (what it asks: while it needs input the open dialog's questions and options, a permission's tool and command, or an MCP server's form (server, message and fields: each with its name, title, type, whether it is required, options and default; or the url it sends the user to); the question while in question; null otherwise); and next_since, the moment of the list, to pass to wait as since: a wait from it returns only what changes after the list, so act on the agents it shows done, in question, needing input or ended. " +
-			"States: starting, working, question (its reply ends with a question), needs input (a dialog is open), done (its turn ended), ended (its session is gone). " +
+			"States: starting, working, question (its reply ends with a question), needs input (a dialog is open), done (its turn ended), ended (its session is gone), outdated (started by another hq, so its state is unknown: tell the user; only go and kill work on it, and it has to be killed and started again). " +
 			"This is where status comes from: never ask an agent for its status.",
 		Annotations: &mcp.ToolAnnotations{Title: "List agents", ReadOnlyHint: true, OpenWorldHint: &no},
 	}, func(context.Context, *mcp.CallToolRequest, mcpListIn) (*mcp.CallToolResult, any, error) {
@@ -682,6 +685,22 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 		return callCommand(d, runKill, in.Name, "-y")
 	})
 	return s
+}
+
+// stepAside fails every tool call once the hq on disk is of another
+// generation than this hq mcp (design §3.12): an agent it started would
+// carry a hook the installed hq cannot read. Each call looks at the file
+// first; the rest of the protocol goes on, so the client can still say why.
+func stepAside(disk *onDisk) mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+			if method == "tools/call" && disk.otherGeneration() {
+				r, _, _ := toolResult("", usageErr(hqUpdated))
+				return r, nil
+			}
+			return next(ctx, method, req)
+		}
+	}
 }
 
 // waitLimit is how long the wait tool waits for the client, as its

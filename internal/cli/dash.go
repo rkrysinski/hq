@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -65,7 +66,7 @@ func dockOnEntry(d deps) {
 	if err != nil {
 		return
 	}
-	as := agent.Look(ws, d.readState, d.takeQueued, agent.Sandboxes{}, d.now(), d.tmux)
+	as := d.look(ws, agent.Sandboxes{})
 	cursor, _ := d.tmux.SessionValue("cursor")
 	p := d.loadPrefs()
 	name, ok := dash.EntryDock(as, p.Sort, cursor)
@@ -170,7 +171,7 @@ func dockAs(d deps, name string, how func(window, title string) error) error {
 	if err != nil {
 		return err
 	}
-	a, ok := agent.Find(agent.Collect(ws, d.readState, agent.Sandboxes{}), name)
+	a, ok := agent.Find(d.fromJournals(ws), name)
 	if !ok {
 		return fmt.Errorf("no agent '%s'", name)
 	}
@@ -239,14 +240,26 @@ func keepTitles(d deps, ws []tmux.Window, as []agent.Agent) {
 // the terminal back: every client leaves hq's session, a plain terminal
 // detached to the shell it had before hq. The docked session stays in the
 // slot and the list pane keeps a shell with the hint, where hq finds no list
-// running and starts it again (design §3.1, §3.11).
+// running and starts it again (design §3.1, §3.11). When the hq on disk
+// turns out to be of another generation, the list runs that hq's list in
+// its place instead, in the same process: the pane, its mark, the docked
+// session, the cursor and the layout stay.
 func runList(env Env, d deps, args []string) error {
 	if len(args) != 0 {
 		return usageErr("usage: hq %s", listCommand)
 	}
 	pane := d.getenv("TMUX_PANE")
 	_ = d.tmux.MarkList(pane, d.pid)
-	err := d.runList(listSource(d, pane))
+	src, disk := listSource(d, pane), watchOnDisk(d)
+	src.OtherGeneration = disk.otherGeneration
+	err := d.runList(src)
+	if errors.Is(err, dash.ErrUpdated) {
+		// It returns only when the hq on disk could not be started.
+		if err = d.replaceProcess([]string{disk.exe, listCommand}); err == nil {
+			return nil
+		}
+		err = envErr("cannot start the hq on disk, of another generation (%s): %v", disk.exe, err)
+	}
 	_ = d.tmux.SetFooter("")
 	// Unmarked before leaving, so an hq run at once starts the list again.
 	_ = d.tmux.MarkList(pane, 0)
@@ -262,7 +275,7 @@ func runList(env Env, d deps, args []string) error {
 	return nil
 }
 
-// listSource connects the list program to tmux, the state files and sbx.
+// listSource connects the list program to tmux, the journals and sbx.
 func listSource(d deps, pane string) dash.Source {
 	return dash.Source{
 		Agents: func(running agent.Sandboxes) ([]agent.Agent, error) {
@@ -270,7 +283,7 @@ func listSource(d deps, pane string) dash.Source {
 			if err != nil {
 				return nil, err
 			}
-			as := agent.Look(ws, d.readState, d.takeQueued, running, d.now(), d.tmux)
+			as := d.look(ws, running)
 			keepTitles(d, ws, as)
 			return as, nil
 		},
@@ -291,11 +304,7 @@ func listSource(d deps, pane string) dash.Source {
 			if err != nil {
 				return agent.Sandboxes{}, err
 			}
-			running := map[string]bool{}
-			for _, s := range sbs {
-				running[s.Name] = s.Running()
-			}
-			return agent.Sandboxes{Running: running, Asked: asked}, nil
+			return agent.SandboxesOf(sbs, asked), nil
 		},
 		Now:     d.now,
 		Version: version.Version,

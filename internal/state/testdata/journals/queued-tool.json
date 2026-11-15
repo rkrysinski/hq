@@ -1,0 +1,188 @@
+{
+  "about": "A queued prompt Claude takes into the turn at work at the end of a tool of its own: the tool's end drops it (a subagent's tool takes nothing), and the turn's end is the agent's.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "queued-first",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000001-0000-4000-8000-000000000001",
+            "cwd": "/w/app",
+            "turn": "00000019-0000-4000-8000-000000000019",
+            "prompt": "Write a 400-word story about a whale. Use no tools.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s",
+        "prompt_id": "00000019-0000-4000-8000-000000000019",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {
+          "stdout": "a"
+        }
+      },
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s",
+            "turn": "00000019-0000-4000-8000-000000000019",
+            "tool": "Bash",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "queued-while-working",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000001-0000-4000-8000-000000000001",
+            "cwd": "/w/app",
+            "turn": "00000019-0000-4000-8000-000000000019",
+            "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "00000006-0000-4000-8000-000000000006",
+        "transcript_path": "/home/agent/.claude/projects/-w-app/00000006-0000-4000-8000-000000000006.jsonl",
+        "cwd": "/w/app",
+        "scratchpad_dir": "/tmp/claude-1000/-w-app/00000006-0000-4000-8000-000000000006/scratchpad",
+        "prompt_id": "00000019-0000-4000-8000-000000000019",
+        "permission_mode": "bypassPermissions",
+        "effort": {
+          "level": "high"
+        },
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "command": "for i in $(seq 25); do echo tock $i; sleep 1; done",
+          "description": "Print tock 1 through 25, one per second"
+        },
+        "tool_response": {
+          "stdout": "tock 1\ntock 2\ntock 3",
+          "stderr": "",
+          "interrupted": false,
+          "isImage": false,
+          "noOutputExpected": false
+        },
+        "tool_use_id": "toolu_01A7ZCC4auuaA39nGiGqMksE",
+        "duration_ms": 25057,
+        "agent_id": "a1"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s",
+        "prompt_id": "00000019-0000-4000-8000-000000000019",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Read",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {
+          "file": "a"
+        }
+      },
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000004.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s",
+            "turn": "00000019-0000-4000-8000-000000000019",
+            "tool": "Read",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "queued-stop",
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000005.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000001-0000-4000-8000-000000000001",
+            "cwd": "/w/app",
+            "turn": "00000019-0000-4000-8000-000000000019",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 5,
+        "text": "**The Song That Came Back**\n\nFor eleven years, the whale sang a song no other whale could answer."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:06Z",
+        "last": "**The Song That Came Back** For eleven years, the whale sang a song no other whale could answer."
+      }
+    }
+  ]
+}

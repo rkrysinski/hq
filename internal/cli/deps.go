@@ -19,6 +19,7 @@ import (
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/gh"
 	"github.com/rkrysinski/hq/internal/iterm"
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform"
@@ -42,7 +43,6 @@ type Tmux interface {
 	Start(id string) error
 	Respawn(pane, dir string, argv []string) error
 	SetOption(id, key, value string) error
-	KeepFirst(id, key, prefix, value string) (string, error)
 	Screens(panes []string) (map[string]string, error)
 	StyledScreen(pane string) (string, error)
 	Paste(pane, text string) error
@@ -96,6 +96,9 @@ type Sandboxes interface {
 type Releases interface {
 	Latest() (string, error)
 	Download(tag, dir string, files ...string) error
+	// Generation is the generation a release publishes, verified against
+	// its checksums; published is false when it publishes none.
+	Generation(tag string) (gen int, published bool, err error)
 }
 
 // deps is everything a command needs from outside hq.
@@ -130,16 +133,19 @@ type deps struct {
 	// foreground runs a program on this terminal until it ends and returns
 	// its exit status; err only when it could not start.
 	foreground func(argv []string) (int, error)
-	// readState reads an agent's state file (design §3.4).
-	readState func(root, id string) (state.Report, bool)
-	// takeQueued hands an agent's state over to the prompt Claude took
-	// from its queue after an Esc (design §3.4, #88).
-	takeQueued agent.Taker
-	// readDetail reads an agent's last reply in full and what it asks
-	// (design §3.4).
-	readDetail func(root, id string) state.Detail
-	// removeState deletes an agent's state files once it is gone (design §3.4).
+	// removeState deletes what an agent keeps beside its repository once
+	// it is gone: its hook's working files, hq's record of it and its
+	// inbox (design §3.4).
 	removeState func(root, id string) error
+	// journal is the agents' journals, where an agent's state comes from:
+	// every look ingests the event files an agent's hook left into its
+	// journal, appends what it sees and folds it, and a kill removes it
+	// (ADR 0018, design §3.4).
+	journal journal.Store
+	// folds keeps the journals folded for this process, so a long-running
+	// one (the list, hq wait) folds only the events new since its last
+	// look (design §5.1).
+	folds *agent.Folds
 	// killer says who asks for the kills this command makes, for the
 	// trace (#147): the way it came, and in hq mcp the client and the
 	// calling agent when known. traceKill adds a kill to the trace and
@@ -147,7 +153,7 @@ type deps struct {
 	killer    kills.Kill
 	traceKill func(k kills.Kill) error
 	readKills func() ([]kills.Kill, error)
-	// writeRecord keeps hq's record of an agent beside its state files, and
+	// writeRecord keeps hq's record of an agent beside its repository, and
 	// records reads those of a repository, for hq restore (design §3.3).
 	writeRecord func(root, id string, r state.Record) error
 	records     func(root string) ([]state.Record, error)
@@ -163,17 +169,17 @@ type deps struct {
 	held          func(root, id string) int
 	pending       func(root, id string) int
 	oldestMessage func(root, id string) (time.Time, bool)
-	// questions reads the question dialog an agent's state file reports
-	// open; leaveAnswer leaves the answer to it in the agent's inbox for
+	// questions reads the question dialog an agent's journal holds as the
+	// latest its hook reported; leaveAnswer leaves the answer to it in the agent's inbox for
 	// the hook that holds on it, answerTaken tells whether that hook took
 	// it, withdrawAnswer takes it back unless the hook took it first, and
-	// answersGot reads what Claude reports it got once the dialog's tool
-	// ended (hq answer, design §3.4, ADR 0013).
-	questions      func(root, id string) (state.Questions, error)
+	// answersGot reads from the journal what Claude reports it got once the
+	// dialog's tool ended (hq answer, design §3.4, ADR 0013).
+	questions      func(store journal.Store, id string) (state.Questions, error)
 	leaveAnswer    func(root, id string, q state.Questions, decision []byte) error
 	answerTaken    func(root, id string, q state.Questions) bool
 	withdrawAnswer func(root, id string, q state.Questions) bool
-	answersGot     func(root, id string) (map[string]string, bool)
+	answersGot     func(store journal.Store, id string) (map[string]string, bool)
 	// supervisor says the commands run for the supervisor, in hq mcp: the
 	// prompts and the messages they give agents are its own, not the
 	// user's, and a turn made only of them notifies nobody (spec §5).
@@ -200,6 +206,13 @@ type deps struct {
 	releases   Releases
 	asset      string // this platform's binary in a release
 	executable func() (string, error)
+	// stampFile tells one state of a file from another, askGeneration asks
+	// the hq at a path its generation, and replaceProcess runs a program in
+	// place of this one: how the list and hq mcp notice an update to
+	// another generation and step aside (design §3.11, §3.12).
+	stampFile      func(path string) (fileStamp, error)
+	askGeneration  func(exe string) (int, error)
+	replaceProcess func(argv []string) error
 	// itermProfile adds the iTerm2 profile hq when iTerm2 is present on
 	// macOS and reports whether it wrote it (design §3.7, §3.9).
 	itermProfile func() (bool, error)
@@ -292,10 +305,9 @@ func defaultDeps() deps {
 		rawTerminal: rawTerminal,
 		foreground:  func(argv []string) (int, error) { return run.Foreground(argv[0], argv[1:]...) },
 
-		readState:   state.Read,
-		takeQueued:  state.TakeQueued,
-		readDetail:  state.ReadDetail,
 		removeState: state.Remove,
+		journal:     journal.Files{Dir: journal.Dir(os.Getenv)},
+		folds:       agent.NewFolds(),
 		killer:      kills.Kill{By: kills.ByCLI},
 		traceKill:   func(k kills.Kill) error { return kills.Append(kills.Path(os.Getenv), k) },
 		readKills:   func() ([]kills.Kill, error) { return kills.Read(kills.Path(os.Getenv)) },
@@ -310,11 +322,11 @@ func defaultDeps() deps {
 		pending:       state.Pending,
 		oldestMessage: state.Oldest,
 
-		questions:      state.ReadQuestions,
+		questions:      journalQuestions,
 		leaveAnswer:    state.LeaveAnswer,
 		answerTaken:    state.AnswerTaken,
 		withdrawAnswer: state.WithdrawAnswer,
-		answersGot:     state.ReadAnswers,
+		answersGot:     journalAnswers,
 
 		announce:      state.Announce,
 		announced:     state.Announced,
@@ -330,6 +342,11 @@ func defaultDeps() deps {
 		releases:   update.Releases{Base: update.Base(os.Getenv), Agent: "hq/" + version.Version},
 		asset:      update.Asset(platform.OS, runtime.GOARCH),
 		executable: executable,
+		stampFile:  stampFile,
+		askGeneration: func(exe string) (int, error) {
+			return generationOf(exe, generationTimeout)
+		},
+		replaceProcess: replaceProcess,
 		itermProfile: func() (bool, error) {
 			home, _ := os.UserHomeDir()
 			return iterm.Install(platform.OS, home, "/")
@@ -360,6 +377,38 @@ func defaultDeps() deps {
 		},
 		serveMCP: func(s *mcp.Server) error { return s.Run(context.Background(), &mcp.StdioTransport{}) },
 	}
+}
+
+// lookSources are where a look reads and appends (agent.Sources): the
+// journals' store, and tmux for the screens.
+type lookSources struct {
+	journal.Store
+	screens func(panes []string) (map[string]string, error)
+}
+
+func (s lookSources) Screens(panes []string) (map[string]string, error) { return s.screens(panes) }
+
+// sources are the look's sources of these dependencies.
+func (d deps) sources() agent.Sources { return lookSources{d.journal, d.tmux.Screens} }
+
+// look is a look at the agents of the home windows ws (agent.Look), with
+// sbx's answer running.
+func (d deps) look(ws []tmux.Window, running agent.Sandboxes) []agent.Agent {
+	return agent.Look(ws, running, d.now(), d.sources(), d.folds)
+}
+
+// fromJournals are the agents of the home windows ws with their state
+// from their journals, no screen read (agent.FromJournals).
+func (d deps) fromJournals(ws []tmux.Window) []agent.Agent {
+	return agent.FromJournals(ws, d.journal, d.now(), d.folds)
+}
+
+// removeAgentFiles deletes what an agent leaves once it is gone: its hook's
+// working files, its record, its inbox, its journal and its event files
+// (design §3.4).
+func removeAgentFiles(d deps, root, id string) {
+	_ = d.removeState(root, id)
+	_ = d.journal.Remove(root, id)
 }
 
 // executable is the path of the running hq, links resolved.

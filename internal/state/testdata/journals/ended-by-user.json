@@ -1,0 +1,933 @@
+{
+  "about": "Turns the user ended, read off the screen with their line, which no hook reports: Esc on a turn at work, a permission prompt refused or closed with Esc (which closes the hooks' dialog), a question dialog cancelled; done since the line was first seen, until the next report; a screen of Claude at work ends nothing, an open dialog keeps the hooks' dialog.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Count to ten."
+      },
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Count to ten.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "working",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "interrupted",
+      "events": [
+        {
+          "n": 4,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:05Z",
+          "basis": 3,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "screen": "interrupted",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "screen": "interrupted-80",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Count again."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000003.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Count again.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z"
+      }
+    },
+    {
+      "screen": "interrupted-80",
+      "events": [
+        {
+          "n": 6,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:09Z",
+          "basis": 5,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "Counted.",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000004.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 7,
+        "text": "Counted."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "List the files."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:11Z",
+          "file": "000000005.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "List the files.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "List the files"
+        }
+      },
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:12Z",
+          "file": "000000006.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Bash",
+            "text": "Bash: List the files",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:12Z",
+        "last": "Bash: List the files",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:12Z"
+      }
+    },
+    {
+      "screen": "dialog-open",
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:12Z",
+        "last": "Bash: List the files",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:12Z"
+      }
+    },
+    {
+      "screen": "permission-esc",
+      "events": [
+        {
+          "n": 10,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:14Z",
+          "basis": 9,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "screen": "permission-esc",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "List them again."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 11,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:16Z",
+          "file": "000000007.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "List them again.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:16Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "List the files"
+        }
+      },
+      "events": [
+        {
+          "n": 12,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:17Z",
+          "file": "000000008.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Bash",
+            "text": "Bash: List the files",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:17Z",
+        "last": "Bash: List the files",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:17Z"
+      }
+    },
+    {
+      "screen": "permission-no",
+      "events": [
+        {
+          "n": 13,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:18Z",
+          "basis": 12,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:18Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Ask me a colour."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 14,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:19Z",
+          "file": "000000009.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Ask me a colour.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:19Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-ask",
+      "events": [
+        {
+          "n": 15,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:20Z",
+          "file": "000000010.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "AskUserQuestion",
+            "text": "Which colour do you pick: red or blue?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:20Z"
+      }
+    },
+    {
+      "screen": "declined",
+      "events": [
+        {
+          "n": 16,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:21Z",
+          "basis": 15,
+          "facts": {
+            "text": "User declined to answer questions"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:21Z",
+        "last": "User declined to answer questions"
+      }
+    },
+    {
+      "screen": "declined-80",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:21Z",
+        "last": "User declined to answer questions"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Ask me again."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 17,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:23Z",
+          "file": "000000011.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Ask me again.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:23Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-ask",
+      "events": [
+        {
+          "n": 18,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:24Z",
+          "file": "000000012.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "AskUserQuestion",
+            "text": "Which colour do you pick: red or blue?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:24Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:24Z"
+      }
+    },
+    {
+      "screen": "fs-ask-open",
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:24Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:24Z"
+      }
+    },
+    {
+      "screen": "fs-ask-esc",
+      "events": [
+        {
+          "n": 19,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:26Z",
+          "basis": 18,
+          "facts": {
+            "text": "User declined to answer questions"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:26Z",
+        "last": "User declined to answer questions"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Ask once more."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 20,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:27Z",
+          "file": "000000013.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Ask once more.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-ask",
+      "events": [
+        {
+          "n": 21,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:28Z",
+          "file": "000000014.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "AskUserQuestion",
+            "text": "Which colour do you pick: red or blue?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:28Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:28Z"
+      }
+    },
+    {
+      "screen": "ask-hook-cancelled",
+      "events": [
+        {
+          "n": 22,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:29Z",
+          "basis": 21,
+          "facts": {
+            "text": "User declined to answer questions"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "User declined to answer questions"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Ask me a colour, and chat."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 23,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:30Z",
+          "file": "000000015.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Ask me a colour, and chat.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:30Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-ask",
+      "events": [
+        {
+          "n": 24,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:31Z",
+          "file": "000000016.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "AskUserQuestion",
+            "text": "Which colour do you pick: red or blue?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:31Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:31Z"
+      }
+    },
+    {
+      "screen": "fs-ask-chat-working",
+      "events": [
+        {
+          "n": 25,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:32Z",
+          "basis": 24,
+          "facts": {}
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "screen": "fs-ask-chat-done",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Run a command."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 26,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:34Z",
+          "file": "000000017.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Run a command.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:34Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {},
+        "prompt_id": "t9"
+      },
+      "events": [
+        {
+          "n": 27,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:35Z",
+          "file": "000000018.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "t9",
+            "tool": "Bash",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:34Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "screen": "fs-esc-after-tool",
+      "events": [
+        {
+          "n": 28,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:36Z",
+          "basis": 27,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:36Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Write a reply."
+      },
+      "screen": "working",
+      "events": [
+        {
+          "n": 29,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:37Z",
+          "file": "000000019.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Write a reply.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:37Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "screen": "fs-esc-idle",
+      "events": [
+        {
+          "n": 30,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:38Z",
+          "basis": 29,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:38Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Work on."
+      },
+      "events": [
+        {
+          "n": 31,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:39Z",
+          "file": "000000020.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Work on.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:39Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "screen": "declined-then-working",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:39Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "screen": "interrupted-then-working",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:39Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "Done for now.",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 32,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:42Z",
+          "file": "000000021.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 32,
+        "text": "Done for now."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:42Z",
+        "last": "Done for now."
+      }
+    },
+    {
+      "screen": "interrupted",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:42Z",
+        "last": "Done for now."
+      }
+    }
+  ]
+}

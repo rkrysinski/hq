@@ -1,0 +1,35 @@
+# 0018 - Agent state is a pure function of one event journal
+
+An agent's state was worked out from many separate records, each added for one behaviour of Claude Code: the files the injected hook writes beside the repository (`ID`, `ID.stop`, `ID.prev`, `ID.on`, `ID.owe`, `ID.sup`, `ID.next`, `ID.acted`, `ID.queued`) and six first-record markers on the agent's home window. Together they were a state machine spread over files and tmux options, read case by case by every look: a state could not be explained after the fact, a fix for one case broke another, and no single function could be tested against a recorded session (#165).
+
+Now every agent has one journal: its events, in the order hq learned them, kept on the host for as long as the agent exists. Its state, the moment it entered it, its last message and its dialog verdict are computed by one pure function of the journal, the reducer, which does no I/O and takes no clock. Everything hq learns about an agent is an event: what its hook reports from the sandbox, what a look sees on its screen, what tmux says of its pane, what sbx says of its sandbox, and what hq itself does (a supervisor's prompt, a message typed in, an answer).
+
+The hook and hq never append to one file: across the sandbox mount they share no lock, and they do not share a clock (the host's jumps after the laptop sleeps). So there are two streams, merged on the host.
+
+- **The sandbox stream.** The hook writes each event as a file of its own in a directory per agent beside the repository, `.git/hq/events/ID/`, written under another name and renamed into place, named by a count the hook keeps there and its process id, zero-padded, so the names sort in the order the hook wrote them; never by the sandbox's clock. It writes one only where a rule reads it: the end of a tool, for one, only when it tells something new (the turn's first, one that closes a dialog or starts background work), so a turn of 200 tool calls leaves a handful of files. A delivery of messages by the hook is an event that names every message by the name it was left under in the inbox.
+- **The host journal.** One journal per agent in hq's directory under the user's state directory, `$XDG_STATE_HOME/hq/journals/ID` (by default `~/.local/state`), out of every sandbox's reach and readable by the user only. The first hq process to see new event files appends them to the agent's journal in the order of their names and removes them. What a look sees, what tmux and sbx say and what hq does are appended the same way, each carrying the number of the last hook event it was based on, so its order against the hook's events is causal and no clocks are compared. Of hq processes that see the same thing at once, the first to append it wins and the others' event is set aside as a duplicate: one lock replaces the check-and-set tmux call per marker of "the first record wins" (#100).
+- **One lock, one counter.** Every append takes one lock for the whole state directory (`hq/lock`) and under it gives each event the next number of one counter kept beside it (`hq/counter`): host-wide, never reset, never used twice across tmux servers, restores and repositories. The counter is written before the events are appended, so a process that dies in between leaves numbers no event has, never one that two events have. A process that holds the lock knows that every event numbered up to the counter's value is in its journal; ADR 0019 builds its cursor on that, and adds no counter of its own.
+- **No event lost or appended twice.** Before it appends, an ingest records what it is about to do (`ID.pending`: the journal's size before and after the append, and the files); the next process that takes the lock finishes it, removing the files a whole append took, or undoes it, cutting the journal back to before an append that was cut off. A file that becomes visible after one with a later name is appended when it is seen.
+- **What an event holds.** Only what the rules read: its kind, its source, the time, and the facts a rule depends on (for a turn end whether the reply ends with `?`, the background tasks by id and type, the turn's id). The latest turn end keeps its reply in full, once, beside the journal (`ID.reply`), for `hq read`; earlier ones keep none. A hook event's time is the host's time of its file; every other event's is the appending process's clock.
+- **The reducer** folds the journal into the agent's state. A long-running program folds only the new events; a replay from the start gives the same result, which is what the tests and `hq explain` do.
+
+The record for `hq restore` (`ID.hq`) stays beside the repository: `hq restore` finds an agent by where its record lies. The inbox stays the delivery queue of [ADR 0012](0012-hq-send-messages-cross-into-the-sandbox.md); each delivery is recorded as an event.
+
+## Considered Options
+
+- **Keep the separate records and add cases**: each Claude Code change adds a file or a marker and a branch in the look; no history, no single function to test.
+- **One journal appended by both the hook and the host**: needs atomic appends across the sandbox mount for records up to megabytes (a long reply, #64), which `O_APPEND` does not promise beyond `PIPE_BUF`, and mixes two clocks.
+- **Event files only, no host journal**: no single order to number, and every look reads every file again.
+- **The journal beside the repository, in `.git/hq`**: reachable by the sandbox, so an agent could rewrite the evidence `hq explain` shows, and the lock would cross the mount.
+- **A number per agent**: numbers do not order the events of two agents, and a cursor over several agents (ADR 0019) needs one count.
+- **The sandbox's clock for the order of the event files**: it lags after the host sleeps, and two hooks running at once can read the same time.
+- **A daemon that owns the state**: against [ADR 0002](0002-no-daemon.md).
+
+## Consequences
+
+- The look (design 5.1) becomes: ingest the new event files, append what the screen, tmux and sbx show, fold. The rules of design 3.4 move into the reducer unchanged in outcome; the screen rules (`state.AtWork`, `state.OwnDialog`, a screen at rest) still decide what evidence a look appends.
+- A decision that takes time is an event, written by the look that makes it (a rewound turn, an end dated by the pane's death), so every change of state has a number.
+- The journal lives as long as the agent, with no cap and no snapshot: `hq kill` and `hq stop` remove it, with the agent's event files and its other files.
+- Debugging a wrong state becomes "attach the journal": a journal is a test fixture.
+- The hook keeps the notes it needs inside the sandbox (whether a turn's end notifies, [ADR 0010](0010-hooks-send-notifications.md)), and the host reads none of them.
+- Tests and `scripts/local-dev.sh` give each run a state directory of its own, as they give it a tmux socket and a configuration directory, so no run shares a counter or a journal with the user's hq.

@@ -33,8 +33,8 @@ type Dialog struct {
 	Since time.Time
 	own   *state.Ask // what a dialog of Claude's own asks, as its screen showed it; nil when this look did not see it
 	// scrolls says the list of a dialog of Claude's own scrolls to options
-	// its screen did not show (state.OwnView); fingerprint names it as its
-	// record on the agent's window does (ownFingerprint).
+	// its screen did not show (state.OwnView); fingerprint names it as the
+	// event that opened it does (state.OwnFingerprint).
 	scrolls     bool
 	fingerprint string
 }
@@ -71,17 +71,22 @@ func (d Dialog) Asks(reported *state.Ask) *state.Ask {
 func (d Dialog) Scrolls() bool { return d.Whose == OwnDialog && d.scrolls }
 
 // Shows reports whether a screen's dialog of Claude's own, v, is the open
-// one: the same title and text, wherever its cursor is, as its record on
-// the agent's window names it (ownFingerprint), whether this look saw the
-// screen or recalled the record.
+// one: the same title and text, wherever its cursor is, as the event that
+// opened it names it (state.OwnFingerprint), whether or not this look saw
+// the screen.
 func (d Dialog) Shows(v state.OwnView) bool {
-	return d.Whose == OwnDialog && d.fingerprint != "" && ownFingerprint(v.Ask) == d.fingerprint
+	return d.Whose == OwnDialog && d.fingerprint != "" && state.OwnFingerprint(v.Ask) == d.fingerprint
 }
 
-// Dialog is the agent's dialog verdict.
+// whose is whose dialog the reducer's verdict names.
+var whose = map[string]Whose{state.DialogHooks: HooksDialog, state.DialogSubagent: SubagentDialog, state.DialogOwn: OwnDialog}
+
+// Dialog is the agent's dialog verdict, as the reducer folded it from its
+// journal: open while the agent needs input.
 func (a Agent) Dialog() Dialog {
-	if a.State != state.NeedsInput {
+	v := a.reduced.Dialog
+	if a.State != state.NeedsInput || !v.Open {
 		return Dialog{}
 	}
-	return Dialog{Whose: a.dialog, Since: a.Since, own: a.ownAsk, scrolls: a.ownScrolls, fingerprint: a.ownFP}
+	return Dialog{Whose: whose[v.Whose], Since: v.Opened.Time, own: a.ownAsk, scrolls: a.ownScroll, fingerprint: v.Screen}
 }

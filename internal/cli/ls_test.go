@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
@@ -29,7 +30,7 @@ func sbxNotFound() error { return &proc.Error{Name: "sbx", Msg: "sbx not found",
 
 func agentWindow(id, name, repo string, started time.Time, dead bool) tmux.Window {
 	return tmux.Window{ID: id, Name: name, PaneDead: dead, Options: map[string]string{
-		"id": "id-" + name, "name": name, "repo": repo, "sandbox": "claude-x", "started": strconv.FormatInt(started.Unix(), 10),
+		"id": "id-" + name, "name": name, "repo": repo, "sandbox": "claude-x", "started": strconv.FormatInt(started.Unix(), 10), agent.GenerationOption: generation,
 	}}
 }
 
@@ -289,8 +290,8 @@ func TestLsShowsACancelledDialogDoneFromWhenItWasFirstSeen(t *testing.T) {
 	if out != want {
 		t.Fatalf("got\n%s\nwant\n%s", out, want)
 	}
-	if f.tmux.windows[0].Options["turnend"] == "" || f.tmux.windows[1].Options["turnend"] != "" {
-		t.Fatalf("recorded %v", f.tmux.windows)
+	if a, b := f.eventsOf("id-a", state.SourceScreen), f.eventsOf("id-b", state.SourceScreen); a != state.KindTurnEnded || b != "" {
+		t.Fatalf("seen on a's screen %q, on b's %q", a, b)
 	}
 	// Later, done counts from when it was first seen.
 	f.now = f.now.Add(7 * time.Second)
@@ -398,8 +399,8 @@ func TestLsShowsARewoundTurnDoneOnceItsScreenStaysAtRest(t *testing.T) {
 	if out != want {
 		t.Fatalf("got\n%s\nwant\n%s", out, want)
 	}
-	if f.tmux.windows[0].Options["turnend"] == "" || f.tmux.windows[1].Options["turnend"] != "" {
-		t.Fatalf("recorded %v", f.tmux.windows)
+	if a, b := f.eventsOf("id-a", state.SourceScreen), f.eventsOf("id-b", state.SourceScreen); a != state.KindAtRest+" "+state.KindRewound || strings.Contains(b, state.KindRewound) {
+		t.Fatalf("seen on a's screen %q, on b's %q", a, b)
 	}
 	// It holds, from the same moment, whatever the screen shows next,
 	// until the next report.
@@ -423,21 +424,19 @@ func TestLsShowsWhatAnotherHqStoredFirst(t *testing.T) {
 	f.sbx.sandboxes = append(f.sbx.sandboxes, sbx.Sandbox{Name: "claude-lib", Status: "stopped"})
 	since := f.now.Add(-20 * time.Second)
 	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: since, Last: "Red or blue?"}
-	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Last: "Tests pass"}
+	f.states["id-b"] = state.Report{State: state.Working, Since: since, Last: "Tests pass"}
 	f.tmux.screens = map[string]string{"%1": "● User declined to answer questions\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n"}
 	// Another hq process, the dashboard say, saw both a moment earlier and
-	// stored its records between this one's look and its write (#100).
-	ns := func(t time.Time) string { return strconv.FormatInt(t.UnixNano(), 10) }
-	f.tmux.onKeep = func(id, key string) {
-		w := &f.tmux.windows[0]
-		if id == "@2" {
-			w = &f.tmux.windows[1]
-		}
-		switch key {
-		case "turnend":
-			w.Options[key] = ns(since) + " " + ns(f.now.Add(-5*time.Second)) + " User declined to answer questions"
-		case "endseen":
-			w.Options[key] = w.Options["started"] + " " + ns(f.states["id-b"].Since) + " " + ns(f.now.Add(-9*time.Second))
+	// appended it between this one's look and its append (#100): the first
+	// append wins.
+	f.onAppend = func(id string, events []state.Event) {
+		for _, e := range events {
+			switch {
+			case id == "id-a" && e.Kind == state.KindTurnEnded:
+				f.seen("/w/app", id, state.SourceScreen, e.Kind, e.Facts, f.now.Add(-5*time.Second))
+			case id == "id-b" && e.Kind == state.KindNotRunning:
+				f.seen("/w/lib", id, state.SourceSbx, e.Kind, state.Facts{Asked: f.now.Add(-10 * time.Second)}, f.now.Add(-9*time.Second))
+			}
 		}
 	}
 	_, out, _ := f.run("ls")
@@ -447,8 +446,8 @@ func TestLsShowsWhatAnotherHqStoredFirst(t *testing.T) {
 	if out != want {
 		t.Fatalf("got\n%s\nwant\n%s", out, want)
 	}
-	// Later looks keep the first records, and so the ages go on from them.
-	f.tmux.onKeep = nil
+	// Later looks keep the first events, and so the ages go on from them.
+	f.onAppend = nil
 	f.now = f.now.Add(3 * time.Second)
 	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done   8s") || !strings.Contains(out, "b     lib   -       ended  12s") {
 		t.Fatalf("later:\n%s", out)

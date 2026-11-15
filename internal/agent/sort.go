@@ -7,8 +7,8 @@ import (
 )
 
 // AttentionOrder lists the states the user should look at first first
-// (spec §6.2).
-var AttentionOrder = []string{state.NeedsInput, state.Question, state.Done, state.Working, state.Starting, state.Ended}
+// (spec §6.2): an outdated agent first, which only the user can clear.
+var AttentionOrder = []string{state.Outdated, state.NeedsInput, state.Question, state.Done, state.Working, state.Starting, state.Ended}
 
 // AttentionRank is a state's place in AttentionOrder; unknown states come last.
 func AttentionRank(s string) int {
@@ -33,8 +33,11 @@ func SortAttention(as []Agent) {
 }
 
 // NeedsYou reports whether the agent waits for the user (spec §3, attention
-// state).
-func (a Agent) NeedsYou() bool { return a.State == state.Question || a.State == state.NeedsInput }
+// state), or is outdated, which only the user can clear by killing it and
+// starting it again: the list draws and counts both alike (spec §6.1).
+func (a Agent) NeedsYou() bool {
+	return a.State == state.Question || a.State == state.NeedsInput || a.State == state.Outdated
+}
 
 // SortRepo sorts agents by repository name, in attention order inside a
 // repository (spec §6.2).
