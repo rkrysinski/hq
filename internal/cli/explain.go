@@ -171,7 +171,7 @@ func explain(name string, events []state.Event, reply state.Reply, now time.Time
 	}
 	r := f.Result(reply, now)
 	v := explainView{
-		Name: name, State: r.State, Since: r.Since, AgeSeconds: max(0, int64(r.Age.Seconds())),
+		Name: name, State: r.State, Since: r.Since.UTC(), AgeSeconds: max(0, int64(r.Age.Seconds())),
 		RestsOn: orNone(r.RestsOn),
 		Dialog: explainDialog{
 			Open: r.Dialog.Open, Whose: r.Dialog.Whose, Opened: r.Dialog.Opened.Number, Closed: r.Dialog.Closed.Number,
@@ -212,12 +212,12 @@ func explainEventOf(e state.Event, after string) explainEvent {
 		messages = append(messages, state.Clean(m))
 	}
 	return explainEvent{
-		Number: e.Number, Time: e.Time, Source: state.Clean(e.Source), Kind: state.Clean(e.Kind),
+		Number: e.Number, Time: e.Time.UTC(), Source: state.Clean(e.Source), Kind: state.Clean(e.Kind),
 		What: eventWhat(e) + asideWhy(e.Aside), what: eventWhat(e), State: after, Aside: state.Clean(e.Aside), Basis: e.Basis,
 		Facts: explainFacts{
 			At: state.Clean(f.At), Turn: state.Clean(f.Turn), Subagent: f.Subagent, Tool: state.Clean(f.Tool),
 			Server: state.Clean(f.Server), Start: state.Clean(f.Start), Reason: state.Clean(f.Reason),
-			Notice: state.Clean(f.Notice), From: f.From, Asked: f.Asked, Question: f.Question, Tasks: tasks,
+			Notice: state.Clean(f.Notice), From: f.From.UTC(), Asked: f.Asked.UTC(), Question: f.Question, Tasks: tasks,
 			Started: state.Clean(f.Started), Wake: f.Wake, Woke: state.Clean(f.Woke), Messages: messages, Size: f.Size,
 		},
 	}
