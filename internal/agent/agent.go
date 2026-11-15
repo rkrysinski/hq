@@ -73,6 +73,14 @@ type Agent struct {
 	// as its hooks reported them (state.Report.OwnTasks); none in any other
 	// state (see keepOwnTasks).
 	OwnTasks []state.Task `json:"-"`
+
+	// journal is its journal as the look read it, with what the look
+	// appended to it, journaled whether the look could read it, and basis
+	// the number of the last event of its hook there (journal.Basis), which
+	// what the look appends is based on (see witness).
+	journal   []state.Event
+	journaled bool
+	basis     int64
 }
 
 // Outdated reports whether the agent is an outdated agent: its home window
@@ -363,7 +371,7 @@ func (a *Agent) seeEnd(now time.Time) record {
 		return record{}
 	}
 	a.Since = now
-	return record{"endseen", key, key + nanos(now)}
+	return record{Option: "endseen", Key: key, Value: key + nanos(now)}
 }
 
 // endKey names the agent's session and its last report in its endseen
@@ -381,7 +389,16 @@ func (a Agent) endKey() string {
 // holds a value starting with Key, a record of the same thing that another
 // hq process stored first. The first record wins, so every process shows
 // the same moment (design §3.4); see adopt.
-type record struct{ Option, Key, Value string }
+//
+// Event is what the look appends to the agent's journal for it, when the
+// record is offered (Look): the same evidence, which the journal keeps
+// first-wins too (journal.Holds); none for a record of an end nothing
+// dates, whose evidence (the pane's death, sbx's answer, hq taking the
+// agent down) has events of its own.
+type record struct {
+	Option, Key, Value string
+	Event              state.Event
+}
 
 // adopt applies what the window holds after r was offered to it: stored,
 // which is r.Value, or the record another hq process stored first.
@@ -542,7 +559,9 @@ func (a Agent) seeWake() record {
 	if a.wokeAt.IsZero() {
 		return record{}
 	}
-	return record{"wokeseen", a.wokeKey, a.wokeKey + nanos(a.wokeAt)}
+	e := screenEvent(state.KindWokeUp, time.Time{})
+	e.Facts.From = a.wokeAt
+	return record{"wokeseen", a.wokeKey, a.wokeKey + nanos(a.wokeAt), e}
 }
 
 // settleDelay is how old the hooks' report must be before the agent's
@@ -674,6 +693,8 @@ func (a *Agent) settle(screen string, now time.Time) record {
 	key := a.key() + " "
 	// What the record says of the turn's last message, and what it is.
 	mark, last := Rewound, Rewound
+	// The events of the screen first seen at rest, and of the decision.
+	seenKind, decision := state.KindAtRest, state.KindRewound
 	var rest, again bool
 	if a.owed {
 		// Its turn ended by itself, and Claude owes it one more: at rest
@@ -681,13 +702,16 @@ func (a *Agent) settle(screen string, now time.Time) record {
 		// look, RestDelay later, tells.
 		rest, again = state.Idle(screen), true
 		mark, last = ownLast, a.Last
+		decision = state.KindTurnNotTaken
 	} else {
 		// A rewind right after a turn the user ended leaves that turn's line
 		// above the box: the rewind below tells that turn's end.
 		rewound := a.State == state.Working && state.PutBack(screen, a.prompt)
 		if said, ok := state.EndedByUser(screen); ok && !rewound {
 			a.State, a.Since, a.Last = state.Done, now, said
-			return record{"turnend", key, key + nanos(now) + " " + said}
+			e := screenEvent(state.KindTurnEnded, now)
+			e.Facts.Text = said
+			return record{"turnend", key, key + nanos(now) + " " + said, e}
 		}
 		if a.State == state.NeedsInput {
 			return a.seeAnswer(screen, now)
@@ -700,7 +724,9 @@ func (a *Agent) settle(screen string, now time.Time) record {
 		// dialog of its hooks' was answered) no early Esc rewinds it, and a
 		// screen at work may still show no spinner (#77): only a tool the
 		// user cut short, which prints no line in the sbx template, ends it.
-		rest = rest && (!a.acted && !answered || state.ToolCut(screen))
+		if a.acted || answered {
+			rest, seenKind = rest && state.ToolCut(screen), state.KindToolCut
+		}
 	}
 	if !rest {
 		return record{}
@@ -709,14 +735,18 @@ func (a *Agent) settle(screen string, now time.Time) record {
 	at, ok := a.restedSince(fp)
 	if !ok {
 		a.resting = again
-		return record{"restseen", key + fp + " ", key + fp + " " + nanos(now)}
+		e := screenEvent(seenKind, now)
+		e.Facts.Screen = fp
+		return record{"restseen", key + fp + " ", key + fp + " " + nanos(now), e}
 	}
 	if now.Sub(at) < RestDelay {
 		a.resting = again
 		return record{}
 	}
 	a.State, a.Since, a.Last, a.rested = state.Done, at, last, true
-	return record{"turnend", key, key + nanos(at) + " " + mark}
+	e := screenEvent(decision, now)
+	e.Facts.Screen, e.Facts.From = fp, at
+	return record{"turnend", key, key + nanos(at) + " " + mark, e}
 }
 
 // seeDialog applies the screen of an agent that waits at its prompt: a
@@ -735,7 +765,7 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 	if !ok {
 		if _, _, open := recorded(a.dialogSeen, a.key()); open {
 			// Open for this report: closed now.
-			return record{"dialogseen", key + "- ", key + "-"}
+			return record{"dialogseen", key + "- ", key + "-", screenEvent(state.KindOwnDialogGone, now)}
 		}
 		return record{}
 	}
@@ -747,7 +777,9 @@ func (a *Agent) seeDialog(screen string, now time.Time) record {
 		return record{}
 	}
 	a.Since = now
-	return record{"dialogseen", key + fp + " ", key + fp + " " + nanos(now)}
+	e := screenEvent(state.KindOwnDialog, now)
+	e.Facts.Screen = fp
+	return record{"dialogseen", key + fp + " ", key + fp + " " + nanos(now), e}
 }
 
 // recallSeen applies, for a look that cannot see the agent's screen, what
@@ -792,7 +824,7 @@ func (a *Agent) seeAnswer(screen string, now time.Time) record {
 	}
 	a.worksOn()
 	key := a.key() + " "
-	return record{"answered", key, key + nanos(now)}
+	return record{"answered", key, key + nanos(now), screenEvent(state.KindAtWork, now)}
 }
 
 // recallAnswer applies Claude at work that hq saw after the dialog the

@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"os"
 	"path/filepath"
@@ -94,6 +95,7 @@ type fakeTmux struct {
 	// Type.
 	input    []string
 	onSubmit func()                 // called at each Submit: Claude takes the prompt
+	onPaste  func()                 // called as each Paste starts
 	onPress  func(pane, key string) // called at each key Press presses
 	startErr error                  // fails releasing a new window
 	pasteErr error
@@ -107,6 +109,9 @@ func (f *fakeTmux) LastScreen(pane string) (string, error) {
 func (f *fakeTmux) FocusList() error { f.focused++; return nil }
 
 func (f *fakeTmux) Paste(pane, text string) error {
+	if f.onPaste != nil {
+		f.onPaste()
+	}
 	if f.pasteErr != nil {
 		return f.pasteErr
 	}
@@ -583,6 +588,7 @@ type fakes struct {
 	// oldest is when the oldest message waiting for each agent id was sent
 	// (none: unknown, as for messages put in inbox directly).
 	oldest  map[string]time.Time
+	posted  []state.Message // every message left, or put back, as given
 	postErr error
 	takeErr error
 	// announced are the agent ids whose hooks were told that the next
@@ -602,11 +608,13 @@ type fakes struct {
 	// its inbox for the hook, until the hook takes it or hq takes it back
 	// (withdrawals counts those); leaveErr fails leaving it; got is what
 	// Claude reports it got once the dialog's tool ended.
-	questions   map[string]state.Questions
-	answerLeft  map[string][]byte
-	leaveErr    error
-	withdrawals int
-	got         map[string]map[string]string
+	questions  map[string]state.Questions
+	answerLeft map[string][]byte
+	leaveErr   error
+	// onLeaveAnswer is called as an answer is left.
+	onLeaveAnswer func()
+	withdrawals   int
+	got           map[string]map[string]string
 
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
@@ -659,6 +667,15 @@ type fakes struct {
 	installErrs    map[string]error
 	served         *mcp.Server
 	serveErr       error
+}
+
+// fakeName is the name the fakes' inbox gives a message, by its text (as
+// the fakes' inbox keeps it, " (now)" included), which taking, holding and
+// putting it back keep.
+func fakeName(text string) string {
+	h := fnv.New32a()
+	h.Write([]byte(text))
+	return fmt.Sprintf("0000000000000000001-%08x", h.Sum32())
 }
 
 // supervisorMark ends, in the fakes' inbox, a message the supervisor sent.
@@ -822,6 +839,7 @@ func (f *fakes) deps() deps {
 			if f.postErr != nil {
 				return f.postErr
 			}
+			f.posted = append(f.posted, m)
 			text := m.Text
 			if m.Supervisor {
 				text += supervisorMark
@@ -842,7 +860,7 @@ func (f *fakes) deps() deps {
 			var msgs []state.Message
 			for _, text := range append(f.held[id], f.inbox[id]...) {
 				text, supervisor := strings.CutSuffix(text, supervisorMark)
-				msgs = append(msgs, state.Message{Text: text, Supervisor: supervisor})
+				msgs = append(msgs, state.Message{Text: text, Supervisor: supervisor, Name: fakeName(text)})
 			}
 			delete(f.inbox, id)
 			delete(f.held, id)
@@ -893,6 +911,9 @@ func (f *fakes) deps() deps {
 			return q, nil
 		},
 		leaveAnswer: func(_, id string, _ state.Questions, decision []byte) error {
+			if f.onLeaveAnswer != nil {
+				f.onLeaveAnswer()
+			}
 			if f.leaveErr != nil {
 				return f.leaveErr
 			}

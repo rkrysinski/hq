@@ -380,6 +380,16 @@ func (d deps) readAgent(root, id string) (state.Report, bool) {
 	return d.readState(root, id)
 }
 
+// lookStore is where a look reads the agents' screens and keeps what it
+// saw (agent.Store, agent.Journals): tmux, and the agents' journals.
+type lookStore struct {
+	Tmux
+	journal.Store
+}
+
+// store is the look's store of these dependencies.
+func (d deps) store() agent.Store { return lookStore{d.tmux, d.journal} }
+
 // removeAgentFiles deletes what an agent leaves once it is gone: its state
 // files, its inbox, its journal and its event files (design §3.4).
 func removeAgentFiles(d deps, root, id string) {

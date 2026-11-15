@@ -24,7 +24,10 @@ type Store interface {
 	// whatever processes ingest at once or die while they do.
 	Ingest(root, id string) error
 	// Append numbers events of hq's own (screen, tmux, sbx, hq) and
-	// appends them to the journal of agent id, as they are numbered.
+	// appends them to the journal of agent id, as they are numbered, under
+	// the lock: each that the journal shows to be a duplicate, or
+	// overtaken by a later report, is marked so (Aside) and set aside, so
+	// of processes appending the same evidence at once the first wins.
 	Append(id string, events ...state.Event) ([]state.Event, error)
 	// Read is the journal of agent id, read under the lock.
 	Read(id string) (Journal, error)

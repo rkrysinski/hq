@@ -21,8 +21,20 @@ import (
 // TestMain lets the test binary run as an hq process that ingests:
 // HQ_JOURNAL_INGEST names the store's directory, the repository and the
 // agent; with HQ_JOURNAL_CRASH set the process kills itself once it has
-// appended, before it removes the files.
+// appended, before it removes the files. HQ_JOURNAL_APPEND, naming the
+// store's directory and the agent, has it append a look's evidence.
 func TestMain(m *testing.M) {
+	if arg := os.Getenv("HQ_JOURNAL_APPEND"); arg != "" {
+		// A look appending what it saw: a turn the user ended, based on
+		// the agent's first report.
+		f := strings.Split(arg, "\n")
+		e := state.Event{Source: state.SourceScreen, Kind: state.KindTurnEnded, Time: time.Now(), Basis: 1}
+		if _, err := (journal.Files{Dir: f[0]}).Append(f[1], e); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
 	if arg := os.Getenv("HQ_JOURNAL_INGEST"); arg != "" {
 		f := strings.Split(arg, "\n")
 		if os.Getenv("HQ_JOURNAL_CRASH") != "" {
@@ -125,6 +137,41 @@ func TestEightProcessesIngestEachFileOnce(t *testing.T) {
 		if e.File != fmt.Sprintf("%09d.1", i+1) || e.Number != int64(i+1) {
 			t.Errorf("event %d: %+v", i, e)
 		}
+	}
+}
+
+// Of eight hq processes appending the same evidence at once, one event
+// stands and the others are set aside as duplicates (#195).
+func TestOfEightProcessesAppendingTheSameEvidenceOneStands(t *testing.T) {
+	dir, root := filepath.Join(t.TempDir(), "hq"), newRoot(t)
+	leave(t, root, "a1", "000000001.1", prompt, time.Now())
+	if err := (journal.Files{Dir: dir}).Ingest(root, "a1"); err != nil {
+		t.Fatal(err)
+	}
+	var cmds []*exec.Cmd
+	for range 8 {
+		cmd := exec.Command(os.Args[0], "-test.run=^$")
+		cmd.Env = append(os.Environ(), "HQ_JOURNAL_APPEND="+dir+"\na1")
+		if err := cmd.Start(); err != nil {
+			t.Fatal(err)
+		}
+		cmds = append(cmds, cmd)
+	}
+	for _, cmd := range cmds {
+		if err := cmd.Wait(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	j, err := journal.Files{Dir: dir}.Read("a1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var asides []string
+	for _, e := range j.Events[1:] {
+		asides = append(asides, e.Aside)
+	}
+	if len(j.Events) != 9 || strings.Join(asides, " ") != " duplicate duplicate duplicate duplicate duplicate duplicate duplicate" {
+		t.Fatalf("%d events, set aside: %q", len(j.Events), asides)
 	}
 }
 

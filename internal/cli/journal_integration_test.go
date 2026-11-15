@@ -67,6 +67,8 @@ func TestTheJournalHoldsTheSessionInTheOrderTheHookReportedIt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// hq's own events beside them (#195) are another test's.
+	j.Events = ofSource(j.Events, state.SourceHook)
 	want := "SessionStart UserPromptSubmit PostToolUse Stop UserPromptSubmit PermissionRequest PostToolUse Stop SessionEnd"
 	if got := journaltest.Kinds(j.Events); got != want {
 		t.Fatalf("journal %s\nwant    %s", got, want)
@@ -121,7 +123,7 @@ func TestTwoAgentsInTwoRepositoriesNeverShareANumber(t *testing.T) {
 	seen := map[int64]string{}
 	for _, name := range []string{"a", "b"} {
 		j, _ := h.d.journal.Read(h.agentID(name))
-		if len(j.Events) != 5 {
+		if len(ofSource(j.Events, state.SourceHook)) != 5 {
 			t.Fatalf("%s: %s", name, journaltest.Kinds(j.Events))
 		}
 		for i, e := range j.Events {
@@ -130,5 +132,49 @@ func TestTwoAgentsInTwoRepositoriesNeverShareANumber(t *testing.T) {
 			}
 			seen[e.Number] = name
 		}
+	}
+}
+
+// What hq does and sees joins the hook's reports in the agent's journal
+// (#195): its launch first, a message hq typed in before the prompt Claude
+// reports with it, and the pane's death after the session's end, dated by
+// tmux.
+func TestTheJournalHoldsWhatHqDidAndSawBesideTheHooksReports(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	root := testutil.GitRepo(t, "app")
+	h.cwd = root
+	if code, _, errOut := h.run("new", "a", "run a tool"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "done", "Done: run a tool")
+	if code, out, errOut := h.run("send", "a", "hello there"); code != 0 || !strings.HasPrefix(out, "delivered: typed") {
+		t.Fatalf("send: exit %d %q %q", code, out, errOut)
+	}
+	h.waitReport("a", "done", "Done: hello there")
+	h.typeIn("a", "/exit")
+	h.waitReport("a", "ended", "Done: hello there")
+	h.ls()
+
+	j, err := h.d.journal.Read(h.agentID("a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "Launched SessionStart UserPromptSubmit PostToolUse Stop delivery UserPromptSubmit Stop SessionEnd PaneDied"
+	if got := journaltest.Kinds(j.Events); got != want {
+		t.Fatalf("journal %s\nwant    %s", got, want)
+	}
+	launched, typed, prompt, died := j.Events[0], j.Events[5], j.Events[6], j.Events[9]
+	if launched.Source != state.SourceHQ || launched.Facts.Start != "new" || launched.Basis != 0 {
+		t.Errorf("launched %+v", launched)
+	}
+	if typed.Source != state.SourceHQ || typed.Facts.At != state.AtTyped || len(typed.Facts.Messages) != 1 || typed.Basis != j.Events[4].Number {
+		t.Errorf("typed %+v", typed)
+	}
+	if prompt.Source != state.SourceHook || prompt.Facts.Prompt != "hello there" || prompt.Number <= typed.Number {
+		t.Errorf("the prompt Claude reported %+v", prompt)
+	}
+	if died.Source != state.SourceTmux || died.Facts.From.IsZero() || died.Facts.From.After(died.Time) || died.Basis != j.Events[8].Number {
+		t.Errorf("the pane's death %+v", died)
 	}
 }

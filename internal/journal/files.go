@@ -198,7 +198,8 @@ func finish(dir, path string, names []string) error {
 }
 
 // Append numbers events of hq's own and appends them to the journal of
-// agent id (Store).
+// agent id (Store), each set aside when the journal holds the same
+// evidence or a later report (Aside).
 func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	if !state.IsID(id) {
 		return nil, errors.New("not an agent id")
@@ -211,7 +212,16 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 		return nil, err
 	}
 	defer unlock()
-	out := append([]state.Event(nil), events...)
+	path := s.journalPath(id)
+	from, err := repair(path)
+	if err != nil {
+		return nil, err
+	}
+	held, err := readEvents(path)
+	if err != nil {
+		return nil, err
+	}
+	out := setAside(held, events)
 	if err := s.number(out); err != nil {
 		return nil, err
 	}
@@ -219,12 +229,20 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	path := s.journalPath(id)
-	from, err := repair(path)
-	if err != nil {
-		return nil, err
-	}
 	return out, appendAt(path, from, lines)
+}
+
+// setAside is events, to be appended after held, each marked with why it is
+// set aside, if it is (Aside): against held and the events before it.
+func setAside(held, events []state.Event) []state.Event {
+	out := make([]state.Event, 0, len(events))
+	all := append([]state.Event(nil), held...)
+	for _, e := range events {
+		e.Aside = Aside(all, e)
+		out = append(out, e)
+		all = append(all, e)
+	}
+	return out
 }
 
 // Read is the journal of agent id (Store): none for an agent with no
@@ -244,15 +262,8 @@ func (s Files) Read(id string) (Journal, error) {
 		return Journal{}, err
 	}
 	path := s.journalPath(id)
-	data, err := os.ReadFile(path)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if j.Events, err = readEvents(path); err != nil {
 		return Journal{}, err
-	}
-	for _, line := range bytes.Split(data, []byte("\n")) {
-		var e state.Event
-		if json.Unmarshal(line, &e) == nil && e.Number > 0 {
-			j.Events = append(j.Events, e)
-		}
 	}
 	if data, err := os.ReadFile(path + replySuffix); err == nil {
 		var r state.Reply
@@ -261,6 +272,23 @@ func (s Files) Read(id string) (Journal, error) {
 		}
 	}
 	return j, nil
+}
+
+// readEvents are the events of the journal at path, none when there is
+// none. A line that is no event (cut off when a process died) is skipped.
+func readEvents(path string) ([]state.Event, error) {
+	data, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, err
+	}
+	var events []state.Event
+	for _, line := range bytes.Split(data, []byte("\n")) {
+		var e state.Event
+		if json.Unmarshal(line, &e) == nil && e.Number > 0 {
+			events = append(events, e)
+		}
+	}
+	return events, nil
 }
 
 // latestTurnEnd is the number of the latest turn end among events, 0 when

@@ -1,9 +1,11 @@
 package journaltest
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -33,8 +35,9 @@ func Hook(branch string, payload map[string]any) []byte {
 // Contract checks what hq relies on from any journal store (ADR 0018):
 // event files ingested in the order of their names and removed, numbers
 // from one counter for every agent, rising in each journal, the latest
-// turn end's reply kept once, hq's own events appended, a removed journal
-// gone, and ids hq did not issue refused.
+// turn end's reply kept once, hq's own events appended, evidence set aside
+// as a duplicate or as overtaken (#195), one first append of writers
+// racing, a removed journal gone, and ids hq did not issue refused.
 func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 	t.Helper()
 	at := time.Date(2026, 11, 15, 9, 0, 0, 0, time.UTC)
@@ -162,6 +165,73 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		}
 	})
 
+	t.Run("evidence set aside", func(t *testing.T) {
+		h := newHarness(t)
+		root := h.Root()
+		h.Leave(root, "a1", "000000001.1", prompt, at)
+		must(t, h.Store.Ingest(root, "a1"))
+		basis := read(t, h.Store, "a1").Events[0].Number
+		rest := state.Event{Source: state.SourceScreen, Kind: state.KindAtRest, Time: at, Basis: basis, Facts: state.Facts{Screen: "f1"}}
+		other := rest
+		other.Facts.Screen = "f2"
+		typed := state.Event{Source: state.SourceHQ, Kind: state.KindDelivery, Time: at, Basis: basis, Facts: state.Facts{At: state.AtTyped, Messages: []string{"0001-ab"}}}
+		out, err := h.Store.Append("a1", rest, rest, other, rest, typed, typed)
+		require(t, err == nil && len(out) == 6, "%v %+v", err, out)
+		{
+			got := asides(out)
+			// The screen that came back after another is new evidence; what
+			// hq does is never set aside.
+			expect(t, got == "- duplicate - - - -", "appended at once: %s", got)
+		}
+		_, err = h.Store.Append("a1", rest)
+		must(t, err)
+		h.Leave(root, "a1", "000000002.1", tool, at)
+		must(t, h.Store.Ingest(root, "a1"))
+		late := rest
+		late.Facts.Screen = "f3"
+		gone := state.Event{Source: state.SourceSbx, Kind: state.KindNotRunning, Time: at, Basis: basis}
+		died := state.Event{Source: state.SourceTmux, Kind: state.KindPaneDied, Time: at, Basis: basis}
+		out, err = h.Store.Append("a1", late, gone, died, typed)
+		must(t, err)
+		{
+			got := asides(out)
+			// Read against the reports, the screen's and sbx's evidence is
+			// overtaken; the pane's death and what hq does are not.
+			expect(t, got == "overtaken overtaken - -", "after a later report: %s", got)
+		}
+		j := read(t, h.Store, "a1")
+		{
+			got := asides(j.Events[1:])
+			expect(t, len(j.Events) == 13 && got == "- duplicate - - - - duplicate - overtaken overtaken - -", "the journal keeps what it set aside, marked: %s", got)
+		}
+		// A relaunch starts the evidence over.
+		_, err = h.Store.Append("a1", state.Event{Source: state.SourceHQ, Kind: state.KindRelaunched, Time: at}, died)
+		must(t, err)
+		{
+			j := read(t, h.Store, "a1")
+			expect(t, j.Events[len(j.Events)-1].Aside == "", "the pane's death after a relaunch: %+v", j.Events[len(j.Events)-1])
+		}
+	})
+
+	t.Run("eight writers racing for one first append", func(t *testing.T) {
+		h := newHarness(t)
+		root := h.Root()
+		h.Leave(root, "a1", "000000001.1", prompt, at)
+		must(t, h.Store.Ingest(root, "a1"))
+		ended := state.Event{Source: state.SourceScreen, Kind: state.KindTurnEnded, Time: at, Basis: read(t, h.Store, "a1").Events[0].Number}
+		var wg sync.WaitGroup
+		for range 8 {
+			wg.Go(func() {
+				_, err := h.Store.Append("a1", ended)
+				expect(t, err == nil, "append: %v", err)
+			})
+		}
+		wg.Wait()
+		j := read(t, h.Store, "a1")
+		got := asides(j.Events[1:])
+		expect(t, got == "- duplicate duplicate duplicate duplicate duplicate duplicate duplicate", "%s", got)
+	})
+
 	t.Run("remove", func(t *testing.T) {
 		h := newHarness(t)
 		root := h.Root()
@@ -191,6 +261,16 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 			expect(t, h.Store.Ingest(root, id) != nil && aerr != nil && rerr != nil && h.Store.Remove(root, id) != nil, "%q taken", id)
 		}
 	})
+}
+
+// asides are the events' reasons to be set aside, "-" for one that stands,
+// joined by spaces.
+func asides(events []state.Event) string {
+	var out []string
+	for _, e := range events {
+		out = append(out, cmp.Or(e.Aside, "-"))
+	}
+	return strings.Join(out, " ")
 }
 
 // expect fails the test, going on, unless ok.
