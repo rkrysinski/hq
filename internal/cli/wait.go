@@ -119,27 +119,22 @@ func runWait(env Env, d deps, args []string) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	sbxs := &sbxPoll{ask: func() agent.Sandboxes { return runningSandboxes(d) }}
 	var seen map[string]agent.Agent // the agents waited on at the last look, by id
 	var found []agent.Agent         // what the first look with a hit returned
-	for first := true; ; first = false {
-		l, err := lookWith(d, sbxs.running(d.now(), first))
-		if err != nil {
-			return err
-		}
-		as, next := l.agents, l.cursor(d)
+	return watchLooks(d, func(l looked, next int64, first bool) (bool, error) {
+		as := l.agents
 		deliverWaiting(d, as)
 		if first {
 			if w.since.ahead(l) {
-				return aheadErr(w.since)
+				return true, aheadErr(w.since)
 			}
 			for _, n := range w.names {
 				a, ok := agent.Find(as, n)
 				if !ok {
-					return notFoundErr("no agent '%s' (see hq ls)", n)
+					return true, notFoundErr("no agent '%s' (see hq ls)", n)
 				}
 				if a.Outdated() {
-					return outdatedErr(a)
+					return true, outdatedErr(a)
 				}
 			}
 			// An agent already in its state when the call starts is not
@@ -160,18 +155,39 @@ func runWait(env Env, d deps, args []string) error {
 		if found != nil {
 			hits = joined(found, hits)
 			agent.SortAttention(hits)
-			return printWait(env.Stdout, w, lsRows(d, hits), next)
+			return true, printWait(env.Stdout, w, lsRows(d, hits), next)
 		}
 		if len(hits) > 0 {
 			// One look more, so agents that change together are returned
 			// together (#116).
 			found = hits
 		} else if w.timeout > 0 && !d.now().Before(start.Add(w.timeout)) {
-			return printWait(env.Stdout, w, lsRows(d, nil), next)
+			return true, printWait(env.Stdout, w, lsRows(d, nil), next)
 		}
 		seen = map[string]agent.Agent{}
 		for _, a := range watched {
 			seen[a.ID] = a
+		}
+		return false, nil
+	})
+}
+
+// watchLooks looks at the agents as hq wait does (design §3.4, §5.1), every
+// waitEvery, through the same collection as the list, asking sbx in the
+// background after the first look, until step says it is done: hq wait and
+// hq send --wait share it. step is given each look, the cursor it stands
+// for (looked.cursor), which is what a result built on that look prints
+// as next_since, and whether it is the first. watchLooks leaves nothing
+// running when it returns; a look that fails ends it.
+func watchLooks(d deps, step func(l looked, next int64, first bool) (bool, error)) error {
+	sbxs := &sbxPoll{ask: func() agent.Sandboxes { return runningSandboxes(d) }}
+	for first := true; ; first = false {
+		l, err := lookWith(d, sbxs.running(d.now(), first))
+		if err != nil {
+			return err
+		}
+		if done, err := step(l, l.cursor(d), first); done || err != nil {
+			return err
 		}
 		d.sleep(waitEvery)
 	}

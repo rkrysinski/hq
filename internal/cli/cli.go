@@ -37,7 +37,7 @@ func commands() []command {
 		{"wait", "[NAME...] [--json]", "wait until an agent is done, asks, needs input or ends", runWait},
 		{"go", "NAME", "enter that agent's session", runGo},
 		{"code", "NAME", "open VS Code on that agent's worktree", runCode},
-		{"send", "NAME TEXT [--now]", "leave a message for that agent, delivered when it is ready", runSend},
+		{"send", "NAME TEXT [--now] [--wait]", "leave a message for that agent, delivered when it is ready; --wait returns when the turn that took it ends", runSend},
 		{"answer", "NAME --dialog ID ANSWER...|--cancel", "answer that agent's question dialog, or cancel it; or pick an option of a dialog of Claude's own", runAnswer},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},

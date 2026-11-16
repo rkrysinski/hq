@@ -89,7 +89,7 @@ func rebuild(t *testing.T, fx state.JournalFixture) state.JournalFixture {
 		when := firstStep.Add(time.Duration(i) * time.Second)
 		act(t, store, &w, id, step.HQ, when)
 		for m := range step.Messages {
-			if err := state.Post(root, id, state.Message{Text: fmt.Sprintf("message %d", m+1)}, false, when); err != nil {
+			if _, err := state.Post(root, id, state.Message{Text: fmt.Sprintf("message %d", m+1)}, false, when); err != nil {
 				t.Fatal(err)
 			}
 		}

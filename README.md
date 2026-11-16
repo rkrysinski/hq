@@ -96,6 +96,7 @@ hq new NAME [DIR] [PROMPT]       # start an agent for the repository in DIR
 hq ls                            # list agents and their state
 hq go NAME                       # enter an agent's session
 hq send NAME TEXT                # leave a message, delivered when the agent is ready
+                                 # (--wait: return when the turn that took it ends)
 hq answer NAME --dialog ID N     # answer an agent's question dialog (hq read shows the id)
 hq kill NAME                     # end an agent's Claude session; the sandbox stays
 hq killed [NAME]                 # the agents hq killed: when, and who asked for it

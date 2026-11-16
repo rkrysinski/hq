@@ -848,9 +848,9 @@ func (f *fakes) deps() deps {
 			return nil
 		},
 		pollSandboxes: f.sbx.List,
-		postMessage: func(_, id string, m state.Message, now bool) error {
+		postMessage: func(_, id string, m state.Message, now bool) (string, error) {
 			if f.postErr != nil {
-				return f.postErr
+				return "", f.postErr
 			}
 			f.posted = append(f.posted, m)
 			text := m.Text
@@ -864,7 +864,8 @@ func (f *fakes) deps() deps {
 				f.oldest[id] = f.now
 			}
 			f.inbox[id] = append(f.inbox[id], text)
-			return nil
+			text, _ = strings.CutSuffix(text, supervisorMark)
+			return fakeName(text), nil
 		},
 		takeMessages: func(_, id string) ([]state.Message, error) {
 			if f.takeErr != nil {

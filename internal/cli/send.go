@@ -57,40 +57,79 @@ const boxPoll = 150 * time.Millisecond
 // then says it was taken.
 const waitingAfter = boxWait + 2*time.Second
 
-const sendUsage = "usage: hq send NAME TEXT [--now] [--json]"
+const sendUsage = "usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]"
 
-// runSend leaves a message for an agent, delivered when the agent is ready
-// (spec §4.1, §5, ADR 0012): its hooks deliver it while it works, and an
-// agent that waits at its empty prompt gets it typed in as its next prompt.
-func runSend(env Env, d deps, args []string) error {
+// sendArgs are hq send's arguments.
+type sendArgs struct {
+	name, text   string
+	now, asJSON  bool
+	wait         bool          // --wait: return when the turn that took it ends (#170)
+	timeout      time.Duration // with --wait, as hq wait's
+	timeoutGiven bool
+}
+
+func parseSend(args []string) (sendArgs, error) {
+	s := sendArgs{timeout: DefaultWaitTimeout}
 	var rest []string
-	now, asJSON := false, false
-	for _, a := range args {
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		flag, value, inline := strings.Cut(a, "=")
 		switch {
 		case a == "--now":
-			now = true
+			s.now = true
 		case a == "--json":
-			asJSON = true
+			s.asJSON = true
+		case a == "--wait":
+			s.wait = true
+		case flag == "--timeout":
+			if !inline {
+				if i+1 == len(args) {
+					return s, usageErr("--timeout needs a value (%s)", sendUsage)
+				}
+				i++
+				value = args[i]
+			}
+			var err error
+			if s.timeout, err = parseTimeout(value); err != nil {
+				return s, err
+			}
+			s.timeoutGiven = true
 		case len(a) > 1 && strings.HasPrefix(a, "-") && !strings.ContainsAny(a, " \t\n"):
-			return usageErr("unknown option '%s' (%s)", a, sendUsage)
+			return s, usageErr("unknown option '%s' (%s)", a, sendUsage)
 		default:
 			rest = append(rest, a)
 		}
 	}
 	if len(rest) != 2 {
-		return usageErr("%s; quote the text", sendUsage)
+		return s, usageErr("%s; quote the text", sendUsage)
 	}
-	name, text := rest[0], state.CleanMessage(rest[1])
+	if s.timeoutGiven && !s.wait {
+		return s, usageErr("--timeout goes with --wait (%s)", sendUsage)
+	}
+	s.name, s.text = rest[0], state.CleanMessage(rest[1])
 	switch {
-	case text == "":
-		return usageErr("empty message (%s)", sendUsage)
-	case len(text) > state.MaxMessage:
-		return usageErr("message too long: at most %d bytes", state.MaxMessage)
+	case s.text == "":
+		return s, usageErr("empty message (%s)", sendUsage)
+	case len(s.text) > state.MaxMessage:
+		return s, usageErr("message too long: at most %d bytes", state.MaxMessage)
+	}
+	return s, nil
+}
+
+// runSend leaves a message for an agent, delivered when the agent is ready
+// (spec §4.1, §5, ADR 0012): its hooks deliver it while it works, and an
+// agent that waits at its empty prompt gets it typed in as its next prompt.
+// With --wait it then waits for the turn that takes it to end (waitedSend).
+func runSend(env Env, d deps, args []string) error {
+	start := d.now()
+	s, err := parseSend(args)
+	if err != nil {
+		return err
 	}
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	a, err := findAgent(d, name)
+	a, err := findAgent(d, s.name)
 	if err != nil {
 		return err
 	}
@@ -103,26 +142,47 @@ func runSend(env Env, d deps, args []string) error {
 	// The cursor before the message is left: the reply it brings is a
 	// change numbered above it, for hq wait --since.
 	sent := counterNow(d, a)
-	if err := d.postMessage(a.RepoPath, a.ID, state.Message{Text: text, Supervisor: d.supervisor}, now); err != nil {
+	msg, err := d.postMessage(a.RepoPath, a.ID, state.Message{Text: s.text, Supervisor: d.supervisor}, s.now)
+	if err != nil {
 		return envErr("cannot leave the message for %s: %v", a.Name, err)
+	}
+	// With --wait, the timeout counts the delivery in (decision 6).
+	limit := func(wait time.Duration) time.Duration {
+		if s.wait && s.timeout > 0 {
+			return max(0, min(wait, start.Add(s.timeout).Sub(d.now())))
+		}
+		return wait
 	}
 	// A starting agent's session has not started yet: wait for its first
 	// report, then deliver as its state says.
-	for deadline := d.now().Add(startWait); a.State == state.Starting && d.now().Before(deadline); {
+	for deadline := d.now().Add(limit(startWait)); a.State == state.Starting && d.now().Before(deadline); {
 		d.sleep(pollEvery)
-		if a, err = findAgent(d, name); err != nil {
+		if a, err = findAgent(d, s.name); err != nil {
 			return err
 		}
 	}
-	how, err := deliver(d, a, now, isCommand(text))
+	ready := d.now()
+	how, err := deliver(d, a, s.now, isCommand(s.text), limit(boxWait))
 	if err != nil {
 		return err
 	}
-	if asJSON {
-		return writeJSON(env.Stdout, sendOutput{Delivery: how, NextSince: sent})
+	if !s.wait {
+		if s.asJSON {
+			return writeJSON(env.Stdout, sendOutput{Delivery: how, NextSince: sent})
+		}
+		fmt.Fprintln(env.Stdout, how)
+		return nil
 	}
-	fmt.Fprintln(env.Stdout, how)
-	return nil
+	if !s.asJSON {
+		fmt.Fprintln(env.Stdout, how)
+	}
+	n, _ := parseSince(sent, start)
+	w := waitedSend{agent: a, msg: msg, command: isCommand(s.text), sent: n.cursor, ready: ready, start: start, timeout: s.timeout}
+	end, err := w.wait(d)
+	if err != nil {
+		return err
+	}
+	return printSendWait(env.Stdout, d, a.Name, how, s.asJSON, end)
 }
 
 // sendOutput is what hq send --json prints: how the message goes, and the
@@ -152,10 +212,10 @@ func findAgent(d deps, name string) (agent.Agent, error) {
 // to the agent's hooks. An agent working only on background work waits at
 // its prompt too (agent.OnBackgroundWork). It returns how the message goes,
 // command saying the message starts with a slash command, which the hooks
-// deliver as text (#173).
-func deliver(d deps, a agent.Agent, now, command bool) (string, error) {
+// deliver as text (#173); within is how long it waits for an empty box.
+func deliver(d deps, a agent.Agent, now, command bool, within time.Duration) (string, error) {
 	if atPrompt(a) {
-		return typeIn(d, a, boxWait, command)
+		return typeIn(d, a, within, command)
 	}
 	if d.pending(a.RepoPath, a.ID) == d.held(a.RepoPath, a.ID) {
 		return tookWithHooks(a, command), nil
@@ -294,7 +354,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 		// Back into the inbox, in the order sent, each under its name: the
 		// hooks deliver them with the next prompt.
 		for _, m := range all {
-			_ = d.postMessage(a.RepoPath, a.ID, m, false)
+			_, _ = d.postMessage(a.RepoPath, a.ID, m, false)
 		}
 		appendWithdrawn(d, a.ID, state.KindDelivery, names)
 		return "", tmuxErr(err)
@@ -305,7 +365,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 	if held := all[len(msgs):]; len(held) > 0 {
 		if err := d.holdMessages(a.RepoPath, a.ID, held); err != nil {
 			for _, m := range held {
-				_ = d.postMessage(a.RepoPath, a.ID, m, false)
+				_, _ = d.postMessage(a.RepoPath, a.ID, m, false)
 			}
 			return "", envErr("typed an earlier message into %s, but cannot hold the others for its next prompts (%v): they are left to its hooks", a.Name, err)
 		}

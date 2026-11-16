@@ -715,7 +715,7 @@ func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefo
 
 	// A message waiting at such a turn end blocks the stop, as at any other.
 	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
-	if err := Post(root, id, Message{Text: "also run the linter"}, false, time.Now()); err != nil {
+	if _, err := Post(root, id, Message{Text: "also run the linter"}, false, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if out := notify("stop", "stop-background"); !strings.Contains(out, `"decision":"block"`) || !strings.Contains(out, "also run the linter") {
@@ -727,7 +727,7 @@ func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefo
 	// A message that comes while the agent waits for its subagent rides
 	// along with Claude's wake-up.
 	notify("stop", "stop-background")
-	if err := Post(root, id, Message{Text: "and the docs"}, false, time.Now()); err != nil {
+	if _, err := Post(root, id, Message{Text: "and the docs"}, false, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if out := notify("prompt", "prompt-wake"); !strings.Contains(out, "and the docs") {

@@ -1169,7 +1169,7 @@ func TestSendDeliversEachMessageWhenTheAgentIsReady(t *testing.T) {
 	ws, _ := h.d.tmux.Windows()
 	a, _ := agent.Find(agent.FromWindows(ws), "a")
 	h.waitAtRest("a")
-	if err := state.Post(r, a.ID, state.Message{Text: "left waiting"}, false, time.Now().Add(-time.Minute)); err != nil {
+	if _, err := state.Post(r, a.ID, state.Message{Text: "left waiting"}, false, time.Now().Add(-time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if rows := h.ls(); rows[0].Pending != 0 {
@@ -1620,7 +1620,7 @@ func TestSendRunsACommandWhateverItsLengthAndInTheOrderSent(t *testing.T) {
 	a, _ := agent.Find(agent.FromWindows(ws), "a")
 	h.waitAtRest("a")
 	for i, text := range []string{"first", "/probe second"} {
-		if err := state.Post(r, a.ID, state.Message{Text: text}, false, time.Now().Add(time.Duration(i-60)*time.Second)); err != nil {
+		if _, err := state.Post(r, a.ID, state.Message{Text: text}, false, time.Now().Add(time.Duration(i-60)*time.Second)); err != nil {
 			t.Fatal(err)
 		}
 	}

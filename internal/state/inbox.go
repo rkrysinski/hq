@@ -198,18 +198,30 @@ func Held(root, id string) int {
 // it. A message Take took is put back under its name, which says when it
 // was sent and by whom (at aside), less nowSuffix unless now asks for it
 // again: put back after hq failed to type it, it goes with the agent's
-// next prompt, as it did before messages kept their names.
-func Post(root, id string, m Message, now bool, at time.Time) error {
+// next prompt, as it did before messages kept their names. It returns
+// the name the message waits under, which the deliveries in the agent's
+// journal name it by (SameMessage).
+func Post(root, id string, m Message, now bool, at time.Time) (string, error) {
 	if !idRE.MatchString(id) {
-		return errors.New("not an agent id")
+		return "", errors.New("not an agent id")
 	}
 	m.Name = backName(m.Name, now)
 	dir := InboxDir(root, id)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
+		return "", err
 	}
-	_, err := write(dir, m, now, at)
-	return err
+	path, err := write(dir, m, now, at)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Base(path), nil
+}
+
+// SameMessage reports whether the names a and b are those of one message:
+// a message put back after hq failed to type it loses nowSuffix (Post), so
+// a later delivery names it without it.
+func SameMessage(a, b string) bool {
+	return strings.TrimSuffix(a, nowSuffix) == strings.TrimSuffix(b, nowSuffix)
 }
 
 // backName is the name a message Take took under name is put back under

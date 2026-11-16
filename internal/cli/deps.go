@@ -157,13 +157,14 @@ type deps struct {
 	// records reads those of a repository, for hq restore (design §3.3).
 	writeRecord func(root, id string, r state.Record) error
 	records     func(root string) ([]state.Record, error)
-	// postMessage leaves a message in an agent's inbox, takeMessages takes
+	// postMessage leaves a message in an agent's inbox and returns the name
+	// it waits under, takeMessages takes
 	// what waits there for hq to type it in, holdMessages puts back what hq
 	// types in later, out of the hooks' reach, pending counts it, held
 	// counts what is held, and
 	// oldestMessage says when the oldest of it was sent (hq send, ADR 0012,
 	// #173).
-	postMessage   func(root, id string, m state.Message, now bool) error
+	postMessage   func(root, id string, m state.Message, now bool) (string, error)
 	takeMessages  func(root, id string) ([]state.Message, error)
 	holdMessages  func(root, id string, msgs []state.Message) error
 	held          func(root, id string) int
@@ -313,7 +314,7 @@ func defaultDeps() deps {
 		readKills:   func() ([]kills.Kill, error) { return kills.Read(kills.Path(os.Getenv)) },
 		writeRecord: state.WriteRecord,
 		records:     state.Records,
-		postMessage: func(root, id string, m state.Message, now bool) error {
+		postMessage: func(root, id string, m state.Message, now bool) (string, error) {
 			return state.Post(root, id, m, now, time.Now())
 		},
 		takeMessages:  state.Take,

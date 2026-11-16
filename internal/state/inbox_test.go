@@ -133,7 +133,7 @@ func TestInboxDirIsBesideTheStateFiles(t *testing.T) {
 	if Pending("/w/app", "../x") != 0 {
 		t.Fatal("not an agent id")
 	}
-	if err := Post("/w/app", "../x", Message{Text: "hi"}, false, time.Now()); err == nil {
+	if _, err := Post("/w/app", "../x", Message{Text: "hi"}, false, time.Now()); err == nil {
 		t.Fatal("posted for a bad id")
 	}
 	if _, err := Take("/w/app", "../x"); err == nil {
@@ -181,6 +181,20 @@ func TestAMessagePutBackLosesItsNowUnlessAskedAgain(t *testing.T) {
 	} {
 		if got := backName(tc.name, tc.now); got != tc.want {
 			t.Errorf("backName(%s, %v) = %s, want %s", tc.name, tc.now, got, tc.want)
+		}
+	}
+}
+
+func TestAMessagePutBackWithoutNowIsTheSameMessage(t *testing.T) {
+	name := messageName(time.Unix(0, 5), "ab12cd34", true, true)
+	for b, want := range map[string]bool{
+		name:                                true,
+		strings.TrimSuffix(name, nowSuffix): true,
+		messageName(time.Unix(0, 5), "ab12cd35", true, true): false,
+		strings.TrimSuffix(name, ".sup.now"):                 false,
+	} {
+		if SameMessage(name, b) != want || SameMessage(b, name) != want {
+			t.Errorf("SameMessage(%q, %q) is not %v", name, b, want)
 		}
 	}
 }
