@@ -48,8 +48,6 @@ type Message struct {
 	Text string
 	// Supervisor says the supervisor sent it, through hq mcp, not the user.
 	Supervisor bool
-	// Sent is when it was sent, for a message Take took: Hold keeps it.
-	Sent time.Time
 	// Name is the name it was left under in the inbox, for a message Take
 	// took: Hold, and Post putting it back, keep it, so every delivery of
 	// it names it as it was first left (spec #165, story 46); Post drops
@@ -162,11 +160,12 @@ func Hold(root, id string, msgs []Message) error {
 	}
 	var written []string
 	for _, m := range msgs {
-		at := m.Sent
-		if at.IsZero() {
-			at = time.Now()
+		var path string
+		err := fmt.Errorf("a message held keeps the name it was left under: %q has none", m.Text)
+		if keptName(m.Name) {
+			// The name says when it was sent; no time is needed.
+			path, err = write(dir, m, false, time.Time{})
 		}
-		path, err := write(dir, m, false, at)
 		if errors.Is(err, fs.ErrExist) {
 			err = fmt.Errorf("a message named %s is held already", m.Name)
 		}
@@ -357,8 +356,7 @@ func Take(root, id string) ([]Message, error) {
 			continue
 		}
 		if text, err := decodeMessage(data); err == nil && text != "" {
-			sent, _ := sentAt(base)
-			msgs = append(msgs, Message{Text: text, Supervisor: fromSupervisor(base), Sent: sent, Name: base})
+			msgs = append(msgs, Message{Text: text, Supervisor: fromSupervisor(base), Name: base})
 		}
 	}
 	return msgs, nil

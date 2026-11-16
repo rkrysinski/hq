@@ -386,10 +386,6 @@ func (a Agent) OnBackgroundWork() bool { return a.reduced.Background && a.State 
 // §3.4, state.RestDelay).
 const RestDelay = state.RestDelay
 
-// Rewound is the last message of a turn the user rewound: an early Esc
-// that put the prompt back in the box, which Claude reports nowhere.
-const Rewound = state.RewoundLast
-
 // Resting reports whether the look saw the agent's screen at rest in a
 // way that one more look, RestDelay later, decides: with its prompt put
 // back in the box, the look of a turn the user rewound, or owed a turn by

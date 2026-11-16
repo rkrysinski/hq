@@ -323,8 +323,9 @@ func TestHeldMessagesWaitForHqAloneInTheOrderSent(t *testing.T) {
 	if n, h := Pending(root, id), Held(root, id); n != 2 || h != 2 {
 		t.Fatalf("pending %d, held %d, want the 2 held", n, h)
 	}
-	if got, ok := Oldest(root, id); !ok || !got.Equal(taken[1].Sent) {
-		t.Fatalf("oldest %v %v, want %v", got, ok, taken[1].Sent)
+	want, _ := sentAt(taken[1].Name)
+	if got, ok := Oldest(root, id); !ok || !got.Equal(want) {
+		t.Fatalf("oldest %v %v, want %v", got, ok, want)
 	}
 	// The hooks leave held messages alone and deliver only the others.
 	post(t, root, id, false, "sent meanwhile")
@@ -345,12 +346,9 @@ func TestHeldMessagesWaitForHqAloneInTheOrderSent(t *testing.T) {
 	if Pending(root, id) != 0 {
 		t.Fatal("left after the take")
 	}
-	// A message without its time is held as sent now, after the others.
-	if err := Hold(root, id, []Message{{Text: "no time"}}); err != nil {
-		t.Fatal(err)
-	}
-	if got, ok := Oldest(root, id); !ok || time.Since(got) > time.Minute {
-		t.Fatalf("held without a time: %v %v", got, ok)
+	// A message without the name it was left under is not held.
+	if err := Hold(root, id, []Message{{Text: "no name"}}); err == nil || Held(root, id) != 0 {
+		t.Fatalf("held without a name: %v", err)
 	}
 	if err := Hold(root, "not an id", taken); err == nil || Held(root, "not an id") != 0 {
 		t.Fatal("held for a bad id")

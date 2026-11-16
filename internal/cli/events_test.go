@@ -220,8 +220,11 @@ func TestLaunchRestartAndRelaunchAreEvents(t *testing.T) {
 	f = newFakes()
 	f.sbx.sandboxes = sandboxesFor("/w/app")
 	f.tmux.startErr = errors.New("no server")
-	if code, _, _ := f.run("new", "a"); code == 0 || len(f.journal.Agents()) != 0 {
-		t.Fatalf("exit %d, journals %v", code, f.journal.Agents())
+	if code, _, _ := f.run("new", "a"); code == 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if left, _ := f.journal.IDs(); len(left) != 0 {
+		t.Fatalf("journals %v", left)
 	}
 
 	// hq restore launches a lost agent again, continuing its conversation;

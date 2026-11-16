@@ -210,18 +210,6 @@ func (m *Memory) Remove(root, id string) error {
 	return nil
 }
 
-// Agents are the ids that have a journal, for a test to see what is left.
-func (m *Memory) Agents() []string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	var ids []string
-	for id := range m.journals {
-		ids = append(ids, id)
-	}
-	sort.Strings(ids)
-	return ids
-}
-
 // Kinds are the kinds of events, joined by spaces, for a test's message.
 func Kinds(events []state.Event) string {
 	var ks []string

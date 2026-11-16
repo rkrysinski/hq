@@ -36,7 +36,7 @@ func TestMemoryIngestsOnlyEventFilesAndListsItsJournals(t *testing.T) {
 	if len(j.Events) != 1 || j.Events[0].File != "000000002.1" || len(m.Left("/w/app", "a1")) != 1 {
 		t.Fatalf("%+v %v", j.Events, m.Left("/w/app", "a1"))
 	}
-	if got := m.Agents(); len(got) != 1 || got[0] != "a1" {
+	if got, _ := m.IDs(); len(got) != 1 || got[0] != "a1" {
 		t.Errorf("agents %v", got)
 	}
 }

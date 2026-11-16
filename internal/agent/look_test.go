@@ -371,8 +371,8 @@ func TestTheLookLeavesAnOutdatedAgentAlone(t *testing.T) {
 			t.Errorf("%s: %s since %v", a.Name, a.State, a.Since)
 		}
 	}
-	if len(s.captures) != 0 || len(s.Agents()) != 0 || len(s.Left("/w/app", "a1")) == 0 {
-		t.Fatalf("captures %v, journals %v, left %v", s.captures, s.Agents(), s.Left("/w/app", "a1"))
+	if ids, _ := s.IDs(); len(s.captures) != 0 || len(ids) != 0 || len(s.Left("/w/app", "a1")) == 0 {
+		t.Fatalf("captures %v, journals %v, left %v", s.captures, ids, s.Left("/w/app", "a1"))
 	}
 }
 
