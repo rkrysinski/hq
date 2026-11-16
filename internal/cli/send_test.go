@@ -238,10 +238,13 @@ func TestSendUsage(t *testing.T) {
 			t.Errorf("%q: inbox %v", tc.args, f.inbox)
 		}
 	}
-	// A message that starts with a dash is the text, not an option.
-	f := sendFakes(state.Working)
-	if code, _, errOut := f.run("send", "a", "-v is not a flag here"); code != 0 || f.inbox["id-a"][0] != "-v is not a flag here" {
-		t.Fatalf("exit %d %q %v", code, errOut, f.inbox)
+	// A message that starts with a dash is the text, not an option, one
+	// that starts as --timeout= included (#170).
+	for _, text := range []string{"-v is not a flag here", "--timeout=0 does not work in the script, look at it"} {
+		f := sendFakes(state.Working)
+		if code, _, errOut := f.run("send", "a", text); code != 0 || f.inbox["id-a"][0] != text {
+			t.Fatalf("%q: exit %d %q %v", text, code, errOut, f.inbox)
+		}
 	}
 }
 

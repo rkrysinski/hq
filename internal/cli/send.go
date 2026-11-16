@@ -70,7 +70,7 @@ type sendArgs struct {
 
 // parseSend reads hq send's arguments: options anywhere, NAME and TEXT in
 // that order, a TEXT that starts with a dash but holds a space taken for
-// the text.
+// the text, as "--timeout=0 fails" is.
 func parseSend(args []string) (sendArgs, error) {
 	s := sendArgs{timeout: DefaultWaitTimeout}
 	var rest []string
@@ -84,7 +84,7 @@ func parseSend(args []string) (sendArgs, error) {
 			s.asJSON = true
 		case a == "--wait":
 			s.wait = true
-		case flag == "--timeout":
+		case flag == "--timeout" && !strings.ContainsAny(a, " \t\n"):
 			if !inline {
 				if i+1 == len(args) {
 					return s, usageErr("--timeout needs a value (%s)", sendUsage)

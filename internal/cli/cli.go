@@ -133,7 +133,7 @@ func runHelp(env Env, _ deps, _ []string) error {
 	fmt.Fprintf(&b, "hq wait also takes --since SINCE and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
 	b.WriteString("SINCE: the next_since hq printed last, passed back as given, which misses no change and repeats none; or a moment (2026-09-28T10:25:01Z) or a duration back from now (10m), both approximate.\n")
 	b.WriteString("hq answer takes one ANSWER per question, in the dialog's order: an option's number, numbers joined with commas where several may be picked, or text; a dialog of Claude's own (as /effort opens) takes one option's number; ID is the dialog's, as hq read shows it.\n")
-	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment.\n")
+	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment, 4 stalled (hq send --wait).\n")
 	_, err := io.WriteString(env.Stdout, b.String())
 	return err
 }

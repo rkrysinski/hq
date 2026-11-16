@@ -164,7 +164,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("instructions have no %q", want)
 		}
 	}
-	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "next_since is an opaque string: pass it back exactly as given", "Watch from the next_since of your most recent wait or list result", "the next wait returns the turn of the earlier prompt first, with pending still counting yours", "a slash command that reaches an agent at work arrives as text and does not run", "Never take since from read, send or answer", "Name every agent you follow in each wait", "act on the agents the list shows done, in question, needing input or ended", "call list first", "Never answer a permission or any other dialog", "answer them with answer, only on the user's word", "send /model with the model's name instead", "never on your own initiative", "To wait for that one answer in the same call, send with wait", "read the agent before sending again: hq types nothing twice", "your watch returns that same change once more", "wait returns the agent once more, done or question with the completion_seq it had: no new reply"} {
+	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "next_since is an opaque string: pass it back exactly as given", "Watch from the next_since of your most recent wait or list result", "the next wait returns the turn of the earlier prompt first, with pending still counting yours", "a slash command that reaches an agent at work arrives as text and does not run", "Your watch never takes its since from read, send or answer", "A wait that names that one agent alone may start from the next_since of its send or answer", "the next_since it returns is that agent's too, so your watch goes on from its own last wait or list result", "Name every agent you follow in each wait", "act on the agents the list shows done, in question, needing input or ended", "call list first", "Never answer a permission or any other dialog", "answer them with answer, only on the user's word", "send /model with the model's name instead", "never on your own initiative", "To wait for that one answer in the same call, send with wait", "read the agent before sending again: hq types nothing twice", "your watch returns that same change once more", "wait returns the agent once more, done or question with the completion_seq it had: no new reply"} {
 		if !strings.Contains(cs.InitializeResult().Instructions, want) {
 			t.Errorf("instructions have no %q", want)
 		}
@@ -182,6 +182,16 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 		if !strings.Contains(tools["send"].Description, want) {
 			t.Errorf("send: no %q", want)
 		}
+	}
+	// The watch never takes its since from send, read or answer; a wait on
+	// that one agent may (#170 against #166): the texts say one thing.
+	for _, want := range []string{"for your watch never that of read, send or answer", "A wait that names one agent alone may start from the next_since of its send or answer"} {
+		if !strings.Contains(tools["wait"].Description, want) {
+			t.Errorf("wait: no %q", want)
+		}
+	}
+	if want := "a wait that names this agent alone, from this next_since, returns its next change"; !strings.Contains(tools["send"].Description, want) {
+		t.Errorf("send: no %q", want)
 	}
 	if !strings.Contains(tools["answer"].Description, "with the completion_seq it had: that is no new reply") {
 		t.Errorf("answer: nothing on the dialog of Claude Code's own: %q", tools["answer"].Description)
