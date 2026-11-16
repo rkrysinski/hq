@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -42,6 +43,10 @@ func runUpdate(env Env, d deps, args []string) error {
 		return nil
 	}
 	gen, published, err := d.releases.Generation(latest)
+	if errors.Is(err, update.ErrUnverified) {
+		// Refused as the binary's mismatch is (#165, story 27).
+		return usageErr("could not read the generation of hq %s: %v; nothing was replaced", latest, err)
+	}
 	if err != nil {
 		return envErr("could not read the generation of hq %s: %v; nothing was replaced", latest, err)
 	}

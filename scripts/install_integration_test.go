@@ -227,3 +227,16 @@ func TestInstallRefusesATamperedGeneration(t *testing.T) {
 		t.Fatalf("exit %d\n%s", code, out)
 	}
 }
+
+// A release whose SHA256SUMS lists a GENERATION not attached yet stops the
+// install, to try again: it is not a release from before generations
+// (#200).
+func TestInstallStopsWhileTheGenerationIsOnItsWay(t *testing.T) {
+	in := newInstaller(t, "4")
+	if err := os.Remove(filepath.Join(in.relDir, "v0.2.0", update.GenerationFile)); err != nil {
+		t.Fatal(err)
+	}
+	if code, out := in.run(); code != 1 || !strings.Contains(out, "could not download GENERATION of v0.2.0 from ") || !strings.Contains(out, "which SHA256SUMS lists; try again in a minute") || in.replaced() {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+}

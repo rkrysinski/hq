@@ -186,20 +186,38 @@ func (s Files) Ingest(root, id string) error {
 // journal back, so the files, all still there, are appended anew.
 func (s Files) recover(dir, id string) error {
 	path := s.journalPath(id)
-	data, err := os.ReadFile(path + pendingSuffix)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
+	p, ok, err := readPending(path)
+	if !ok || err != nil {
 		return err
-	}
-	var p pending
-	if json.Unmarshal(data, &p) != nil {
-		return os.Remove(path + pendingSuffix)
 	}
 	if size(path) >= p.To {
 		return finish(dir, path, p.Files)
 	}
+	return undo(path, p)
+}
+
+// readPending is the record of the ingest under way for the journal at
+// path, and whether there is one; a record that cannot be read is removed,
+// as one with nothing to finish.
+func readPending(path string) (pending, bool, error) {
+	data, err := os.ReadFile(path + pendingSuffix)
+	if errors.Is(err, fs.ErrNotExist) {
+		return pending{}, false, nil
+	}
+	if err != nil {
+		return pending{}, false, err
+	}
+	var p pending
+	if json.Unmarshal(data, &p) != nil {
+		return pending{}, false, os.Remove(path + pendingSuffix)
+	}
+	return p, true, nil
+}
+
+// undo cuts the journal at path back to where the ingest p, cut off before
+// its append was whole, found it, and removes its record: its event files,
+// all still there, are appended anew.
+func undo(path string, p pending) error {
 	if err := os.Truncate(path, p.From); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
@@ -242,6 +260,18 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	}
 	defer unlock()
 	path := s.journalPath(id)
+	// An ingest a dead process cut off before its append was whole is
+	// undone first (ADR 0018), or this append would move the journal's size
+	// past the record's and the next recovery take the cut append for whole,
+	// or cut this one out. A whole one is left to the next ingest, which has
+	// its event files to remove: the journal only grows meanwhile.
+	if p, ok, err := readPending(path); err != nil {
+		return nil, err
+	} else if ok && size(path) < p.To {
+		if err := undo(path, p); err != nil {
+			return nil, err
+		}
+	}
 	from, err := repair(path)
 	if err != nil {
 		return nil, err

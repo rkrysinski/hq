@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -155,20 +156,42 @@ func (r Releases) download(tag, dir, file string) error {
 // Generation returns the generation a release publishes, verified against
 // its SumsFile; published is false for a release that publishes none (one
 // from before generations), which counts as another generation.
+//
+// Only a release whose SumsFile is there and does not list GenerationFile
+// publishes none: one without its SumsFile, or whose GenerationFile the
+// SumsFile lists but that is not there, has files still on their way (the
+// release workflow publishes the notes before it attaches the files).
 func (r Releases) Generation(tag string) (gen int, published bool, err error) {
+	sums, sumsFound, err := r.small(tag, SumsFile, maxSumsFile)
+	if err != nil || !sumsFound {
+		return generationOf(tag, sums, sumsFound, nil, false, err)
+	}
 	data, found, err := r.small(tag, GenerationFile, maxGenerationFile)
-	if err != nil || !found {
+	return generationOf(tag, sums, true, data, found, err)
+}
+
+// generationOf is Generation's answer for release tag from what it read:
+// its SumsFile, sums, when found, and its GenerationFile, data, when found;
+// err is the error of the reads.
+func generationOf(tag string, sums []byte, sumsFound bool, data []byte, found bool, err error) (int, bool, error) {
+	switch {
+	case err != nil:
 		return 0, false, err
+	case !sumsFound:
+		return 0, false, fmt.Errorf("%s has no %s yet; try again in a minute", tag, SumsFile)
+	case !found && Lists(sums, GenerationFile):
+		return 0, false, fmt.Errorf("%s has no %s yet, which its %s lists; try again in a minute", tag, GenerationFile, SumsFile)
+	case !found:
+		return 0, false, nil
 	}
-	sums, found, err := r.small(tag, SumsFile, maxSumsFile)
-	if err != nil {
-		return 0, false, err
-	}
-	if !found {
-		return 0, false, fmt.Errorf("%s has no %s", tag, SumsFile)
-	}
-	gen, err = ReadGeneration(sums, data)
+	gen, err := ReadGeneration(sums, data)
 	return gen, err == nil, err
+}
+
+// Lists reports whether a release's SumsFile, sums, has a line for name.
+func Lists(sums []byte, name string) bool {
+	_, ok := sumOf(sums, name)
+	return ok
 }
 
 // maxSumsFile bounds what hq reads of a release's SumsFile.
@@ -259,19 +282,40 @@ func Newer(a, b string) bool {
 
 // Verify checks data against the line for name in a SHA256SUMS file.
 func Verify(sums []byte, name string, data []byte) error {
+	want, ok := sumOf(sums, name)
+	if !ok {
+		return unverified(fmt.Sprintf("%s is not listed in %s", name, SumsFile))
+	}
+	got := sha256.Sum256(data)
+	if hex.EncodeToString(got[:]) != strings.ToLower(want) {
+		return unverified("checksum mismatch for " + name)
+	}
+	return nil
+}
+
+// sumOf is the checksum a release's SumsFile, sums, gives name, and whether
+// it lists name.
+func sumOf(sums []byte, name string) (string, bool) {
 	sc := bufio.NewScanner(bytes.NewReader(sums))
 	for sc.Scan() {
 		f := strings.Fields(sc.Text())
 		if len(f) == 2 && strings.TrimPrefix(f[1], "*") == name {
-			got := sha256.Sum256(data)
-			if hex.EncodeToString(got[:]) != strings.ToLower(f[0]) {
-				return fmt.Errorf("checksum mismatch for %s", name)
-			}
-			return nil
+			return f[0], true
 		}
 	}
-	return fmt.Errorf("%s is not listed in %s", name, SumsFile)
+	return "", false
 }
+
+// ErrUnverified is what every error of Verify wraps: a file its release's
+// SumsFile does not vouch for, which hq refuses to install (exit code 1).
+var ErrUnverified = errors.New("not vouched for by " + SumsFile)
+
+// unverified is an error of Verify, saying why.
+type unverified string
+
+func (u unverified) Error() string { return string(u) }
+
+func (u unverified) Unwrap() error { return ErrUnverified }
 
 // Replace puts data in place of the executable at path in one step: it is
 // written next to it and renamed over it, so hq is never half-written.
