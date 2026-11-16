@@ -145,7 +145,7 @@ func rebuild(t *testing.T, fx state.JournalFixture) state.JournalFixture {
 			r := j.Reply
 			s.Reply, reply = &r, r.Number
 		}
-		s.Look = oldLookOf(as[0])
+		s.Look = fixtureLookOf(as[0])
 		out.Steps = append(out.Steps, s)
 	}
 	return out
@@ -212,10 +212,10 @@ func act(t *testing.T, store *lookStore, w *tmux.Window, id, how string, when ti
 	}
 }
 
-// oldLookOf is what a fixture journal holds of agent a as the look gives
-// it, as the old look gave it when the journal was first built.
-func oldLookOf(a agent.Agent) *state.OldLook {
-	l := &state.OldLook{State: a.State, Since: a.Since.UTC(), Last: a.Last, OwnTasks: a.OwnTasks}
+// fixtureLookOf is what a fixture journal holds of agent a as the look
+// gives it.
+func fixtureLookOf(a agent.Agent) *state.FixtureLook {
+	l := &state.FixtureLook{State: a.State, Since: a.Since.UTC(), Last: a.Last, OwnTasks: a.OwnTasks}
 	if d := a.Dialog(); d.Open() {
 		l.Dialog, l.DialogSince = map[agent.Whose]string{agent.HooksDialog: state.DialogHooks, agent.SubagentDialog: state.DialogSubagent, agent.OwnDialog: state.DialogOwn}[d.Whose], d.Since.UTC()
 	}

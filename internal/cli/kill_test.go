@@ -50,7 +50,7 @@ func TestKillAsksAndEndsTheSessionInItsSandbox(t *testing.T) {
 	}
 }
 
-func TestKillRemovesThatAgentsStateFilesOnly(t *testing.T) {
+func TestKillRemovesThatAgentsJournalOnly(t *testing.T) {
 	f := killFakes()
 	for _, id := range []string{"id-a", "id-b", "id-gone"} {
 		f.states[id] = state.Report{State: state.Done}

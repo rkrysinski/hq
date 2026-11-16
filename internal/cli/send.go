@@ -57,7 +57,7 @@ const boxPoll = 150 * time.Millisecond
 // then says it was taken.
 const waitingAfter = boxWait + 2*time.Second
 
-const sendUsage = "usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]"
+const sendUsage = "hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]"
 
 // sendArgs are hq send's arguments.
 type sendArgs struct {
@@ -85,34 +85,30 @@ func parseSend(args []string) (sendArgs, error) {
 		case a == "--wait":
 			s.wait = true
 		case flag == "--timeout" && !strings.ContainsAny(a, " \t\n"):
-			if !inline {
-				if i+1 == len(args) {
-					return s, usageErr("--timeout needs a value (%s)", sendUsage)
-				}
-				i++
-				value = args[i]
+			value, err := optionValue(args, &i, flag, value, inline, sendUsage)
+			if err != nil {
+				return s, err
 			}
-			var err error
 			if s.timeout, err = parseTimeout(value); err != nil {
 				return s, err
 			}
 			s.timeoutGiven = true
 		case len(a) > 1 && strings.HasPrefix(a, "-") && !strings.ContainsAny(a, " \t\n"):
-			return s, usageErr("unknown option '%s' (%s)", a, sendUsage)
+			return s, unknownOption(a, sendUsage)
 		default:
 			rest = append(rest, a)
 		}
 	}
 	if len(rest) != 2 {
-		return s, usageErr("%s; quote the text", sendUsage)
+		return s, usageErr("usage: %s; quote the text", sendUsage)
 	}
 	if s.timeoutGiven && !s.wait {
-		return s, usageErr("--timeout goes with --wait (%s)", sendUsage)
+		return s, usageErr("--timeout goes with --wait (usage: %s)", sendUsage)
 	}
 	s.name, s.text = rest[0], state.CleanMessage(rest[1])
 	switch {
 	case s.text == "":
-		return s, usageErr("empty message (%s)", sendUsage)
+		return s, usageErr("empty message (usage: %s)", sendUsage)
 	case len(s.text) > state.MaxMessage:
 		return s, usageErr("message too long: at most %d bytes", state.MaxMessage)
 	}
@@ -195,7 +191,7 @@ type sendOutput struct {
 	NextSince string `json:"next_since"`
 }
 
-// findAgent collects the agents as hq ls does, turns the user ended
+// findAgent looks at the agents as hq ls does, turns the user ended
 // included, and returns the one named name.
 func findAgent(d deps, name string) (agent.Agent, error) {
 	l, err := lookNow(d)
@@ -280,8 +276,9 @@ func atPrompt(a agent.Agent) bool {
 // message for the next prompt when the box does not settle in time, and a
 // slash command fires no hook, so an agent that stays at its prompt would
 // keep it for a prompt the user types, which never comes for an agent the
-// supervisor drives (#125). hq calls it wherever it looks at the agents:
-// hq ls, hq read, hq wait and the list.
+// supervisor drives (#125). hq calls it where it looks at the agents to
+// show or watch them: hq ls, hq read, hq wait, hq send --wait (for the
+// agents but its own) and the list; hq explain looks and delivers nothing.
 func deliverWaiting(d deps, as []agent.Agent) {
 	for _, a := range as {
 		if !atPrompt(a) {

@@ -242,6 +242,16 @@ func TestWaitRefusesBadArguments(t *testing.T) {
 			t.Errorf("%v: exit %d %q", args, code, errOut)
 		}
 	}
+	// The words of hq send and hq read (#166, #170).
+	for args, want := range map[string]string{
+		"wait -x":         "hq: unknown option '-x' (usage: " + waitUsage + ")\n",
+		"wait --json=yes": "hq: unknown option '--json=yes' (usage: " + waitUsage + ")\n",
+		"wait --timeout":  "hq: --timeout needs a value (usage: " + waitUsage + ")\n",
+	} {
+		if _, _, errOut := f.run(strings.Fields(args)...); errOut != want {
+			t.Errorf("%s: %q, want %q", args, errOut, want)
+		}
+	}
 	f.tmux.missing = true
 	if code, _, _ := f.run("wait"); code != ExitEnvironment {
 		t.Errorf("no tmux: exit %d", code)

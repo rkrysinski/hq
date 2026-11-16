@@ -179,7 +179,7 @@ type fixture struct {
 }
 
 // shown is what the look shows of an agent, as a fixture journal holds it
-// (state.OldLook).
+// (state.FixtureLook).
 type shown struct {
 	State       string       `json:"state"`
 	Since       time.Time    `json:"since"`

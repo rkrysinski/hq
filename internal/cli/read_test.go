@@ -343,9 +343,17 @@ func TestReadNeedsOneKnownAgent(t *testing.T) {
 	if code, out, errOut := f.run("read", "nobody"); code != ExitNotFound || out != "" || errOut != "hq: no agent 'nobody' (see hq ls)\n" {
 		t.Fatalf("unknown: exit %d %q %q", code, out, errOut)
 	}
-	for _, args := range [][]string{{"read"}, {"read", "--json"}, {"read", "42", "43"}, {"read", "42", "-y"}} {
-		if code, _, errOut := f.run(args...); code != ExitUsage || errOut != "hq: usage: hq read NAME [--offset N --since SINCE] [--json]\n" {
-			t.Errorf("%v: exit %d %q", args, code, errOut)
+	const usage = "hq read NAME [--offset N --since SINCE] [--json]"
+	for args, want := range map[string]string{
+		"read":        "hq: usage: " + usage + "\n",
+		"read --json": "hq: usage: " + usage + "\n",
+		// The words of hq send and hq wait (#166, #170).
+		"read 42 43":      "hq: unexpected argument '43' (usage: " + usage + ")\n",
+		"read 42 -y":      "hq: unknown option '-y' (usage: " + usage + ")\n",
+		"read 42 --since": "hq: --since needs a value (usage: " + usage + ")\n",
+	} {
+		if code, _, errOut := f.run(strings.Fields(args)...); code != ExitUsage || errOut != want {
+			t.Errorf("%v: exit %d %q, want %q", args, code, errOut, want)
 		}
 	}
 	f.tmux.missing = true

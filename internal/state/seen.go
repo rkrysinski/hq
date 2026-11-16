@@ -31,7 +31,7 @@ type seen struct {
 	// is newer than the moment sbx was asked), a restart taking it down.
 	ends []Event
 	// The evidence of the screen, each as first seen for the hook's report
-	// it was seen at, as the look keeps it on the home window: a turn the
+	// it was seen at, as the look appended it to the journal: a turn the
 	// user ended (by its line, rewound, or a turn Claude owed that did not
 	// come), a screen at rest, Claude at work after a dialog its hooks
 	// reported, a dialog of Claude's own (nil once gone), and Claude's

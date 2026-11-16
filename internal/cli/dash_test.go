@@ -267,7 +267,7 @@ func TestListIsHiddenFromHelp(t *testing.T) {
 	}
 }
 
-func TestListSourceReadsTmuxStateFilesAndSbx(t *testing.T) {
+func TestListSourceReadsTmuxTheJournalsAndSbx(t *testing.T) {
 	f := newFakes()
 	f.tmux.windows = []tmux.Window{
 		{ID: "@0", Name: "hq", Options: map[string]string{}},

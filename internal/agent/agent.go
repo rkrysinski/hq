@@ -120,7 +120,7 @@ func NewID() string {
 
 // Stamp is how hq stores a start time on a home window: Unix seconds with
 // milliseconds, fine enough to tell a report of the session before a
-// relaunch from one of the relaunched session (see Apply).
+// relaunch from one of the relaunched session.
 func Stamp(t time.Time) string {
 	return strconv.FormatFloat(float64(t.UnixMilli())/1000, 'f', 3, 64)
 }

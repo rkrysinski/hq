@@ -56,19 +56,15 @@ func parseWait(args []string, now time.Time) (waitArgs, error) {
 		switch flag {
 		case "--json":
 			if inline {
-				return w, usageErr("unexpected argument '%s' (usage: %s)", a, waitUsage)
+				return w, unknownOption(a, waitUsage)
 			}
 			w.asJSON = true
 			continue
 		case "--since", "--timeout":
-			if !inline {
-				if i+1 == len(args) {
-					return w, usageErr("%s needs a value (usage: %s)", flag, waitUsage)
-				}
-				i++
-				value = args[i]
+			value, err := optionValue(args, &i, flag, value, inline, waitUsage)
+			if err != nil {
+				return w, err
 			}
-			var err error
 			if flag == "--since" {
 				w.since, err = parseSince(value, now)
 				w.sinceArg = true
@@ -81,7 +77,7 @@ func parseWait(args []string, now time.Time) (waitArgs, error) {
 			continue
 		}
 		if strings.HasPrefix(a, "-") {
-			return w, usageErr("unexpected argument '%s' (usage: %s)", a, waitUsage)
+			return w, unknownOption(a, waitUsage)
 		}
 		if !slices.Contains(w.names, a) {
 			w.names = append(w.names, a)
@@ -108,8 +104,8 @@ func parseTimeout(s string) (time.Duration, error) {
 // A change after a cursor is one numbered above it and seen by the look,
 // so it is returned with no settle time; after a moment, one entered after
 // it. Every result carries the cursor of its look. It looks as the list
-// does, through the same collection (design §3.8), and leaves nothing
-// running when it returns.
+// does, through the same look (design §3.8), and leaves nothing running
+// when it returns.
 func runWait(env Env, d deps, args []string) error {
 	start := d.now()
 	w, err := parseWait(args, start)
