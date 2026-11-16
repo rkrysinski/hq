@@ -32,12 +32,13 @@ func commands() []command {
 		{"dash", "", "open the dashboard (also: hq alone)", runDash},
 		{"new", "NAME [DIR] [PROMPT]", "start an agent for the repository in DIR, with an optional first prompt", runNew},
 		{"ls", "[--json]", "list agents", runLs},
-		{"read", "NAME [--offset N --since TIME] [--json]", "show that agent in full: its last reply (a long one in pages) and what it asks", runRead},
+		{"read", "NAME [--offset N --since SINCE] [--json]", "show that agent in full: its last reply (a long one in pages) and what it asks", runRead},
+		{"explain", "NAME [--all] [--json]", "show the events that agent's state rests on, with no text of its conversation", runExplain},
 		{"wait", "[NAME...] [--json]", "wait until an agent is done, asks, needs input or ends", runWait},
 		{"go", "NAME", "enter that agent's session", runGo},
 		{"code", "NAME", "open VS Code on that agent's worktree", runCode},
-		{"send", "NAME TEXT [--now]", "leave a message for that agent, delivered when it is ready", runSend},
-		{"answer", "NAME --dialog ID ANSWER...|--cancel", "answer that agent's question dialog, or cancel it; or pick an option of a dialog of Claude's own", runAnswer},
+		{"send", "NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]", "leave a message for that agent, delivered when it is ready; --wait returns when the turn that took it ends", runSend},
+		{"answer", "NAME --dialog ID ANSWER...|--cancel [--json]", "answer that agent's question dialog, or cancel it; or pick an option of a dialog of Claude's own", runAnswer},
 		{"kill", "NAME [-y]", "end that agent's Claude session; the sandbox stays", runKill},
 		{"stop", "[-y]", "end all agents; sandboxes stay", runStop},
 		{"killed", "[NAME]", "show the agents hq killed: when, and who asked for it", runKilled},
@@ -99,6 +100,10 @@ func run(env Env, d deps, args []string) error {
 		return runItermProfile(env, d, rest)
 	case updateCheckCommand:
 		return runUpdateCheck(env, d, rest)
+	case mayUpdateCommand:
+		return runMayUpdate(env, d, rest)
+	case generationCommand:
+		return runGeneration(env, d, rest)
 	case "--version", "-V":
 		fmt.Fprintf(env.Stdout, "hq %s\n%s", version.Version, updateHint(d))
 		return nil
@@ -125,9 +130,11 @@ func runHelp(env Env, _ deps, _ []string) error {
 	b.WriteString("hq new also takes --setup NAME: the agent runs in the repository's sandbox of that setup, from \"sandboxes\" in preferences.json (default: \"sandbox\").\n")
 	b.WriteString("hq sandbox also takes --setup NAME (the repository's sandbox of that setup, instead of its default) or --all-setups (every sandbox of the repository).\n")
 	b.WriteString("hq mcp load and unload take REPO and those flags as hq sandbox does; hq sandbox restart loads hq again into a sandbox it was loaded into, and takes it away after an unload (sbx has no unload).\n")
-	fmt.Fprintf(&b, "hq wait also takes --since TIME (the moment it printed last, or 10m back) and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
+	fmt.Fprintf(&b, "hq wait also takes --since SINCE and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
+	b.WriteString("hq send --wait takes --timeout DURATION too, as hq wait does, counted from the start of the call.\n")
+	b.WriteString("SINCE: the next_since hq printed last, passed back as given, which misses no change and repeats none; or a moment (2026-09-28T10:25:01Z) or a duration back from now (10m), both approximate.\n")
 	b.WriteString("hq answer takes one ANSWER per question, in the dialog's order: an option's number, numbers joined with commas where several may be picked, or text; a dialog of Claude's own (as /effort opens) takes one option's number; ID is the dialog's, as hq read shows it.\n")
-	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment.\n")
+	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment, 4 stalled (hq send --wait).\n")
 	_, err := io.WriteString(env.Stdout, b.String())
 	return err
 }

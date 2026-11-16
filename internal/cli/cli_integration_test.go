@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/platform/platformtest"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -45,14 +46,15 @@ func TestMain(m *testing.M) {
 	}
 	// Nothing a test runs reads or writes the user's own files: the
 	// preferences file and the trace of kills live under a home of the
-	// tests' own (CI runners set XDG_CONFIG_HOME, #146). A test that needs
-	// its own sets it again.
+	// tests' own (CI runners set XDG_CONFIG_HOME, #146), and so do the
+	// journals. A test that needs its own sets it again.
 	home, err := os.MkdirTemp("", "hq-cli-home-")
 	if err != nil {
 		panic(err)
 	}
 	os.Setenv("HOME", home)
 	os.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	os.Setenv("XDG_STATE_HOME", filepath.Join(home, ".local", "state"))
 	code := m.Run()
 	os.RemoveAll(home)
 	os.Exit(code)
@@ -74,6 +76,8 @@ func newRealHQ(t *testing.T) *realHQ {
 	trace := filepath.Join(t.TempDir(), "kills.log")
 	d.traceKill = func(k kills.Kill) error { return kills.Append(trace, k) }
 	d.readKills = func() ([]kills.Kill, error) { return kills.Read(trace) }
+	// Journals and a counter of each test's own.
+	d.journal = journal.Files{Dir: filepath.Join(t.TempDir(), "hq")}
 	h.d = d
 	return h
 }
@@ -261,7 +265,7 @@ func TestNewCreatesSandboxWithTheSettingsOfThePreferencesFile(t *testing.T) {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
 	log, _ := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/creates.log")
-	if !strings.HasPrefix(string(log), "--quiet --template sbx-image:local --static-mcp pencil claude F:") {
+	if !strings.HasPrefix(string(log), "--no-progress --template sbx-image:local --static-mcp pencil claude F:") {
 		t.Fatalf("created with %q", log)
 	}
 
@@ -275,7 +279,7 @@ func TestNewCreatesSandboxWithTheSettingsOfThePreferencesFile(t *testing.T) {
 
 // A repository has a sandbox per setup on one workspace: hq new with a
 // setup creates and then reuses hq-<setup>-<dir>, with the setup's model
-// through sbx run --detached, beside the default sandbox, which agents
+// through sbx run --detach, beside the default sandbox, which agents
 // without a setup keep using; every row says its setup (#135).
 func TestNewFindsEachSetupsSandboxOnOneWorkspace(t *testing.T) {
 	cfg := t.TempDir()
@@ -296,7 +300,7 @@ func TestNewFindsEachSetupsSandboxOnOneWorkspace(t *testing.T) {
 	}
 	log, _ := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/creates.log")
 	lines := strings.Split(strings.TrimSpace(string(log)), "\n")
-	if len(lines) != 2 || !strings.HasPrefix(lines[0], "--quiet claude F:") || !strings.HasPrefix(lines[1], "run --detached --name hq-local-my-repo-x --model qwen-local --provider lmstudio claude F:") {
+	if len(lines) != 2 || !strings.HasPrefix(lines[0], "--no-progress claude F:") || !strings.HasPrefix(lines[1], "run --detach --name hq-local-my-repo-x --model qwen-local --provider lmstudio claude F:") {
 		t.Fatalf("created with %q", lines)
 	}
 	got := map[string]string{}
@@ -465,7 +469,7 @@ func TestALongReplyIsDoneReadInPagesAndTakesAMessage(t *testing.T) {
 			}
 			break
 		}
-		args = []string{"read", "a", "--json", "--offset", strconv.Itoa(*v.NextOffset), "--since", v.NextSince.Format(time.RFC3339Nano)}
+		args = []string{"read", "a", "--json", "--offset", strconv.Itoa(*v.NextOffset), "--since", v.NextSince}
 	}
 	h.waitAtRest("a")
 	h.send("delivered: typed into a as its next prompt", "a", "thanks")
@@ -608,10 +612,10 @@ func TestAgentsOfASandboxStoppedOutsideHqAreEnded(t *testing.T) {
 		t.Fatalf("states %v", got)
 	}
 
-	// With sbx failing, hq ls shows what tmux and the hooks say.
+	// With sbx failing, hq ls shows what the journals hold: b's end stands.
 	h.d.pollSandboxes = sbx.Client{Run: proc.Exec{}, Platform: platformtest.Fake{Sbx: filepath.Join(t.TempDir(), "sbx")}}.List
 	code, out, errOut := h.run("ls")
-	if code != 0 || errOut != "" || strings.Count(out, " done ") != 2 {
+	if code != 0 || errOut != "" || strings.Count(out, " done ") != 1 || strings.Count(out, " ended ") != 1 {
 		t.Fatalf("sbx failing: exit %d %q %q", code, out, errOut)
 	}
 }
@@ -746,8 +750,9 @@ func TestKillEndsASessionThatOutlivedItsPane(t *testing.T) {
 	a, _ := agent.Find(agent.FromWindows(ws), "a")
 	// Claude runs on in the sandbox after its host-side sbx run ended
 	// (#101): a process with the agent's id in its arguments, which on
-	// SIGTERM writes its state file on the way out, as SessionEnd does.
-	file := filepath.Join(state.Dir(h.cwd), a.ID)
+	// SIGTERM writes beside the repository on the way out, as its hook does
+	// at SessionEnd.
+	file := filepath.Join(state.Dir(h.cwd), a.ID+".last")
 	claude := exec.Command("sh", "-c", `trap 'echo "branch main" >"$0"; exit 0' TERM; while :; do sleep 0.1; done`, file, `HQ_ID":"`+a.ID+`"`)
 	if err := claude.Start(); err != nil {
 		t.Fatal(err)
@@ -773,14 +778,14 @@ func TestKillEndsASessionThatOutlivedItsPane(t *testing.T) {
 		t.Fatal("the session still runs after the kill")
 	}
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
-		t.Fatalf("state file left behind: %v", err)
+		t.Fatalf("the hook's note left behind: %v", err)
 	}
 	if rows := h.ls(); len(rows) != 0 {
 		t.Fatalf("rows %+v", rows)
 	}
 }
 
-func TestKillAndStopRemoveTheirAgentsStateFiles(t *testing.T) {
+func TestKillAndStopRemoveTheirAgentsFiles(t *testing.T) {
 	testutil.FakeClaude(t)
 	h := newRealHQ(t)
 	h.cwd = testutil.GitRepo(t, "app")
@@ -807,7 +812,7 @@ func TestKillAndStopRemoveTheirAgentsStateFiles(t *testing.T) {
 		}
 		return strings.Join(names, " ")
 	}
-	if got := files(); !strings.Contains(got, id["a"]+".stop") || !strings.Contains(got, id["b"]+".stop") {
+	if got := files(); !strings.Contains(got, id["a"]+".last") || !strings.Contains(got, id["b"]+".last") {
 		t.Fatalf("before: %q", got)
 	}
 
@@ -908,7 +913,7 @@ func TestSandboxRestartRelaunchesAgentsAndRmRemovesTheSandbox(t *testing.T) {
 	}
 }
 
-// An agent an older hq started has state files but no record (#147):
+// An agent an older hq started has a journal but no record (#147):
 // hq sandbox restart relaunches it all the same, continuing its
 // conversation, keeps its files and gives it the record hq restore reads.
 func TestSandboxRestartRelaunchesAnAgentWithoutARecordAndRecordsIt(t *testing.T) {
@@ -939,7 +944,7 @@ func TestSandboxRestartRelaunchesAnAgentWithoutARecordAndRecordsIt(t *testing.T)
 	}
 	h.waitPane("coolify", "fake claude: resumed "+session.SessionID)
 	if _, ok := h.d.readState(h.cwd, id); !ok {
-		t.Fatal("its state file went")
+		t.Fatal("its journal went")
 	}
 	rs, _ := h.d.records(h.cwd)
 	if len(rs) != 1 || rs[0].ID != id || rs[0].Name != "coolify" || rs[0].Sandbox != "claude-app" || rs[0].Server != h.socket {
@@ -1164,7 +1169,7 @@ func TestSendDeliversEachMessageWhenTheAgentIsReady(t *testing.T) {
 	ws, _ := h.d.tmux.Windows()
 	a, _ := agent.Find(agent.FromWindows(ws), "a")
 	h.waitAtRest("a")
-	if err := state.Post(r, a.ID, state.Message{Text: "left waiting"}, false, time.Now().Add(-time.Minute)); err != nil {
+	if _, err := state.Post(r, a.ID, state.Message{Text: "left waiting"}, false, time.Now().Add(-time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if rows := h.ls(); rows[0].Pending != 0 {
@@ -1282,7 +1287,7 @@ func TestAnAgentWhoseTurnEndedWhileItsSubagentsRunStaysWorkingUntilTheClosingTur
 		t.Fatalf("done %v after the wake-up, before its screen had rested", took)
 	}
 	// Once: a wait from there on returns nothing more.
-	if code, out, _ := h.run("wait", "a", "--since", since(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
+	if code, out, _ := h.run("wait", "a", "--since", nextSince(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
 		t.Fatalf("the same end again: exit %d %q", code, out)
 	}
 }
@@ -1337,7 +1342,7 @@ func TestAnAgentWhoseOwnWatchRunsIsDoneAtItsTurnEnd(t *testing.T) {
 	h.typeIn("a", "publish the report")
 	r := h.waited(ch)
 	h.only(r, "a", "done", "Done: publish the report")
-	if code, out, _ := h.run("wait", "a", "--since", since(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
+	if code, out, _ := h.run("wait", "a", "--since", nextSince(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
 		t.Fatalf("the same end again: exit %d %q", code, out)
 	}
 	h.waitAtRest("a")
@@ -1449,21 +1454,31 @@ func TestRestoreBringsBackTheAgentsOfAKilledTmuxServer(t *testing.T) {
 	}
 	// An agent whose worktree went while tmux was down.
 	gone := filepath.Join(t.TempDir(), "worktree")
-	if err := state.WriteRecord(h.cwd, "0e0e0e", state.Record{Name: "w", Sandbox: "claude-app", Server: h.socket}); err != nil {
+	if err := state.WriteRecord(h.cwd, "0e0e0e", state.Record{Name: "w", Sandbox: "claude-app", Server: h.socket, Generation: version.Generation}); err != nil {
 		t.Fatal(err)
 	}
 	stop := `{"hook_event_name":"Stop","session_id":"0e0e0e0e-0000-4000-8000-00000000000e","cwd":"` + gone + `","last_assistant_message":"done"}`
-	if err := os.WriteFile(filepath.Join(state.Dir(h.cwd), "0e0e0e"), []byte(stop), 0o600); err != nil {
+	// What its hook left before the server went, for hq to ingest.
+	if err := os.MkdirAll(state.EventsDir(h.cwd, "0e0e0e"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(state.EventsDir(h.cwd, "0e0e0e"), "000000001.stop.1"), []byte("branch main\n"+stop), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
+	// The numbers before the server went, and a cursor taken then.
+	code, out, errOut := h.run("ls", "--json")
+	var before waitOutput
+	if code != 0 || json.Unmarshal([]byte(out), &before) != nil {
+		t.Fatalf("ls: exit %d %s%s", code, out, errOut)
+	}
 	if out, err := exec.Command("tmux", "-u", "-L", h.socket, "kill-server").CombinedOutput(); err != nil {
 		t.Fatalf("kill-server: %v %s", err, out)
 	}
 	if rows := h.ls(); len(rows) != 0 {
 		t.Fatalf("agents after the server went: %+v", rows)
 	}
-	code, out, errOut := h.run("restore")
+	code, out, errOut = h.run("restore")
 	want := "restored a in app (sandbox claude-app)\nrestored b in app (sandbox claude-app)\nrestored d in app (sandbox hq-local-app)\n" +
 		"not restored w in app: its worktree " + gone + " is gone (hq kill w forgets it)\n"
 	if code != 0 || out != want {
@@ -1471,6 +1486,31 @@ func TestRestoreBringsBackTheAgentsOfAKilledTmuxServer(t *testing.T) {
 	}
 	for _, name := range []string{"a", "b", "d"} {
 		h.waitPane(name, "fake claude: resumed "+sessions[name])
+	}
+	// Each keeps its last completed turn; its state moved with the
+	// relaunch (#166, the operator's decision 2A). The cursor taken before
+	// returns what changed since, and no number is used twice on the host.
+	r := h.waited(h.wait("a", "--since", before.NextSince, "--timeout", "10s"))
+	i := slices.IndexFunc(before.Agents, func(row lsRow) bool { return row.Name == "a" })
+	if i < 0 || before.Agents[i].StateSeq == nil || before.Agents[i].CompletionSeq == nil {
+		t.Fatalf("a before: %+v", before.Agents)
+	}
+	if was := before.Agents[i]; len(r.out.Agents) != 1 || r.out.Agents[0].CompletionSeq == nil || *r.out.Agents[0].CompletionSeq != *was.CompletionSeq || *r.out.Agents[0].StateSeq <= *was.StateSeq {
+		t.Fatalf("a before %v/%v, after the restore %s", *was.StateSeq, *was.CompletionSeq, r.raw)
+	}
+	numbers := map[int64]string{}
+	ws, _ = h.d.tmux.Windows()
+	for _, a := range agent.FromWindows(ws) {
+		j, err := h.d.journal.Read(a.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range j.Events {
+			if other, ok := numbers[e.Number]; ok {
+				t.Fatalf("number %d is %s's and %s's", e.Number, other, a.Name)
+			}
+			numbers[e.Number] = a.Name
+		}
 	}
 	for _, r := range h.ls() {
 		if r.Name == "d" && (r.Sandbox != "hq-local-app" || r.Setup != "local") || r.Name != "d" && r.Sandbox != "claude-app" {
@@ -1498,5 +1538,101 @@ func TestRestoreBringsBackTheAgentsOfAKilledTmuxServer(t *testing.T) {
 	}
 	if code, out, _ := h.run("restore"); code != 0 || out != "nothing to restore\n" {
 		t.Fatalf("restore after the kill: exit %d %q", code, out)
+	}
+}
+
+// With an sbx older than 0.48, hq new and hq ls exit 3 with one line that
+// names the version sbx tells, when it tells one, the minimum and the
+// remedy; no JSON or unknown flag error reaches the user (#172).
+func TestNewAndLsSayAnSbxIsTooOld(t *testing.T) {
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	for _, c := range []struct{ told, want string }{
+		{"0.47.0", "hq: sbx 0.47.0 is too old, 0.48.0 or newer needed; update Docker Sandboxes\n"},
+		{"none", "hq: sbx is too old, 0.48.0 or newer needed; update Docker Sandboxes\n"},
+	} {
+		t.Setenv("SBX_STUB_OLD", c.told)
+		for _, cmd := range []string{"new", "ls"} {
+			args := []string{cmd}
+			if cmd == "new" {
+				args = append(args, "a")
+			}
+			if code, out, errOut := h.run(args...); code != ExitEnvironment || out != "" || errOut != c.want {
+				t.Errorf("%s with %s: exit %d %q %q", cmd, c.told, code, out, errOut)
+			}
+		}
+	}
+	if log, err := os.ReadFile(os.Getenv("SBX_STUB_DIR") + "/creates.log"); err == nil {
+		t.Fatalf("created %q", log)
+	}
+}
+
+// commandsRun waits until the fake Claude has run n slash commands and
+// returns them, each "NAME ARGS" quoted as it records them.
+func commandsRun(t *testing.T, path string, n int) []string {
+	t.Helper()
+	var lines []string
+	for deadline := time.Now().Add(stateWait); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
+		b, _ := os.ReadFile(path)
+		if lines = strings.Split(strings.TrimSuffix(string(b), "\n"), "\n"); len(b) > 0 && len(lines) >= n {
+			return lines
+		}
+	}
+	t.Fatalf("not %d commands run: %q", n, lines)
+	return nil
+}
+
+func TestSendRunsACommandWhateverItsLengthAndInTheOrderSent(t *testing.T) {
+	testutil.FakeClaude(t)
+	commands := filepath.Join(t.TempDir(), "commands")
+	t.Setenv("FAKE_CLAUDE_COMMANDS", commands)
+	h := newRealHQ(t)
+	r := testutil.GitRepo(t, "app")
+	h.cwd = r
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	const typed = "delivered: typed into a as its next prompt"
+
+	// More than 3 lines, and over 800 characters with a short first line:
+	// the command runs with the rest as its arguments (#173).
+	h.waitAtRest("a")
+	h.send(typed, "a", "/probe one\ntwo\nthree\nfour")
+	h.waitReport("a", "done", "Done: /probe one two three four")
+	long := strings.Repeat("x", 900)
+	h.waitAtRest("a")
+	h.send(typed, "a", "/probe short\n"+long)
+	if got := commandsRun(t, commands, 2); got[0] != `"/probe" "one\ntwo\nthree\nfour"` || got[1] != `"/probe" "short\n`+long+`"` {
+		t.Fatalf("commands %q", got)
+	}
+
+	// A plain message over the limits arrives whole, as one prompt, and
+	// runs nothing.
+	h.waitRow("a", "done", func(r lsRow) bool { return strings.HasPrefix(r.Last, "Done: /probe short xxx") })
+	h.waitAtRest("a")
+	h.send(typed, "a", "plain /probe\nb\nc\nd")
+	h.waitReport("a", "done", "Done: plain /probe b c d")
+
+	// Several waiting, a command among them: each command a prompt of its
+	// own, in the order sent, typed in as the agent is back at its prompt.
+	ws, _ := h.d.tmux.Windows()
+	a, _ := agent.Find(agent.FromWindows(ws), "a")
+	h.waitAtRest("a")
+	for i, text := range []string{"first", "/probe second"} {
+		if _, err := state.Post(r, a.ID, state.Message{Text: text}, false, time.Now().Add(time.Duration(i-60)*time.Second)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h.send("queued: typed an earlier message into a as its next prompt; this one follows as a prompt of its own once a is back at its prompt", "a", "third")
+	h.waitReport("a", "done", "Done: third")
+	if got := commandsRun(t, commands, 3); len(got) != 3 || got[2] != `"/probe" "second"` {
+		t.Fatalf("commands %q", got)
+	}
+	if hist := h.history("a"); !(strings.Index(hist, "❯ first") < strings.Index(hist, "❯ /probe second") && strings.Index(hist, "❯ /probe second") < strings.Index(hist, "❯ third")) || !strings.Contains(hist, "❯ first") {
+		t.Fatalf("not in the order sent:\n%s", hist)
+	}
+	if rows := h.ls(); rows[0].Pending != 0 {
+		t.Fatalf("pending %+v", rows)
 	}
 }

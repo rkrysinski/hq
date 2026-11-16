@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
@@ -29,7 +31,7 @@ func sbxNotFound() error { return &proc.Error{Name: "sbx", Msg: "sbx not found",
 
 func agentWindow(id, name, repo string, started time.Time, dead bool) tmux.Window {
 	return tmux.Window{ID: id, Name: name, PaneDead: dead, Options: map[string]string{
-		"id": "id-" + name, "name": name, "repo": repo, "sandbox": "claude-x", "started": strconv.FormatInt(started.Unix(), 10),
+		"id": "id-" + name, "name": name, "repo": repo, "sandbox": "claude-x", "started": strconv.FormatInt(started.Unix(), 10), agent.GenerationOption: generation,
 	}}
 }
 
@@ -48,9 +50,9 @@ func TestLsListsAgentsInAttentionOrder(t *testing.T) {
 		agentWindow("@2", "gone", "/w/lib", f.now.Add(-time.Minute), true),
 		agentWindow("@3", "fresh", "/w/lib", f.now.Add(-5*time.Second), false),
 	}
-	f.states["id-old"] = state.Report{State: state.Done, Since: f.now.Add(-3 * time.Minute), Last: "PR #58 opened"}
+	f.states["id-old"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-3 * time.Minute), Last: "PR #58 opened"}
 	f.tmux.windows[2].DeadAt = f.now.Add(-4 * time.Second)
-	f.states["id-gone"] = state.Report{State: state.Working, Since: f.now.Add(-10 * time.Second), Last: "Tests pass"}
+	f.states["id-gone"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-10 * time.Second), Last: "Tests pass"}
 	code, out, _ := f.run("ls")
 	if code != 0 {
 		t.Fatalf("exit %d", code)
@@ -73,8 +75,8 @@ func TestLsPutsWhatNeedsTheUserFirstAndNewestFirstWithinAState(t *testing.T) {
 		f.tmux.windows = append(f.tmux.windows, agentWindow("@"+strconv.Itoa(i), name, "/w/app", start, false))
 	}
 	f.tmux.windows = append(f.tmux.windows, agentWindow("@9", "e", "/w/app", start, true))
-	report := func(st string, ago time.Duration) state.Report {
-		return state.Report{State: st, Since: f.now.Add(-ago)}
+	report := func(st string, ago time.Duration) journaltest.HookState {
+		return journaltest.HookState{State: st, Since: f.now.Add(-ago)}
 	}
 	f.states["id-w"] = report(state.Working, time.Second)
 	f.states["id-d1"] = report(state.Done, 5*time.Minute)
@@ -104,8 +106,8 @@ func TestLsNamesEachAgentsBranch(t *testing.T) {
 		agentWindow("@2", "b", "/w/app", f.now.Add(-time.Minute), false),
 		agentWindow("@3", "c", "/w/app", f.now, false),
 	}
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Branch: "feat/42-x", Cwd: "/w/app/.claude/worktrees/feat-42-x"}
-	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-2 * time.Second), Branch: "fix/7-y"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Second), Branch: "feat/42-x", Cwd: "/w/app/.claude/worktrees/feat-42-x"}
+	f.states["id-b"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-2 * time.Second), Branch: "fix/7-y"}
 	_, out, _ := f.run("ls")
 	want := "NAME  REPO  BRANCH     STATE     AGE  LAST\n" +
 		"a     app   feat/42-x  working   1s   -\n" +
@@ -124,7 +126,7 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-5*time.Minute), false)}
 	long := strings.Repeat("word ", 30) + "end?"
-	f.states["id-a"] = state.Report{State: state.Question, Since: f.now.Add(-90 * time.Second), Last: long}
+	f.states["id-a"] = journaltest.HookState{State: state.Question, Since: f.now.Add(-90 * time.Second), Last: long}
 	f.inbox["id-a"] = []string{"one", "two"}
 	code, out, _ := f.run("ls", "--json")
 	var l struct {
@@ -134,11 +136,16 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 	if code != 0 || json.Unmarshal([]byte(out), &l) != nil || len(l.Agents) != 1 {
 		t.Fatalf("exit %d, %q", code, out)
 	}
-	// The moment of the look, as far back as hq wait's own (design §3.4).
-	if l.NextSince != "2026-09-27T11:59:59.75Z" {
+	// The look's cursor (ADR 0019): it saw every change up to the one
+	// event, the turn end, that put a in its question and completed its
+	// turn.
+	if l.NextSince != "c1" {
 		t.Fatalf("next_since %q", l.NextSince)
 	}
 	r := l.Agents[0]
+	if r["state_seq"] != 1.0 || r["completion_seq"] != 1.0 {
+		t.Fatalf("numbers %v %v", r["state_seq"], r["completion_seq"])
+	}
 	if r["name"] != "a" || r["repo"] != "app" || r["state"] != "question" || r["age_seconds"] != 90.0 || r["branch"] != "" || r["last"] != long ||
 		r["since"] != "2026-09-27T11:58:30Z" || r["pending"] != 2.0 {
 		t.Fatalf("row %v", r)
@@ -184,13 +191,13 @@ func TestLsJSONSaysWhatEachAgentAsks(t *testing.T) {
 		agentWindow("@2", "b", "/w/app", f.now.Add(-5*time.Minute), false),
 		agentWindow("@3", "c", "/w/app", f.now.Add(-5*time.Minute), false),
 	}
-	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Second), Last: "Which color should I use?"}
+	f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: f.now.Add(-time.Second), Last: "Which color should I use?"}
 	f.details["id-a"] = state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{
 		{Name: "color", Title: "Color", Description: "Pick one", Type: "string", Required: true, Options: []state.AskFieldOption{{Value: "red"}, {Value: "blue"}}},
 	}}}
-	f.states["id-b"] = state.Report{State: state.Question, Since: f.now.Add(-time.Minute), Last: "Done. Shall I open the PR?"}
+	f.states["id-b"] = journaltest.HookState{State: state.Question, Since: f.now.Add(-time.Minute), Last: "Done. Shall I open the PR?"}
 	f.details["id-b"] = state.Detail{Reply: "Done.\n\nShall I open the PR?"}
-	f.states["id-c"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Done."}
+	f.states["id-c"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Done."}
 	f.details["id-c"] = state.Detail{Reply: "Done.", Ask: &state.Ask{Message: "Claude needs your permission"}}
 	_, out, _ := f.run("ls", "--json")
 	var l struct {
@@ -220,7 +227,7 @@ func TestLsJSONSaysWhatEachAgentAsks(t *testing.T) {
 func TestLsCutsTheLastMessageToOneColumn(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now, false)}
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: strings.Repeat("x", 100)}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: strings.Repeat("x", 100)}
 	_, out, _ := f.run("ls")
 	if !strings.Contains(out, strings.Repeat("x", 59)+"…\n") || strings.Contains(out, strings.Repeat("x", 60)) {
 		t.Fatalf("%q", out)
@@ -234,8 +241,8 @@ func TestLsDoesNotEndAnAgentThatReportedAfterSbxWasAsked(t *testing.T) {
 	f := newFakes()
 	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "stopped"}}
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Second), false), agentWindow("@2", "old", "/w/app", f.now.Add(-time.Hour), false)}
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(time.Millisecond), Last: "Done: hello"}
-	f.states["id-old"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(time.Millisecond), Last: "Done: hello"}
+	f.states["id-old"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened"}
 	_, out, _ := f.run("ls")
 	want := "NAME  REPO  BRANCH  STATE  AGE  LAST\n" +
 		"a     app   -       done   0s   Done: hello\n" +
@@ -250,8 +257,8 @@ func TestLsShowsTheAgentsOfAStoppedSandboxEnded(t *testing.T) {
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/lib", f.now.Add(-time.Minute), false)}
 	f.tmux.windows[1].Options["sandbox"] = "claude-lib"
 	f.sbx.sandboxes = append(f.sbx.sandboxes, sbx.Sandbox{Name: "claude-lib", Status: "stopped"})
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second)}
-	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Last: "Tests pass"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Second)}
+	f.states["id-b"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Second), Last: "Tests pass"}
 	_, out, _ := f.run("ls")
 	// Its pane still runs, so nothing dates the end but hq seeing it (#73).
 	want := "NAME  REPO  BRANCH  STATE    AGE  LAST\n" +
@@ -276,8 +283,8 @@ func TestLsShowsACancelledDialogDoneFromWhenItWasFirstSeen(t *testing.T) {
 	rule := strings.Repeat("─", 30)
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/app", f.now.Add(-time.Minute), false)}
 	f.tmux.windows[0].Pane, f.tmux.windows[1].Pane = "%1", "%2"
-	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-20 * time.Second), Last: "Red or blue?"}
-	f.states["id-b"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-20 * time.Second), Last: "Green or yellow?"}
+	f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: f.now.Add(-20 * time.Second), Last: "Red or blue?"}
+	f.states["id-b"] = journaltest.HookState{State: state.NeedsInput, Since: f.now.Add(-20 * time.Second), Last: "Green or yellow?"}
 	f.tmux.screens = map[string]string{
 		"%1": "● User declined to answer questions\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n",
 		"%2": " ☐ Colour\n❯ 1. Green\n  2. Yellow\nEnter to select · Esc to cancel\n",
@@ -289,8 +296,8 @@ func TestLsShowsACancelledDialogDoneFromWhenItWasFirstSeen(t *testing.T) {
 	if out != want {
 		t.Fatalf("got\n%s\nwant\n%s", out, want)
 	}
-	if f.tmux.windows[0].Options["turnend"] == "" || f.tmux.windows[1].Options["turnend"] != "" {
-		t.Fatalf("recorded %v", f.tmux.windows)
+	if a, b := f.eventsOf("id-a", state.SourceScreen), f.eventsOf("id-b", state.SourceScreen); a != state.KindTurnEnded || b != "" {
+		t.Fatalf("seen on a's screen %q, on b's %q", a, b)
 	}
 	// Later, done counts from when it was first seen.
 	f.now = f.now.Add(7 * time.Second)
@@ -303,7 +310,7 @@ func TestLsShowsACancelledDialogDoneFromWhenItWasFirstSeen(t *testing.T) {
 	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done         7s   User declined") || !strings.Contains(out, "b     app   -       needs input  27s  Green or yellow?") {
 		t.Fatalf("no screens:\n%s", out)
 	}
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-2 * time.Second), Last: "earlier reply"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-2 * time.Second), Last: "earlier reply"}
 	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       working      2s   earlier reply") {
 		t.Fatalf("next report:\n%s", out)
 	}
@@ -314,8 +321,8 @@ func TestLsShowsAnInterruptedTurnDoneAndAWorkingOneWorking(t *testing.T) {
 	rule := strings.Repeat("─", 30)
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/app", f.now.Add(-time.Minute), false)}
 	f.tmux.windows[0].Pane, f.tmux.windows[1].Pane = "%1", "%2"
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply"}
-	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply"}
+	f.states["id-b"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply"}
 	f.tmux.screens = map[string]string{
 		"%1": "  ⎿  Interrupted · What should Claude do instead?\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n",
 		"%2": "  ⎿  Interrupted · What should Claude do instead?\n❯ go on\n✻ Working…\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on · esc to interrupt\n",
@@ -333,7 +340,7 @@ func TestLsWithSbxFailingShowsTheStatesItHas(t *testing.T) {
 	f := newFakes()
 	f.sbx.err = sbxNotFound()
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false)}
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Second), Last: "ok"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Second), Last: "ok"}
 	code, out, errOut := f.run("ls")
 	if code != 0 || errOut != "" || !strings.Contains(out, "a     app   -       done   1s   ok") {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
@@ -345,7 +352,7 @@ func TestLsWithNoAgentsPrintsNothing(t *testing.T) {
 	if code, out, _ := f.run("ls"); code != 0 || out != "" {
 		t.Fatalf("exit %d %q", code, out)
 	}
-	if code, out, _ := f.run("ls", "--json"); code != 0 || out != "{\n  \"agents\": [],\n  \"next_since\": \"2026-09-27T11:59:59.75Z\"\n}\n" {
+	if code, out, _ := f.run("ls", "--json"); code != 0 || out != "{\n  \"agents\": [],\n  \"next_since\": \"c0\"\n}\n" {
 		t.Fatalf("json: exit %d %q", code, out)
 	}
 }
@@ -376,8 +383,8 @@ func TestLsShowsARewoundTurnDoneOnceItsScreenStaysAtRest(t *testing.T) {
 	sent := "Write a poem about the sea."
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/app", f.now.Add(-time.Minute), false)}
 	f.tmux.windows[0].Pane, f.tmux.windows[1].Pane = "%1", "%2"
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply", Prompt: sent}
-	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply", Prompt: sent}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply", Prompt: sent}
+	f.states["id-b"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply", Prompt: sent}
 	// a was rewound: the prompt is back in its box. b streams its reply in
 	// a narrow pane: at rest by the look of one screen, but it moves on.
 	streamed := 0
@@ -398,8 +405,8 @@ func TestLsShowsARewoundTurnDoneOnceItsScreenStaysAtRest(t *testing.T) {
 	if out != want {
 		t.Fatalf("got\n%s\nwant\n%s", out, want)
 	}
-	if f.tmux.windows[0].Options["turnend"] == "" || f.tmux.windows[1].Options["turnend"] != "" {
-		t.Fatalf("recorded %v", f.tmux.windows)
+	if a, b := f.eventsOf("id-a", state.SourceScreen), f.eventsOf("id-b", state.SourceScreen); a != state.KindAtRest+" "+state.KindRewound || strings.Contains(b, state.KindRewound) {
+		t.Fatalf("seen on a's screen %q, on b's %q", a, b)
 	}
 	// It holds, from the same moment, whatever the screen shows next,
 	// until the next report.
@@ -408,7 +415,7 @@ func TestLsShowsARewoundTurnDoneOnceItsScreenStaysAtRest(t *testing.T) {
 	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done     7s   Interrupted") {
 		t.Fatalf("later:\n%s", out)
 	}
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Last: "earlier reply", Prompt: "next"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Second), Last: "earlier reply", Prompt: "next"}
 	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       working  1s   earlier reply") {
 		t.Fatalf("next report:\n%s", out)
 	}
@@ -422,22 +429,20 @@ func TestLsShowsWhatAnotherHqStoredFirst(t *testing.T) {
 	f.tmux.windows[1].Options["sandbox"] = "claude-lib"
 	f.sbx.sandboxes = append(f.sbx.sandboxes, sbx.Sandbox{Name: "claude-lib", Status: "stopped"})
 	since := f.now.Add(-20 * time.Second)
-	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: since, Last: "Red or blue?"}
-	f.states["id-b"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Last: "Tests pass"}
+	f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: since, Last: "Red or blue?"}
+	f.states["id-b"] = journaltest.HookState{State: state.Working, Since: since, Last: "Tests pass"}
 	f.tmux.screens = map[string]string{"%1": "● User declined to answer questions\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n"}
 	// Another hq process, the dashboard say, saw both a moment earlier and
-	// stored its records between this one's look and its write (#100).
-	ns := func(t time.Time) string { return strconv.FormatInt(t.UnixNano(), 10) }
-	f.tmux.onKeep = func(id, key string) {
-		w := &f.tmux.windows[0]
-		if id == "@2" {
-			w = &f.tmux.windows[1]
-		}
-		switch key {
-		case "turnend":
-			w.Options[key] = ns(since) + " " + ns(f.now.Add(-5*time.Second)) + " User declined to answer questions"
-		case "endseen":
-			w.Options[key] = w.Options["started"] + " " + ns(f.states["id-b"].Since) + " " + ns(f.now.Add(-9*time.Second))
+	// appended it between this one's look and its append (#100): the first
+	// append wins.
+	f.onAppend = func(id string, events []state.Event) {
+		for _, e := range events {
+			switch {
+			case id == "id-a" && e.Kind == state.KindTurnEnded:
+				f.seen("/w/app", id, state.SourceScreen, e.Kind, e.Facts, f.now.Add(-5*time.Second))
+			case id == "id-b" && e.Kind == state.KindNotRunning:
+				f.seen("/w/lib", id, state.SourceSbx, e.Kind, state.Facts{Asked: f.now.Add(-10 * time.Second)}, f.now.Add(-9*time.Second))
+			}
 		}
 	}
 	_, out, _ := f.run("ls")
@@ -447,8 +452,8 @@ func TestLsShowsWhatAnotherHqStoredFirst(t *testing.T) {
 	if out != want {
 		t.Fatalf("got\n%s\nwant\n%s", out, want)
 	}
-	// Later looks keep the first records, and so the ages go on from them.
-	f.tmux.onKeep = nil
+	// Later looks keep the first events, and so the ages go on from them.
+	f.onAppend = nil
 	f.now = f.now.Add(3 * time.Second)
 	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done   8s") || !strings.Contains(out, "b     lib   -       ended  12s") {
 		t.Fatalf("later:\n%s", out)
@@ -465,11 +470,11 @@ func TestLsShowsAnAgentsOwnTasksBeforeItsLastMessage(t *testing.T) {
 		agentWindow("@2", "b", "/w/app", f.now.Add(-time.Hour), false),
 		agentWindow("@3", "c", "/w/app", f.now.Add(-time.Hour), false),
 	}
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-2 * time.Minute), Last: "Waiting for the background task to report back.",
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-2 * time.Minute), Last: "Waiting for the background task to report back.",
 		OwnTasks: []state.Task{{Type: "shell", Text: "sleep 120"}}}
-	f.states["id-b"] = state.Report{State: state.Question, Since: f.now.Add(-3 * time.Minute), Last: strings.Repeat("x", 100) + "?",
+	f.states["id-b"] = journaltest.HookState{State: state.Question, Since: f.now.Add(-3 * time.Minute), Last: strings.Repeat("x", 100) + "?",
 		OwnTasks: []state.Task{{Type: "shell", Text: "npm run dev"}, {Type: "monitor", Text: "Wait for CI"}}}
-	f.states["id-c"] = state.Report{State: state.Done, Since: f.now.Add(-4 * time.Minute), Last: "PR #58 opened"}
+	f.states["id-c"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-4 * time.Minute), Last: "PR #58 opened"}
 	_, out, _ := f.run("ls")
 	want := "NAME  REPO  BRANCH  STATE     AGE  LAST\n" +
 		"b     app   -       question  3m   1 shell, 1 monitor · " + strings.Repeat("x", 38) + "…\n" +
@@ -495,5 +500,17 @@ func TestLsShowsAnAgentsOwnTasksBeforeItsLastMessage(t *testing.T) {
 	}
 	if !strings.Contains(out, `"own_tasks": []`) || l.Agents[2].OwnTasks == nil {
 		t.Fatalf("c has none: an empty list, not null:\n%s", out)
+	}
+}
+
+// An sbx too old for hq is an answer, not a failure to give one: hq ls says
+// so and exits 3, where an sbx that fails leaves the states it has (#172).
+func TestLsSaysAnSbxIsTooOld(t *testing.T) {
+	f := newFakes()
+	f.sbx.err = &sbx.TooOldError{Version: "0.47.0"}
+	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false)}
+	code, out, errOut := f.run("ls")
+	if code != ExitEnvironment || out != "" || errOut != "hq: sbx 0.47.0 is too old, 0.48.0 or newer needed; update Docker Sandboxes\n" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
 }

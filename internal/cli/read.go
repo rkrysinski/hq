@@ -25,18 +25,19 @@ type readView struct {
 	// NextOffset is where the reply's next page starts, for hq read
 	// --offset; null on its last page.
 	NextOffset *int `json:"next_offset"`
-	// NextSince is the moment of the look, for hq wait NAME --since: what
-	// this agent does after it is returned by hq wait; another agent's
-	// change before it may not have been (#116). hq read --since takes it
-	// too, to tell whether the reply's next page is of the same reply.
-	NextSince time.Time `json:"next_since"`
-	offset    int       // where the page starts in the reply
-	full      string    // the whole reply
+	// NextSince is this agent's cursor (ADR 0019), to pass back as given:
+	// for hq wait NAME --since, what this agent does after the read is
+	// returned; another agent's change before it may not have been
+	// (#116). hq read --since takes it too, to tell whether the reply's
+	// next page is of the same reply.
+	NextSince string `json:"next_since"`
+	offset    int    // where the page starts in the reply
+	full      string // the whole reply
 	// answerable says hq answer takes an answer to its dialog.
 	answerable bool
 }
 
-const readUsage = "hq read NAME [--offset N --since TIME] [--json]"
+const readUsage = "hq read NAME [--offset N --since SINCE] [--json]"
 
 // readPage is the most of a reply hq read gives at once, in bytes (spec
 // §4.1): a reply that is longer comes in pages, each read with --offset.
@@ -47,7 +48,9 @@ type readArgs struct {
 	name   string
 	asJSON bool
 	offset int
-	since  time.Time // zero without --since
+	since  since
+	// sinceArg says --since was given.
+	sinceArg bool
 }
 
 func parseRead(args []string, now time.Time) (readArgs, error) {
@@ -59,77 +62,93 @@ func parseRead(args []string, now time.Time) (readArgs, error) {
 		case a == "--json":
 			r.asJSON = true
 		case flag == "--offset" || flag == "--since":
-			if !inline {
-				if i+1 == len(args) {
-					return r, usageErr("%s needs a value (usage: %s)", flag, readUsage)
-				}
-				i++
-				value = args[i]
+			value, err := optionValue(args, &i, flag, value, inline, readUsage)
+			if err != nil {
+				return r, err
 			}
-			var err error
 			if flag == "--since" {
 				r.since, err = parseSince(value, now)
+				r.sinceArg = true
 			} else if r.offset, err = strconv.Atoi(value); err != nil || r.offset < 0 {
 				err = usageErr("--offset '%s' is not a place in the reply: the next_offset of the read before", value)
 			}
 			if err != nil {
 				return r, err
 			}
-		case r.name == "" && !strings.HasPrefix(a, "-"):
+		case strings.HasPrefix(a, "-"):
+			return r, unknownOption(a, readUsage)
+		case r.name == "":
 			r.name = a
 		default:
-			return r, usageErr("usage: %s", readUsage)
+			return r, unexpectedArgument(a, readUsage)
 		}
 	}
 	if r.name == "" {
 		return r, usageErr("usage: %s", readUsage)
 	}
-	if r.offset > 0 && r.since.IsZero() {
+	if r.offset > 0 && !r.sinceArg {
 		return r, usageErr("--offset needs --since: the next_since of the read that gave the offset, so its page is of the same reply")
 	}
 	return r, nil
 }
 
 func runRead(env Env, d deps, args []string) error {
-	at := d.now()
-	r, err := parseRead(args, at)
+	r, err := parseRead(args, d.now())
 	if err != nil {
 		return err
 	}
-	as, err := gatherAgents(d)
+	l, err := gatherAgents(d)
 	if err != nil {
 		return err
 	}
-	a, ok := agent.Find(as, r.name)
+	if r.since.ahead(l) {
+		return aheadErr(r.since)
+	}
+	a, ok := agent.Find(l.agents, r.name)
 	if !ok {
 		return notFoundErr("no agent '%s' (see hq ls)", r.name)
 	}
-	det := d.readDetail(a.RepoPath, a.ID)
-	if r.offset > 0 && replyChanged(det.ReplyAt, r.since) {
-		return usageErr("%s's reply changed since %s: read it again from its start, without --offset", a.Name, r.since.Format(time.RFC3339Nano))
+	if a.Outdated() {
+		return outdatedErr(a)
+	}
+	det := a.Detail()
+	if r.offset > 0 && replyChanged(det, r.since) {
+		return usageErr("%s has replied anew since the read that gave the offset: read it again from its start, without --offset", a.Name)
 	}
 	v, err := newReadView(lsRowWithDetail(d, a, d.now(), det), det, worktree(d, a), r.offset)
 	if err != nil {
 		return err
 	}
 	v.answerable = answerable(a, det.Ask) == nil
-	v.NextSince = lookedAt(at)
+	through := a.Through()
+	if through == 0 {
+		through = l.counter
+	}
+	v.NextSince = cursorText(through)
 	if r.asJSON {
 		return writeJSON(env.Stdout, v)
 	}
 	return v.write(env.Stdout)
 }
 
-// replyChanged reports whether a reply written at replyAt is newer than
-// the look whose next_since is since: a look sees what was written before
-// it began, waitSettle after its next_since (lookedAt), so a reply written
-// later is another one than the look's.
-func replyChanged(replyAt, since time.Time) bool {
-	return replyAt.After(since.Add(waitSettle))
+// replyChanged reports whether the reply of det, an agent's latest Stop, is
+// newer than the read whose next_since is s: numbered above its cursor,
+// which the read had seen every change up to; or, for a moment as an older
+// hq printed it, written more than momentSlack after it, since such a
+// moment was that much before its look began.
+func replyChanged(det state.Detail, s since) bool {
+	if s.isCursor {
+		return det.ReplyNumber > s.cursor
+	}
+	return det.ReplyAt.After(s.moment.Add(momentSlack))
 }
 
-// newReadView joins the agent as hq ls shows it with what its state files
-// hold in full, its reply from offset.
+// momentSlack is how far before its look a moment an older hq printed as
+// next_since was: what was written within it the look may not have seen.
+const momentSlack = 250 * time.Millisecond
+
+// newReadView joins the agent as hq ls shows it with what its journal
+// holds in full, its reply from offset.
 func newReadView(row lsRow, det state.Detail, worktree string, offset int) (readView, error) {
 	page, next, err := replyPage(det.Reply, offset)
 	if err != nil {
@@ -211,7 +230,7 @@ func (v readView) write(w io.Writer) error {
 		// One page of a longer reply: which bytes, and how to read on.
 		fmt.Fprintf(&b, "\nreply     bytes %d-%d of %d\n%s\n", v.offset, v.offset+len(v.Reply)-1, v.ReplySize, indent(v.Reply))
 		if v.NextOffset != nil {
-			fmt.Fprintf(&b, "\nnext      hq read %s --offset %d --since %s\n", v.Name, *v.NextOffset, v.NextSince.Format(time.RFC3339Nano))
+			fmt.Fprintf(&b, "\nnext      hq read %s --offset %d --since %s\n", v.Name, *v.NextOffset, v.NextSince)
 		}
 	}
 	_, err := io.WriteString(w, b.String())

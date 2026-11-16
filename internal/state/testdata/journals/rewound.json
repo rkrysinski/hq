@@ -1,0 +1,630 @@
+{
+  "about": "Rewound turns: an early Esc that puts the prompt back in the box, with no line and no hook, is done with Interrupted once its screen has stayed at rest and unchanged for RestDelay, counted from when it was first seen at rest; a screen that changes starts over; a screen of a turn at work, or one that only looks at rest for a moment, decides nothing; a rewind right after a cancelled dialog keeps that dialog's line from counting.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Write a 200-word poem about the sea, no tools."
+      },
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Write a 200-word poem about the sea, no tools.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "streaming",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "rewound",
+      "events": [
+        {
+          "n": 4,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:05Z",
+          "basis": 3,
+          "facts": {
+            "screen": "6a97b304a687535"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "rewound",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "rewound",
+      "events": [
+        {
+          "n": 5,
+          "source": "screen",
+          "kind": "Rewound",
+          "time": "2026-01-01T00:00:07Z",
+          "basis": 3,
+          "facts": {
+            "screen": "6a97b304a687535",
+            "from": "2026-01-01T00:00:05Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "screen": "rewound",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Write a 200-word poem about the sea, no tools."
+      },
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000003.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Write a 200-word poem about the sea, no tools.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z"
+      }
+    },
+    {
+      "screen": "rewound-first",
+      "events": [
+        {
+          "n": 7,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:10Z",
+          "basis": 6,
+          "facts": {
+            "screen": "294174b442b9bf1a"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z"
+      }
+    },
+    {
+      "screen": "rewound-cleared",
+      "events": [
+        {
+          "n": 8,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:11Z",
+          "basis": 6,
+          "facts": {
+            "screen": "abb223a8fc230273"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z"
+      }
+    },
+    {
+      "screen": "rewound-cleared",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z"
+      }
+    },
+    {
+      "screen": "rewound-cleared",
+      "events": [
+        {
+          "n": 9,
+          "source": "screen",
+          "kind": "Rewound",
+          "time": "2026-01-01T00:00:13Z",
+          "basis": 6,
+          "facts": {
+            "screen": "abb223a8fc230273",
+            "from": "2026-01-01T00:00:11Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:11Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Write a 200-word poem about the sea, no tools."
+      },
+      "events": [
+        {
+          "n": 10,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:14Z",
+          "file": "000000004.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Write a 200-word poem about the sea, no tools.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "screen": "narrow-streaming",
+      "events": [
+        {
+          "n": 11,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:15Z",
+          "basis": 10,
+          "facts": {
+            "screen": "c24419f85410be7"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "screen": "narrow-working",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "screen": "menu-while-working",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "screen": "typing-while-working",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "screen": "streaming-typing",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "screen": "streaming",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "screen": "tool-running",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "screen": "compacting",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:14Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "The poem.",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 12,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:23Z",
+          "file": "000000005.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 12,
+        "text": "The poem."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:23Z",
+        "last": "The poem."
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Ask me a colour."
+      },
+      "events": [
+        {
+          "n": 13,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:24Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Ask me a colour.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:24Z",
+        "last": "The poem."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-ask",
+      "events": [
+        {
+          "n": 14,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:25Z",
+          "file": "000000007.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "AskUserQuestion",
+            "text": "Which colour do you pick: red or blue?",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:25Z",
+        "last": "Which colour do you pick: red or blue?",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:25Z"
+      }
+    },
+    {
+      "screen": "declined",
+      "events": [
+        {
+          "n": 15,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:26Z",
+          "basis": 14,
+          "facts": {
+            "text": "User declined to answer questions"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:26Z",
+        "last": "User declined to answer questions"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Write a 300-word poem about the sea."
+      },
+      "events": [
+        {
+          "n": 16,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:27Z",
+          "file": "000000008.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Write a 300-word poem about the sea.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "last": "The poem."
+      }
+    },
+    {
+      "screen": "rewound-after-declined",
+      "events": [
+        {
+          "n": 17,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:28Z",
+          "basis": 16,
+          "facts": {
+            "screen": "70d0f2be61a2a361"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "last": "The poem."
+      }
+    },
+    {
+      "screen": "rewound-after-declined",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:27Z",
+        "last": "The poem."
+      }
+    },
+    {
+      "screen": "rewound-after-declined",
+      "events": [
+        {
+          "n": 18,
+          "source": "screen",
+          "kind": "Rewound",
+          "time": "2026-01-01T00:00:30Z",
+          "basis": 16,
+          "facts": {
+            "screen": "70d0f2be61a2a361",
+            "from": "2026-01-01T00:00:28Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:28Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Run the shell command sleep 20 and then reply with the word slept. Do not edit any files."
+      },
+      "events": [
+        {
+          "n": 19,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:31Z",
+          "file": "000000009.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Run the shell command sleep 20 and then reply with the word slept. Do not edit any files.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:31Z",
+        "last": "The poem."
+      }
+    },
+    {
+      "screen": "interrupted-prompt-restored",
+      "events": [
+        {
+          "n": 20,
+          "source": "screen",
+          "kind": "TurnEnded",
+          "time": "2026-01-01T00:00:32Z",
+          "basis": 19,
+          "facts": {
+            "text": "Interrupted"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:32Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "screen": "interrupted-prompt-restored",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:32Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "screen": "interrupted-prompt-restored",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:32Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Work on."
+      },
+      "events": [
+        {
+          "n": 21,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:35Z",
+          "file": "000000010.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Work on.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:35Z",
+        "last": "The poem."
+      }
+    },
+    {
+      "screen": "stop-blocked",
+      "events": [
+        {
+          "n": 22,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:36Z",
+          "basis": 21,
+          "facts": {
+            "screen": "e4ce9bfe3a28b823"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:35Z",
+        "last": "The poem."
+      }
+    },
+    {
+      "screen": "working",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:35Z",
+        "last": "The poem."
+      }
+    }
+  ]
+}

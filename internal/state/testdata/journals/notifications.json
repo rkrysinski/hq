@@ -1,0 +1,179 @@
+{
+  "about": "Claude's notification: with no dialog open the agent needs input until its next prompt; while a dialog is open it is no event.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "prompt",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "prompt": "say hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 2,
+        "text": "Hi. The tests pass\nand PR #58 is open."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "input",
+      "payload": "notification",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "Notification",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.input.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "notice": "permission_prompt",
+            "text": "Claude needs your permission",
+            "hook": "input"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "Claude needs your permission",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "prompt-pasted",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000004.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000029-0000-4000-8000-000000000029",
+            "cwd": "/w/app",
+            "turn": "00000023-0000-4000-8000-000000000023",
+            "prompt": "Say hi in one word.\nThen say bye in one word.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:04Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "dialog",
+      "payload": "dialog-bash",
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000005.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "tool": "Bash",
+            "text": "Bash: Create empty probe file in /tmp",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Bash: Create empty probe file in /tmp",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:05Z"
+      }
+    },
+    {
+      "hook": "input",
+      "payload": "notification",
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Bash: Create empty probe file in /tmp",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:05Z"
+      }
+    },
+    {
+      "hook": "end",
+      "payload": "session-end",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "SessionEnd",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000006.end.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "reason": "prompt_input_exit",
+            "hook": "end"
+          }
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    }
+  ]
+}

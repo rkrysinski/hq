@@ -10,15 +10,14 @@ import (
 	"strings"
 )
 
-// recordSuffix names, beside an agent's state files, hq's record of the
-// agent (WriteRecord).
+// recordSuffix names, in Dir, hq's record of the agent (WriteRecord).
 const recordSuffix = ".hq"
 
 // maxRecord caps what hq reads from a record: one is a few dozen bytes.
 const maxRecord = 4 << 10
 
-// Record is hq's own record of an agent, kept beside its state files: what
-// its home window holds that hq needs to bring the agent back when the
+// Record is hq's own record of an agent, kept in Dir beside its repository:
+// what its home window holds that hq needs to bring the agent back when the
 // window is gone with its tmux server (hq restore, design §3.3, #140).
 type Record struct {
 	ID      string `json:"-"`       // the agent's id, the record's name
@@ -27,6 +26,9 @@ type Record struct {
 	// Server is the tmux server its window is on: the -L socket name hq
 	// ran with, "" for the default server.
 	Server string `json:"server,omitempty"`
+	// Generation is the generation of the hq that last launched it
+	// (version.Generation); 0 in a record an hq kept before it had one.
+	Generation int `json:"generation,omitempty"`
 }
 
 // WriteRecord keeps r as the record of agent id of the repository at root,
@@ -82,7 +84,7 @@ func Records(root string) ([]Record, error) {
 		if !ok || !idRE.MatchString(id) {
 			continue
 		}
-		data, info, err := readData(filepath.Join(Dir(root), e.Name()))
+		data, info, err := ReadFile(filepath.Join(Dir(root), e.Name()))
 		if err != nil || info.Size() > maxRecord {
 			continue
 		}

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
@@ -50,10 +51,10 @@ func TestKillAsksAndEndsTheSessionInItsSandbox(t *testing.T) {
 	}
 }
 
-func TestKillRemovesThatAgentsStateFilesOnly(t *testing.T) {
+func TestKillRemovesThatAgentsJournalOnly(t *testing.T) {
 	f := killFakes()
 	for _, id := range []string{"id-a", "id-b", "id-gone"} {
-		f.states[id] = state.Report{State: state.Done}
+		f.states[id] = journaltest.HookState{State: state.Done}
 	}
 	if code, _, _ := f.run("kill", "a", "-y"); code != 0 {
 		t.Fatalf("exit %d", code)
@@ -135,7 +136,7 @@ func TestKillEndsTheSessionOfAPaneThatDied(t *testing.T) {
 			if looks++; looks < 2 {
 				return nil
 			}
-			f.states["id-gone"] = state.Report{State: state.Ended}
+			f.states["id-gone"] = journaltest.HookState{State: state.Ended}
 			delete(f.sbx.orphans, "id-gone")
 		}
 		return fake(args)
@@ -199,7 +200,7 @@ func TestKillLeavesAStoppedSandboxAloneWhileThePaneStillRuns(t *testing.T) {
 	// start it again (#87, #101): hq waits for the pane to go, no more.
 	f := killFakes()
 	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "stopped"}}
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: hello"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Done: hello"}
 	f.onSleep = func() { f.tmux.windows[1].PaneDead = true } // sbx run returns
 	if code, out, _ := f.run("kill", "a", "-y"); code != 0 || out != "killed a; the sandbox stays\n" || f.names() != "hq b gone" || strings.Join(f.removed, ", ") != "/w/app id-a" {
 		t.Fatalf("exit %d %q windows %q removed %v", code, out, f.names(), f.removed)

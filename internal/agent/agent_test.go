@@ -6,8 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 func TestNameChars(t *testing.T) {
@@ -38,7 +40,7 @@ func TestAge(t *testing.T) {
 func TestFromWindowsSkipsNonAgentsAndMarksDeadPanesEnded(t *testing.T) {
 	as := FromWindows([]tmux.Window{
 		{ID: "@0", Name: "hq", Options: map[string]string{}},
-		{ID: "@1", Name: "a", PaneDead: true, Options: map[string]string{"id": "x", "name": "a", "started": "100"}},
+		{ID: "@1", Name: "a", PaneDead: true, Options: map[string]string{GenerationOption: gen, "id": "x", "name": "a", "started": "100"}},
 	})
 	if len(as) != 1 || as[0].State != state.Ended || as[0].Alive || as[0].Started.Unix() != 100 {
 		t.Fatalf("%+v", as)
@@ -47,28 +49,72 @@ func TestFromWindowsSkipsNonAgentsAndMarksDeadPanesEnded(t *testing.T) {
 
 func TestFromWindowsKnowsTheDockedAgent(t *testing.T) {
 	as := FromWindows([]tmux.Window{
-		{ID: "@1", Name: "a", Docked: true, Options: map[string]string{"id": "x"}},
-		{ID: "@2", Name: "b", Options: map[string]string{"id": "y"}},
+		{ID: "@1", Name: "a", Docked: true, Options: map[string]string{GenerationOption: gen, "id": "x"}},
+		{ID: "@2", Name: "b", Options: map[string]string{GenerationOption: gen, "id": "y"}},
 	})
 	if !as[0].Docked || as[1].Docked || !as[0].Alive {
 		t.Fatalf("%+v", as)
 	}
 }
 
-// An agent's hooks tell a supervised turn from their second generation, and
-// hold on a question dialog for hq's answer from their third (#90).
-func TestAnAgentsHooksTellASupervisedTurnFromTheirSecondGeneration(t *testing.T) {
-	for inbox, want := range map[string]struct{ inbox, supervisable, answerable bool }{
-		"":  {false, false, false}, // started before hq send
-		"1": {true, false, false},  // started before supervised turns
-		"2": {true, true, false},   // started before hq answer
-		"3": {true, true, true},
-		"4": {true, true, true},
-		"x": {true, false, false},
+// An agent whose home window carries another generation than this hq's,
+// or none (started before hq marked one), is outdated: listed with no state
+// of its own and the remedy as its last message, whatever its pane does and
+
+// An agent whose home window carries another generation than this hq's,
+// or none (started before hq marked one), is outdated: listed with no state
+// of its own and the remedy as its last message, whatever its pane does and
+// its journal says (#194).
+func TestAnAgentOfAnotherGenerationIsOutdated(t *testing.T) {
+	older, newer := "started by an older hq: kill it and start it again", "started by a newer hq: kill it and start it again"
+	current := strconv.Itoa(version.Generation)
+	for _, c := range []struct {
+		gen       string
+		dead      bool
+		state     string
+		last      string
+		generated int
+	}{
+		{gen: current, state: state.Working, last: "on it", generated: version.Generation},
+		{gen: current, dead: true, state: state.Ended, last: "on it", generated: version.Generation},
+		{gen: "", state: state.Outdated, last: older},
+		{gen: "1", state: state.Outdated, last: older, generated: 1},
+		// Started by an hq whose hook still wrote the state files (#199).
+		{gen: "3", state: state.Outdated, last: older, generated: 3},
+		{gen: strconv.Itoa(version.Generation - 1), dead: true, state: state.Outdated, last: older, generated: version.Generation - 1},
+		{gen: strconv.Itoa(version.Generation + 1), state: state.Outdated, last: newer, generated: version.Generation + 1},
+		{gen: "x", state: state.Outdated, last: older},
 	} {
-		as := FromWindows([]tmux.Window{{ID: "@1", Name: "a", Options: map[string]string{"id": "x", "inbox": inbox}}})
-		if a := as[0]; a.Inbox != want.inbox || a.Supervisable() != want.supervisable || a.Answerable() != want.answerable {
-			t.Errorf("inbox %q: delivers messages %v, tells a supervised turn %v, holds for an answer %v", inbox, a.Inbox, a.Supervisable(), a.Answerable())
+		ws := []tmux.Window{{ID: "@1", Name: "a", PaneDead: c.dead, Options: map[string]string{"id": "a1", "repo": "/w/app", "started": "100", "new": "1", GenerationOption: c.gen}}}
+		s := newStore(nil)
+		s.Memory.Report("/w/app", "a1", journaltest.HookState{State: state.Working, Since: time.Unix(200, 0), Branch: "main"}, state.Detail{Reply: "on it"})
+		s.Memory.Report("/w/app", "a1", journaltest.HookState{State: state.Working, Since: time.Unix(201, 0), Branch: "main", Prompt: "go on"}, state.Detail{})
+		for _, a := range []Agent{FromJournals(ws, s, time.Unix(300, 0), nil)[0], Look(ws, Sandboxes{}, time.Unix(300, 0), s, nil)[0]} {
+			if a.State != c.state || a.Last != c.last || a.Generation != c.generated || a.Outdated() != (c.state == state.Outdated) {
+				t.Errorf("generation %q, dead %v: %s %q generation %d outdated %v, want %s %q generation %d", c.gen, c.dead, a.State, a.Last, a.Generation, a.Outdated(), c.state, c.last, c.generated)
+			}
+			if a.Outdated() && (a.Branch != "" || a.New || a.OwnTasks != nil || !a.Since.Equal(a.Started) || a.Detail() != (state.Detail{}) || a.Session() != "") {
+				t.Errorf("generation %q: an outdated agent shows branch %q, new %v, own tasks %v, since %v, detail %+v", c.gen, a.Branch, a.New, a.OwnTasks, a.Since, a.Detail())
+			}
+		}
+	}
+}
+
+// A lost agent, the one a record names and no window has, is outdated by
+// the record's generation as one with a window is by its own.
+func TestALostAgentOfAnotherGenerationIsOutdated(t *testing.T) {
+	for _, c := range []struct {
+		gen   int
+		state string
+		last  string
+	}{
+		{gen: version.Generation},
+		{gen: version.Generation - 1, state: state.Outdated, last: "started by an older hq: kill it and start it again"},
+		{gen: version.Generation + 1, state: state.Outdated, last: "started by a newer hq: kill it and start it again"},
+	} {
+		a := Lost(state.Record{ID: "a1", Name: "a", Sandbox: "app", Generation: c.gen}, "/w/app")
+		if a.ID != "a1" || a.Name != "a" || a.Sandbox != "app" || a.RepoPath != "/w/app" || a.Generation != c.gen || a.State != c.state || a.Last != c.last {
+			t.Errorf("generation %d: %+v, want state %q, last %q", c.gen, a, c.state, c.last)
 		}
 	}
 }
@@ -79,129 +125,126 @@ func TestNewIDIsFresh(t *testing.T) {
 	}
 }
 
-func TestCollectEndsAgentsWhoseSandboxIsNotRunning(t *testing.T) {
-	ws := []tmux.Window{
-		{ID: "@1", Options: map[string]string{"id": "a", "name": "a", "sandbox": "claude-app", "started": "100"}},
-		{ID: "@2", Options: map[string]string{"id": "b", "name": "b", "sandbox": "claude-lib", "started": "100"}},
-	}
-	read := func(root, id string) (state.Report, bool) {
-		return state.Report{State: state.Working, Since: time.Unix(200, 0), Last: "on it " + id}, true
-	}
-	states := func(as []Agent) string {
-		var s []string
-		for _, a := range as {
-			s = append(s, a.Name+"="+a.State+"/"+a.Last)
-		}
-		return strings.Join(s, " ")
-	}
-	if got := states(Collect(ws, read, sbxSays(map[string]bool{"claude-app": true}))); got != "a=working/on it a b=ended/on it b" {
-		t.Fatalf("claude-lib stopped: %s", got)
-	}
-	if got := states(Collect(ws, read, Sandboxes{})); got != "a=working/on it a b=working/on it b" {
-		t.Fatalf("sbx could not say: %s", got)
-	}
-}
-
 // sbxSays is sbx's answer that the sandboxes of running run, asked after
 // every report of a test's agents.
 func sbxSays(running map[string]bool) Sandboxes {
 	return Sandboxes{Running: running, Asked: time.Unix(1<<40, 0)}
 }
 
+// sbxWindows are the home windows of agents a (a1, in claude-app) and b
+// (b2, in claude-lib).
+func sbxWindows() []tmux.Window {
+	return []tmux.Window{
+		{ID: "@1", Pane: "%1", Options: map[string]string{GenerationOption: gen, "id": "a1", "name": "a", "repo": "/w/app", "sandbox": "claude-app", "started": "100"}},
+		{ID: "@2", Pane: "%2", Options: map[string]string{GenerationOption: gen, "id": "b2", "name": "b", "repo": "/w/app", "sandbox": "claude-lib", "started": "100"}},
+	}
+}
+
+func states(as []Agent) string {
+	var s []string
+	for _, a := range as {
+		s = append(s, a.Name+"="+a.State+"/"+a.Last)
+	}
+	return strings.Join(s, " ")
+}
+
+func TestTheLookEndsAgentsWhoseSandboxIsNotRunning(t *testing.T) {
+	now := time.Unix(1000, 0)
+	rs := map[string]journaltest.HookState{
+		"a1": {State: state.Done, Since: time.Unix(200, 0), Last: "on it a"},
+		"b2": {State: state.Done, Since: time.Unix(200, 0), Last: "on it b"},
+	}
+	s := newStore(nil)
+	if got := states(s.look(sbxWindows(), rs, Sandboxes{}, now)); got != "a=done/on it a b=done/on it b" {
+		t.Fatalf("sbx could not say: %s", got)
+	}
+	if got := states(s.look(sbxWindows(), rs, sbxSays(map[string]bool{"claude-app": true}), now)); got != "a=done/on it a b=ended/on it b" {
+		t.Fatalf("claude-lib stopped: %s", got)
+	}
+	// What the journal holds stands for a look that cannot ask sbx.
+	if got := states(FromJournals(sbxWindows(), s, now, nil)); got != "a=done/on it a b=ended/on it b" {
+		t.Fatalf("collected: %s", got)
+	}
+}
+
 func TestAnAnswerOfSbxOlderThanAnAgentsReportDoesNotEndIt(t *testing.T) {
 	// hq asked sbx while claude-lib was still starting; b's session started
 	// in it and reported after that (#48). a reported before the question:
 	// its sandbox has stopped.
-	ws := []tmux.Window{
-		{ID: "@1", Options: map[string]string{"id": "a", "name": "a", "sandbox": "claude-app", "started": "100"}},
-		{ID: "@2", Options: map[string]string{"id": "b", "name": "b", "sandbox": "claude-lib", "started": "100"}},
-	}
 	asked := time.Unix(200, 0)
-	read := func(root, id string) (state.Report, bool) {
-		r := state.Report{State: state.Done, Since: asked.Add(-time.Second), Last: "Done."}
-		if id == "b" {
-			r.Since = asked.Add(time.Millisecond)
-		}
-		r.Latest = r.Since
-		return r, true
+	rs := map[string]journaltest.HookState{
+		"a1": {State: state.Done, Since: asked.Add(-time.Second), Last: "Done."},
+		"b2": {State: state.Done, Since: asked.Add(time.Millisecond), Last: "Done."},
 	}
-	as := Collect(ws, read, Sandboxes{Running: map[string]bool{}, Asked: asked})
+	s := newStore(nil)
+	as := s.look(sbxWindows(), rs, Sandboxes{Running: map[string]bool{}, Asked: asked}, asked.Add(time.Second))
 	if as[0].State != state.Ended || as[1].State != state.Done {
 		t.Fatalf("a %s, b %s; want a ended and b done", as[0].State, as[1].State)
 	}
 	// The next answer, asked after b's report, counts for b too.
-	as = Collect(ws, read, Sandboxes{Running: map[string]bool{"claude-lib": true}, Asked: asked.Add(time.Second)})
+	as = s.look(sbxWindows(), rs, Sandboxes{Running: map[string]bool{"claude-lib": true}, Asked: asked.Add(time.Second)}, asked.Add(2*time.Second))
 	if as[1].State != state.Done {
 		t.Fatalf("b in a running sandbox: %s", as[1].State)
 	}
-	as = Collect(ws, read, Sandboxes{Running: map[string]bool{}, Asked: asked.Add(time.Second)})
+	as = s.look(sbxWindows(), rs, Sandboxes{Running: map[string]bool{}, Asked: asked.Add(time.Second)}, asked.Add(2*time.Second))
 	if as[1].State != state.Ended {
 		t.Fatalf("b once sbx says, after its report, that its sandbox does not run: %s", as[1].State)
 	}
-	// A turn end kept beside the report (background work) is a report too.
-	kept := func(root, id string) (state.Report, bool) {
-		return state.Report{State: state.Working, Since: asked.Add(-time.Minute), Latest: asked.Add(time.Millisecond), Background: true}, true
-	}
-	if a := Collect(ws[:1], kept, Sandboxes{Running: map[string]bool{}, Asked: asked})[0]; a.State != state.Working {
-		t.Fatalf("an agent whose kept report is newer than the answer: %s", a.State)
+	// A turn end that left background work running is a report too.
+	s = newStore(nil)
+	bg := map[string]journaltest.HookState{"a1": {State: state.Working, Since: asked.Add(-time.Minute), Latest: asked.Add(time.Millisecond), Background: true}}
+	if a := s.look(sbxWindows()[:1], bg, Sandboxes{Running: map[string]bool{}, Asked: asked}, asked.Add(time.Second))[0]; a.State != state.Working {
+		t.Fatalf("an agent whose turn end is newer than the answer: %s", a.State)
 	}
 }
 
-func TestCollectLeavesAnAgentStartingWhileItsSandboxHasNotStarted(t *testing.T) {
+func TestTheLookLeavesAnAgentStartingWhileItsSandboxHasNotStarted(t *testing.T) {
 	// hq new has released c's session into claude-lib, stopped or just
 	// created; sbx run is starting it and c has not reported yet (S2).
 	ws := []tmux.Window{
-		{ID: "@1", Options: map[string]string{"id": "c", "name": "c", "sandbox": "claude-lib", "new": "1"}},
-		{ID: "@2", PaneDead: true, Options: map[string]string{"id": "d", "name": "d", "sandbox": "claude-lib"}},
+		{ID: "@1", Pane: "%1", Options: map[string]string{GenerationOption: gen, "id": "c3", "name": "c", "repo": "/w/app", "sandbox": "claude-lib", "new": "1"}},
+		{ID: "@2", Pane: "%2", PaneDead: true, Options: map[string]string{GenerationOption: gen, "id": "d4", "name": "d", "repo": "/w/app", "sandbox": "claude-lib"}},
 	}
-	read := func(root, id string) (state.Report, bool) { return state.Report{}, false }
-	as := Collect(ws, read, sbxSays(map[string]bool{}))
-	if as[0].State != state.Starting || !as[0].New {
+	s := newStore(nil)
+	as := s.look(ws, nil, sbxSays(map[string]bool{}), time.Unix(1000, 0))
+	if as[0].State != state.Starting || !as[0].New || len(s.journalOf(t, "c3")) != 0 {
 		t.Fatalf("c while its sandbox starts: %+v", as[0])
 	}
 	// Its pane dying (the launch failed, or sbx run returned) still ends it.
-	if as[1].State != state.Ended {
+	if as[1].State != state.Ended || as[1].Last != EndedLast {
 		t.Fatalf("d with a dead pane: %+v", as[1])
 	}
 }
 
-func TestApplyTakesTheReportedStateWhileThePaneLives(t *testing.T) {
+func TestTheLookTakesTheReportedStateWhileThePaneLives(t *testing.T) {
 	since := time.Unix(500, 0)
-	r := state.Report{State: state.Question, Since: since, Last: "Shall I?", Branch: "feat/42-x", Cwd: "/w/app/.claude/worktrees/x"}
-	a := FromWindows([]tmux.Window{{ID: "@1", Options: map[string]string{"id": "x", "started": "100"}}})[0]
-	if a.State != state.Starting || a.Since.Unix() != 100 {
+	r := journaltest.HookState{State: state.Question, Since: since, Last: "Shall I?", Branch: "feat/42-x", Cwd: "/w/app/.claude/worktrees/x"}
+	ws := []tmux.Window{lookWindow("1"), lookWindow("2")}
+	ws[1].PaneDead, ws[1].DeadAt = true, time.Unix(550, 0)
+	s := newStore(nil)
+	if a := s.look(ws[:1], nil, Sandboxes{}, time.Unix(400, 0))[0]; a.State != state.Starting || a.Since.Unix() != 100 {
 		t.Fatalf("before any report: %+v", a)
 	}
-	a.Apply(r, true)
-	if a.State != state.Question || a.Since != since || a.Last != "Shall I?" || a.Branch != "feat/42-x" || a.Worktree != "/w/app/.claude/worktrees/x" {
+	as := s.look(ws, map[string]journaltest.HookState{"a1": r, "a2": r}, Sandboxes{}, time.Unix(600, 0))
+	if a := as[0]; a.State != state.Question || a.Since != since || a.Last != "Shall I?" || a.Branch != "feat/42-x" || a.Worktree != "/w/app/.claude/worktrees/x" {
 		t.Fatalf("%+v", a)
 	}
-	dead := FromWindows([]tmux.Window{{ID: "@2", PaneDead: true, Options: map[string]string{"id": "y", "started": "100"}}})[0]
-	dead.Apply(r, true)
-	if dead.State != state.Ended || dead.Last != "Shall I?" || dead.Since != since {
-		t.Fatalf("dead pane: %+v", dead)
-	}
-	// A report older than the start (a reused state file) does not move it back.
-	old := FromWindows([]tmux.Window{{ID: "@3", PaneDead: true, Options: map[string]string{"id": "z", "started": "900"}}})[0]
-	old.Apply(r, true)
-	if old.Since.Unix() != 900 {
-		t.Fatalf("old report: %+v", old)
+	if a := as[1]; a.State != state.Ended || a.Last != "Shall I?" || !a.Since.Equal(time.Unix(550, 0)) {
+		t.Fatalf("dead pane: %+v", a)
 	}
 }
 
 func TestAnAgentIsNewUntilItsFirstReport(t *testing.T) {
 	ws := []tmux.Window{
-		{ID: "@1", Name: "a", Options: map[string]string{"id": "a", "new": "1"}},
-		{ID: "@2", Name: "b", Options: map[string]string{"id": "b", "new": "1"}},
-		{ID: "@3", Name: "c", PaneDead: true, Options: map[string]string{"id": "c", "new": "1"}},
-		{ID: "@4", Name: "d", Options: map[string]string{"id": "d", "new": "1", "sandbox": "booting"}},
-		{ID: "@5", Name: "e", Options: map[string]string{"id": "e"}}, // relaunched, not new
+		{ID: "@1", Name: "a", Options: map[string]string{GenerationOption: gen, "id": "a1", "repo": "/w/app", "new": "1"}},
+		{ID: "@2", Name: "b", Options: map[string]string{GenerationOption: gen, "id": "b2", "repo": "/w/app", "new": "1"}},
+		{ID: "@3", Name: "c", PaneDead: true, Options: map[string]string{GenerationOption: gen, "id": "c3", "repo": "/w/app", "new": "1"}},
+		{ID: "@4", Name: "d", Options: map[string]string{GenerationOption: gen, "id": "d4", "repo": "/w/app", "new": "1", "sandbox": "booting"}},
+		{ID: "@5", Name: "e", Options: map[string]string{GenerationOption: gen, "id": "e5", "repo": "/w/app"}}, // relaunched, not new
 	}
-	read := func(_, id string) (state.Report, bool) {
-		return state.Report{State: state.Working}, id == "b"
-	}
+	s := newStore(nil)
 	var got []string
-	for _, a := range Collect(ws, read, sbxSays(map[string]bool{"": true})) {
+	for _, a := range s.look(ws, map[string]journaltest.HookState{"b2": {State: state.Working, Since: time.Unix(200, 0)}}, sbxSays(map[string]bool{"": true}), time.Unix(300, 0)) {
 		if a.New {
 			got = append(got, a.Name)
 		}
@@ -211,931 +254,94 @@ func TestAnAgentIsNewUntilItsFirstReport(t *testing.T) {
 	}
 }
 
-func TestCollectSaysSessionEndedForAnEndedAgentWithoutAMessage(t *testing.T) {
+func TestAnEndedAgentWithoutAMessageSaysItsSessionEnded(t *testing.T) {
 	ws := []tmux.Window{
-		{ID: "@1", Name: "dead", PaneDead: true, Options: map[string]string{"id": "a", "sandbox": "claude-app"}},
-		{ID: "@2", Name: "stopped", Options: map[string]string{"id": "b", "sandbox": "claude-lib"}},
-		{ID: "@3", Name: "said", PaneDead: true, Options: map[string]string{"id": "c", "sandbox": "claude-app"}},
-		{ID: "@4", Name: "quiet", Options: map[string]string{"id": "d", "sandbox": "claude-app"}},
-		{ID: "@5", Name: "silent", PaneDead: true, Options: map[string]string{"id": "e", "sandbox": "claude-app"}},
-		// Its sandbox restarting (hq sandbox restart): ended, its pane still runs.
-		{ID: "@6", Name: "restarting", Options: map[string]string{"id": "f", "sandbox": "claude-app", "ending": "1"}},
+		{ID: "@1", Name: "dead", PaneDead: true, Options: map[string]string{GenerationOption: gen, "id": "a1", "repo": "/w/app", "sandbox": "claude-app"}},
+		{ID: "@2", Name: "stopped", Options: map[string]string{GenerationOption: gen, "id": "b2", "repo": "/w/app", "sandbox": "claude-lib"}},
+		{ID: "@3", Name: "said", PaneDead: true, Options: map[string]string{GenerationOption: gen, "id": "c3", "repo": "/w/app", "sandbox": "claude-app"}},
+		{ID: "@4", Name: "quiet", Options: map[string]string{GenerationOption: gen, "id": "d4", "repo": "/w/app", "sandbox": "claude-app"}},
+		{ID: "@5", Name: "silent", PaneDead: true, Options: map[string]string{GenerationOption: gen, "id": "e5", "repo": "/w/app", "sandbox": "claude-app"}},
 	}
-	read := func(_, id string) (state.Report, bool) {
-		switch id {
-		case "c":
-			return state.Report{State: state.Done, Last: "hi"}, true
-		case "b", "e": // reported, but never a message
-			return state.Report{State: state.Working}, true
-		}
-		return state.Report{}, false
+	rs := map[string]journaltest.HookState{
+		"c3": {State: state.Done, Since: time.Unix(200, 0), Last: "hi"},
+		// reported, but never a message
+		"b2": {State: state.Working, Since: time.Unix(200, 0)},
+		"e5": {State: state.Working, Since: time.Unix(200, 0)},
 	}
 	var got []string
-	for _, a := range Collect(ws, read, sbxSays(map[string]bool{"claude-app": true})) {
+	for _, a := range newStore(nil).look(ws, rs, sbxSays(map[string]bool{"claude-app": true}), time.Unix(300, 0)) {
 		got = append(got, a.Name+"="+a.Last)
 	}
-	if want := "dead=[session ended] stopped=[session ended] said=hi quiet= silent=[session ended] restarting=[session ended]"; strings.Join(got, " ") != want {
-		t.Fatalf("got  %s\nwant %s", strings.Join(got, " "), want)
-	}
-}
-
-func TestCollectKeepsTheTurnEndHqSawAsAnEndedAgentsMessage(t *testing.T) {
-	at := time.Unix(1790000000, 0)
-	key := strconv.FormatInt(at.UnixNano(), 10)
-	seen := strconv.FormatInt(at.Add(3*time.Second).UnixNano(), 10)
-	ws := []tmux.Window{
-		// An early Esc rewound its turn, then its sandbox stopped (#111).
-		{ID: "@1", Name: "rewound", PaneDead: true, Options: map[string]string{"id": "a", "sandbox": "claude-app", "turnend": key + " " + seen + " " + Rewound}},
-		// The record is for an earlier report: it does not count.
-		{ID: "@2", Name: "stale", PaneDead: true, Options: map[string]string{"id": "b", "sandbox": "claude-app", "turnend": "1 " + seen + " " + Rewound}},
-	}
-	read := func(_, id string) (state.Report, bool) {
-		return state.Report{State: state.Working, Since: at}, true
-	}
-	var got []string
-	for _, a := range Collect(ws, read, sbxSays(map[string]bool{"claude-app": true})) {
-		got = append(got, a.Name+"="+string(a.State)+"="+a.Last)
-	}
-	if want := "rewound=ended=" + Rewound + " stale=ended=" + EndedLast; strings.Join(got, " ") != want {
+	if want := "dead=[session ended] stopped=[session ended] said=hi quiet= silent=[session ended]"; strings.Join(got, " ") != want {
 		t.Fatalf("got  %s\nwant %s", strings.Join(got, " "), want)
 	}
 }
 
 func TestAnAgentStartedWithoutAPromptIsDoneOnceClaudeWaitsAtItsPrompt(t *testing.T) {
-	ws := []tmux.Window{{ID: "@1", Name: "a", Options: map[string]string{"id": "a", "new": "1", "started": "100"}}}
-	var file string
-	read := func(_, _ string) (state.Report, bool) {
-		if file == "" {
-			return state.Report{}, false
-		}
-		r := state.Parse([]byte(file), nil, nil)
-		r.Since = time.Unix(102, 0)
-		return r, true
-	}
-	if a := Collect(ws, read, Sandboxes{})[0]; a.State != state.Starting || !a.New {
+	ws := []tmux.Window{{ID: "@1", Name: "a", Options: map[string]string{GenerationOption: gen, "id": "a1", "repo": "/w/app", "new": "1", "started": "100"}}}
+	s := newStore(nil)
+	if a := FromJournals(ws, s, time.Unix(101, 0), nil)[0]; a.State != state.Starting || !a.New {
 		t.Fatalf("launched: %+v", a)
 	}
 	// Claude's session started (SessionStart, before any prompt).
-	file = "branch main\n" + `{"session_id":"s","cwd":"/w/app","hook_event_name":"SessionStart","source":"startup"}`
-	if a := Collect(ws, read, Sandboxes{})[0]; a.State != state.Done || a.New || a.Last != "" || a.Branch != "main" || a.Since.Unix() != 102 {
+	s.Leave("/w/app", "a1", "000000001.start.1", journaltest.Hook("main", map[string]any{"session_id": "s", "cwd": "/w/app", "hook_event_name": "SessionStart", "source": "startup"}), time.Unix(102, 0))
+	if a := FromJournals(ws, s, time.Unix(103, 0), nil)[0]; a.State != state.Done || a.New || a.Last != "" || a.Branch != "main" || a.Since.Unix() != 102 {
 		t.Fatalf("session started: %+v", a)
 	}
 	// The user's first prompt makes it work as usual.
-	file = "branch main\n" + `{"session_id":"s","cwd":"/w/app","hook_event_name":"UserPromptSubmit","prompt":"go"}`
-	if a := Collect(ws, read, Sandboxes{})[0]; a.State != state.Working || a.New {
+	s.Leave("/w/app", "a1", "000000002.prompt.1", journaltest.Hook("main", map[string]any{"session_id": "s", "cwd": "/w/app", "hook_event_name": "UserPromptSubmit", "prompt": "go"}), time.Unix(104, 0))
+	if a := FromJournals(ws, s, time.Unix(105, 0), nil)[0]; a.State != state.Working || a.New {
 		t.Fatalf("prompted: %+v", a)
 	}
 }
 
-func TestAReportFromBeforeTheStartGivesTheMessageButNotTheState(t *testing.T) {
-	// Relaunched at 900 (hq sandbox restart); the file is the previous
-	// session's, written at 500.
-	old := state.Report{State: state.Done, Since: time.Unix(500, 0), Last: "PR #58 opened", Branch: "feat/42", Cwd: "/w/app/.claude/worktrees/42"}
-	a := FromWindows([]tmux.Window{{ID: "@1", Options: map[string]string{"id": "x", "started": "900"}}})[0]
-	a.Apply(old, true)
-	if a.State != state.Starting || a.Since.Unix() != 900 || a.Last != "PR #58 opened" || a.Branch != "feat/42" || a.Worktree != "/w/app/.claude/worktrees/42" {
-		t.Fatalf("relaunched: %+v", a)
+// After hq relaunches or restores an agent, its journal goes on: its last
+// message, branch and worktree show while it starts, its session is the
+// one to continue, and its first report of the new session counts.
+func TestAReportFromBeforeALaunchGivesTheMessageButNotTheState(t *testing.T) {
+	ws := []tmux.Window{lookWindow("1")}
+	ws[0].Options["started"] = "900"
+	s := newStore(nil)
+	s.Memory.Report("/w/app", "a1", journaltest.HookState{State: state.Done, Since: time.Unix(500, 0), Last: "PR #58 opened", Branch: "feat/42", Cwd: "/w/app/.claude/worktrees/42", SessionID: "s1"}, state.Detail{})
+	if err := s.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
 	}
-	a.Apply(state.Report{State: state.Working, Since: time.Unix(901, 0), Branch: "feat/42"}, true)
-	if a.State != state.Working || a.Since.Unix() != 901 || a.Last != "" {
+	if _, err := s.Append("a1", state.Event{Source: state.SourceHQ, Kind: state.KindRelaunched, Time: time.Unix(900, 0), Basis: 1}); err != nil {
+		t.Fatal(err)
+	}
+	a := FromJournals(ws, s, time.Unix(950, 0), nil)[0]
+	if a.State != state.Starting || a.Since.Unix() != 900 || a.Last != "PR #58 opened" || a.Branch != "feat/42" || a.Worktree != "/w/app/.claude/worktrees/42" || a.Session() != "s1" {
+		t.Fatalf("relaunched: %+v, session %q", a, a.Session())
+	}
+	s.report("a1", journaltest.HookState{State: state.Working, Since: time.Unix(901, 0), Branch: "feat/42", SessionID: "s1"})
+	if a := FromJournals(ws, s, time.Unix(950, 0), nil)[0]; a.State != state.Working || a.Since.Unix() != 901 {
 		t.Fatalf("after its first report: %+v", a)
 	}
-}
-
-// Every live agent that has reported has its screen looked at, once the
-// report has settled: one at work or at a dialog for a turn the user ended,
-// one at its prompt for a dialog of Claude's own (#66).
-func TestAnAgentThatHasReportedIsUnsettledAfterAMoment(t *testing.T) {
-	now := time.Unix(1000, 0)
-	report := func(s string, age time.Duration) state.Report { return state.Report{State: s, Since: now.Add(-age)} }
-	for _, tc := range []struct {
-		name   string
-		w      tmux.Window
-		r      state.Report
-		ok     bool
-		unsett bool
-	}{
-		{"needs input", tmux.Window{}, report(state.NeedsInput, time.Second), true, true},
-		{"just now", tmux.Window{}, report(state.NeedsInput, 100*time.Millisecond), true, false},
-		{"working", tmux.Window{}, report(state.Working, time.Second), true, true},
-		{"working just now", tmux.Window{}, report(state.Working, 100*time.Millisecond), true, false},
-		{"question", tmux.Window{}, report(state.Question, time.Second), true, true},
-		{"starting", tmux.Window{}, report(state.Starting, time.Second), true, false},
-		{"done", tmux.Window{}, report(state.Done, time.Second), true, true},
-		{"done just now", tmux.Window{}, report(state.Done, 100*time.Millisecond), true, false},
-		{"no report", tmux.Window{}, state.Report{}, false, false},
-		{"dead", tmux.Window{PaneDead: true}, report(state.NeedsInput, time.Second), true, false},
-		{"ending", tmux.Window{Options: map[string]string{"ending": "1"}}, report(state.NeedsInput, time.Second), true, false},
-	} {
-		tc.w.ID = "@1"
-		if tc.w.Options == nil {
-			tc.w.Options = map[string]string{}
-		}
-		tc.w.Options["id"] = "x"
-		a := FromWindows([]tmux.Window{tc.w})[0]
-		a.Apply(tc.r, tc.ok)
-		if got := a.unsettled(now); got != tc.unsett {
-			t.Errorf("%s: unsettled %v", tc.name, got)
-		}
+	if es := s.journalOf(t, "a1"); es[len(es)-1].Number != int64(len(es)) || len(es) != 3 {
+		t.Fatalf("numbered %s", journaltest.Kinds(es))
 	}
 }
 
-func TestSettleMakesATurnTheUserEndedDoneFromWhenHqFirstSawIt(t *testing.T) {
-	declined := "● User declined to answer questions\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer\n"
+// Entered is the moment the event that decided the state was appended:
+// the hooks' report for a state they report, the look's own time for a
+// turn end it saw.
+func TestEnteredIsWhenTheStateCanBeSeen(t *testing.T) {
 	asked := time.Unix(1000, 0)
-	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	r := state.Report{State: state.NeedsInput, Since: asked, Last: "Red or blue?"}
-	a := FromWindows([]tmux.Window{w})[0]
-	a.Apply(r, true)
-
-	// The dialog is still open: nothing changes.
-	if rec := a.settle("Enter to select · Esc to cancel\n", asked.Add(time.Second)).Value; rec != "" || a.State != state.NeedsInput || a.Since != asked {
-		t.Fatalf("open dialog: %q %+v", rec, a)
-	}
-	// Cancelled: done since now, and the moment is to be recorded.
+	s := newStore(map[string]string{"%2": declinedScreen()})
+	ws := []tmux.Window{lookWindow("1"), lookWindow("2")}
 	seen := asked.Add(5 * time.Second)
-	rec := a.settle(declined, seen).Value
-	if a.State != state.Done || a.Last != "User declined to answer questions" || !a.Since.Equal(seen) || a.Pane != "%1" {
-		t.Fatalf("cancelled: %+v", a)
-	}
-	if rec == "" {
-		t.Fatal("nothing to record")
-	}
-	// Seen again later, by hq ls or the list: since the recorded moment.
-	w.Options["turnend"] = rec
-	b := FromWindows([]tmux.Window{w})[0]
-	b.Apply(r, true)
-	if rec := b.settle(declined, seen.Add(time.Minute)).Value; rec != "" || !b.Since.Equal(seen) {
-		t.Fatalf("again: %q %+v", rec, b)
-	}
-	// It stays done though the screen moved on (the next prompt sent, its
-	// hook not yet reported), and needs no screen at all.
-	b = FromWindows([]tmux.Window{w})[0]
-	b.Apply(r, true)
-	if rec := b.settle("❯ next prompt\n", seen.Add(time.Minute)).Value; rec != "" || b.State != state.Done || b.Last != "User declined to answer questions" || !b.Since.Equal(seen) {
-		t.Fatalf("screen moved on: %q %+v", rec, b)
-	}
-	b = FromWindows([]tmux.Window{w})[0]
-	b.Apply(r, true)
-	if !b.recall() || b.State != state.Done || !b.Since.Equal(seen) {
-		t.Fatalf("recall: %+v", b)
-	}
-	for _, bad := range []string{"", "x", rec[:strings.IndexByte(rec, ' ')] + " nan last"} {
-		w.Options["turnend"] = bad
-		b = FromWindows([]tmux.Window{w})[0]
-		b.Apply(r, true)
-		if b.recall() || b.State != state.NeedsInput {
-			t.Errorf("record %q recalled: %+v", bad, b)
-		}
-	}
-	w.Options["turnend"] = rec
-	// A record for an earlier report does not count for a newer one.
-	r.Since = asked.Add(time.Hour)
-	c := FromWindows([]tmux.Window{w})[0]
-	c.Apply(r, true)
-	later := r.Since.Add(3 * time.Second)
-	if rec := c.settle(declined, later).Value; rec == "" || !c.Since.Equal(later) {
-		t.Fatalf("newer report: %q %+v", rec, c)
-	}
-}
-
-func TestAnEndedAgentCountsFromWhenItEnded(t *testing.T) {
-	at := func(s float64) time.Time { return time.UnixMilli(int64(s * 1000)) }
-	win := func(id string, dead bool, deadAt float64, o map[string]string) tmux.Window {
-		w := tmux.Window{ID: "@" + id, Name: id, PaneDead: dead, Options: map[string]string{"id": id, "sandbox": "claude-app", "started": "900"}}
-		if deadAt > 0 {
-			w.DeadAt = at(deadAt)
-		}
-		for k, v := range o {
-			w.Options[k] = v
-		}
-		return w
-	}
-	ws := []tmux.Window{
-		win("exit", true, 1005, nil),   // /exit: the session reported its end
-		win("crash", true, 1010, nil),  // killed: only tmux knows when
-		win("same", true, 1000, nil),   // died in the second of its last report
-		win("silent", true, 1020, nil), // never reported
-		win("stopped", false, 0, nil),  // its sandbox stopped, its pane still runs
-		win("restart", false, 0, map[string]string{"ending": "1"}),
-		win("gone", true, 0, nil), // a docked pane that is gone: tmux cannot say
-		win("working", false, 0, nil),
-	}
-	ws[4].Options["sandbox"] = "claude-lib"
-	stopped := at(950) // the stopped agent's last report
-	read := func(_, id string) (state.Report, bool) {
-		switch id {
-		case "stopped":
-			return state.Report{State: state.Working, Since: stopped}, true
-		case "exit":
-			return state.Report{State: state.Ended, Since: at(1003), Last: "bye"}, true
-		case "same":
-			return state.Report{State: state.Done, Since: at(1000.4), Last: "ok"}, true
-		case "silent":
-			return state.Report{}, false
-		}
-		return state.Report{State: state.Working, Since: at(950)}, true
-	}
-	as := Collect(ws, read, sbxSays(map[string]bool{"claude-app": true}))
-	got := map[string]time.Time{}
-	for _, a := range as {
-		got[a.Name] = a.Since
-	}
-	for name, want := range map[string]time.Time{"exit": at(1003), "crash": at(1010), "same": at(1000.4), "silent": at(1020), "stopped": at(950), "restart": at(950), "gone": at(950), "working": at(950)} {
-		if !got[name].Equal(want) {
-			t.Errorf("%s: since %v, want %v", name, got[name], want)
-		}
-	}
-
-	// Newest end first among the ended rows.
-	SortAttention(as)
-	var order []string
-	for _, a := range as {
-		order = append(order, a.Name)
-	}
-	if want := "working silent crash exit same stopped restart gone"; strings.Join(order, " ") != want {
-		t.Errorf("order %s, want %s", strings.Join(order, " "), want)
-	}
-
-	// hq dates the ends nothing else dates when it first sees them.
-	now := at(1100)
-	records := map[string]string{}
-	for i := range as {
-		if r := as[i].seeEnd(now).Value; r != "" {
-			records[as[i].Name] = r
-			if !as[i].Since.Equal(now) {
-				t.Errorf("%s: since %v after seeEnd", as[i].Name, as[i].Since)
-			}
-		}
-	}
-	if len(records) != 3 || records["stopped"] == "" || records["restart"] == "" || records["gone"] == "" {
-		t.Fatalf("records %v", records)
-	}
-	// Seen again later: from the recorded moment, nothing more to record.
-	for i := range ws {
-		if r, ok := records[ws[i].Name]; ok {
-			ws[i].Options["endseen"] = r
-		}
-	}
-	for _, a := range Collect(ws, read, sbxSays(map[string]bool{"claude-app": true})) {
-		if _, ok := records[a.Name]; ok {
-			if !a.Since.Equal(now) || a.seeEnd(at(1200)).Value != "" {
-				t.Errorf("%s again: since %v", a.Name, a.Since)
-			}
-		}
-	}
-	// Relaunched (a new start) and reported before its sandbox stopped
-	// again: the record is the previous session's.
-	ws[4].Options["started"] = "1150"
-	stopped = at(1160)
-	a, _ := Find(Collect(ws, read, sbxSays(map[string]bool{"claude-app": true})), "stopped")
-	if r := a.seeEnd(at(1300)).Value; r == "" || !a.Since.Equal(at(1300)) {
-		t.Errorf("relaunched: %q %v", r, a.Since)
-	}
-	// A bad record counts for nothing: the last report stands.
-	ws[4].Options["endseen"] = "1150 x"
-	if a, _ := Find(Collect(ws, read, sbxSays(map[string]bool{"claude-app": true})), "stopped"); !a.Since.Equal(at(1160)) {
-		t.Errorf("bad record: %v", a.Since)
-	}
-}
-
-func TestSettleTakesARewoundTurnForDoneOnceItsScreenStaysAtRest(t *testing.T) {
-	rule := strings.Repeat("─", 20)
-	box := func(input string) string {
-		return "✻ Baked for 2s · done\n" + rule + "\n❯ " + input + "\n" + rule + "\n  ⏵⏵ bypass permissions on\n"
-	}
-	sent := "Write a poem about the sea."
-	asked := time.Unix(1000, 0)
-	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	r := state.Report{State: state.Working, Since: asked, Last: "earlier", Prompt: sent}
-	look := func() Agent {
-		a := FromWindows([]tmux.Window{w})[0]
-		a.Apply(r, true)
-		return a
-	}
-
-	// First seen at rest: still working, the moment and the look recorded.
-	first := asked.Add(3 * time.Second)
-	a := look()
-	end, rest := split(a.settle(box(sent), first))
-	if end != "" || rest == "" || !a.Resting() || a.State != state.Working || !a.Since.Equal(asked) {
-		t.Fatalf("first look: %q %q %+v", end, rest, a)
-	}
-	w.Options["restseen"] = rest
-	// The same a moment later: not yet.
-	a = look()
-	if end, rest := split(a.settle(box(sent), first.Add(RestDelay-time.Millisecond))); end != "" || rest != "" || !a.Resting() || a.State != state.Working {
-		t.Fatalf("too soon: %q %q %+v", end, rest, a)
-	}
-	// Unchanged for RestDelay: done since first seen at rest.
-	a = look()
-	end, rest = split(a.settle(box(sent), first.Add(RestDelay)))
-	if end == "" || rest != "" || a.Resting() || a.State != state.Done || a.Last != Rewound || !a.Since.Equal(first) {
-		t.Fatalf("at rest: %q %q %+v", end, rest, a)
-	}
-	w.Options["turnend"] = end
-	a = look()
-	if !a.recall() || a.State != state.Done || !a.Since.Equal(first) || a.Last != Rewound {
-		t.Fatalf("recall: %+v", a)
-	}
-	delete(w.Options, "turnend")
-
-	// The screen changed meanwhile (the user cleared the box): at rest
-	// from now, as it looks now.
-	a = look()
-	later := first.Add(time.Minute)
-	if end, rest := split(a.settle(box(""), later)); end != "" || rest == "" || rest == w.Options["restseen"] || !strings.HasSuffix(rest, strconv.FormatInt(later.UnixNano(), 10)) {
-		t.Fatalf("changed: %q %q", end, rest)
-	}
-	// A newer report: an earlier look does not count.
-	r.Since = asked.Add(time.Hour)
-	a = look()
-	if end, rest := split(a.settle(box(sent), r.Since.Add(time.Hour))); end != "" || rest == "" {
-		t.Fatalf("newer report: %q %q", end, rest)
-	}
-	// Not at rest: text the user typed, a turn at work, another state.
-	r.Since = asked
-	for name, tc := range map[string]struct {
-		screen, state string
-	}{
-		"typed":      {box("my own draft"), state.Working},
-		"at work":    {box("") + "  esc to interrupt\n", state.Working},
-		"a dialog":   {box(""), state.NeedsInput},
-		"no box":     {"● streaming\n", state.Working},
-		"broken rec": {box(sent), state.Working},
-	} {
-		r.State = tc.state
-		if name == "broken rec" {
-			w.Options["restseen"] = "x y z"
-		}
-		a := look()
-		end, rest := split(a.settle(tc.screen, first.Add(time.Hour)))
-		if end != "" || a.State != tc.state || (name != "broken rec" && (rest != "" || a.Resting())) {
-			t.Errorf("%s: %q %q %+v", name, end, rest, a)
-		}
-	}
-}
-
-func TestSettleTakesARewindRightAfterACancelledDialogForARewind(t *testing.T) {
-	rule := strings.Repeat("─", 20)
-	sent := "Write a poem about the sea."
-	screen := "❯ Ask me red or blue\n● User declined to answer questions\n  ⎿  · Red or blue?\n✻ Worked for 3s · done\n" +
-		rule + "\n❯ " + sent + "\n" + rule + "\n  ⏵⏵ bypass permissions on\n"
-	asked := time.Unix(1000, 0)
-	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	r := state.Report{State: state.Working, Since: asked, Prompt: sent}
-	a := FromWindows([]tmux.Window{w})[0]
-	a.Apply(r, true)
-	first := asked.Add(3 * time.Second)
-	end, rest := split(a.settle(screen, first))
-	if end != "" || rest == "" || a.State != state.Working {
-		t.Fatalf("first look: %q %q %+v", end, rest, a)
-	}
-	w.Options["restseen"] = rest
-	a = FromWindows([]tmux.Window{w})[0]
-	a.Apply(r, true)
-	if end := a.settle(screen, first.Add(RestDelay)).Value; end == "" || a.State != state.Done || a.Last != Rewound || !a.Since.Equal(first) {
-		t.Fatalf("at rest: %q %+v", end, a)
-	}
-}
-
-// split tells a turnend record from a restseen one.
-func split(r record) (turnEnd, restSeen string) {
-	switch r.Option {
-	case "turnend":
-		return r.Value, ""
-	case "restseen":
-		return "", r.Value
-	}
-	return "", ""
-}
-
-func TestKeepShowsTheRecordAnotherProcessStoredFirst(t *testing.T) {
-	rule := strings.Repeat("─", 20)
-	asked := time.Unix(1000, 0)
-	earlier, now := asked.Add(4*time.Second), asked.Add(5*time.Second)
-
-	// A turn the user ended: done from when the other process saw it.
-	declined := "● User declined to answer questions\n" + rule + "\n❯ \n" + rule + "\n  footer\n"
-	a := FromWindows([]tmux.Window{{ID: "@1", Options: map[string]string{"id": "x"}}})[0]
-	a.Apply(state.Report{State: state.NeedsInput, Since: asked, Last: "Red or blue?"}, true)
-	r := a.settle(declined, now)
-	a.adopt(r, r.Value)
-	if !a.Since.Equal(now) {
-		t.Fatalf("its own record: %+v", a)
-	}
-	a.adopt(r, r.Key+nanos(earlier)+" User declined to answer questions")
-	if a.State != state.Done || !a.Since.Equal(earlier) || a.Last != "User declined to answer questions" {
-		t.Fatalf("turnend: %+v", a)
-	}
-
-	// A rewound turn: at rest from when the other process first saw it, so
-	// it is done once that is RestDelay ago.
-	box := "✻ Baked for 2s · done\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n"
-	b := FromWindows([]tmux.Window{{ID: "@2", Options: map[string]string{"id": "y"}}})[0]
-	b.Apply(state.Report{State: state.Working, Since: asked}, true)
-	r = b.settle(box, now)
-	other := asked.Add(time.Second)
-	b.adopt(r, r.Key+nanos(other))
-	if r := b.settle(box, other.Add(RestDelay)); r.Option != "turnend" || b.State != state.Done || !b.Since.Equal(other) {
-		t.Fatalf("restseen: %+v %+v", r, b)
-	}
-
-	// An ended agent: ended from when the other process saw it.
-	c := FromWindows([]tmux.Window{{ID: "@3", Options: map[string]string{"id": "z", "started": "900"}}})[0]
-	c.State = state.Ended
-	r = c.seeEnd(now)
-	c.adopt(r, r.Key+nanos(earlier))
-	if !c.Since.Equal(earlier) {
-		t.Fatalf("endseen: %+v", c)
-	}
-}
-
-func TestAnEndedAgentsEndSeenBeforeItsLastReportDoesNotCount(t *testing.T) {
-	// Relaunched by hq sandbox restart at 1150, it reported at 1200, and its
-	// pane died at 1300 as its sandbox stopped (#104).
-	at := func(s float64) time.Time { return time.UnixMilli(int64(s * 1000)) }
-	read := func(_, _ string) (state.Report, bool) {
-		return state.Report{State: state.Working, Since: at(1200)}, true
-	}
-	since := func(endSeen string) time.Time {
-		w := tmux.Window{ID: "@1", PaneDead: true, DeadAt: at(1300), Options: map[string]string{"id": "x", "sandbox": "claude-app", "started": "1150", "endseen": endSeen}}
-		return Collect([]tmux.Window{w}, read, Sandboxes{})[0].Since
-	}
-	for name, tc := range map[string]struct {
-		endSeen string
-		want    time.Time
-	}{
-		"seen during the relaunch, before a report": {"1150 0 " + nanos(at(1150.046)), at(1300)},
-		"an older hq's record of the relaunch":      {"1150 " + nanos(at(1150.046)), at(1300)},
-		"seen after its last report":                {"1150 " + nanos(at(1200)) + " " + nanos(at(1250)), at(1250)},
-		"none":                                      {"", at(1300)},
-	} {
-		if got := since(tc.endSeen); !got.Equal(tc.want) {
-			t.Errorf("%s: since %v, want %v", name, got, tc.want)
-		}
-	}
-	// Ended again after a report, it is seen ended afresh.
-	w := tmux.Window{ID: "@1", Options: map[string]string{"id": "x", "sandbox": "claude-app", "started": "1150", "ending": "1", "endseen": "1150 0 " + nanos(at(1150.046))}}
-	a := Collect([]tmux.Window{w}, read, Sandboxes{})[0]
-	if r := a.seeEnd(at(1400)); r.Value != "1150 "+nanos(at(1200))+" "+nanos(at(1400)) || !a.Since.Equal(at(1400)) {
-		t.Errorf("seen afresh: %+v %v", r, a.Since)
-	}
-}
-
-func TestEnteredIsWhenTheReportedStateCanBeSeen(t *testing.T) {
-	// A state the hooks report is seen from the state file's time, as AGE
-	// counts it; so is a turn end hq saw on the screen, from the record.
-	asked := time.Unix(1000, 0)
-	a := FromWindows([]tmux.Window{{ID: "@1", Options: map[string]string{"id": "x", "started": "900"}}})[0]
-	a.Apply(state.Report{State: state.Question, Since: asked}, true)
-	if !a.Entered().Equal(asked) {
-		t.Fatalf("question: %v", a.Entered())
-	}
-	declined := "● User declined to answer questions\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer\n"
-	b := FromWindows([]tmux.Window{{ID: "@2", Options: map[string]string{"id": "y"}}})[0]
-	b.Apply(state.Report{State: state.NeedsInput, Since: asked}, true)
-	seen := asked.Add(5 * time.Second)
-	b.settle(declined, seen)
-	if !b.Entered().Equal(seen) {
-		t.Fatalf("cancelled dialog: %v", b.Entered())
-	}
-}
-
-func TestARewoundTurnIsEnteredWhenItIsDecided(t *testing.T) {
-	// A rewind counts from when its screen was first seen at rest (AGE), but
-	// only RestDelay later is it done for anyone to see: in its own look,
-	// and in every process that recalls the records.
-	rule := strings.Repeat("─", 20)
-	box := "✻ Baked for 2s · done\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n"
-	asked := time.Unix(1000, 0)
-	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	r := state.Report{State: state.Working, Since: asked}
-	look := func() Agent {
-		a := FromWindows([]tmux.Window{w})[0]
-		a.Apply(r, true)
-		return a
-	}
-	first := asked.Add(3 * time.Second)
-	a := look()
-	_, rest := split(a.settle(box, first))
-	w.Options["restseen"] = rest
-	a = look()
-	end, _ := split(a.settle(box, first.Add(RestDelay)))
-	if a.State != state.Done || !a.Since.Equal(first) || !a.Entered().Equal(first.Add(RestDelay)) {
-		t.Fatalf("decided: %+v entered %v", a, a.Entered())
-	}
-	w.Options["turnend"] = end
-	a = look()
-	if !a.recall() || !a.Entered().Equal(first.Add(RestDelay)) {
-		t.Fatalf("recalled: %+v entered %v", a, a.Entered())
-	}
-	// An Esc that printed Interrupted is no rewind, whatever the rest
-	// record of the same report says.
-	w.Options["turnend"] = strings.Replace(end, nanos(first), nanos(first.Add(time.Second)), 1)
-	a = look()
-	if !a.recall() || a.Last != Rewound || !a.Entered().Equal(first.Add(time.Second)) {
-		t.Fatalf("interrupted: %+v entered %v", a, a.Entered())
-	}
-}
-
-func TestAnEndedAgentIsEnteredFromTheFirstSignOfItsEnd(t *testing.T) {
-	at := func(s float64) time.Time { return time.UnixMilli(int64(s * 1000)) }
-	entered := func(dead bool, deadAt float64, report state.Report, endSeen string) time.Time {
-		w := tmux.Window{ID: "@1", PaneDead: dead, Options: map[string]string{"id": "x", "sandbox": "claude-app", "started": "900", "endseen": endSeen}}
-		if deadAt > 0 {
-			w.DeadAt = at(deadAt)
-		}
-		as := Collect([]tmux.Window{w}, func(_, _ string) (state.Report, bool) { return report, true }, Sandboxes{})
-		if as[0].State != state.Ended {
-			t.Fatalf("not ended: %+v", as[0])
-		}
-		return as[0].Entered()
-	}
-	working := state.Report{State: state.Working, Since: at(1000)}
-	exited := state.Report{State: state.Ended, Since: at(1000.4)}
-	for name, tc := range map[string]struct {
-		got, want time.Time
-	}{
-		// tmux dates a pane's death to the whole second: it died by a
-		// second later, though AGE counts from the date.
-		"its pane died":        {entered(true, 1001, working, ""), at(1002)},
-		"its session reported": {entered(true, 1001, exited, ""), at(1000.4)},
-		"hq first saw it":      {entered(true, 0, working, "900 "+nanos(at(1000))+" "+nanos(at(1003.5))), at(1003.5)},
-		"seen, then it died":   {entered(true, 1005, working, "900 "+nanos(at(1000))+" "+nanos(at(1003.5))), at(1003.5)},
-		"no date yet":          {entered(true, 0, working, ""), at(1000)},
-	} {
-		if !tc.got.Equal(tc.want) {
-			t.Errorf("%s: entered %v, want %v", name, tc.got, tc.want)
-		}
-	}
-}
-
-// Claude's own dialog at the start of a session is reported by no hook:
-// the agent needs input while its screen shows it (#29), from the moment hq
-// first saw it.
-func TestSettleSeesClaudesDialogAtTheStartOfASession(t *testing.T) {
-	rule := strings.Repeat("─", 40)
-	dialog := "fake claude: ready\n" + rule + "\n Make auto mode your default permission mode?\n\n   Auto mode lets Claude handle prompts.\n\n   ❯ Yes, set auto mode as my default permission mode\n     No, keep bypass permissions\n"
-	ready := "fake claude: ready\n" + rule + "\n❯ \n" + rule + "\n  footer\n"
-	started := time.Unix(1000, 0)
-	seen := started.Add(time.Second)
-	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	start := state.Report{State: state.Done, Since: started}
-	a := FromWindows([]tmux.Window{w})[0]
-	a.Apply(start, true)
-	if a.Dialog().Asks(nil) != nil || !a.unsettled(seen) || a.unsettled(started) {
-		t.Fatalf("a session just started is looked at once the report has settled: %+v", a)
-	}
-	if rec := a.settle(dialog, seen); rec.Option != "dialogseen" || rec.Value == "" || a.State != state.NeedsInput || a.Last != "Make auto mode your default permission mode?" || !a.Since.Equal(seen) {
-		t.Fatalf("dialog: %+v %+v", rec, a)
-	}
-	if ask := a.Dialog().Asks(nil); ask == nil || len(ask.Questions) != 1 || len(ask.Questions[0].Options) != 2 || ask.Questions[0].Options[1].Label != "No, keep bypass permissions" {
-		t.Fatalf("ask: %+v", ask)
-	}
-	// Answered: Claude waits at its prompt, done since it started.
-	b := FromWindows([]tmux.Window{w})[0]
-	b.Apply(start, true)
-	if rec := b.settle(ready, started.Add(time.Minute)); rec.Value != "" || b.State != state.Done || b.Last != "" || b.Dialog().Asks(nil) != nil || !b.Since.Equal(started) {
-		t.Fatalf("ready: %+v %+v", rec, b)
-	}
-	// A resumed session keeps its last message while no dialog shows.
-	c := FromWindows([]tmux.Window{w})[0]
-	c.Apply(state.Report{State: state.Done, Since: started, Last: "Hi."}, true)
-	if c.settle(ready, started.Add(time.Minute)); c.State != state.Done || c.Last != "Hi." {
-		t.Fatalf("resumed: %+v", c)
-	}
-}
-
-// A dialog Claude opens after a turn, as for /effort, is reported by no
-// hook either: the agent needs input while its screen shows it, from the
-// moment hq first saw it, which every hq process takes from the record on
-// the agent's window; once it is answered, the agent is done with its
-// turn's message again (#66).
-func TestSettleSeesClaudesDialogAfterATurn(t *testing.T) {
-	top := strings.Repeat("▔", 40)
-	rule := strings.Repeat("─", 40)
-	dialog := "❯ say hi\n● hi\n" + top + "\n   Change effort level?\n   Your next response will be slower\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"
-	moved := strings.Replace(strings.Replace(dialog, "❯ 1.", "  1.", 1), "  2.", "❯ 2.", 1)
-	ready := "❯ say hi\n● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n"
-	done := time.Unix(1000, 0)
-	seen := done.Add(time.Hour)
-	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	turn := state.Report{State: state.Done, Since: done, Last: "hi"}
-	look := func(screen string, now time.Time) (Agent, record) {
-		a := FromWindows([]tmux.Window{w})[0]
-		a.Apply(turn, true)
-		if !a.unsettled(now) {
-			t.Fatalf("a done agent is not looked at: %+v", a)
-		}
-		return a, a.settle(screen, now)
-	}
-	a, rec := look(dialog, seen)
-	if rec.Option != "dialogseen" || rec.Value == "" || a.State != state.NeedsInput || a.Last != "Change effort level?" || !a.Since.Equal(seen) || a.Entered() != seen {
-		t.Fatalf("dialog: %+v %+v", rec, a)
-	}
-	if ask := a.Dialog().Asks(nil); ask == nil || ask.Questions[0].Options[0].Label != "Yes, switch to max" || ask.Description != "Your next response will be slower" {
-		t.Fatalf("ask: %+v", ask)
-	}
-	// Seen again later, the cursor moved, or a list of options scrolled:
-	// since the recorded moment.
-	w.Options["dialogseen"] = rec.Value
-	if b, rec := look(moved, seen.Add(time.Minute)); rec.Value != "" || b.State != state.NeedsInput || !b.Since.Equal(seen) {
-		t.Fatalf("again: %+v %+v", rec, b)
-	}
-	scrolled := strings.Replace(moved, "     2. No, go back\n", "     2. No, go back\n     3. Ask me later\n", 1)
-	if b, rec := look(scrolled, seen.Add(time.Minute)); rec.Value != "" || !b.Since.Equal(seen) {
-		t.Fatalf("scrolled: %+v %+v", rec, b)
-	}
-	// Another hq process stored its moment first: that one counts.
-	w.Options["dialogseen"] = ""
-	c, rec := look(dialog, seen.Add(2*time.Second))
-	c.adopt(rec, strings.Replace(rec.Value, nanos(seen.Add(2*time.Second)), nanos(seen), 1))
-	if !c.Since.Equal(seen) || c.State != state.NeedsInput {
-		t.Fatalf("stored first elsewhere: %+v", c)
-	}
-	// Answered: done with its turn's message, since the turn; the record
-	// is closed, so a dialog opened again counts from when it is seen.
-	w.Options["dialogseen"] = c.dialogSeen
-	d, rec := look(ready, seen.Add(time.Minute))
-	if rec.Option != "dialogseen" || rec.Value == "" || d.State != state.Done || d.Last != "hi" || d.Dialog().Asks(nil) != nil || !d.Since.Equal(done) {
-		t.Fatalf("answered: %+v %+v", rec, d)
-	}
-	w.Options["dialogseen"] = rec.Value
-	if _, rec := look(ready, seen.Add(2*time.Minute)); rec.Value != "" {
-		t.Fatalf("closed twice: %+v", rec)
-	}
-	again := seen.Add(3 * time.Minute)
-	if e, rec := look(dialog, again); rec.Value == "" || e.State != state.NeedsInput || !e.Since.Equal(again) {
-		t.Fatalf("opened again: %+v %+v", rec, e)
-	}
-	// A record of an earlier report does not count for a later one.
-	w.Options["dialogseen"] = c.dialogSeen
-	turn.Since = done.Add(2 * time.Hour)
-	later := turn.Since.Add(time.Second)
-	if f, rec := look(dialog, later); rec.Value == "" || !f.Since.Equal(later) {
-		t.Fatalf("later report: %+v %+v", rec, f)
-	}
-	if _, rec := look(ready, later); rec.Value != "" {
-		t.Fatalf("closing another report's record: %+v", rec)
-	}
-}
-
-// A question at its prompt, or a turn the user ended, waits at its prompt
-// as a done agent does: a dialog Claude opens there needs input too (#66).
-func TestSettleSeesClaudesDialogAfterAQuestionAndATurnTheUserEnded(t *testing.T) {
-	dialog := "● hi\n" + strings.Repeat("▔", 40) + "\n   Change effort level?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"
-	at := time.Unix(1000, 0)
-	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	a := FromWindows([]tmux.Window{w})[0]
-	a.Apply(state.Report{State: state.Question, Since: at, Last: "Red or blue?"}, true)
-	if a.settle(dialog, at.Add(time.Minute)); a.State != state.NeedsInput || a.Last != "Change effort level?" {
-		t.Fatalf("question: %+v", a)
-	}
-	working := state.Report{State: state.Working, Since: at, Prompt: "go"}
-	b := FromWindows([]tmux.Window{w})[0]
-	b.Apply(working, true)
-	w.Options["turnend"] = b.key() + " " + nanos(at.Add(time.Second)) + " " + Rewound
-	c := FromWindows([]tmux.Window{w})[0]
-	c.Apply(working, true)
-	if c.settle(dialog, at.Add(time.Minute)); c.State != state.NeedsInput || c.Last != "Change effort level?" {
-		t.Fatalf("turn ended by the user: %+v", c)
-	}
-}
-
-// Its screen is read only for a dialog of Claude's own (#70): at rest at
-// its prompt it is no turn end.
-func TestAnAgentWaitingForItsSubagentsWorksAtItsPromptAndItsScreenIsNotRead(t *testing.T) {
-	// Claude at its prompt, at rest, after a turn that ended by itself: the
-	// look of a rewind.
-	atRest := "● Started.\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer\n"
-	prompted := time.Unix(1000, 0)
-	ended := prompted.Add(10 * time.Second)
-	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	r := state.Report{State: state.Working, Since: prompted, Latest: ended, Background: true, Last: "Started.", Prompt: "run the tests"}
-	a := FromWindows([]tmux.Window{w})[0]
-	a.Apply(r, true)
-	if !a.OnBackgroundWork() {
-		t.Fatalf("waiting %v", a.OnBackgroundWork())
-	}
-	for _, at := range []time.Time{ended.Add(time.Minute), ended.Add(time.Hour)} {
-		if rec := a.settle(atRest, at); rec.Value != "" || !a.OnBackgroundWork() {
-			t.Fatalf("at rest: %+v %+v", rec, a)
-		}
-	}
-	// Working since the user's prompt, with the turn's message.
-	if a.State != state.Working || !a.Since.Equal(prompted) || a.Last != "Started." || !a.Entered().Equal(prompted) {
-		t.Fatalf("%+v", a)
-	}
-
-	// Claude's wake-up: the closing turn is at work, since the same prompt,
-	// and its screen is read again, a moment after the wake-up.
-	woken := ended.Add(time.Minute)
-	r.Latest, r.Background, r.Woken = woken, false, true
-	b := FromWindows([]tmux.Window{w})[0]
-	b.Apply(r, true)
-	if b.OnBackgroundWork() || b.unsettled(woken.Add(100*time.Millisecond)) || !b.unsettled(woken.Add(time.Second)) || !b.Since.Equal(prompted) {
-		t.Fatalf("woken: waiting %v %+v", b.OnBackgroundWork(), b)
-	}
-	if rec := b.settle(atRest, woken.Add(time.Second)); rec.Option != "restseen" {
-		t.Fatalf("closing turn at rest: %+v", rec)
-	}
-	// An Interrupted line of the turn before the wake-up stands above what
-	// the wake-up printed: not this turn's end.
-	stale := "  ⎿  Interrupted · What should Claude do instead?\n● Agent \"Run the tests\" finished · 42s\n" + atRest
-	seen := woken.Add(2 * time.Second)
-	if rec := b.settle(stale, seen); b.State != state.Working || rec.Option != "restseen" {
-		t.Fatalf("closing turn, an earlier turn's line above: %+v %+v", rec, b)
-	}
-	// The user ends the closing turn: done, as any turn ended at the agent.
-	interrupted := "● Agent \"Run the tests\" finished · 42s\n● Started.\n  ⎿  Interrupted · What should Claude do instead?\n" + strings.TrimPrefix(atRest, "● Started.\n")
-	rec := b.settle(interrupted, seen)
-	if b.State != state.Done || b.Last != "Interrupted" || !b.Since.Equal(seen) || rec.Option != "turnend" {
-		t.Fatalf("closing turn interrupted: %+v %+v", rec, b)
-	}
-}
-
-func TestATurnEndHqSawDoesNotOutliveClaudesWakeUp(t *testing.T) {
-	// The user interrupted a turn whose subagent still runs: done, with no
-	// hook. Claude's wake-up, when the subagent has finished, is a later
-	// report: the closing turn shows working.
-	prompted := time.Unix(1000, 0)
-	seen := prompted.Add(5 * time.Second)
-	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	r := state.Report{State: state.Working, Since: prompted, Latest: prompted, Prompt: "run the tests"}
-	a := FromWindows([]tmux.Window{w})[0]
-	a.Apply(r, true)
-	interrupted := "  ⎿  Interrupted · What should Claude do instead?\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer\n"
-	rec := a.settle(interrupted, seen)
-	if a.State != state.Done || rec.Option != "turnend" {
-		t.Fatalf("interrupted: %+v %+v", rec, a)
-	}
-	w.Options["turnend"] = rec.Value
-	b := FromWindows([]tmux.Window{w})[0]
-	b.Apply(r, true)
-	if !b.recall() || b.State != state.Done {
-		t.Fatalf("recalled: %+v", b)
-	}
-	// It works since the wake-up, not since the prompt of the turn the
-	// user ended, and the look that sees the wake-up records when.
-	woken := prompted.Add(time.Minute)
-	r.Latest, r.Woken = woken, true
-	c := FromWindows([]tmux.Window{w})[0]
-	c.Apply(r, true)
-	wake := c.seeWake()
-	if c.recall() || c.State != state.Working || !c.Since.Equal(woken) || wake.Option != "wokeseen" {
-		t.Fatalf("after the wake-up: %+v %+v", wake, c)
-	}
-	// The closing turn ends with another subagent running: a later report
-	// of the same work, which no longer tells when the wake-up was.
-	r.Latest, r.Woken, r.Background = woken.Add(10*time.Second), false, true
-	d := FromWindows([]tmux.Window{w})[0]
-	d.Apply(r, true)
-	if d.State != state.Working || !d.Since.Equal(prompted) || d.seeWake().Value != "" {
-		t.Fatalf("a later report, the wake-up never seen: %+v", d)
-	}
-	w.Options["wokeseen"] = wake.Value
-	d = FromWindows([]tmux.Window{w})[0]
-	d.Apply(r, true)
-	if d.State != state.Working || !d.Since.Equal(woken) || d.seeWake().Value != "" {
-		t.Fatalf("a later report, the wake-up recorded: %+v", d)
-	}
-	// Another process stored its record first: that moment shows.
-	first := wake.Key + "1060000000000"
-	r.Latest, r.Woken, r.Background = woken, true, false
-	delete(w.Options, "wokeseen")
-	e := FromWindows([]tmux.Window{w})[0]
-	e.Apply(r, true)
-	if e.adopt(e.seeWake(), first); !e.Since.Equal(time.Unix(1060, 0)) {
-		t.Fatalf("the record stored first: %+v", e)
-	}
-	// A wake-up with no turn the user ended before it changes nothing.
-	delete(w.Options, "turnend")
-	g := FromWindows([]tmux.Window{w})[0]
-	g.Apply(r, true)
-	if !g.Since.Equal(prompted) || g.seeWake().Value != "" {
-		t.Fatalf("a wake-up after a turn that ended by itself: %+v", g)
-	}
-	w.Options["turnend"] = rec.Value
-	// An agent that ended keeps the turn end of its latest report only.
-	w.PaneDead = true
-	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, Sandboxes{}); as[0].Last == "Interrupted" {
-		t.Fatalf("ended after the wake-up: %+v", as[0])
-	}
-}
-
-func TestAnAgentOwedATurnThatDoesNotComeIsDoneOnceItsScreenStaysAtRest(t *testing.T) {
-	// Claude at its prompt after the turn ended, the user typing there.
-	atRest := "● The second finished.\n" + strings.Repeat("─", 20) + "\n❯ and now\n" + strings.Repeat("─", 20) + "\n  footer\n"
-	prompted := time.Unix(1000, 0)
-	ended := prompted.Add(time.Minute)
-	w := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	r := state.Report{State: state.Working, Since: prompted, Latest: ended, Background: true, Owed: true, Last: "The second finished.", Prompt: "run the tests"}
-	look := func(screen string, now time.Time) (Agent, record) {
-		a := FromWindows([]tmux.Window{w})[0]
-		a.Apply(r, true)
-		if !a.OnBackgroundWork() {
-			t.Fatalf("not at its prompt: %+v", a)
-		}
-		if !a.unsettled(now) {
-			return a, record{}
-		}
-		rec := a.settle(screen, now)
-		if rec.Value != "" {
-			w.Options[rec.Option] = rec.Value
-		}
-		return a, rec
-	}
-	// The turn Claude owes comes within moments: nothing is looked at yet,
-	// and a screen at work is not at rest.
-	if a, _ := look(atRest, ended.Add(100*time.Millisecond)); a.State != state.Working {
-		t.Fatalf("just ended: %+v", a)
-	}
-	working := "✻ Brewing… (2s)\n" + strings.Repeat("─", 20) + "\n❯ \n" + strings.Repeat("─", 20) + "\n  footer · esc to interrupt\n"
-	if a, rec := look(working, ended.Add(time.Second)); a.State != state.Working || rec.Value != "" {
-		t.Fatalf("at work: %+v %+v", rec, a)
-	}
-	// At rest: seen, and working until it has stayed so.
-	seen := ended.Add(2 * time.Second)
-	if a, rec := look(atRest, seen); a.State != state.Working || rec.Option != "restseen" {
-		t.Fatalf("first seen at rest: %+v %+v", rec, a)
-	}
-	if a, rec := look(atRest, seen.Add(time.Second)); a.State != state.Working || rec.Value != "" {
-		t.Fatalf("at rest for a second: %+v %+v", rec, a)
-	}
-	// Still at rest: the turn does not come. Done, with the turn's message,
-	// since it was first seen at rest, entered when that was decided.
-	a, rec := look(atRest, seen.Add(RestDelay))
-	if a.State != state.Done || a.Last != "The second finished." || !a.Since.Equal(seen) || rec.Option != "turnend" || !a.Entered().Equal(seen.Add(RestDelay)) {
-		t.Fatalf("at rest for long: %+v %+v", rec, a)
-	}
-	// The message is the agent's own: never kept on the window.
-	if strings.Contains(rec.Value, "second") {
-		t.Fatalf("the record holds the agent's message: %q", rec.Value)
-	}
-	// One hq ls looks again, RestDelay later, as for a rewound turn.
-	w2 := tmux.Window{ID: "@1", Pane: "%1", Options: map[string]string{"id": "x"}}
-	first := FromWindows([]tmux.Window{w2})[0]
-	first.Apply(r, true)
-	if first.settle(atRest, seen); !first.Resting() {
-		t.Fatal("a first look at rest asks for no second one")
-	}
-	// Every later look agrees, without the screen.
-	b := FromWindows([]tmux.Window{w})[0]
-	b.Apply(r, true)
-	if !b.recall() || b.State != state.Done || b.Last != "The second finished." || !b.Since.Equal(seen) || !b.Entered().Equal(seen.Add(RestDelay)) {
-		t.Fatalf("recalled: %+v", b)
-	}
-	// Ended after that: its last message stays its own.
-	w.PaneDead = true
-	if as := Collect([]tmux.Window{w}, func(string, string) (state.Report, bool) { return r, true }, Sandboxes{}); as[0].Last != "The second finished." {
-		t.Fatalf("ended: %+v", as[0])
-	}
-}
-
-// Once Claude has acted on a turn (a tool of its own ended), no early Esc
-// rewinds it, so a screen at rest is no rewind: a working agent's screen
-// may show no spinner for a while and stay the same (#77). It ends only at
-// a tool the user cut short, which the sbx template marks × in the turn's
-// card with no Interrupted line; at rest for RestDelay like a rewind.
-func TestATurnClaudeHasActedOnEndsAtRestOnlyAtACutTool(t *testing.T) {
-	now := time.Unix(1000, 0)
-	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.Working, Since: asked, Last: "earlier", Prompt: "Run the ticks.", Acted: true}}
-	w := lookWindow("1")
-	look := func(s *fakeStore, at time.Time) Agent {
-		t.Helper()
-		return Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, at, s)[0]
-	}
-	for _, name := range []string{"fs-streaming", "fs-elicit-done", "fs-narrow-done", "fs-tool-failed-done"} {
-		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
-		for _, at := range []time.Time{now, now.Add(RestDelay), now.Add(time.Hour)} {
-			if a := look(s, at); a.State != state.Working || !a.Since.Equal(asked) || a.Resting() || len(s.options) != 0 {
-				t.Fatalf("%s at %v: %+v %v", name, at, a, s.options)
-			}
-		}
-	}
-	for _, name := range []string{"fs-esc-tool", "fs-esc-later-tool"} {
-		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
-		w.Options = lookWindow("1").Options
-		if a := look(s, now); a.State != state.Working || s.options["@1"]["restseen"] == "" {
-			t.Fatalf("%s first look: %+v %v", name, a, s.options)
-		}
-		w.Options["restseen"] = s.options["@1"]["restseen"]
-		if a := look(s, now.Add(RestDelay)); a.State != state.Done || a.Last != Rewound || !a.Since.Equal(now) {
-			t.Fatalf("%s at rest: %+v", name, a)
-		}
-	}
-	// The same after a dialog of its hooks' the screen saw answered, before
-	// the dialog's tool ended.
-	rs["id1"] = state.Report{State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", LastStop: "Hi."}
-	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-esc-tool")}}
-	w.Options = lookWindow("1").Options
-	w.Options["answered"] = nanos(asked) + " " + nanos(now.Add(-time.Second))
-	look(s, now)
-	w.Options["restseen"] = s.options["@1"]["restseen"]
-	if a := look(s, now.Add(RestDelay)); a.State != state.Done || a.Last != Rewound || !a.Since.Equal(now) {
-		t.Fatalf("answered, then cut: %+v %v", a, s.options)
+	as := s.look(ws, map[string]journaltest.HookState{
+		"a1": {State: state.Question, Since: asked, Last: "Shall I?"},
+		"a2": {State: state.NeedsInput, Since: asked, Last: "Pick one"},
+	}, Sandboxes{}, seen)
+	if !as[0].Entered().Equal(asked) {
+		t.Fatalf("question: %v", as[0].Entered())
+	}
+	if as[1].State != state.Done || !as[1].Entered().Equal(seen) {
+		t.Fatalf("cancelled dialog: %+v entered %v", as[1], as[1].Entered())
+	}
+	if a := FromWindows(ws[:1])[0]; !a.Entered().Equal(a.Started) {
+		t.Fatalf("no event yet: %v", a.Entered())
 	}
 }
 
@@ -1147,34 +353,41 @@ func TestEndsTellsWhatIsLeftToEndInASandbox(t *testing.T) {
 	// (#87, #101). An agent starting in a sandbox that has not started yet
 	// (S2) has a session on its way, which hq kill must still end.
 	asked := time.Unix(200, 0)
-	reported := func(root, id string) (state.Report, bool) {
-		return state.Report{State: state.Done, Since: asked.Add(-time.Second), Latest: asked.Add(-time.Second)}, true
-	}
-	none := func(root, id string) (state.Report, bool) { return state.Report{}, false }
-	live := tmux.Window{ID: "@1", Options: map[string]string{"id": "a", "sandbox": "claude-app", "started": "100"}}
-	dead := live
+	before := &journaltest.HookState{State: state.Done, Since: asked.Add(-time.Second)}
+	after := &journaltest.HookState{State: state.Done, Since: asked.Add(time.Millisecond)}
+	// A session that ends as its sandbox stops reports its end, which
+	// may come after the answer while its pane still runs: no sign that
+	// the sandbox ran after it (#191).
+	endedAfter := &journaltest.HookState{State: state.Ended, Since: asked.Add(time.Millisecond)}
+	live := sbxWindows()[0]
+	dead := sbxWindows()[0]
 	dead.PaneDead = true
 	stopped := Sandboxes{Running: map[string]bool{}, Asked: asked}
 	for _, c := range []struct {
 		name string
 		w    tmux.Window
-		read func(root, id string) (state.Report, bool)
+		r    *journaltest.HookState
 		s    Sandboxes
 		want bool
 	}{
-		{"live pane, reported, sandbox stopped", live, reported, stopped, true},
-		{"dead pane, sandbox stopped", dead, none, stopped, true},
-		{"dead pane, sandbox not listed at all", dead, none, Sandboxes{Running: map[string]bool{"claude-lib": true}, Asked: asked}, true},
-		{"live pane, never reported, sandbox not started (S2)", live, none, stopped, false},
-		{"live pane, reported after the answer", live, func(root, id string) (state.Report, bool) {
-			return state.Report{State: state.Done, Since: asked.Add(time.Millisecond)}, true
-		}, stopped, false},
-		{"live pane, reported, sandbox running", live, reported, Sandboxes{Running: map[string]bool{"claude-app": true}, Asked: asked}, false},
-		{"dead pane, sandbox running (an orphan)", dead, none, Sandboxes{Running: map[string]bool{"claude-app": true}, Asked: asked}, false},
-		{"sbx could not say", dead, reported, Sandboxes{}, false},
+		{"live pane, reported, sandbox stopped", live, before, stopped, true},
+		{"dead pane, sandbox stopped", dead, nil, stopped, true},
+		{"dead pane, sandbox not listed at all", dead, nil, Sandboxes{Running: map[string]bool{"claude-lib": true}, Asked: asked}, true},
+		{"live pane, never reported, sandbox not started (S2)", live, nil, stopped, false},
+		{"live pane, reported after the answer", live, after, stopped, false},
+		{"live pane, its session's end reported after the answer", live, endedAfter, stopped, true},
+		{"live pane, reported, sandbox running", live, before, Sandboxes{Running: map[string]bool{"claude-app": true}, Asked: asked}, false},
+		{"dead pane, sandbox running (an orphan)", dead, nil, Sandboxes{Running: map[string]bool{"claude-app": true}, Asked: asked}, false},
+		{"sbx could not say", dead, before, Sandboxes{}, false},
 	} {
-		a := Collect([]tmux.Window{c.w}, c.read, c.s)[0]
-		if got := c.s.Ends(a); got != c.want {
+		s := newStore(nil)
+		if c.r != nil {
+			s.report("a1", *c.r)
+		}
+		// hq kill reads the journals as they are (ReadStates), then asks.
+		as := FromWindows([]tmux.Window{c.w})
+		ReadStates(as, s, asked.Add(time.Second), nil)
+		if got := c.s.Ends(as[0]); got != c.want {
 			t.Errorf("%s: Ends %v, want %v", c.name, got, c.want)
 		}
 	}
@@ -1197,3 +410,6 @@ func TestOwnTasksAreCountedInClaudesFooterWording(t *testing.T) {
 		}
 	}
 }
+
+// gen is this hq's generation, as a home window holds it.
+var gen = strconv.Itoa(version.Generation)

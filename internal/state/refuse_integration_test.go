@@ -93,6 +93,7 @@ func TestOnlyACallOfHqsShapeNamingTheCallerIsRefused(t *testing.T) {
 		{"no agent: not hq's session", "", "pre-tool-kill", "", "", false},
 		{"a kill not yet confirmed", "sup", "pre-tool-kill", "", `{"name":"sup"}`, true},
 		{"a send at once", "sup", "pre-tool-send", "", `{"name":"sup","text":"x","now":true}`, true},
+		{"a send that waits", "sup", "pre-tool-send", "", `{"name":"sup","text":"x","wait":true,"timeout":30}`, true},
 		{"an answer that cancels", "sup", "pre-tool-answer", "", `{"dialog":"d1","cancel":true,"name":"sup","confirmed":true}`, true},
 		{"another server's kill with a key hq's has not", "sup", "pre-tool-kill", "", `{"name":"sup","signal":"KILL"}`, false},
 		{"a send without its text", "sup", "pre-tool-send", "", `{"name":"sup"}`, false},

@@ -51,7 +51,7 @@ func post(t *testing.T, root, id string, now bool, texts ...string) {
 func postFrom(t *testing.T, root, id string, supervisor, now bool, texts ...string) {
 	t.Helper()
 	for _, text := range texts {
-		if err := Post(root, id, Message{Text: text, Supervisor: supervisor}, now, time.Now()); err != nil {
+		if _, err := Post(root, id, Message{Text: text, Supervisor: supervisor}, now, time.Now()); err != nil {
 			t.Fatal(err)
 		}
 		time.Sleep(time.Millisecond)
@@ -145,7 +145,7 @@ func TestOldestIsWhenTheFirstMessageWaitingWasSent(t *testing.T) {
 	}
 	at := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
 	for _, sent := range []time.Time{at.Add(time.Second), at, at.Add(time.Minute)} {
-		if err := Post(root, id, Message{Text: "hi"}, false, sent); err != nil {
+		if _, err := Post(root, id, Message{Text: "hi"}, false, sent); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -176,10 +176,10 @@ func TestHookBlocksTheStopWithTheMessagesAndStaysQuiet(t *testing.T) {
 	if o.Decision != "block" || o.Reason != labelled("also run the linter", `and say "done"`) || o.TerminalSequence != "" {
 		t.Fatalf("blocked stop: %+v", o)
 	}
-	if r, _ := Read(root, id); r.State != Working {
+	if r, _ := reported(root, id); r.State != Working {
 		t.Fatalf("after the blocked stop: %+v", r)
 	}
-	if _, err := os.Stat(filepath.Join(Dir(root), id+".stop")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(Dir(root), id+endedSuffix)); !os.IsNotExist(err) {
 		t.Fatal("the blocked stop was kept as the last stop")
 	}
 	if left := inboxLeft(root, id); len(left) != 0 {
@@ -196,7 +196,7 @@ func TestHookBlocksTheStopWithTheMessagesAndStaysQuiet(t *testing.T) {
 	if o := stop("stop-after-block"); o.Decision != "" || o.TerminalSequence != "[notify Done: main]" {
 		t.Fatalf("the stop after: %+v", o)
 	}
-	if r, _ := Read(root, id); r.State != Done || r.Last != "PINEAPPLE" {
+	if r, _ := reported(root, id); r.State != Done || r.Last != "PINEAPPLE" {
 		t.Fatalf("done: %+v", r)
 	}
 }
@@ -230,7 +230,7 @@ func TestHookDeliversAfterAToolOnlyWhenAMessageAsksForIt(t *testing.T) {
 		t.Fatal("left pending")
 	}
 	// The turn goes on, working with the age it had.
-	if r, _ := Read(root, id); r.State != Working {
+	if r, _ := reported(root, id); r.State != Working {
 		t.Fatalf("%+v", r)
 	}
 }
@@ -245,7 +245,7 @@ func TestHookPassesTheMessagesOnWithAPromptFromAWorktree(t *testing.T) {
 	if o.HookSpecificOutput.HookEventName != "UserPromptSubmit" || o.HookSpecificOutput.AdditionalContext != labelled("ride along") {
 		t.Fatalf("%+v", o)
 	}
-	if r, _ := Read(root, id); r.State != Working || r.Branch != "feat-42" {
+	if r, _ := reported(root, id); r.State != Working || r.Branch != "feat-42" {
 		t.Fatalf("%+v", r)
 	}
 	// Nothing waiting, or no inbox at all: the hook prints nothing.
@@ -301,5 +301,114 @@ func TestEachMessageIsDeliveredOnceWhenHqAndTheHookRace(t *testing.T) {
 	}
 	if left := inboxLeft(root, id); len(left) != 0 {
 		t.Fatalf("left %v", left)
+	}
+}
+
+func TestHeldMessagesWaitForHqAloneInTheOrderSent(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+	post(t, root, id, false, "first")
+	postFrom(t, root, id, true, false, "/probe second")
+	post(t, root, id, false, "third")
+	taken, err := Take(root, id)
+	if err != nil || len(taken) != 3 {
+		t.Fatalf("took %+v %v", taken, err)
+	}
+	// hq types the first in and holds the others for the agent's next
+	// prompt (#173).
+	if err := Hold(root, id, taken[1:]); err != nil {
+		t.Fatal(err)
+	}
+	if n, h := Pending(root, id), len(HeldNames(root, id)); n != 2 || h != 2 {
+		t.Fatalf("pending %d, held %d, want the 2 held", n, h)
+	}
+	want, _ := sentAt(taken[1].Name)
+	if got, ok := Oldest(root, id); !ok || !got.Equal(want) {
+		t.Fatalf("oldest %v %v, want %v", got, ok, want)
+	}
+	// The hooks leave held messages alone and deliver only the others.
+	post(t, root, id, false, "sent meanwhile")
+	if o := decodeOutput(t, run(t, root, root, id, hook("stop", "[notify %s]"), fixture(t, "stop-to-block"))); o.Decision != "block" || o.Reason != labelled("sent meanwhile") {
+		t.Fatalf("stop: %+v", o)
+	}
+	post(t, root, id, false, "fourth")
+	taken, err = Take(root, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(texts(taken), "|"); got != "/probe second|third|fourth" {
+		t.Fatalf("took %q", got)
+	}
+	if !taken[0].Supervisor || taken[1].Supervisor {
+		t.Fatalf("senders: %+v", taken)
+	}
+	if Pending(root, id) != 0 {
+		t.Fatal("left after the take")
+	}
+	// A message without the name it was left under is not held.
+	if err := Hold(root, id, []Message{{Text: "no name"}}); err == nil || len(HeldNames(root, id)) != 0 {
+		t.Fatalf("held without a name: %v", err)
+	}
+	if err := Hold(root, "not an id", taken); err == nil || len(HeldNames(root, "not an id")) != 0 {
+		t.Fatal("held for a bad id")
+	}
+	// A hold that fails holds none of them.
+	held := filepath.Join(InboxDir(root, id), "held")
+	os.RemoveAll(held)
+	os.WriteFile(held, nil, 0o644)
+	if err := Hold(root, id, taken); err == nil || len(HeldNames(root, id)) != 0 {
+		t.Fatal("held where the held directory cannot be")
+	}
+}
+
+// Taken, held and put back, a message keeps the name it was left under, so
+// every delivery of it names it as hq send left it (#195): the delivery
+// event of hq typing it in, and of the hook. Put back after a failed
+// typing, it loses its --now: the hooks deliver it with the next prompt,
+// not after a tool call, as before messages kept their names.
+func TestAMessageKeepsItsNameWhenHeldOrPutBack(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	post(t, root, id, true, "first")
+	post(t, root, id, false, "/probe second")
+	names := messages(InboxDir(root, id))
+	taken, err := Take(root, id)
+	if err != nil || len(taken) != 2 || taken[0].Name != names[0] || taken[1].Name != names[1] {
+		t.Fatalf("took %+v %v, names %v", taken, err, names)
+	}
+	if err := Hold(root, id, taken[1:]); err != nil {
+		t.Fatal(err)
+	}
+	if got := messages(filepath.Join(InboxDir(root, id), "held")); len(got) != 1 || got[0] != names[1] {
+		t.Fatalf("held %v", got)
+	}
+	// A held message of that name is there already: none is held twice.
+	if err := Hold(root, id, taken[1:]); err == nil || !strings.Contains(err.Error(), "held already") {
+		t.Fatalf("held twice: %v", err)
+	}
+	// The first put back after a failed typing, the held one taken again;
+	// Post says the name it waits under.
+	back, err := Post(root, id, taken[0], false, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := strings.TrimSuffix(names[0], ".now")
+	if got := messages(InboxDir(root, id)); len(got) != 1 || got[0] != first || first == names[0] || back != first {
+		t.Fatalf("put back %v as %s, want %s", got, back, first)
+	}
+	if _, err := Post(root, id, taken[0], false, time.Now()); err == nil {
+		t.Fatal("put back over a message of its name")
+	}
+	again, err := Take(root, id)
+	if err != nil || len(again) != 2 || again[0].Name != first || again[1].Name != names[1] || again[0].Text != "first" {
+		t.Fatalf("took again %+v %v", again, err)
+	}
+	// Put back with --now asked again, it keeps the whole name.
+	if back, err = Post(root, id, taken[0], true, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if got := messages(InboxDir(root, id)); len(got) != 1 || got[0] != names[0] || back != names[0] {
+		t.Fatalf("put back with now %v, want %s", got, names[0])
 	}
 }

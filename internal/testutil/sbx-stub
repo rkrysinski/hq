@@ -1,13 +1,20 @@
 #!/bin/sh
-# Stub of Docker Sandboxes' sbx for integration and end-to-end tests: sandboxes
+# Stub of Docker Sandboxes' sbx for integration and end-to-end tests, as sbx
+# 0.48 and newer behave (#172): `ls --json` prints the array of sandboxes,
+# `create` knows --no-progress and `run` --detach and -d, and the spellings
+# older sbx knew (create --quiet or -q, run --detached) fail as sbx fails an
+# unknown flag. With SBX_STUB_OLD set, it answers as an sbx older than 0.48:
+# `ls --json` prints the object {"sandboxes": [...]}, the old spellings work
+# and the new fail, and `version` tells SBX_STUB_OLD as the version, or with
+# SBX_STUB_OLD=none fails. Sandboxes
 # are files in $SBX_STUB_DIR/sandboxes (line 1 status, line 2 workspace), and
 # `run` behaves like a Claude session that stays until it is terminated, or
 # runs the fake claude (SBX_STUB_CLAUDE) that fires hq's injected hooks.
 # Workspaces may be Windows paths, as sbx.exe sees them from WSL.
 # With SBX_STUB_BOOT set to a path, `run` starts a sandbox that is not
 # running only once that file exists, as sbx takes a while to start one
-# before the session begins. `create` and `run --detached` log their
-# arguments to creates.log (the latter after `run --detached`),
+# before the session begins. `create` and `run --detach` log their
+# arguments to creates.log (the latter after `run --detach`),
 # and with SBX_STUB_CREATE_ERR set fails with that error, as sbx does for a
 # template or MCP server it cannot find. With SBX_STUB_LOG set to a path,
 # every call is appended to that file with the time it came, to tell which
@@ -29,13 +36,28 @@ put() {
     printf '%s\n%s\n' "$2" "$3" >"$d/.put.$$"
     mv -f "$d/.put.$$" "$d/sandboxes/$1"
 }
-# create STATUS ARGS... is sbx create, and sbx run --detached, as ARGS
-# give them: logged to creates.log (run --detached with its command), named
+# unknown CMD FLAG fails as sbx fails a flag it does not know.
+unknown() {
+    case $2 in
+    --*) what="flag: $2" ;;
+    *) what="shorthand flag: '${2#-}' in $2" ;;
+    esac
+    printf 'error: unknown %s\n  try: sbx %s --help\n' "$what" "$1" >&2
+    exit 1
+}
+# create STATUS ARGS... is sbx create, and sbx run --detach, as ARGS
+# give them: logged to creates.log (run --detach with its command), named
 # --name or claude-<dir> as sbx names it, refused as sbx refuses a name
 # taken by another workspace.
 create() {
     status=$1
     shift
+    for a; do
+        case $a in
+        -q | --quiet) [ -n "${SBX_STUB_OLD:-}" ] || unknown create "$a" ;;
+        --no-progress) [ -z "${SBX_STUB_OLD:-}" ] || unknown create "$a" ;;
+        esac
+    done
     printf '%s\n' "$*" >>"$d/creates.log"
     if [ -n "${SBX_STUB_CREATE_ERR:-}" ]; then
         printf 'error: %s\n' "$SBX_STUB_CREATE_ERR" >&2
@@ -46,7 +68,7 @@ create() {
         case $1 in
         --name) name=$2; shift ;;
         --template | -t | --static-mcp | --model | --provider) shift ;;
-        -q | --quiet | --detached | -d | claude | run) ;;
+        -q | --quiet | --no-progress | --detached | --detach | -d | claude | run) ;;
         *) ws=$1 ;;
         esac
         shift
@@ -61,8 +83,16 @@ create() {
 cmd=$1
 shift
 case $cmd in
+version)
+    case ${SBX_STUB_OLD:-} in
+    '') echo 'sbx version v0.53.0 0000000' ;;
+    none) echo 'error: unknown command "version" for "sbx"' >&2; exit 1 ;;
+    *) echo "sbx version: v$SBX_STUB_OLD 0000000" ;;
+    esac
+    ;;
 ls)
-    printf '{"sandboxes":['
+    [ -z "${SBX_STUB_OLD:-}" ] || printf '{"sandboxes":'
+    printf '['
     sep=
     for f in "$d"/sandboxes/*; do
         [ -e "$f" ] || continue
@@ -71,19 +101,28 @@ ls)
         printf '%s{"name":"%s","agent":"claude","status":"%s","workspaces":["%s"]}' "$sep" "$(basename "$f")" "$status" "$ws"
         sep=,
     done
-    printf ']}\n'
+    printf ']'
+    [ -z "${SBX_STUB_OLD:-}" ] || printf '}'
+    printf '\n'
     ;;
 create)
     create stopped "$@"
     ;;
 run)
-    # run --detached creates a sandbox (with a model, as sbx create takes
-    # none) and starts it without a session.
-    if [ "$1" = --detached ]; then
+    # run --detach creates a sandbox (with a model, as sbx create takes
+    # none) and starts it without a session; before 0.48 it was --detached.
+    case $1 in
+    --detach) [ -z "${SBX_STUB_OLD:-}" ] || unknown run "$1" ;;
+    --detached) [ -n "${SBX_STUB_OLD:-}" ] || unknown run "$1" ;;
+    esac
+    case $1 in
+    --detach | --detached | -d)
+        flag=$1
         shift
-        create running run --detached "$@"
+        create running run "$flag" "$@"
         exit 0
-    fi
+        ;;
+    esac
     [ "$1" = --name ] || { echo "stub: run needs --name" >&2; exit 1; }
     name=$2
     shift 3 # --name NAME --

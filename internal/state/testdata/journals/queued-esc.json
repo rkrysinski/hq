@@ -1,0 +1,109 @@
+{
+  "about": "A queued prompt Claude runs at once after an Esc on the turn at work: the first end of a tool of its turn hands over to it.",
+  "steps": [
+    {
+      "hook": "prompt",
+      "payload": "queued-first",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000001-0000-4000-8000-000000000001",
+            "cwd": "/w/app",
+            "turn": "00000019-0000-4000-8000-000000000019",
+            "prompt": "Write a 400-word story about a whale. Use no tools.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "queued-while-working",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000001-0000-4000-8000-000000000001",
+            "cwd": "/w/app",
+            "turn": "00000019-0000-4000-8000-000000000019",
+            "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "queued-turn-tool-end",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000006-0000-4000-8000-000000000006",
+            "cwd": "/w/app",
+            "turn": "0000002b-0000-4000-8000-00000000002b",
+            "tool": "Bash",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "queued-turn-stop",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000004.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "00000006-0000-4000-8000-000000000006",
+            "cwd": "/w/app",
+            "turn": "0000002b-0000-4000-8000-00000000002b",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 4,
+        "text": "I ran the command in the foreground. It printed all 25 lines, one per second."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:04Z",
+        "last": "I ran the command in the foreground. It printed all 25 lines, one per second."
+      }
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -19,10 +20,10 @@ var emptyBox = "● Tests pass.\n" + strings.Repeat("─", 30) + "\n❯ \n" + st
 func sendFakes(st string) *fakes {
 	f := newLsFakes()
 	w := agentWindow("@4", "a", "/w/app", f.now.Add(-time.Minute), false)
-	w.Pane, w.Options["inbox"] = "%4", inboxHooks
+	w.Pane, w.Options["inbox"] = "%4", generation
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, w}
 	if st != "" {
-		f.states["id-a"] = state.Report{State: st, Since: f.now.Add(-time.Second)}
+		f.states["id-a"] = journaltest.HookState{State: st, Since: f.now.Add(-time.Second)}
 	}
 	f.tmux.screens = map[string]string{"%4": emptyBox}
 	return f
@@ -121,7 +122,7 @@ func TestSendToAStartingAgentWaitsForItsFirstReport(t *testing.T) {
 	sleeps := 0
 	f.onSleep = func() {
 		if sleeps++; sleeps == 3 {
-			f.states["id-a"] = state.Report{State: state.Done, Since: f.now}
+			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now}
 		}
 	}
 	code, out, _ := f.run("send", "a", "hi")
@@ -137,15 +138,22 @@ func TestSendToAStartingAgentWaitsForItsFirstReport(t *testing.T) {
 	}
 	// Its first prompt was typed in the meantime: working, it stops later.
 	f = sendFakes("")
-	f.onSleep = func() { f.states["id-a"] = state.Report{State: state.Working, Since: f.now} }
+	f.onSleep = func() { f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now} }
 	if _, out, _ = f.run("send", "a", "hi"); out != "queued: a is working, delivered when it stops\n" {
 		t.Fatalf("%q", out)
 	}
 }
 
+// hookTook records in agent a's journal that its hooks delivered the
+// message of text.
+func hookTook(f *fakes, text string) {
+	f.seen("/w/app", "id-a", state.SourceHook, state.KindDelivery, state.Facts{Messages: []string{fakeName(text)}}, f.now)
+}
+
 func TestSendSaysWhenTheHooksAlreadyTookIt(t *testing.T) {
 	// The hook takes it between hq's post and its look at the inbox.
 	f := sendFakes(state.Working)
+	hookTook(f, "hi")
 	d := f.deps()
 	d.pending = func(string, string) int { return 0 }
 	var out strings.Builder
@@ -154,11 +162,69 @@ func TestSendSaysWhenTheHooksAlreadyTookIt(t *testing.T) {
 	}
 	// At rest, but the hooks of a turn just begun took it first.
 	f = sendFakes(state.Done)
+	hookTook(f, "hi")
 	d = f.deps()
 	d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
 	out.Reset()
 	if err := runSend(Env{Stdout: &out}, d, []string{"a", "hi"}); err != nil || out.String() != "delivered: a took it with its hooks\n" || len(f.tmux.pasted) != 0 {
 		t.Fatalf("%v %q", err, out.String())
+	}
+}
+
+// A message gone from the inbox before hq send takes it is worded by the
+// delivery that names it in the agent's journal: another hq process (the
+// list's deliverWaiting) typed a slash command in, so it ran; with no
+// delivery of it in the journal, hq says only that it was taken (#173).
+func TestSendSaysWhoTookItByItsDelivery(t *testing.T) {
+	for _, st := range []string{state.Working, state.Done} {
+		for _, text := range []string{"/clear", "hi"} {
+			f := sendFakes(st)
+			d := f.deps()
+			d.pending = func(string, string) int { return 0 }
+			d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
+			f.seen("/w/app", "id-a", state.SourceHQ, state.KindDelivery, state.Facts{Messages: []string{fakeName(text)}}, f.now)
+			var out strings.Builder
+			if err := runSend(Env{Stdout: &out}, d, []string{"a", text}); err != nil || out.String() != "delivered: typed into a as its next prompt\n" {
+				t.Errorf("%s, %q typed in by hq: %v %q", st, text, err, out.String())
+			}
+			// Nothing in the journal names it.
+			f = sendFakes(st)
+			d = f.deps()
+			d.pending = func(string, string) int { return 0 }
+			d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
+			f.seen("/w/app", "id-a", state.SourceHook, state.KindDelivery, state.Facts{Messages: []string{fakeName("another")}}, f.now)
+			out.Reset()
+			if err := runSend(Env{Stdout: &out}, d, []string{"a", text}); err != nil || out.String() != "delivered: a took it\n" {
+				t.Errorf("%s, %q with no delivery: %v %q", st, text, err, out.String())
+			}
+		}
+	}
+	// A delivery withdrawn (typing it in failed) delivered nothing.
+	f := sendFakes(state.Working)
+	d := f.deps()
+	d.pending = func(string, string) int { return 0 }
+	names := state.Facts{Messages: []string{fakeName("/clear")}}
+	f.seen("/w/app", "id-a", state.SourceHQ, state.KindDelivery, names, f.now)
+	names.Withdrawn = state.KindDelivery
+	f.seen("/w/app", "id-a", state.SourceHQ, state.KindWithdrawn, names, f.now)
+	var out strings.Builder
+	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/clear"}); err != nil || out.String() != "delivered: a took it\n" {
+		t.Errorf("withdrawn: %v %q", err, out.String())
+	}
+	// Taken by another hq process and held behind the earlier message it
+	// typed in: no delivery names it yet, and it follows as a prompt of
+	// its own (#173).
+	for _, st := range []string{state.Working, state.Done} {
+		f = sendFakes(st)
+		f.held["id-a"] = []string{"/probe go"}
+		d = f.deps()
+		d.postMessage = func(string, string, state.Message, bool) (string, error) { return fakeName("/probe go"), nil }
+		d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
+		out.Reset()
+		want := "queued: typed an earlier message into a as its next prompt; this one follows as a prompt of its own once a is back at its prompt\n"
+		if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != want {
+			t.Errorf("%s, held by another process: %v %q", st, err, out.String())
+		}
 	}
 }
 
@@ -191,12 +257,12 @@ func TestSendRefusesAnAgentThatCannotReceive(t *testing.T) {
 	if code != ExitUsage || errOut != "hq: a has ended and cannot receive messages; relaunch it with hq sandbox restart app, or kill it and start it again\n" {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
-	// Hooks from an older hq ignore the inbox.
+	// An outdated agent: nothing is left for it (#194).
 	f = sendFakes(state.Done)
-	delete(f.tmux.windows[1].Options, "inbox")
+	delete(f.tmux.windows[1].Options, genOption)
 	code, _, errOut = f.run("send", "a", "hi")
-	if code != ExitUsage || errOut != "hq: a was started by an older hq and cannot receive messages; relaunch it with hq sandbox restart app, or kill it and start it again\n" {
-		t.Fatalf("exit %d %q", code, errOut)
+	if code != ExitUsage || errOut != "hq: a was started by an older hq: kill it and start it again\n" || len(f.inbox["id-a"]) != 0 {
+		t.Fatalf("exit %d %q, inbox %v", code, errOut, f.inbox)
 	}
 	// An agent of a setup's sandbox is relaunched with its setup (#136).
 	f = sendFakes(state.Done)
@@ -217,13 +283,17 @@ func TestSendUsage(t *testing.T) {
 		code int
 		err  string
 	}{
-		{[]string{"send"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--json]; quote the text\n"},
-		{[]string{"send", "a"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--json]; quote the text\n"},
-		{[]string{"send", "a", "run", "tests"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--json]; quote the text\n"},
-		{[]string{"send", "a", "hi", "-f"}, ExitUsage, "hq: unknown option '-f' (usage: hq send NAME TEXT [--now] [--json])\n"},
-		{[]string{"send", "a", " \x1b[31m \n"}, ExitUsage, "hq: empty message (usage: hq send NAME TEXT [--now] [--json])\n"},
+		{[]string{"send"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]; quote the text\n"},
+		{[]string{"send", "a"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]; quote the text\n"},
+		{[]string{"send", "a", "run", "tests"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]; quote the text\n"},
+		{[]string{"send", "a", "hi", "-f"}, ExitUsage, "hq: unknown option '-f' (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
+		{[]string{"send", "a", " \x1b[31m \n"}, ExitUsage, "hq: empty message (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
 		{[]string{"send", "a", strings.Repeat("x", state.MaxMessage+1)}, ExitUsage, "hq: message too long: at most 8192 bytes\n"},
 		{[]string{"send", "nobody", "hi"}, ExitNotFound, "hq: no agent 'nobody' (see hq ls)\n"},
+		// --timeout is --wait's (#170, decision 6).
+		{[]string{"send", "a", "hi", "--timeout", "5s"}, ExitUsage, "hq: --timeout goes with --wait (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
+		{[]string{"send", "a", "hi", "--wait", "--timeout"}, ExitUsage, "hq: --timeout needs a value (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
+		{[]string{"send", "a", "hi", "--wait", "--timeout=soon"}, ExitUsage, "hq: --timeout 'soon' is not a duration (30s, 5m; 0 waits with no limit)\n"},
 	} {
 		f := sendFakes(state.Working)
 		code, _, errOut := f.run(tc.args...)
@@ -234,10 +304,13 @@ func TestSendUsage(t *testing.T) {
 			t.Errorf("%q: inbox %v", tc.args, f.inbox)
 		}
 	}
-	// A message that starts with a dash is the text, not an option.
-	f := sendFakes(state.Working)
-	if code, _, errOut := f.run("send", "a", "-v is not a flag here"); code != 0 || f.inbox["id-a"][0] != "-v is not a flag here" {
-		t.Fatalf("exit %d %q %v", code, errOut, f.inbox)
+	// A message that starts with a dash is the text, not an option, one
+	// that starts as --timeout= included (#170).
+	for _, text := range []string{"-v is not a flag here", "--timeout=0 does not work in the script, look at it"} {
+		f := sendFakes(state.Working)
+		if code, _, errOut := f.run("send", "a", text); code != 0 || f.inbox["id-a"][0] != text {
+			t.Fatalf("%q: exit %d %q %v", text, code, errOut, f.inbox)
+		}
 	}
 }
 
@@ -259,8 +332,8 @@ func TestKillRemovesTheMessagesWaitingForIt(t *testing.T) {
 
 func TestQueuedSaysWhenAnEndedAgentsMessagesGo(t *testing.T) {
 	f := sendFakes(state.Done)
-	as, _ := collect(f.deps())
-	a := as[0]
+	l, _ := lookNow(f.deps())
+	a := l.agents[0]
 	a.State = state.Ended
 	if got := queued(a, false); got != "queued: a has ended; delivered once it is relaunched" {
 		t.Fatal(got)
@@ -278,7 +351,7 @@ func TestSendTypesIntoABoxShowingOnlyClaudesFaintHint(t *testing.T) {
 
 func TestSendToAnAgentWaitingForItsSubagentsTypesItInAsItsNextPrompt(t *testing.T) {
 	f := sendFakes("")
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Minute), Latest: f.now.Add(-time.Second), Background: true}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Minute), Latest: f.now.Add(-time.Second), Background: true}
 	code, out, errOut := f.run("send", "a", "also run the linter")
 	if code != 0 || out != "delivered: typed into a as its next prompt\n" {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
@@ -288,7 +361,7 @@ func TestSendToAnAgentWaitingForItsSubagentsTypesItInAsItsNextPrompt(t *testing.
 	}
 	// With the user typing there it waits for the next prompt, as for done.
 	f = sendFakes("")
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Minute), Latest: f.now.Add(-time.Second), Background: true}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Minute), Latest: f.now.Add(-time.Second), Background: true}
 	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ ", "❯ a draft", 1)
 	if code, out, _ := f.run("send", "a", "hi"); code != 0 || out != "queued: a has something in its prompt box, delivered with its next prompt\n" || len(f.tmux.pasted) != 0 {
 		t.Fatalf("typing: exit %d %q", code, out)
@@ -337,7 +410,7 @@ func TestSendRightAfterASlashCommandWaitsForTheBoxToSettle(t *testing.T) {
 	f.tmux.screens["%4"] = inBox
 	start = f.now
 	code, out, _ = f.run("send", "a", "/effort medium")
-	if code != 0 || out != "queued: a has something in its prompt box, delivered with its next prompt\n" || len(f.tmux.pasted) != 0 {
+	if code != 0 || out != "queued: a has something in its prompt box, delivered with its next prompt; if its hooks deliver it, the slash command arrives as text and does not run\n" || len(f.tmux.pasted) != 0 {
 		t.Fatalf("exit %d %q pasted %v", code, out, f.tmux.pasted)
 	}
 	if waited := f.now.Sub(start); waited < boxWait || waited > boxWait+time.Second {
@@ -416,11 +489,13 @@ func TestAMessageLeftWaitingIsTypedInOnlyAtAnEmptyBoxAtRest(t *testing.T) {
 	for name, change := range map[string]func(f *fakes){
 		// hq send is still on it.
 		"just sent": func(f *fakes) { f.oldest["id-a"] = f.now.Add(-time.Second) },
-		"working":   func(f *fakes) { f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second)} },
-		"typing":    func(f *fakes) { f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1) },
-		"in box":    func(f *fakes) { f.tmux.screens["%4"] = inBox },
-		"panel":     func(f *fakes) { f.tmux.screens["%4"] = panel },
-		"no inbox":  func(f *fakes) { f.tmux.windows[1].Options["inbox"] = "" },
+		"working": func(f *fakes) {
+			f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Second)}
+		},
+		"typing":   func(f *fakes) { f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1) },
+		"in box":   func(f *fakes) { f.tmux.screens["%4"] = inBox },
+		"panel":    func(f *fakes) { f.tmux.screens["%4"] = panel },
+		"outdated": func(f *fakes) { f.tmux.windows[1].Options[genOption] = "" },
 	} {
 		f := waitingFakes()
 		change(f)
@@ -459,5 +534,237 @@ func TestSendTypesIntoABoxWithASuggestionAboveAFooterWithANotice(t *testing.T) {
 	f.tmux.screens["%4"] = readFixture(t, "screen-styled-agent-notice-suggestion.txt")
 	if code, out, _ := f.run("send", "a", "hi"); code != 0 || out != "delivered: typed into a as its next prompt\n" || len(f.tmux.pasted) != 1 {
 		t.Fatalf("exit %d %q pasted %v", code, out, f.tmux.pasted)
+	}
+}
+
+// A message that starts with a slash command and that Claude Code would
+// collapse into a placeholder, so that it is no command (state.Collapses),
+// is typed as its command word and the rest pasted after it: the command
+// runs with the rest as its arguments, whatever the length (#173).
+func TestSendTypesACommandOverTheLimitsAsItsWordAndPastesTheRest(t *testing.T) {
+	long := strings.Repeat("x", 900)
+	for name, tc := range map[string]struct{ text, typed, pasted string }{
+		"more than 3 lines":           {"/probe one\ntwo\nthree\nfour", "/probe", " one\ntwo\nthree\nfour"},
+		"over 800 characters":         {"/probe " + long, "/probe", " " + long},
+		"a first line over the limit": {"/probe " + long + "\nmore", "/probe", " " + long + "\nmore"},
+		"the command on a line alone": {"/probe\none\ntwo\nthree", "/probe", "\none\ntwo\nthree"},
+	} {
+		f := sendFakes(state.Done)
+		code, out, errOut := f.run("send", "a", tc.text)
+		if code != 0 || out != "delivered: typed into a as its next prompt\n" {
+			t.Fatalf("%s: exit %d %q %q", name, code, out, errOut)
+		}
+		want := []string{"type %4 " + tc.typed, "paste %4 " + tc.pasted, "enter %4"}
+		if strings.Join(f.tmux.input, "|") != strings.Join(want, "|") {
+			t.Errorf("%s: input %q, want %q", name, f.tmux.input, want)
+		}
+	}
+}
+
+// A command word over the limit itself is typed too: Type keeps each part
+// under it.
+func TestSendTypesACommandWithNothingAfterItWhole(t *testing.T) {
+	f := sendFakes(state.Done)
+	word := "/" + strings.Repeat("x", 900)
+	if code, _, errOut := f.run("send", "a", word); code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if got := strings.Join(f.tmux.input, "|"); got != "type %4 "+word+"|enter %4" {
+		t.Fatalf("input %q", got)
+	}
+}
+
+// A short command and a plain message of any length are pasted as before:
+// Claude Code runs the one and gives the model the other whole.
+func TestSendPastesAShortCommandAndAPlainMessageWhole(t *testing.T) {
+	for _, text := range []string{
+		"/model claude-opus-5-5",
+		"/probe one\ntwo\nthree",
+		"plain\nwith\nfour\nlines",
+		strings.Repeat("plain ", 200),
+		"a path /like/this\nand\nmore\nlines",
+	} {
+		f := sendFakes(state.Done)
+		if code, out, _ := f.run("send", "a", text); code != 0 || out != "delivered: typed into a as its next prompt\n" {
+			t.Fatalf("%.20q: exit %d %q", text, code, out)
+		}
+		if got := strings.Join(f.tmux.input, "|"); got != "paste %4 "+strings.TrimSpace(text)+"|enter %4" {
+			t.Errorf("%.20q: input %.60q", text, got)
+		}
+	}
+}
+
+// With several messages waiting, a slash command is a prompt of its own,
+// never joined behind another message's text: hq types the first prompt
+// in and holds the others, out of the hooks' reach, for the agent's next
+// prompts, one at a time and in the order sent (#173).
+func TestSendTypesAWaitingCommandAsAPromptOfItsOwnInTheOrderSent(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.inbox["id-a"] = []string{"first", "second", "/probe third", "/clear"}
+	code, out, _ := f.run("send", "a", "fourth")
+	if code != 0 || out != "queued: typed an earlier message into a as its next prompt; this one follows as a prompt of its own once a is back at its prompt\n" {
+		t.Fatalf("exit %d %q", code, out)
+	}
+	if got := strings.Join(f.tmux.input, "|"); got != "paste %4 first\n\nsecond|enter %4" {
+		t.Fatalf("input %q", got)
+	}
+	if got := strings.Join(f.held["id-a"], "|"); got != "/probe third|/clear|fourth" || len(f.inbox["id-a"]) != 0 {
+		t.Fatalf("held %q inbox %q", got, f.inbox["id-a"])
+	}
+	// The next looks at the agent back at its prompt type in the next
+	// prompt each.
+	for i, want := range []string{"paste %4 /probe third", "paste %4 /clear", "paste %4 fourth"} {
+		f.tmux.input = nil
+		f.now = f.now.Add(time.Minute)
+		if code, _, errOut := f.run("ls"); code != 0 {
+			t.Fatalf("ls: exit %d %s", code, errOut)
+		}
+		if got := strings.Join(f.tmux.input, "|"); got != want+"|enter %4" {
+			t.Fatalf("look %d: input %q, want %q", i, got, want)
+		}
+	}
+	if len(f.held["id-a"]) != 0 {
+		t.Fatalf("held %q", f.held["id-a"])
+	}
+	// The message just sent is typed in when it is the first prompt, and
+	// those after it are held.
+	f = sendFakes(state.Done)
+	f.inbox["id-a"] = []string{"/probe first"}
+	if code, out, _ := f.run("send", "a", "second"); code != 0 || !strings.HasPrefix(out, "queued: typed an earlier message into a") {
+		t.Fatalf("exit %d %q", code, out)
+	}
+	if got := strings.Join(f.tmux.input, "|"); got != "paste %4 /probe first|enter %4" || strings.Join(f.held["id-a"], "|") != "second" {
+		t.Fatalf("input %q held %q", got, f.held["id-a"])
+	}
+}
+
+func TestSendLeavesTheOthersToTheHooksWhenHoldingFails(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.inbox["id-a"] = []string{"first"}
+	f.holdErr = errors.New("disk full")
+	code, _, errOut := f.run("send", "a", "/probe second")
+	if code == 0 || !strings.Contains(errOut, "typed an earlier message into a, but cannot hold the others for its next prompts (disk full): they are left to its hooks") {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if got := strings.Join(f.tmux.input, "|"); got != "paste %4 first|enter %4" || strings.Join(f.inbox["id-a"], "|") != "/probe second" {
+		t.Fatalf("input %q inbox %q", got, f.inbox["id-a"])
+	}
+	// With nothing to hold, holding is not tried.
+	f = sendFakes(state.Done)
+	f.holdErr = errors.New("disk full")
+	if code, out, errOut := f.run("send", "a", "/probe alone"); code != 0 || out != "delivered: typed into a as its next prompt\n" {
+		t.Fatalf("nothing held: exit %d %q %q", code, out, errOut)
+	}
+}
+
+// A failure to type the first prompt in puts every message back for the
+// hooks, in the order sent, none of them held (#173).
+func TestSendPutsEveryMessageBackInOrderWhenTypingFails(t *testing.T) {
+	for name, fail := range map[string]func(*fakeTmux){
+		"paste": func(t *fakeTmux) { t.pasteErr = errors.New("no pane") },
+		"type":  func(t *fakeTmux) { t.typeErr = errors.New("no pane") },
+	} {
+		f := sendFakes(state.Done)
+		f.inbox["id-a"] = []string{"/probe one\ntwo\nthree\nfour", "second"}
+		fail(f.tmux)
+		if code, _, _ := f.run("send", "a", "/clear"); code == 0 {
+			t.Fatalf("%s: exit 0", name)
+		}
+		if got := strings.Join(f.inbox["id-a"], "|"); got != "/probe one\ntwo\nthree\nfour|second|/clear" || len(f.held["id-a"]) != 0 {
+			t.Fatalf("%s: inbox %q held %q", name, got, f.held["id-a"])
+		}
+	}
+}
+
+// A paste that fails after the command word was typed takes the word back
+// out of the box, so the box is empty again for the user and the next send.
+func TestSendTakesTheCommandWordBackWhenThePasteAfterItFails(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.tmux.pasteErr = errors.New("no pane")
+	if code, _, _ := f.run("send", "a", "/probe one\ntwo\nthree\nfour"); code == 0 {
+		t.Fatal("exit 0")
+	}
+	if got := strings.Join(f.tmux.input, "|"); got != "type %4 /probe|press %4 C-u" {
+		t.Fatalf("input %q", got)
+	}
+}
+
+// With messages held for an agent that is not at its prompt, a new message
+// its hooks take at once is still said to be taken: the held ones are not
+// the hooks' (#173).
+func TestSendSaysTheHooksTookItWhileOthersAreHeld(t *testing.T) {
+	f := sendFakes(state.Working)
+	f.held["id-a"] = []string{"/probe held"}
+	hookTook(f, "/probe go")
+	d := f.deps()
+	d.postMessage = func(string, string, state.Message, bool) (string, error) { return fakeName("/probe go"), nil }
+	var out strings.Builder
+	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != "delivered: a took it with its hooks, as text, so the slash command did not run\n" {
+		t.Fatalf("%v %q", err, out.String())
+	}
+	// One left to the hooks beside the held: queued.
+	out.Reset()
+	if err := runSend(Env{Stdout: &out}, f.deps(), []string{"a", "go"}); err != nil || out.String() != "queued: a is working, delivered when it stops\n" {
+		t.Fatalf("%v %q", err, out.String())
+	}
+}
+
+// A message that starts with a slash command and that the agent's hooks
+// deliver reaches Claude as text, so the command does not run: hq says so
+// wherever it leaves one to them (#173), and not where it types it in.
+func TestSendSaysAnyCommandItLeavesToTheHooksArrivesAsText(t *testing.T) {
+	const asText = "; if its hooks deliver it, the slash command arrives as text and does not run\n"
+	for name, tc := range map[string]struct {
+		state  string
+		screen string
+		args   []string
+		want   string
+	}{
+		"working":     {state.Working, emptyBox, nil, "queued: a is working, delivered when it stops" + asText},
+		"working now": {state.Working, emptyBox, []string{"--now"}, "queued: a is working, delivered after its next tool call, or when it stops" + asText},
+		"dialog":      {state.NeedsInput, "Do you want to proceed?\n❯ 1. Yes\n  2. No\nEsc to cancel\n", nil, "queued: a needs input, delivered once its dialog is closed, when it stops" + asText},
+		"box":         {state.Done, strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1), nil, "queued: a has something in its prompt box, delivered with its next prompt" + asText},
+	} {
+		f := sendFakes(tc.state)
+		f.tmux.screens["%4"] = tc.screen
+		code, out, _ := f.run(append([]string{"send", "a", "/probe go"}, tc.args...)...)
+		if code != 0 || out != tc.want {
+			t.Errorf("%s: exit %d %q, want %q", name, code, out, tc.want)
+		}
+		// A plain message: the line as before.
+		f = sendFakes(tc.state)
+		f.tmux.screens["%4"] = tc.screen
+		if _, out, _ := f.run(append([]string{"send", "a", "go"}, tc.args...)...); out != strings.TrimSuffix(tc.want, asText)+"\n" {
+			t.Errorf("%s, plain: %q", name, out)
+		}
+	}
+	// --json carries the same line.
+	f := sendFakes(state.Working)
+	if _, out, _ := f.run("send", "a", "/probe go", "--json"); !strings.Contains(out, `"delivery": "queued: a is working, delivered when it stops`+strings.TrimSuffix(asText, "\n")+`"`) {
+		t.Errorf("json: %q", out)
+	}
+	// Starting.
+	f = sendFakes("")
+	if _, out, _ := f.run("send", "a", "/probe go"); out != "queued: a is starting, delivered with its first prompt, or when it stops"+asText {
+		t.Errorf("starting: %q", out)
+	}
+	// Taken by the hooks at once, while it works or as a turn begins: it
+	// did not run.
+	const taken = "delivered: a took it with its hooks, as text, so the slash command did not run\n"
+	f = sendFakes(state.Working)
+	hookTook(f, "/probe go")
+	d := f.deps()
+	d.pending = func(string, string) int { return 0 }
+	var out strings.Builder
+	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != taken {
+		t.Errorf("taken: %v %q", err, out.String())
+	}
+	f = sendFakes(state.Done)
+	hookTook(f, "/probe go")
+	d = f.deps()
+	d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
+	out.Reset()
+	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != taken {
+		t.Errorf("taken at rest: %v %q", err, out.String())
 	}
 }

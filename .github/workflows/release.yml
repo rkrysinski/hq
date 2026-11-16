@@ -34,7 +34,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/release.sh "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"
 
-      - name: Attach the binaries, install.sh and SHA256SUMS
+      - name: Attach the binaries, install.sh, GENERATION and SHA256SUMS
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber --repo "$GITHUB_REPOSITORY"

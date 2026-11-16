@@ -2,26 +2,35 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"text/tabwriter"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
 // lsRow is one agent as hq ls --json prints it.
 type lsRow struct {
-	Name       string    `json:"name"`
-	Repo       string    `json:"repo"`
-	RepoPath   string    `json:"repo_path"`
-	Branch     string    `json:"branch"`
-	State      string    `json:"state"`
-	Since      time.Time `json:"since"`
-	AgeSeconds int64     `json:"age_seconds"`
-	Last       string    `json:"last"`
-	Sandbox    string    `json:"sandbox"`
+	Name     string `json:"name"`
+	Repo     string `json:"repo"`
+	RepoPath string `json:"repo_path"`
+	Branch   string `json:"branch"`
+	State    string `json:"state"`
+	// StateSeq is the number of the change that put it in its state, or
+	// moved it to another dialog, and CompletionSeq the number of the change
+	// that ended its last completed turn (ADR 0019); null when there is no
+	// such event (spec §4.1).
+	StateSeq      *int64    `json:"state_seq"`
+	CompletionSeq *int64    `json:"completion_seq"`
+	Since         time.Time `json:"since"`
+	AgeSeconds    int64     `json:"age_seconds"`
+	Last          string    `json:"last"`
+	Sandbox       string    `json:"sandbox"`
 	// Setup is the setup its sandbox was created for, read off the
 	// sandbox's name (#135).
 	Setup   string `json:"setup"`
@@ -45,26 +54,53 @@ func runLs(env Env, d deps, args []string) error {
 			return usageErr("unexpected argument '%s' (usage: hq ls [--json])", a)
 		}
 	}
-	at := d.now()
-	as, err := gatherAgents(d)
+	l, err := gatherAgents(d)
 	if err != nil {
 		return err
 	}
+	cursor := l.cursor(d)
+	if asJSON {
+		if l, cursor, err = covered(d, l, cursor); err != nil {
+			return err
+		}
+	}
+	as := l.agents
 	agent.SortAttention(as)
 	rows := lsRows(d, as)
 	if asJSON {
-		return writeJSON(env.Stdout, waitOutput{Agents: rows, NextSince: lookedAt(at)})
+		return writeJSON(env.Stdout, waitOutput{Agents: rows, NextSince: cursorText(cursor)})
 	}
 	return writeTable(env.Stdout, rows)
 }
 
-// lookedAt is the moment a look that began at at gives as next_since, for
-// hq wait's --since (design §3.4, "Entered after a moment"): as far back as
-// hq wait's own looks, so a state the look may not have seen yet is
-// returned by the next hq wait, never lost; one it did see may be returned
-// once more.
-func lookedAt(at time.Time) time.Time {
-	return at.Add(-waitSettle).UTC()
+// coverLooks bounds the looks of hq ls --json (covered): agents that keep
+// changing still get a list.
+const coverLooks = 3
+
+// covered is look l, whose cursor is cursor, or a later look of hq ls's,
+// whose cursor stands for every row it shows: a look may show an agent at a
+// change numbered above its cursor (evidence it appended for that agent
+// after it read another), which a wait from that cursor would return
+// again, though the list showed it (#166). It looks again, up to
+// coverLooks looks in all, and gives the last.
+func covered(d deps, l looked, cursor int64) (looked, int64, error) {
+	for n := 1; n < coverLooks && above(l.agents, cursor); n++ {
+		var err error
+		if l, err = lookNow(d); err != nil {
+			return looked{}, 0, err
+		}
+		cursor = l.cursor(d)
+	}
+	return l, cursor, nil
+}
+
+// above reports whether an agent of as stands at a change numbered above
+// cursor.
+func above(as []agent.Agent, cursor int64) bool {
+	return slices.ContainsFunc(as, func(a agent.Agent) bool {
+		seq, ok := a.StateSeq()
+		return ok && seq > cursor
+	})
 }
 
 // lsRows are the agents as hq ls shows them now, in the order given, with
@@ -95,7 +131,12 @@ func writeTable(w io.Writer, rows []lsRow) error {
 	for _, r := range rows {
 		// LAST starts with the count of its own tasks, which --json lists.
 		last := agent.OwnPrefix(r.OwnTasks) + orDash(r.Last)
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, agent.Age(time.Duration(r.AgeSeconds)*time.Second), truncate(last, lastWidth))
+		// An outdated agent's state, and so its age, is unknown.
+		age := "-"
+		if r.State != state.Outdated {
+			age = agent.Age(time.Duration(r.AgeSeconds) * time.Second)
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Name, r.Repo, orDash(r.Branch), r.State, age, truncate(last, lastWidth))
 	}
 	return tw.Flush()
 }
@@ -106,16 +147,17 @@ func writeTable(w io.Writer, rows []lsRow) error {
 func newLsRow(d deps, a agent.Agent, now time.Time) lsRow {
 	var det state.Detail
 	if a.Dialog().Open() || a.State == state.Question {
-		det = d.readDetail(a.RepoPath, a.ID)
+		det = a.Detail()
 	}
 	return lsRowWithDetail(d, a, now, det)
 }
 
 // lsRowWithDetail is newLsRow with the detail of a's report given (det).
 func lsRowWithDetail(d deps, a agent.Agent, now time.Time, det state.Detail) lsRow {
+	stateSeq, completionSeq := seqs(a)
 	return lsRow{
 		Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
-		Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
+		StateSeq: stateSeq, CompletionSeq: completionSeq, Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
 		Setup:   a.Setup(),
 		Pending: d.pending(a.RepoPath, a.ID), Dialog: a.Dialog().ID(), OwnTasks: append([]state.Task{}, a.OwnTasks...), Asks: asks(a, det),
 	}
@@ -142,56 +184,80 @@ func asks(a agent.Agent, det state.Detail) *state.Ask {
 // which it is once it stays so a while (design §3.4): it looks again then,
 // so a single look tells the turn's end at once, like the list. Messages
 // left waiting for agents at their prompt are typed in (deliverWaiting).
-func gatherAgents(d deps) ([]agent.Agent, error) {
-	if err := checkTmux(d.tmux); err != nil {
-		return nil, err
-	}
-	as, err := collect(d)
+func gatherAgents(d deps) (looked, error) {
+	l, err := lookDecided(d, lookNow)
 	if err != nil {
-		return nil, err
+		return looked{}, err
 	}
-	if resting(as) {
+	deliverWaiting(d, l.agents)
+	return l, nil
+}
+
+// lookDecided takes a look at the agents with look once tmux is known to
+// be fit, and one more RestDelay later when a working agent's screen is at
+// rest, which that look decides (gatherAgents).
+func lookDecided(d deps, look func(deps) (looked, error)) (looked, error) {
+	if err := checkTmux(d.tmux); err != nil {
+		return looked{}, err
+	}
+	l, err := look(d)
+	if err != nil {
+		return looked{}, err
+	}
+	if resting(l.agents) {
 		d.sleep(agent.RestDelay)
-		if as, err = collect(d); err != nil {
-			return nil, err
-		}
+		return look(d)
 	}
-	deliverWaiting(d, as)
-	return as, nil
+	return l, nil
 }
 
-// collect gathers the agents with their state from tmux, the state files,
+// lookNow is a look at the agents, their state from tmux, their journals,
 // sbx and their screens (design §5.1, agent.Look). When sbx fails or does
-// not answer in time, the states come from tmux and the hooks alone.
-func collect(d deps) ([]agent.Agent, error) {
-	return collectWith(d, runningSandboxes(d))
+// not answer in time, the states come from tmux and the hooks alone; an sbx
+// too old for hq fails it (#172).
+func lookNow(d deps) (looked, error) {
+	running, err := askSandboxes(d)
+	if err != nil {
+		return looked{}, sbxErr(err)
+	}
+	return lookWith(d, running)
 }
 
-// collectWith is collect with sbx's answer given: which sandboxes run, and
-// when hq asked.
-func collectWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
+// lookWith is lookNow with sbx's answer given: which sandboxes run, and
+// when hq asked. It reads the counter before it lists the windows, for
+// the look's cursor (looked.cursor).
+func lookWith(d deps, running agent.Sandboxes) (looked, error) {
+	counter, err := d.journal.Through()
+	counted := err == nil
 	ws, err := d.tmux.Windows()
 	if err != nil {
-		return nil, tmuxErr(err)
+		return looked{}, tmuxErr(err)
 	}
-	return agent.Look(ws, d.readState, d.takeQueued, running, d.now(), d.tmux), nil
+	return looked{agents: d.look(ws, running), windows: ws, counter: counter, counted: counted}, nil
 }
 
 // runningSandboxes asks sbx which sandboxes run, noting when it asked; the
-// answer says nothing when sbx fails or does not answer in time.
+// answer says nothing when sbx fails, does not answer in time or is too old.
 func runningSandboxes(d deps) agent.Sandboxes {
+	running, _ := askSandboxes(d)
+	return running
+}
+
+// askSandboxes is runningSandboxes, failing only for an sbx too old for hq
+// (sbx.TooOldError): an answer, not a failure to give one.
+func askSandboxes(d deps) (agent.Sandboxes, error) {
 	// The moment before the question: what an agent reports from here on
 	// is newer than the answer (#48).
 	asked := d.now()
 	sbs, err := d.pollSandboxes()
 	if err != nil {
-		return agent.Sandboxes{}
+		var old *sbx.TooOldError
+		if errors.As(err, &old) {
+			return agent.Sandboxes{}, err
+		}
+		return agent.Sandboxes{}, nil
 	}
-	running := map[string]bool{}
-	for _, s := range sbs {
-		running[s.Name] = s.Running()
-	}
-	return agent.Sandboxes{Running: running, Asked: asked}
+	return agent.SandboxesOf(sbs, asked), nil
 }
 
 // resting reports whether a working agent's screen is at rest in a way one

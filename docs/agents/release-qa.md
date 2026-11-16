@@ -16,7 +16,7 @@ In order. ETA and spend are estimates the skill reports against; evidence is wha
 | Step | Command | ETA | Spend, USD | Evidence |
 | --- | --- | --- | --- | --- |
 | Full build | `scripts/check.sh` | 5 minutes | 0 | its lines, the last naming `$CANDIDATE_SHA` without ` with uncommitted changes` |
-| Release files of all four platforms | `scripts/build-release.sh vX.Y.Z .local-dev/release-files && ls .local-dev/release-files && ".local-dev/release-files/hq-linux-$(go env GOARCH)" --version` | 3 minutes | 0 | the listing (`hq-darwin-amd64`, `hq-darwin-arm64`, `hq-linux-amd64`, `hq-linux-arm64`, `install.sh`, `SHA256SUMS`) and `hq vX.Y.Z` |
+| Release files of all four platforms | `scripts/build-release.sh vX.Y.Z .local-dev/release-files && ls .local-dev/release-files && ".local-dev/release-files/hq-linux-$(go env GOARCH)" --version` | 3 minutes | 0 | the listing of seven files (`GENERATION`, `SHA256SUMS`, `hq-darwin-amd64`, `hq-darwin-arm64`, `hq-linux-amd64`, `hq-linux-arm64`, `install.sh`), `GENERATION` holding one number, and `hq vX.Y.Z` |
 | One journey on the stubbed setup | the commands under *Journey* below | 10 minutes | 0 | a terminal screenshot after each of its steps and the commands' output |
 | On the host, before go: the built binary against a real sandbox | the commands under *Host step* below, run by the user | 10 minutes | 0 | the user's word on the release issue that each command did what it says, with any output that differed |
 
@@ -46,10 +46,19 @@ On the host, in the repository's primary checkout, with the binary of the host's
 ```bash
 hq=.claude/worktrees/release-vX.Y.Z/.local-dev/release-files/hq-darwin-arm64
 export HQ_TMUX_SOCKET=hq-release-check
+export XDG_STATE_HOME="$(mktemp -d)"   # the journals and the counter, out of the user's own state directory
 "$hq" --version                    # hq vX.Y.Z
 "$hq" new rq . "say hi"            # starts Claude in the repository's real sandbox
 "$hq" ls                           # rq listed, done once it answered
-"$hq" send rq "say bye"            # its next reply follows
+"$hq" ls --json                    # rq with state_seq and completion_seq; next_since a cursor such as c12
+"$hq" send rq "say bye" --wait     # returns at that turn's end with rq's row and next: hq wait rq --since c...
+"$hq" send rq "/SKILL $(printf 'line %s\n' 1 2 3 4)" --wait   # SKILL: a slash command that starts a turn (a skill of the sandbox); of more than 3 lines (here 4) or 800 characters, it is typed as its word plus a paste: it runs, and the call returns at its turn's end
+"$hq" send rq "/clear" --wait      # a built-in command (or /model NAME on an agent with no turn yet): returns "no turn: the slash command left rq's prompt box and started no turn"; /model NAME after a first turn opens Switch model? and returns needs input, which is no failure
+"$hq" explain rq                   # the hook's events, numbered
 "$hq" kill rq -y                   # ended; the sandbox stays
-tmux -L hq-release-check kill-server
+fresh=$(mktemp -d) && git -C "$fresh" init -q && git -C "$fresh" commit -q --allow-empty -m init   # a repository with no sandbox yet
+"$hq" new fresh "$fresh" "say hi"  # "creating a sandbox for ...": sbx create against the real sbx, then the agent starts
+"$hq" kill fresh -y                # ended; its sandbox stays
+"$hq" sandbox rm "$fresh" -y       # "removed the sandbox ..."
+tmux -L hq-release-check kill-server; rm -rf "$XDG_STATE_HOME" "$fresh"
 ```

@@ -1,8 +1,12 @@
 package update
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -102,5 +106,90 @@ func TestBase(t *testing.T) {
 	env[BaseEnv] = "http://127.0.0.1:8080/o/r/releases/"
 	if Base(getenv) != "http://127.0.0.1:8080/o/r/releases" {
 		t.Fatal(Base(getenv))
+	}
+}
+
+// sumsOf is a SHA256SUMS line for each file, as the release build writes it.
+func sumsOf(files map[string]string) []byte {
+	var b strings.Builder
+	for name, content := range files {
+		sum := sha256.Sum256([]byte(content))
+		b.WriteString(hex.EncodeToString(sum[:]) + "  " + name + "\n")
+	}
+	return []byte(b.String())
+}
+
+// A release's generation counts only once its checksum vouches for it, and
+// only as a number above zero (ADR 0020).
+func TestReadGeneration(t *testing.T) {
+	for want, data := range map[int]string{4: "4\n", 1: "1\n"} {
+		if gen, err := ReadGeneration(sumsOf(map[string]string{GenerationFile: data}), []byte(data)); err != nil || gen != want {
+			t.Fatalf("%q: %d %v", data, gen, err)
+		}
+	}
+	for name, tc := range map[string]struct{ sums, data string }{
+		"tampered":     {"4\n", "5\n"},
+		"not listed":   {"", "4\n"},
+		"not a number": {"four\n", "four\n"},
+		"zero":         {"0\n", "0\n"},
+		"negative":     {"-1\n", "-1\n"},
+	} {
+		sums := sumsOf(map[string]string{"hq-linux-amd64": "bin"})
+		if tc.sums != "" {
+			sums = sumsOf(map[string]string{GenerationFile: tc.sums})
+		}
+		if gen, err := ReadGeneration(sums, []byte(tc.data)); err == nil {
+			t.Errorf("%s: generation %d accepted", name, gen)
+		}
+	}
+}
+
+// A release publishes no generation only when its SHA256SUMS is there and
+// does not list GENERATION (a release from before generations). One whose
+// files are not attached yet, its SHA256SUMS missing or listing a
+// GENERATION that is not there, is an error to try again, not a release of
+// another generation (#200); a read that failed stays its error.
+func TestTheGenerationOfAReleaseWhoseFilesAreOnTheirWay(t *testing.T) {
+	listing := sumsOf(map[string]string{GenerationFile: "4\n", "hq-linux-amd64": "bin"})
+	before := sumsOf(map[string]string{"hq-linux-amd64": "bin"})
+	if gen, published, err := generationOf("v1.0.0", listing, true, []byte("4\n"), true, nil); err != nil || !published || gen != 4 {
+		t.Errorf("published: %d %v %v", gen, published, err)
+	}
+	if gen, published, err := generationOf("v0.1.0", before, true, nil, false, nil); err != nil || published || gen != 0 {
+		t.Errorf("before generations: %d %v %v", gen, published, err)
+	}
+	for name, tc := range map[string]struct {
+		sums      []byte
+		sumsFound bool
+		want      string
+	}{
+		"no checksums yet":  {nil, false, "v1.0.0 has no SHA256SUMS yet; try again in a minute"},
+		"no generation yet": {listing, true, "v1.0.0 has no GENERATION yet, which its SHA256SUMS lists; try again in a minute"},
+	} {
+		if _, published, err := generationOf("v1.0.0", tc.sums, tc.sumsFound, nil, false, nil); err == nil || published || err.Error() != tc.want {
+			t.Errorf("%s: %v %v", name, published, err)
+		}
+	}
+	if _, _, err := generationOf("v1.0.0", nil, false, nil, false, errors.New("timeout")); err == nil || err.Error() != "timeout" {
+		t.Errorf("a failed read: %v", err)
+	}
+	if !Lists(listing, GenerationFile) || Lists(before, GenerationFile) {
+		t.Error("Lists")
+	}
+}
+
+// Every error of Verify is one hq refuses an update for (exit code 1).
+func TestVerifysErrorsAreUnverified(t *testing.T) {
+	sums := sumsOf(map[string]string{"hq-linux-amd64": "bin"})
+	for name, err := range map[string]error{
+		"a mismatch": Verify(sums, "hq-linux-amd64", []byte("tampered")),
+		"not listed": Verify(sums, GenerationFile, []byte("4\n")),
+	} {
+		if !errors.Is(err, ErrUnverified) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	if _, err := ReadGeneration(sums, []byte("4\n")); !errors.Is(err, ErrUnverified) {
+		t.Errorf("ReadGeneration: %v", err)
 	}
 }

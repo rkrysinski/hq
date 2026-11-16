@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -25,7 +26,7 @@ func readFakes() *fakes {
 func TestReadShowsTheAgentInFull(t *testing.T) {
 	f := readFakes()
 	reply := "Migration done.\n\nNext:\n- the API\n- the PR, a long line that hq ls would cut to its column long before it ends here"
-	f.states["id-42"] = state.Report{State: state.Working, Since: f.now.Add(-3 * time.Minute), Last: state.Clean(reply),
+	f.states["id-42"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-3 * time.Minute), Last: state.Clean(reply),
 		Branch: "feat/42-x", Cwd: `F:\w\app\.claude\worktrees\x`}
 	f.details["id-42"] = state.Detail{Reply: reply}
 	f.inbox["id-42"] = []string{"use the new API", "and add a test (now)"} // two messages wait (hq send)
@@ -67,26 +68,26 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 	since := time.Minute
 	for _, tc := range []struct {
 		name   string
-		report state.Report
+		report journaltest.HookState
 		detail state.Detail
 		want   string
 	}{
-		{"question dialog", state.Report{State: state.NeedsInput, Last: "Which colour?"},
+		{"question dialog", journaltest.HookState{State: state.NeedsInput, Last: "Which colour?"},
 			state.Detail{Ask: &state.Ask{Tool: "AskUserQuestion", Questions: []state.AskQuestion{
 				{Header: "Colour", Question: "Which colour?", Options: []state.AskOption{{Label: "Red", Description: "Pick red."}, {Label: "Blue"}}},
 				{Question: "Which sizes?", MultiSelect: true, Options: []state.AskOption{{Label: "S"}, {Label: "M"}}},
 			}}},
-			"last      Which colour?\n\nasks      dialog ID\n  Colour: Which colour?\n    1. Red - Pick red.\n    2. Blue\n  Which sizes? (any of)\n    1. S\n    2. M\n"},
-		{"permission prompt", state.Report{State: state.NeedsInput, Last: "Bash: Create a file"},
+			"last      Which colour?\n\nasks      dialog ID\n  Colour: Which colour?\n    1. Red - Pick red.\n    2. Blue\n  Which sizes? (any of)\n    1. S\n    2. M\n\nanswer    hq answer 42 --dialog ID N N,N\n"},
+		{"permission prompt", journaltest.HookState{State: state.NeedsInput, Last: "Bash: Create a file"},
 			state.Detail{Ask: &state.Ask{Tool: "Bash", Description: "Create a file", Command: "touch /tmp/x"}},
 			"last      Bash: Create a file\n\nasks      dialog ID\n  Bash: touch /tmp/x\n  Create a file\n"},
-		{"permission without a command", state.Report{State: state.NeedsInput, Last: "WebSearch: Look it up"},
+		{"permission without a command", journaltest.HookState{State: state.NeedsInput, Last: "WebSearch: Look it up"},
 			state.Detail{Ask: &state.Ask{Tool: "WebSearch", Description: "Look it up"}},
 			"last      WebSearch: Look it up\n\nasks      dialog ID\n  WebSearch: Look it up\n"},
-		{"notification", state.Report{State: state.NeedsInput, Last: "Claude needs your permission"},
+		{"notification", journaltest.HookState{State: state.NeedsInput, Last: "Claude needs your permission"},
 			state.Detail{Ask: &state.Ask{Message: "Claude needs your permission"}},
 			"last      Claude needs your permission\n\nasks      dialog ID\n  Claude needs your permission\n"},
-		{"MCP form", state.Report{State: state.NeedsInput, Last: "Which color should I use?"},
+		{"MCP form", journaltest.HookState{State: state.NeedsInput, Last: "Which color should I use?"},
 			state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{
 				{Name: "color", Title: "Color", Description: "Pick one", Type: "string", Required: true, Options: []state.AskFieldOption{{Value: "red"}, {Value: "blue"}}},
 				{Name: "name", Title: "Name", Type: "string"},
@@ -97,15 +98,15 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 			"last      Which color should I use?\n\nasks      dialog ID\n  elicit asks: Which color should I use?\n" +
 				"    color (Color, required): red | blue - Pick one\n    name (Name): text\n    engine: PostgreSQL | MySQL [default: PostgreSQL]\n" +
 				"    size (required): integer [default: 1000000]\n    backup: boolean [default: false] - Keep a daily copy of eve…\n"},
-		{"MCP URL", state.Report{State: state.NeedsInput, Last: "Sign in to the example service."},
+		{"MCP URL", journaltest.HookState{State: state.NeedsInput, Last: "Sign in to the example service."},
 			state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Sign in to the example service.", URL: "https://example.com/sign-in?session=42"}},
 			"last      Sign in to the example service.\n\nasks      dialog ID\n  elicit asks: Sign in to the example service.\n    url: https://example.com/sign-in?session=42\n"},
 		// A URL is printed in full, however long: cut, it would hide where it
 		// sends the user.
-		{"MCP long URL", state.Report{State: state.NeedsInput, Last: "Sign in."},
+		{"MCP long URL", journaltest.HookState{State: state.NeedsInput, Last: "Sign in."},
 			state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Sign in.", URL: "https://auth.example.com/oauth/authorize?client_id=hq-agent&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&state=42"}},
 			"last      Sign in.\n\nasks      dialog ID\n  elicit asks: Sign in.\n    url: https://auth.example.com/oauth/authorize?client_id=hq-agent&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&state=42\n"},
-		{"question", state.Report{State: state.Question, Last: "Done. Shall I open the PR?"},
+		{"question", journaltest.HookState{State: state.Question, Last: "Done. Shall I open the PR?"},
 			state.Detail{Reply: "Done.\n\nShall I open the PR?"},
 			"\nasks\n  Shall I open the PR?\n"}, // LAST is the reply, not repeated
 	} {
@@ -117,14 +118,14 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 		head := "state     " + tc.report.State + " 1m\npending   0\n"
 		_, rest, _ := strings.Cut(out, head)
 		rest, _, _ = strings.Cut(rest, "\nreply")
-		want := strings.Replace(tc.want, "dialog ID", "dialog "+state.DialogID(tc.report.Since), 1)
+		want := strings.ReplaceAll(tc.want, "dialog ID", "dialog "+state.DialogID(tc.report.Since))
 		if code != 0 || rest != strings.TrimSuffix(want, "\n")+"\n" {
 			t.Errorf("%s: exit %d %q\n%s", tc.name, code, errOut, out)
 		}
 	}
 	// Once the agent works on, a dialog it answered asks nothing.
 	f := readFakes()
-	f.states["id-42"] = state.Report{State: state.Working, Since: f.now}
+	f.states["id-42"] = journaltest.HookState{State: state.Working, Since: f.now}
 	f.details["id-42"] = state.Detail{Ask: &state.Ask{Message: "Claude needs your permission"}}
 	if _, out, _ := f.run("read", "42"); strings.Contains(out, "\nasks") {
 		t.Fatalf("a working agent asks:\n%s", out)
@@ -134,13 +135,13 @@ func TestReadShowsWhatTheAgentAsks(t *testing.T) {
 func TestReadShowsAnEndedTurnsLastMessageBesideTheReply(t *testing.T) {
 	f := readFakes()
 	f.tmux.windows[1].PaneDead = true
-	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened."}
+	f.states["id-42"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened."}
 	f.details["id-42"] = state.Detail{Reply: "PR #58 opened."}
 	_, out, _ := f.run("read", "42")
 	if !strings.Contains(out, "state     ended") || strings.Contains(out, "\nlast ") {
 		t.Fatalf("the last message is the reply:\n%s", out)
 	}
-	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute)}
+	f.states["id-42"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute)}
 	f.details["id-42"] = state.Detail{}
 	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "last      [session ended]\n") {
 		t.Fatalf("no reply:\n%s", out)
@@ -149,7 +150,7 @@ func TestReadShowsAnEndedTurnsLastMessageBesideTheReply(t *testing.T) {
 
 func TestReadJSONHasWhatLsHasAndTheAgentInFull(t *testing.T) {
 	f := readFakes()
-	f.states["id-42"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-2 * time.Minute), Last: "Bash: Create a file", Branch: "feat/42-x"}
+	f.states["id-42"] = journaltest.HookState{State: state.NeedsInput, Since: f.now.Add(-2 * time.Minute), Last: "Bash: Create a file", Branch: "feat/42-x"}
 	f.details["id-42"] = state.Detail{Reply: "Line one.\nLine two.", Ask: &state.Ask{Tool: "Bash", Description: "Create a file", Command: "touch /tmp/x"}}
 	f.inbox["id-42"] = []string{"use the new API"}
 	code, out, errOut := f.run("read", "--json", "42")
@@ -191,8 +192,9 @@ func TestReadJSONHasWhatLsHasAndTheAgentInFull(t *testing.T) {
 			t.Errorf("%s: %s, want %s", k, got, want)
 		}
 	}
-	// Nothing asked: null, not missing.
-	f.states["id-42"] = state.Report{State: state.Working, Since: f.now}
+	// Nothing asked, and no reply yet: null, not missing.
+	_ = f.deps().journal.Remove("/w/app", "id-42")
+	f.states["id-42"] = journaltest.HookState{State: state.Working, Since: f.now}
 	f.details["id-42"] = state.Detail{}
 	_, out, _ = f.run("read", "42", "--json")
 	if !strings.Contains(out, `"asks": null`) || !strings.Contains(out, `"reply": ""`) {
@@ -211,7 +213,7 @@ type readJSON struct {
 // longReply is a reply of 82k characters, as in #64, some of them more
 // than a byte long.
 func longReply() string {
-	return strings.Repeat("Recon: the API answers in 120 ms; zażółć gęślą jaźń. \n", 1500)
+	return strings.TrimSuffix(strings.Repeat("Recon: the API answers in 120 ms; zażółć gęślą jaźń.\n", 1500), "\n")
 }
 
 func TestReplyPageCutsAReplyIntoPagesOfWholeCharacters(t *testing.T) {
@@ -250,15 +252,23 @@ func TestReplyPageCutsAReplyIntoPagesOfWholeCharacters(t *testing.T) {
 func TestReadGivesALongReplyInPagesOfTheSameReply(t *testing.T) {
 	f := readFakes()
 	reply := longReply()
-	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
-	f.details["id-42"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
+	replied := f.now.Add(-time.Minute)
+	f.states["id-42"] = journaltest.HookState{State: state.Done, Since: replied, Last: state.Clean(reply)}
+	f.details["id-42"] = state.Detail{Reply: reply, ReplyAt: replied}
 	var got strings.Builder
+	var first readJSON
 	args := []string{"read", "42", "--json"}
 	for pages := 1; ; pages++ {
+		if pages > 3 {
+			t.Fatalf("still reading at page %d: %v", pages, args)
+		}
 		code, out, errOut := f.run(args...)
 		var v readJSON
 		if code != 0 || json.Unmarshal([]byte(out), &v) != nil || v.ReplySize != len(reply) {
 			t.Fatalf("page %d %v: exit %d %q\n%.300s", pages, args, code, errOut, out)
+		}
+		if pages == 1 {
+			first = v
 		}
 		got.WriteString(v.Reply)
 		if v.NextOffset == nil {
@@ -271,11 +281,12 @@ func TestReadGivesALongReplyInPagesOfTheSameReply(t *testing.T) {
 		f.now = f.now.Add(time.Second)
 	}
 
-	// For a person: which bytes, and the command for the next page.
+	// For a person: which bytes, and the command for the next page, with
+	// the read's cursor.
 	_, out, _ := f.run("read", "42")
-	since := lookedAt(f.now).Format(time.RFC3339Nano)
-	first, next, _ := replyPage(reply, 0)
-	if !strings.Contains(out, fmt.Sprintf("\nreply     bytes 0-%d of %d\n  Recon: ", len(first)-1, len(reply))) || !strings.HasSuffix(out, fmt.Sprintf("\n\nnext      hq read 42 --offset %d --since %s\n", *next, since)) {
+	since := first.NextSince
+	page, next, _ := replyPage(reply, 0)
+	if !strings.HasPrefix(since, "c") || !strings.Contains(out, fmt.Sprintf("\nreply     bytes 0-%d of %d\n  Recon: ", len(page)-1, len(reply))) || !strings.HasSuffix(out, fmt.Sprintf("\n\nnext      hq read 42 --offset %d --since %s\n", *next, since)) {
 		t.Fatalf("text:\n%.200s\n...\n%s", out, out[len(out)-200:])
 	}
 	second, _, _ := replyPage(reply, *next)
@@ -285,11 +296,30 @@ func TestReadGivesALongReplyInPagesOfTheSameReply(t *testing.T) {
 		t.Fatalf("last page:\n%.200s", out)
 	}
 
-	// The agent replied anew after the page before: the next page says so.
-	f.details["id-42"] = state.Detail{Reply: reply + " And one more thing.", ReplyAt: f.now}
-	code, out, errOut := f.run("read", "42", "--json", "--offset", strconv.Itoa(*next), "--since", lookedAt(f.now.Add(-time.Second)).Format(time.RFC3339Nano))
-	if code != ExitUsage || out != "" || !strings.Contains(errOut, "hq: 42's reply changed since ") || !strings.HasSuffix(errOut, ": read it again from its start, without --offset\n") {
+	// A moment, as an older hq printed next_since, ties the page to the
+	// reply by its time, as before: one taken after the reply gives it.
+	before := replied.Add(-time.Second).UTC().Format(time.RFC3339Nano)
+	after := replied.Add(time.Second).UTC().Format(time.RFC3339Nano)
+	if code, _, errOut := f.run("read", "42", "--offset", strconv.Itoa(*next), "--since", after); code != 0 {
+		t.Fatalf("moment after the reply: exit %d %q", code, errOut)
+	}
+	if code, _, _ := f.run("read", "42", "--offset", strconv.Itoa(*next), "--since", before); code != ExitUsage {
+		t.Fatalf("moment before the reply: exit %d", code)
+	}
+
+	// The agent replied anew after the page before: its Stop is numbered
+	// above the read's cursor, and the next page says so, however close
+	// in time the two replies are.
+	f.details["id-42"] = state.Detail{Reply: reply + " And one more thing.", ReplyAt: f.now.Add(-time.Minute)}
+	f.states["id-42"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "And one more thing."}
+	code, out, errOut := f.run("read", "42", "--json", "--offset", strconv.Itoa(*next), "--since", since)
+	if code != ExitUsage || out != "" || errOut != "hq: 42 has replied anew since the read that gave the offset: read it again from its start, without --offset\n" {
 		t.Fatalf("changed: exit %d %q %q", code, out, errOut)
+	}
+	// A cursor hq did not give, above the counter, is refused (#166,
+	// decision 11).
+	if code, _, errOut := f.run("read", "42", "--offset", strconv.Itoa(*next), "--since", "c999999"); code != ExitUsage || !strings.Contains(errOut, "take a new one from hq ls --json") {
+		t.Fatalf("a cursor ahead: exit %d %q", code, errOut)
 	}
 	// A page needs the moment of the read before it, and an offset that read gave.
 	f.details["id-42"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
@@ -317,9 +347,17 @@ func TestReadNeedsOneKnownAgent(t *testing.T) {
 	if code, out, errOut := f.run("read", "nobody"); code != ExitNotFound || out != "" || errOut != "hq: no agent 'nobody' (see hq ls)\n" {
 		t.Fatalf("unknown: exit %d %q %q", code, out, errOut)
 	}
-	for _, args := range [][]string{{"read"}, {"read", "--json"}, {"read", "42", "43"}, {"read", "42", "-y"}} {
-		if code, _, errOut := f.run(args...); code != ExitUsage || errOut != "hq: usage: hq read NAME [--offset N --since TIME] [--json]\n" {
-			t.Errorf("%v: exit %d %q", args, code, errOut)
+	const usage = "hq read NAME [--offset N --since SINCE] [--json]"
+	for args, want := range map[string]string{
+		"read":        "hq: usage: " + usage + "\n",
+		"read --json": "hq: usage: " + usage + "\n",
+		// The words of hq send and hq wait (#166, #170).
+		"read 42 43":      "hq: unexpected argument '43' (usage: " + usage + ")\n",
+		"read 42 -y":      "hq: unknown option '-y' (usage: " + usage + ")\n",
+		"read 42 --since": "hq: --since needs a value (usage: " + usage + ")\n",
+	} {
+		if code, _, errOut := f.run(strings.Fields(args)...); code != ExitUsage || errOut != want {
+			t.Errorf("%v: exit %d %q, want %q", args, code, errOut, want)
 		}
 	}
 	f.tmux.missing = true
@@ -332,7 +370,7 @@ func TestReadNeedsOneKnownAgent(t *testing.T) {
 // and hq read take it from the screen (#29).
 func TestReadShowsClaudesDialogAtTheStartOfASession(t *testing.T) {
 	f := readFakes()
-	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute)}
+	f.states["id-42"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute)}
 	f.tmux.windows[1].Pane = "%4"
 	rule := strings.Repeat("─", 40)
 	f.tmux.screens = map[string]string{"%4": rule + "\n Make auto mode your default permission mode?\n\n   Auto mode lets Claude handle permission prompts automatically.\n\n   ❯ Yes, set auto mode as my default permission mode\n     No, keep bypass permissions\n"}
@@ -360,8 +398,8 @@ func TestReadShowsClaudesDialogAtTheStartOfASession(t *testing.T) {
 // first saw it, and hq send says the message waits for it (#66).
 func TestCommandsSeeClaudesDialogAfterATurn(t *testing.T) {
 	f := readFakes()
-	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
-	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.states["id-42"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	f.tmux.windows[1].Options["inbox"] = generation
 	f.details["id-42"] = state.Detail{Reply: "hi"}
 	f.tmux.windows[1].Pane = "%4"
 	rule := strings.Repeat("─", 40)
@@ -396,9 +434,9 @@ func TestCommandsSeeClaudesDialogAfterATurn(t *testing.T) {
 func TestADialogAfterATurnTheUserEndedNeedsInput(t *testing.T) {
 	f := readFakes()
 	since := f.now.Add(-time.Hour)
-	f.states["id-42"] = state.Report{State: state.Working, Since: since, Prompt: "go"}
+	f.states["id-42"] = journaltest.HookState{State: state.Working, Since: since, Prompt: "go"}
 	f.tmux.windows[1].Pane = "%4"
-	f.tmux.windows[1].Options["turnend"] = strconv.FormatInt(since.UnixNano(), 10) + " " + strconv.FormatInt(since.Add(time.Minute).UnixNano(), 10) + " Interrupted"
+	f.seen("/w/app", "id-42", state.SourceScreen, state.KindTurnEnded, state.Facts{Text: "Interrupted"}, since.Add(time.Minute))
 	f.tmux.screens = map[string]string{"%4": "⎿  Interrupted\n" + strings.Repeat("▔", 40) + "\n   Change effort level?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"}
 	if code, out, _ := f.run("ls"); code != 0 || !strings.Contains(out, "needs input") || !strings.Contains(out, "Change effort level?") {
 		t.Fatalf("ls: exit %d\n%s", code, out)
@@ -417,9 +455,9 @@ func TestADialogAfterATurnTheUserEndedNeedsInput(t *testing.T) {
 // the message for a dialog (#70).
 func TestCommandsTakeADialogTheScreenClosedForGone(t *testing.T) {
 	f := readFakes()
-	f.states["id-42"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Minute), Last: "Claude Code needs your input", LastStop: "On it."}
+	f.states["id-42"] = journaltest.HookState{State: state.NeedsInput, Since: f.now.Add(-time.Minute), Last: "Claude Code needs your input", LastStop: "On it."}
 	f.details["id-42"] = state.Detail{Reply: "On it.", Ask: &state.Ask{Message: "Claude Code needs your input"}}
-	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.tmux.windows[1].Options["inbox"] = generation
 	f.tmux.windows[1].Pane = "%4"
 	rule := strings.Repeat("─", 40)
 	box := rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on (shift+tab to cycle)\n"
@@ -456,9 +494,9 @@ func TestCommandsTakeADialogTheScreenClosedForGone(t *testing.T) {
 // says the message waits for it (#70).
 func TestCommandsSeeClaudesDialogOnBackgroundWork(t *testing.T) {
 	f := readFakes()
-	f.states["id-42"] = state.Report{State: state.Working, Since: f.now.Add(-time.Hour), Latest: f.now.Add(-time.Minute), Background: true, Last: "It started."}
+	f.states["id-42"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Hour), Latest: f.now.Add(-time.Minute), Background: true, Last: "It started."}
 	f.details["id-42"] = state.Detail{Reply: "It started."}
-	f.tmux.windows[1].Options["inbox"] = inboxHooks
+	f.tmux.windows[1].Options["inbox"] = generation
 	f.tmux.windows[1].Pane = "%4"
 	f.tmux.screens = map[string]string{"%4": "● It started.\n✻ Waiting for 1 background agent to finish\n" + strings.Repeat("▔", 40) + "\n   Select model\n   Switch between Claude models.\n\n   ❯ 1. Default (recommended)\n     2. Opus 5.5\n"}
 	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "state     needs input 0s\n") || !strings.Contains(out, "\nasks      dialog "+state.DialogID(f.now)+"\n  Select model\n    1. Default (recommended)\n    2. Opus 5.5\n") {
@@ -474,7 +512,7 @@ func TestCommandsSeeClaudesDialogOnBackgroundWork(t *testing.T) {
 func TestReadListsTheAgentsOwnTasks(t *testing.T) {
 	f := readFakes()
 	long := "until gh pr checks 58; do sleep 30; done && echo all green, and a long tail that hq read cuts"
-	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Waiting for the background task to report back.",
+	f.states["id-42"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Waiting for the background task to report back.",
 		OwnTasks: []state.Task{{Type: "shell", Text: "sleep 120"}, {Type: "shell", Text: "cd app &&\n" + long}, {Type: "monitor", Text: "Wait for CI"}}}
 	f.details["id-42"] = state.Detail{Reply: "Waiting for the background task to report back."}
 	code, out, errOut := f.run("read", "42")
@@ -505,5 +543,48 @@ reply
 	}
 	if err := json.Unmarshal([]byte(out), &v); err != nil || v.Last != "Waiting for the background task to report back." || len(v.OwnTasks) != 3 || v.OwnTasks[1].Text != "cd app &&\n"+long {
 		t.Fatalf("%v %+v", err, v)
+	}
+}
+
+// A reply of several megabytes comes whole from the journal: hq read
+// --json gives its size, and its pages, the first, one inside and the
+// last, are those of the whole reply.
+func TestReadGivesAReplyOfSeveralMegabytesInFullAndInPages(t *testing.T) {
+	f := readFakes()
+	reply := strings.TrimSpace(strings.Repeat("a reply of several megabytes, zażółć ", 100_000))
+	f.states["id-42"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
+	f.details["id-42"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
+	offsets := []int{0}
+	for {
+		_, next, err := replyPage(reply, offsets[len(offsets)-1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if next == nil {
+			break
+		}
+		offsets = append(offsets, *next)
+	}
+	if len(reply) < 3<<20 || len(offsets) < 90 {
+		t.Fatalf("%d bytes in %d pages", len(reply), len(offsets))
+	}
+	since := ""
+	for _, offset := range []int{0, offsets[len(offsets)/2], offsets[len(offsets)-1]} {
+		args := []string{"read", "42", "--json"}
+		if offset > 0 {
+			args = append(args, "--offset", strconv.Itoa(offset), "--since", since)
+		}
+		code, out, errOut := f.run(args...)
+		var v readJSON
+		if code != 0 || json.Unmarshal([]byte(out), &v) != nil || v.ReplySize != len(reply) {
+			t.Fatalf("%v: exit %d %q\n%.300s", args, code, errOut, out)
+		}
+		want, next, _ := replyPage(reply, offset)
+		if v.Reply != want || (next == nil) != (v.NextOffset == nil) {
+			t.Fatalf("%v: %d bytes, next %v", args, len(v.Reply), v.NextOffset)
+		}
+		if offset == 0 {
+			since = v.NextSince
+		}
 	}
 }

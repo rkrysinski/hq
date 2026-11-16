@@ -1,0 +1,636 @@
+{
+  "about": "Screens captured with their styles, read as the look captures a pane, without them: a box holding Claude's faint suggestion or a paste is no box at rest, an empty one is; Claude at work closes a dialog of the hooks'; a screen at rest decides a rewind and a turn Claude owed.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "screen": "styled-start-placeholder",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "screen": "styled-model-in-box",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "screen": "styled-model-panel",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "screen": "styled-model-settled",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "/probe one two three"
+      },
+      "screen": "styled-command-taken",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "/probe one two three",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "Probe"
+        }
+      },
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000003.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tool": "Bash",
+            "text": "Bash: Probe",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "Bash: Probe",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:07Z"
+      }
+    },
+    {
+      "screen": "styled-command-taken",
+      "events": [
+        {
+          "n": 5,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:08Z",
+          "basis": 4,
+          "facts": {}
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "Probed.",
+        "background_tasks": []
+      },
+      "screen": "styled-command-done",
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000004.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 6,
+        "text": "Probed."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-paste-3-lines",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-paste-4-lines",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-paste-800-chars",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-paste-801-chars",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-command-then-paste",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-notice-suggestion",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-notice-suggestion-40",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-notice-typed",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-agent-notice-suggestion",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-suggestion-bang",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Add 3 and 3."
+      },
+      "screen": "styled-working",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:20Z",
+          "file": "000000005.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Add 3 and 3.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-notice-suggestion",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-notice-empty",
+      "events": [
+        {
+          "n": 8,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:22Z",
+          "basis": 7,
+          "facts": {
+            "screen": "3c020bd6c11bb314"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-notice-empty",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-notice-empty",
+      "events": [
+        {
+          "n": 9,
+          "source": "screen",
+          "kind": "Rewound",
+          "time": "2026-01-01T00:00:24Z",
+          "basis": 7,
+          "facts": {
+            "screen": "3c020bd6c11bb314",
+            "from": "2026-01-01T00:00:22Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:22Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "What is 4+4?"
+      },
+      "screen": "styled-working",
+      "events": [
+        {
+          "n": 10,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:25Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "What is 4+4?",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:25Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-done",
+      "events": [
+        {
+          "n": 11,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:26Z",
+          "basis": 10,
+          "facts": {
+            "screen": "3b5953bbffcf4a17"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:25Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-done",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:25Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "screen": "styled-done",
+      "events": [
+        {
+          "n": 12,
+          "source": "screen",
+          "kind": "Rewound",
+          "time": "2026-01-01T00:00:28Z",
+          "basis": 10,
+          "facts": {
+            "screen": "3b5953bbffcf4a17",
+            "from": "2026-01-01T00:00:26Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:26Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Start two subagents."
+      },
+      "screen": "styled-working",
+      "events": [
+        {
+          "n": 13,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:29Z",
+          "file": "000000007.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Start two subagents.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "Probed."
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "started",
+        "background_tasks": [
+          {
+            "id": "a1",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          },
+          {
+            "id": "a2",
+            "type": "subagent",
+            "status": "running",
+            "description": "Run the tests",
+            "agent_type": "general-purpose"
+          }
+        ]
+      },
+      "screen": "styled-background",
+      "events": [
+        {
+          "n": 14,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:30Z",
+          "file": "000000008.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "tasks": [
+              {
+                "id": "a1",
+                "type": "subagent",
+                "status": "running"
+              },
+              {
+                "id": "a2",
+                "type": "subagent",
+                "status": "running"
+              }
+            ],
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 14,
+        "text": "started",
+        "tasks": [
+          {
+            "id": "a1",
+            "description": "Run the tests"
+          },
+          {
+            "id": "a2",
+            "description": "Run the tests"
+          }
+        ]
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "<task-notification>\n<task-id>a1</task-id>\n<tool-use-id>toolu_01</tool-use-id>\n<status>completed</status>\n<summary>Agent \"Run the tests\" finished</summary>\n</task-notification>"
+      },
+      "screen": "styled-working",
+      "events": [
+        {
+          "n": 15,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:31Z",
+          "file": "000000009.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "wake": true,
+            "woke": "a1",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "started"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "the first finished",
+        "background_tasks": []
+      },
+      "screen": "styled-suggestion-bang",
+      "events": [
+        {
+          "n": 16,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:32Z",
+          "file": "000000010.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 16,
+        "text": "the first finished"
+      },
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "screen": "styled-suggestion-bang",
+      "events": [
+        {
+          "n": 17,
+          "source": "screen",
+          "kind": "AtRest",
+          "time": "2026-01-01T00:00:33Z",
+          "basis": 16,
+          "facts": {
+            "screen": "34b26e47db24e246"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "screen": "styled-suggestion-bang",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "the first finished"
+      }
+    },
+    {
+      "screen": "styled-suggestion-bang",
+      "events": [
+        {
+          "n": 18,
+          "source": "screen",
+          "kind": "TurnNotTaken",
+          "time": "2026-01-01T00:00:35Z",
+          "basis": 16,
+          "facts": {
+            "screen": "34b26e47db24e246",
+            "from": "2026-01-01T00:00:33Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:33Z",
+        "last": "the first finished"
+      }
+    }
+  ]
+}

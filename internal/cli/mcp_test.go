@@ -13,11 +13,13 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 // mcpSession connects an MCP client in memory to hq's MCP server on the
@@ -131,6 +133,11 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	if want := "a dialog open (a permission, questions with options, an MCP server's form, or a dialog of Claude Code's own such as Change effort level? after /effort;"; !strings.Contains(mcpInstructions, want) {
 		t.Errorf("no %q in the instructions", want)
 	}
+	// The bound of a waited send is given as stallBound is.
+	if stallText != "5 seconds" || !strings.Contains(mcpInstructions, "after 5 seconds for a slash command") ||
+		!strings.Contains(tools["send"].Description, "did not take the message within 5 seconds (") {
+		t.Errorf("the bound %q is not in the instructions or the send tool's description", stallText)
+	}
 	// An agent done with its own tasks running takes another turn when they
 	// end (#78): the tools that return it say so, and the instructions too.
 	for name, want := range map[string]string{
@@ -163,10 +170,44 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("instructions have no %q", want)
 		}
 	}
-	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "Watch from one moment: the next_since of your most recent wait or list result", "Never take since from read, send or answer", "Name every agent you follow in each wait", "act on the agents the list shows done, in question, needing input or ended", "call list first", "Never answer a permission or any other dialog", "answer them with answer, only on the user's word", "send /model with the model's name instead", "never on your own initiative"} {
+	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "next_since is an opaque string: pass it back exactly as given", "Watch from the next_since of your most recent wait or list result", "the next wait returns the turn of the earlier prompt first, with pending still counting yours", "a slash command that reaches an agent at work arrives as text and does not run", "Your watch never takes its since from read, send or answer", "A wait that names that one agent alone may start from the next_since of its send or answer", "the next_since it returns is that agent's too, so your watch goes on from its own last wait or list result", "Name every agent you follow in each wait", "act on the agents the list shows done, in question, needing input or ended", "call list first", "Never answer a permission or any other dialog", "answer them with answer, only on the user's word", "send /model with the model's name instead", "never on your own initiative", "To wait for that one answer in the same call, send with wait", "read the agent before sending again: hq types nothing twice", "your watch returns that same change once more", "wait returns the agent once more, done or question with the completion_seq it had: no new reply"} {
 		if !strings.Contains(cs.InitializeResult().Instructions, want) {
 			t.Errorf("instructions have no %q", want)
 		}
+	}
+	// Every tool that gives a next_since says to pass it back as given
+	// (ADR 0019), and send what its next wait returns (#173).
+	for _, name := range []string{"list", "read", "wait", "send", "answer"} {
+		if !strings.Contains(tools[name].Description, "exactly as given") {
+			t.Errorf("%s: next_since is not passed back as given: %q", name, tools[name].Description)
+		}
+	}
+	// What a send with wait returns, and what follows it (#170).
+	for _, want := range []string{"the next wait returns that prompt's turn, with pending still counting yours", "when the agent's hooks deliver it, it arrives as text and does not run",
+		"outcome is one of: turn_ended", "never at a turn end that came before it took it", "not_taken", "no_turn", "timeout, no agents yet", "read the agent before sending again", "your watch still returns that same change once more", "next_since, taken after what it returned"} {
+		if !strings.Contains(tools["send"].Description, want) {
+			t.Errorf("send: no %q", want)
+		}
+	}
+	// The watch never takes its since from send, read or answer; a wait on
+	// that one agent may (#170 against #166): the texts say one thing.
+	for _, want := range []string{"for your watch never that of read, send or answer", "A wait that names one agent alone may start from the next_since of its send or answer"} {
+		if !strings.Contains(tools["wait"].Description, want) {
+			t.Errorf("wait: no %q", want)
+		}
+	}
+	if want := "a wait that names this agent alone, from this next_since, returns its next change"; !strings.Contains(tools["send"].Description, want) {
+		t.Errorf("send: no %q", want)
+	}
+	if !strings.Contains(tools["answer"].Description, "with the completion_seq it had: that is no new reply") {
+		t.Errorf("answer: nothing on the dialog of Claude Code's own: %q", tools["answer"].Description)
+	}
+	// A row's since is not the since wait takes (#166 against #170).
+	if want := "since (the time it entered that state: not what wait takes as since)"; !strings.Contains(tools["list"].Description, want) {
+		t.Errorf("list: no %q in %q", want, tools["list"].Description)
+	}
+	if !strings.Contains(tools["list"].Description, "state_seq and completion_seq") {
+		t.Errorf("list: no numbers in %q", tools["list"].Description)
 	}
 	// What each tool must be given.
 	for name, want := range map[string][]string{"new": {"name", "dir"}, "send": {"name", "text"}, "read": {"name"}, "go": {"name"}, "kill": {"name"}, "wait": {"since"}, "list": nil, "answer": {"name", "dialog"}} {
@@ -182,7 +223,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 func TestMCPListAndReadGiveWhatHqLsAndHqReadPrint(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false)}
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened", Branch: "feat/58"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened", Branch: "feat/58"}
 	f.details["id-a"] = state.Detail{Reply: "Opened PR #58.\n\nAll tests pass."}
 	cs := mcpSession(t, f)
 	_, ls, _ := f.run("ls", "--json")
@@ -194,7 +235,7 @@ func TestMCPListAndReadGiveWhatHqLsAndHqReadPrint(t *testing.T) {
 		t.Fatalf("read %v:\n%s\nwant\n%s", isErr, out, read)
 	}
 	// What an MCP form asks, the same in both (#100).
-	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Second), Last: "Which color should I use?"}
+	f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: f.now.Add(-time.Second), Last: "Which color should I use?"}
 	f.details["id-a"] = state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{{Name: "color", Type: "string", Required: true}}}}
 	_, ls, _ = f.run("ls", "--json")
 	_, read, _ = f.run("read", "a", "--json")
@@ -222,12 +263,15 @@ func TestMCPReadGivesALongReplyInPages(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false)}
 	reply := longReply()
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
 	f.details["id-a"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
 	cs := mcpSession(t, f)
 	var got strings.Builder
 	args := map[string]any{"name": "a"}
 	for pages := 1; ; pages++ {
+		if pages > 3 {
+			t.Fatalf("still reading at page %d: %v", pages, args)
+		}
 		out, isErr := call(t, cs, "read", args)
 		var v readJSON
 		if isErr || json.Unmarshal([]byte(out), &v) != nil || v.ReplySize != len(reply) {
@@ -257,23 +301,23 @@ func TestMCPWaitInALoopWithSinceReturnsEachChangeOnce(t *testing.T) {
 		t.Fatalf("list %v: %s", err, out)
 	}
 	start := f.now
-	out, isErr := call(t, cs, "wait", map[string]any{"since": ls.NextSince.Format(time.RFC3339Nano)})
+	out, isErr := call(t, cs, "wait", map[string]any{"since": ls.NextSince})
 	first := waitJSON(t, out)
 	if isErr || len(first.Agents) != 0 || f.now.Sub(start) < DefaultWaitTimeout || f.now.Sub(start) > DefaultWaitTimeout+time.Second {
 		t.Fatalf("first call after %v: %s", f.now.Sub(start), out)
 	}
 	// Between the calls a asks a question.
 	f.now = f.now.Add(5 * time.Second)
-	f.states["id-a"] = state.Report{State: state.Question, Since: f.now, Last: "Shall I go on?"}
+	f.states["id-a"] = journaltest.HookState{State: state.Question, Since: f.now, Last: "Shall I go on?"}
 	f.now = f.now.Add(5 * time.Second)
-	out, _ = call(t, cs, "wait", map[string]any{"since": first.NextSince.Format(time.RFC3339Nano)})
+	out, _ = call(t, cs, "wait", map[string]any{"since": first.NextSince})
 	second := waitJSON(t, out)
 	if len(second.Agents) != 1 || second.Agents[0].Name != "a" || second.Agents[0].State != state.Question || second.Agents[0].Last != "Shall I go on?" {
 		t.Fatalf("second call: %s", out)
 	}
 	// Once only; the names narrow it and the timeout shortens it.
 	start = f.now
-	out, _ = call(t, cs, "wait", map[string]any{"since": second.NextSince.Format(time.RFC3339Nano), "names": []string{"a", "b"}, "timeout": 3})
+	out, _ = call(t, cs, "wait", map[string]any{"since": second.NextSince, "names": []string{"a", "b"}, "timeout": 3})
 	if third := waitJSON(t, out); len(third.Agents) != 0 || f.now.Sub(start) < 3*time.Second || f.now.Sub(start) > 4*time.Second {
 		t.Fatalf("third call after %v: %s", f.now.Sub(start), out)
 	}
@@ -353,18 +397,80 @@ func TestMCPWaitSaysHowLongItMayWait(t *testing.T) {
 func TestMCPSendLeavesTheMessageAsHqSendDoes(t *testing.T) {
 	f := sendFakes(state.Working)
 	cs := mcpSession(t, f)
-	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "Any blockers? Answer briefly when you finish."}); isErr || out != "{\n  \"delivery\": \"queued: a is working, delivered when it stops\",\n  \"next_since\": \"2026-09-27T11:59:59.75Z\"\n}\n" {
+	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "Any blockers? Answer briefly when you finish."}); isErr || out != "{\n  \"delivery\": \"queued: a is working, delivered when it stops\",\n  \"next_since\": \"c2\"\n}\n" {
 		t.Fatalf("%v %q", isErr, out)
 	}
 	if out, _ := call(t, cs, "send", map[string]any{"name": "a", "text": "use the v2 API", "now": true}); !strings.Contains(out, `"delivery": "queued: a is working, delivered after its next tool call, or when it stops"`) {
 		t.Fatalf("now: %q", out)
 	}
+	// A slash command left to the hooks: the line says it arrives as text
+	// (#173), in --json's delivery as in hq send's line.
+	if out, _ := call(t, cs, "send", map[string]any{"name": "a", "text": "/probe #12"}); !strings.Contains(out, `"delivery": "queued: a is working, delivered when it stops; if its hooks deliver it, the slash command arrives as text and does not run"`) {
+		t.Fatalf("command: %q", out)
+	}
+	f.inbox["id-a"] = f.inbox["id-a"][:2]
 	// Marked the supervisor's: a turn they start notifies nobody (spec §5).
 	if got := strings.Join(f.inbox["id-a"], "|"); got != "Any blockers? Answer briefly when you finish. (supervisor)|use the v2 API (supervisor) (now)" {
 		t.Fatalf("inbox %q", got)
 	}
 	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": " "}); !isErr || !strings.HasPrefix(out, "hq: empty message") {
 		t.Fatalf("empty %v %q", isErr, out)
+	}
+}
+
+func TestAToolWaitsAsLongAsItsClientAllows(t *testing.T) {
+	for _, tc := range []struct {
+		seconds int
+		client  mcpClient
+		want    time.Duration
+	}{
+		{0, claudeDesktop, DefaultWaitTimeout},
+		{-5, claudeCode, DefaultWaitTimeout},
+		{1, claudeCode, time.Second},
+		{10, claudeDesktop, 10 * time.Second},
+		{3600, claudeDesktop, DefaultWaitTimeout},
+		{3600, claudeCode, time.Hour},
+		{7200, claudeCode, time.Hour},
+	} {
+		if got := toolTimeout(tc.seconds, tc.client); got != tc.want {
+			t.Errorf("%d s for %s: %v, want %v", tc.seconds, tc.client.name, got, tc.want)
+		}
+	}
+}
+
+func TestMCPSendWithWaitReturnsTheTurnThatTookTheMessage(t *testing.T) {
+	f := sendFakes(state.Done)
+	onSubmit(f, func() { turnFor(f, 6, "Done: no blockers") })
+	cs := mcpSession(t, f)
+	out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "Any blockers?", "wait": true})
+	var got sendWaitOutput
+	if err := json.Unmarshal([]byte(out), &got); isErr || err != nil || got.Outcome != endTurn || got.Agents[0].Last != "Done: no blockers" || got.NextSince == "" {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	// The supervisor's, as without wait: its turn notifies nobody (spec §5).
+	if len(f.posted) != 1 || !f.posted[0].Supervisor {
+		t.Fatalf("posted %+v", f.posted)
+	}
+	// A timeout beyond the client's limit waits as long as wait may: 50 s
+	// for Claude Desktop, the delivery included.
+	turnFor(f, 100000, "")
+	start := f.now
+	out, isErr = call(t, cs, "send", map[string]any{"name": "a", "text": "and then?", "wait": true, "timeout": 3600})
+	if err := json.Unmarshal([]byte(out), &got); isErr || err != nil || got.Outcome != endTimeout {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	if took := f.now.Sub(start); took < DefaultWaitTimeout || took > DefaultWaitTimeout+time.Second {
+		t.Fatalf("waited %v", took)
+	}
+	// A stall is the tool's error; timeout without wait is refused.
+	f = sendFakes(state.Done)
+	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ typing\n", 1)
+	cs = mcpSession(t, f)
+	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "hi", "wait": true}); !isErr || !strings.Contains(out, "hq: stalled: a did not take the message") {
+		t.Fatalf("stall %v %q", isErr, out)
+	}
+	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "hi", "timeout": 5}); !isErr || out != "hq: timeout goes with wait\n" {
+		t.Fatalf("timeout alone %v %q", isErr, out)
 	}
 }
 
@@ -377,14 +483,14 @@ func TestMCPWaitFromSendsNextSinceReturnsAnAnswerGivenBeforeWaitWasCalled(t *tes
 	cs := mcpSession(t, f)
 	out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "No"})
 	var sent sendOutput
-	if err := json.Unmarshal([]byte(out), &sent); isErr || err != nil || sent.Delivery != "delivered: typed into a as its next prompt" || !sent.NextSince.Before(f.now) {
+	if err := json.Unmarshal([]byte(out), &sent); isErr || err != nil || sent.Delivery != "delivered: typed into a as its next prompt" || sent.NextSince != f.cursorBefore(t, "id-a", state.KindDelivery) {
 		t.Fatalf("send %v %v: %s", isErr, err, out)
 	}
 	// a answers within two seconds; the supervisor calls wait a minute later.
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(2 * time.Second), Last: "Understood, I will not."}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(2 * time.Second), Last: "Understood, I will not."}
 	f.now = f.now.Add(time.Minute)
 	start := f.now
-	out, _ = call(t, cs, "wait", map[string]any{"since": sent.NextSince.Format(time.RFC3339Nano), "names": []string{"a"}})
+	out, _ = call(t, cs, "wait", map[string]any{"since": sent.NextSince, "names": []string{"a"}})
 	got := waitJSON(t, out)
 	if len(got.Agents) != 1 || got.Agents[0].State != state.Done || got.Agents[0].Last != "Understood, I will not." || f.now.Sub(start) > time.Second {
 		t.Fatalf("wait after %v: %s", f.now.Sub(start), out)
@@ -880,14 +986,7 @@ func TestAPromptWithAMessageOfTheUsersIsNotTheSupervisors(t *testing.T) {
 	if code, out, _ := g.run("send", "a", "open a PR"); code != 0 || out != "delivered: typed into a as its next prompt\n" {
 		t.Fatalf("exit %d %q", code, out)
 	}
-	// Hooks of an older hq know no supervised turn: nothing to tell them.
-	h := sendFakes(state.Done)
-	h.tmux.windows[1].Options["inbox"] = "1"
-	call(t, mcpSession(t, h), "send", map[string]any{"name": "a", "text": "open a PR"})
-	if len(h.tmux.submitted) != 1 {
-		t.Fatal("not typed into an agent with older hooks")
-	}
-	for name, f := range map[string]*fakes{"with the user's message": f, "from a shell": g, "older hooks": h} {
+	for name, f := range map[string]*fakes{"with the user's message": f, "from a shell": g} {
 		if len(f.announced) != 0 || len(f.withdrawn) != 0 {
 			t.Errorf("%s: announced %v, withdrawn %v", name, f.announced, f.withdrawn)
 		}
@@ -1030,13 +1129,13 @@ func TestTheRefusalKnowsTheInputsOfKillAnswerAndSend(t *testing.T) {
 func TestMCPInstallRegistersHqWithSbx(t *testing.T) {
 	f := newFakes()
 	f.exe = "/Users/dev/.local/bin/hq"
-	f.env = map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET": "hq-dev", "HOME": "/Users/dev", "GITHUB_TOKEN": "secret"}
+	f.env = map[string]string{"PATH": "/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET": "hq-dev", "HOME": "/Users/dev", "GITHUB_TOKEN": "secret", "XDG_STATE_HOME": "/Users/dev/state"}
 	load := "load it into a sandbox with: hq mcp load REPO (every agent in that sandbox then sees hq's tools)\n"
 	code, out, errOut := f.run("mcp", "install", "sbx")
 	if code != 0 || out != "added hq to sbx (sbx mcp inspect hq)\n"+load {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
-	want := []string{"/usr/bin/env", "PATH=/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET=hq-dev", f.exe, "mcp", "sbx"}
+	want := []string{"/usr/bin/env", "PATH=/opt/homebrew/bin:/usr/bin", "HQ_TMUX_SOCKET=hq-dev", "XDG_STATE_HOME=/Users/dev/state", f.exe, "mcp", "sbx"}
 	if !slices.Equal(f.sbx.mcp["hq"], want) {
 		t.Fatalf("registered %q", f.sbx.mcp["hq"])
 	}
@@ -1267,5 +1366,82 @@ func TestMCPKillLeavesATraceOfTheClientAndTheCallingAgent(t *testing.T) {
 	call(t, cs, "kill", map[string]any{"name": "a", "confirmed": true})
 	if len(f.kills) != 1 || f.kills[0].Client != "sbx" || f.kills[0].Caller != "" {
 		t.Fatalf("trace %+v", f.kills)
+	}
+}
+
+// stepAsideCalls is a call of every tool hq mcp offers, each of which would
+// change something or read an agent of the fakes goFakes gives.
+var stepAsideCalls = []struct {
+	tool string
+	args map[string]any
+}{
+	{"list", nil},
+	{"read", map[string]any{"name": "a"}},
+	{"wait", map[string]any{"since": "2026-09-27T12:00:00Z", "timeout": 1}},
+	{"new", map[string]any{"name": "42", "dir": "/w/lib", "prompt": "work on issue #42"}},
+	{"send", map[string]any{"name": "a", "text": "and the tests?"}},
+	{"answer", map[string]any{"name": "a", "dialog": "abcdef", "cancel": true, "confirmed": true}},
+	{"go", map[string]any{"name": "a"}},
+	{"kill", map[string]any{"name": "a", "confirmed": true}},
+}
+
+func TestMCPAfterAnUpdateToAnotherGenerationEveryCallFails(t *testing.T) {
+	f := goFakes()
+	f.sbx.sandboxes = sandboxesFor("/w/lib")
+	cs := mcpSession(t, f)
+	if out, isErr := call(t, cs, "list", nil); isErr {
+		t.Fatalf("list before the update: %q", out)
+	}
+	f.disk.ino++
+	f.diskGeneration = version.Generation + 1
+	windows := len(f.tmux.windows)
+	for _, c := range stepAsideCalls {
+		if out, isErr := call(t, cs, c.tool, c.args); !isErr || out != "hq: "+hqUpdated+"\n" {
+			t.Errorf("%s: %v %q", c.tool, isErr, out)
+		}
+	}
+	// It started no agent and changed nothing.
+	if len(f.tmux.windows) != windows || len(f.inbox) != 0 || f.tmux.docked != "" || len(f.announced) != 0 {
+		t.Fatalf("windows %+v inbox %v docked %q announced %v", f.tmux.windows, f.inbox, f.tmux.docked, f.announced)
+	}
+	if f.generationAsks != 1 {
+		t.Errorf("the hq on disk asked %d times, want once", f.generationAsks)
+	}
+	// The instructions say what the line means and what to do.
+	for _, want := range []string{"fails with `hq was updated: restart hq in this client` means hq was updated to another generation", "do not call again", "Tell the user that hq was updated and has to be restarted in this client"} {
+		if !strings.Contains(cs.InitializeResult().Instructions, want) {
+			t.Errorf("instructions have no %q", want)
+		}
+	}
+}
+
+func TestMCPAfterAnUpdateOfTheSameGenerationServesAsBefore(t *testing.T) {
+	f := goFakes()
+	f.sbx.sandboxes = sandboxesFor("/w/lib")
+	cs := mcpSession(t, f)
+	f.disk.ino++
+	if out, isErr := call(t, cs, "list", nil); isErr {
+		t.Fatalf("list: %q", out)
+	}
+	if out, isErr := call(t, cs, "go", map[string]any{"name": "a"}); isErr || f.tmux.docked != "@4" {
+		t.Fatalf("go: %v %q", isErr, out)
+	}
+	if out, isErr := call(t, cs, "new", map[string]any{"name": "42", "dir": "/w/lib", "prompt": "work on issue #42"}); isErr || !strings.HasPrefix(out, "started 42") {
+		t.Fatalf("new: %v %q", isErr, out)
+	}
+	if f.generationAsks != 1 {
+		t.Errorf("the hq on disk asked %d times, want once", f.generationAsks)
+	}
+}
+
+func TestMCPLeftAsItWasAsksTheHqOnDiskNothing(t *testing.T) {
+	f := goFakes()
+	f.sbx.sandboxes = sandboxesFor("/w/lib")
+	cs := mcpSession(t, f)
+	for _, c := range stepAsideCalls {
+		call(t, cs, c.tool, c.args)
+	}
+	if f.generationAsks != 0 {
+		t.Fatalf("the hq on disk asked %d times while unchanged", f.generationAsks)
 	}
 }

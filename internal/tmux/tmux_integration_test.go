@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -373,66 +372,6 @@ func TestAgentPanesRunTheSessionThroughHqsSessionProgram(t *testing.T) {
 	eventually(t, "the relaunched session", func() bool { return strings.Contains(shown(), "session:relaunched") })
 }
 
-func TestKeepFirstLetsTheFirstRecordWinAcrossRacingWriters(t *testing.T) {
-	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
-	dir := t.TempDir()
-	if err := c.EnsureSession(dir); err != nil {
-		t.Fatal(err)
-	}
-	id, err := c.NewWindow("a", dir, map[string]string{"id": "x1"}, []string{"sleep", "60"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Writers in separate tmux processes, as hq ls and the list are, each
-	// with the moment it saw, all for the same report (#100). Every one
-	// gets back the record that won, and it stays.
-	for round := range 5 {
-		key := strconv.Itoa(1000 + round)
-		const writers = 8
-		got := make([]string, writers)
-		var wg sync.WaitGroup
-		start := make(chan struct{})
-		for i := range writers {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				<-start
-				got[i], _ = c.KeepFirst(id, "turnend", key+" ", fmt.Sprintf("%s %d User declined to answer questions", key, 100+i))
-			}()
-		}
-		close(start)
-		wg.Wait()
-		ws, _ := c.Windows()
-		stored := ws[len(ws)-1].Options["turnend"]
-		if !strings.HasPrefix(stored, key+" 1") || !strings.HasSuffix(stored, " User declined to answer questions") {
-			t.Fatalf("round %d: stored %q", round, stored)
-		}
-		for i, g := range got {
-			if g != stored {
-				t.Fatalf("round %d: writer %d got %q, stored %q", round, i, g, stored)
-			}
-		}
-		// A later writer for the same report keeps it too.
-		if g, err := c.KeepFirst(id, "turnend", key+" ", key+" 999 Interrupted"); err != nil || g != stored {
-			t.Fatalf("round %d: later writer %q %v", round, g, err)
-		}
-	}
-	// A record for another report (another prefix) is replaced; quotes and
-	// spaces survive; a prefix that is not plain is refused.
-	// tmux 3.4 prints a $ that starts a name with a backslash (#21): hq
-	// gives the record back as it was stored.
-	const record = `1.5 "a b" $x \$y $1`
-	if g, err := c.KeepFirst(id, "endseen", "1.5 ", record); err != nil || g != record {
-		t.Fatalf("new: %q %v", g, err)
-	}
-	if g, err := c.KeepFirst(id, "endseen", "2.5 ", "2.5 7"); err != nil || g != "2.5 7" {
-		t.Fatalf("replaced: %q %v", g, err)
-	}
-	if _, err := c.KeepFirst(id, "endseen", "2* ", "2 7"); err == nil {
-		t.Fatal("a glob prefix was taken")
-	}
-}
-
 // What hq stores on a window or the session and the paths tmux reports come
 // back as they are, a $ that starts a name too, which tmux 3.4 prints with
 // a backslash (#21).
@@ -628,6 +567,42 @@ func TestPressSendsOneKeyAsTheTerminalSendsIt(t *testing.T) {
 		t.Fatalf("got %q", b)
 	}
 	if err := c.Press("%999", "Down"); err == nil {
+		t.Fatal("a pane that is gone is an error")
+	}
+}
+
+// hq send types a slash command in with Type (#173): every character
+// reaches the program as typed, a word that names a tmux key included,
+// and no bracketed paste wraps it.
+func TestTypeTypesTheTextAsItIs(t *testing.T) {
+	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
+	dir := t.TempDir()
+	if err := c.EnsureSession(dir); err != nil {
+		t.Fatal(err)
+	}
+	got := filepath.Join(dir, "got")
+	id, err := c.NewWindow("w", dir, nil, []string{"sh", "-c", `printf '\033[?2004h'; stty raw -echo; echo ready; exec dd bs=1 2>/dev/null >>"$0"`, got})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Start(id); err != nil {
+		t.Fatal(err)
+	}
+	ws, _ := c.Windows()
+	pane := ws[len(ws)-1].Pane
+	eventually(t, "the program", func() bool {
+		s, _ := c.Screens([]string{pane})
+		return strings.Contains(s[pane], "ready")
+	})
+	want := "/probe Enter C-c; zażółć " + strings.Repeat("x", 300)
+	if err := c.Type(pane, want); err != nil {
+		t.Fatal(err)
+	}
+	var b []byte
+	if !waitFor(func() bool { b, _ = os.ReadFile(got); return len(b) >= len(want) }) || string(b) != want {
+		t.Fatalf("got %q", b)
+	}
+	if err := c.Type("%999", "x"); err == nil {
 		t.Fatal("a pane that is gone is an error")
 	}
 }

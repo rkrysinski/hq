@@ -14,7 +14,6 @@ import (
 	"regexp"
 	"strings"
 	"sync/atomic"
-	"syscall"
 	"testing"
 	"time"
 
@@ -108,24 +107,24 @@ func TestHookReportsToTheMainRepositoryFromAWorktree(t *testing.T) {
 	testutil.Git(t, root, "worktree", "add", "-q", "-b", "feat-42", wt)
 	const id = "0a1b2c3d4e5f"
 
-	if _, ok := Read(root, id); ok {
+	if _, ok := reported(root, id); ok {
 		t.Fatal("a report before the first event")
 	}
 	// Claude starts in the repository, then moves into a worktree.
 	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
-	if r, ok := Read(root, id); !ok || r.State != Working || r.Branch != "main" || time.Since(r.Since) > time.Minute {
+	if r, ok := reported(root, id); !ok || r.State != Working || r.Branch != "main" || time.Since(r.Since) > time.Minute {
 		t.Fatalf("after the prompt: %+v %v", r, ok)
 	}
 	fire(t, wt, root, id, "stop", fixture(t, "stop-question"))
-	if r, _ := Read(root, id); r.Branch != "feat-42" {
+	if r, _ := reported(root, id); r.Branch != "feat-42" {
 		t.Fatalf("in the worktree: %+v", r)
 	}
 	fire(t, wt, root, id, "input", fixture(t, "notification"))
-	if r, _ := Read(root, id); r.State != NeedsInput || r.Last != "Claude needs your permission" {
+	if r, _ := reported(root, id); r.State != NeedsInput || r.Last != "Claude needs your permission" {
 		t.Fatalf("after the notification: %+v", r)
 	}
 	fire(t, wt, root, id, "end", fixture(t, "session-end"))
-	if r, _ := Read(root, id); r.State != Ended || r.Last != "Should I also update the README?" {
+	if r, _ := reported(root, id); r.State != Ended || r.Last != "Should I also update the README?" {
 		t.Fatalf("after the end, the last message stays: %+v", r)
 	}
 	entries, _ := os.ReadDir(Dir(root))
@@ -133,7 +132,8 @@ func TestHookReportsToTheMainRepositoryFromAWorktree(t *testing.T) {
 	for _, e := range entries {
 		names = append(names, e.Name())
 	}
-	if strings.Join(names, " ") != id+" "+id+".stop" {
+	// The hook's notes, and no state file or copy of the turn end (#199).
+	if strings.Join(names, " ") != id+".ended "+id+".last" {
 		t.Fatalf("files %v", names)
 	}
 	out, _ := exec.Command("git", "-C", root, "status", "--porcelain").Output()
@@ -148,9 +148,9 @@ func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) 
 	notify := func(kind, payload string) string {
 		return run(t, root, root, id, hook(kind, "[%s]"), fixture(t, payload))
 	}
-	state := func() (Report, string) {
+	state := func() (hookState, string) {
 		t.Helper()
-		r, ok := Read(root, id)
+		r, ok := reported(root, id)
 		if !ok {
 			t.Fatal("no report")
 		}
@@ -208,8 +208,8 @@ func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) 
 	if r, _ := state(); r.State != Working {
 		t.Fatalf("permission granted, tool failed: %+v", r)
 	}
-	// Only the state file, and the mark that a tool of the turn ended,
-	// naming the turn.
+	// Only the hook's note of its latest report, and the mark that a tool
+	// of the turn ended, naming the turn.
 	if got := files(t, root, id); len(got) != 2 || got[actedSuffix] != "0000001b-0000-4000-8000-00000000001b\n" {
 		t.Fatalf("left files behind: %v", got)
 	}
@@ -227,9 +227,9 @@ func TestAnElicitationIsReportedAtOnceAndClosedWhenItsFormIsAnswered(t *testing.
 	notify := func(kind string, payload []byte) string {
 		return run(t, root, root, id, hook(kind, "[%s]"), payload)
 	}
-	state := func() (Report, string) {
+	state := func() (hookState, string) {
 		t.Helper()
-		r, ok := Read(root, id)
+		r, ok := reported(root, id)
 		if !ok {
 			t.Fatal("no report")
 		}
@@ -296,11 +296,11 @@ func TestAnElicitationWhileTheAgentWaitsOnASubagentIsTheSubagents(t *testing.T) 
 	if out := run(t, root, root, id, hook("dialog", "[%s]"), fixture(t, "elicitation-subagent")); out != `{"terminalSequence":"[Needs input: main]"}`+"\n" {
 		t.Fatalf("the elicitation printed %q", out)
 	}
-	if r, _ := Read(root, id); r.State != NeedsInput || !r.SubagentDialog || r.Last != "Which color should I use?" {
+	if r, _ := reported(root, id); r.State != NeedsInput || !r.SubagentDialog || r.Last != "Which color should I use?" {
 		t.Fatalf("a subagent's elicitation: %+v", r)
 	}
 	fire(t, root, root, id, "result", fixture(t, "elicitation-result-accept-subagent"))
-	if r, _ := Read(root, id); r.State != Working || !r.Background || r.Last != "The tests are running in a subagent." {
+	if r, _ := reported(root, id); r.State != Working || !r.Background || r.Last != "The tests are running in a subagent." {
 		t.Fatalf("answered: %+v", r)
 	}
 }
@@ -315,7 +315,7 @@ func TestAToolOfItsOwnThatEndedMarksTheTurnActedOnUntilTheNextTurn(t *testing.T)
 	const id = "0a1b2c3d4e5f"
 	acted := func(when string, want bool) {
 		t.Helper()
-		r, ok := Read(root, id)
+		r, ok := reported(root, id)
 		_, err := os.Lstat(filepath.Join(Dir(root), id+actedSuffix))
 		if !ok || r.Acted != want || (err == nil) != want {
 			t.Fatalf("%s: acted %v, mark %v, want %v (%+v)", when, r.Acted, err == nil, want, r)
@@ -327,10 +327,10 @@ func TestAToolOfItsOwnThatEndedMarksTheTurnActedOnUntilTheNextTurn(t *testing.T)
 	acted("prompt", false)
 	fire(t, root, root, id, "answer", toolEnd("Bash", "a1", `{"stdout":"x"}`))
 	acted("a subagent's tool", false)
-	r, _ := Read(root, id)
+	r, _ := reported(root, id)
 	fire(t, root, root, id, "answer", toolEnd("Bash", "", `{"stdout":"x"}`))
 	acted("its own tool", true)
-	if now, _ := Read(root, id); now.State != Working || !now.Since.Equal(r.Since) {
+	if now, _ := reported(root, id); now.State != Working || !now.Since.Equal(r.Since) {
 		t.Fatalf("its own tool restarted the turn: %+v", now)
 	}
 	// Claude woken while it works goes on with the same turn.
@@ -348,7 +348,7 @@ func TestAToolOfItsOwnThatEndedMarksTheTurnActedOnUntilTheNextTurn(t *testing.T)
 	fire(t, root, root, id, "answer", toolEnd("Agent", "", launched("a2")))
 	acted("a subagent launched", true)
 	fire(t, root, root, id, "stop", turnEnd("Waiting.", "a2"))
-	if r, _ := Read(root, id); r.State != Working || !r.Background {
+	if r, _ := reported(root, id); r.State != Working || !r.Background {
 		t.Fatalf("kept stop: %+v", r)
 	}
 	acted("a kept stop", false)
@@ -368,7 +368,7 @@ func TestAResumedSessionKeepsItsBranchWorktreeAndLastMessage(t *testing.T) {
 
 	// A new agent: waiting at its prompt at once, with nothing to say yet.
 	fire(t, root, root, id, "start", fixture(t, "session-start"))
-	if r, _ := Read(root, id); r.State != Done || r.Branch != "main" || r.Last != "" {
+	if r, _ := reported(root, id); r.State != Done || r.Branch != "main" || r.Last != "" {
 		t.Fatalf("started: %+v", r)
 	}
 	// It works in a worktree, then its sandbox restarts under it.
@@ -379,14 +379,14 @@ func TestAResumedSessionKeepsItsBranchWorktreeAndLastMessage(t *testing.T) {
 	// prompt, it still keeps what the session before the first restart gave.
 	for i := 0; i < 2; i++ {
 		fire(t, root, root, id, "resume", fixture(t, "session-start-resume"))
-		r, _ := Read(root, id)
+		r, _ := reported(root, id)
 		if r.State != Done || r.Branch != "feat-42" || r.Cwd != wt || r.Last != "Hi. The tests pass and PR #58 is open." {
 			t.Fatalf("resumed %d: %+v", i+1, r)
 		}
 	}
 	// Its next report is where it is now.
 	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
-	if r, _ := Read(root, id); r.State != Working || r.Branch != "main" {
+	if r, _ := reported(root, id); r.State != Working || r.Branch != "main" {
 		t.Fatalf("prompted: %+v", r)
 	}
 	if err := Remove(root, id); err != nil {
@@ -409,33 +409,6 @@ func TestHookNeverFailsAndWritesNothingWithoutAnAgentOrARepository(t *testing.T)
 	fire(t, d, d, "abc", "stop", fixture(t, "stop-done")) // not a repository
 }
 
-func TestReadRefusesAnythingButARegularFile(t *testing.T) {
-	root := t.TempDir()
-	dir := Dir(root)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	secret := filepath.Join(root, "secret")
-	os.WriteFile(secret, fixture(t, "stop-done"), 0o600)
-	os.Symlink(secret, filepath.Join(dir, "aaa"))
-	syscall.Mkfifo(filepath.Join(dir, "ccc"), 0o644)
-	os.Mkdir(filepath.Join(dir, "ddd"), 0o755)
-	os.WriteFile(filepath.Join(dir, "eee"), fixture(t, "stop-done"), 0o644)
-	os.Symlink(secret, filepath.Join(dir, "eee.stop"))
-	for _, id := range []string{"aaa", "ccc", "ddd", "../secret"} {
-		if r, ok := Read(root, id); ok {
-			t.Errorf("%s read: %+v", id, r)
-		}
-		if d := ReadDetail(root, id); d.Reply != "" || !d.ReplyAt.IsZero() {
-			t.Errorf("%s detail: %+v", id, d)
-		}
-	}
-	// A linked .stop file is ignored; the event file itself still counts.
-	if r, ok := Read(root, "eee"); !ok || r.State != Done {
-		t.Fatalf("eee: %+v %v", r, ok)
-	}
-}
-
 // A turn that ends with a reply of 82k characters, as in #64, written by
 // the hook: the agent is done, notified, and its reply is read in full.
 func TestALongReplyIsDoneAndReadInFull(t *testing.T) {
@@ -448,94 +421,67 @@ func TestALongReplyIsDoneAndReadInFull(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &v); err != nil || !strings.HasPrefix(v.TerminalSequence, "Done: ") {
 		t.Fatalf("hook: %q %v", out, err)
 	}
-	info, err := os.Stat(filepath.Join(Dir(root), id+".stop"))
-	if err != nil || info.Size() <= 64<<10 {
-		t.Fatalf("the reply's state file is %v bytes (%v): not past the old cap", info.Size(), err)
+	events, _ := os.ReadDir(EventsDir(root, id))
+	var info os.FileInfo
+	for _, e := range events {
+		if IsEventFile(e.Name()) {
+			info, _ = e.Info()
+		}
 	}
-	if r, ok := Read(root, id); !ok || r.State != Done || r.Last != Clean(reply) {
+	if info == nil || info.Size() <= 64<<10 {
+		t.Fatalf("the reply's event file is %v: not past the old cap", info)
+	}
+	if r, ok := reported(root, id); !ok || r.State != Done || r.Last != Clean(reply) {
 		t.Fatalf("read: %v %s %q", ok, r.State, r.Last)
 	}
-	d := ReadDetail(root, id)
+	d := detailed(root, id)
 	if d.Reply != CleanText(reply) || !d.ReplyAt.Equal(info.ModTime()) {
 		t.Fatalf("detail: %d characters of %d, at %v (want %v)", len(d.Reply), len(reply), d.ReplyAt, info.ModTime())
 	}
+	// The hook's notes keep none of it.
+	for _, name := range []string{id + noteSuffix, id + endedSuffix} {
+		if note, err := os.Stat(filepath.Join(Dir(root), name)); err != nil || note.Size() > 1<<10 {
+			t.Errorf("%s: %v %v", name, note, err)
+		}
+	}
 }
 
-// A state file over the cap is no state hq reads, but it is the agent's
+// An event file over the cap is no event hq reads, but it is the agent's
 // report: it counts, and hq says it was too large, never starting with
 // nothing (#64).
 func TestAReportTooLargeToReadSaysSo(t *testing.T) {
 	root := t.TempDir()
-	dir := Dir(root)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	tooLarge := func(name, payload string) {
+	event := func(id, name, payload string, size int64) {
+		t.Helper()
+		dir := EventsDir(root, id)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
 		p := filepath.Join(dir, name)
 		os.WriteFile(p, fixture(t, payload), 0o600)
-		if err := os.Truncate(p, maxFile+1); err != nil {
-			t.Fatal(err)
+		if size > 0 {
+			if err := os.Truncate(p, size); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	const say = "[report too large to read: 16.0 MiB]"
-	tooLarge("aaa", "stop-done")
-	tooLarge("aaa.stop", "stop-done")
-	info, _ := os.Stat(filepath.Join(dir, "aaa"))
-	if r, ok := Read(root, "aaa"); !ok || r.State != Done || r.Last != say || !r.Since.Equal(info.ModTime()) {
+	event("aaa", "000000001.stop.1", "stop-done", maxFile+1)
+	info, _ := os.Stat(filepath.Join(EventsDir(root, "aaa"), "000000001.stop.1"))
+	if r, ok := reported(root, "aaa"); !ok || r.State != Done || r.Last != say || !r.Since.Equal(info.ModTime()) {
 		t.Fatalf("aaa: %v %+v", ok, r)
 	}
-	if d := ReadDetail(root, "aaa"); d.Reply != say || d.ReplyAt.IsZero() {
+	if d := detailed(root, "aaa"); d.Reply != say || d.ReplyAt.IsZero() {
 		t.Fatalf("aaa detail: %+v", d)
 	}
 	// The agent works on since; its last message is that reply.
-	os.WriteFile(filepath.Join(dir, "bbb"), fixture(t, "prompt"), 0o600)
-	tooLarge("bbb.stop", "stop-done")
-	if r, ok := Read(root, "bbb"); !ok || r.State != Working || r.Last != say {
+	event("bbb", "000000001.stop.1", "stop-done", maxFile+1)
+	event("bbb", "000000002.prompt.1", "prompt", 0)
+	if r, ok := reported(root, "bbb"); !ok || r.State != Working || r.Last != say {
 		t.Fatalf("bbb: %v %+v", ok, r)
 	}
-	if d := ReadDetail(root, "bbb"); d.Reply != say {
+	if d := detailed(root, "bbb"); d.Reply != say {
 		t.Fatalf("bbb detail: %+v", d)
-	}
-}
-
-func TestReadParsesTheStateFilesOncePerChange(t *testing.T) {
-	root := t.TempDir()
-	dir := Dir(root)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(dir, "abc")
-	os.WriteFile(path, fixture(t, "prompt"), 0o600)
-	if r, ok := Read(root, "abc"); !ok || r.State != Working {
-		t.Fatalf("prompt: %v %+v", ok, r)
-	}
-	// Other bytes of the same size at the same time: no change, so the
-	// report parsed before stands (parsed, they would say starting).
-	info, _ := os.Stat(path)
-	os.WriteFile(path, bytes.Repeat([]byte("x"), int(info.Size())), 0o600)
-	os.Chtimes(path, info.ModTime(), info.ModTime())
-	if r, _ := Read(root, "abc"); r.State != Working {
-		t.Fatalf("unchanged: %+v", r)
-	}
-	// A new time is a change.
-	later := info.ModTime().Add(time.Second)
-	os.Chtimes(path, later, later)
-	if r, _ := Read(root, "abc"); r.State != Starting {
-		t.Fatalf("touched: %+v", r)
-	}
-	// So is a file beside it that appears.
-	os.WriteFile(path, fixture(t, "prompt"), 0o600)
-	os.Chtimes(path, later, later)
-	os.WriteFile(path+".stop", fixture(t, "stop-done"), 0o600)
-	if r, _ := Read(root, "abc"); r.State != Working || r.Last != "Hi. The tests pass and PR #58 is open." {
-		t.Fatalf("beside: %+v", r)
-	}
-	// Removed, the agent has nothing to report, whatever was parsed.
-	if err := Remove(root, "abc"); err != nil {
-		t.Fatal(err)
-	}
-	if r, ok := Read(root, "abc"); ok {
-		t.Fatalf("removed: %+v", r)
 	}
 }
 
@@ -546,7 +492,9 @@ func TestRemoveDeletesThatAgentsFilesOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	outside := filepath.Join(dir, "..", "..", "keep")
-	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abc.on", "abc.owe", "abc.sup", "abc.next", "abc.acted", "abc.queued", "abcd", "abcd.stop", "def", "../../keep"} {
+	// The hook's working files, hq's word and record, and what the hook
+	// of an earlier generation wrote too (an outdated agent's).
+	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abc.last", "abc.ended", "abc.on", "abc.owe", "abc.sup", "abc.next", "abc.acted", "abc.queued", "abc.hq", "abcd", "abcd.stop", "abcd.last", "def", "../../keep"} {
 		os.WriteFile(filepath.Join(dir, p), []byte("x"), 0o644)
 	}
 	if err := Remove(root, "abc"); err != nil {
@@ -569,7 +517,7 @@ func TestRemoveDeletesThatAgentsFilesOnly(t *testing.T) {
 	for _, e := range entries {
 		left = append(left, e.Name())
 	}
-	if got := strings.Join(left, " "); got != "abcd abcd.stop def" {
+	if got := strings.Join(left, " "); got != "abcd abcd.last abcd.stop def" {
 		t.Fatalf("left %q", got)
 	}
 	if _, err := os.Stat(outside); err != nil {
@@ -582,7 +530,8 @@ func TestRemoveDeletesThatAgentsFilesOnly(t *testing.T) {
 	}
 }
 
-// files reads an agent's state files, by suffix, for comparing.
+// files reads the hook's working files of an agent, by suffix, for
+// comparing.
 func files(t *testing.T, root, id string) map[string]string {
 	t.Helper()
 	got := map[string]string{}
@@ -600,9 +549,9 @@ func TestATurnEndingWhileASubagentRunsLeavesTheAgentWorkingAndNotifiesNobody(t *
 	notify := func(kind, payload string) string {
 		return run(t, root, root, id, hook(kind, "[%s]"), fixture(t, payload))
 	}
-	read := func() Report {
+	read := func() hookState {
 		t.Helper()
-		r, ok := Read(root, id)
+		r, ok := reported(root, id)
 		if !ok {
 			t.Fatal("no report")
 		}
@@ -640,7 +589,7 @@ func TestATurnEndingWhileASubagentRunsLeavesTheAgentWorkingAndNotifiesNobody(t *
 	if r = read(); r.State != Done || r.Background || r.Last != "Hi. The tests pass and PR #58 is open." || !r.Since.After(prompted.Since) {
 		t.Fatalf("closing turn: %+v", r)
 	}
-	if f := files(t, root, id); len(f) != 2 || f[""] != f[".stop"] {
+	if f := files(t, root, id); len(f) != 2 || f[noteSuffix] == "" || f[noteSuffix] != f[endedSuffix] {
 		t.Fatalf("files left: %v", f)
 	}
 
@@ -668,9 +617,9 @@ func TestATurnEndingWhileASubagentRunsLeavesTheAgentWorkingAndNotifiesNobody(t *
 func TestADialogNotifiedWhileTheAgentWaitsOnASubagentIsTheSubagents(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	read := func() Report {
+	read := func() hookState {
 		t.Helper()
-		r, ok := Read(root, id)
+		r, ok := reported(root, id)
 		if !ok {
 			t.Fatal("no report")
 		}
@@ -743,7 +692,7 @@ func TestOnlyRunningBackgroundWorkThatIsNoCommandOrWatchOfTheAgentsOwnKeepsATurn
 			if tc.want != "" {
 				want = tc.want + ": main"
 			}
-			r, _ := Read(root, id)
+			r, _ := reported(root, id)
 			if v.TerminalSequence != want || (r.State == Working) != (tc.want == "") || r.Background != (tc.want == "") {
 				t.Errorf("%s (indent %q): notified %q, report %+v", tc.name, indent, v.TerminalSequence, r)
 			}
@@ -755,9 +704,9 @@ func TestOnlyRunningBackgroundWorkThatIsNoCommandOrWatchOfTheAgentsOwnKeepsATurn
 func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefore(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	read := func() Report {
+	read := func() hookState {
 		t.Helper()
-		r, _ := Read(root, id)
+		r, _ := reported(root, id)
 		return r
 	}
 	notify := func(kind, payload string) string {
@@ -766,7 +715,7 @@ func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefo
 
 	// A message waiting at such a turn end blocks the stop, as at any other.
 	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
-	if err := Post(root, id, Message{Text: "also run the linter"}, false, time.Now()); err != nil {
+	if _, err := Post(root, id, Message{Text: "also run the linter"}, false, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if out := notify("stop", "stop-background"); !strings.Contains(out, `"decision":"block"`) || !strings.Contains(out, "also run the linter") {
@@ -778,7 +727,7 @@ func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefo
 	// A message that comes while the agent waits for its subagent rides
 	// along with Claude's wake-up.
 	notify("stop", "stop-background")
-	if err := Post(root, id, Message{Text: "and the docs"}, false, time.Now()); err != nil {
+	if _, err := Post(root, id, Message{Text: "and the docs"}, false, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if out := notify("prompt", "prompt-wake"); !strings.Contains(out, "and the docs") {
@@ -927,9 +876,9 @@ func TestSubagentsThatFinishTogetherNotifyOnceWhenClaudeHasTakenItsTurnForEach(t
 		t.Helper()
 		return run(t, root, root, id, hook(kind, "[%s]"), payload)
 	}
-	read := func() Report {
+	read := func() hookState {
 		t.Helper()
-		r, _ := Read(root, id)
+		r, _ := reported(root, id)
 		return r
 	}
 	quiet := func(step, out string, owed bool) {
@@ -1038,7 +987,7 @@ func TestBackgroundWorkIsKnownFromItsStartSoATurnTheUserInterruptedStillNotifies
 	}
 	quiet := func(step, out string, owed bool) {
 		t.Helper()
-		if r, _ := Read(root, id); out != "" || r.State != Working || r.Owed != owed {
+		if r, _ := reported(root, id); out != "" || r.State != Working || r.Owed != owed {
 			t.Fatalf("%s: printed %q, report %+v", step, out, r)
 		}
 	}
@@ -1093,7 +1042,7 @@ func TestAShellCommandASubagentStartedKeepsItsAgentWorkingWhileItRuns(t *testing
 	}
 	quiet := func(step, out string, last string) {
 		t.Helper()
-		if r, _ := Read(root, id); out != "" || r.State != Working || r.Owed || r.Last != last {
+		if r, _ := reported(root, id); out != "" || r.State != Working || r.Owed || r.Last != last {
 			t.Fatalf("%s: printed %q, report %+v", step, out, r)
 		}
 	}
@@ -1229,7 +1178,7 @@ func TestTheAgentsOwnMonitorWatchIsMarkedAndNeverOwed(t *testing.T) {
 		t.Fatalf("the turn end with the agent's own watch printed %q", out)
 	}
 	owed("the turn end, the watch runs", "="+watch+"\n")
-	if r, _ := Read(root, id); r.State != Done || r.Owed || !reflect.DeepEqual(r.OwnTasks, []Task{{MonitorTask, "Wait"}}) {
+	if r, _ := reported(root, id); r.State != Done || r.Owed || !reflect.DeepEqual(r.OwnTasks, []Task{{MonitorTask, "Wait"}}) {
 		t.Fatalf("the turn end with the agent's own watch: %+v", r)
 	}
 
@@ -1244,7 +1193,7 @@ func TestTheAgentsOwnMonitorWatchIsMarkedAndNeverOwed(t *testing.T) {
 	if out := notify("stop", turnEnd("started", "shell:"+watch, "shell:b2", "w3", "shell:b3ukv3517")); out != "" {
 		t.Fatalf("the turn end with the workflow running printed %q", out)
 	}
-	if r, _ := Read(root, id); r.State != Working || r.Owed || r.OwnTasks != nil {
+	if r, _ := reported(root, id); r.State != Working || r.Owed || r.OwnTasks != nil {
 		t.Fatalf("the workflow and the subagent's watch run: %+v", r)
 	}
 	notify("prompt", wakeUp("w3"))
@@ -1252,7 +1201,7 @@ func TestTheAgentsOwnMonitorWatchIsMarkedAndNeverOwed(t *testing.T) {
 		t.Fatalf("the closing turn printed %q", out)
 	}
 	owed("the closing turn", "="+watch+"\n")
-	if r, _ := Read(root, id); r.State != Done || !reflect.DeepEqual(r.OwnTasks, []Task{{MonitorTask, "Wait"}, {ShellTask, "./wait.sh 60"}}) {
+	if r, _ := reported(root, id); r.State != Done || !reflect.DeepEqual(r.OwnTasks, []Task{{MonitorTask, "Wait"}, {ShellTask, "./wait.sh 60"}}) {
 		t.Fatalf("a watch and a command of its own: %+v", r)
 	}
 
@@ -1281,12 +1230,12 @@ func TestTheAgentsOwnMonitorWatchIsMarkedAndNeverOwed(t *testing.T) {
 	}
 }
 
-// The hook's awk and the host read the same marks the same way: whatever
-// the hook's list, the hook keeps the agent working at a Stop exactly when
-// the host counts background work (busy), and the done it reports shows
-// the own tasks the host finds (ownTasks), the rest of the running tasks.
-// A mark of the agent's own watch (=ID) is kept while its task runs as an
-// own task, and changes nothing else (#99).
+// The hook's awk and the reducer read the same marks the same way:
+// whatever the list of background work they follow, the hook keeps the
+// agent working at a Stop, notifying nobody, exactly when the reducer does
+// (keep), and both keep the same list after it, from which the reducer
+// finds the own tasks of a done. A mark of the agent's own watch (=ID) is
+// kept while its task runs as an own task, and changes nothing else (#99).
 func TestHookAndHostAgreeOnBackgroundWorkAndOwnTasksWhateverTheMarks(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	tasks := []string{
@@ -1304,23 +1253,21 @@ func TestHookAndHostAgreeOnBackgroundWorkAndOwnTasksWhateverTheMarks(t *testing.
 			n++
 			id := fmt.Sprintf("0a1b2c3d4e%02x", n)
 			stop := []byte(`{"hook_event_name":"Stop","last_assistant_message":"Done.","background_tasks":[` + task + `]}`)
-			var p payload
-			if err := json.Unmarshal(stop, &p); err != nil {
-				t.Fatal(err)
-			}
+			e, reply := ParseEvent("000000002.stop.1", stop, time.Now())
+			e.Number, reply.Number = 2, 2
+			f := Fold{owed: strings.Fields(list)}
+			keeps := f.keep(e.Facts.Tasks, e.Facts.Question)
 			fire(t, root, root, id, "prompt", fixture(t, "prompt"))
 			if err := os.WriteFile(filepath.Join(Dir(root), id+owedSuffix), []byte(list), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			run(t, root, root, id, hook("stop", ""), stop)
-			r, _ := Read(root, id)
-			if busy := p.busy([]byte(list)); (r.State == Working) != busy || !reflect.DeepEqual(r.OwnTasks, p.ownTasks([]byte(list))) {
-				t.Errorf("%s with list %q: host busy %v own %+v, hook's report %+v", task, list, busy, p.ownTasks([]byte(list)), r)
+			if out := run(t, root, root, id, hook("stop", "%s"), stop); (out == "") != keeps {
+				t.Errorf("%s with list %q: the reducer keeps %v, the hook notified %q", task, list, keeps, out)
 			}
 			// The list it keeps: the id of the work owed a turn, the mark
 			// of a subagent's command or watch still running, and the mark
 			// of the agent's own watch still running.
-			want, b1 := "", p.BackgroundTasks[0]
+			want, b1 := "", e.Facts.Tasks[0]
 			running, watch, theirs := b1.Status == "running", b1.Type == ShellTask || b1.Type == MonitorTask, strings.Contains(list, "~b1\n")
 			if running && !watch {
 				want += "b1\n"
@@ -1331,8 +1278,25 @@ func TestHookAndHostAgreeOnBackgroundWorkAndOwnTasksWhateverTheMarks(t *testing.
 			if running && watch && !theirs && strings.Contains(list, "=b1\n") {
 				want += "=b1\n"
 			}
-			if f := files(t, root, id); f[owedSuffix] != want {
-				t.Errorf("%s with list %q: kept %q, want %q", task, list, f[owedSuffix], want)
+			if got := files(t, root, id)[owedSuffix]; got != want || strings.Join(f.owed, "") != strings.ReplaceAll(want, "\n", "") {
+				t.Errorf("%s with list %q: the hook kept %q, the reducer %q, want %q", task, list, got, f.owed, want)
+			}
+			// What the done shows of what runs: none for background work,
+			// the agent's own command or watch, not the artifact's watch.
+			own := f.ownTasks(e, reply)
+			switch {
+			case !running || b1.Artifact || !watch || theirs:
+				if own != nil {
+					t.Errorf("%s with list %q: own tasks %+v", task, list, own)
+				}
+			case b1.Type == ShellTask && !strings.Contains(list, "=b1\n"):
+				if !reflect.DeepEqual(own, []Task{{ShellTask, "sleep 60"}}) {
+					t.Errorf("%s with list %q: own tasks %+v", task, list, own)
+				}
+			default:
+				if !reflect.DeepEqual(own, []Task{{MonitorTask, "Wait"}}) {
+					t.Errorf("%s with list %q: own tasks %+v", task, list, own)
+				}
 			}
 		}
 	}
@@ -1347,7 +1311,7 @@ func TestATaskOwedATurnThatNeverComesHoldsBackOneTurnEnd(t *testing.T) {
 	}
 	quiet := func(step, out string, owed bool) {
 		t.Helper()
-		if r, _ := Read(root, id); out != "" || r.State != Working || r.Owed != owed {
+		if r, _ := reported(root, id); out != "" || r.State != Working || r.Owed != owed {
 			t.Fatalf("%s: printed %q, report %+v", step, out, r)
 		}
 	}
@@ -1422,9 +1386,9 @@ func TestAPromptQueuedWhileTheAgentWorksIsATurnOfItsOwnWhenTheTurnEndsWithIt(t *
 func testAQueuedPromptsTurn(t *testing.T, clear bool) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	report := func(when string) Report {
+	report := func(when string) hookState {
 		t.Helper()
-		r, ok := Read(root, id)
+		r, ok := reported(root, id)
 		if !ok {
 			t.Fatalf("%s: no report", when)
 		}
@@ -1495,7 +1459,7 @@ func TestAQueuedPromptClaudeTakesIntoTheTurnOrRunsAtOnceEndsWithItsTurn(t *testi
 		if out := run(t, root, root, id, hook("stop", "[%s]"), stop); out != `{"terminalSequence":"[Done: main]"}`+"\n" {
 			t.Fatalf("%s: the turn end printed %q", when, out)
 		}
-		if r, _ := Read(root, id); r.State != Done {
+		if r, _ := reported(root, id); r.State != Done {
 			t.Fatalf("%s: %+v", when, r)
 		}
 	}
@@ -1522,7 +1486,7 @@ func TestAQueuedPromptLeavesTheTurnAtWorkActedOnAndQueuesAgainInTheTurnItIsTaken
 	const id = "0a1b2c3d4e5f"
 	report := func(when string, state string, acted bool) {
 		t.Helper()
-		if r, _ := Read(root, id); r.State != state || r.Acted != acted {
+		if r, _ := reported(root, id); r.State != state || r.Acted != acted {
 			t.Fatalf("%s: %+v, want %s, acted %v", when, r, state, acted)
 		}
 	}
@@ -1548,16 +1512,16 @@ func TestAQueuedPromptLeavesTheTurnAtWorkActedOnAndQueuesAgainInTheTurnItIsTaken
 // the queued prompt at once as a turn of its own, with no hook until that
 // turn's first tool ends (#88). That tool's end carries a prompt_id that
 // is neither the turn at work's nor the queued prompt's, so the hook hands
-// over there: the state file becomes the queued prompt, dated now, and the
-// mark that Claude has acted on the turn is that turn's. A subagent's tool
-// hands over nothing, and nor does a tool of the turn Claude took the
-// prompt for at its Stop, whose prompt the state file already is.
+// over there: the agent works on the queued prompt from that tool's end,
+// and the mark that Claude has acted on the turn is that turn's. A
+// subagent's tool hands over nothing, and nor does a tool of the turn
+// Claude took the prompt for at its Stop, which already works on it.
 func TestAToolOfATurnTakenAfterAnEscHandsOverToTheQueuedPrompt(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	report := func(when string) Report {
+	report := func(when string) hookState {
 		t.Helper()
-		r, ok := Read(root, id)
+		r, ok := reported(root, id)
 		if !ok {
 			t.Fatalf("%s: no report", when)
 		}
@@ -1610,126 +1574,60 @@ func TestAToolOfATurnTakenAfterAnEscHandsOverToTheQueuedPrompt(t *testing.T) {
 	}
 }
 
-// hq hands over to a queued prompt itself when the agent's screen shows
-// Claude took it (#88): the queued copy becomes the state file, dated now,
-// and what the hook kept beside the file for the turn at work (.on,
-// .acted) goes with it. The copy is renamed, not rewritten, so two hq
-// processes hand over once between them, and a hook that has just taken
-// the copy away is not written over. A link planted as the copy is refused.
-func TestTakeQueuedMakesTheStateFileTheQueuedPromptDatedNow(t *testing.T) {
+// hq on the host reads none of the hook's working files (#199): removed or
+// garbled between two reports, they change nothing of the state hq gives,
+// and the next report gives what it gives an agent whose files nobody
+// touched.
+func TestTheHostsStateIgnoresTheHooksWorkingFiles(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
-	const id = "0a1b2c3d4e5f"
-	path := filepath.Join(Dir(root), id)
-	const queued = "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done"
-
-	if err := TakeQueued(root, id); err == nil {
-		t.Fatal("handed over with nothing queued")
+	const touched, untouched = "0a1b2c3d4e5f", "0a1b2c3d4e60"
+	launch := []byte(`{"hook_event_name":"PostToolUse","prompt_id":"` + promptID + `","tool_name":"Agent","tool_response":{"status":"async_launched","agentId":"a58b43841609db047"}}`)
+	for _, id := range []string{touched, untouched} {
+		fire(t, root, root, id, "prompt", fixture(t, "prompt"))
+		fire(t, root, root, id, "answer", launch)
+		fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
+		fire(t, root, root, id, "stop", fixture(t, "stop-background"))
 	}
-	fire(t, root, root, id, "prompt", fixture(t, "queued-first"))
-	fire(t, root, root, id, "answer", inTurnAtWork(t, "queued-turn-tool-end"))
-	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
-	if err := os.WriteFile(path+keptSuffix, wakeUp("t1"), 0o644); err != nil {
-		t.Fatal(err)
+	before, _ := reported(root, touched)
+	if before.State != Working || !before.Background {
+		t.Fatalf("before: %+v", before)
 	}
-	want, err := os.ReadFile(path + queuedSuffix)
-	if err != nil {
-		t.Fatal(err)
+	names := func() []string {
+		entries, _ := os.ReadDir(Dir(root))
+		var ns []string
+		for _, e := range entries {
+			if strings.HasPrefix(e.Name(), touched+".") {
+				ns = append(ns, e.Name())
+			}
+		}
+		return ns
 	}
-	if r, _ := Read(root, id); !r.Queued || !r.Acted {
-		t.Fatalf("before: %+v", r)
+	if len(names()) < 3 {
+		t.Fatalf("the hook keeps %v", names())
 	}
-	before := time.Now()
-	time.Sleep(10 * time.Millisecond)
-	if err := TakeQueued(root, id); err != nil {
-		t.Fatal(err)
-	}
-	got, err := os.ReadFile(path)
-	if err != nil || !bytes.Equal(got, want) {
-		t.Fatalf("the state file is not the queued copy: %v %q", err, got)
-	}
-	for _, suffix := range []string{queuedSuffix, keptSuffix, actedSuffix} {
-		if _, err := os.Lstat(path + suffix); err == nil {
-			t.Errorf("%s stayed", suffix)
+	for _, n := range names() {
+		if err := os.WriteFile(filepath.Join(Dir(root), n), []byte("{\"hook_event_name\":\"SessionEnd\"}\n!x\n=y\n"), 0o644); err != nil {
+			t.Fatal(err)
 		}
 	}
-	r, ok := Read(root, id)
-	if !ok || r.State != Working || r.Prompt != queued || r.Acted || r.Queued || !r.Since.After(before) || r.Last != "" {
-		t.Fatalf("after: %+v", r)
+	if r, _ := reported(root, touched); !reflect.DeepEqual(r, before) {
+		t.Fatalf("garbled: %+v, was %+v", r, before)
 	}
-	if err := TakeQueued(root, id); err == nil {
-		t.Fatal("handed over twice")
+	for _, n := range names() {
+		if err := os.Remove(filepath.Join(Dir(root), n)); err != nil {
+			t.Fatal(err)
+		}
 	}
-	// An acted mark the hook wrote for the queued turn's own tool, a
-	// moment before, is that turn's: it stays.
-	fire(t, root, root, id, "prompt", fixture(t, "queued-first"))
-	fire(t, root, root, id, "prompt", fixture(t, "queued-while-working"))
-	if err := os.WriteFile(path+actedSuffix, []byte(turnTaken+"\n"), 0o644); err != nil {
-		t.Fatal(err)
+	if r, _ := reported(root, touched); !reflect.DeepEqual(r, before) {
+		t.Fatalf("removed: %+v, was %+v", r, before)
 	}
-	if err := TakeQueued(root, id); err != nil {
-		t.Fatal(err)
+	for _, id := range []string{touched, untouched} {
+		fire(t, root, root, id, "dialog", fixture(t, "dialog-bash"))
 	}
-	if r, _ := Read(root, id); !r.Acted || r.Queued || r.Prompt != queued {
-		t.Fatalf("the queued turn's own mark: %+v", r)
-	}
-
-	r, _ = Read(root, id)
-	if err := os.Symlink(filepath.Join(root, "secret"), path+queuedSuffix); err != nil {
-		t.Fatal(err)
-	}
-	if err := TakeQueued(root, id); err == nil {
-		t.Fatal("followed a link planted as the queued copy")
-	}
-	if now, _ := Read(root, id); now.Prompt != queued || !now.Since.Equal(r.Since) {
-		t.Fatalf("the link changed the report: %+v", now)
-	}
-}
-
-// The hook publishes a Stop in the state file only once its .stop holds
-// it, and leaves nothing of its own beside them after that (#123): a
-// reader that sees the turn end finds its .stop, and no copy of the hook's.
-// A mv on PATH records, as each rename comes, its target, and what .stop
-// holds when the state file itself is renamed into place.
-func TestTheStopHookWritesStopBeforeItPublishesTheStateFile(t *testing.T) {
-	root := testutil.GitRepo(t, "app")
-	const id = "0a1b2c3d4e5f"
-	dir := Dir(root)
-	real, err := exec.LookPath("mv")
-	if err != nil {
-		t.Fatal(err)
-	}
-	bin, log := t.TempDir(), filepath.Join(t.TempDir(), "renames")
-	shim := `#!/bin/sh
-for last; do :; done
-[ "${last##*/}" = ` + id + ` ] && { cat "$last.stop" >"$0.stop" 2>/dev/null || : >"$0.stop"; }
-printf '%s\n' "${last##*/}" >>"` + log + `"
-exec ` + real + ` "$@"
-`
-	if err := os.WriteFile(filepath.Join(bin, "mv"), []byte(shim), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	fire(t, root, root, id, "prompt", fixture(t, "prompt"))
-	fire(t, root, root, id, "stop", fixture(t, "stop-question"))
-	os.Remove(log)
-	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	fire(t, root, root, id, "stop", fixture(t, "stop-done"))
-
-	b, _ := os.ReadFile(log)
-	renames := strings.Fields(string(b))
-	if len(renames) == 0 || renames[len(renames)-1] != id {
-		t.Fatalf("renames %v: the state file is not the last", renames)
-	}
-	published, _ := os.ReadFile(filepath.Join(bin, "mv.stop"))
-	now, _ := os.ReadFile(filepath.Join(dir, id))
-	if !bytes.Equal(published, now) {
-		t.Fatalf(".stop when the state file was published:\n%s\nthe state file:\n%s", published, now)
-	}
-	entries, _ := os.ReadDir(dir)
-	var names []string
-	for _, e := range entries {
-		names = append(names, e.Name())
-	}
-	if strings.Join(names, " ") != id+" "+id+".stop" {
-		t.Fatalf("files %v", names)
+	got, _ := reported(root, touched)
+	want, _ := reported(root, untouched)
+	got.Since, got.Latest, want.Since, want.Latest = time.Time{}, time.Time{}, time.Time{}, time.Time{}
+	if !reflect.DeepEqual(got, want) || got.State != NeedsInput {
+		t.Fatalf("the next report: %+v, untouched %+v", got, want)
 	}
 }

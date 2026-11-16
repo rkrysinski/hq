@@ -543,3 +543,30 @@ func TestASuggestedShellCommandIsAFaintHint(t *testing.T) {
 		t.Fatalf("box %q", BoxText(s))
 	}
 }
+
+func TestTheReadersHoldOnABoxWithAPastePlaceholder(t *testing.T) {
+	// Claude Code 2.1.325 (#173): a paste over the limits is a placeholder
+	// in the box, with the hint "paste again to expand" in place of the
+	// footer, also once a typed slash command stands before it and while
+	// Claude works on the prompt Enter sent.
+	for name, want := range map[string]struct {
+		box    string
+		atRest bool
+	}{
+		"styled-paste-3-lines":      {"/probe one two three", false},
+		"styled-paste-4-lines":      {"[Pasted text #1 +3 lines]", false},
+		"styled-paste-800-chars":    {strings.Repeat(strings.Repeat("x", 96)+" ", 8) + strings.Repeat("x", 32), false}, // wrapped at 96
+		"styled-paste-801-chars":    {"[Pasted text #2]", false},
+		"styled-command-then-paste": {"/probe[Pasted text #3 +3 lines]", false},
+		"styled-command-taken":      {"", false},
+		"styled-command-done":       {"", true},
+	} {
+		s := WithoutHints(screen(t, name))
+		if got := BoxText(s); got != want.box {
+			t.Errorf("%s: box %q, want %q", name, got, want.box)
+		}
+		if ok, _ := AtRest(s, ""); ok != want.atRest {
+			t.Errorf("%s: at rest %v, want %v", name, ok, want.atRest)
+		}
+	}
+}

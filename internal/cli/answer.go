@@ -3,12 +3,14 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -101,11 +103,12 @@ func parseAnswer(arg string) state.Answer {
 }
 
 // answerOutput is what hq answer --json prints: the agent's state once it
-// has left the dialog, and the moment before the answer was left, for hq
-// wait --since, so what the agent does with the answer counts as after it.
+// has left the dialog, and the agent's cursor from before the answer was
+// left (ADR 0019), for hq wait --since, so what the agent does with the
+// answer counts as after it.
 type answerOutput struct {
-	State     string    `json:"state"`
-	NextSince time.Time `json:"next_since"`
+	State     string `json:"state"`
+	NextSince string `json:"next_since"`
 }
 
 // answer leaves the answer for the agent's question dialog, for the hook
@@ -119,7 +122,10 @@ func answer(env Env, d deps, r answerRequest) error {
 	if err != nil {
 		return err
 	}
-	det := d.readDetail(a.RepoPath, a.ID)
+	if a.Outdated() {
+		return outdatedErr(a)
+	}
+	det := a.Detail()
 	if err := answerable(a, det.Ask); err != nil {
 		return err
 	}
@@ -130,11 +136,13 @@ func answer(env Env, d deps, r answerRequest) error {
 		}
 		return usageErr("dialog %s is not open: %s is at dialog %s now (%s); read it (hq read %s) before answering", r.dialog, a.Name, open.ID(), a.Last, a.Name)
 	}
-	if open.Whose == agent.OwnDialog {
+	if open.Whose == state.DialogOwn {
 		return answerOwn(env, d, a, r)
 	}
-	q, err := d.questions(a.RepoPath, a.ID)
-	if err != nil || state.DialogID(q.Since) != open.ID() {
+	// The dialog the hook holds on for the answer is the one the journal
+	// has open when it asks the same.
+	q, err := d.questions(d.journal, a.ID)
+	if err != nil || !reflect.DeepEqual(q.Ask, det.Ask) {
 		return usageErr("%s's dialog changed meanwhile; read it again (hq read %s)", a.Name, a.Name)
 	}
 	decision, sent := q.Cancel(), map[string]string(nil)
@@ -146,16 +154,21 @@ func answer(env Env, d deps, r answerRequest) error {
 	if hook := templateAnswers(d, a, q); hook != "" {
 		return usageErr("%s's dialog cannot be answered from hq: its sandbox's template answers AskUserQuestion by itself (its PermissionRequest hook %s gives a decision), so Claude would take no answer from hq; answer it at the agent (hq go %s), and recreate the sandbox from a template whose hooks leave AskUserQuestion alone (hq sandbox rm %s)", a.Name, hook, a.Name, a.Repo())
 	}
-	// The moment before the answer is left: what the agent does with it is
-	// a change after it, for hq wait --since.
-	left := lookedAt(d.now())
+	// The cursor before the answer is left: what the agent does with it is
+	// a change numbered above it, for hq wait --since.
+	left := cursorBefore(d, a)
+	// The answer is in the agent's journal before the hook can give it, so
+	// what Claude reports of it comes after it (#195).
+	appendEvent(d, a.ID, state.KindAnswer, state.Facts{Whose: state.DialogHooks})
 	if err := d.leaveAnswer(a.RepoPath, a.ID, q, decision); err != nil {
+		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
 		if errors.Is(err, state.ErrAnswerWaiting) {
 			return usageErr("%s not answered: another answer to its dialog is on its way", a.Name)
 		}
 		return envErr("cannot leave the answer for %s: %v", a.Name, err)
 	}
 	if !awaitTaken(d, a, q) {
+		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
 		// Answered at the agent meanwhile, its hook gone with the dialog?
 		if now, err := findAgent(d, a.Name); err == nil && now.Dialog().ID() != open.ID() {
 			return usageErr("%s left the dialog before hq's answer reached it; nothing was answered from hq: it is %s", a.Name, now.State)
@@ -187,6 +200,34 @@ func answer(env Env, d deps, r answerRequest) error {
 	return nil
 }
 
+// journalQuestions is the question dialog the journal of agent id holds as
+// the latest dialog its hook reported, as hq answer needs it: read from the
+// dialog's report as the hook left it (state.Asked).
+func journalQuestions(store journal.Store, id string) (state.Questions, error) {
+	j, err := store.Read(id)
+	if err != nil {
+		return state.Questions{}, err
+	}
+	if j.Ask.Report == "" {
+		return state.Questions{}, errors.New("no question dialog of the agent's own is open")
+	}
+	return state.ParseQuestions([]byte(j.Ask.Report))
+}
+
+// journalAnswers is what Claude reports it got for the question dialog the
+// journal of agent id holds as the latest its hook reported, once the
+// dialog's tool has ended; ok is false before.
+func journalAnswers(store journal.Store, id string) (map[string]string, bool) {
+	j, err := store.Read(id)
+	if err != nil || !j.Ask.Answered {
+		return nil, false
+	}
+	if j.Ask.Answers == nil {
+		return map[string]string{}, true
+	}
+	return j.Ask.Answers, true
+}
+
 // answerable refuses, with the reason, an agent whose dialog hq does not
 // answer: the agent's own question dialog is, AskUserQuestion, which asks,
 // and a dialog of Claude's own whose options all show, which takes keys
@@ -194,22 +235,19 @@ func answer(env Env, d deps, r answerRequest) error {
 // Claude's own that scrolls stay the user's at the agent (spec Phase 2).
 func answerable(a agent.Agent, ask *state.Ask) error {
 	at := fmt.Sprintf("answer it at the agent (hq go %s)", a.Name)
-	relaunch := fmt.Sprintf("relaunch it with %s, or kill it and start it again", restartCommand(a))
 	dialog := a.Dialog()
 	switch {
 	case a.State == state.Ended:
 		return usageErr("%s has ended: it is at no dialog", a.Name)
 	case dialog.Scrolls():
 		return scrollsErr(a)
-	case dialog.Whose == agent.OwnDialog:
+	case dialog.Whose == state.DialogOwn:
 		return nil
-	case !a.Answerable():
-		return usageErr("%s was started by an older hq and cannot be answered from hq; %s", a.Name, relaunch)
 	case a.State == state.Question:
 		return usageErr("%s asks in its reply, not in a dialog: answer it with hq send %s TEXT", a.Name, a.Name)
 	case !dialog.Open():
 		return usageErr("%s is at no dialog: it is %s", a.Name, a.State)
-	case dialog.Whose == agent.SubagentDialog:
+	case dialog.Whose == state.DialogSubagent:
 		return usageErr("%s's dialog is one of its subagents' (%s), which hq does not answer; %s", a.Name, a.Last, at)
 	case ask != nil && ask.Server != "":
 		return usageErr("%s is at an MCP server's form (%s: %s), which hq does not answer; %s", a.Name, ask.Server, a.Last, at)
@@ -277,7 +315,7 @@ func awaitClosed(d deps, a agent.Agent, open agent.Dialog) (agent.Agent, map[str
 		if now.Dialog().ID() != open.ID() {
 			// Read after the look at the agent: the tool's end that moved it
 			// off the dialog is then there to read, not yet to come.
-			got, ok := d.answersGot(a.RepoPath, a.ID)
+			got, ok := d.answersGot(d.journal, a.ID)
 			if !ok {
 				got = nil
 			}
@@ -352,13 +390,15 @@ func answerOwn(env Env, d deps, a agent.Agent, r answerRequest) error {
 	if err != nil {
 		return usageErr("%s not answered: %v", a.Name, err)
 	}
-	// The moment before the first key: what the agent does after the
-	// dialog is a change after it, for hq wait --since.
-	left := lookedAt(d.now())
+	// The cursor before the first key: what the agent does after the
+	// dialog is a change numbered above it, for hq wait --since.
+	left := cursorBefore(d, a)
 	if err := moveTo(d, a, open, v, pick); err != nil {
 		return err
 	}
+	appendEvent(d, a.ID, state.KindAnswer, state.Facts{Whose: state.DialogOwn})
 	if err := d.tmux.Press(a.Pane, "Enter"); err != nil {
+		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
 		return tmuxErr(err)
 	}
 	now, err := awaitLeft(d, a, open, pick)

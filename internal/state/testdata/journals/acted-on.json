@@ -1,0 +1,563 @@
+{
+  "about": "A turn Claude has acted on (a tool of its own ended, or a dialog of its hooks' the screen saw answered) is no rewind: a screen at rest ends it only at a tool the user cut short, which prints no line, done with Interrupted RestDelay later, counted from when it was first seen.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "prompt_id": "t1"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "t1",
+            "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {},
+        "prompt_id": "t1"
+      },
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:04Z",
+          "file": "000000003.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "t1",
+            "tool": "Bash",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "fs-later-tool-running",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "fs-tool-failed-done",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "fs-tool-failed-working",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "fs-esc-tool",
+      "events": [
+        {
+          "n": 5,
+          "source": "screen",
+          "kind": "ToolCut",
+          "time": "2026-01-01T00:00:08Z",
+          "basis": 4,
+          "facts": {
+            "screen": "81558d129199f3a2"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "fs-esc-tool",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:03Z"
+      }
+    },
+    {
+      "screen": "fs-esc-tool",
+      "events": [
+        {
+          "n": 6,
+          "source": "screen",
+          "kind": "Rewound",
+          "time": "2026-01-01T00:00:10Z",
+          "basis": 4,
+          "facts": {
+            "screen": "81558d129199f3a2",
+            "from": "2026-01-01T00:00:08Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "prompt_id": "t2"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:11Z",
+          "file": "000000004.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "t2",
+            "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {},
+        "prompt_id": "t2"
+      },
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:12Z",
+          "file": "000000005.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "t2",
+            "tool": "Bash",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z"
+      }
+    },
+    {
+      "screen": "fs-later-tool-running",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z"
+      }
+    },
+    {
+      "screen": "fs-esc-later-tool",
+      "events": [
+        {
+          "n": 9,
+          "source": "screen",
+          "kind": "ToolCut",
+          "time": "2026-01-01T00:00:14Z",
+          "basis": 8,
+          "facts": {
+            "screen": "a09f81147b4fb282"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z"
+      }
+    },
+    {
+      "screen": "fs-esc-later-tool",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:11Z"
+      }
+    },
+    {
+      "screen": "fs-esc-later-tool",
+      "events": [
+        {
+          "n": 10,
+          "source": "screen",
+          "kind": "Rewound",
+          "time": "2026-01-01T00:00:16Z",
+          "basis": 8,
+          "facts": {
+            "screen": "a09f81147b4fb282",
+            "from": "2026-01-01T00:00:14Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:14Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+        "prompt_id": "t3"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 11,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:17Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "t3",
+            "prompt": "Run exactly this bash command in the foreground and show me its output: for i in $(seq 25); do echo tock $i; sleep 1; done",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:17Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "x"
+        },
+        "tool_response": {},
+        "prompt_id": "t3"
+      },
+      "events": [
+        {
+          "n": 12,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:18Z",
+          "file": "000000007.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "t3",
+            "tool": "Bash",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:17Z"
+      }
+    },
+    {
+      "screen": "fs-tool-running-80",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:17Z"
+      }
+    },
+    {
+      "screen": "fs-esc-later-tool-80",
+      "events": [
+        {
+          "n": 13,
+          "source": "screen",
+          "kind": "ToolCut",
+          "time": "2026-01-01T00:00:20Z",
+          "basis": 12,
+          "facts": {
+            "screen": "244aa83f26841a47"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:17Z"
+      }
+    },
+    {
+      "screen": "fs-esc-later-tool-80",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:17Z"
+      }
+    },
+    {
+      "screen": "fs-esc-later-tool-80",
+      "events": [
+        {
+          "n": 14,
+          "source": "screen",
+          "kind": "Rewound",
+          "time": "2026-01-01T00:00:22Z",
+          "basis": 12,
+          "facts": {
+            "screen": "244aa83f26841a47",
+            "from": "2026-01-01T00:00:20Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:20Z",
+        "last": "Interrupted"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Run a command.",
+        "prompt_id": "t4"
+      },
+      "screen": "fs-thinking",
+      "events": [
+        {
+          "n": 15,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:23Z",
+          "file": "000000008.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "t4",
+            "prompt": "Run a command.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:23Z"
+      }
+    },
+    {
+      "hook": "dialog",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "PermissionRequest",
+        "tool_name": "Bash",
+        "tool_input": {
+          "description": "Run a command"
+        },
+        "prompt_id": "t4"
+      },
+      "events": [
+        {
+          "n": 16,
+          "source": "hook",
+          "kind": "PermissionRequest",
+          "time": "2026-01-01T00:00:24Z",
+          "file": "000000009.dialog.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "turn": "t4",
+            "tool": "Bash",
+            "text": "Bash: Run a command",
+            "hook": "dialog"
+          }
+        }
+      ],
+      "look": {
+        "state": "needs input",
+        "since": "2026-01-01T00:00:24Z",
+        "last": "Bash: Run a command",
+        "dialog": "hooks",
+        "dialog_since": "2026-01-01T00:00:24Z"
+      }
+    },
+    {
+      "screen": "fs-manual-tool",
+      "events": [
+        {
+          "n": 17,
+          "source": "screen",
+          "kind": "AtWork",
+          "time": "2026-01-01T00:00:25Z",
+          "basis": 16,
+          "facts": {}
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:24Z"
+      }
+    },
+    {
+      "screen": "fs-streaming",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:24Z"
+      }
+    },
+    {
+      "screen": "fs-streaming",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:24Z"
+      }
+    },
+    {
+      "screen": "fs-streaming",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:24Z"
+      }
+    },
+    {
+      "screen": "fs-esc-tool",
+      "events": [
+        {
+          "n": 18,
+          "source": "screen",
+          "kind": "ToolCut",
+          "time": "2026-01-01T00:00:29Z",
+          "basis": 16,
+          "facts": {
+            "screen": "81558d129199f3a2"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:24Z"
+      }
+    },
+    {
+      "screen": "fs-esc-tool",
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:24Z"
+      }
+    },
+    {
+      "screen": "fs-esc-tool",
+      "events": [
+        {
+          "n": 19,
+          "source": "screen",
+          "kind": "Rewound",
+          "time": "2026-01-01T00:00:31Z",
+          "basis": 16,
+          "facts": {
+            "screen": "81558d129199f3a2",
+            "from": "2026-01-01T00:00:29Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:29Z",
+        "last": "Interrupted"
+      }
+    }
+  ]
+}

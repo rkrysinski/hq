@@ -2,6 +2,10 @@ package state
 
 import (
 	"encoding/json"
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -133,7 +137,7 @@ func TestInboxDirIsBesideTheStateFiles(t *testing.T) {
 	if Pending("/w/app", "../x") != 0 {
 		t.Fatal("not an agent id")
 	}
-	if err := Post("/w/app", "../x", Message{Text: "hi"}, false, time.Now()); err == nil {
+	if _, err := Post("/w/app", "../x", Message{Text: "hi"}, false, time.Now()); err == nil {
 		t.Fatal("posted for a bad id")
 	}
 	if _, err := Take("/w/app", "../x"); err == nil {
@@ -141,5 +145,94 @@ func TestInboxDirIsBesideTheStateFiles(t *testing.T) {
 	}
 	if _, ok := Oldest("/w/app", "../x"); ok {
 		t.Fatal("a time for a bad id")
+	}
+}
+
+// A message keeps the name it was first left under (Message.Name) when hq
+// holds it or puts it back: a name of the inbox itself, never a path.
+func TestOnlyAMessagesNameIsKept(t *testing.T) {
+	name := messageName(time.Unix(0, 7), "0a0b0c0d", true, true)
+	for n, want := range map[string]bool{
+		name:                     true,
+		"":                       false,
+		".taken-1":               false,
+		"held":                   false,
+		"1/../../x":              false,
+		strings.Repeat("1", 100): true,
+		strings.Repeat("1", 101): false,
+	} {
+		if got := keptName(n); got != want {
+			t.Errorf("%q: %v, want %v", n, got, want)
+		}
+	}
+}
+
+// A message put back after hq failed to type it loses its --now, unless
+// that is asked for again, and keeps the rest of its name (#195).
+func TestAMessagePutBackLosesItsNowUnlessAskedAgain(t *testing.T) {
+	sent := time.Unix(0, 1700000000000000000)
+	now := messageName(sent, "0a1b2c3d", true, true)
+	plain := messageName(sent, "0a1b2c3d", true, false)
+	for _, tc := range []struct {
+		name string
+		now  bool
+		want string
+	}{
+		{now, false, plain},
+		{now, true, now},
+		{plain, false, plain},
+		{plain, true, plain},
+	} {
+		if got := backName(tc.name, tc.now); got != tc.want {
+			t.Errorf("backName(%s, %v) = %s, want %s", tc.name, tc.now, got, tc.want)
+		}
+	}
+}
+
+func TestAMessagePutBackWithoutNowIsTheSameMessage(t *testing.T) {
+	name := messageName(time.Unix(0, 5), "ab12cd34", true, true)
+	for b, want := range map[string]bool{
+		name:                                true,
+		strings.TrimSuffix(name, nowSuffix): true,
+		messageName(time.Unix(0, 5), "ab12cd35", true, true): false,
+		strings.TrimSuffix(name, ".sup.now"):                 false,
+	} {
+		if SameMessage(name, b) != want || SameMessage(b, name) != want {
+			t.Errorf("SameMessage(%q, %q) is not %v", name, b, want)
+		}
+	}
+}
+
+// Post returns the name the message waits under, which its deliveries name
+// it by: the name Take gives it. A message put back under a name another
+// already waits under is not written, and Post returns no name and the
+// error.
+func TestPostReturnsTheNameTheMessageWaitsUnder(t *testing.T) {
+	const id = "0123456789ab"
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	name, err := Post(root, id, Message{Text: "hi"}, false, time.Unix(1000, 0))
+	if err != nil || !keptName(name) {
+		t.Fatalf("posted under %q: %v", name, err)
+	}
+	if _, err := os.Stat(filepath.Join(InboxDir(root, id), name)); err != nil {
+		t.Fatalf("no message under %q: %v", name, err)
+	}
+	taken, err := Take(root, id)
+	if err != nil || len(taken) != 1 || taken[0].Name != name || taken[0].Text != "hi" {
+		t.Fatalf("took %+v %v, want hi under %q", taken, err, name)
+	}
+	// Put back under its name, then put back again while it waits there.
+	if back, err := Post(root, id, taken[0], false, time.Unix(2000, 0)); err != nil || back != name {
+		t.Fatalf("put back under %q: %v, want %q", back, err, name)
+	}
+	again, err := Post(root, id, taken[0], false, time.Unix(3000, 0))
+	if again != "" || !errors.Is(err, fs.ErrExist) {
+		t.Fatalf("put back twice: %q %v, want no name and %v", again, err, fs.ErrExist)
+	}
+	if n := Pending(root, id); n != 1 {
+		t.Fatalf("%d messages wait, want 1", n)
 	}
 }

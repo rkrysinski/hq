@@ -8,9 +8,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -93,7 +93,9 @@ func under(t *testing.T, path, dir string) {
 func TestATestsTmuxServerAndItsSocketFileAreGoneWhenItEnds(t *testing.T) {
 	path, pid := runServerTest(t, "sleep 60", func(*testing.T, string) {})
 	socketFileGone(t, path)
-	if syscall.Kill(pid, 0) == nil {
+	// Gone as the cleanup tells it: an exited program its parent has not
+	// reaped yet still answers a signal 0 (#191).
+	if slices.ContainsFunc(running([]int{pid}), func(p process) bool { return p.pid == pid }) {
 		t.Fatalf("pane program %d still running", pid)
 	}
 }
@@ -120,5 +122,20 @@ func TestATestThatNeverStartsAServerCleansUpWithoutError(t *testing.T) {
 	}
 	if err := exec.Command("tmux", "-u", "-L", socket, "has-session").Run(); err == nil {
 		t.Fatal("a server is running")
+	}
+}
+
+// A pane's program can exit before a process it started, which then runs
+// on with no parent: the fake Claude leaves so a hook it started after the
+// server's hangup, which writes beside the test's repository (#191). The
+// test's cleanup waits for it too.
+func TestATestsCleanupWaitsForWhatAPanesProgramLeftRunning(t *testing.T) {
+	late := filepath.Join(t.TempDir(), "late")
+	// On the hangup the program starts what it leaves running, deaf to the
+	// hangup's signals, and exits.
+	program := `trap 'trap "" HUP TERM; (sleep 1.5; : >"` + late + `") & exit 0' HUP; while :; do sleep 0.1; done`
+	runServerTest(t, program, func(*testing.T, string) {})
+	if _, err := os.Stat(late); err != nil {
+		t.Fatal("the cleanup returned before what the pane's program left running was done")
 	}
 }

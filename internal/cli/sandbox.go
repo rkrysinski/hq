@@ -12,6 +12,7 @@ import (
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
+	"github.com/rkrysinski/hq/internal/state"
 )
 
 const sandboxUsage = "usage: hq sandbox rm|restart REPO|SANDBOX [--setup NAME|--all-setups] [-y]"
@@ -85,6 +86,9 @@ func runSandbox(env Env, d deps, args []string) error {
 	}
 	if s.cmd == "rm" {
 		return sandboxRm(env, d, sbs, mine, s.yes)
+	}
+	if err := outdatedIn(sbs, mine); err != nil {
+		return err
 	}
 	// After a host restart tmux lists none of their agents: those it lost
 	// are restored, as hq restore does (#140).
@@ -277,6 +281,23 @@ func sandboxRm(env Env, d deps, sbs []sbx.Sandbox, mine []agent.Agent, yes bool)
 	return nil
 }
 
+// outdatedIn refuses to restart the sandboxes while they hold an outdated
+// agent (of mine, their agents): the restart would relaunch it under this
+// hq, which cannot continue it, so the user kills it and starts it again
+// first.
+func outdatedIn(sbs []sbx.Sandbox, mine []agent.Agent) error {
+	var why []string
+	for _, a := range mine {
+		if a.Outdated() {
+			why = append(why, a.OutdatedErr())
+		}
+	}
+	if len(why) == 0 {
+		return nil
+	}
+	return usageErr("not restarting %s: %s; nothing was stopped", sandboxNames(sbs), strings.Join(why, "; "))
+}
+
 // restartCommand is the hq sandbox restart that relaunches a: its
 // repository's, with its setup unless that is the default (#136).
 func restartCommand(a agent.Agent) string {
@@ -326,15 +347,17 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 	// report, read before the agents go. One that never reported starts fresh.
 	plans := planRestore(d, sbs, lost)
 	resume := map[string]string{}
+	agent.ReadStates(mine, d.journal, d.now(), d.folds)
 	for _, a := range mine {
-		if r, ok := d.readState(a.RepoPath, a.ID); ok && sessionID.MatchString(r.SessionID) {
-			resume[a.ID] = r.SessionID
+		if s := a.Session(); sessionID.MatchString(s) {
+			resume[a.ID] = s
 		}
 	}
 	// Stopping ends every session in the sandbox. The agents show ended from
 	// now on: sbx lists the sandbox as running until the stop is done, which
 	// takes seconds (S9).
 	for _, a := range mine {
+		appendEvent(d, a.ID, state.KindTakenDown, state.Facts{})
 		if err := d.tmux.SetOption(a.Window, "ending", "1"); err != nil {
 			return tmuxErr(err)
 		}
@@ -345,7 +368,7 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 		}
 	}
 	// A relaunched agent keeps its id, so its old session must be done
-	// writing its state file before the new one starts; sbx stop usually
+	// reporting before the new one starts; sbx stop usually
 	// returns after that.
 	if err := waitEnded(d, mine, nil); err != nil {
 		return err
@@ -454,7 +477,7 @@ func forgetLoaded(d deps, removed []sbx.Sandbox) error {
 
 // relaunchAgent starts a new Claude session in the agent's own pane,
 // wherever the pane is, under the agent's id, resuming the Claude session
-// resume when it is set. Its start moves to now: what its state file says
+// resume when it is set. Its start moves to now: what its journal says
 // until the new session reports is the previous session's, which gives the
 // branch and the last message but not the state (design §3.6). The window
 // stops being ending before it gets its new start: a refresh in between
@@ -466,14 +489,16 @@ func relaunchAgent(d deps, a agent.Agent, pane, resume string) error {
 	// agent with: its next prompt is the user's.
 	_ = d.withdraw(a.RepoPath, a.ID)
 	argv := d.sbx.RunArgv(a.Sandbox, claudeArgs(a.Name, a.ID, resume, "")...)
+	appendEvent(d, a.ID, state.KindRelaunched, state.Facts{Session: resume})
 	if err := d.tmux.Respawn(pane, a.RepoPath, argv); err != nil {
+		appendWithdrawn(d, a.ID, state.KindRelaunched, nil)
 		return tmuxErr(err)
 	}
-	for _, o := range [][2]string{{"ending", ""}, {"started", started}, {"new", ""}, {"inbox", inboxHooks}} {
+	for _, o := range [][2]string{{"ending", ""}, {"started", started}, {"new", ""}, {agent.GenerationOption, generation}} {
 		if err := d.tmux.SetOption(a.Window, o[0], o[1]); err != nil {
 			return tmuxErr(err)
 		}
 	}
-	// An agent an older hq started gets the record hq restore needs.
+	// Its record says the generation it now has, for hq restore.
 	return keepRecord(d, a)
 }

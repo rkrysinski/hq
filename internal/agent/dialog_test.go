@@ -2,11 +2,12 @@ package agent
 
 import (
 	"errors"
-	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -20,140 +21,69 @@ func ownEffortScreen() string {
 
 // The dialog verdict says whether an agent is at a dialog, whose, since
 // when, and what it asks: a dialog its hooks reported asks what the
-// report's detail holds; one of Claude's own what its screen shows.
+// journal holds of it; one of Claude's own what its screen shows.
 func TestTheDialogVerdictSaysWhoseDialogTheAgentIsAt(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2"), lookWindow("3"), lookWindow("4")}
-	rs := map[string]state.Report{
-		"id1": {State: state.NeedsInput, Since: asked, Last: "Bash: make test"},
-		"id2": {State: state.NeedsInput, Since: asked, Last: "Bash: go test", SubagentDialog: true},
-		"id3": {State: state.Done, Since: asked, Last: "hi"},
-		"id4": {State: state.Working, Since: asked},
-	}
-	s := &fakeStore{screens: map[string]string{"%1": "Bash command\n", "%2": "Bash command\n", "%3": ownEffortScreen(), "%4": "✶ Brewing…\n"}}
-	as := Look(ws, reportsOf(rs), nil, Sandboxes{}, now, s)
+	s := newStore(map[string]string{"%1": "Bash command\n", "%2": "Bash command\n", "%3": ownEffortScreen(), "%4": "✶ Brewing…\n"})
 	reported := &state.Ask{Tool: "Bash", Command: "make test"}
+	s.Memory.Report("/w/app", "a1", journaltest.HookState{State: state.NeedsInput, Since: asked}, state.Detail{Ask: reported})
+	s.Memory.Report("/w/app", "a2", journaltest.HookState{State: state.NeedsInput, Since: asked, SubagentDialog: true}, state.Detail{Ask: reported})
+	as := s.look(ws, map[string]journaltest.HookState{
+		"a3": {State: state.Done, Since: asked, Last: "hi"},
+		"a4": {State: state.Working, Since: asked},
+	}, Sandboxes{}, now)
 
-	if d := as[0].Dialog(); d.Whose != HooksDialog || !d.Open() || !d.Since.Equal(asked) || d.Asks(reported) != reported {
-		t.Fatalf("the hooks' dialog: %+v", d)
+	if d := as[0].Dialog(); d.Whose != state.DialogHooks || !d.Open() || !d.Since.Equal(asked) || !reflect.DeepEqual(d.Asks(as[0].Detail().Ask), reported) {
+		t.Fatalf("the hooks' dialog: %+v, asks %+v", d, as[0].Detail().Ask)
 	}
-	if d := as[1].Dialog(); d.Whose != SubagentDialog || !d.Open() || !d.Since.Equal(asked) || d.Asks(reported) != reported {
+	if d := as[1].Dialog(); d.Whose != state.DialogSubagent || !d.Open() || !d.Since.Equal(asked) || !reflect.DeepEqual(d.Asks(as[1].Detail().Ask), reported) {
 		t.Fatalf("a subagent's dialog: %+v", d)
 	}
 	d := as[2].Dialog()
-	if d.Whose != OwnDialog || !d.Open() || !d.Since.Equal(now) {
+	if d.Whose != state.DialogOwn || !d.Open() || !d.Since.Equal(now) {
 		t.Fatalf("a dialog of Claude's own: %+v", d)
 	}
 	if ask := d.Asks(reported); ask == nil || ask.Questions[0].Question != "Change effort level?" || ask.Questions[0].Options[1].Label != "No, go back" {
 		t.Fatalf("what Claude's own asks: %+v", ask)
 	}
-	if d := as[3].Dialog(); d.Whose != NoDialog || d.Open() || d.Asks(reported) != nil {
+	if d := as[3].Dialog(); d.Whose != "" || d.Open() || d.Asks(reported) != nil {
 		t.Fatalf("no dialog: %+v", d)
 	}
-}
-
-// capture is one of the screens in state's testdata, real Claude Code
-// screens as tmux captures them.
-func capture(t *testing.T, name string) string {
-	t.Helper()
-	b, err := os.ReadFile("../state/testdata/screen-" + name + ".txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return string(b)
 }
 
 // A dialog the hooks reported closes when the screen shows Claude at work
 // after it, as after an answered MCP elicitation, which no hook reports
 // (#70): the agent works, since the dialog's report, with its turn's last
-// reply as after any answered dialog. The moment hq saw it is kept on its
-// window, so a later look at a screen that tells nothing (a reply
-// streaming shows no spinner) keeps it working.
+// reply, entered when hq saw it. The journal holds what hq saw, so a later look at a screen that
+// tells nothing (a reply streaming shows no spinner) keeps it working, and
+// a turn the user ends then is done as any turn at work.
 func TestADialogTheHooksReportedClosesWhenTheScreenShowsClaudeAtWork(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", LastStop: "Hi."}}
-	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-elicit-answered")}}
-	as := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, now, s)
-	if a := as[0]; a.State != state.Working || !a.Since.Equal(asked) || a.Last != "Hi." || a.Dialog().Open() || a.Entered() != asked {
+	rs := map[string]journaltest.HookState{"a1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", LastStop: "Hi."}}
+	s := newStore(map[string]string{"%1": capture(t, "fs-elicit-answered")})
+	ws := []tmux.Window{lookWindow("1")}
+	if a := s.look(ws, rs, Sandboxes{}, now)[0]; a.State != state.Working || !a.Since.Equal(asked) || a.Last != "Hi." || a.Dialog().Open() || a.Entered() != now {
 		t.Fatalf("answered: %+v %+v", a, a.Dialog())
 	}
-	if got, want := s.options["@1"]["answered"], nanos(asked)+" "+nanos(now); got != want {
-		t.Fatalf("kept %q, want %q", got, want)
+	if got := ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen); got != state.KindAtWork {
+		t.Fatalf("appended %s", got)
 	}
-
-	// A later look sees the reply streaming: still working.
-	w := lookWindow("1")
-	w.Options["answered"] = s.options["@1"]["answered"]
-	s = &fakeStore{screens: map[string]string{"%1": capture(t, "fs-streaming")}}
-	if a := Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, now.Add(time.Second), s)[0]; a.State != state.Working || !a.Since.Equal(asked) || s.options["@1"]["answered"] != "" {
-		t.Fatalf("streaming after: %+v %v", a, s.options)
+	s.screens["%1"] = capture(t, "fs-streaming")
+	if a := s.look(ws, rs, Sandboxes{}, now.Add(time.Second))[0]; a.State != state.Working || !a.Since.Equal(asked) {
+		t.Fatalf("streaming after: %+v", a)
 	}
-	// Then the user ends the turn: done, as for any turn at work.
-	s = &fakeStore{screens: map[string]string{"%1": declinedScreen()}}
-	if a := Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, now.Add(2*time.Second), s)[0]; a.State != state.Done || a.Last != declinedLine {
+	s.screens["%1"] = declinedScreen()
+	if a := s.look(ws, rs, Sandboxes{}, now.Add(2*time.Second))[0]; a.State != state.Done || a.Last != declinedLine {
 		t.Fatalf("ended after: %+v", a)
 	}
-	// A record of an earlier report closes no later dialog.
-	later := map[string]state.Report{"id1": {State: state.NeedsInput, Since: now, Last: "Bash: make"}}
-	s = &fakeStore{screens: map[string]string{"%1": capture(t, "fs-ask-open")}}
-	if a := Look([]tmux.Window{w}, reportsOf(later), nil, Sandboxes{}, now.Add(time.Minute), s)[0]; a.State != state.NeedsInput || a.Dialog().Whose != HooksDialog {
+	// What hq saw of an earlier report closes no later dialog.
+	s.screens["%1"] = capture(t, "fs-ask-open")
+	later := map[string]journaltest.HookState{"a1": {State: state.NeedsInput, Since: now.Add(3 * time.Second), Last: "Bash: make"}}
+	if a := s.look(ws, later, Sandboxes{}, now.Add(time.Minute))[0]; a.State != state.NeedsInput || a.Dialog().Whose != state.DialogHooks {
 		t.Fatalf("a later dialog: %+v", a)
-	}
-}
-
-// Another hq process saw Claude at work first: its record is kept, and the
-// agent works since the dialog's report all the same.
-func TestTheFirstLookToSeeADialogAnsweredKeepsItsRecord(t *testing.T) {
-	now := time.Unix(1000, 0)
-	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Red or blue?"}}
-	first := nanos(asked) + " " + nanos(now.Add(-time.Second))
-	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-ask-answered-tool")}, options: map[string]map[string]string{"@1": {"answered": first}}}
-	a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, now, s)[0]
-	if a.State != state.Working || !a.Since.Equal(asked) || s.options["@1"]["answered"] != first {
-		t.Fatalf("stored first elsewhere: %+v %q", a, s.options["@1"]["answered"])
-	}
-}
-
-// Anything but Claude at work keeps a dialog the hooks reported open: the
-// dialog itself, the bare prompt box (a reply streaming looks the same in
-// Claude Code 2.1.301), a narrow pane. Only a line Claude prints for a turn
-// the user ended closes it otherwise, as before; the same line with Claude
-// at work below it ("Chat about this", #70) is the dialog answered (#88).
-func TestADialogTheHooksReportedStaysOpenOnAnUnclearScreen(t *testing.T) {
-	now := time.Unix(1000, 0)
-	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Red or blue?", LastStop: "Hi."}}
-	for _, name := range []string{"fs-ask-open", "fs-streaming", "fs-start-ready", "fs-narrow-ask-open", "fs-narrow-done", "dialog-open"} {
-		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
-		a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, now, s)[0]
-		if d := a.Dialog(); a.State != state.NeedsInput || a.Last != "Red or blue?" || d.Whose != HooksDialog || !d.Since.Equal(asked) || len(s.options) != 0 {
-			t.Errorf("%s: %+v %+v %v", name, a, d, s.options)
-		}
-	}
-	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-ask-esc")}}
-	if a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, now, s)[0]; a.State != state.Done || a.Last != declinedLine || !a.Since.Equal(now) {
-		t.Errorf("fs-ask-esc: %+v", a)
-	}
-	s = &fakeStore{screens: map[string]string{"%1": capture(t, "fs-ask-chat-working")}}
-	if a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, now, s)[0]; a.State != state.Working || a.Last != "Hi." || !a.Since.Equal(asked) || s.options["@1"]["answered"] == "" {
-		t.Errorf("fs-ask-chat-working: %+v %v", a, s.options)
-	}
-}
-
-// An MCP elicitation is drawn as Claude's own dialogs are, but when the
-// hooks reported a dialog, the dialog is theirs, and asks what they said.
-func TestADialogTheHooksReportedIsTheirsWhateverTheScreenLooksLike(t *testing.T) {
-	now := time.Unix(1000, 0)
-	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input"}}
-	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-elicit-open")}}
-	a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, now, s)[0]
-	reported := &state.Ask{Message: "Claude Code needs your input"}
-	if d := a.Dialog(); d.Whose != HooksDialog || !d.Since.Equal(asked) || d.Asks(reported) != reported || len(s.options) != 0 {
-		t.Fatalf("%+v %+v %v", a, d, s.options)
 	}
 }
 
@@ -161,123 +91,56 @@ func TestADialogTheHooksReportedIsTheirsWhateverTheScreenLooksLike(t *testing.T)
 func TestASubagentsDialogStaysOpenWhateverTheScreenShows(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", SubagentDialog: true}}
+	rs := map[string]journaltest.HookState{"a1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", SubagentDialog: true}}
 	for _, name := range []string{"fs-subagent-elicit-open", "fs-subagent-elicit-answered", "fs-elicit-answered", "fs-thinking"} {
-		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
-		a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, now, s)[0]
-		if d := a.Dialog(); a.State != state.NeedsInput || d.Whose != SubagentDialog || !d.Since.Equal(asked) || len(s.options) != 0 {
-			t.Errorf("%s: %+v %+v %v", name, a, d, s.options)
+		s := newStore(map[string]string{"%1": capture(t, name)})
+		a := s.look([]tmux.Window{lookWindow("1")}, rs, Sandboxes{}, now)[0]
+		if d := a.Dialog(); a.State != state.NeedsInput || d.Whose != state.DialogSubagent || !d.Since.Equal(asked) || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != "" {
+			t.Errorf("%s: %+v %+v", name, a, d)
 		}
 	}
 }
 
 // A dialog of Claude's own opened while the agent works only on background
 // work, as /model, needs input from when hq first saw it; closed, the agent
-// works at its prompt again.
+// works at its prompt again, and at rest there nothing is a turn end.
 func TestADialogOfClaudesOwnCountsOnBackgroundWork(t *testing.T) {
 	now := time.Unix(10000, 0)
 	prompted, stopped := now.Add(-time.Hour), now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.Working, Since: prompted, Latest: stopped, Background: true, Last: "It started."}}
-	s := &fakeStore{screens: map[string]string{"%1": capture(t, "own-model-background")}}
-	a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, now, s)[0]
-	if d := a.Dialog(); a.State != state.NeedsInput || d.Whose != OwnDialog || !d.Since.Equal(now) || a.Last != "Select model" || d.Asks(nil) == nil || a.Entered() != now {
+	rs := map[string]journaltest.HookState{"a1": {State: state.Working, Since: prompted, Latest: stopped, Background: true, Last: "It started."}}
+	s := newStore(map[string]string{"%1": capture(t, "own-model-background")})
+	ws := []tmux.Window{lookWindow("1")}
+	a := s.look(ws, rs, Sandboxes{}, now)[0]
+	if d := a.Dialog(); a.State != state.NeedsInput || d.Whose != state.DialogOwn || !d.Since.Equal(now) || a.Last != "Select model" || d.Asks(nil) == nil || a.Entered() != now {
 		t.Fatalf("open: %+v %+v", a, d)
 	}
-	w := lookWindow("1")
-	w.Options["dialogseen"] = s.options["@1"]["dialogseen"]
-	s = &fakeStore{screens: map[string]string{"%1": capture(t, "fs-model-closed-background")}}
-	if a := Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, now.Add(time.Second), s)[0]; a.State != state.Working || !a.OnBackgroundWork() || !a.Since.Equal(prompted) || a.Last != "It started." || a.Dialog().Open() {
+	s.screens["%1"] = capture(t, "fs-model-closed-background")
+	if a := s.look(ws, rs, Sandboxes{}, now.Add(time.Second))[0]; a.State != state.Working || !a.OnBackgroundWork() || !a.Since.Equal(prompted) || a.Last != "It started." || a.Dialog().Open() {
 		t.Fatalf("closed: %+v", a)
 	}
-	// At rest at its prompt, nothing of what the screen shows is a turn end.
-	s = &fakeStore{screens: map[string]string{"%1": capture(t, "fs-background-at-prompt")}}
-	if a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, now.Add(time.Hour), s)[0]; a.State != state.Working || !a.OnBackgroundWork() || len(s.options) != 0 {
-		t.Fatalf("at rest: %+v %v", a, s.options)
+	s.screens["%1"] = capture(t, "fs-background-at-prompt")
+	if a := s.look(ws, rs, Sandboxes{}, now.Add(time.Hour))[0]; a.State != state.Working || !a.OnBackgroundWork() {
+		t.Fatalf("at rest: %+v", a)
 	}
-}
-
-// A dialog of Claude's own that hq recorded stays when one capture fails,
-// as a turn end hq saw does, rather than the agent dropping back for a
-// refresh; a record of an earlier report, or a closed one, does not.
-func TestARecordedDialogOfClaudesOwnStandsWhenTheCaptureFails(t *testing.T) {
-	now := time.Unix(10000, 0)
-	done, seen := now.Add(-time.Hour), now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.Done, Since: done, Last: "hi"}}
-	s := &fakeStore{screens: map[string]string{"%1": ownEffortScreen()}}
-	Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, seen, s)
-	w := lookWindow("1")
-	w.Options["dialogseen"] = s.options["@1"]["dialogseen"]
-	failed := &fakeStore{captureErr: errors.New("tmux: no server")}
-	a := Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, now, failed)[0]
-	if d := a.Dialog(); a.State != state.NeedsInput || d.Whose != OwnDialog || !d.Since.Equal(seen) || a.Entered() != seen {
-		t.Fatalf("failed capture: %+v %+v", a, d)
-	}
-	for name, record := range map[string]string{
-		"closed":         nanos(done) + " -",
-		"earlier report": nanos(done.Add(-time.Hour)) + " " + strings.Fields(w.Options["dialogseen"])[1] + " " + nanos(seen),
-	} {
-		w.Options["dialogseen"] = record
-		if a := Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, now, failed)[0]; a.State != state.Done || !a.Since.Equal(done) {
-			t.Errorf("%s: %+v", name, a)
-		}
-	}
-}
-
-// Only an agent at its prompt has its screen read for a dialog of Claude's
-// own: done, with a question, or working only on background work. A
-// dialog the hooks reported stays theirs, whatever else the report says,
-// and a record of one of Claude's own does not relabel it when a capture
-// fails.
-func TestADialogTheHooksReportedIsNeverReadAsOneOfClaudesOwn(t *testing.T) {
-	now := time.Unix(1000, 0)
-	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Background: true, Last: "Claude Code needs your input"}}
-	s := &fakeStore{screens: map[string]string{"%1": capture(t, "fs-elicit-open")}}
-	a := Look([]tmux.Window{lookWindow("1")}, reportsOf(rs), nil, Sandboxes{}, now, s)[0]
-	if d := a.Dialog(); d.Whose != HooksDialog || !d.Since.Equal(asked) || len(s.options) != 0 {
-		t.Fatalf("seen: %+v %+v %v", a, d, s.options)
-	}
-	w := lookWindow("1")
-	w.Options["dialogseen"] = nanos(asked) + " 1234 " + nanos(asked.Add(time.Second))
-	failed := &fakeStore{captureErr: errors.New("tmux: no server")}
-	if d := Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, now, failed)[0].Dialog(); d.Whose != HooksDialog || !d.Since.Equal(asked) {
-		t.Fatalf("failed capture: %+v", d)
-	}
-}
-
-// An agent the screen saw answer a dialog of its hooks' works on until
-// they report again or Claude prints a line for a turn the user ended: a
-// screen at rest, unchanged for RestDelay, is no rewind (Claude has acted
-// on the turn, which only an early Esc rewinds), so the bare prompt box
-// closes nothing here either, as a reply streaming shows it (#70).
-func TestAnAnsweredDialogIsNoRewindAtTheBarePromptBox(t *testing.T) {
-	now := time.Unix(1000, 0)
-	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"id1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", LastStop: "Hi."}}
-	w := lookWindow("1")
-	w.Options["answered"] = nanos(asked) + " " + nanos(now)
-	for _, name := range []string{"fs-streaming", "fs-elicit-done"} {
-		s := &fakeStore{screens: map[string]string{"%1": capture(t, name)}}
-		for _, at := range []time.Time{now.Add(time.Second), now.Add(time.Second + RestDelay), now.Add(time.Hour)} {
-			a := Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, at, s)[0]
-			if a.State != state.Working || !a.Since.Equal(asked) || a.Last != "Hi." || a.Resting() || len(s.options) != 0 {
-				t.Fatalf("%s at %v: %+v %v", name, at, a, s.options)
-			}
-		}
+	if got := ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen); got != state.KindOwnDialog+" "+state.KindOwnDialogGone {
+		t.Fatalf("appended %s", got)
 	}
 }
 
 // hq answer moves the cursor of a dialog of Claude's own to an option
 // (#120): the verdict tells a fresh screen of the same dialog, the cursor
 // moved, from another dialog or none, and says when its list scrolls, as
-// the picker of /model does, which hq does not answer.
+// the picker of /model does, which hq does not answer. A look that could
+// not capture the screen knows the dialog by what the journal holds, which
+// names it by the same fingerprint.
 func TestTheVerdictOfADialogOfClaudesOwnKnowsItsScreen(t *testing.T) {
 	now := time.Unix(1000, 0)
-	rs := map[string]state.Report{"id1": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}, "id2": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}}
-	s := &fakeStore{screens: map[string]string{"%1": capture(t, "own-effort-low"), "%2": capture(t, "own-model-2304")}}
-	as := Look([]tmux.Window{lookWindow("1"), lookWindow("2")}, reportsOf(rs), nil, Sandboxes{}, now, s)
+	rs := map[string]journaltest.HookState{"a1": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}, "a2": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}}
+	s := newStore(map[string]string{"%1": capture(t, "own-effort-low"), "%2": capture(t, "own-model-2304")})
+	ws := []tmux.Window{lookWindow("1"), lookWindow("2")}
+	as := s.look(ws, rs, Sandboxes{}, now)
 	effort, model := as[0].Dialog(), as[1].Dialog()
-	if effort.Whose != OwnDialog || effort.Scrolls() || model.Whose != OwnDialog || !model.Scrolls() {
+	if effort.Whose != state.DialogOwn || effort.Scrolls() || model.Whose != state.DialogOwn || !model.Scrolls() {
 		t.Fatalf("effort %+v, model %+v", effort, model)
 	}
 	for name, want := range map[string]bool{"own-effort-low": true, "own-effort-low-down": true, "own-switch-model": false, "own-model-2304": false, "effort-low-set": false} {
@@ -286,15 +149,20 @@ func TestTheVerdictOfADialogOfClaudesOwnKnowsItsScreen(t *testing.T) {
 			t.Errorf("%s: shows the effort dialog %v, want %v", name, got, want)
 		}
 	}
-	// A look that did not see the screen knows the dialog by its record,
-	// which names it by the same fingerprint.
-	w := lookWindow("1")
-	w.Options["dialogseen"] = s.options["@1"]["dialogseen"]
-	failed := &fakeStore{captureErr: errors.New("tmux: no server")}
-	recalled := Look([]tmux.Window{w}, reportsOf(rs), nil, Sandboxes{}, now.Add(time.Second), failed)[0].Dialog()
+	s.captureErr = errors.New("tmux: no server")
+	recalled := s.look(ws[:1], rs, Sandboxes{}, now.Add(time.Second))[0]
 	v, _ := state.ViewOwnDialog(capture(t, "own-effort-low"))
 	other, _ := state.ViewOwnDialog(capture(t, "own-switch-model"))
-	if recalled.Whose != OwnDialog || !recalled.Shows(v) || recalled.Shows(other) || (Dialog{}).Shows(v) {
-		t.Fatalf("recalled: %+v", recalled)
+	if d := recalled.Dialog(); d.Whose != state.DialogOwn || !d.Shows(v) || d.Shows(other) || (Dialog{}).Shows(v) || !d.Since.Equal(now) {
+		t.Fatalf("recalled: %+v", d)
+	}
+	if recalled.Dialog().Asks(nil) != nil {
+		t.Fatalf("a dialog of Claude's own a look did not see asks %+v", recalled.Dialog().Asks(nil))
+	}
+	// Gone from the screen: closed.
+	s.captureErr = nil
+	s.screens["%1"] = "● hi\n" + lookRule + "\n❯ \n" + lookRule + "\n"
+	if d := s.look(ws[:1], rs, Sandboxes{}, now.Add(2*time.Second))[0].Dialog(); d.Open() {
+		t.Fatalf("gone: %+v", d)
 	}
 }

@@ -10,7 +10,7 @@
 //   - a prompt containing "question" gets a reply ending in "?";
 //   - a prompt containing "lines" gets a reply of two paragraphs;
 //   - a prompt containing "long" gets a reply of about 82,000 characters, past
-//     what hq once read of a state file (#64), and only its first line on
+//     what hq once read of a report (#64), and only its first line on
 //     the screen;
 //   - a prompt containing "input" first opens a question dialog, as
 //     AskUserQuestion does: PermissionRequest at once, its hooks run side
@@ -74,6 +74,8 @@
 //     Claude taking a turn for it, and no hook fires;
 //   - the line "draft" is no prompt: it draws the box holding "a draft", as
 //     when the user has typed that and not sent it yet;
+//   - a prompt that starts with "unsent" is one Claude does not take: it
+//     stays in the box, which it draws holding it, and no hook fires (#170);
 //   - a line "/effort LEVEL" is no prompt: it changes the effort level
 //     (high at the start). As Claude Code 2.1.304 does, it asks first only
 //     when a turn has run since the session started or the level last
@@ -85,7 +87,18 @@
 //     on. Below the dialog, or at once when it does not ask, it says what
 //     it did ("Set effort level to medium", "Kept effort level as high")
 //     (#120);
-//   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit.
+//   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit;
+//   - any other prompt that starts with "/" is a slash command, as Claude
+//     Code takes one: it runs as a turn like any prompt, and the fake
+//     appends to the file FAKE_CLAUDE_COMMANDS names, when set, a line for
+//     it: the command and its arguments (the rest of the prompt, its first
+//     space, tab or newline dropped), each quoted. A prompt that begins
+//     with a paste Claude Code collapses into "[Pasted text #N]"
+//     (state.Collapses: more
+//     than 3 lines, or more than 800 characters) is no command, as in
+//     Claude Code 2.1.325, whatever it starts with; one typed before such
+//     a paste, as "/probe" followed by it, is the command with the paste in
+//     its arguments (#173).
 //
 // It reads the hooks' output as Claude Code 2.1.283 does (ADR 0012):
 // additionalContext of UserPromptSubmit or PostToolUse is noted in the
@@ -102,7 +115,10 @@
 // text of several lines, ended with Enter, as one prompt.
 //
 // FAKE_CLAUDE_DELAY (a Go duration, default 200ms) is how long it takes to
-// start and how long a turn works.
+// start and how long a turn works. FAKE_CLAUDE_FIRST_PROMPT_DELAY (a Go
+// duration, default none) is how long after its session's start it takes
+// a first prompt given on its command line: the moment a slow machine
+// gives hq to look at an agent whose session started before its prompt.
 //
 // With FAKE_CLAUDE_START_DIALOG set it shows, once started and before it
 // takes any prompt, the dialog Claude Code 2.1.285 shows on the first start
@@ -124,6 +140,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/rkrysinski/hq/internal/state"
 )
 
 // The terminal sequences Claude draws with.
@@ -136,19 +154,33 @@ const (
 	pasteEnd       = "\x1b[201~"
 )
 
+// typed is a line typed, a bracketed paste in it as part of the line, its
+// lines kept; collapsed says it begins with a paste Claude Code collapses
+// into "[Pasted text #N]", so that it is no slash command (#173).
+type typed struct {
+	text      string
+	collapsed bool
+}
+
 // pasted is the line just scanned, or, when a bracketed paste starts in it,
-// the pasted text up to the line the paste ends in, its lines kept.
-func pasted(in *bufio.Scanner) string {
+// the line with the pasted text, up to the line the paste ends in.
+func pasted(in *bufio.Scanner) typed {
 	line := in.Text()
 	if !strings.Contains(line, pasteStart) {
-		return line
+		return typed{text: line}
 	}
 	lines := []string{line}
 	for !strings.Contains(line, pasteEnd) && in.Scan() {
 		line = in.Text()
 		lines = append(lines, line)
 	}
-	return strings.NewReplacer(pasteStart, "", pasteEnd, "").Replace(strings.Join(lines, "\n"))
+	all := strings.Join(lines, "\n")
+	before, paste, _ := strings.Cut(all, pasteStart)
+	paste, _, _ = strings.Cut(paste, pasteEnd)
+	return typed{
+		text:      strings.NewReplacer(pasteStart, "", pasteEnd, "").Replace(all),
+		collapsed: before == "" && state.Collapses(paste),
+	}
 }
 
 type settings struct {
@@ -169,7 +201,7 @@ type claude struct {
 	cwd     string
 	delay   time.Duration
 	tasks   []map[string]string // the background work that runs
-	lines   <-chan string       // the lines typed, a bracketed paste as one
+	lines   <-chan typed        // the lines typed, a bracketed paste as one
 	hooksMu sync.Mutex
 	running map[*exec.Cmd]bool // hooks run aside that have not ended yet
 	started int                // how many background tasks it has started
@@ -231,7 +263,7 @@ func main() {
 	c.fire("SessionStart", map[string]any{"source": source})
 	fmt.Print(enterAltScreen + bracketedPaste)
 	fmt.Println("fake claude: ready")
-	lines := make(chan string)
+	lines := make(chan typed)
 	c.lines = lines
 	go func() {
 		in := bufio.NewScanner(os.Stdin)
@@ -247,10 +279,14 @@ func main() {
 		promptBox("")
 	}
 	if prompt != "" {
+		if d, err := time.ParseDuration(os.Getenv("FAKE_CLAUDE_FIRST_PROMPT_DELAY")); err == nil {
+			time.Sleep(d)
+		}
 		c.turn(prompt)
 	}
-	for typed := range c.lines {
-		line := strings.TrimSpace(typed)
+	for in := range c.lines {
+		line := strings.TrimSpace(in.text)
+		command := !in.collapsed && strings.HasPrefix(line, "/")
 		switch line {
 		case "":
 		case "draft":
@@ -263,7 +299,12 @@ func main() {
 			fmt.Print(leaveAltScreen)
 			return
 		default:
-			if words := strings.Fields(line); words[0] == "/effort" && len(words) == 2 {
+			if strings.HasPrefix(line, "unsent") {
+				// Not taken: still in the box; no hook fires.
+				promptBox("", line)
+				continue
+			}
+			if words := strings.Fields(line); command && words[0] == "/effort" && len(words) == 2 {
 				// A slash command, no prompt: its dialog takes the box's
 				// place until it is answered; no hook fires.
 				c.setEffort(words[1])
@@ -281,13 +322,16 @@ func main() {
 				c.finish()
 				continue
 			}
+			if command {
+				recordCommand(line)
+			}
 			c.turn(line)
 		}
 	}
 }
 
 // line is the next line typed; "" once the input has ended.
-func (c *claude) line() string { return <-c.lines }
+func (c *claude) line() string { return (<-c.lines).text }
 
 // The keys Down and Up as the terminal sends them.
 const (
@@ -638,9 +682,9 @@ func (c *claude) awaitAnswer(decided <-chan output) (map[string]string, string) 
 				answers[q] = fmt.Sprint(a)
 			}
 			return answers, "\n  ⎿  Allowed by PermissionRequest hook"
-		case typed := <-c.lines:
-			switch t := strings.TrimSpace(typed); {
-			case t == "esc" || strings.Contains(typed, "\x1b"):
+		case in := <-c.lines:
+			switch t := strings.TrimSpace(in.text); {
+			case t == "esc" || strings.Contains(in.text, "\x1b"):
 				return nil, ""
 			case t == "1":
 				return map[string]string{question: "Red"}, ""
@@ -651,6 +695,27 @@ func (c *claude) awaitAnswer(decided <-chan output) (map[string]string, string) 
 			}
 		}
 	}
+}
+
+// recordCommand records a slash command that runs, the prompt that is it,
+// in the file FAKE_CLAUDE_COMMANDS names: the command and its arguments,
+// quoted.
+func recordCommand(prompt string) {
+	path := os.Getenv("FAKE_CLAUDE_COMMANDS")
+	if path == "" {
+		return
+	}
+	name, args := prompt, ""
+	if i := strings.IndexAny(prompt, " \t\n"); i >= 0 {
+		name, args = prompt[:i], prompt[i+1:]
+	}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		fmt.Println("fake claude: commands:", err)
+		return
+	}
+	defer f.Close()
+	fmt.Fprintf(f, "%q %q\n", name, args)
 }
 
 // notified records a desktop notification a hook sent, where a test or QA

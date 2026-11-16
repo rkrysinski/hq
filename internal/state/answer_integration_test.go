@@ -58,7 +58,7 @@ func (k *held) ended(within time.Duration) (out string, ok bool) {
 func openDialog(t *testing.T, root, id string, payload []byte) Questions {
 	t.Helper()
 	fire(t, root, root, id, "dialog", payload)
-	q, err := ReadQuestions(root, id)
+	q, err := askedQuestions(root, id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,16 +96,16 @@ func TestTheQuestionDialogsHookPrintsTheAnswerHqLeaves(t *testing.T) {
 	if !AnswerTaken(root, id, q) || len(inboxLeft(root, id)) != 0 {
 		t.Fatalf("left in the inbox: %v", inboxLeft(root, id))
 	}
-	if left, _ := filepath.Glob(filepath.Join(Dir(root), id+".*")); len(left) != 0 {
-		t.Fatalf("left beside the state file: %v", left)
+	if left, _ := filepath.Glob(filepath.Join(Dir(root), id+".[0-9]*")); len(left) != 0 {
+		t.Fatalf("left beside the hook's notes: %v", left)
 	}
 	// Claude reports the answers as #89 recorded them: what hq sent, as
 	// strings, the list joined.
 	fire(t, root, root, id, "answer", fixture(t, "answer-ask-hook"))
-	if got, ok := ReadAnswers(root, id); !ok || !reflect.DeepEqual(got, sent) {
+	if got, ok := askedAnswers(root, id); !ok || !reflect.DeepEqual(got, sent) {
 		t.Fatalf("Claude got %v, hq sent %v", got, sent)
 	}
-	if r, _ := Read(root, id); r.State != Working {
+	if r, _ := reported(root, id); r.State != Working {
 		t.Fatalf("after the answer: %+v", r)
 	}
 	q = openDialog(t, root, id, payload)
@@ -207,20 +207,20 @@ func TestTheQuestionDialogsHookEndsQuietlyAtItsTimeout(t *testing.T) {
 	if out, ok := k.ended(2 * time.Second); !ok || out != "" || k.cmd.ProcessState.ExitCode() != 0 {
 		t.Fatalf("%v %q %v", ok, out, k.cmd.ProcessState)
 	}
-	if left, _ := filepath.Glob(filepath.Join(Dir(root), id+".*")); len(left) != 0 {
-		t.Fatalf("left beside the state file: %v", left)
+	if left, _ := filepath.Glob(filepath.Join(Dir(root), id+".[0-9]*")); len(left) != 0 {
+		t.Fatalf("left beside the hook's notes: %v", left)
 	}
 }
 
 // One answer waits for a dialog at a time: another for the same dialog is
 // refused while it waits (two hq processes answering at once), and one left
 // for an earlier dialog, which no hook takes, goes when a new one is left.
-// What Claude reports it got is read off the state file once the dialog's
-// tool ended.
+// What Claude reports it got is what the journal keeps of the dialog once
+// its tool ended.
 func TestAnAnswerWaitsAloneForItsDialog(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	if _, err := ReadQuestions(root, id); err == nil {
+	if _, err := askedQuestions(root, id); err == nil {
 		t.Fatal("questions before any report")
 	}
 	first := openDialog(t, root, id, fixture(t, "dialog-ask"))
@@ -237,23 +237,17 @@ func TestAnAnswerWaitsAloneForItsDialog(t *testing.T) {
 		t.Fatal("withdrawn twice")
 	}
 
-	if _, ok := ReadAnswers(root, id); ok {
+	if _, ok := askedAnswers(root, id); ok {
 		t.Fatal("answers while the dialog is open")
 	}
 	fire(t, root, root, id, "answer", fixture(t, "answer-ask-several"))
-	if got, ok := ReadAnswers(root, id); !ok || got["Which name?"] != "Gamma typed" {
+	if got, ok := askedAnswers(root, id); !ok || got["Which name?"] != "Gamma typed" {
 		t.Fatalf("answers %v %v", got, ok)
 	}
 
 	for _, bad := range []string{"", "../x", "XYZ"} {
-		if _, err := ReadQuestions(root, bad); err == nil {
-			t.Errorf("%q: questions", bad)
-		}
 		if LeaveAnswer(root, bad, second, nil) == nil || AnswerTaken(root, bad, second) || WithdrawAnswer(root, bad, second) {
 			t.Errorf("%q: an answer", bad)
-		}
-		if _, ok := ReadAnswers(root, bad); ok {
-			t.Errorf("%q: answers", bad)
 		}
 	}
 	if LeaveAnswer(root, id, Questions{}, nil) == nil || AnswerTaken(root, id, Questions{}) || WithdrawAnswer(root, id, Questions{}) {

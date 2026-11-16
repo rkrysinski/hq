@@ -1,0 +1,201 @@
+{
+  "about": "The pane's death ends an agent, dated by tmux, before any report too; one tmux gives no time for is dated by the look that saw it; a later answer of sbx changes nothing.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "pane": "dead",
+      "events": [
+        {
+          "n": 2,
+          "source": "tmux",
+          "kind": "PaneDied",
+          "time": "2026-01-01T00:00:02Z",
+          "facts": {
+            "from": "2026-01-01T00:00:02Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:02Z",
+        "last": "[session ended]"
+      }
+    },
+    {
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:02Z",
+        "last": "[session ended]"
+      }
+    },
+    {
+      "sbx": "stopped",
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:02Z",
+        "last": "[session ended]"
+      }
+    },
+    {
+      "hq": "relaunch",
+      "events": [
+        {
+          "n": 3,
+          "source": "hq",
+          "kind": "Relaunched",
+          "time": "2026-01-01T00:00:05Z",
+          "facts": {}
+        }
+      ],
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:05Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:06Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Count to ten."
+      },
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Count to ten.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "Stop",
+        "last_assistant_message": "Counted.",
+        "background_tasks": []
+      },
+      "events": [
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000003.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 6,
+        "text": "Counted."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "pane": "dead-undated",
+      "events": [
+        {
+          "n": 7,
+          "source": "tmux",
+          "kind": "PaneDied",
+          "time": "2026-01-01T00:00:09Z",
+          "basis": 6,
+          "facts": {}
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Counted."
+      }
+    },
+    {
+      "sbx": "stopped",
+      "events": [
+        {
+          "n": 8,
+          "source": "sbx",
+          "kind": "NotRunning",
+          "time": "2026-01-01T00:00:11Z",
+          "basis": 6,
+          "facts": {
+            "asked": "2026-01-01T00:00:11Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Counted."
+      }
+    }
+  ]
+}

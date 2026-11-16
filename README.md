@@ -8,13 +8,13 @@ Platforms: macOS (iTerm2) and Windows via WSL (Windows Terminal).
 
 ## Install
 
-Prerequisites: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`), VS Code with `code` on PATH; iTerm2 on macOS, Windows Terminal and WSL (Ubuntu 24.04 or newer) on Windows, with Windows Terminal's bell set to flash the taskbar (see [Notifications](#notifications)). Optional: GitHub CLI (`gh`, logged in), only for the dashboard's pull request links (`p pr`); without it hq works the same and shows no pull requests.
+Prerequisites: git, curl, tmux 3.4 or newer, Docker Sandboxes (`sbx`) 0.48.0 or newer, VS Code with `code` on PATH; iTerm2 on macOS, Windows Terminal and WSL (Ubuntu 24.04 or newer) on Windows, with Windows Terminal's bell set to flash the taskbar (see [Notifications](#notifications)). Optional: GitHub CLI (`gh`, logged in), only for the dashboard's pull request links (`p pr`); without it hq works the same and shows no pull requests.
 
 ```bash
 curl -fsSL https://github.com/rkrysinski/hq/releases/latest/download/install.sh | sh
 ```
 
-This installs `hq` to `~/.local/bin` and checks the prerequisites; no GitHub login is needed. `... | HQ_VERSION=vX.Y.Z sh` installs that release instead of the latest. On macOS with iTerm2 it also adds an iTerm2 profile named `hq` with Option as Esc+, which hq gives only to the tab the dashboard runs in, so the Alt chords work with no setup.
+This installs `hq` to `~/.local/bin` and checks the prerequisites; no GitHub login is needed. `... | HQ_VERSION=vX.Y.Z sh` installs that release instead of the latest. Run over an hq installed already, it is an update like `hq update` (below) and refuses a release of another generation in the same way while that hq has agents. On macOS with iTerm2 it also adds an iTerm2 profile named `hq` with Option as Esc+, which hq gives only to the tab the dashboard runs in, so the Alt chords work with no setup.
 
 ### Setting up sbx
 
@@ -53,7 +53,7 @@ The `sandbox` object is the default setup, which every agent uses unless `hq new
 }
 ```
 
-`hq new NAME [DIR] [PROMPT] --setup local` starts the agent in the repository's sandbox of that setup, `hq-local-<dir>` (`<dir>` being the repository's folder name, lowercased, with anything but letters, digits, hyphens and periods turned into a hyphen), and creates it on first use, while the repository's other agents keep running in its default sandbox. A setup's sandbox is created with `sbx run --detached --model M --provider P` when it has a model or a provider (`sbx create` takes neither), with `sbx create --name` otherwise. `model` and `provider` are read only under `sandboxes`; `HQ_SBX_TEMPLATE` and `HQ_SBX_STATIC_MCP` apply only to the default setup. `default` is not a name for one of them: the default's settings go in `sandbox`. hq lists the setups there are when the name given is not one of them, `hq ls --json` and the supervisor's `list` show each agent's `setup`, and the supervisor's `new` takes `setup`.
+`hq new NAME [DIR] [PROMPT] --setup local` starts the agent in the repository's sandbox of that setup, `hq-local-<dir>` (`<dir>` being the repository's folder name, lowercased, with anything but letters, digits, hyphens and periods turned into a hyphen), and creates it on first use, while the repository's other agents keep running in its default sandbox. A setup's sandbox is created with `sbx run --detach --model M --provider P` when it has a model or a provider (`sbx create` takes neither), with `sbx create --no-progress --name` otherwise (the calls verified with sbx 0.48.0 and 0.53.0). `model` and `provider` are read only under `sandboxes`; `HQ_SBX_TEMPLATE` and `HQ_SBX_STATIC_MCP` apply only to the default setup. `default` is not a name for one of them: the default's settings go in `sandbox`. hq lists the setups there are when the name given is not one of them, `hq ls --json` and the supervisor's `list` show each agent's `setup`, and the supervisor's `new` takes `setup`.
 
 The same rule as for `sandbox` holds: a setup's settings apply when its sandbox is created. To change them for a sandbox that exists, remove it (`hq sandbox rm REPO --setup local`, after the agents in it are killed; the repository's other sandboxes and their agents stay) and let the next `hq new --setup local` create it again. `hq sandbox rm|restart REPO` alone acts on the default sandbox, `--setup NAME` on that setup's, and `--all-setups` on every sandbox of the repository, after one confirmation that lists them.
 
@@ -85,6 +85,8 @@ hq works with any template, with one condition for `hq answer`: the template's o
 
 When a newer release is out, hq says so after a command's output (`hq v0.4.0 is available - run hq update`), in the dashboard's header and in `hq --version`; `hq update` moves to it. hq looks at most once a day, in the background, so no command waits for GitHub.
 
+Most releases update with your agents running, and they carry on untouched. A release that changes what agents report, or how hq keeps it, has another *generation*: an hq of one generation cannot read an agent started by another, so `hq update` (and the install command run over an installed hq) refuses such a release while any agent exists, running, ended or lost, and names them; nothing is replaced. End them with `hq stop` (and `hq kill NAME` for a lost one) and run `hq update` again. There is no option to update anyway. A dashboard you left open restarts its list from the new hq by itself within a few seconds of such an update, keeping the docked session; a supervisor's `hq mcp` answers every call with `hq was updated: restart hq in this client` until you restart hq in that client.
+
 ## Everyday use
 
 ```bash
@@ -94,12 +96,16 @@ hq new NAME [DIR] [PROMPT]       # start an agent for the repository in DIR
 hq ls                            # list agents and their state
 hq go NAME                       # enter an agent's session
 hq send NAME TEXT                # leave a message, delivered when the agent is ready
+                                 # (--wait: return when the turn that took it ends)
 hq answer NAME --dialog ID N     # answer an agent's question dialog (hq read shows the id)
 hq kill NAME                     # end an agent's Claude session; the sandbox stays
 hq killed [NAME]                 # the agents hq killed: when, and who asked for it
+hq explain NAME [--all] [--json] # the events an agent's state rests on, no text of its conversation
 ```
 
 An agent gone from `hq ls` was killed or not: `hq killed` lists every kill, whether by `hq kill`, `hq stop`, the dashboard or a supervisor's `kill` tool (with its client and, when hq knows it, the calling agent).
+
+A row whose state looks wrong can be explained: `hq explain NAME` lists the events of the agent's journal its state and its dialog rest on, oldest first, each with its number, time, source (`hook`, `screen`, `tmux`, `sbx`, `hq`), what it was and the state after it; `--all` gives every event since the agent started, `--json` the same as data. It shows no prompt, reply, dialog question or message text, so its output can go into a public issue as it is.
 
 After the laptop sleeps, agents can fail with clock drift: `hq sandbox restart REPO` restarts the repository's sandbox and relaunches its agents, each continuing its conversation. A repository with agents on several setups has a sandbox per setup; `hq sandbox restart REPO --all-setups` restarts them all after one confirmation.
 
@@ -142,7 +148,7 @@ hq mcp install claude-code
 
 Then restart Claude Code. This adds `hq` to Claude Code's user-scope servers, which every project sees (`~/.claude.json`, or `.claude.json` in `CLAUDE_CONFIG_DIR` when that is set; `claude mcp get hq` shows it), keeping your other servers, with a copy of the file as it was next to it. On Windows it does so for Claude Code in WSL and for Claude Code on Windows (`%USERPROFILE%\.claude.json`, or in `%CLAUDE_CONFIG_DIR%`; that one starts hq through `wsl.exe`), wherever Claude Code has run. A running Claude Code may keep saving the file meanwhile: hq takes the same lock and loses none of its changes. It records hq's path and your `PATH` as the Claude Desktop entry does. When Claude Code has never run (no `.claude.json`) or the file cannot be edited safely, it changes nothing and prints the `claude mcp add-json` command that adds the entry by hand. Under Claude Code one `wait` may last up to an hour, where Claude Desktop's ends after 50 s (Claude Desktop gives a tool call 60 s); press Esc to interrupt a long one. If you added hq to Claude Code by hand before, at local or project scope (`claude mcp add` without `--scope user`), remove that entry (`claude mcp remove --scope local hq`, or the `hq` server in the project's `.mcp.json`): it takes precedence in its project, without the longer `wait`. For a Claude Code inside a sandbox, see below.
 
-In a conversation, tell Claude what to do ("start 42 in ~/work/app on issue #42, and watch it"). It reads status from hq rather than asking the agents, asks an agent with a message answered when the agent stops, and answers an agent's question dialog only when you tell it what to pick, or to choose for you; permission prompts and other dialogs it leaves to you. Work it gave an agent (the prompt it started the agent with, a message it sent) raises no desktop notification when it finishes or asks a question, on any agent: Claude waits for it and tells you, and when it is not waiting you see the agent's state in the dashboard and ask it. What you prompt or send yourself (at the agent, `hq new`, `hq send`) notifies you as ever, and so does a dialog. An agent started by an older hq notifies at every turn end until it is relaunched (`hq sandbox restart`). `kill` ends an agent only when Claude passes on that you told it to; otherwise hq refuses it and Claude asks you. A supervisor that is itself one of your agents (a Claude Code in a sandbox with hq loaded) cannot end, answer or message itself: `kill`, `answer` and `send` naming it are refused, with a message naming it; you end it yourself (`hq kill NAME`). An agent started by an older hq is not protected until it is relaunched (`hq sandbox restart REPO`, which ends and relaunches every session in that sandbox).
+In a conversation, tell Claude what to do ("start 42 in ~/work/app on issue #42, and watch it"). It reads status from hq rather than asking the agents, asks an agent with a message answered when the agent stops, and answers an agent's question dialog only when you tell it what to pick, or to choose for you; permission prompts and other dialogs it leaves to you. Work it gave an agent (the prompt it started the agent with, a message it sent) raises no desktop notification when it finishes or asks a question, on any agent: Claude waits for it and tells you, and when it is not waiting you see the agent's state in the dashboard and ask it. What you prompt or send yourself (at the agent, `hq new`, `hq send`) notifies you as ever, and so does a dialog. An agent that an hq of another generation started shows as `outdated`, which Claude tells you about: kill it and start it again. `kill` ends an agent only when Claude passes on that you told it to; otherwise hq refuses it and Claude asks you. A supervisor that is itself one of your agents (a Claude Code in a sandbox with hq loaded) cannot end, answer or message itself: `kill`, `answer` and `send` naming it are refused, with a message naming it; you end it yourself (`hq kill NAME`).
 
 ### A supervisor inside a sandbox
 
@@ -162,4 +168,4 @@ In that sandbox the tools appear as `mcp__mcp-gateway__new`, `mcp__mcp-gateway__
 
 ## Uninstall
 
-Delete `~/.local/bin/hq`, the `hq` entry under `mcpServers` in Claude Desktop's configuration if you added it (in Claude Code: `claude mcp remove --scope user hq`; for sbx: `sbx mcp rm hq`), `~/.config/hq` and, on macOS, `~/Library/Application Support/iTerm2/DynamicProfiles/hq.json`.
+Delete `~/.local/bin/hq`, the `hq` entry under `mcpServers` in Claude Desktop's configuration if you added it (in Claude Code: `claude mcp remove --scope user hq`; for sbx: `sbx mcp rm hq`), `~/.config/hq`, hq's state directory `~/.local/state/hq` (`$XDG_STATE_HOME/hq` when that is set), which holds the journals and the counter, and, on macOS, `~/Library/Application Support/iTerm2/DynamicProfiles/hq.json`.

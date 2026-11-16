@@ -97,7 +97,7 @@ func TestNewStartsAgentInRepositorysSandbox(t *testing.T) {
 	if !f.tmux.started[w.ID] {
 		t.Fatal("window not started")
 	}
-	if w.Options["inbox"] != "3" {
+	if w.Options["inbox"] != generation {
 		t.Fatalf("hooks that deliver messages, tell a supervised turn and hold for an answer not marked: %v", w.Options)
 	}
 	// hq new from a shell is the user's: its prompt is not announced as
@@ -444,5 +444,19 @@ func TestNewWithoutASetupNeverUsesASetupsSandbox(t *testing.T) {
 	}
 	if len(f.sbx.created) != 1 || f.tmux.windows[len(f.tmux.windows)-1].Options["sandbox"] != "claude-app" {
 		t.Fatalf("created %v, window %+v", f.sbx.created, f.tmux.windows[len(f.tmux.windows)-1].Options)
+	}
+}
+
+// hq new with an sbx too old for hq says so in one line and exits 3, before
+// it creates anything (#172).
+func TestNewSaysAnSbxIsTooOld(t *testing.T) {
+	f := newFakes()
+	f.sbx.err = &sbx.TooOldError{}
+	code, _, errOut := f.run("new", "a")
+	if code != ExitEnvironment || errOut != "hq: sbx is too old, 0.48.0 or newer needed; update Docker Sandboxes\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if len(f.sbx.created) != 0 || len(f.tmux.windows) != 0 {
+		t.Fatalf("created %q, windows %d", f.sbx.created, len(f.tmux.windows))
 	}
 }

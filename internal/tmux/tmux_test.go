@@ -236,3 +236,26 @@ func TestNewWindowRefusesACommandTmuxWouldRefuse(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+// hq send types a slash command in (#173): literally, in parts small
+// enough that Claude Code takes none of them as a paste of its own.
+func TestTypeSendsTheTextLiterallyInSmallParts(t *testing.T) {
+	r := &recorder{}
+	text := "/" + strings.Repeat("zażółć ", 100)
+	if err := (Client{Run: r}).Type("%4", text); err != nil {
+		t.Fatal(err)
+	}
+	var typed strings.Builder
+	for _, call := range r.calls {
+		if len(call) != 7 || strings.Join(call[:6], " ") != "-u send-keys -t %4 -l --" {
+			t.Fatalf("call %q", call)
+		}
+		if n := len(call[6]); n == 0 || n > 200 {
+			t.Fatalf("a part of %d bytes", n)
+		}
+		typed.WriteString(call[6])
+	}
+	if typed.String() != text || len(r.calls) < 5 {
+		t.Fatalf("typed %q in %d parts", typed.String(), len(r.calls))
+	}
+}

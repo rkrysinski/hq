@@ -57,8 +57,10 @@ esac
 	testutil.FakeClaude(t)
 	t.Setenv("FAKE_CLAUDE_DELAY", "1s")
 	t.Setenv("HQ_TMUX_SOCKET", j.socket)
-	// The dashboard keeps its sort in the preferences file: not the user's.
+	// The dashboard keeps its sort in the preferences file, and the looks
+	// the journals and their counter: not the user's.
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	os.Unsetenv("TMUX")
 	j.repo = testutil.GitRepo(t, "app")
 	return j

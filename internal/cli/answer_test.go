@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -35,11 +36,67 @@ func askFakes(t *testing.T, fixture string) (*fakes, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	q.Since = since
 	f.questions["id-a"] = q
-	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: since, Last: q.Ask.Questions[0].Question, LastStop: "On it."}
+	f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: since, Last: q.Ask.Questions[0].Question, LastStop: "On it."}
 	f.details["id-a"] = state.Detail{Reply: "On it.", Ask: q.Ask}
 	return f, state.DialogID(since)
+}
+
+// hq answer reads the question dialog and what Claude got for it from the
+// agent's journal, as its hook reported them, never from the hook's own
+// files (#199): the dialog's report, whose answer is named by its cksum,
+// and once the dialog's tool ended the answers it carried.
+func TestHqAnswerReadsTheDialogAndItsAnswersFromTheJournal(t *testing.T) {
+	m := journaltest.NewMemory()
+	if _, err := journalQuestions(m, "a1"); err == nil {
+		t.Fatal("questions before any report")
+	}
+	if _, ok := journalAnswers(m, "a1"); ok {
+		t.Fatal("answers before any report")
+	}
+	report := stateFixture(t, "dialog-ask-several")
+	m.Leave("/w/app", "a1", "000000001.dialog.1", report, time.Unix(100, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	q, err := journalQuestions(m, "a1")
+	want, _ := state.ParseQuestions(report)
+	if err != nil || !reflect.DeepEqual(q, want) || q.Ask == nil {
+		t.Fatalf("questions %+v %v, want %+v", q, err, want)
+	}
+	if _, ok := journalAnswers(m, "a1"); ok {
+		t.Fatal("answers while the dialog is open")
+	}
+	m.Leave("/w/app", "a1", "000000002.answer.1", stateFixture(t, "answer-ask-several"), time.Unix(101, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := journalAnswers(m, "a1"); !ok || got["Which name?"] != "Gamma typed" {
+		t.Fatalf("answers %v %v", got, ok)
+	}
+	// A dialog whose tool reports no answers: none, not unknown.
+	m.Leave("/w/app", "a1", "000000003.dialog.1", report, time.Unix(102, 0))
+	m.Leave("/w/app", "a1", "000000004.answer.1", journaltest.Hook("main", map[string]any{"hook_event_name": "PostToolUse", "tool_name": state.AskTool}), time.Unix(102, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := journalAnswers(m, "a1"); !ok || got == nil || len(got) != 0 {
+		t.Fatalf("no answers: %v %v", got, ok)
+	}
+	// A permission prompt is no question dialog hq answers.
+	m.Leave("/w/app", "a1", "000000005.dialog.1", stateFixture(t, "dialog-bash"), time.Unix(102, 0))
+	if err := m.Ingest("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := journalQuestions(m, "a1"); err == nil {
+		t.Fatal("questions of a permission prompt")
+	}
+	if _, err := journalQuestions(m, "../a1"); err == nil {
+		t.Fatal("questions of an id hq did not issue")
+	}
+	if _, ok := journalAnswers(m, "../a1"); ok {
+		t.Fatal("answers of an id hq did not issue")
+	}
 }
 
 // declinedScreen is the agent's screen after its question dialog was
@@ -91,7 +148,7 @@ func (f *fakes) holding(reported map[string]string) {
 			got = reported
 		}
 		f.got["id-a"] = got
-		f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Last: "On it."}
+		f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now, Last: "On it."}
 	}
 }
 
@@ -124,13 +181,11 @@ func TestAnswerGivesEveryQuestionItsAnswer(t *testing.T) {
 	if !reflect.DeepEqual(f.got["id-a"], want) {
 		t.Fatalf("Claude got %v", f.got["id-a"])
 	}
-	// The state once it left the dialog, and the moment before the answer
-	// was left, for hq wait --since.
-	var v struct {
-		State     string    `json:"state"`
-		NextSince time.Time `json:"next_since"`
-	}
-	if err := json.Unmarshal([]byte(out), &v); err != nil || v.State != state.Working || !v.NextSince.Equal(lookedAt(time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC))) {
+	// The state once it left the dialog, and the agent's cursor from before
+	// the answer was left, for hq wait --since: what the agent does with
+	// it is numbered above it.
+	var v answerOutput
+	if err := json.Unmarshal([]byte(out), &v); err != nil || v.State != state.Working || v.NextSince != f.cursorBefore(t, "id-a", state.KindAnswer) {
 		t.Fatalf("%q: %+v %v", out, v, err)
 	}
 }
@@ -162,10 +217,13 @@ func TestAnswerNamesTheOpenDialog(t *testing.T) {
 			t.Errorf("%v: exit %d %q", tc.args, code, errOut)
 		}
 	}
-	// The dialog changed between the look and the read of its questions.
-	q := f.questions["id-a"]
-	q.Since = q.Since.Add(time.Second)
-	f.questions["id-a"] = q
+	// The dialog changed between the look and the read of its questions:
+	// the hook holds on another.
+	other, err := state.ParseQuestions(stateFixture(t, "dialog-ask-several"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.questions["id-a"] = other
 	if code, _, errOut := f.run("answer", "a", "--dialog", id, "2"); code != ExitUsage || !strings.Contains(errOut, "a's dialog changed meanwhile") {
 		t.Errorf("changed: exit %d %q", code, errOut)
 	}
@@ -226,37 +284,39 @@ func TestAnswerUsage(t *testing.T) {
 func TestAnswerRefusesWhatHqDoesNotAnswer(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
-		report state.Report
+		report journaltest.HookState
 		detail state.Detail
 		screen string
 		setup  func(f *fakes)
 		want   string
 	}{
-		{name: "permission prompt", report: state.Report{State: state.NeedsInput, Last: "Bash: make test"},
+		{name: "permission prompt", report: journaltest.HookState{State: state.NeedsInput, Last: "Bash: make test"},
 			detail: state.Detail{Ask: &state.Ask{Tool: "Bash", Command: "make test"}},
 			want:   "hq: a is at a permission prompt (Bash: make test); permission prompts are answered at the agent (hq go a)\n"},
-		{name: "MCP form", report: state.Report{State: state.NeedsInput, Last: "Which color should I use?"},
+		{name: "MCP form", report: journaltest.HookState{State: state.NeedsInput, Last: "Which color should I use?"},
 			detail: state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{{Name: "color", Type: "string"}}}},
 			want:   "hq: a is at an MCP server's form (elicit: Which color should I use?), which hq does not answer; answer it at the agent (hq go a)\n"},
 		// An agent of hq 0.6.3 or older reports a form by Claude's own
 		// notification, which says nothing of it (#100).
-		{name: "elicitation", report: state.Report{State: state.NeedsInput, Last: "Claude Code needs your input"},
+		{name: "elicitation", report: journaltest.HookState{State: state.NeedsInput, Last: "Claude Code needs your input"},
 			detail: state.Detail{Ask: &state.Ask{Message: "Claude Code needs your input"}},
 			want:   "hq: a is at a dialog hq does not answer (Claude Code needs your input), such as an MCP elicitation; answer it at the agent (hq go a)\n"},
-		{name: "subagent", report: state.Report{State: state.NeedsInput, Last: "Which colour?", SubagentDialog: true},
+		{name: "subagent", report: journaltest.HookState{State: state.NeedsInput, Last: "Which colour?", SubagentDialog: true},
 			detail: state.Detail{Ask: &state.Ask{Tool: "AskUserQuestion", Questions: []state.AskQuestion{{Question: "Which colour?"}}}},
 			want:   "hq: a's dialog is one of its subagents' (Which colour?), which hq does not answer; answer it at the agent (hq go a)\n"},
-		{name: "Claude's own list that scrolls", report: state.Report{State: state.Done, Last: "hi"},
+		{name: "Claude's own list that scrolls", report: journaltest.HookState{State: state.Done, Last: "hi"},
 			screen: "● hi\n" + strings.Repeat("▔", 40) + "\n   Select model\n   Switch between Claude models.\n\n   ❯ 1. Default (recommended)\n   ↓ 2. Opus 5.5\n      … +3 models\n",
 			want:   "hq: a is at a dialog of Claude's own whose list scrolls (Select model), which hq does not answer; answer it at the agent (hq go a)\n"},
-		{name: "working", report: state.Report{State: state.Working},
+		{name: "working", report: journaltest.HookState{State: state.Working},
 			want: "hq: a is at no dialog: it is working\n"},
-		{name: "question", report: state.Report{State: state.Question, Last: "Shall I?"},
+		{name: "question", report: journaltest.HookState{State: state.Question, Last: "Shall I?"},
 			want: "hq: a asks in its reply, not in a dialog: answer it with hq send a TEXT\n"},
-		{name: "ended", report: state.Report{State: state.NeedsInput}, setup: func(f *fakes) { f.tmux.windows[1].PaneDead = true },
+		{name: "ended", report: journaltest.HookState{State: state.NeedsInput}, setup: func(f *fakes) { f.tmux.windows[1].PaneDead = true },
 			want: "hq: a has ended: it is at no dialog\n"},
-		{name: "older hq", report: state.Report{State: state.NeedsInput, Last: "Which colour?"}, setup: func(f *fakes) { f.tmux.windows[1].Options["inbox"] = "2" },
-			want: "hq: a was started by an older hq and cannot be answered from hq; relaunch it with hq sandbox restart app, or kill it and start it again\n"},
+		// An outdated agent is refused before anything of its dialog is read
+		// (#194).
+		{name: "outdated", report: journaltest.HookState{State: state.NeedsInput, Last: "Which colour?"}, setup: func(f *fakes) { f.tmux.windows[1].Options[genOption] = "2" },
+			want: "hq: a was started by an older hq: kill it and start it again\n"},
 	} {
 		f, _ := askFakes(t, "dialog-ask")
 		tc.report.Since = f.now.Add(-time.Minute)
@@ -298,7 +358,7 @@ func TestAnswerNotTakenIsTakenBackAndRefused(t *testing.T) {
 
 	// Answered at the terminal first: the hook went with the dialog.
 	f, id = askFakes(t, "dialog-ask")
-	f.onSleep = func() { f.states["id-a"] = state.Report{State: state.Working, Since: f.now} }
+	f.onSleep = func() { f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now} }
 	if code, _, errOut := f.run("answer", "a", "--dialog", id, "1"); code != ExitUsage || errOut != "hq: a left the dialog before hq's answer reached it; nothing was answered from hq: it is working\n" {
 		t.Fatalf("answered first: exit %d %q", code, errOut)
 	}
@@ -327,7 +387,7 @@ func TestAnswerReportsTheAgentOnceItLeftTheDialog(t *testing.T) {
 			delete(f.answerLeft, "id-a")
 			f.got["id-a"] = map[string]string{"Which colour do you pick: red or blue?": "Red"}
 		case 2: // hq sees the agent leave the dialog only now
-			f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Last: "On it."}
+			f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now, Last: "On it."}
 		}
 	}
 	if code, out, errOut := f.run("answer", "a", "--dialog", id, "1"); code != 0 || out != "answered: a is working\n" {
@@ -451,12 +511,8 @@ func TestReadAndLsGiveTheDialogsID(t *testing.T) {
 			t.Errorf("%v:\n%s", cmd, out)
 		}
 	}
-	// Not answerable from hq: no command; no dialog: no id.
-	f.tmux.windows[1].Options["inbox"] = "2"
-	if _, out, _ := f.run("read", "a"); strings.Contains(out, "\nanswer ") || !strings.Contains(out, "asks      dialog "+id) {
-		t.Fatalf("older hq:\n%s", out)
-	}
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now}
+	// No dialog: no id.
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now}
 	for _, cmd := range [][]string{{"read", "a", "--json"}, {"ls", "--json"}} {
 		if _, out, _ := f.run(cmd...); strings.Contains(out, `"dialog"`) {
 			t.Errorf("%v at no dialog:\n%s", cmd, out)
@@ -509,7 +565,7 @@ type ownClaude struct {
 func ownDialogFakes(t *testing.T) (*fakes, *ownClaude, string) {
 	t.Helper()
 	f := sendFakes(state.Done)
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "hi"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "hi"}
 	c := &ownClaude{t: t, f: f, picked: -1}
 	f.tmux.screens["%4"] = c.screen()
 	f.tmux.onPress = func(pane, key string) {
@@ -605,19 +661,20 @@ func TestAnswerPicksAnOptionOfADialogOfClaudesOwnWithKeys(t *testing.T) {
 			t.Errorf("%+v: left %v, pasted %v", tc, f.answerLeft, f.tmux.pasted)
 		}
 	}
-	// --json: the state, and the moment before the first key, for hq wait.
+	// --json: the state, and the cursor from before the first key, for hq
+	// wait.
 	f, _, id := ownDialogFakes(t)
-	before := f.now
 	_, out, _ := f.run("answer", "a", "--dialog", id, "2", "--json")
 	var got answerOutput
-	if err := json.Unmarshal([]byte(out), &got); err != nil || got.State != state.Done || got.NextSince.After(before) || before.Sub(got.NextSince) > time.Second {
+	if err := json.Unmarshal([]byte(out), &got); err != nil || got.State != state.Done || got.NextSince != f.cursorBefore(t, "id-a", state.KindAnswer) {
 		t.Fatalf("json %q: %+v %v", out, got, err)
 	}
-	// An agent started by an older hq has no hooks hq needs for it.
+	// An outdated agent is refused, its dialog of Claude's own too, and
+	// nothing is pressed (#194).
 	f, c, id := ownDialogFakes(t)
-	f.tmux.windows[1].Options["inbox"] = "2"
-	if code, out, errOut := f.run("answer", "a", "--dialog", id, "2"); code != 0 || out != "answered: a is done\n" || c.picked != 1 {
-		t.Fatalf("older hq: exit %d %q %q", code, out, errOut)
+	f.tmux.windows[1].Options[genOption] = "2"
+	if code, out, errOut := f.run("answer", "a", "--dialog", id, "2"); code != ExitUsage || errOut != "hq: a was started by an older hq: kill it and start it again\n" || len(c.pressed) != 0 {
+		t.Fatalf("outdated: exit %d %q %q, pressed %v", code, out, errOut, c.pressed)
 	}
 }
 

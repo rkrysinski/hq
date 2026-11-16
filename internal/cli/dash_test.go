@@ -9,6 +9,7 @@ import (
 
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -208,19 +209,72 @@ func TestListProgramFailureIsReportedAfterCleanup(t *testing.T) {
 	}
 }
 
+func TestTheListLooksAtTheHqItWasStartedFrom(t *testing.T) {
+	f := newFakes()
+	f.env["TMUX_PANE"] = "%1"
+	var looks []bool
+	f.listRan = func(src dash.Source) error {
+		looks = append(looks, src.OtherGeneration())
+		f.disk.ino++
+		f.diskGeneration = version.Generation + 1
+		looks = append(looks, src.OtherGeneration())
+		return nil
+	}
+	f.run("__list")
+	if !reflect.DeepEqual(looks, []bool{false, true}) || f.generationAsks != 1 {
+		t.Fatalf("looks %v, %d asks", looks, f.generationAsks)
+	}
+}
+
+func TestTheListMakesWayForTheHqOnDiskInItsOwnPane(t *testing.T) {
+	f := newFakes()
+	f.env["TMUX_PANE"] = "%1"
+	f.listRan = func(src dash.Source) error {
+		src.Footer([]dash.Hint{{Key: "q", Label: "quit"}})
+		return dash.ErrUpdated
+	}
+	code, out, errOut := f.run("__list")
+	if code != ExitOK || out != "" || errOut != "" {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	// The hq on disk runs its list in this process: the pane, its mark,
+	// the footer and the terminal stay, as the docked session and the
+	// cursor do in tmux.
+	if want := [][]string{{f.exe, "__list"}}; !reflect.DeepEqual(f.replaced, want) {
+		t.Fatalf("ran %q in place of the list, want %q", f.replaced, want)
+	}
+	if f.tmux.listPID != 4242 || f.tmux.footer == "" || len(f.tmux.left) != 0 {
+		t.Fatalf("list pid %d footer %q left %q", f.tmux.listPID, f.tmux.footer, f.tmux.left)
+	}
+}
+
+func TestAListThatCannotMakeWaySaysWhyAndKeepsTheTerminal(t *testing.T) {
+	f := newFakes()
+	f.env["TMUX_PANE"] = "%1"
+	f.listRan = func(dash.Source) error { return dash.ErrUpdated }
+	f.replaceErr = errors.New("exec format error")
+	code, out, errOut := f.run("__list")
+	if code != ExitEnvironment || errOut != "hq: cannot start the hq on disk, of another generation ("+f.exe+"): exec format error\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if out != clearScreen+quitHint+"\n" || f.tmux.listPID != 0 || f.tmux.footer != "" || len(f.tmux.left) != 0 {
+		t.Fatalf("printed %q list pid %d footer %q left %q", out, f.tmux.listPID, f.tmux.footer, f.tmux.left)
+	}
+}
+
 func TestListIsHiddenFromHelp(t *testing.T) {
 	if _, out, _ := runCLI("help"); strings.Contains(out, "__list") {
 		t.Fatal("help shows __list")
 	}
 }
 
-func TestListSourceReadsTmuxStateFilesAndSbx(t *testing.T) {
+func TestListSourceReadsTmuxTheJournalsAndSbx(t *testing.T) {
 	f := newFakes()
 	f.tmux.windows = []tmux.Window{
 		{ID: "@0", Name: "hq", Options: map[string]string{}},
 		agentWindow("@4", "a", "/w/app", f.now, false),
 	}
-	f.states[f.tmux.windows[1].Options["id"]] = state.Report{State: state.Working, Since: f.now, Last: "Editing"}
+	f.states[f.tmux.windows[1].Options["id"]] = journaltest.HookState{State: state.Working, Since: f.now, Last: "Editing"}
 	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "running"}, {Name: "claude-lib", Status: "stopped"}}
 	src := listSource(f.deps(), "%1")
 
@@ -316,7 +370,7 @@ func TestListSourceKeepsTheCursorOnTheSession(t *testing.T) {
 func TestListSourceDocksByNameWithTheFrameTitle(t *testing.T) {
 	f := newFakes()
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, agentWindow("@4", "a", "/w/app", f.now, false)}
-	f.states["id-a"] = state.Report{State: state.Working, Branch: "feat/1"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Branch: "feat/1"}
 	src := listSource(f.deps(), "%1")
 	if err := src.Dock("a"); err != nil || f.tmux.docked != "@4" || f.tmux.dockTitle != "a · feat/1 · claude-x" {
 		t.Fatalf("%v docked %q %q", err, f.tmux.docked, f.tmux.dockTitle)
@@ -346,13 +400,13 @@ func TestListSourceKeepsTheFrameTitleCurrent(t *testing.T) {
 	w := agentWindow("@4", "a", "/w/app", f.now, false)
 	w.Docked, w.Pane, w.Title = true, "%7", "a · feat/1 · claude-x"
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, w, agentWindow("@5", "b", "/w/app", f.now, false)}
-	f.states["id-a"] = state.Report{State: state.Working, Branch: "feat/1"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Branch: "feat/1"}
 	src := listSource(f.deps(), "%1")
 	as, _ := src.Agents(agent.Sandboxes{})
 	if len(f.tmux.titles) != 0 || !as[0].Docked || as[1].Docked {
 		t.Fatalf("titles %v, agents %+v", f.tmux.titles, as)
 	}
-	f.states["id-a"] = state.Report{State: state.Working, Branch: "feat/2"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Branch: "feat/2"}
 	src.Agents(agent.Sandboxes{})
 	if want := []string{"%7=a · feat/2 · claude-x"}; !reflect.DeepEqual(f.tmux.titles, want) {
 		t.Fatalf("titles %v, want %v", f.tmux.titles, want)

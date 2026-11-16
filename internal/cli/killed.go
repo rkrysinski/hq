@@ -28,7 +28,7 @@ func runKilled(env Env, d deps, args []string) error {
 			continue
 		}
 		n++
-		// What the trace holds is stripped as a state file is: the client
+		// What the trace holds is stripped as a hook's report is: the client
 		// names itself (design §7.3).
 		fmt.Fprintf(env.Stdout, "%s  %s in %s (sandbox %s), by %s\n", k.At.In(d.now().Location()).Format("2006-01-02 15:04:05"), state.Clean(k.Name), state.Clean(filepath.Base(k.Repo)), state.Clean(k.Sandbox), state.Clean(killedBy(k)))
 	}

@@ -6,12 +6,17 @@
 #
 # It checks the prerequisites (spec §11), downloads the binary for this
 # platform over HTTPS from the release's public URLs, verifies it against the
-# release's SHA256SUMS and puts it in ~/.local/bin/hq. On macOS with iTerm2 it
-# also adds the iTerm2 profile `hq` (Option as Esc+, design §3.7), changing no
-# other profile. HQ_VERSION=vX.Y.Z installs that release instead of the
-# latest; HQ_RELEASES_URL reads the releases from another place that answers
-# as GitHub's release URLs do (tests, QA). Exit codes: 0 installed, 1 failed
-# download or checksum, 3 missing prerequisite.
+# release's SHA256SUMS and puts it in ~/.local/bin/hq. When an hq is there
+# already, it first asks it, as hq update does, whether it may be replaced by
+# the release, of the generation the release publishes (ADR 0020): one of
+# another generation, or of none, is refused while any agent that hq knows
+# exists. An hq from before generations cannot answer; it is asked for its
+# agents, and any agent refuses. On macOS with iTerm2 it also adds the iTerm2
+# profile `hq` (Option as Esc+, design §3.7), changing no other profile.
+# HQ_VERSION=vX.Y.Z installs that release instead of the latest;
+# HQ_RELEASES_URL reads the releases from another place that answers as
+# GitHub's release URLs do (tests, QA). Exit codes: 0 installed, 1 failed
+# download or checksum, or refused, 3 missing prerequisite.
 set -eu
 
 RELEASES=${HQ_RELEASES_URL:-https://github.com/rkrysinski/hq/releases}
@@ -77,13 +82,52 @@ for f in "$asset" SHA256SUMS; do
         fail 1 "could not download $f of $tag from $RELEASES"
 done
 
-want=$(awk -v f="$asset" '$2 == f || $2 == "*" f { print $1 }' "$tmp/SHA256SUMS")
-if command -v sha256sum >/dev/null 2>&1; then
-    got=$(sha256sum "$tmp/$asset" | cut -d' ' -f1)
-else
-    got=$(shasum -a 256 "$tmp/$asset" | cut -d' ' -f1)
+# verified says whether a downloaded file matches its line in SHA256SUMS.
+verified() {
+    want=$(awk -v f="$1" '$2 == f || $2 == "*" f { print $1 }' "$tmp/SHA256SUMS")
+    if command -v sha256sum >/dev/null 2>&1; then
+        got=$(sha256sum "$tmp/$1" | cut -d' ' -f1)
+    else
+        got=$(shasum -a 256 "$tmp/$1" | cut -d' ' -f1)
+    fi
+    [ -n "$want" ] && [ "$want" = "$got" ]
+}
+verified "$asset" || fail 1 "checksum mismatch for $asset; nothing was installed"
+
+# The release's generation, beside its checksums and covered by them; a
+# release without one (any from before generations) publishes none, and
+# its SHA256SUMS does not list one. One that lists it and could not be
+# downloaded is a release whose files are still on their way.
+gen=
+if curl -fsSL -o "$tmp/GENERATION" "$RELEASES/download/$tag/GENERATION" 2>/dev/null; then
+    verified GENERATION || fail 1 "checksum mismatch for GENERATION; nothing was installed"
+    gen=$(cat "$tmp/GENERATION")
+elif awk '$2 == "GENERATION" || $2 == "*GENERATION" { found = 1 } END { exit !found }' "$tmp/SHA256SUMS"; then
+    fail 1 "could not download GENERATION of $tag from $RELEASES, which SHA256SUMS lists; try again in a minute"
 fi
-[ -n "$want" ] && [ "$want" = "$got" ] || fail 1 "checksum mismatch for $asset; nothing was installed"
+
+# An hq installed already is asked first, as hq update asks itself (ADR
+# 0020). One that does not know its generation is from before generations:
+# its own list of agents decides, and any agent in it refuses. A first
+# install asks nothing.
+installed=$BIN_DIR/hq
+if [ -x "$installed" ]; then
+    if mine=$("$installed" __generation 2>/dev/null) && [ -n "$mine" ]; then
+        "$installed" __may-update "$tag" "$gen" 2>"$tmp/answer" >/dev/null ||
+            fail 1 "$(sed 's/^hq: //' "$tmp/answer")"
+    else
+        "$installed" ls --json 2>"$tmp/answer" >"$tmp/agents" ||
+            fail 1 "not updated to $tag: the installed hq, from before generations, could not list its agents: $(sed 's/^hq: //' "$tmp/answer")"
+        # Each agent is a row whose "name" line is followed by its "repo".
+        agents=$(awk '
+            /^ *"name": "/ { n = $0; sub(/^ *"name": "/, "", n); sub(/",?$/, "", n); next_is_repo = 1; next }
+            next_is_repo && /^ *"repo": "/ { names = names (names == "" ? "" : ", ") n }
+            { next_is_repo = 0 }
+            END { print names }' "$tmp/agents")
+        [ -z "$agents" ] ||
+            fail 1 "not updated to $tag: the installed hq is from before generations and agents exist; end them first with hq stop or hq kill NAME: $agents"
+    fi
+fi
 
 mkdir -p "$BIN_DIR"
 cp "$tmp/$asset" "$BIN_DIR/.hq.new"

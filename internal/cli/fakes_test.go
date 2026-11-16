@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,8 +13,11 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/dash"
 	"github.com/rkrysinski/hq/internal/gh"
+	"github.com/rkrysinski/hq/internal/journal"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform"
@@ -23,7 +27,13 @@ import (
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/update"
+	"github.com/rkrysinski/hq/internal/version"
 )
+
+// genOption is the home window's option that holds the agent's generation;
+// another value than generation makes it outdated.
+const genOption = agent.GenerationOption
 
 // fakeTmux is an in-memory tmux server.
 type fakeTmux struct {
@@ -43,6 +53,7 @@ type fakeTmux struct {
 	clients      []string // terminals of the clients attached to hq's session
 	shown        string   // window shown to them
 	windowsErr   error
+	windowsRead  int              // times Windows was called
 	killErr      map[string]error // fails KillWindow of that window
 
 	dash       tmux.Dash // the dashboard window, once made
@@ -65,7 +76,6 @@ type fakeTmux struct {
 	messages   []string             // shown on the status line
 	screens    map[string]string    // what panes show, by pane id
 	onScreens  func()               // called after each Screens, e.g. to move the screens on
-	onKeep     func(id, key string) // called as KeepFirst starts, e.g. to have another process store first
 	onSet      func(id, key string) // called after SetOption stored, e.g. to look as another process
 	screenErr  error
 	focused    int      // times the keys were put on the list
@@ -82,10 +92,16 @@ type fakeTmux struct {
 	// panes Enter was pressed in; pasteErr fails the paste.
 	pasted    []string
 	submitted []string
-	onSubmit  func()                 // called at each Submit: Claude takes the prompt
-	onPress   func(pane, key string) // called at each key Press presses
-	startErr  error                  // fails releasing a new window
-	pasteErr  error
+	// input is what reached the panes, in order: "type PANE TEXT" (Type),
+	// "paste PANE TEXT", "enter PANE" and "press PANE KEY"; typeErr fails
+	// Type.
+	input    []string
+	onSubmit func()                 // called at each Submit: Claude takes the prompt
+	onPaste  func()                 // called as each Paste starts
+	onPress  func(pane, key string) // called at each key Press presses
+	startErr error                  // fails releasing a new window
+	pasteErr error
+	typeErr  error
 }
 
 func (f *fakeTmux) LastScreen(pane string) (string, error) {
@@ -95,15 +111,28 @@ func (f *fakeTmux) LastScreen(pane string) (string, error) {
 func (f *fakeTmux) FocusList() error { f.focused++; return nil }
 
 func (f *fakeTmux) Paste(pane, text string) error {
+	if f.onPaste != nil {
+		f.onPaste()
+	}
 	if f.pasteErr != nil {
 		return f.pasteErr
 	}
 	f.pasted = append(f.pasted, pane+" "+text)
+	f.input = append(f.input, "paste "+pane+" "+text)
+	return nil
+}
+
+func (f *fakeTmux) Type(pane, text string) error {
+	if f.typeErr != nil {
+		return f.typeErr
+	}
+	f.input = append(f.input, "type "+pane+" "+text)
 	return nil
 }
 
 func (f *fakeTmux) Submit(pane string) error {
 	f.submitted = append(f.submitted, pane)
+	f.input = append(f.input, "enter "+pane)
 	if f.onSubmit != nil {
 		f.onSubmit()
 	}
@@ -111,6 +140,7 @@ func (f *fakeTmux) Submit(pane string) error {
 }
 
 func (f *fakeTmux) Press(pane, key string) error {
+	f.input = append(f.input, "press "+pane+" "+key)
 	if f.onPress != nil {
 		f.onPress(pane, key)
 	}
@@ -231,6 +261,7 @@ func (f *fakeTmux) Version() (string, error) {
 }
 
 func (f *fakeTmux) Windows() ([]tmux.Window, error) {
+	f.windowsRead++
 	if f.windowsErr != nil {
 		return nil, f.windowsErr
 	}
@@ -315,21 +346,6 @@ func (f *fakeTmux) Screens(panes []string) (map[string]string, error) {
 		f.onScreens()
 	}
 	return out, nil
-}
-
-func (f *fakeTmux) KeepFirst(id, key, prefix, value string) (string, error) {
-	if f.onKeep != nil {
-		f.onKeep(id, key)
-	}
-	for _, w := range f.windows {
-		if w.ID == id {
-			if !strings.HasPrefix(w.Options[key], prefix) {
-				w.Options[key] = value
-			}
-			return w.Options[key], nil
-		}
-	}
-	return "", errors.New("no window " + id)
 }
 
 func (f *fakeTmux) SetOption(id, key, value string) error {
@@ -512,11 +528,23 @@ func (r *fakeReleases) Download(tag, dir string, files ...string) error {
 	return nil
 }
 
+func (r *fakeReleases) Generation(tag string) (int, bool, error) {
+	data, ok := r.files[tag][update.GenerationFile]
+	if !ok {
+		return 0, false, nil
+	}
+	gen, err := update.ReadGeneration(r.files[tag][update.SumsFile], data)
+	return gen, err == nil, err
+}
+
 type fakes struct {
-	tmux  *fakeTmux
-	sbx   *fakeSbx
-	repos map[string]string // dir -> repository root
-	tops  map[string]string // dir -> top of its work tree
+	tmux *fakeTmux
+	sbx  *fakeSbx
+	// journal is the agents' journals, with the event files their hooks
+	// left (Leave).
+	journal *journaltest.Memory
+	repos   map[string]string // dir -> repository root
+	tops    map[string]string // dir -> top of its work tree
 	// edited are the directories VS Code opened on; editorErr fails it.
 	edited    []string
 	editorErr error
@@ -535,15 +563,35 @@ type fakes struct {
 	tty      bool   // stdin is a terminal
 	stdin    string // what the user types
 
-	states  map[string]state.Report // agent id -> its state file
-	details map[string]state.Detail // agent id -> what its state files hold in full
+	// states is what each agent id's hook reports last, and details what
+	// that holds in full (its reply, what its dialog asks): the fakes' hook
+	// leaves each new report in the agent's journal as Claude's payloads
+	// (hookedJournal); left is what it left last.
+	states  map[string]journaltest.HookState
+	details map[string]state.Detail
+	left    map[string]leftReport
+	// onAppend is called as hq appends events to agent id's journal, e.g.
+	// to have another process append first.
+	onAppend func(id string, events []state.Event)
+	// unreadable are the agent ids whose journal cannot be read.
+	unreadable map[string]bool
+	// onRead is called as hq reads agent id's journal, e.g. to have another
+	// process append to another agent's journal while a look reads this one.
+	onRead func(id string)
+	// onThrough is called as hq reads the journals' counter on its own.
+	onThrough func()
 	// inbox is what waits for each agent id: the text, with " (supervisor)"
 	// when the supervisor sent it and " (now)" when sent with --now; postErr
 	// and takeErr fail posting and taking.
 	inbox map[string][]string
+	// held is what hq holds for each agent id to type in later (#173), as
+	// inbox has it; holdErr fails holding.
+	held    map[string][]string
+	holdErr error
 	// oldest is when the oldest message waiting for each agent id was sent
 	// (none: unknown, as for messages put in inbox directly).
 	oldest  map[string]time.Time
+	posted  []state.Message // every message left, or put back, as given
 	postErr error
 	takeErr error
 	// announced are the agent ids whose hooks were told that the next
@@ -554,23 +602,37 @@ type fakes struct {
 	withdrawn   []string
 	promptLost  bool
 	announceErr error
-	removed     []string // "repo id" of each agent whose state files were removed
+	removed     []string // "repo id" of each agent whose files were removed
 	// records are hq's records of agents, by repository (hq restore).
 	records map[string][]state.Record
 
-	// questions is the question dialog each agent id's state file reports
+	// questions is the question dialog each agent id's journal holds
 	// open (none: no question dialog); answerLeft the answer waiting in
 	// its inbox for the hook, until the hook takes it or hq takes it back
 	// (withdrawals counts those); leaveErr fails leaving it; got is what
 	// Claude reports it got once the dialog's tool ended.
-	questions   map[string]state.Questions
-	answerLeft  map[string][]byte
-	leaveErr    error
-	withdrawals int
-	got         map[string]map[string]string
+	questions  map[string]state.Questions
+	answerLeft map[string][]byte
+	leaveErr   error
+	// onLeaveAnswer is called as an answer is left.
+	onLeaveAnswer func()
+	withdrawals   int
+	got           map[string]map[string]string
 
 	releases *fakeReleases
 	exe      string // the running hq, for hq update
+	// disk is the hq on disk at exe, as stampFile gives it (diskErr: it
+	// cannot be looked at); diskGeneration is the generation it answers
+	// (generationErr: it cannot be asked), generationAsks how often it was
+	// asked. replaced are the programs run in place of hq (replaceErr: that
+	// fails).
+	disk           fileStamp
+	diskErr        error
+	diskGeneration int
+	generationErr  error
+	generationAsks int
+	replaced       [][]string
+	replaceErr     error
 	// profiles counts the asks for the iTerm2 profile; profileWrote and
 	// profileErr are the answer.
 	profiles     int
@@ -622,15 +684,25 @@ type fakes struct {
 	serveErr       error
 }
 
+// fakeName is the name the fakes' inbox gives a message, by its text (as
+// the fakes' inbox keeps it, " (now)" included), which taking, holding and
+// putting it back keep.
+func fakeName(text string) string {
+	h := fnv.New32a()
+	h.Write([]byte(text))
+	return fmt.Sprintf("0000000000000000001-%08x", h.Sum32())
+}
+
 // supervisorMark ends, in the fakes' inbox, a message the supervisor sent.
 const supervisorMark = " (supervisor)"
 
 func newFakes() *fakes {
 	f := &fakes{
-		tmux:  &fakeTmux{version: "3.5a", argv: map[string][]string{}, started: map[string]bool{}, socket: "/tmp/tmux-501/default"},
-		env:   map[string]string{},
-		sbx:   &fakeSbx{},
-		repos: map[string]string{"/w/app": "/w/app", "/w/app/sub": "/w/app", "/w/app/.claude/worktrees/x": "/w/app", "/w/lib": "/w/lib"},
+		tmux:    &fakeTmux{version: "3.5a", argv: map[string][]string{}, started: map[string]bool{}, socket: "/tmp/tmux-501/default"},
+		env:     map[string]string{},
+		sbx:     &fakeSbx{},
+		journal: journaltest.NewMemory(),
+		repos:   map[string]string{"/w/app": "/w/app", "/w/app/sub": "/w/app", "/w/app/.claude/worktrees/x": "/w/app", "/w/lib": "/w/lib"},
 		tops: map[string]string{"/w/app": "/w/app", "/w/app/sub": "/w/app", "/w/app/.claude/worktrees/x": "/w/app/.claude/worktrees/x",
 			"/w/app/.claude/worktrees/x/sub": "/w/app/.claude/worktrees/x", "/w/lib": "/w/lib"},
 		dirs: map[string]bool{"/w/app": true, "/w/app/sub": true, "/w/lib": true, "/w/plain": true, "/w/app/.claude/worktrees/x": true},
@@ -638,8 +710,10 @@ func newFakes() *fakes {
 		now:  time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
 		tty:  true,
 
-		states:  map[string]state.Report{},
+		states:  map[string]journaltest.HookState{},
+		left:    map[string]leftReport{},
 		inbox:   map[string][]string{},
+		held:    map[string][]string{},
 		oldest:  map[string]time.Time{},
 		details: map[string]state.Detail{},
 
@@ -652,6 +726,9 @@ func newFakes() *fakes {
 
 		releases: &fakeReleases{files: map[string]map[string][]byte{}},
 		exe:      "/nonexistent/hq",
+
+		disk:           fileStamp{ino: 1, size: 100, modified: 1},
+		diskGeneration: version.Generation,
 	}
 	// The hook of the prompt typed in takes hq's word that it is the
 	// supervisor's.
@@ -700,9 +777,11 @@ func newFakes() *fakes {
 
 func (f *fakes) deps() deps {
 	return deps{
-		tmux:   f.tmux,
-		sbx:    f.sbx,
-		killer: kills.Kill{By: kills.ByCLI},
+		tmux:    f.tmux,
+		sbx:     f.sbx,
+		journal: hookedJournal{f.journal, f},
+		folds:   agent.NewFolds(),
+		killer:  kills.Kill{By: kills.ByCLI},
 		repoRoot: func(dir string) (string, bool) {
 			r, ok := f.repos[dir]
 			return r, ok
@@ -747,12 +826,7 @@ func (f *fakes) deps() deps {
 			f.rawOn++
 			return func() { f.rawOff++ }
 		},
-		notify:     "[notify %s]",
-		readDetail: func(_, id string) state.Detail { return f.details[id] },
-		readState: func(_, id string) (state.Report, bool) {
-			r, ok := f.states[id]
-			return r, ok
-		},
+		notify: "[notify %s]",
 		removeState: func(root, id string) error {
 			f.removed = append(f.removed, root+" "+id)
 			delete(f.states, id)
@@ -776,10 +850,11 @@ func (f *fakes) deps() deps {
 			return nil
 		},
 		pollSandboxes: f.sbx.List,
-		postMessage: func(_, id string, m state.Message, now bool) error {
+		postMessage: func(_, id string, m state.Message, now bool) (string, error) {
 			if f.postErr != nil {
-				return f.postErr
+				return "", f.postErr
 			}
+			f.posted = append(f.posted, m)
 			text := m.Text
 			if m.Supervisor {
 				text += supervisorMark
@@ -791,25 +866,50 @@ func (f *fakes) deps() deps {
 				f.oldest[id] = f.now
 			}
 			f.inbox[id] = append(f.inbox[id], text)
-			return nil
+			text, _ = strings.CutSuffix(text, supervisorMark)
+			return fakeName(text), nil
 		},
 		takeMessages: func(_, id string) ([]state.Message, error) {
 			if f.takeErr != nil {
 				return nil, f.takeErr
 			}
 			var msgs []state.Message
-			for _, text := range f.inbox[id] {
+			for _, text := range append(f.held[id], f.inbox[id]...) {
 				text, supervisor := strings.CutSuffix(text, supervisorMark)
-				msgs = append(msgs, state.Message{Text: text, Supervisor: supervisor})
+				msgs = append(msgs, state.Message{Text: text, Supervisor: supervisor, Name: fakeName(text)})
 			}
 			delete(f.inbox, id)
+			delete(f.held, id)
 			delete(f.oldest, id)
 			return msgs, nil
 		},
-		pending: func(_, id string) int { return len(f.inbox[id]) },
+		holdMessages: func(_, id string, msgs []state.Message) error {
+			if f.holdErr != nil {
+				return f.holdErr
+			}
+			if _, ok := f.oldest[id]; !ok {
+				f.oldest[id] = f.now
+			}
+			for _, m := range msgs {
+				text := m.Text
+				if m.Supervisor {
+					text += supervisorMark
+				}
+				f.held[id] = append(f.held[id], text)
+			}
+			return nil
+		},
+		pending: func(_, id string) int { return len(f.held[id]) + len(f.inbox[id]) },
+		held: func(_, id string) []string {
+			var names []string
+			for _, text := range f.held[id] {
+				names = append(names, fakeName(text))
+			}
+			return names
+		},
 		oldestMessage: func(_, id string) (time.Time, bool) {
 			at, ok := f.oldest[id]
-			return at, ok && len(f.inbox[id]) > 0
+			return at, ok && len(f.held[id])+len(f.inbox[id]) > 0
 		},
 		announce: func(_, id string) error {
 			if f.announceErr != nil {
@@ -825,7 +925,7 @@ func (f *fakes) deps() deps {
 			return nil
 		},
 
-		questions: func(_, id string) (state.Questions, error) {
+		questions: func(_ journal.Store, id string) (state.Questions, error) {
 			q, ok := f.questions[id]
 			if !ok {
 				return q, errors.New("no question dialog")
@@ -833,6 +933,9 @@ func (f *fakes) deps() deps {
 			return q, nil
 		},
 		leaveAnswer: func(_, id string, _ state.Questions, decision []byte) error {
+			if f.onLeaveAnswer != nil {
+				f.onLeaveAnswer()
+			}
 			if f.leaveErr != nil {
 				return f.leaveErr
 			}
@@ -848,7 +951,7 @@ func (f *fakes) deps() deps {
 			f.withdrawals++
 			return true
 		},
-		answersGot: func(_, id string) (map[string]string, bool) {
+		answersGot: func(_ journal.Store, id string) (map[string]string, bool) {
 			g, ok := f.got[id]
 			return g, ok
 		},
@@ -856,6 +959,23 @@ func (f *fakes) deps() deps {
 		releases:   f.releases,
 		asset:      "hq-testos-testarch",
 		executable: func() (string, error) { return f.exe, nil },
+		stampFile: func(path string) (fileStamp, error) {
+			if path != f.exe {
+				return fileStamp{}, errors.New("no file " + path)
+			}
+			return f.disk, f.diskErr
+		},
+		askGeneration: func(exe string) (int, error) {
+			if exe != f.exe {
+				return 0, errors.New("no hq at " + exe)
+			}
+			f.generationAsks++
+			return f.diskGeneration, f.generationErr
+		},
+		replaceProcess: func(argv []string) error {
+			f.replaced = append(f.replaced, argv)
+			return f.replaceErr
+		},
 		itermProfile: func() (bool, error) {
 			f.profiles++
 			return f.profileWrote, f.profileErr

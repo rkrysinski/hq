@@ -1,0 +1,254 @@
+{
+  "about": "A session that reports its end ended from its report, whatever ends it after; one that never gave a message says so.",
+  "steps": [
+    {
+      "hq": "launch",
+      "events": [
+        {
+          "n": 1,
+          "source": "hq",
+          "kind": "Launched",
+          "time": "2026-01-01T00:00:01Z",
+          "facts": {
+            "start": "new"
+          }
+        }
+      ],
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "end",
+      "payload": "session-end",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "SessionEnd",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000002.end.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "reason": "prompt_input_exit",
+            "hook": "end"
+          }
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "[session ended]"
+      }
+    },
+    {
+      "pane": "dead",
+      "events": [
+        {
+          "n": 4,
+          "source": "tmux",
+          "kind": "PaneDied",
+          "time": "2026-01-01T00:00:04Z",
+          "basis": 3,
+          "facts": {
+            "from": "2026-01-01T00:00:04Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "[session ended]"
+      }
+    },
+    {
+      "sbx": "stopped",
+      "events": [
+        {
+          "n": 5,
+          "source": "sbx",
+          "kind": "NotRunning",
+          "time": "2026-01-01T00:00:05Z",
+          "basis": 3,
+          "facts": {
+            "asked": "2026-01-01T00:00:05Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:03Z",
+        "last": "[session ended]"
+      }
+    },
+    {
+      "hq": "relaunch",
+      "events": [
+        {
+          "n": 6,
+          "source": "hq",
+          "kind": "Relaunched",
+          "time": "2026-01-01T00:00:06Z",
+          "basis": 3,
+          "facts": {}
+        }
+      ],
+      "look": {
+        "state": "starting",
+        "since": "2026-01-01T00:00:06Z"
+      }
+    },
+    {
+      "hook": "start",
+      "payload": "session-start",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000003.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:07Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "inline": {
+        "session_id": "s1",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": "Say hi."
+      },
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000004.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "s1",
+            "prompt": "Say hi.",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:08Z"
+      }
+    },
+    {
+      "hook": "stop",
+      "payload": "stop-done",
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "Stop",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000005.stop.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "turn": "0000001b-0000-4000-8000-00000000001b",
+            "hook": "stop"
+          }
+        }
+      ],
+      "reply": {
+        "n": 9,
+        "text": "Hi. The tests pass\nand PR #58 is open."
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "hook": "end",
+      "payload": "session-end",
+      "events": [
+        {
+          "n": 10,
+          "source": "hook",
+          "kind": "SessionEnd",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000006.end.1",
+          "facts": {
+            "branch": "main",
+            "session": "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+            "cwd": "/w/app/.claude/worktrees/feat-42",
+            "reason": "prompt_input_exit",
+            "hook": "end"
+          }
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    },
+    {
+      "pane": "dead",
+      "events": [
+        {
+          "n": 11,
+          "source": "tmux",
+          "kind": "PaneDied",
+          "time": "2026-01-01T00:00:11Z",
+          "basis": 10,
+          "facts": {
+            "from": "2026-01-01T00:00:11Z"
+          }
+        }
+      ],
+      "look": {
+        "state": "ended",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "Hi. The tests pass and PR #58 is open."
+      }
+    }
+  ]
+}
