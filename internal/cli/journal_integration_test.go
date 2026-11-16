@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -187,6 +188,9 @@ func TestTheJournalHoldsWhatHqDidAndSawBesideTheHooksReports(t *testing.T) {
 	}
 }
 
+// stateAge is the age hq read gives beside an agent's state.
+var stateAge = regexp.MustCompile(`(?m)^(state +.*) [0-9]+[smhd]$`)
+
 // An agent started by this hq leaves no state file and no copy of its
 // latest turn end beside the repository, and its home window carries none
 // of the records the old look kept there; nothing hq shows comes from the
@@ -212,7 +216,9 @@ func TestTheHooksWorkingFilesAndTheHomeWindowsHoldNothingHqReads(t *testing.T) {
 			if code != 0 {
 				t.Fatalf("read %s: exit %d %s", name, code, errOut)
 			}
-			out = append(out, read)
+			// The state's age moves on between the two reads; its
+			// moment is in the rows above (#191).
+			out = append(out, stateAge.ReplaceAllString(read, "$1"))
 		}
 		return strings.Join(out, "\n")
 	}
