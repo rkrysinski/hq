@@ -456,3 +456,30 @@ func TestWaitWithNoTimeoutWaitsPastTheDefault(t *testing.T) {
 		t.Fatalf("%q", out)
 	}
 }
+
+func TestSendWaitStallsWhenTheBoundHasHeldForExactly5s(t *testing.T) {
+	// The agent works when the message is left (no wait for the box), and
+	// ends its turn without taking it, its box holding the user's typing;
+	// from that look on, every look is 250 ms of the fakes' clock after the
+	// last, so the condition holds for exactly the bound at one of them.
+	f := sendFakes(state.Done)
+	turnFor(f, 1000, "")
+	var atPrompt time.Time
+	n := 0
+	f.onSleep = func() {
+		if n++; n == 4 {
+			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: earlier"}
+			f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ typing\n", 1)
+			atPrompt = f.now
+		}
+	}
+	code, _, errOut := f.run("send", "--wait", "a", "hi")
+	if code != ExitStalled || !strings.Contains(errOut, "it still waits in a's inbox") {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	// At exactly 5 s the bound has passed: the stall comes at that look,
+	// not the one after it.
+	if held := f.now.Sub(atPrompt); held != stallBound {
+		t.Fatalf("stalled after %v at its prompt, want %v", held, stallBound)
+	}
+}
