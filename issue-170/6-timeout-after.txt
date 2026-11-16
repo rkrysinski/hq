@@ -1,0 +1,18 @@
+$ hq send a "hi" --wait --timeout 2; echo "exit $?"
+queued: a is working, delivered when it stops
+nothing yet
+next: hq wait a --since c25
+exit 0
+$ hq wait a --since c25 --timeout 5; echo "exit $?"
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   4s   Answered: Message from the user (hq send): hi
+next: hq wait a --since c27
+exit 0
+$ hq wait a --since c27 --timeout 2; echo "exit $?"
+nothing yet
+next: hq wait a --since c27
+exit 0
+$ hq send a "hi" --timeout 5; echo "exit $?"
+hq: --timeout goes with --wait (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])
+exit 1
+$

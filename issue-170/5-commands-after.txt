@@ -1,0 +1,16 @@
+$ hq send a "/effort low" --wait; echo "exit $?"
+delivered: typed into a as its next prompt
+NAME  REPO  BRANCH  STATE        AGE  LAST
+a     repo  main    needs input  0s   Change effort level?
+next: hq wait a --since c21
+exit 0
+$ hq answer a --dialog 1e867a 1
+answered: a is done
+$ hq send a "/effort medium" --wait; echo "exit $?"
+delivered: typed into a as its next prompt
+no turn: the slash command left a's prompt box and started no turn
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   30s  Done: next
+next: hq wait a --since c24
+exit 0
+$

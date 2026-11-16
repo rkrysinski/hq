@@ -1,0 +1,8 @@
+$ sh ../mcp-in.sh | hq mcp | grep "\"id\":2" | sed "s/\\\\n/\n/g" | grep -E "delivery|outcome|state|last|next_since|isError"
+  \"delivery\": \"delivered: typed into a as its next prompt\",
+  \"outcome\": \"turn_ended\",
+      \"state\": \"done\",
+      \"state_seq\": 41,
+      \"last\": \"Done: summarise via the supervisor\",
+  \"next_since\": \"c41\"
+$

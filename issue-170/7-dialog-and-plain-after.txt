@@ -1,0 +1,14 @@
+$ hq send a "then commit" --wait; echo "exit $?"
+queued: a needs input, delivered once its dialog is closed, when it stops
+not taken: a needs input before it took the message, which still waits for it
+NAME  REPO  BRANCH  STATE        AGE  LAST
+a     repo  main    needs input  4s   Which colour do you pick?
+next: hq wait a --since c29
+exit 0
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   5s   Answered: Message from the user (hq send): then commit
+$ hq send a "plain send, no wait"; echo "exit $?"
+delivered: typed into a as its next prompt
+exit 0
+$

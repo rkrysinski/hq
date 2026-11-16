@@ -1,0 +1,13 @@
+$ hq wait a --since c10 --timeout 2; echo "exit $?"
+nothing yet
+next: hq wait a --since c10
+exit 0
+$ hq send a "check the logs" --wait; echo "exit $?"
+queued: a is working, delivered when it stops
+# (the agent is still working: the call waits; now "go on" is typed at the agent)
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   Answered: Message from the user (hq send): check the logs
+next: hq wait a --since c13
+exit 0
+$ # (the agent is still working: the call waits; now "go on" is typed at the agent)
+$

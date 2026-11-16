@@ -1,0 +1,4 @@
+$ hqb send a "summarise the diff" --wait; echo "exit $?"
+hq: unknown option '--wait' (usage: hq send NAME TEXT [--now] [--json])
+exit 1
+$

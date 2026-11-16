@@ -1,0 +1,7 @@
+$ hq send a "unsent work" --wait; echo "exit $?"
+delivered: typed into a as its next prompt
+hq: stalled: a did not take the message: it is typed into a's prompt box and not sent; see hq read a before sending again
+exit 4
+$ hq ls --json | grep pending
+      "pending": 0,
+$

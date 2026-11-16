@@ -1,0 +1,33 @@
+$ hq send a "summarise the diff" --wait; echo "exit $?"
+delivered: typed into a as its next prompt
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   Done: summarise the diff
+next: hq wait a --since c7
+exit 0
+$ hq send a "summarise it again" --wait --json; echo "exit $?"
+{
+  "delivery": "delivered: typed into a as its next prompt",
+  "outcome": "turn_ended",
+  "agents": [
+    {
+      "name": "a",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-720010472/repo",
+      "branch": "main",
+      "state": "done",
+      "state_seq": 10,
+      "completion_seq": 10,
+      "since": "2026-11-16T07:20:43.647958075Z",
+      "age_seconds": 0,
+      "last": "Done: summarise it again",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c10"
+}
+exit 0
+$

@@ -1,0 +1,6 @@
+❯ sent
+● Done: sent | Message from the user (hq send): ride along
+────────────────────────────────────────
+❯
+────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)

@@ -1,0 +1,10 @@
+$ hq send a "ride along" --wait; echo "exit $?"
+queued: a has something in its prompt box, delivered with its next prompt
+hq: stalled: a did not take the message: it still waits in a's inbox, and nothing was typed in; see hq read a before sending again
+exit 4
+$ hq ls --json | grep pending
+      "pending": 1,
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   4s   Done: sent | Message from the user (hq send): ride along
+$
