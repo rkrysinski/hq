@@ -11,6 +11,7 @@ import (
 
 	"github.com/rkrysinski/hq/internal/dialog"
 	"github.com/rkrysinski/hq/internal/gh"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
@@ -279,7 +280,7 @@ func TestTheKillDialogEndsTheAgentAsHqKillDoes(t *testing.T) {
 	if !ok || !strings.Contains(ansi.Strip(m.View()), "Kill a (app)?") {
 		t.Fatalf("dialog %T:\n%s", f.dialog, ansi.Strip(m.View()))
 	}
-	f.states["id-a"] = state.Report{State: state.Working, Branch: "feat/1"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Branch: "feat/1"}
 	f.run("__kill-dialog", "a")
 	if m = f.dialog.(dialog.Confirm); !strings.Contains(ansi.Strip(m.View()), "Kill a (feat/1)?") {
 		t.Fatalf("dialog:\n%s", ansi.Strip(m.View()))

@@ -19,8 +19,8 @@ import (
 // and reads the hook's state off it (reading). Then it reads what hq saw
 // and did (seen.go): the screen, tmux, sbx and hq itself, as the look
 // reads them beside the hook's report. After every event of the fixture
-// journals in testdata/journals it gives what the old look gave for the
-// same payloads, screens, pane and sbx answer.
+// journals in testdata/journals it gives what the journal holds, which the
+// look wrote when the journal was last written: a golden of the reducer.
 
 // Ref is an event of the journal as the reducer's result refers to it: its
 // number, from the one count of the state directory, and its time.

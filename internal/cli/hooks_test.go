@@ -126,7 +126,7 @@ func mustRun(t *testing.T, f *fakes, args ...string) string {
 
 // leftReport is a report the fakes' hook left for an agent.
 type leftReport struct {
-	report state.Report
+	report journaltest.HookState
 	detail state.Detail
 	ok     bool
 }

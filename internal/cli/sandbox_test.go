@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
@@ -49,7 +50,7 @@ func TestSandboxRestartRelaunchesItsAgentsInTheirOwnPanes(t *testing.T) {
 	collect := func() {
 		for _, w := range f.tmux.windows {
 			if id := w.Options["id"]; id != "" && f.states[id].State == "" {
-				f.states[id] = state.Report{State: state.Done, Since: f.now}
+				f.states[id] = journaltest.HookState{State: state.Done, Since: f.now}
 			}
 		}
 		var s []string
@@ -64,8 +65,8 @@ func TestSandboxRestartRelaunchesItsAgentsInTheirOwnPanes(t *testing.T) {
 	// a reported with its Claude session and resumes it; b's state file
 	// cannot smuggle an option in, so b starts fresh.
 	const session = "00000003-0000-4000-8000-000000000003"
-	f.states["id-a"] = state.Report{State: state.Done, SessionID: session}
-	f.states["id-b"] = state.Report{State: state.Done, SessionID: "--dangerously-x"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, SessionID: session}
+	f.states["id-b"] = journaltest.HookState{State: state.Done, SessionID: "--dangerously-x"}
 	f.tmux.windows[2].Options["new"] = "1"
 	code, out, errOut := f.run("sandbox", "restart", "app", "-y")
 	if want := "a=ended b=ended c=done|a=ended b=ended c=done|a=ended b=ended c=done"; strings.Join(during, "|") != want {
@@ -111,7 +112,7 @@ func TestSandboxRestartRelaunchesItsAgentsInTheirOwnPanes(t *testing.T) {
 
 func TestARelaunchedAgentKeepsItsBranchAndLastMessageUntilItReports(t *testing.T) {
 	f := sandboxFakes()
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened", Branch: "feat/42"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened", Branch: "feat/42"}
 	if code, _, errOut := f.run("sandbox", "restart", "app", "-y"); code != 0 {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
@@ -120,7 +121,7 @@ func TestARelaunchedAgentKeepsItsBranchAndLastMessageUntilItReports(t *testing.T
 		t.Fatalf("before its first report:\n%s", out)
 	}
 	f.now = f.now.Add(3 * time.Second)
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second), Branch: "feat/42"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Second), Branch: "feat/42"}
 	// Its last message is its latest turn end's, until the next.
 	if _, out, _ = f.run("ls"); !strings.Contains(out, "a     app   feat/42  working   1s   PR #58 opened\n") {
 		t.Fatalf("after it reported:\n%s", out)
@@ -298,7 +299,7 @@ func TestSandboxErrors(t *testing.T) {
 
 func TestARelaunchedAgentsEndCountsFromItsPanesDeathNotFromTheRestart(t *testing.T) {
 	f := sandboxFakes()
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "hi"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "hi"}
 	// The list looks all through the restart, and appends the ends it
 	// sees (#104).
 	d := f.deps()
@@ -315,7 +316,7 @@ func TestARelaunchedAgentsEndCountsFromItsPanesDeathNotFromTheRestart(t *testing
 	}
 	// b never reports again; a does. Both panes die as the sandbox stops.
 	f.now = f.now.Add(time.Minute)
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Last: "hi"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now, Last: "hi"}
 	f.now = f.now.Add(time.Minute)
 	for i := 1; i < 3; i++ {
 		f.tmux.windows[i].PaneDead, f.tmux.windows[i].DeadAt = true, f.now
@@ -400,7 +401,7 @@ func TestSandboxRestartAllSetupsRestartsEverySandboxOfTheRepository(t *testing.T
 	for _, repo := range []string{"/w/app", "app"} {
 		f := localSandboxFakes()
 		const session = "00000004-0000-4000-8000-000000000004"
-		f.states["id-d"] = state.Report{State: state.Done, SessionID: session}
+		f.states["id-d"] = journaltest.HookState{State: state.Done, SessionID: session}
 		code, out, _ := f.run("sandbox", "restart", repo, "--all-setups")
 		if code != 0 || len(f.sbx.calls) != 0 || out != "Restart the sandboxes claude-x, hq-local-app? This ends and relaunches 3 agents (a, b, d). [y/N] " {
 			t.Fatalf("%s declined: exit %d %q calls %v", repo, code, out, f.sbx.calls)

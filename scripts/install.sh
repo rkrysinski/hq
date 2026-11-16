@@ -95,11 +95,15 @@ verified() {
 verified "$asset" || fail 1 "checksum mismatch for $asset; nothing was installed"
 
 # The release's generation, beside its checksums and covered by them; a
-# release without one (any from before generations) publishes none.
+# release without one (any from before generations) publishes none, and
+# its SHA256SUMS does not list one. One that lists it and could not be
+# downloaded is a release whose files are still on their way.
 gen=
 if curl -fsSL -o "$tmp/GENERATION" "$RELEASES/download/$tag/GENERATION" 2>/dev/null; then
     verified GENERATION || fail 1 "checksum mismatch for GENERATION; nothing was installed"
     gen=$(cat "$tmp/GENERATION")
+elif awk '$2 == "GENERATION" || $2 == "*GENERATION" { found = 1 } END { exit !found }' "$tmp/SHA256SUMS"; then
+    fail 1 "could not download GENERATION of $tag from $RELEASES, which SHA256SUMS lists; try again in a minute"
 fi
 
 # An hq installed already is asked first, as hq update asks itself (ADR

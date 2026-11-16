@@ -61,10 +61,13 @@ func TestKillAndStopRemoveTheJournal(t *testing.T) {
 	if code, _, _ := f.run("kill", "a", "-y"); code != 0 {
 		t.Fatalf("exit %d", code)
 	}
-	if got := strings.Join(f.journal.Agents(), " "); got != ids["b"]+" "+ids["gone"] || len(f.journal.Left("/w/app", ids["a"])) != 0 {
-		t.Fatalf("journals %s, left %v", got, f.journal.Left("/w/app", ids["a"]))
+	if kept, _ := f.journal.IDs(); strings.Join(kept, " ") != ids["b"]+" "+ids["gone"] || len(f.journal.Left("/w/app", ids["a"])) != 0 {
+		t.Fatalf("journals %v, left %v", kept, f.journal.Left("/w/app", ids["a"]))
 	}
-	if code, _, _ := f.run("stop", "-y"); code != 0 || len(f.journal.Agents()) != 0 {
-		t.Fatalf("exit %d, journals %v", code, f.journal.Agents())
+	if code, _, _ := f.run("stop", "-y"); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if left, _ := f.journal.IDs(); len(left) != 0 {
+		t.Fatalf("journals %v", left)
 	}
 }

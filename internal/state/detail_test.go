@@ -1,54 +1,37 @@
 package state
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 )
 
-func TestParseDetailNeedsAnEvent(t *testing.T) {
-	// Before the first event, or with a broken file, there is nothing to read.
-	for _, latest := range [][]byte{nil, []byte("branch main\nnot json")} {
-		if d := ParseDetail(latest, fixture(t, "stop-done")); d.Reply != "" || d.Ask != nil {
-			t.Errorf("%q: %+v", latest, d)
+func TestParseAskNeedsAnEventThatAsks(t *testing.T) {
+	// Before the first event, with a broken file, or for an event that asks
+	// nothing, there is nothing to read.
+	for _, data := range [][]byte{nil, []byte("branch main\nnot json"), fixture(t, "stop-done"), fixture(t, "prompt")} {
+		if ask := parseAsk(data); ask != nil {
+			t.Errorf("%q: %+v", data, ask)
 		}
 	}
 }
 
-func TestParseDetailGivesTheWholeLastReply(t *testing.T) {
-	stop, _ := json.Marshal(map[string]string{"hook_event_name": "Stop", "session_id": "s",
-		"last_assistant_message": "\n\nDone:\n\n- migration\t\x1b[31mred\x1b[0m  \r\n- API\n\nShall I open the PR?\n"})
-	want := "Done:\n\n- migration    red\n- API\n\nShall I open the PR?"
-	for _, tc := range []struct{ name, latest, lastStop []byte }{
-		{[]byte("the latest Stop"), stop, stop},
-		{[]byte("a Stop before the prompt"), fixture(t, "prompt"), stop},
-	} {
-		if d := ParseDetail(tc.latest, tc.lastStop); d.Reply != want {
-			t.Errorf("%s: %q", tc.name, d.Reply)
-		}
-	}
-	if d := ParseDetail(fixture(t, "prompt"), nil); d.Reply != "" || d.Ask != nil {
-		t.Errorf("no reply yet: %+v", d)
-	}
-}
-
-func TestParseDetailTellsWhatAnOpenDialogAsks(t *testing.T) {
-	ask := ParseDetail(fixture(t, "dialog-ask"), fixture(t, "stop-done")).Ask
+func TestParseAskTellsWhatAnOpenDialogAsks(t *testing.T) {
+	ask := parseAsk(fixture(t, "dialog-ask"))
 	want := &Ask{Tool: "AskUserQuestion", Questions: []AskQuestion{{Header: "Colour", Question: "Which colour do you pick: red or blue?",
 		Options: []AskOption{{Label: "Red", Description: "Pick red."}, {Label: "Blue", Description: "Pick blue."}}}}}
 	if !reflect.DeepEqual(ask, want) {
 		t.Errorf("question dialog: %+v", ask)
 	}
-	ask = ParseDetail(fixture(t, "dialog-bash"), nil).Ask
+	ask = parseAsk(fixture(t, "dialog-bash"))
 	if !reflect.DeepEqual(ask, &Ask{Tool: "Bash", Description: "Create empty probe file in /tmp", Command: "touch /tmp/hq-probe-x"}) {
 		t.Errorf("permission prompt: %+v", ask)
 	}
-	ask = ParseDetail(fixture(t, "notification"), nil).Ask
+	ask = parseAsk(fixture(t, "notification"))
 	if !reflect.DeepEqual(ask, &Ask{Message: "Claude needs your permission"}) {
 		t.Errorf("notification: %+v", ask)
 	}
 	for _, latest := range []string{"prompt", "stop-question", "answer-ask", "session-end"} {
-		if ask := ParseDetail(fixture(t, latest), nil).Ask; ask != nil {
+		if ask := parseAsk(fixture(t, latest)); ask != nil {
 			t.Errorf("%s asks %+v", latest, ask)
 		}
 	}
@@ -57,23 +40,23 @@ func TestParseDetailTellsWhatAnOpenDialogAsks(t *testing.T) {
 // An MCP elicitation asks for a form: the server, the message and each
 // field in the form's order, or for a URL-mode one, the page it sends the
 // user to (#100).
-func TestParseDetailTellsWhatAnElicitationAsks(t *testing.T) {
-	ask := ParseDetail(fixture(t, "elicitation"), fixture(t, "stop-done")).Ask
+func TestParseAskTellsWhatAnElicitationAsks(t *testing.T) {
+	ask := parseAsk(fixture(t, "elicitation"))
 	want := &Ask{Server: "elicit", Message: "Which color should I use?", Fields: []AskField{
 		{Name: "color", Title: "Color", Description: "Pick one", Type: "string", Required: true, Options: []AskFieldOption{{Value: "red"}, {Value: "blue"}}},
 	}}
 	if !reflect.DeepEqual(ask, want) {
 		t.Errorf("form: %+v", ask)
 	}
-	if ask := ParseDetail(fixture(t, "elicitation-subagent"), nil).Ask; !reflect.DeepEqual(ask, want) {
+	if ask := parseAsk(fixture(t, "elicitation-subagent")); !reflect.DeepEqual(ask, want) {
 		t.Errorf("a subagent's form: %+v", ask)
 	}
-	ask = ParseDetail(fixture(t, "elicitation-url"), nil).Ask
+	ask = parseAsk(fixture(t, "elicitation-url"))
 	if !reflect.DeepEqual(ask, &Ask{Server: "elicit", Message: "Sign in to the example service.", URL: "https://example.com/sign-in?session=42"}) {
 		t.Errorf("URL mode: %+v", ask)
 	}
 	for _, latest := range []string{"elicitation-result-accept", "elicitation-result-decline", "elicitation-result-cancel", "elicitation-result-url-accept"} {
-		if ask := ParseDetail(fixture(t, latest), nil).Ask; ask != nil {
+		if ask := parseAsk(fixture(t, latest)); ask != nil {
 			t.Errorf("%s asks %+v", latest, ask)
 		}
 	}
@@ -86,7 +69,7 @@ func TestParseDetailTellsWhatAnElicitationAsks(t *testing.T) {
 // it cannot read at all leaves the message.
 func TestAnElicitationsFieldsAreReadOffItsSchema(t *testing.T) {
 	elicit := func(schema string) *Ask {
-		return ParseDetail([]byte(`{"hook_event_name":"Elicitation","mcp_server_name":"db\u001b[31m","message":"Set up\nthe database","mode":"form","requested_schema":`+schema+`}`), nil).Ask
+		return parseAsk([]byte(`{"hook_event_name":"Elicitation","mcp_server_name":"db\u001b[31m","message":"Set up\nthe database","mode":"form","requested_schema":` + schema + `}`))
 	}
 	ask := elicit(`{"type":"object","properties":{
 		"name":{"type":"string","title":"Name","minLength":1,"format":"email"},

@@ -17,6 +17,9 @@ import (
 // while the agent works, is starting or is at a dialog.
 const stallBound = 5 * time.Second
 
+// stallText is stallBound as the tools' texts give it.
+var stallText = fmt.Sprintf("%d seconds", int(stallBound.Seconds()))
+
 // The ways a hq send --wait ends but a stall, as --json names them (#170).
 const (
 	// The agent stopped after taking the message: the end of the turn
@@ -97,16 +100,14 @@ func namesIt(named []string, name string) bool {
 // itself for, unless the agent needs the user or has ended (a slash command
 // that opened a dialog of Claude Code's own). An agent with no number
 // (ended with a journal hq can no longer read) is returned as hq wait's
-// gone returns it.
+// gone returns it (returnable).
 func settled(a agent.Agent, t taking, through int64) (string, bool) {
-	if !slices.Contains(waitStates, a.State) {
+	seq, numbered, ok := returnable(a, through)
+	if !ok {
 		return "", false
 	}
-	seq, numbered := a.StateSeq()
 	stopped := a.State == state.NeedsInput || a.State == state.Ended
 	switch {
-	case !numbered && a.State != state.Ended, numbered && seq > through:
-		return "", false
 	case !t.taken:
 		return endNotTaken, stopped
 	case !numbered:
@@ -137,9 +138,9 @@ type stallClock struct {
 // agent at its prompt, not taken.
 const keyWaiting = "waiting"
 
-// held is how long, at now, the condition key has held: since origin when
+// lasted is how long, at now, the condition key has held: since origin when
 // it is new, since now after a pause; 0 for no condition.
-func (c *stallClock) held(key string, origin, now time.Time) time.Duration {
+func (c *stallClock) lasted(key string, origin, now time.Time) time.Duration {
 	switch {
 	case key == "":
 		c.key, c.paused = "", true
@@ -243,15 +244,24 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 			// there to take (another process took it, and its delivery is
 			// not in the journal yet), the bound and the timeout run on.
 			before := d.pending(a.RepoPath, a.ID)
-			_, _ = typeIn(d, a, 0, w.slashCommand)
+			if _, err := typeIn(d, a, 0, w.msg, w.slashCommand); err != nil {
+				// The messages are back in the inbox, as a plain send leaves
+				// them: the call fails as one does.
+				return true, err
+			}
 			if d.pending(a.RepoPath, a.ID) < before {
 				return false, nil
 			}
 		}
-		if clock.held(key, origin, now) >= stallBound {
+		if clock.lasted(key, origin, now) >= stallBound {
 			switch box := w.box(d); {
-			case !t.taken:
+			case !t.taken && d.pending(a.RepoPath, a.ID) > 0:
 				return true, stalledErr(a, "it still waits in "+a.Name+"'s inbox, and nothing was typed in")
+			case !t.taken:
+				// Taken by another process with no delivery of it in the
+				// journal, or a journal hq cannot read: where it went is
+				// not known.
+				return true, stalledErr(a, "it is no longer in "+a.Name+"'s inbox, and no delivery of it is in "+a.Name+"'s journal")
 			case box != "":
 				return true, stalledErr(a, "it is typed into "+a.Name+"'s prompt box and not sent")
 			case w.slashCommand:

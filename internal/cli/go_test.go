@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -88,7 +89,7 @@ func TestGoStartsTheListWhenItIsNotRunning(t *testing.T) {
 
 func TestGoFramesTheDockedSessionWithItsBranch(t *testing.T) {
 	f := goFakes()
-	f.states = map[string]state.Report{"id-a": {State: state.Working, Branch: "feat/42"}}
+	f.states = map[string]journaltest.HookState{"id-a": {State: state.Working, Branch: "feat/42"}}
 	if f.run("go", "a"); f.tmux.dockTitle != "a · feat/42 · claude-x" {
 		t.Errorf("frame %q", f.tmux.dockTitle)
 	}

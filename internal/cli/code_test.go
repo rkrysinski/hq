@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -29,7 +30,7 @@ func TestCodeOpensTheAgentsWorktree(t *testing.T) {
 		{`F:\gone`, "/w/app"},                                              // no longer there
 	} {
 		f := codeFakes()
-		f.states["id-a"] = state.Report{State: state.Working, Cwd: tc.cwd}
+		f.states["id-a"] = journaltest.HookState{State: state.Working, Cwd: tc.cwd}
 		code, out, errOut := f.run("code", "a")
 		if code != 0 || strings.Join(f.edited, " ") != tc.want || out != "opened "+tc.want+" in VS Code\n" {
 			t.Errorf("%q: exit %d %q %q, opened %q", tc.cwd, code, out, errOut, f.edited)

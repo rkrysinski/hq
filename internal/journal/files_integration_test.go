@@ -202,7 +202,7 @@ func TestAProcessKilledAfterItsAppendLeavesNoSecondCopy(t *testing.T) {
 	if strings.Join(got, " ") != "1:000000001.1 2:000000002.1 3:000000003.1 4:000000004.1" || len(left(t, root, "a1")) != 0 {
 		t.Fatalf("%v, left %v", got, left(t, root, "a1"))
 	}
-	if _, err := os.Stat(filepath.Join(dir, "journals", "a1.pending")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, "journals", "a1.ingest")); !os.IsNotExist(err) {
 		t.Errorf("the ingest under way is still recorded: %v", err)
 	}
 }
@@ -223,7 +223,7 @@ func TestAnAppendCutOffIsUndoneAndDoneAgain(t *testing.T) {
 		t.Fatal(err)
 	}
 	pend := fmt.Sprintf(`{"from":%d,"to":%d,"files":["000000002.1"]}`, len(whole), len(whole)+200)
-	if err := os.WriteFile(path+".pending", []byte(pend), 0o600); err != nil {
+	if err := os.WriteFile(path+".ingest", []byte(pend), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.Ingest(root, "a1"); err != nil {
@@ -245,7 +245,7 @@ func TestAnAppendCutOffIsUndoneAndDoneAgain(t *testing.T) {
 		t.Fatalf("%+v", j.Events)
 	}
 	// A record no ingest could have written is dropped.
-	if err := os.WriteFile(path+".pending", []byte("{"), 0o600); err != nil {
+	if err := os.WriteFile(path+".ingest", []byte("{"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	leave(t, root, "a1", "000000003.1", prompt, time.Now())
@@ -480,7 +480,7 @@ func TestTheStoreFailsWhereItCannotWrite(t *testing.T) {
 
 	// A journal, its reply or the record of an ingest under way that is
 	// no file.
-	for _, name := range []string{"a1", "a1.reply", "a1.pending"} {
+	for _, name := range []string{"a1", "a1.reply", "a1.ingest"} {
 		dir := filepath.Join(t.TempDir(), "hq")
 		s := journal.Files{Dir: dir}
 		if err := os.MkdirAll(filepath.Join(dir, "journals", name, "x"), 0o700); err != nil {
@@ -517,7 +517,7 @@ func TestTheStoreFailsWhereItCannotWrite(t *testing.T) {
 }
 
 // An append reads on from what the append before kept beside the journal
-// (ID.held): a report the hook made in between overtakes a look's evidence
+// (ID.read): a report the hook made in between overtakes a look's evidence
 // based on the one before it, the same evidence again is a duplicate, and
 // what was kept going beyond the journal, or spoilt, is read anew from the
 // journal's start.
@@ -552,9 +552,9 @@ func TestAnAppendReadsOnFromTheAppendBefore(t *testing.T) {
 	if got := asides(state.Event{Source: state.SourceScreen, Kind: state.KindAtRest, Time: at, Basis: 1}); got != state.AsideOvertaken {
 		t.Fatalf("after a report: %q", got)
 	}
-	held := filepath.Join(dir, "journals", id+".held")
+	lastRead := filepath.Join(dir, "journals", id+".read")
 	for _, spoilt := range []string{`{"offset":99999999,"basis":0,"evidence":{}}`, `not json`} {
-		if err := os.WriteFile(held, []byte(spoilt), 0o600); err != nil {
+		if err := os.WriteFile(lastRead, []byte(spoilt), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		if got := asides(state.Event{Source: state.SourceScreen, Kind: state.KindAtRest, Time: at, Basis: 1}); got != state.AsideOvertaken {
@@ -564,7 +564,7 @@ func TestAnAppendReadsOnFromTheAppendBefore(t *testing.T) {
 	if err := s.Remove(root, id); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(held); !os.IsNotExist(err) {
+	if _, err := os.Stat(lastRead); !os.IsNotExist(err) {
 		t.Fatalf("kept after the removal: %v", err)
 	}
 }

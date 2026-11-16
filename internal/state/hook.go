@@ -14,7 +14,7 @@ import (
 // there as a header line, then the payload, copied under another name and
 // renamed into place, named by the count it keeps there (.n), its kind and
 // its pid, %09d.KIND.PID, so the names sort in the order it wrote them and
-// tell which of its cases wrote each (Facts.At). hq on the host learns an
+// tell which of its cases wrote each (Facts.Hook). hq on the host learns an
 // agent's state from those files alone (#199).
 //
 // For its own rules it keeps notes in the main repository's

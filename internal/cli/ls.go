@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"text/tabwriter"
 	"time"
 
@@ -57,13 +58,49 @@ func runLs(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
+	cursor := l.cursor(d)
+	if asJSON {
+		if l, cursor, err = covered(d, l, cursor); err != nil {
+			return err
+		}
+	}
 	as := l.agents
 	agent.SortAttention(as)
 	rows := lsRows(d, as)
 	if asJSON {
-		return writeJSON(env.Stdout, waitOutput{Agents: rows, NextSince: cursorText(l.cursor(d))})
+		return writeJSON(env.Stdout, waitOutput{Agents: rows, NextSince: cursorText(cursor)})
 	}
 	return writeTable(env.Stdout, rows)
+}
+
+// coverLooks bounds the looks of hq ls --json (covered): agents that keep
+// changing still get a list.
+const coverLooks = 3
+
+// covered is look l, whose cursor is cursor, or a later look of hq ls's,
+// whose cursor stands for every row it shows: a look may show an agent at a
+// change numbered above its cursor (evidence it appended for that agent
+// after it read another), which a wait from that cursor would return
+// again, though the list showed it (#166). It looks again, up to
+// coverLooks looks in all, and gives the last.
+func covered(d deps, l looked, cursor int64) (looked, int64, error) {
+	for n := 1; n < coverLooks && above(l.agents, cursor); n++ {
+		var err error
+		if l, err = lookNow(d); err != nil {
+			return looked{}, 0, err
+		}
+		cursor = l.cursor(d)
+	}
+	return l, cursor, nil
+}
+
+// above reports whether an agent of as stands at a change numbered above
+// cursor.
+func above(as []agent.Agent, cursor int64) bool {
+	return slices.ContainsFunc(as, func(a agent.Agent) bool {
+		seq, ok := a.StateSeq()
+		return ok && seq > cursor
+	})
 }
 
 // lsRows are the agents as hq ls shows them now, in the order given, with

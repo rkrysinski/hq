@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
@@ -35,8 +36,8 @@ func outdatedFakes() *fakes {
 	for i := range f.tmux.windows[1:] {
 		f.tmux.windows[i+1].Pane = "%" + f.tmux.windows[i+1].ID[1:]
 	}
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Minute), Last: "on it", Branch: "feat/a"}
-	f.states["id-old"] = state.Report{State: state.Done, Since: f.now.Add(-2 * time.Minute), Last: "PR #9 opened", Branch: "feat/old"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Minute), Last: "on it", Branch: "feat/a"}
+	f.states["id-old"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-2 * time.Minute), Last: "PR #9 opened", Branch: "feat/old"}
 	f.details["id-old"] = state.Detail{Reply: "PR #9 opened"}
 	return f
 }
@@ -99,7 +100,7 @@ func TestWaitOnEveryAgentLeavesAnOutdatedAgentOut(t *testing.T) {
 	f := outdatedFakes()
 	// old is killed while hq waits, then a turns done.
 	f.onSleep = chain(f, 5*time.Second, func() { f.tmux.windows = f.tmux.windows[:2] }, 10*time.Second, func() {
-		f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "PR #10 opened"}
+		f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "PR #10 opened"}
 	})
 	code, out, errOut := f.run("wait", "--json")
 	w := waitJSON(t, out)

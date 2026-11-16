@@ -8,11 +8,39 @@ import (
 	"github.com/rkrysinski/hq/internal/state"
 )
 
+// HookState is an agent's state as its hook's reports give it: what the
+// tests describe an agent by, which the fake journal turns into the event
+// files its hook leaves (ReportFiles).
+type HookState struct {
+	State string
+	Since time.Time // when the hook reported it: the event files' host time (design §7.1)
+	Last  string    // the agent's last message, one line, stripped
+	// LastStop is the latest turn end's message, one line, stripped, when
+	// a dialog's text stands in for Last.
+	LastStop  string
+	SessionID string // Claude's session id
+	Cwd       string // where Claude works (a worktree or the repository), as the sandbox sees it
+	Branch    string // the branch checked out in Cwd, empty when detached or unknown
+	Prompt    string // while working since a prompt: the prompt, as the user sent it
+	// Latest is, for a Background agent, the time of the turn end that left
+	// it working; Since when zero.
+	Latest time.Time
+	// Background says the agent's turn ended while a subagent still runs:
+	// it waits at its prompt, working (design §3.4).
+	Background bool
+	// SubagentDialog says the dialog the agent needs input for is one of
+	// its subagents'.
+	SubagentDialog bool
+	// OwnTasks are what a done agent, or one with a question, left running
+	// itself at its turn end (#78).
+	OwnTasks []state.Task
+}
+
 // Report leaves for agent id of the repository at root the event files
 // its hook leaves to report r, with d what it holds in full
 // (ReportFiles), each named by the fake's count of the hook, as the hook
 // names them.
-func (m *Memory) Report(root, id string, r state.Report, d state.Detail) {
+func (m *Memory) Report(root, id string, r HookState, d state.Detail) {
 	for _, f := range ReportFiles(r, d) {
 		m.mu.Lock()
 		m.hooks++
@@ -45,7 +73,7 @@ type File struct {
 //     SubagentDialog;
 //   - ended: a turn end with the last message, then the session's end;
 //   - starting: nothing.
-func ReportFiles(r state.Report, d state.Detail) []File {
+func ReportFiles(r HookState, d state.Detail) []File {
 	at := r.Since
 	base := func(event string) map[string]any {
 		p := map[string]any{"hook_event_name": event, "session_id": r.SessionID, "cwd": r.Cwd}
@@ -130,7 +158,7 @@ func ReportFiles(r state.Report, d state.Detail) []File {
 // r (base makes a payload of an event): a question dialog, a permission
 // prompt, an MCP elicitation's form, or with no ask a Notification that
 // says r's last message.
-func dialogPayload(base func(string) map[string]any, r state.Report, ask *state.Ask) map[string]any {
+func dialogPayload(base func(string) map[string]any, r HookState, ask *state.Ask) map[string]any {
 	var p map[string]any
 	switch {
 	case ask != nil && len(ask.Questions) > 0:

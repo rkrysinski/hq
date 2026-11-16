@@ -121,41 +121,35 @@ func (a *Asked) Answer(e Event, data []byte) bool {
 
 // AskOf is what the dialog event e of the hook, read from the event file
 // data, asks, and whether e reports a dialog at all: a PermissionRequest,
-// an MCP elicitation's form or a Notification, as ParseDetail reads them.
+// an MCP elicitation's form or a Notification (parseAsk).
 func AskOf(e Event, data []byte) (*Ask, bool) {
 	switch e.Kind {
 	case KindPermission, KindElicitation, KindNotification:
-		return ParseDetail(data, nil).Ask, true
+		return parseAsk(data), true
 	}
 	return nil, false
 }
 
-// ParseDetail derives the detail from the latest event and the latest Stop
-// event (each empty when there is none).
-func ParseDetail(latest, lastStop []byte) Detail {
-	var d Detail
-	_, latest = splitHeader(latest)
+// parseAsk is what the hook's event file data asks: an open dialog, an MCP
+// elicitation's form or a Notification's message; nil for any other event
+// or a file it cannot read.
+func parseAsk(data []byte) *Ask {
+	_, data = splitHeader(data)
 	var p fullPayload
-	if json.Unmarshal(latest, &p) != nil {
-		return d
-	}
-	var stop payload
-	if _, lastStop = splitHeader(lastStop); json.Unmarshal(lastStop, &stop) == nil {
-		d.Reply = CleanText(stop.AssistantMessage)
+	if json.Unmarshal(data, &p) != nil {
+		return nil
 	}
 	switch p.Event {
-	case KindTurnEnd:
-		d.Reply = CleanText(p.AssistantMessage)
 	case KindPermission:
-		d.Ask = p.ask()
+		return p.ask()
 	case KindElicitation:
-		d.Ask = p.elicitation()
+		return p.elicitation()
 	case KindNotification:
 		if m := Clean(p.Message); m != "" {
-			d.Ask = &Ask{Message: m}
+			return &Ask{Message: m}
 		}
 	}
-	return d
+	return nil
 }
 
 // fullPayload is a hook event with what an open dialog shows in full; its

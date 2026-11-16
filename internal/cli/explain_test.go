@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -277,7 +278,7 @@ func TestAsideWhyTellsEveryReason(t *testing.T) {
 // ends with ?, never the reply.
 func TestExplainShowsThatTheReplyEndsWithAQuestionMark(t *testing.T) {
 	f := explainFakes()
-	f.states["id-42"] = state.Report{State: state.Question, Since: f.now.Add(-time.Minute), Last: "Shall I open the pull request?"}
+	f.states["id-42"] = journaltest.HookState{State: state.Question, Since: f.now.Add(-time.Minute), Last: "Shall I open the pull request?"}
 	f.details["id-42"] = state.Detail{Reply: "All tests pass.\n\nShall I open the pull request?"}
 	code, out, _ := f.run("explain", "42")
 	if code != 0 || !strings.Contains(out, "turn end, the reply ends with ?") || !strings.Contains(out, "question") ||
@@ -385,7 +386,7 @@ func explainOutputs(t *testing.T, events []state.Event, reply state.Reply, now t
 // agent before hq restore, from its journal.
 func TestExplainExplainsAnEndedAndALostAgent(t *testing.T) {
 	f := explainFakes()
-	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-2 * time.Minute), Last: "done"}
+	f.states["id-42"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-2 * time.Minute), Last: "done"}
 	f.tmux.windows[1].PaneDead = true
 	code, out, errOut := f.run("explain", "42")
 	if code != 0 || !strings.HasPrefix(out, "name      42\nstate     ended") || !strings.Contains(out, "the pane died") {

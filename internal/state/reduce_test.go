@@ -13,8 +13,8 @@ import (
 
 // JournalFixture is a fixture journal (testdata/journals): an agent's
 // journal in steps, each what one run of the hook, or what hq did, left in
-// it with what the look then saw, and what the old look (agent.Look) gave
-// after it. The
+// it with what the look then saw, and what the look (agent.Look) gave
+// after it when the journal was last written: a golden of the reducer. The
 // steps' hook, payload, inline, raw, pad, messages, in, hq, screen, pane,
 // sbx and asked say how the integration test rebuilds the journal
 // (TestTheFixtureJournalsAreWhatTheHookAndTheIngestMakeOfTheirPayloads);
@@ -68,15 +68,15 @@ type JournalStep struct {
 	Events []Event `json:"events,omitempty"`
 	// Reply is the journal's reply when the run changed it.
 	Reply *Reply `json:"reply,omitempty"`
-	// Look is what the old look gave after the step.
-	Look *OldLook `json:"look,omitempty"`
+	// Look is what the look gave after the step.
+	Look *FixtureLook `json:"look,omitempty"`
 }
 
-// OldLook is what the old look (agent.Look) gave of the agent after a
+// FixtureLook is what the look (agent.Look) gave of the agent after a
 // step: its state, the moment it counts from, its last message, its own
 // tasks and its dialog verdict, whose dialog it is at (hooks, subagent,
 // own) since when.
-type OldLook struct {
+type FixtureLook struct {
 	State       string    `json:"state"`
 	Since       time.Time `json:"since"`
 	Last        string    `json:"last,omitempty"`
@@ -127,10 +127,10 @@ func jsonOf(t *testing.T, v any) string {
 	return string(b)
 }
 
-// asLook is what the old look would have to give for the reducer's result
-// r.
-func asLook(r Reduced) *OldLook {
-	l := &OldLook{State: r.State, Since: r.Since.UTC(), Last: r.Last, OwnTasks: r.OwnTasks}
+// asLook is what a fixture journal holds as the look for the reducer's
+// result r.
+func asLook(r Reduced) *FixtureLook {
+	l := &FixtureLook{State: r.State, Since: r.Since.UTC(), Last: r.Last, OwnTasks: r.OwnTasks}
 	if r.Dialog.Open {
 		l.Dialog, l.DialogSince = r.Dialog.Whose, r.Dialog.Opened.Time.UTC()
 	}
@@ -139,9 +139,9 @@ func asLook(r Reduced) *OldLook {
 
 // The reducer gives, after every step of every fixture journal, the state,
 // the moment it counts from, the last message, the own tasks and the
-// dialog verdict the old look gave for the same payloads, screens, pane
-// and sbx answer, its age counted to the moment passed in.
-func TestTheReducerGivesEveryFixtureJournalAsTheOldLookDid(t *testing.T) {
+// dialog verdict the journal holds, which the look wrote when the journal
+// was last written (a golden), its age counted to the moment passed in.
+func TestTheReducerGivesWhatEveryFixtureJournalHolds(t *testing.T) {
 	now := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
 	for name, fx := range fixtureJournals(t) {
 		var events []Event

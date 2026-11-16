@@ -4,6 +4,7 @@ package cli
 
 import (
 	"github.com/rkrysinski/hq/internal/journal"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -11,14 +12,14 @@ import (
 // its journal gives it (the hooks' event files ingested first): its state,
 // last message and Claude session; ok is false while its journal holds no
 // report of its hook.
-func (d deps) readState(root, id string) (r state.Report, ok bool) {
+func (d deps) readState(root, id string) (r journaltest.HookState, ok bool) {
 	if err := d.journal.Ingest(root, id); err != nil {
-		return state.Report{}, false
+		return journaltest.HookState{}, false
 	}
 	j, err := d.journal.Read(id)
 	if err != nil {
-		return state.Report{}, false
+		return journaltest.HookState{}, false
 	}
 	red := state.Fold{}.With(j.Events...).Result(j.Reply, d.now())
-	return state.Report{State: red.State, Since: red.Since, Last: red.Last, Branch: red.Branch, Cwd: red.Worktree, SessionID: red.Session}, journal.Basis(j.Events) != 0
+	return journaltest.HookState{State: red.State, Since: red.Since, Last: red.Last, Branch: red.Branch, Cwd: red.Worktree, SessionID: red.Session}, journal.Basis(j.Events) != 0
 }

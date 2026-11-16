@@ -48,8 +48,6 @@ type Message struct {
 	Text string
 	// Supervisor says the supervisor sent it, through hq mcp, not the user.
 	Supervisor bool
-	// Sent is when it was sent, for a message Take took: Hold keeps it.
-	Sent time.Time
 	// Name is the name it was left under in the inbox, for a message Take
 	// took: Hold, and Post putting it back, keep it, so every delivery of
 	// it names it as it was first left (spec #165, story 46); Post drops
@@ -63,6 +61,17 @@ const MessageLabel = "Message from the user (hq send): "
 
 // InboxDir is where messages for agent id of the repository at root wait.
 func InboxDir(root, id string) string { return filepath.Join(root, ".git", "hq", "inbox", id) }
+
+// inboxDir is InboxDir(root, id), or sub in it, refused when it or a
+// directory above it under .git/hq is a link (LinkedAt): hq lists, reads,
+// writes and removes nothing in an inbox through a link (#215).
+func inboxDir(root, id string, sub ...string) (string, error) {
+	dir := filepath.Join(append([]string{InboxDir(root, id)}, sub...)...)
+	if at := LinkedAt(root, dir); at != "" {
+		return "", LinkedErr(at)
+	}
+	return dir, nil
+}
 
 // heldDir is the directory in an inbox where held messages wait (Hold):
 // the hook takes only the messages in the inbox itself, whose names start
@@ -156,17 +165,21 @@ func Hold(root, id string, msgs []Message) error {
 	if !idRE.MatchString(id) {
 		return errors.New("not an agent id")
 	}
-	dir := filepath.Join(InboxDir(root, id), heldDir)
+	dir, err := inboxDir(root, id, heldDir)
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 	var written []string
 	for _, m := range msgs {
-		at := m.Sent
-		if at.IsZero() {
-			at = time.Now()
+		var path string
+		err := fmt.Errorf("a message held keeps the name it was left under: %q has none", m.Text)
+		if keptName(m.Name) {
+			// The name says when it was sent; no time is needed.
+			path, err = write(dir, m, false, time.Time{})
 		}
-		path, err := write(dir, m, false, at)
 		if errors.Is(err, fs.ErrExist) {
 			err = fmt.Errorf("a message named %s is held already", m.Name)
 		}
@@ -183,13 +196,18 @@ func Hold(root, id string, msgs []Message) error {
 	return nil
 }
 
-// Held is how many messages wait held for agent id of the repository at
-// root (Hold): Pending counts them too, but the hooks do not deliver them.
-func Held(root, id string) int {
+// HeldNames are the names of the messages that wait held for agent id of
+// the repository at root (Hold), oldest first: Pending counts them too, but
+// the hooks do not deliver them.
+func HeldNames(root, id string) []string {
 	if !idRE.MatchString(id) {
-		return 0
+		return nil
 	}
-	return len(messages(filepath.Join(InboxDir(root, id), heldDir)))
+	dir, err := inboxDir(root, id, heldDir)
+	if err != nil {
+		return nil
+	}
+	return messages(dir)
 }
 
 // Post leaves m for agent id of the repository at root, sent at at; now
@@ -206,7 +224,10 @@ func Post(root, id string, m Message, now bool, at time.Time) (string, error) {
 		return "", errors.New("not an agent id")
 	}
 	m.Name = backName(m.Name, now)
-	dir := InboxDir(root, id)
+	dir, err := inboxDir(root, id)
+	if err != nil {
+		return "", err
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
@@ -286,7 +307,13 @@ func messages(dir string) []string {
 // root, held ones included, as paths relative to its inbox, in the order
 // they were sent.
 func waiting(root, id string) []string {
-	dir := InboxDir(root, id)
+	dir, err := inboxDir(root, id)
+	if err != nil {
+		return nil
+	}
+	if _, err := inboxDir(root, id, heldDir); err != nil {
+		return nil
+	}
 	names := messages(dir)
 	for _, n := range messages(filepath.Join(dir, heldDir)) {
 		names = append(names, filepath.Join(heldDir, n))
@@ -335,7 +362,13 @@ func Take(root, id string) ([]Message, error) {
 	if !idRE.MatchString(id) {
 		return nil, errors.New("not an agent id")
 	}
-	dir := InboxDir(root, id)
+	dir, err := inboxDir(root, id)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := inboxDir(root, id, heldDir); err != nil {
+		return nil, err
+	}
 	names := waiting(root, id)
 	if len(names) == 0 {
 		return nil, nil
@@ -357,16 +390,26 @@ func Take(root, id string) ([]Message, error) {
 			continue
 		}
 		if text, err := decodeMessage(data); err == nil && text != "" {
-			sent, _ := sentAt(base)
-			msgs = append(msgs, Message{Text: text, Supervisor: fromSupervisor(base), Sent: sent, Name: base})
+			msgs = append(msgs, Message{Text: text, Supervisor: fromSupervisor(base), Name: base})
 		}
 	}
 	return msgs, nil
 }
 
 // removeInbox deletes the inbox of agent id with whatever waits in it.
+// An inbox that is itself a link loses the link alone; one under a linked
+// directory is not removed (LinkedAt).
 func removeInbox(root, id string) error {
-	err := os.RemoveAll(InboxDir(root, id))
+	dir := InboxDir(root, id)
+	var err error
+	switch at := LinkedAt(root, dir); at {
+	case "":
+		err = os.RemoveAll(dir)
+	case dir:
+		err = os.Remove(dir)
+	default:
+		err = LinkedErr(at)
+	}
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}

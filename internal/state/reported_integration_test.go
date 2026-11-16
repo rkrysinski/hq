@@ -9,15 +9,30 @@ import (
 	"time"
 )
 
+// hookState is an agent's state as the hook's reports give it: the
+// fields of journaltest.HookState, which the tests of other packages
+// describe an agent by (journaltest imports this package, so its tests
+// cannot use it), and four more that the tests of the hook read.
+type hookState struct {
+	State                                  string
+	Since                                  time.Time
+	Last, LastStop                         string
+	SessionID, Cwd, Branch, Prompt         string
+	Latest                                 time.Time
+	Background, Owed, Woken, Acted, Queued bool
+	SubagentDialog                         bool
+	OwnTasks                               []Task
+}
+
 // reported is the state of agent id of the repository at root as hq on the
 // host gives it from the event files its hook left, and nothing else (ADR
 // 0018): each read as the journal's ingest reads it (hookEvents), folded by
 // the reducer with the latest turn end's reply. ok is false until the
 // hook's first report. The tests of the hook read what it reported so.
-func reported(root, id string) (r Report, ok bool) {
+func reported(root, id string) (r hookState, ok bool) {
 	events, reply := hookEvents(root, id)
 	s := Reduce(events, reply, time.Now())
-	return Report{
+	return hookState{
 		State: s.State, Since: s.Since, Last: s.Last, LastStop: s.LastStop,
 		SessionID: s.Session, Cwd: s.Worktree, Branch: s.Branch, Prompt: s.Prompt, Latest: s.Latest,
 		Background: s.Background, Owed: s.Owed, Woken: s.Woken, Acted: s.Acted, Queued: s.Queued,

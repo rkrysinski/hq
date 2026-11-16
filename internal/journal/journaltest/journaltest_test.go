@@ -37,7 +37,7 @@ func TestMemoryIngestsOnlyEventFilesAndListsItsJournals(t *testing.T) {
 	if len(j.Events) != 1 || j.Events[0].File != "000000002.1" || len(m.Left("/w/app", "a1")) != 1 {
 		t.Fatalf("%+v %v", j.Events, m.Left("/w/app", "a1"))
 	}
-	if got := m.Agents(); len(got) != 1 || got[0] != "a1" {
+	if got, _ := m.IDs(); len(got) != 1 || got[0] != "a1" {
 		t.Errorf("agents %v", got)
 	}
 }
@@ -64,10 +64,10 @@ func TestReportFilesOfAnEndedAgent(t *testing.T) {
 		}
 		return strings.Join(s, " ")
 	}
-	if got := kinds(ReportFiles(state.Report{State: state.Ended, Since: at, Last: "Bye."}, state.Detail{})); got != "stop end" {
+	if got := kinds(ReportFiles(HookState{State: state.Ended, Since: at, Last: "Bye."}, state.Detail{})); got != "stop end" {
 		t.Errorf("with a message: %s", got)
 	}
-	if got := kinds(ReportFiles(state.Report{State: state.Ended, Since: at}, state.Detail{})); got != "end" {
+	if got := kinds(ReportFiles(HookState{State: state.Ended, Since: at}, state.Detail{})); got != "end" {
 		t.Errorf("without one: %s", got)
 	}
 }
@@ -77,7 +77,7 @@ func TestReportFilesOfAnEndedAgent(t *testing.T) {
 func TestReportFilesOfANotification(t *testing.T) {
 	at := time.Unix(1000, 0)
 	for ask, want := range map[*state.Ask]string{nil: `"message":"Waiting"`, {Message: "Pick a colour"}: `"message":"Pick a colour"`} {
-		fs := ReportFiles(state.Report{State: state.NeedsInput, Since: at, Last: "Waiting"}, state.Detail{Ask: ask})
+		fs := ReportFiles(HookState{State: state.NeedsInput, Since: at, Last: "Waiting"}, state.Detail{Ask: ask})
 		if d := string(fs[len(fs)-1].Data); !strings.Contains(d, `"Notification"`) || !strings.Contains(d, want) {
 			t.Errorf("%+v: %s", ask, d)
 		}
@@ -100,17 +100,17 @@ func payloadOf(t *testing.T, f File) map[string]any {
 // background tasks when it has none.
 func TestReportFilesNameThePromptAndTheOwnTasks(t *testing.T) {
 	at := time.Unix(1000, 0)
-	fs := ReportFiles(state.Report{State: state.Working, Since: at, Prompt: "fix"}, state.Detail{})
+	fs := ReportFiles(HookState{State: state.Working, Since: at, Prompt: "fix"}, state.Detail{})
 	if p := payloadOf(t, fs[len(fs)-1]); p["prompt_id"] != "p-fix" {
 		t.Errorf("with a prompt: %v", p)
 	}
-	fs = ReportFiles(state.Report{State: state.Done, Since: at, Last: "Done."}, state.Detail{})
+	fs = ReportFiles(HookState{State: state.Done, Since: at, Last: "Done."}, state.Detail{})
 	p := payloadOf(t, fs[0])
 	if _, tasks := p["background_tasks"]; p["prompt_id"] != nil || tasks || p["last_assistant_message"] != "Done." {
 		t.Errorf("without a prompt or tasks: %v", p)
 	}
 	own := []state.Task{{Type: state.ShellTask, Text: "npm run dev"}, {Type: state.MonitorTask, Text: "the logs"}}
-	fs = ReportFiles(state.Report{State: state.Done, Since: at, Last: "Done.", OwnTasks: own}, state.Detail{})
+	fs = ReportFiles(HookState{State: state.Done, Since: at, Last: "Done.", OwnTasks: own}, state.Detail{})
 	tasks, _ := payloadOf(t, fs[0])["background_tasks"].([]any)
 	var ids []string
 	for _, task := range tasks {

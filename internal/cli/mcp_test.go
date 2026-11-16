@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform"
@@ -132,6 +133,11 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	if want := "a dialog open (a permission, questions with options, an MCP server's form, or a dialog of Claude Code's own such as Change effort level? after /effort;"; !strings.Contains(mcpInstructions, want) {
 		t.Errorf("no %q in the instructions", want)
 	}
+	// The bound of a waited send is given as stallBound is.
+	if stallText != "5 seconds" || !strings.Contains(mcpInstructions, "after 5 seconds for a slash command") ||
+		!strings.Contains(tools["send"].Description, "did not take the message within 5 seconds (") {
+		t.Errorf("the bound %q is not in the instructions or the send tool's description", stallText)
+	}
 	// An agent done with its own tasks running takes another turn when they
 	// end (#78): the tools that return it say so, and the instructions too.
 	for name, want := range map[string]string{
@@ -196,6 +202,10 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	if !strings.Contains(tools["answer"].Description, "with the completion_seq it had: that is no new reply") {
 		t.Errorf("answer: nothing on the dialog of Claude Code's own: %q", tools["answer"].Description)
 	}
+	// A row's since is not the since wait takes (#166 against #170).
+	if want := "since (the time it entered that state: not what wait takes as since)"; !strings.Contains(tools["list"].Description, want) {
+		t.Errorf("list: no %q in %q", want, tools["list"].Description)
+	}
 	if !strings.Contains(tools["list"].Description, "state_seq and completion_seq") {
 		t.Errorf("list: no numbers in %q", tools["list"].Description)
 	}
@@ -213,7 +223,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 func TestMCPListAndReadGiveWhatHqLsAndHqReadPrint(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false)}
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened", Branch: "feat/58"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened", Branch: "feat/58"}
 	f.details["id-a"] = state.Detail{Reply: "Opened PR #58.\n\nAll tests pass."}
 	cs := mcpSession(t, f)
 	_, ls, _ := f.run("ls", "--json")
@@ -225,7 +235,7 @@ func TestMCPListAndReadGiveWhatHqLsAndHqReadPrint(t *testing.T) {
 		t.Fatalf("read %v:\n%s\nwant\n%s", isErr, out, read)
 	}
 	// What an MCP form asks, the same in both (#100).
-	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Second), Last: "Which color should I use?"}
+	f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: f.now.Add(-time.Second), Last: "Which color should I use?"}
 	f.details["id-a"] = state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{{Name: "color", Type: "string", Required: true}}}}
 	_, ls, _ = f.run("ls", "--json")
 	_, read, _ = f.run("read", "a", "--json")
@@ -253,12 +263,15 @@ func TestMCPReadGivesALongReplyInPages(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false)}
 	reply := longReply()
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
 	f.details["id-a"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
 	cs := mcpSession(t, f)
 	var got strings.Builder
 	args := map[string]any{"name": "a"}
 	for pages := 1; ; pages++ {
+		if pages > 3 {
+			t.Fatalf("still reading at page %d: %v", pages, args)
+		}
 		out, isErr := call(t, cs, "read", args)
 		var v readJSON
 		if isErr || json.Unmarshal([]byte(out), &v) != nil || v.ReplySize != len(reply) {
@@ -295,7 +308,7 @@ func TestMCPWaitInALoopWithSinceReturnsEachChangeOnce(t *testing.T) {
 	}
 	// Between the calls a asks a question.
 	f.now = f.now.Add(5 * time.Second)
-	f.states["id-a"] = state.Report{State: state.Question, Since: f.now, Last: "Shall I go on?"}
+	f.states["id-a"] = journaltest.HookState{State: state.Question, Since: f.now, Last: "Shall I go on?"}
 	f.now = f.now.Add(5 * time.Second)
 	out, _ = call(t, cs, "wait", map[string]any{"since": first.NextSince})
 	second := waitJSON(t, out)
@@ -474,7 +487,7 @@ func TestMCPWaitFromSendsNextSinceReturnsAnAnswerGivenBeforeWaitWasCalled(t *tes
 		t.Fatalf("send %v %v: %s", isErr, err, out)
 	}
 	// a answers within two seconds; the supervisor calls wait a minute later.
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(2 * time.Second), Last: "Understood, I will not."}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(2 * time.Second), Last: "Understood, I will not."}
 	f.now = f.now.Add(time.Minute)
 	start := f.now
 	out, _ = call(t, cs, "wait", map[string]any{"since": sent.NextSince, "names": []string{"a"}})

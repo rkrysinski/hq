@@ -56,19 +56,15 @@ func parseWait(args []string, now time.Time) (waitArgs, error) {
 		switch flag {
 		case "--json":
 			if inline {
-				return w, usageErr("unexpected argument '%s' (usage: %s)", a, waitUsage)
+				return w, unknownOption(a, waitUsage)
 			}
 			w.asJSON = true
 			continue
 		case "--since", "--timeout":
-			if !inline {
-				if i+1 == len(args) {
-					return w, usageErr("%s needs a value (usage: %s)", flag, waitUsage)
-				}
-				i++
-				value = args[i]
+			value, err := optionValue(args, &i, flag, value, inline, waitUsage)
+			if err != nil {
+				return w, err
 			}
-			var err error
 			if flag == "--since" {
 				w.since, err = parseSince(value, now)
 				w.sinceArg = true
@@ -81,7 +77,7 @@ func parseWait(args []string, now time.Time) (waitArgs, error) {
 			continue
 		}
 		if strings.HasPrefix(a, "-") {
-			return w, usageErr("unexpected argument '%s' (usage: %s)", a, waitUsage)
+			return w, unknownOption(a, waitUsage)
 		}
 		if !slices.Contains(w.names, a) {
 			w.names = append(w.names, a)
@@ -108,8 +104,8 @@ func parseTimeout(s string) (time.Duration, error) {
 // A change after a cursor is one numbered above it and seen by the look,
 // so it is returned with no settle time; after a moment, one entered after
 // it. Every result carries the cursor of its look. It looks as the list
-// does, through the same collection (design §3.8), and leaves nothing
-// running when it returns.
+// does, through the same look (design §3.8), and leaves nothing running
+// when it returns.
 func runWait(env Env, d deps, args []string) error {
 	start := d.now()
 	w, err := parseWait(args, start)
@@ -139,11 +135,18 @@ func runWait(env Env, d deps, args []string) error {
 			}
 			// An agent already in its state when the call starts is not
 			// returned, or a caller waiting in a loop would spin: the call
-			// starts after everything its first look showed, including what
-			// that look appended for an agent after it read another, which
-			// its cursor does not yet stand for.
+			// starts each agent of its first look from the state number that
+			// look showed for it, so a change another process numbers after
+			// that look, while deliverWaiting types, is still returned. An
+			// agent the first look did not show starts after everything
+			// numbered once that look is done, including what it appended
+			// for an agent after it read another, which its cursor does not
+			// yet stand for.
 			if !w.sinceArg {
-				w.since = since{cursor: next, isCursor: true}
+				w.since = since{cursor: next, isCursor: true, from: map[string]int64{}}
+				for _, a := range as {
+					w.since.from[a.ID], _ = a.StateSeq()
+				}
 				if n, err := d.journal.Through(); err == nil {
 					w.since.cursor = n
 				}
@@ -218,15 +221,25 @@ func waitedOn(as []agent.Agent, names []string) []agent.Agent {
 	return ws
 }
 
-// arrived are the agents whose last change, numbered at most through, put
-// them in a state hq wait returns after s (design §3.4, "Changes after a
-// cursor"): through is the look's cursor, so no change is returned that a
-// result's cursor does not stand for.
+// returnable reports whether a look whose cursor is through may return
+// agent a's last change (design §3.4, "Changes after a cursor"), and gives
+// its number: a is in a state hq wait returns, by a change numbered at most
+// through, so no change is returned that a result's cursor does not stand
+// for; or a has ended with no number (its journal can no longer be read),
+// whatever the cursor, which only a call that saw it before returns (gone).
+// hq wait and hq send --wait both decide by it.
+func returnable(a agent.Agent, through int64) (seq int64, numbered, ok bool) {
+	seq, numbered = a.StateSeq()
+	ok = slices.Contains(waitStates, a.State) && (numbered && seq <= through || !numbered && a.State == state.Ended)
+	return seq, numbered, ok
+}
+
+// arrived are the agents whose last change, numbered at most through, the
+// look's cursor, put them in a state hq wait returns after s (returnable).
 func arrived(as []agent.Agent, s since, through int64) []agent.Agent {
 	var hits []agent.Agent
 	for _, a := range as {
-		seq, ok := a.StateSeq()
-		if ok && seq <= through && slices.Contains(waitStates, a.State) && s.changedAfter(a, seq) {
+		if seq, numbered, ok := returnable(a, through); ok && numbered && s.changedAfter(a, seq) {
 			hits = append(hits, a)
 		}
 	}
@@ -246,8 +259,8 @@ func gone(seen map[string]agent.Agent, now []agent.Agent, at time.Time) []agent.
 			out = append(out, a.Gone(at))
 			continue
 		}
-		_, numbered := now[i].StateSeq()
-		if _, was := a.StateSeq(); now[i].State == state.Ended && !numbered && (was || a.State != state.Ended) {
+		_, numbered, ok := returnable(now[i], 0)
+		if _, was := a.StateSeq(); ok && !numbered && (was || a.State != state.Ended) {
 			out = append(out, now[i])
 		}
 	}
