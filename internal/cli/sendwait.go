@@ -17,6 +17,9 @@ import (
 // while the agent works, is starting or is at a dialog.
 const stallBound = 5 * time.Second
 
+// stallText is stallBound as the tools' texts give it.
+var stallText = fmt.Sprintf("%d seconds", int(stallBound.Seconds()))
+
 // The ways a hq send --wait ends but a stall, as --json names them (#170).
 const (
 	// The agent stopped after taking the message: the end of the turn
@@ -135,9 +138,9 @@ type stallClock struct {
 // agent at its prompt, not taken.
 const keyWaiting = "waiting"
 
-// held is how long, at now, the condition key has held: since origin when
+// lasted is how long, at now, the condition key has held: since origin when
 // it is new, since now after a pause; 0 for no condition.
-func (c *stallClock) held(key string, origin, now time.Time) time.Duration {
+func (c *stallClock) lasted(key string, origin, now time.Time) time.Duration {
 	switch {
 	case key == "":
 		c.key, c.paused = "", true
@@ -250,7 +253,7 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 				return false, nil
 			}
 		}
-		if clock.held(key, origin, now) >= stallBound {
+		if clock.lasted(key, origin, now) >= stallBound {
 			switch box := w.box(d); {
 			case !t.taken && d.pending(a.RepoPath, a.ID) > 0:
 				return true, stalledErr(a, "it still waits in "+a.Name+"'s inbox, and nothing was typed in")

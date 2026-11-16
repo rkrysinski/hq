@@ -140,7 +140,7 @@ func runSend(env Env, d deps, args []string) error {
 	}
 	// The cursor before the message is left: the reply it brings is a
 	// change numbered above it, for hq wait --since.
-	sent := counterAt(d, a)
+	sent := counterBefore(d, a)
 	msg, err := d.postMessage(a.RepoPath, a.ID, state.Message{Text: s.text, Supervisor: d.supervisor}, s.now)
 	if err != nil {
 		return envErr("cannot leave the message for %s: %v", a.Name, err)

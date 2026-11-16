@@ -35,8 +35,8 @@ func TestAnAppendAfterACutOffIngestLosesNoEvent(t *testing.T) {
 			// The ingest recorded what it would append, then died.
 			path := store.journalPath(id)
 			from := size(path)
-			p, _ := json.Marshal(pending{From: from, To: from + cut, Files: []string{file}})
-			if err := os.WriteFile(path+pendingSuffix, p, 0o600); err != nil {
+			p, _ := json.Marshal(ingestRecord{From: from, To: from + cut, Files: []string{file}})
+			if err := os.WriteFile(path+ingestSuffix, p, 0o600); err != nil {
 				t.Fatal(err)
 			}
 			if _, err := store.Append(id, state.Event{Source: state.SourceHQ, Kind: state.KindRelaunched, Time: at.Add(time.Second)}); err != nil {
@@ -88,7 +88,7 @@ func TestAnAppendAfterAWholeIngestLeavesItToFinish(t *testing.T) {
 		_ = store.Ingest(root, id)
 	}()
 	afterAppend = nil
-	if _, err := os.Stat(store.journalPath(id) + pendingSuffix); err != nil {
+	if _, err := os.Stat(store.journalPath(id) + ingestSuffix); err != nil {
 		t.Fatalf("no record of the ingest under way: %v", err)
 	}
 	if _, err := store.Append(id, state.Event{Source: state.SourceHQ, Kind: state.KindRelaunched, Time: at.Add(time.Second)}); err != nil {

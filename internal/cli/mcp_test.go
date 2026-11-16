@@ -133,6 +133,11 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	if want := "a dialog open (a permission, questions with options, an MCP server's form, or a dialog of Claude Code's own such as Change effort level? after /effort;"; !strings.Contains(mcpInstructions, want) {
 		t.Errorf("no %q in the instructions", want)
 	}
+	// The bound of a waited send is given as stallBound is.
+	if stallText != "5 seconds" || !strings.Contains(mcpInstructions, "after 5 seconds for a slash command") ||
+		!strings.Contains(tools["send"].Description, "did not take the message within 5 seconds (") {
+		t.Errorf("the bound %q is not in the instructions or the send tool's description", stallText)
+	}
 	// An agent done with its own tasks running takes another turn when they
 	// end (#78): the tools that return it say so, and the instructions too.
 	for name, want := range map[string]string{

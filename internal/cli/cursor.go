@@ -114,14 +114,14 @@ func agentAppeared(before, after []tmux.Window) bool {
 	return false
 }
 
-// counterNow is the cursor for a change an hq command is about to cause in
-// agent a (a message, an answer): what the counter holds now, so what the
-// agent does with it is numbered above it; the counter of a's read when
-// the counter cannot be read now.
-func counterNow(d deps, a agent.Agent) string { return cursorText(counterAt(d, a)) }
+// cursorBefore is the cursor for a change an hq command is about to cause
+// in agent a (a message, an answer): what the counter holds now, so what
+// the agent does with it is numbered above it; the counter of a's read
+// when the counter cannot be read now.
+func cursorBefore(d deps, a agent.Agent) string { return cursorText(counterBefore(d, a)) }
 
-// counterAt is the number counterNow's cursor stands for.
-func counterAt(d deps, a agent.Agent) int64 {
+// counterBefore is the number cursorBefore's cursor stands for.
+func counterBefore(d deps, a agent.Agent) int64 {
 	n, err := d.journal.Through()
 	if err != nil {
 		n = a.Through()

@@ -392,7 +392,7 @@ func TestTheStallClockRunsOnlyWhileItsConditionHolds(t *testing.T) {
 		{"typed 9", at.Add(8 * time.Second), at.Add(10 * time.Second), 2 * time.Second},
 	}
 	for i, s := range steps {
-		if got := c.held(s.key, s.origin, s.now); got != s.want {
+		if got := c.lasted(s.key, s.origin, s.now); got != s.want {
 			t.Fatalf("step %d: %v, want %v", i, got, s.want)
 		}
 	}

@@ -24,21 +24,21 @@ import (
 //	DIR/journals/ID        agent ID's events, one JSON line each
 //	DIR/journals/ID.reply  the latest turn end's reply
 //	DIR/journals/ID.ask    what the latest dialog the hook reported asks
-//	DIR/journals/ID.held   what the last append read of the journal (held)
-//	DIR/journals/ID.pending the ingest under way (recover)
+//	DIR/journals/ID.read   what the last append read of the journal (lastRead)
+//	DIR/journals/ID.ingest the ingest under way (recover)
 type Files struct {
 	Dir string
 }
 
 // The names in the store's directory.
 const (
-	lockName      = "lock"
-	counterName   = "counter"
-	journalsName  = "journals"
-	replySuffix   = ".reply"
-	askSuffix     = ".ask"
-	heldSuffix    = ".held"
-	pendingSuffix = ".pending"
+	lockName     = "lock"
+	counterName  = "counter"
+	journalsName = "journals"
+	replySuffix  = ".reply"
+	askSuffix    = ".ask"
+	readSuffix   = ".read"
+	ingestSuffix = ".ingest"
 )
 
 // errNoDir is the error of a store whose directory is not known (Dir).
@@ -48,11 +48,11 @@ var errNoDir = errors.New("no state directory: set HOME or XDG_STATE_HOME")
 // before it removes their files: the moment a test kills the process at.
 var afterAppend func()
 
-// pending is what an ingest records before it appends: the journal's size
+// ingestRecord is what an ingest records before it appends: the journal's size
 // before and after the append, and the event files it appends. An ingest
 // cut off by the process's death is finished or undone by the next one
 // (recover), so no event file is lost or appended twice.
-type pending struct {
+type ingestRecord struct {
 	From  int64    `json:"from"`
 	To    int64    `json:"to"`
 	Files []string `json:"files"`
@@ -164,11 +164,11 @@ func (s Files) Ingest(root, id string) error {
 	if err != nil {
 		return err
 	}
-	p, err := json.Marshal(pending{From: from, To: from + int64(len(lines)), Files: names})
+	p, err := json.Marshal(ingestRecord{From: from, To: from + int64(len(lines)), Files: names})
 	if err != nil {
 		return err
 	}
-	if err := writeFile(path+pendingSuffix, p); err != nil {
+	if err := writeFile(path+ingestSuffix, p); err != nil {
 		return err
 	}
 	if err := appendAt(path, from, lines); err != nil {
@@ -181,12 +181,12 @@ func (s Files) Ingest(root, id string) error {
 }
 
 // recover finishes or undoes the ingest a dead process left for agent id
-// (pending): when its append is whole, it removes the files that append
+// (ingestRecord): when its append is whole, it removes the files that append
 // took, which may still be there; when the append was cut off, it cuts the
 // journal back, so the files, all still there, are appended anew.
 func (s Files) recover(dir, id string) error {
 	path := s.journalPath(id)
-	p, ok, err := readPending(path)
+	p, ok, err := readIngest(path)
 	if !ok || err != nil {
 		return err
 	}
@@ -196,20 +196,20 @@ func (s Files) recover(dir, id string) error {
 	return undo(path, p)
 }
 
-// readPending is the record of the ingest under way for the journal at
+// readIngest is the record of the ingest under way for the journal at
 // path, and whether there is one; a record that cannot be read is removed,
 // as one with nothing to finish.
-func readPending(path string) (pending, bool, error) {
-	data, err := os.ReadFile(path + pendingSuffix)
+func readIngest(path string) (ingestRecord, bool, error) {
+	data, err := os.ReadFile(path + ingestSuffix)
 	if errors.Is(err, fs.ErrNotExist) {
-		return pending{}, false, nil
+		return ingestRecord{}, false, nil
 	}
 	if err != nil {
-		return pending{}, false, err
+		return ingestRecord{}, false, err
 	}
-	var p pending
+	var p ingestRecord
 	if json.Unmarshal(data, &p) != nil {
-		return pending{}, false, os.Remove(path + pendingSuffix)
+		return ingestRecord{}, false, os.Remove(path + ingestSuffix)
 	}
 	return p, true, nil
 }
@@ -217,15 +217,15 @@ func readPending(path string) (pending, bool, error) {
 // undo cuts the journal at path back to where the ingest p, cut off before
 // its append was whole, found it, and removes its record: its event files,
 // all still there, are appended anew.
-func undo(path string, p pending) error {
+func undo(path string, p ingestRecord) error {
 	if err := os.Truncate(path, p.From); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 	// What Append kept of the journal may reach beyond the cut.
-	if err := os.Remove(path + heldSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err := os.Remove(path + readSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
-	return os.Remove(path + pendingSuffix)
+	return os.Remove(path + ingestSuffix)
 }
 
 // finish removes the event files names, appended to the journal at path,
@@ -241,7 +241,7 @@ func finish(dir, path string, names []string) error {
 	if err := errors.Join(errs...); err != nil {
 		return err
 	}
-	return os.Remove(path + pendingSuffix)
+	return os.Remove(path + ingestSuffix)
 }
 
 // Append numbers events of hq's own and appends them to the journal of
@@ -265,7 +265,7 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	// past the record's and the next recovery take the cut append for whole,
 	// or cut this one out. A whole one is left to the next ingest, which has
 	// its event files to remove: the journal only grows meanwhile.
-	if p, ok, err := readPending(path); err != nil {
+	if p, ok, err := readIngest(path); err != nil {
 		return nil, err
 	} else if ok && size(path) < p.To {
 		if err := undo(path, p); err != nil {
@@ -276,7 +276,7 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	h, err := readHeld(path)
+	h, err := readLastRead(path)
 	if err != nil {
 		return nil, err
 	}
@@ -295,33 +295,33 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	h.Offset = from + int64(len(lines))
 	// One not written leaves the one before, which holds less: the next
 	// append reads on from there.
-	_ = writeJSON(path+heldSuffix, h)
+	_ = writeJSON(path+readSuffix, h)
 	return out, nil
 }
 
-// held is what Append reads of a journal to set events aside (Standing),
-// kept beside it (heldSuffix) so that an append reads only the events
+// lastRead is what Append reads of a journal to set events aside (Standing),
+// kept beside it (readSuffix) so that an append reads only the events
 // appended since the one before, however long the journal: up to byte
 // Offset.
-type held struct {
+type lastRead struct {
 	Offset int64 `json:"offset"`
 	Standing
 }
 
-// readHeld is what the journal at path holds for Append, read on from what
+// readLastRead is what the journal at path holds for Append, read on from what
 // is kept beside it; from its start when nothing is, or what is kept goes
 // beyond the journal.
-func readHeld(path string) (held, error) {
-	var h held
-	if !readJSON(path+heldSuffix, &h) || h.Offset > size(path) || h.Evidence == nil {
-		h = held{Standing: NewStanding()}
+func readLastRead(path string) (lastRead, error) {
+	var h lastRead
+	if !readJSON(path+readSuffix, &h) || h.Offset > size(path) || h.Evidence == nil {
+		h = lastRead{Standing: NewStanding()}
 	}
 	events, at, next, err := readEventsFrom(path, h.Offset)
 	if err != nil {
-		return held{}, err
+		return lastRead{}, err
 	}
 	if at != h.Offset {
-		h = held{Standing: NewStanding()}
+		h = lastRead{Standing: NewStanding()}
 	}
 	h.Follow(events...)
 	h.Offset = next
@@ -472,7 +472,7 @@ func (s Files) Remove(root, id string) error {
 			return errors.Join(append(errs, err)...)
 		}
 		defer unlock()
-		for _, suffix := range []string{"", replySuffix, askSuffix, heldSuffix, pendingSuffix} {
+		for _, suffix := range []string{"", replySuffix, askSuffix, readSuffix, ingestSuffix} {
 			if err := os.Remove(s.journalPath(id) + suffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
 				errs = append(errs, err)
 			}

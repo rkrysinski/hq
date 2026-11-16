@@ -156,7 +156,7 @@ func answer(env Env, d deps, r answerRequest) error {
 	}
 	// The cursor before the answer is left: what the agent does with it is
 	// a change numbered above it, for hq wait --since.
-	left := counterNow(d, a)
+	left := cursorBefore(d, a)
 	// The answer is in the agent's journal before the hook can give it, so
 	// what Claude reports of it comes after it (#195).
 	appendEvent(d, a.ID, state.KindAnswer, state.Facts{Whose: state.DialogHooks})
@@ -392,7 +392,7 @@ func answerOwn(env Env, d deps, a agent.Agent, r answerRequest) error {
 	}
 	// The cursor before the first key: what the agent does after the
 	// dialog is a change numbered above it, for hq wait --since.
-	left := counterNow(d, a)
+	left := cursorBefore(d, a)
 	if err := moveTo(d, a, open, v, pick); err != nil {
 		return err
 	}
