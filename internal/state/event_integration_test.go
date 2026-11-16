@@ -218,7 +218,7 @@ func TestHookDeliveriesAreEventsNamingEachMessage(t *testing.T) {
 	if got := eventKinds(events); got != "PostToolUse delivery@answer Stop" || strings.Join(events[1].Facts.Messages, " ") != names[0] {
 		t.Fatalf("events %s, %v, inbox %v", got, events[1].Facts.Messages, names)
 	}
-	if n := Held(root, id); n != 1 {
+	if n := len(HeldNames(root, id)); n != 1 {
 		t.Errorf("held %d", n)
 	}
 }

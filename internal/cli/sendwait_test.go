@@ -497,13 +497,16 @@ func TestSendWaitTypesNothingOnceItsTimeoutHasPassed(t *testing.T) {
 	f := sendFakes(state.Done)
 	turnFor(f, 1000, "")
 	start := f.now
+	// Past waitingAfter by more than a look, so the message has waited
+	// that long at the look where the timeout comes.
+	timeout := waitingAfter + 2*time.Second
 	f.onSleep = func() {
-		if f.now.Sub(start) >= 7*time.Second && f.states["id-a"].State == state.Working {
+		if f.now.Sub(start) >= timeout && f.states["id-a"].State == state.Working {
 			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Done: the earlier turn"}
 			f.tmux.screens["%4"] = emptyBox
 		}
 	}
-	code, out, errOut := f.run("send", "--wait", "--timeout", "7", "a", "hi")
+	code, out, errOut := f.run("send", "--wait", "--timeout", timeout.String(), "a", "hi")
 	if code != 0 || !strings.Contains(out, "nothing yet\n") {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}

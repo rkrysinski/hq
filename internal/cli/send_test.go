@@ -211,6 +211,21 @@ func TestSendSaysWhoTookItByItsDelivery(t *testing.T) {
 	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/clear"}); err != nil || out.String() != "delivered: a took it\n" {
 		t.Errorf("withdrawn: %v %q", err, out.String())
 	}
+	// Taken by another hq process and held behind the earlier message it
+	// typed in: no delivery names it yet, and it follows as a prompt of
+	// its own (#173).
+	for _, st := range []string{state.Working, state.Done} {
+		f = sendFakes(st)
+		f.held["id-a"] = []string{"/probe go"}
+		d = f.deps()
+		d.postMessage = func(string, string, state.Message, bool) (string, error) { return fakeName("/probe go"), nil }
+		d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
+		out.Reset()
+		want := "queued: typed an earlier message into a as its next prompt; this one follows as a prompt of its own once a is back at its prompt\n"
+		if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != want {
+			t.Errorf("%s, held by another process: %v %q", st, err, out.String())
+		}
+	}
 }
 
 func TestSendKeepsTheMessagesWhenTypingThemInFails(t *testing.T) {

@@ -219,7 +219,7 @@ func deliver(d deps, a agent.Agent, msg string, now, command bool, within time.D
 	if atPrompt(a) {
 		return typeIn(d, a, within, msg, command)
 	}
-	if d.pending(a.RepoPath, a.ID) == d.held(a.RepoPath, a.ID) {
+	if d.pending(a.RepoPath, a.ID) == len(d.held(a.RepoPath, a.ID)) {
 		return taken(d, a, msg, command), nil
 	}
 	return asText(queued(a, now), command), nil
@@ -243,11 +243,16 @@ func asText(line string, command bool) string {
 }
 
 // taken is the line of a message msg that was no longer there to take
-// when hq send looked: worded by the delivery that names it in the agent's
-// journal, typed in by hq (any hq process: deliverWaiting) or taken by the
-// agent's hooks, which deliver a slash command as text; with neither in
-// the journal, only that it was taken, which is all hq knows (#173).
+// when hq send looked: held behind an earlier message another hq process
+// typed in, which follows as a prompt of its own, as typeIn words it;
+// otherwise worded by the delivery that names it in the agent's journal,
+// typed in by hq (any hq process: deliverWaiting) or taken by the agent's
+// hooks, which deliver a slash command as text; with neither in the
+// journal, only that it was taken, which is all hq knows (#173).
 func taken(d deps, a agent.Agent, msg string, command bool) string {
+	if msg != "" && namesIt(d.held(a.RepoPath, a.ID), msg) {
+		return followsLine(a)
+	}
 	var t taking
 	if msg != "" {
 		_ = d.journal.Ingest(a.RepoPath, a.ID)
@@ -395,9 +400,16 @@ func typeIn(d deps, a agent.Agent, within time.Duration, msg string, command boo
 		awaitPrompt(d, a)
 	}
 	if len(ps) > 1 {
-		return fmt.Sprintf("queued: typed an earlier message into %s as its next prompt; this one follows as a prompt of its own once %s is back at its prompt", a.Name, a.Name), nil
+		return followsLine(a), nil
 	}
 	return fmt.Sprintf("delivered: typed into %s as its next prompt", a.Name), nil
+}
+
+// followsLine is the line of a message held behind an earlier one typed
+// into agent a as its next prompt: it follows as a prompt of its own
+// (#173).
+func followsLine(a agent.Agent) string {
+	return fmt.Sprintf("queued: typed an earlier message into %s as its next prompt; this one follows as a prompt of its own once %s is back at its prompt", a.Name, a.Name)
 }
 
 // prompts groups messages, oldest first, into the prompts hq types in, in

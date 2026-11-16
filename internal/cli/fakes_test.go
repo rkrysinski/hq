@@ -898,7 +898,13 @@ func (f *fakes) deps() deps {
 			return nil
 		},
 		pending: func(_, id string) int { return len(f.held[id]) + len(f.inbox[id]) },
-		held:    func(_, id string) int { return len(f.held[id]) },
+		held: func(_, id string) []string {
+			var names []string
+			for _, text := range f.held[id] {
+				names = append(names, fakeName(text))
+			}
+			return names
+		},
 		oldestMessage: func(_, id string) (time.Time, bool) {
 			at, ok := f.oldest[id]
 			return at, ok && len(f.held[id])+len(f.inbox[id]) > 0

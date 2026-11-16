@@ -56,7 +56,7 @@ func TestAnInboxReachedThroughALinkIsLeftAlone(t *testing.T) {
 			if len(msgs) != 0 {
 				t.Errorf("took %+v", msgs)
 			}
-			if n, h := Pending(root, linkedInboxID), Held(root, linkedInboxID); n != 0 || h != 0 {
+			if n, h := Pending(root, linkedInboxID), len(HeldNames(root, linkedInboxID)); n != 0 || h != 0 {
 				t.Errorf("pending %d, held %d", n, h)
 			}
 			if _, ok := Oldest(root, linkedInboxID); ok {
@@ -116,8 +116,8 @@ func TestAnInboxWithNoLinkIsTaken(t *testing.T) {
 	if err != nil || len(msgs) != 1 || msgs[0].Text != "hi" {
 		t.Fatalf("took %+v %v", msgs, err)
 	}
-	if err := Hold(root, linkedInboxID, msgs); err != nil || Held(root, linkedInboxID) != 1 {
-		t.Fatalf("held %d: %v", Held(root, linkedInboxID), err)
+	if err := Hold(root, linkedInboxID, msgs); err != nil || len(HeldNames(root, linkedInboxID)) != 1 {
+		t.Fatalf("held %d: %v", len(HeldNames(root, linkedInboxID)), err)
 	}
 	q := Questions{name: "answer.1.2"}
 	if err := LeaveAnswer(root, linkedInboxID, q, []byte("{}")); err != nil || AnswerTaken(root, linkedInboxID, q) {

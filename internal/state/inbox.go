@@ -196,17 +196,18 @@ func Hold(root, id string, msgs []Message) error {
 	return nil
 }
 
-// Held is how many messages wait held for agent id of the repository at
-// root (Hold): Pending counts them too, but the hooks do not deliver them.
-func Held(root, id string) int {
+// HeldNames are the names of the messages that wait held for agent id of
+// the repository at root (Hold), oldest first: Pending counts them too, but
+// the hooks do not deliver them.
+func HeldNames(root, id string) []string {
 	if !idRE.MatchString(id) {
-		return 0
+		return nil
 	}
 	dir, err := inboxDir(root, id, heldDir)
 	if err != nil {
-		return 0
+		return nil
 	}
-	return len(messages(dir))
+	return messages(dir)
 }
 
 // Post leaves m for agent id of the repository at root, sent at at; now

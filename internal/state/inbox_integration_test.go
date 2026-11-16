@@ -320,7 +320,7 @@ func TestHeldMessagesWaitForHqAloneInTheOrderSent(t *testing.T) {
 	if err := Hold(root, id, taken[1:]); err != nil {
 		t.Fatal(err)
 	}
-	if n, h := Pending(root, id), Held(root, id); n != 2 || h != 2 {
+	if n, h := Pending(root, id), len(HeldNames(root, id)); n != 2 || h != 2 {
 		t.Fatalf("pending %d, held %d, want the 2 held", n, h)
 	}
 	want, _ := sentAt(taken[1].Name)
@@ -347,17 +347,17 @@ func TestHeldMessagesWaitForHqAloneInTheOrderSent(t *testing.T) {
 		t.Fatal("left after the take")
 	}
 	// A message without the name it was left under is not held.
-	if err := Hold(root, id, []Message{{Text: "no name"}}); err == nil || Held(root, id) != 0 {
+	if err := Hold(root, id, []Message{{Text: "no name"}}); err == nil || len(HeldNames(root, id)) != 0 {
 		t.Fatalf("held without a name: %v", err)
 	}
-	if err := Hold(root, "not an id", taken); err == nil || Held(root, "not an id") != 0 {
+	if err := Hold(root, "not an id", taken); err == nil || len(HeldNames(root, "not an id")) != 0 {
 		t.Fatal("held for a bad id")
 	}
 	// A hold that fails holds none of them.
 	held := filepath.Join(InboxDir(root, id), "held")
 	os.RemoveAll(held)
 	os.WriteFile(held, nil, 0o644)
-	if err := Hold(root, id, taken); err == nil || Held(root, id) != 0 {
+	if err := Hold(root, id, taken); err == nil || len(HeldNames(root, id)) != 0 {
 		t.Fatal("held where the held directory cannot be")
 	}
 }
