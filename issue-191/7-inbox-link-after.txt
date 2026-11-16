@@ -1,0 +1,18 @@
+$ ls -l .git/hq | grep inbox
+lrwxrwxrwx 1 agent agent   31 Nov 16 12:32 inbox -> /tmp/hq-stub-3870257653/outside
+$ find /tmp/hq-stub-3870257653/outside -type f
+/tmp/hq-stub-3870257653/outside/2026-notes.txt
+/tmp/hq-stub-3870257653/outside/held/2026-plans.txt
+/tmp/hq-stub-3870257653/outside/bfe1dfc14c41/2026-notes.txt
+/tmp/hq-stub-3870257653/outside/bfe1dfc14c41/held/2026-plans.txt
+$ hq send rq2 hi
+hq: cannot leave the message for rq2: /tmp/hq-stub-3870257653/repo/.git/hq/inbox is a link: hq reads no files through it
+exit 3
+$ hq kill rq2 -y
+killed rq2; the sandbox stays
+exit 0
+$ find /tmp/hq-stub-3870257653/outside -type f
+/tmp/hq-stub-3870257653/outside/2026-notes.txt
+/tmp/hq-stub-3870257653/outside/held/2026-plans.txt
+/tmp/hq-stub-3870257653/outside/bfe1dfc14c41/2026-notes.txt
+/tmp/hq-stub-3870257653/outside/bfe1dfc14c41/held/2026-plans.txt

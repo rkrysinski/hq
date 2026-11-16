@@ -1,0 +1,44 @@
+$ go test ./internal/cli/ -v -count=1 -run TestWaitWithoutSinceReturnsAChangeNumberedRightAfterItsFirstLook|TestTheListsCursorStandsForEveryRowItShows|TestTheListLooksAgainOnlyAFewTimes|TestSendWaitFailsAsSendDoesWhenTypingItInFails|TestUpdateStopsOnAGenerationItCannotRead|TestReadNeedsOneKnownAgent|TestWaitRefusesBadArguments|TestSendUsage|TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol
+--- PASS: TestTheListsCursorStandsForEveryRowItShows (0.00s)
+--- PASS: TestTheListLooksAgainOnlyAFewTimes (0.00s)
+--- PASS: TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol (0.00s)
+--- PASS: TestReadNeedsOneKnownAgent (0.00s)
+--- PASS: TestSendUsage (0.00s)
+--- PASS: TestSendWaitFailsAsSendDoesWhenTypingItInFails (0.00s)
+--- PASS: TestUpdateStopsOnAGenerationItCannotRead (0.00s)
+--- PASS: TestWaitRefusesBadArguments (0.00s)
+--- PASS: TestWaitWithoutSinceReturnsAChangeNumberedRightAfterItsFirstLook (0.00s)
+ok  	github.com/rkrysinski/hq/internal/cli	0.012s
+
+$ go test ./internal/journal/ -v -count=1 -run TestAnAppendAfterACutOffIngestLosesNoEvent|TestAnAppendAfterAWholeIngestLeavesItToFinish|TestTheNextIngestFinishesAWholeIngest|TestAnAppendReadsOnFromWhatWasKeptUpToTheJournalsEnd|TestTheNextIngestUndoesAnAppendCutOff
+--- PASS: TestAnAppendAfterACutOffIngestLosesNoEvent (0.00s)
+--- PASS: TestAnAppendAfterAWholeIngestLeavesItToFinish (0.00s)
+--- PASS: TestTheNextIngestFinishesAWholeIngest (0.00s)
+--- PASS: TestAnAppendReadsOnFromWhatWasKeptUpToTheJournalsEnd (0.00s)
+--- PASS: TestTheNextIngestUndoesAnAppendCutOff (0.00s)
+ok  	github.com/rkrysinski/hq/internal/journal	0.004s
+
+$ go test ./internal/update/ -v -count=1 -run TestTheGenerationOfAReleaseWhoseFilesAreOnTheirWay|TestVerifysErrorsAreUnverified
+--- PASS: TestTheGenerationOfAReleaseWhoseFilesAreOnTheirWay (0.00s)
+--- PASS: TestVerifysErrorsAreUnverified (0.00s)
+ok  	github.com/rkrysinski/hq/internal/update	0.001s
+
+$ go test ./internal/state/ -v -count=1 -run TestParseAskNeedsAnEventThatAsks|TestAnInboxReachedThroughALinkIsLeftAlone|TestAnInboxWithNoLinkIsTaken|TestEveryKindOfEvidenceHasItsGroup
+--- PASS: TestParseAskNeedsAnEventThatAsks (0.00s)
+--- PASS: TestEveryKindOfEvidenceHasItsGroup (0.00s)
+--- PASS: TestAnInboxReachedThroughALinkIsLeftAlone (0.00s)
+--- PASS: TestAnInboxWithNoLinkIsTaken (0.00s)
+ok  	github.com/rkrysinski/hq/internal/state	0.003s
+
+$ go test ./internal/agent/ -v -count=1 -run TestALostAgentOfAnotherGenerationIsOutdated
+--- PASS: TestALostAgentOfAnotherGenerationIsOutdated (0.00s)
+ok  	github.com/rkrysinski/hq/internal/agent	0.001s
+
+$ go test -tags integration ./scripts/ -v -count=1 -run TestInstallStopsWhileTheGenerationIsOnItsWay
+--- PASS: TestInstallStopsWhileTheGenerationIsOnItsWay (0.01s)
+ok  	github.com/rkrysinski/hq/scripts	0.015s
+
+$ go test -tags integration ./tools/testgate/ -v -count=1 -run TestMutationJudgesTheChangedLinesWithTheWholeUnitSuite
+--- PASS: TestMutationJudgesTheChangedLinesWithTheWholeUnitSuite (4.42s)
+ok  	github.com/rkrysinski/hq/tools/testgate	4.416s
+

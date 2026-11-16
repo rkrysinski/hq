@@ -1,0 +1,9 @@
+$ hq wait -x
+hq: unknown option '-x' (usage: hq wait [NAME...] [--since SINCE] [--timeout DURATION] [--json])
+exit 1
+$ hq read rq more
+hq: unexpected argument 'more' (usage: hq read NAME [--offset N --since SINCE] [--json])
+exit 1
+$ hq send rq hi --nope
+hq: unknown option '--nope' (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])
+exit 1
