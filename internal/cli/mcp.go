@@ -602,11 +602,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 			"An agent returned done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
 		Annotations: &mcp.ToolAnnotations{Title: "Wait for agents", ReadOnlyHint: true, OpenWorldHint: &no},
 	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpWaitIn) (*mcp.CallToolResult, any, error) {
-		timeout := time.Duration(in.Timeout) * time.Second
-		if timeout <= 0 {
-			timeout = DefaultWaitTimeout
-		}
-		timeout = min(timeout, client.maxWait)
+		timeout := toolTimeout(in.Timeout, client)
 		if in.Since == "" {
 			return toolResult("", usageErr("since is required: the next_since of your most recent wait or list result; with none yet, call list first"))
 		}
@@ -635,11 +631,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 		case in.Timeout != 0 && !in.Wait:
 			return toolResult("", usageErr("timeout goes with wait"))
 		case in.Wait:
-			timeout := time.Duration(in.Timeout) * time.Second
-			if timeout <= 0 {
-				timeout = DefaultWaitTimeout
-			}
-			args = append(args, "--wait", "--timeout", min(timeout, client.maxWait).String())
+			args = append(args, "--wait", "--timeout", toolTimeout(in.Timeout, client).String())
 		}
 		return callCommand(d, runSend, args...)
 	})
@@ -718,6 +710,17 @@ func stepAside(disk *onDisk) mcp.Middleware {
 			return next(ctx, method, req)
 		}
 	}
+}
+
+// toolTimeout is how long a tool that waits (wait, send with wait) waits
+// for the client when asked for seconds: DefaultWaitTimeout when not
+// asked, and never longer than the client gives a tool call (maxWait).
+func toolTimeout(seconds int, c mcpClient) time.Duration {
+	timeout := time.Duration(seconds) * time.Second
+	if timeout <= 0 {
+		timeout = DefaultWaitTimeout
+	}
+	return min(timeout, c.maxWait)
 }
 
 // waitLimit is how long the wait tool waits for the client, as its

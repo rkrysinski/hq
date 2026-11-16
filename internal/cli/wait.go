@@ -173,7 +173,7 @@ func runWait(env Env, d deps, args []string) error {
 }
 
 // watchLooks looks at the agents as hq wait does (design §3.4, §5.1), every
-// waitEvery, through the same collection as the list, asking sbx in the
+// waitEvery, the same look as the list's, asking sbx in the
 // background after the first look, until step says it is done: hq wait and
 // hq send --wait share it. step is given each look, the cursor it stands
 // for (looked.cursor), which is what a result built on that look prints

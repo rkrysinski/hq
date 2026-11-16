@@ -110,12 +110,15 @@ func agentAppeared(before, after []tmux.Window) bool {
 // agent a (a message, an answer): what the counter holds now, so what the
 // agent does with it is numbered above it; the counter of a's read when
 // the counter cannot be read now.
-func counterNow(d deps, a agent.Agent) string {
+func counterNow(d deps, a agent.Agent) string { return cursorText(counterAt(d, a)) }
+
+// counterAt is the number counterNow's cursor stands for.
+func counterAt(d deps, a agent.Agent) int64 {
 	n, err := d.journal.Through()
 	if err != nil {
 		n = a.Through()
 	}
-	return cursorText(n)
+	return n
 }
 
 // seqs are an agent's two numbers as JSON gives them: null for none.

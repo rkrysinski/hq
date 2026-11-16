@@ -81,15 +81,15 @@ A message whose first line starts with `/`; it runs only when hq types it in as 
 _Avoid_: command (that is one of hq's own), skill
 
 **Held message**:
-A message hq took out of the inbox and keeps there apart, out of its hooks' reach, to type in as a prompt of its own once the agent is back at its prompt; it still waits, and is not taken.
+A message hq took out of the inbox and keeps there apart, out of its hooks' reach, to enter as a prompt of its own once the agent is back at its prompt; it still waits, and is not taken.
 _Avoid_: queued message
 
 **Taken**:
-Said of a message once it has left the agent's inbox for Claude: handed over by its hooks, or typed in by hq as its prompt; a message hq typed in and then put back is not taken.
+Said of a message once it has left the agent's inbox for Claude: handed over by its hooks, or entered by hq as its prompt; a message hq entered and then put back after a failed typing is not taken.
 _Avoid_: delivered (for a message only left), read
 
 **Stalled message**:
-A message that an agent waiting at its prompt did not take within 5 s, its box not coming free or Claude not sending what hq typed in, so that `hq send --wait` fails; hq leaves it where it is.
+A message that an agent waiting at its prompt did not take within 5 s, its box not coming free or Claude not sending what hq entered, so that `hq send --wait` fails; hq leaves it where it is.
 _Avoid_: lost message, failed message
 
 **Supervisor**:

@@ -68,6 +68,9 @@ type sendArgs struct {
 	timeoutGiven bool
 }
 
+// parseSend reads hq send's arguments: options anywhere, NAME and TEXT in
+// that order, a TEXT that starts with a dash but holds a space taken for
+// the text.
 func parseSend(args []string) (sendArgs, error) {
 	s := sendArgs{timeout: DefaultWaitTimeout}
 	var rest []string
@@ -141,7 +144,7 @@ func runSend(env Env, d deps, args []string) error {
 	}
 	// The cursor before the message is left: the reply it brings is a
 	// change numbered above it, for hq wait --since.
-	sent := counterNow(d, a)
+	sent := counterAt(d, a)
 	msg, err := d.postMessage(a.RepoPath, a.ID, state.Message{Text: s.text, Supervisor: d.supervisor}, s.now)
 	if err != nil {
 		return envErr("cannot leave the message for %s: %v", a.Name, err)
@@ -168,7 +171,7 @@ func runSend(env Env, d deps, args []string) error {
 	}
 	if !s.wait {
 		if s.asJSON {
-			return writeJSON(env.Stdout, sendOutput{Delivery: how, NextSince: sent})
+			return writeJSON(env.Stdout, sendOutput{Delivery: how, NextSince: cursorText(sent)})
 		}
 		fmt.Fprintln(env.Stdout, how)
 		return nil
@@ -176,8 +179,7 @@ func runSend(env Env, d deps, args []string) error {
 	if !s.asJSON {
 		fmt.Fprintln(env.Stdout, how)
 	}
-	n, _ := parseSince(sent, start)
-	w := waitedSend{agent: a, msg: msg, command: isCommand(s.text), sent: n.cursor, ready: ready, start: start, timeout: s.timeout}
+	w := waitedSend{agent: a, msg: msg, slashCommand: isCommand(s.text), sent: sent, ready: ready, start: start, timeout: s.timeout}
 	end, err := w.wait(d)
 	if err != nil {
 		return err

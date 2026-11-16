@@ -409,3 +409,23 @@ func TestSendWaitWithNoTimeoutWaitsForAStartingAgentAsSendDoes(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 }
+
+func TestSendWaitEndsAtItsTimeoutWhenThereIsNothingToTypeIn(t *testing.T) {
+	// The box comes free, but another process has taken the message, and
+	// its delivery is not in the journal: the call still times out.
+	f := sendFakes(state.Done)
+	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ typing\n", 1)
+	f.onSleep = func() {
+		if f.now.Sub(time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC)) > boxWait {
+			delete(f.inbox, "id-a")
+			f.tmux.screens["%4"] = emptyBox
+		}
+	}
+	start := f.now
+	if got := sendWaitJSON(t, f, "--timeout", "4500ms", "a", "hi"); got.Outcome != endTimeout || len(f.tmux.pasted) != 0 {
+		t.Fatalf("%+v pasted %v", got, f.tmux.pasted)
+	}
+	if took := f.now.Sub(start); took > 5*time.Second {
+		t.Fatalf("took %v", took)
+	}
+}

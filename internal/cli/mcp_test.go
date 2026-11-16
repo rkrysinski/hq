@@ -404,6 +404,10 @@ func TestMCPSendWithWaitReturnsTheTurnThatTookTheMessage(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &got); isErr || err != nil || got.Outcome != endTurn || got.Agents[0].Last != "Done: no blockers" || got.NextSince == "" {
 		t.Fatalf("%v %q", isErr, out)
 	}
+	// The supervisor's, as without wait: its turn notifies nobody (spec §5).
+	if len(f.posted) != 1 || !f.posted[0].Supervisor {
+		t.Fatalf("posted %+v", f.posted)
+	}
 	// A timeout beyond the client's limit waits as long as wait may: 50 s
 	// for Claude Desktop, the delivery included.
 	turnFor(f, 100000, "")

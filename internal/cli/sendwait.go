@@ -126,11 +126,19 @@ func settled(a agent.Agent, t taking, through int64) (string, bool) {
 // given with it (the moment the message could first be taken), or from now
 // when it follows a pause.
 type stallClock struct {
+	// key is the condition the clock measures: keyWaiting, or that hq
+	// typed the message in with a delivery of a given number.
 	key    string
 	from   time.Time
 	paused bool
 }
 
+// keyWaiting is the stall clock's condition of a message that waits for an
+// agent at its prompt, not taken.
+const keyWaiting = "waiting"
+
+// held is how long, at now, the condition key has held: since origin when
+// it is new, since now after a pause; 0 for no condition.
 func (c *stallClock) held(key string, origin, now time.Time) time.Duration {
 	switch {
 	case key == "":
@@ -149,13 +157,13 @@ func (c *stallClock) held(key string, origin, now time.Time) time.Duration {
 // waitedSend is a hq send --wait after its message was left and the line
 // that says how it goes was made (#170).
 type waitedSend struct {
-	agent   agent.Agent // as the send found it last
-	msg     string      // the name the message was left under
-	command bool        // it starts with a slash command
-	sent    int64       // the cursor before it was left
-	ready   time.Time   // when the send began to deliver it
-	start   time.Time   // when the call started, for timeout
-	timeout time.Duration
+	agent        agent.Agent // as the send found it last
+	msg          string      // the name the message was left under
+	slashCommand bool        // it starts with a slash command
+	sent         int64       // the cursor before it was left
+	ready        time.Time   // when the send began to deliver it
+	start        time.Time   // when the call started, for timeout
+	timeout      time.Duration
 }
 
 // sendEnd is how a waited send ended: its outcome, where a message not
@@ -224,15 +232,21 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 		switch {
 		case !atPrompt(a):
 		case !t.taken:
-			key = "waiting"
+			key = keyWaiting
 		case t.byHQ && t.prompt == 0:
 			key, origin = fmt.Sprint("typed ", t.delivery), t.at
 		}
-		if key == "waiting" && boxAtRest(d, a, 0) {
+		late := w.timeout > 0 && !now.Before(w.start.Add(w.timeout))
+		if key == keyWaiting && !late && boxAtRest(d, a, 0) {
 			// Typed in now, by the send that left it: deliverWaiting
-			// would wait waitingAfter, beyond the bound.
-			_, _ = typeIn(d, a, 0, w.command)
-			return false, nil
+			// would wait waitingAfter, beyond the bound. When nothing was
+			// there to take (another process took it, and its delivery is
+			// not in the journal yet), the bound and the timeout run on.
+			before := d.pending(a.RepoPath, a.ID)
+			_, _ = typeIn(d, a, 0, w.slashCommand)
+			if d.pending(a.RepoPath, a.ID) < before {
+				return false, nil
+			}
 		}
 		if clock.held(key, origin, now) >= stallBound {
 			switch box := w.box(d); {
@@ -240,14 +254,14 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 				return true, stalledErr(a, "it still waits in "+a.Name+"'s inbox, and nothing was typed in")
 			case box != "":
 				return true, stalledErr(a, "it is typed into "+a.Name+"'s prompt box and not sent")
-			case w.command:
+			case w.slashCommand:
 				end = sendEnd{outcome: endNoTurn, agents: []agent.Agent{a}, next: next}
 				return true, nil
 			default:
 				return true, stalledErr(a, "it left "+a.Name+"'s prompt box and started no turn")
 			}
 		}
-		if w.timeout > 0 && !now.Before(w.start.Add(w.timeout)) {
+		if late {
 			end = sendEnd{outcome: endTimeout, next: next}
 			return true, nil
 		}
@@ -268,7 +282,9 @@ func (w waitedSend) box(d deps) string {
 
 // notTakenWhere is where the message of agent a, which has not taken it,
 // is: waiting while it needs input, and once it has ended kept for its
-// relaunch while its inbox holds messages, else gone.
+// relaunch while its inbox holds messages, else gone. Nothing takes a
+// message out of an ended agent's inbox but a kill, which removes it whole,
+// so a message not taken is still there while any is.
 func notTakenWhere(d deps, a agent.Agent) string {
 	switch {
 	case a.State != state.Ended:
