@@ -35,20 +35,20 @@ func TestTheDialogVerdictSaysWhoseDialogTheAgentIsAt(t *testing.T) {
 		"a4": {State: state.Working, Since: asked},
 	}, Sandboxes{}, now)
 
-	if d := as[0].Dialog(); d.Whose != HooksDialog || !d.Open() || !d.Since.Equal(asked) || !reflect.DeepEqual(d.Asks(as[0].Detail().Ask), reported) {
+	if d := as[0].Dialog(); d.Whose != state.DialogHooks || !d.Open() || !d.Since.Equal(asked) || !reflect.DeepEqual(d.Asks(as[0].Detail().Ask), reported) {
 		t.Fatalf("the hooks' dialog: %+v, asks %+v", d, as[0].Detail().Ask)
 	}
-	if d := as[1].Dialog(); d.Whose != SubagentDialog || !d.Open() || !d.Since.Equal(asked) || !reflect.DeepEqual(d.Asks(as[1].Detail().Ask), reported) {
+	if d := as[1].Dialog(); d.Whose != state.DialogSubagent || !d.Open() || !d.Since.Equal(asked) || !reflect.DeepEqual(d.Asks(as[1].Detail().Ask), reported) {
 		t.Fatalf("a subagent's dialog: %+v", d)
 	}
 	d := as[2].Dialog()
-	if d.Whose != OwnDialog || !d.Open() || !d.Since.Equal(now) {
+	if d.Whose != state.DialogOwn || !d.Open() || !d.Since.Equal(now) {
 		t.Fatalf("a dialog of Claude's own: %+v", d)
 	}
 	if ask := d.Asks(reported); ask == nil || ask.Questions[0].Question != "Change effort level?" || ask.Questions[0].Options[1].Label != "No, go back" {
 		t.Fatalf("what Claude's own asks: %+v", ask)
 	}
-	if d := as[3].Dialog(); d.Whose != NoDialog || d.Open() || d.Asks(reported) != nil {
+	if d := as[3].Dialog(); d.Whose != "" || d.Open() || d.Asks(reported) != nil {
 		t.Fatalf("no dialog: %+v", d)
 	}
 }
@@ -82,7 +82,7 @@ func TestADialogTheHooksReportedClosesWhenTheScreenShowsClaudeAtWork(t *testing.
 	// What hq saw of an earlier report closes no later dialog.
 	s.screens["%1"] = capture(t, "fs-ask-open")
 	later := map[string]journaltest.HookState{"a1": {State: state.NeedsInput, Since: now.Add(3 * time.Second), Last: "Bash: make"}}
-	if a := s.look(ws, later, Sandboxes{}, now.Add(time.Minute))[0]; a.State != state.NeedsInput || a.Dialog().Whose != HooksDialog {
+	if a := s.look(ws, later, Sandboxes{}, now.Add(time.Minute))[0]; a.State != state.NeedsInput || a.Dialog().Whose != state.DialogHooks {
 		t.Fatalf("a later dialog: %+v", a)
 	}
 }
@@ -95,7 +95,7 @@ func TestASubagentsDialogStaysOpenWhateverTheScreenShows(t *testing.T) {
 	for _, name := range []string{"fs-subagent-elicit-open", "fs-subagent-elicit-answered", "fs-elicit-answered", "fs-thinking"} {
 		s := newStore(map[string]string{"%1": capture(t, name)})
 		a := s.look([]tmux.Window{lookWindow("1")}, rs, Sandboxes{}, now)[0]
-		if d := a.Dialog(); a.State != state.NeedsInput || d.Whose != SubagentDialog || !d.Since.Equal(asked) || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != "" {
+		if d := a.Dialog(); a.State != state.NeedsInput || d.Whose != state.DialogSubagent || !d.Since.Equal(asked) || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != "" {
 			t.Errorf("%s: %+v %+v", name, a, d)
 		}
 	}
@@ -111,7 +111,7 @@ func TestADialogOfClaudesOwnCountsOnBackgroundWork(t *testing.T) {
 	s := newStore(map[string]string{"%1": capture(t, "own-model-background")})
 	ws := []tmux.Window{lookWindow("1")}
 	a := s.look(ws, rs, Sandboxes{}, now)[0]
-	if d := a.Dialog(); a.State != state.NeedsInput || d.Whose != OwnDialog || !d.Since.Equal(now) || a.Last != "Select model" || d.Asks(nil) == nil || a.Entered() != now {
+	if d := a.Dialog(); a.State != state.NeedsInput || d.Whose != state.DialogOwn || !d.Since.Equal(now) || a.Last != "Select model" || d.Asks(nil) == nil || a.Entered() != now {
 		t.Fatalf("open: %+v %+v", a, d)
 	}
 	s.screens["%1"] = capture(t, "fs-model-closed-background")
@@ -140,7 +140,7 @@ func TestTheVerdictOfADialogOfClaudesOwnKnowsItsScreen(t *testing.T) {
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2")}
 	as := s.look(ws, rs, Sandboxes{}, now)
 	effort, model := as[0].Dialog(), as[1].Dialog()
-	if effort.Whose != OwnDialog || effort.Scrolls() || model.Whose != OwnDialog || !model.Scrolls() {
+	if effort.Whose != state.DialogOwn || effort.Scrolls() || model.Whose != state.DialogOwn || !model.Scrolls() {
 		t.Fatalf("effort %+v, model %+v", effort, model)
 	}
 	for name, want := range map[string]bool{"own-effort-low": true, "own-effort-low-down": true, "own-switch-model": false, "own-model-2304": false, "effort-low-set": false} {
@@ -153,7 +153,7 @@ func TestTheVerdictOfADialogOfClaudesOwnKnowsItsScreen(t *testing.T) {
 	recalled := s.look(ws[:1], rs, Sandboxes{}, now.Add(time.Second))[0]
 	v, _ := state.ViewOwnDialog(capture(t, "own-effort-low"))
 	other, _ := state.ViewOwnDialog(capture(t, "own-switch-model"))
-	if d := recalled.Dialog(); d.Whose != OwnDialog || !d.Shows(v) || d.Shows(other) || (Dialog{}).Shows(v) || !d.Since.Equal(now) {
+	if d := recalled.Dialog(); d.Whose != state.DialogOwn || !d.Shows(v) || d.Shows(other) || (Dialog{}).Shows(v) || !d.Since.Equal(now) {
 		t.Fatalf("recalled: %+v", d)
 	}
 	if recalled.Dialog().Asks(nil) != nil {

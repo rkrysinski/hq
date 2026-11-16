@@ -87,6 +87,25 @@ func OutdatedLast(gen int) string { return StartedBy(gen) + ": kill it and start
 // agent refuses an outdated agent with: its name and its last message.
 func (a Agent) OutdatedErr() string { return a.Name + " was " + OutdatedLast(a.Generation) }
 
+// ofGeneration gives a its generation gen: of another than this hq's, it
+// is outdated, and nothing of its own is read: its state, its age and its
+// branch are unknown to this hq (see FromJournals).
+func (a *Agent) ofGeneration(gen int) {
+	a.Generation = gen
+	if gen != version.Generation {
+		a.State, a.Last = state.Outdated, OutdatedLast(gen)
+	}
+}
+
+// Lost is the agent of the record r in the repository at root, which no
+// window of this tmux server has (#140): of another generation than this
+// hq's, it is outdated, as one with a window is (FromWindows).
+func Lost(r state.Record, root string) Agent {
+	a := Agent{ID: r.ID, Name: r.Name, RepoPath: root, Sandbox: r.Sandbox}
+	a.ofGeneration(r.Generation)
+	return a
+}
+
 // Repo is the repository's display name.
 func (a Agent) Repo() string { return filepath.Base(a.RepoPath) }
 
@@ -166,12 +185,8 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if w.PaneDead || o["ending"] != "" {
 			a.State = state.Ended
 		}
-		a.Generation, _ = strconv.Atoi(o[GenerationOption])
-		if a.Generation != version.Generation {
-			// Nothing of its own is read: its state, its age and its
-			// branch are unknown to this hq (see FromJournals).
-			a.State, a.Last = state.Outdated, OutdatedLast(a.Generation)
-		}
+		gen, _ := strconv.Atoi(o[GenerationOption])
+		a.ofGeneration(gen)
 		a.New = o["new"] != "" && a.State == state.Starting
 		as = append(as, a)
 	}

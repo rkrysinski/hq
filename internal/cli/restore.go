@@ -64,7 +64,7 @@ func lostAgents(d deps, ws []tmux.Window, roots []string) []agent.Agent {
 			if r.Server != server(d) || checkName(r.Name) != nil || slices.ContainsFunc(live, taken) || slices.ContainsFunc(lost, taken) {
 				continue
 			}
-			lost = append(lost, agent.Agent{ID: r.ID, Name: r.Name, RepoPath: root, Sandbox: r.Sandbox, Generation: r.Generation})
+			lost = append(lost, agent.Lost(r, root))
 		}
 	}
 	return lost
@@ -196,7 +196,7 @@ func planRestore(d deps, all []sbx.Sandbox, lost []agent.Agent) []restorePlan {
 	var plans []restorePlan
 	for _, a := range lost {
 		p := restorePlan{a: a}
-		if a.Generation != version.Generation {
+		if a.Outdated() {
 			p.why = "it was " + agent.StartedBy(a.Generation)
 			plans = append(plans, p)
 			continue

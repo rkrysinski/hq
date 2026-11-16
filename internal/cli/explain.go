@@ -11,7 +11,6 @@ import (
 
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/state"
-	"github.com/rkrysinski/hq/internal/version"
 )
 
 // hq explain (spec §4.1, #202) shows the events of an agent's journal its
@@ -136,10 +135,8 @@ func runExplain(env Env, d deps, args []string) error {
 	}
 	a, ok := agent.Find(l.agents, x.name)
 	if !ok {
-		if a, ok = lostAgent(d, x.name); ok {
-			if a.Generation != version.Generation {
-				return outdatedErr(a)
-			}
+		// An outdated agent's files are its older hook's: not ingested.
+		if a, ok = lostAgent(d, x.name); ok && !a.Outdated() {
 			_ = d.journal.Ingest(a.RepoPath, a.ID)
 		}
 	}

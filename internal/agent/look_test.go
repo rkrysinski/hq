@@ -269,7 +269,7 @@ func TestTheLookAppendsAndShowsWhatEveryFixtureJournalSays(t *testing.T) {
 			}
 			l := &shown{State: a.State, Since: a.Since.UTC(), Last: a.Last, OwnTasks: a.OwnTasks}
 			if d := a.Dialog(); d.Open() {
-				l.Dialog = map[Whose]string{HooksDialog: state.DialogHooks, SubagentDialog: state.DialogSubagent, OwnDialog: state.DialogOwn}[d.Whose]
+				l.Dialog = d.Whose
 				l.DialogSince = d.Since.UTC()
 			}
 			if g, w := mustJSON(t, l), mustJSON(t, step.Look); g != w {

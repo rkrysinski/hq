@@ -298,7 +298,7 @@ func deliverWaiting(d deps, as []agent.Agent) {
 func queued(a agent.Agent, now bool) string {
 	var when string
 	switch dialog := a.Dialog(); {
-	case dialog.Whose == agent.OwnDialog:
+	case dialog.Whose == state.DialogOwn:
 		// A dialog of Claude's own, at its start or after a turn: closing
 		// it fires no hook, so nothing delivers the message until the next
 		// prompt (#29, #66).

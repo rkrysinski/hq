@@ -217,7 +217,7 @@ func act(t *testing.T, store *lookStore, w *tmux.Window, id, how string, when ti
 func fixtureLookOf(a agent.Agent) *state.FixtureLook {
 	l := &state.FixtureLook{State: a.State, Since: a.Since.UTC(), Last: a.Last, OwnTasks: a.OwnTasks}
 	if d := a.Dialog(); d.Open() {
-		l.Dialog, l.DialogSince = map[agent.Whose]string{agent.HooksDialog: state.DialogHooks, agent.SubagentDialog: state.DialogSubagent, agent.OwnDialog: state.DialogOwn}[d.Whose], d.Since.UTC()
+		l.Dialog, l.DialogSince = d.Whose, d.Since.UTC()
 	}
 	return l
 }

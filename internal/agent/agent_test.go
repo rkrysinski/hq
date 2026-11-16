@@ -100,6 +100,25 @@ func TestAnAgentOfAnotherGenerationIsOutdated(t *testing.T) {
 	}
 }
 
+// A lost agent, the one a record names and no window has, is outdated by
+// the record's generation as one with a window is by its own.
+func TestALostAgentOfAnotherGenerationIsOutdated(t *testing.T) {
+	for _, c := range []struct {
+		gen   int
+		state string
+		last  string
+	}{
+		{gen: version.Generation},
+		{gen: version.Generation - 1, state: state.Outdated, last: "started by an older hq: kill it and start it again"},
+		{gen: version.Generation + 1, state: state.Outdated, last: "started by a newer hq: kill it and start it again"},
+	} {
+		a := Lost(state.Record{ID: "a1", Name: "a", Sandbox: "app", Generation: c.gen}, "/w/app")
+		if a.ID != "a1" || a.Name != "a" || a.Sandbox != "app" || a.RepoPath != "/w/app" || a.Generation != c.gen || a.State != c.state || a.Last != c.last {
+			t.Errorf("generation %d: %+v, want state %q, last %q", c.gen, a, c.state, c.last)
+		}
+	}
+}
+
 func TestNewIDIsFresh(t *testing.T) {
 	if a, b := NewID(), NewID(); a == b || len(a) != 12 {
 		t.Fatalf("%q %q", a, b)

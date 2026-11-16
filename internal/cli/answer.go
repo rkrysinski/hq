@@ -136,7 +136,7 @@ func answer(env Env, d deps, r answerRequest) error {
 		}
 		return usageErr("dialog %s is not open: %s is at dialog %s now (%s); read it (hq read %s) before answering", r.dialog, a.Name, open.ID(), a.Last, a.Name)
 	}
-	if open.Whose == agent.OwnDialog {
+	if open.Whose == state.DialogOwn {
 		return answerOwn(env, d, a, r)
 	}
 	// The dialog the hook holds on for the answer is the one the journal
@@ -241,13 +241,13 @@ func answerable(a agent.Agent, ask *state.Ask) error {
 		return usageErr("%s has ended: it is at no dialog", a.Name)
 	case dialog.Scrolls():
 		return scrollsErr(a)
-	case dialog.Whose == agent.OwnDialog:
+	case dialog.Whose == state.DialogOwn:
 		return nil
 	case a.State == state.Question:
 		return usageErr("%s asks in its reply, not in a dialog: answer it with hq send %s TEXT", a.Name, a.Name)
 	case !dialog.Open():
 		return usageErr("%s is at no dialog: it is %s", a.Name, a.State)
-	case dialog.Whose == agent.SubagentDialog:
+	case dialog.Whose == state.DialogSubagent:
 		return usageErr("%s's dialog is one of its subagents' (%s), which hq does not answer; %s", a.Name, a.Last, at)
 	case ask != nil && ask.Server != "":
 		return usageErr("%s is at an MCP server's form (%s: %s), which hq does not answer; %s", a.Name, ask.Server, a.Last, at)
