@@ -483,3 +483,23 @@ func TestSendWaitStallsWhenTheBoundHasHeldForExactly5s(t *testing.T) {
 		t.Fatalf("stalled after %v at its prompt, want %v", held, stallBound)
 	}
 }
+
+func TestSendWaitTypesNothingInAtTheLookItsTimeoutComes(t *testing.T) {
+	// The agent works past waitingAfter with the message waiting and comes
+	// back to its empty box at the look the timeout comes: the call ends
+	// there and leaves the message waiting, for the next look of any hq to
+	// deliver; it does not hand its own agent to deliverWaiting meanwhile.
+	f := sendFakes(state.Working)
+	f.tmux.screens["%4"] = workingScreen
+	start := f.now
+	f.onSleep = func() {
+		if f.now.Sub(start) >= 10*time.Second {
+			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: other work"}
+			f.tmux.screens["%4"] = emptyBox
+		}
+	}
+	got := sendWaitJSON(t, f, "--timeout", "10s", "a", "hi")
+	if got.Outcome != endTimeout || len(f.tmux.pasted) != 0 || len(f.inbox["id-a"]) != 1 {
+		t.Fatalf("%+v pasted %v inbox %v", got, f.tmux.pasted, f.inbox["id-a"])
+	}
+}
