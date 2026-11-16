@@ -429,3 +429,30 @@ func TestSendWaitEndsAtItsTimeoutWhenThereIsNothingToTypeIn(t *testing.T) {
 		t.Fatalf("took %v", took)
 	}
 }
+
+func TestSendWaitStallsWithNoTimeoutWhenThereIsNothingToTypeIn(t *testing.T) {
+	// As above with no timeout: the bound still runs, so the call ends.
+	f := sendFakes(state.Done)
+	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ typing\n", 1)
+	start := f.now
+	f.onSleep = func() {
+		if f.now.Sub(start) > boxWait {
+			delete(f.inbox, "id-a")
+			f.tmux.screens["%4"] = emptyBox
+		}
+		if f.now.Sub(start) > 4*stallBound {
+			t.Fatal("still waiting long after the bound")
+		}
+	}
+	if code, _, errOut := f.run("send", "--wait", "--timeout", "0", "a", "hi"); code != ExitStalled || len(f.tmux.pasted) != 0 {
+		t.Fatalf("exit %d %q pasted %v", code, errOut, f.tmux.pasted)
+	}
+}
+
+func TestWaitWithNoTimeoutWaitsPastTheDefault(t *testing.T) {
+	f := sendFakes(state.Done)
+	turnFor(f, 300, "Done: late") // 75 s of looks, past the default 50 s
+	if out := mustRun(t, f, "wait", "a", "--timeout", "0"); !strings.Contains(out, "Done: late") {
+		t.Fatalf("%q", out)
+	}
+}

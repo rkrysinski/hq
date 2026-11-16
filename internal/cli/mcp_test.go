@@ -405,6 +405,26 @@ func TestMCPSendLeavesTheMessageAsHqSendDoes(t *testing.T) {
 	}
 }
 
+func TestAToolWaitsAsLongAsItsClientAllows(t *testing.T) {
+	for _, tc := range []struct {
+		seconds int
+		client  mcpClient
+		want    time.Duration
+	}{
+		{0, claudeDesktop, DefaultWaitTimeout},
+		{-5, claudeCode, DefaultWaitTimeout},
+		{1, claudeCode, time.Second},
+		{10, claudeDesktop, 10 * time.Second},
+		{3600, claudeDesktop, DefaultWaitTimeout},
+		{3600, claudeCode, time.Hour},
+		{7200, claudeCode, time.Hour},
+	} {
+		if got := toolTimeout(tc.seconds, tc.client); got != tc.want {
+			t.Errorf("%d s for %s: %v, want %v", tc.seconds, tc.client.name, got, tc.want)
+		}
+	}
+}
+
 func TestMCPSendWithWaitReturnsTheTurnThatTookTheMessage(t *testing.T) {
 	f := sendFakes(state.Done)
 	onSubmit(f, func() { turnFor(f, 6, "Done: no blockers") })
