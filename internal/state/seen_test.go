@@ -333,3 +333,47 @@ func TestATurnTheUserEndedIsNoCompletedTurnButOneClaudeOwedThatDidNotComeIs(t *t
 		t.Errorf("not taken: %s, turn ended at %d", r.State, r.TurnEnded)
 	}
 }
+
+// An agent launched with a first prompt is starting until it reports that
+// prompt: its new session's start is no done (spec §5, S2; #191). Without
+// one, or on a session resumed or started over, the start is done as ever,
+// and a dialog of Claude's own at the start still needs input.
+func TestAnAgentLaunchedWithAPromptIsStartingUntilItReportsIt(t *testing.T) {
+	launch := func(n int64, prompted bool) Event {
+		return seenEvent(n, SourceHQ, KindLaunched, 0, Facts{Start: "new", Prompted: prompted})
+	}
+	start := func(n int64, source string) Event {
+		hookCase := CaseStart
+		if source == resumeSource {
+			hookCase = CaseResume
+		}
+		return hookEvent(n, hookCase, KindSessionStart, Facts{Start: source, Session: "s1", Cwd: "/w/app"})
+	}
+	for _, tc := range []struct {
+		name    string
+		journal []Event
+		state   string
+		entered int64
+		changed int64
+	}{
+		{"launched with a prompt, its session started", []Event{launch(1, true), start(2, newSource)}, Starting, 1, 0},
+		{"then the prompt", []Event{launch(1, true), start(2, newSource), userPrompt(3, "t1")}, Working, 3, 3},
+		{"then its turn's end", []Event{launch(1, true), start(2, newSource), userPrompt(3, "t1"), endOfTurn(4, "t1", false)}, Done, 4, 4},
+		{"launched without a prompt", []Event{launch(1, false), start(2, newSource)}, Done, 2, 2},
+		{"a launch from before the fact", []Event{seenEvent(1, SourceHQ, KindLaunched, 0, Facts{Start: "new"}), start(2, newSource)}, Done, 2, 2},
+		{"a dialog of Claude's own before the prompt", []Event{launch(1, true), start(2, newSource), seenEvent(3, SourceScreen, KindOwnDialog, 2, Facts{Screen: "f1", Text: "Make auto mode your default permission mode?"})}, NeedsInput, 3, 3},
+		{"the dialog answered, still before the prompt", []Event{launch(1, true), start(2, newSource), seenEvent(3, SourceScreen, KindOwnDialog, 2, Facts{Screen: "f1", Text: "Make auto mode your default permission mode?"}), seenEvent(4, SourceScreen, KindOwnDialogGone, 2, Facts{})}, Starting, 1, 4},
+		{"started over after its first turn", []Event{launch(1, true), start(2, newSource), userPrompt(3, "t1"), endOfTurn(4, "t1", false), start(5, "clear")}, Done, 5, 4},
+		{"restored with no prompt of its own", []Event{launch(1, true), start(2, newSource), userPrompt(3, "t1"), endOfTurn(4, "t1", false), seenEvent(5, SourceHQ, KindLaunched, 0, Facts{Start: "restore", Session: "s1"}), start(6, resumeSource)}, Done, 6, 6},
+		{"relaunched by a sandbox restart", []Event{launch(1, true), start(2, newSource), userPrompt(3, "t1"), endOfTurn(4, "t1", false), seenEvent(5, SourceHQ, KindRelaunched, 0, Facts{Session: "s1"}), start(6, resumeSource)}, Done, 6, 6},
+	} {
+		r := Reduce(tc.journal, Reply{}, atSecond(9))
+		if r.State != tc.state || r.Entered.Number != tc.entered || r.Changed.Number != tc.changed {
+			t.Errorf("%s: %s entered %d changed %d, want %s entered %d changed %d", tc.name, r.State, r.Entered.Number, r.Changed.Number, tc.state, tc.entered, tc.changed)
+		}
+	}
+	// It keeps what its session's start told: the session and the worktree.
+	if r := Reduce([]Event{launch(1, true), start(2, newSource)}, Reply{}, atSecond(9)); r.Worktree != "/w/app" || !r.Since.Equal(atSecond(1)) {
+		t.Errorf("starting from its launch: %+v", r)
+	}
+}

@@ -23,6 +23,9 @@ type seen struct {
 	// launched is the latest launch or relaunch; zero when the journal
 	// holds none, and then every report is of the agent's session.
 	launched Ref
+	// prompted says the latest launch gave the agent a first prompt
+	// (Facts.Prompted).
+	prompted bool
 	// ends are the events that say the agent ended, in their order: its
 	// pane's death, its sandbox not running (counted only while no report
 	// is newer than the moment sbx was asked), a restart taking it down.
@@ -96,7 +99,7 @@ func (f *Fold) see(e Event) bool {
 		b := f.seen
 		b.ends = slices.Clip(b.ends)
 		f.beforeLaunch = &b
-		f.seen = seen{launched: RefOf(e)}
+		f.seen = seen{launched: RefOf(e), prompted: e.Facts.Prompted}
 	case KindWithdrawn:
 		if (e.Facts.Withdrawn != KindLaunched && e.Facts.Withdrawn != KindRelaunched) || f.beforeLaunch == nil {
 			return false
@@ -165,6 +168,12 @@ func (f *Fold) look(reply *Reply) looked {
 	case session && r.State != Starting:
 		f.overrule(&r, h)
 	}
+	if session && f.awaitsFirstPrompt(r.Reduced, h) {
+		// Its new session waits for the first prompt hq gave it, which is
+		// no turn done: starting from its launch until it reports it.
+		r.State, r.Since, r.Entered = Starting, s.launched.Time, s.launched
+		r.restOn(s.launched.Number)
+	}
 	if r.State != NeedsInput {
 		r.Dialog = DialogVerdict{}
 	}
@@ -174,6 +183,15 @@ func (f *Fold) look(reply *Reply) looked {
 		r.OwnTasks = nil
 	}
 	return r
+}
+
+// awaitsFirstPrompt says r, from the hook's report h, is the done of a new
+// session's start of an agent launched with a first prompt, which the
+// screen did not overrule (a dialog of Claude's own still needs input).
+func (f *Fold) awaitsFirstPrompt(r, h Reduced) bool {
+	c := f.report
+	return f.seen.prompted && r.State == Done && r.Entered == h.Entered &&
+		c.Kind == KindSessionStart && c.Facts.Start == newSource
 }
 
 // ended applies the end of the agent to r, and reports whether it ended:
