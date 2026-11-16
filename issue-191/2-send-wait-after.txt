@@ -1,0 +1,11 @@
+$ scripts/local-dev.sh --stub native new rq /tmp/hq-stub-rf191/repo 'say hi' && scripts/local-dev.sh --stub native wait rq | tail -2
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started rq in repo (sandbox claude-repo); enter it with: hq go rq
+rq    repo  main    done   0s   Done: say hi
+next: hq wait rq --since c4
+$ scripts/local-dev.sh --stub native send rq 'say bye' --wait
+delivered: typed into rq as its next prompt
+NAME  REPO  BRANCH  STATE  AGE  LAST
+rq    repo  main    done   0s   Done: say bye
+next: hq wait rq --since c7
+$

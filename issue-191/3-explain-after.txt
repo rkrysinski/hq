@@ -1,0 +1,9 @@
+$ scripts/local-dev.sh --stub native explain rq
+name      rq
+state     done 32s, since 2026-11-16 09:23:47.310
+rests on  7
+dialog    at none, never at one
+the state rests on, oldest first
+  N  TIME                     SOURCE  WHAT      STATE
+  7  2026-11-16 09:23:47.310  hook    turn end  done
+$
