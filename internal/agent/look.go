@@ -223,6 +223,11 @@ func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Sources, f
 		}
 		screen, captured := screens[a.Pane]
 		if captured {
+			// What the hook reported before the capture comes before what
+			// the screen shows: Claude reports a turn's end a moment
+			// before it draws its empty prompt box again (#191).
+			_ = store.Ingest(a.RepoPath, a.ID)
+			_ = f.update(store, a.ID)
 			events, resting := f.fold.Sees(screen, now)
 			a.resting = resting
 			for _, e := range events {
