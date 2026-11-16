@@ -274,12 +274,16 @@ func (a *Agent) unread() {
 }
 
 // StateSeq is the number of the event at which the agent's state, or the
-// dialog it is at, last changed (state_seq, ADR 0019); ok is false for an
-// agent with no event behind its state: outdated, one whose journal could
-// not be read, one starting before its journal holds an event, and one gone
-// (Gone).
+// dialog it is at, last changed (state_seq, ADR 0019): for an agent starting
+// from its launch, whose state has not changed since, the event it entered
+// it at, the launch. ok is false for an agent with no event behind its
+// state: outdated, one whose journal could not be read, one starting before
+// its journal holds an event, and one gone (Gone).
 func (a Agent) StateSeq() (n int64, ok bool) {
 	n = a.reduced.Changed.Number
+	if n == 0 {
+		n = a.reduced.Entered.Number
+	}
 	return n, a.journaled && !a.Outdated() && n > 0
 }
 

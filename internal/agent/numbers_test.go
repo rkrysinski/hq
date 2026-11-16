@@ -138,3 +138,26 @@ func TestTheLookSawEveryChangeUpToTheLowestCounterOfItsReads(t *testing.T) {
 		}
 	}
 }
+
+// An agent hq has just launched is starting from its launch, the event its
+// state rests on, before any report: its state number is the launch's
+// (#166, the operator's decision 3A gives none only to an agent with no
+// event behind its state).
+func TestAnAgentJustLaunchedHasTheLaunchsNumber(t *testing.T) {
+	ws := []tmux.Window{lookWindow("1")}
+	s := newStore(nil)
+	_, _ = s.Append("a1", state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: time.Unix(100, 0), Facts: state.Facts{Repo: "/w/app"}})
+	launched := s.latest(t, "a1")
+	a := Look(ws, Sandboxes{}, time.Unix(1000, 0), s, nil)[0]
+	if st, ok := a.StateSeq(); !ok || st != launched || a.State != state.Starting {
+		t.Fatalf("just launched: %s, state_seq %d %v, want %d", a.State, st, ok, launched)
+	}
+	if _, ok := a.CompletionSeq(); ok {
+		t.Fatal("just launched: a completion")
+	}
+	// Its first report moves it.
+	a = s.look(ws, map[string]state.Report{"a1": {State: state.Working, Since: time.Unix(200, 0), Prompt: "go"}}, Sandboxes{}, time.Unix(1000, 0))[0]
+	if st, _ := a.StateSeq(); st != s.latest(t, "a1") || st <= launched {
+		t.Fatalf("after its first report: state_seq %d", st)
+	}
+}
