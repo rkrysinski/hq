@@ -32,7 +32,7 @@ func commands() []command {
 		{"dash", "", "open the dashboard (also: hq alone)", runDash},
 		{"new", "NAME [DIR] [PROMPT]", "start an agent for the repository in DIR, with an optional first prompt", runNew},
 		{"ls", "[--json]", "list agents", runLs},
-		{"read", "NAME [--offset N --since TIME] [--json]", "show that agent in full: its last reply (a long one in pages) and what it asks", runRead},
+		{"read", "NAME [--offset N --since SINCE] [--json]", "show that agent in full: its last reply (a long one in pages) and what it asks", runRead},
 		{"explain", "NAME [--all] [--json]", "show the events that agent's state rests on, with no text of its conversation", runExplain},
 		{"wait", "[NAME...] [--json]", "wait until an agent is done, asks, needs input or ends", runWait},
 		{"go", "NAME", "enter that agent's session", runGo},
@@ -130,7 +130,8 @@ func runHelp(env Env, _ deps, _ []string) error {
 	b.WriteString("hq new also takes --setup NAME: the agent runs in the repository's sandbox of that setup, from \"sandboxes\" in preferences.json (default: \"sandbox\").\n")
 	b.WriteString("hq sandbox also takes --setup NAME (the repository's sandbox of that setup, instead of its default) or --all-setups (every sandbox of the repository).\n")
 	b.WriteString("hq mcp load and unload take REPO and those flags as hq sandbox does; hq sandbox restart loads hq again into a sandbox it was loaded into, and takes it away after an unload (sbx has no unload).\n")
-	fmt.Fprintf(&b, "hq wait also takes --since TIME (the moment it printed last, or 10m back) and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
+	fmt.Fprintf(&b, "hq wait also takes --since SINCE and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
+	b.WriteString("SINCE: the next_since hq printed last, passed back as given, which misses no change and repeats none; or a moment (2026-09-28T10:25:01Z) or a duration back from now (10m), both approximate.\n")
 	b.WriteString("hq answer takes one ANSWER per question, in the dialog's order: an option's number, numbers joined with commas where several may be picked, or text; a dialog of Claude's own (as /effort opens) takes one option's number; ID is the dialog's, as hq read shows it.\n")
 	b.WriteString("Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment.\n")
 	_, err := io.WriteString(env.Stdout, b.String())

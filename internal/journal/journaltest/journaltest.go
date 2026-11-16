@@ -172,6 +172,13 @@ func (m *Memory) ReadFrom(id string, from int64) (journal.Journal, error) {
 	return j, nil
 }
 
+// Through is what the counter holds (journal.Store).
+func (m *Memory) Through() (int64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.counter, nil
+}
+
 // Reads is how many events Read and ReadFrom have given of agent id's
 // journal, for a test to see that a look reads only what is new.
 func (m *Memory) Reads(id string) int {

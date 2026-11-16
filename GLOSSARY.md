@@ -90,7 +90,19 @@ _Avoid_: collection, refresh, poll, settling
 
 **Event**:
 One thing hq learned about an agent: what it was, when, and its source - the agent's hook, its screen, tmux, sbx, or hq itself. Every event has a number from one count for the whole host, never used twice. An event of hq's own carries its basis, the number of the last event of the hook it was based on; an event hq recorded but did not act on, because another hq process recorded the same thing first (a duplicate) or a later report overtook its basis (overtaken), is set aside.
-_Avoid_: record, report, marker, log entry
+_Avoid_: record, marker, log entry
+
+**Report**:
+An event whose source is the agent's hook: what Claude's session told hq through it, as the hook wrote it in an event file and hq ingested it. Every other event is hq's own or evidence.
+_Avoid_: hook event, payload, state file
+
+**State number**:
+The number of the event at which an agent's state, or the dialog it is at, last changed (`state_seq`); a report that leaves both as they were does not move it. The **completion number** (`completion_seq`) is the number of the event that ended the agent's last completed turn: a turn end its hook reported as `done` or `question`, or the screen's word that the turn Claude owed after such an end, kept `working` for background work, does not come. An agent with no event behind its state has neither.
+_Avoid_: version, revision, timestamp
+
+**Cursor**:
+What hq gives as `next_since` and takes back as `--since`: an opaque text standing for a number of the host's one count such that the look that gave it saw every change numbered up to it, so a watch that passes each result's cursor to its next call misses no change and repeats none. Not the cursor row of the list.
+_Avoid_: moment, timestamp, offset, token
 
 **Evidence**:
 An event of what a look saw of an agent that no hook reports: what its screen shows, tmux's word that its pane died, sbx's that its sandbox does not run. The same evidence stands once in a journal, since the agent was last launched: of hq processes that see it at once, the first to append it wins, and evidence a later report of the hook overtook is set aside.

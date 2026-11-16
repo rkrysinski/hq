@@ -337,6 +337,17 @@ func (s Files) ReadFrom(id string, from int64) (Journal, error) {
 	return j, nil
 }
 
+// Through is what the counter holds, read under the lock (Store): 0
+// before the first event.
+func (s Files) Through() (int64, error) {
+	unlock, err := s.lock()
+	if err != nil {
+		return 0, err
+	}
+	defer unlock()
+	return readCounter(filepath.Join(s.Dir, counterName))
+}
+
 // readEventsFrom are the events of the journal at path from byte offset
 // from, none when there is none, with the offset they were read from (0
 // when the journal is shorter than from) and the offset after the last

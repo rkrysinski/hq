@@ -100,9 +100,9 @@ func runSend(env Env, d deps, args []string) error {
 	case a.State == state.Ended:
 		return usageErr("%s has ended and cannot receive messages; relaunch it with %s, or kill it and start it again", a.Name, restartCommand(a))
 	}
-	// The moment before the message is left: the reply it brings is a
-	// change after it, for hq wait --since.
-	sent := lookedAt(d.now())
+	// The cursor before the message is left: the reply it brings is a
+	// change numbered above it, for hq wait --since.
+	sent := counterNow(d, a)
 	if err := d.postMessage(a.RepoPath, a.ID, state.Message{Text: text, Supervisor: d.supervisor}, now); err != nil {
 		return envErr("cannot leave the message for %s: %v", a.Name, err)
 	}
@@ -126,21 +126,21 @@ func runSend(env Env, d deps, args []string) error {
 }
 
 // sendOutput is what hq send --json prints: how the message goes, and the
-// moment before it was left, for hq wait --since, so the agent's reply to
-// it is returned however late hq wait is called.
+// agent's cursor from before it was left (ADR 0019), for hq wait --since,
+// so the agent's reply to it is returned however late hq wait is called.
 type sendOutput struct {
-	Delivery  string    `json:"delivery"`
-	NextSince time.Time `json:"next_since"`
+	Delivery  string `json:"delivery"`
+	NextSince string `json:"next_since"`
 }
 
 // findAgent collects the agents as hq ls does, turns the user ended
 // included, and returns the one named name.
 func findAgent(d deps, name string) (agent.Agent, error) {
-	as, err := lookNow(d)
+	l, err := lookNow(d)
 	if err != nil {
 		return agent.Agent{}, err
 	}
-	a, ok := agent.Find(as, name)
+	a, ok := agent.Find(l.agents, name)
 	if !ok {
 		return agent.Agent{}, notFoundErr("no agent '%s' (see hq ls)", name)
 	}

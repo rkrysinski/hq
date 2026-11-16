@@ -229,6 +229,15 @@ func screenEvent(kind string, now time.Time) Event {
 	return Event{Source: SourceScreen, Kind: kind, Time: now}
 }
 
+// LastReplyNumber is the number of the latest turn end, whose reply
+// LastReply gives: 0 before the first.
+func (f Fold) LastReplyNumber() int64 {
+	if f.stop == nil {
+		return 0
+	}
+	return f.stop.Number
+}
+
 // LastReply is the latest turn end's reply in full, as hq read shows it,
 // with reply the journal's reply of that turn end, and when it was given:
 // TooLarge for a turn end too large to read (#64); "" and the zero time

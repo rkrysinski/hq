@@ -2,8 +2,10 @@ package cli
 
 import (
 	"encoding/hex"
+	"errors"
 	"reflect"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
@@ -47,11 +49,24 @@ func (j hookedJournal) Append(id string, events ...state.Event) ([]state.Event, 
 	return j.Memory.Append(journalID(id), events...)
 }
 
+func (j hookedJournal) Through() (int64, error) {
+	if j.f.onThrough != nil {
+		j.f.onThrough()
+	}
+	return j.Memory.Through()
+}
+
 func (j hookedJournal) Read(id string) (journal.Journal, error) {
-	return j.Memory.Read(journalID(id))
+	return j.ReadFrom(id, 0)
 }
 
 func (j hookedJournal) ReadFrom(id string, from int64) (journal.Journal, error) {
+	if j.f.onRead != nil {
+		j.f.onRead(id)
+	}
+	if j.f.unreadable[id] {
+		return journal.Journal{}, errors.New("no state directory")
+	}
 	return j.Memory.ReadFrom(journalID(id), from)
 }
 
@@ -70,6 +85,43 @@ func (j hookedJournal) IDs() ([]string, error) {
 func (j hookedJournal) Remove(root, id string) error {
 	delete(j.f.left, id)
 	return j.Memory.Remove(root, journalID(id))
+}
+
+// cursorBefore is the cursor just below the first event of kind in agent
+// id's journal: what hq gives as next_since for what that event starts.
+func (f *fakes) cursorBefore(t *testing.T, id, kind string) string {
+	t.Helper()
+	j, err := f.journal.Read(journalID(id))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range j.Events {
+		if e.Kind == kind {
+			return cursorText(e.Number - 1)
+		}
+	}
+	t.Fatalf("no %s in %s", kind, journaltest.Kinds(j.Events))
+	return ""
+}
+
+// cursorOf is the number of the last event in agent id's journal.
+func (f *fakes) cursorOf(t *testing.T, id string) int64 {
+	t.Helper()
+	j, err := f.journal.Read(journalID(id))
+	if err != nil || len(j.Events) == 0 {
+		t.Fatalf("journal of %s: %v", id, err)
+	}
+	return j.Events[len(j.Events)-1].Number
+}
+
+// mustRun runs hq with args, failing unless it exits 0; its output.
+func mustRun(t *testing.T, f *fakes, args ...string) string {
+	t.Helper()
+	code, out, errOut := f.run(args...)
+	if code != 0 {
+		t.Fatalf("%v: exit %d %q", args, code, errOut)
+	}
+	return out
 }
 
 // leftReport is a report the fakes' hook left for an agent.

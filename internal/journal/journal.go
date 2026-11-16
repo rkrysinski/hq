@@ -42,6 +42,11 @@ type Store interface {
 	Remove(root, id string) error
 	// IDs are the ids of the agents that have a journal, in their order.
 	IDs() ([]string, error)
+	// Through is what the counter holds, read under the lock: every event
+	// numbered up to it, of any agent, is in its journal (Journal.Through).
+	// The cursor of a look or of an hq command that acts starts from it
+	// (ADR 0019).
+	Through() (int64, error)
 }
 
 // Home is where the agent of the journal events was last launched (its

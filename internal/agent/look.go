@@ -32,10 +32,12 @@ type Folds struct {
 func NewFolds() *Folds { return &Folds{by: map[string]*folded{}} }
 
 // folded is an agent's journal folded up to position next: the fold, the
-// journal's reply and ask, and what decides whether evidence appended now
-// stands (journal.Standing).
+// journal's reply and ask, what decides whether evidence appended now
+// stands (journal.Standing), and what the counter held at its last read
+// (journal.Journal.Through).
 type folded struct {
 	next     int64
+	through  int64
 	fold     state.Fold
 	reply    state.Reply
 	ask      state.Asked
@@ -86,7 +88,7 @@ func (f *folded) update(store journal.Store, id string) error {
 	if j.Ask.Number != 0 {
 		f.ask = j.Ask
 	}
-	f.next = j.Next
+	f.next, f.through = j.Next, j.Through
 	return nil
 }
 

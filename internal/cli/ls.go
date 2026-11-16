@@ -15,15 +15,21 @@ import (
 
 // lsRow is one agent as hq ls --json prints it.
 type lsRow struct {
-	Name       string    `json:"name"`
-	Repo       string    `json:"repo"`
-	RepoPath   string    `json:"repo_path"`
-	Branch     string    `json:"branch"`
-	State      string    `json:"state"`
-	Since      time.Time `json:"since"`
-	AgeSeconds int64     `json:"age_seconds"`
-	Last       string    `json:"last"`
-	Sandbox    string    `json:"sandbox"`
+	Name     string `json:"name"`
+	Repo     string `json:"repo"`
+	RepoPath string `json:"repo_path"`
+	Branch   string `json:"branch"`
+	State    string `json:"state"`
+	// StateSeq is the number of the change that put it in its state, or
+	// moved it to another dialog, and CompletionSeq the number of the change
+	// that ended its last completed turn (ADR 0019); null when there is no
+	// such event (spec §4.1).
+	StateSeq      *int64    `json:"state_seq"`
+	CompletionSeq *int64    `json:"completion_seq"`
+	Since         time.Time `json:"since"`
+	AgeSeconds    int64     `json:"age_seconds"`
+	Last          string    `json:"last"`
+	Sandbox       string    `json:"sandbox"`
 	// Setup is the setup its sandbox was created for, read off the
 	// sandbox's name (#135).
 	Setup   string `json:"setup"`
@@ -47,26 +53,17 @@ func runLs(env Env, d deps, args []string) error {
 			return usageErr("unexpected argument '%s' (usage: hq ls [--json])", a)
 		}
 	}
-	at := d.now()
-	as, err := gatherAgents(d)
+	l, err := gatherAgents(d)
 	if err != nil {
 		return err
 	}
+	as := l.agents
 	agent.SortAttention(as)
 	rows := lsRows(d, as)
 	if asJSON {
-		return writeJSON(env.Stdout, waitOutput{Agents: rows, NextSince: lookedAt(at)})
+		return writeJSON(env.Stdout, waitOutput{Agents: rows, NextSince: cursorText(l.cursor(d))})
 	}
 	return writeTable(env.Stdout, rows)
-}
-
-// lookedAt is the moment a look that began at at gives as next_since, for
-// hq wait's --since (design §3.4, "Entered after a moment"): as far back as
-// hq wait's own looks, so a state the look may not have seen yet is
-// returned by the next hq wait, never lost; one it did see may be returned
-// once more.
-func lookedAt(at time.Time) time.Time {
-	return at.Add(-waitSettle).UTC()
 }
 
 // lsRows are the agents as hq ls shows them now, in the order given, with
@@ -120,9 +117,10 @@ func newLsRow(d deps, a agent.Agent, now time.Time) lsRow {
 
 // lsRowWithDetail is newLsRow with the detail of a's report given (det).
 func lsRowWithDetail(d deps, a agent.Agent, now time.Time, det state.Detail) lsRow {
+	stateSeq, completionSeq := seqs(a)
 	return lsRow{
 		Name: a.Name, Repo: a.Repo(), RepoPath: a.RepoPath, Branch: a.Branch, State: a.State,
-		Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
+		StateSeq: stateSeq, CompletionSeq: completionSeq, Since: a.Since.UTC(), AgeSeconds: max(0, int64(now.Sub(a.Since).Seconds())), Last: a.Last, Sandbox: a.Sandbox,
 		Setup:   a.Setup(),
 		Pending: d.pending(a.RepoPath, a.ID), Dialog: a.Dialog().ID(), OwnTasks: append([]state.Task{}, a.OwnTasks...), Asks: asks(a, det),
 	}
@@ -149,53 +147,56 @@ func asks(a agent.Agent, det state.Detail) *state.Ask {
 // which it is once it stays so a while (design §3.4): it looks again then,
 // so a single look tells the turn's end at once, like the list. Messages
 // left waiting for agents at their prompt are typed in (deliverWaiting).
-func gatherAgents(d deps) ([]agent.Agent, error) {
-	as, err := lookDecided(d, lookNow)
+func gatherAgents(d deps) (looked, error) {
+	l, err := lookDecided(d, lookNow)
 	if err != nil {
-		return nil, err
+		return looked{}, err
 	}
-	deliverWaiting(d, as)
-	return as, nil
+	deliverWaiting(d, l.agents)
+	return l, nil
 }
 
 // lookDecided takes a look at the agents with look once tmux is known to
 // be fit, and one more RestDelay later when a working agent's screen is at
 // rest, which that look decides (gatherAgents).
-func lookDecided(d deps, look func(deps) ([]agent.Agent, error)) ([]agent.Agent, error) {
+func lookDecided(d deps, look func(deps) (looked, error)) (looked, error) {
 	if err := checkTmux(d.tmux); err != nil {
-		return nil, err
+		return looked{}, err
 	}
-	as, err := look(d)
+	l, err := look(d)
 	if err != nil {
-		return nil, err
+		return looked{}, err
 	}
-	if resting(as) {
+	if resting(l.agents) {
 		d.sleep(agent.RestDelay)
 		return look(d)
 	}
-	return as, nil
+	return l, nil
 }
 
 // lookNow is a look at the agents, their state from tmux, their journals,
 // sbx and their screens (design §5.1, agent.Look). When sbx fails or does
 // not answer in time, the states come from tmux and the hooks alone; an sbx
 // too old for hq fails it (#172).
-func lookNow(d deps) ([]agent.Agent, error) {
+func lookNow(d deps) (looked, error) {
 	running, err := askSandboxes(d)
 	if err != nil {
-		return nil, sbxErr(err)
+		return looked{}, sbxErr(err)
 	}
 	return lookWith(d, running)
 }
 
 // lookWith is lookNow with sbx's answer given: which sandboxes run, and
-// when hq asked.
-func lookWith(d deps, running agent.Sandboxes) ([]agent.Agent, error) {
+// when hq asked. It reads the counter before it lists the windows, for
+// the look's cursor (looked.cursor).
+func lookWith(d deps, running agent.Sandboxes) (looked, error) {
+	counter, err := d.journal.Through()
+	counted := err == nil
 	ws, err := d.tmux.Windows()
 	if err != nil {
-		return nil, tmuxErr(err)
+		return looked{}, tmuxErr(err)
 	}
-	return d.look(ws, running), nil
+	return looked{agents: d.look(ws, running), windows: ws, counter: counter, counted: counted}, nil
 }
 
 // runningSandboxes asks sbx which sandboxes run, noting when it asked; the

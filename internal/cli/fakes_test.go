@@ -571,6 +571,13 @@ type fakes struct {
 	// onAppend is called as hq appends events to agent id's journal, e.g.
 	// to have another process append first.
 	onAppend func(id string, events []state.Event)
+	// unreadable are the agent ids whose journal cannot be read.
+	unreadable map[string]bool
+	// onRead is called as hq reads agent id's journal, e.g. to have another
+	// process append to another agent's journal while a look reads this one.
+	onRead func(id string)
+	// onThrough is called as hq reads the journals' counter on its own.
+	onThrough func()
 	// inbox is what waits for each agent id: the text, with " (supervisor)"
 	// when the supervisor sent it and " (now)" when sent with --now; postErr
 	// and takeErr fail posting and taking.

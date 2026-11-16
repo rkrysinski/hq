@@ -143,6 +143,8 @@ func (s *replayStore) Remove(string, string) error { return nil }
 
 func (s *replayStore) IDs() ([]string, error) { return nil, nil }
 
+func (s *replayStore) Through() (int64, error) { return int64(len(s.events)), nil }
+
 func (s *replayStore) Screens(panes []string) (map[string]string, error) {
 	out := map[string]string{}
 	if s.screen != "" {
