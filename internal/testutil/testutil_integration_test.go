@@ -122,3 +122,18 @@ func TestATestThatNeverStartsAServerCleansUpWithoutError(t *testing.T) {
 		t.Fatal("a server is running")
 	}
 }
+
+// A pane's program can exit before a process it started, which then runs
+// on with no parent: the fake Claude leaves so a hook it started after the
+// server's hangup, which writes beside the test's repository (#191). The
+// test's cleanup waits for it too.
+func TestATestsCleanupWaitsForWhatAPanesProgramLeftRunning(t *testing.T) {
+	late := filepath.Join(t.TempDir(), "late")
+	// On the hangup the program starts what it leaves running, deaf to the
+	// hangup's signals, and exits.
+	program := `trap 'trap "" HUP TERM; (sleep 1.5; : >"` + late + `") & exit 0' HUP; while :; do sleep 0.1; done`
+	runServerTest(t, program, func(*testing.T, string) {})
+	if _, err := os.Stat(late); err != nil {
+		t.Fatal("the cleanup returned before what the pane's program left running was done")
+	}
+}

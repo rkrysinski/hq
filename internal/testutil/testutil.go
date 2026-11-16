@@ -38,15 +38,19 @@ func TmuxSocket(t *testing.T) string {
 	return name
 }
 
-// killServer ends a test's tmux server, waits for the programs in its panes
-// and every process below them to exit, and removes its socket file. tmux
-// returns before the programs exit, and one still starting (the stub sbx
-// right after hq new) would write into a directory the test's cleanup is
-// removing. A pane's program can exit before what runs below it: the
-// server's hangup ends hq's session command at once, while the fake Claude
-// it runs fires its SessionEnd hook, which writes beside the repository
-// (#191). tmux 3.6 leaves the socket file behind however its server ends
-// (#74), and gives its path only while the server runs.
+// killServer ends a test's tmux server, waits for what runs in its panes
+// to exit, and removes its socket file. tmux returns before the programs
+// exit, and one still starting (the stub sbx right after hq new) would
+// write into a directory the test's cleanup is removing. A pane's program
+// can exit before what it started: the server's hangup ends hq's session
+// command at once, while the fake Claude it runs fires its SessionEnd hook,
+// which writes beside the repository (#191). The fake can even exit before
+// a hook of its own, one it started after the hangup, which then writes on
+// with no parent (#191): tmux makes each pane's program lead a process
+// group, which what it starts keeps, so killServer waits until no process
+// of those groups is left (running). tmux 3.6 leaves the socket file behind
+// however its server ends (#74), and gives its path only while the server
+// runs.
 func killServer(socket string) {
 	path := socketPath(socket)
 	out, _ := exec.Command("tmux", "-u", "-L", socket, "list-panes", "-a", "-F", "#{pane_pid}").Output()
@@ -56,40 +60,32 @@ func killServer(socket string) {
 			panes = append(panes, pid)
 		}
 	}
-	all := withDescendants(panes)
+	all := running(panes)
 	_ = exec.Command("tmux", "-u", "-L", socket, "kill-server").Run()
-	for _, pid := range all {
-		for i := 0; i < 50 && syscall.Kill(pid, 0) == nil; i++ {
-			time.Sleep(100 * time.Millisecond)
+	for i := 0; i < 50; i++ {
+		if len(running(all)) == 0 {
+			break
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 	_ = os.Remove(path)
 }
 
-// withDescendants is pids and every process below them, as ps lists the
-// processes now; pids alone when ps cannot list them.
-func withDescendants(pids []int) []int {
-	out, err := exec.Command("ps", "-A", "-o", "pid=,ppid=").Output()
+// running is what runs of pids, of the processes below them and of the
+// process groups they lead, as ps lists the processes now (within); what
+// runs of pids alone when ps cannot list them.
+func running(pids []int) []int {
+	out, err := exec.Command("ps", "-A", "-o", "pid=,ppid=,pgid=,stat=").Output()
 	if err != nil {
-		return pids
-	}
-	children := map[int][]int{}
-	for _, line := range strings.Split(string(out), "\n") {
-		f := strings.Fields(line)
-		if len(f) != 2 {
-			continue
+		var alive []int
+		for _, pid := range pids {
+			if syscall.Kill(pid, 0) == nil {
+				alive = append(alive, pid)
+			}
 		}
-		pid, err1 := strconv.Atoi(f[0])
-		ppid, err2 := strconv.Atoi(f[1])
-		if err1 == nil && err2 == nil {
-			children[ppid] = append(children[ppid], pid)
-		}
+		return alive
 	}
-	all := append([]int{}, pids...)
-	for i := 0; i < len(all); i++ {
-		all = append(all, children[all[i]]...)
-	}
-	return all
+	return within(string(out), pids)
 }
 
 // socketPath is the socket file of the server on socket: as tmux gives it
