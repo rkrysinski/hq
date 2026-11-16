@@ -93,6 +93,9 @@ func (s Files) Ingest(root, id string) error {
 		return errors.New("not an agent id")
 	}
 	dir := state.EventsDir(root, id)
+	if at := linkedAt(root, dir); at != "" {
+		return linkedErr(at)
+	}
 	if len(eventFiles(dir)) == 0 {
 		return nil
 	}
@@ -422,7 +425,17 @@ func (s Files) Remove(root, id string) error {
 	if !state.IsID(id) {
 		return errors.New("not an agent id")
 	}
-	errs := []error{os.RemoveAll(state.EventsDir(root, id))}
+	dir := state.EventsDir(root, id)
+	var errs []error
+	switch at := linkedAt(root, dir); at {
+	case "":
+		errs = append(errs, os.RemoveAll(dir))
+	case dir:
+		// The link alone goes, not what it leads to.
+		errs = append(errs, os.Remove(dir))
+	default:
+		errs = append(errs, linkedErr(at))
+	}
 	if s.Dir != "" {
 		unlock, err := s.lock()
 		if err != nil {
@@ -489,6 +502,37 @@ func readCounter(path string) (int64, error) {
 		return 0, fmt.Errorf("the counter %s holds no number", path)
 	}
 	return n, nil
+}
+
+// linkedAt is the first of the directories under root's .git/hq down to
+// dir, an agent's events directory, that is a link, or "" when none is.
+// A sandbox can leave one there: hq lists, reads and removes nothing
+// through it, as it reads no event file through a link (design §7.3). A
+// directory that is not there ends the walk; there is nothing to list.
+func linkedAt(root, dir string) string {
+	base := filepath.Join(root, ".git")
+	rel, err := filepath.Rel(base, dir)
+	if err != nil {
+		return dir
+	}
+	p := base
+	for _, part := range strings.Split(rel, string(filepath.Separator)) {
+		p = filepath.Join(p, part)
+		info, err := os.Lstat(p)
+		if err != nil {
+			return ""
+		}
+		if info.Mode()&fs.ModeSymlink != 0 {
+			return p
+		}
+	}
+	return ""
+}
+
+// linkedErr is the error of an events directory reached through the link
+// at.
+func linkedErr(at string) error {
+	return fmt.Errorf("%s is a link: hq reads no event files through it", at)
 }
 
 // eventFiles are the names of the event files in dir, in their order.

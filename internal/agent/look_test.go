@@ -633,3 +633,34 @@ func TestALookAtFifteenLongJournalsFoldsOnlyWhatIsNew(t *testing.T) {
 		}
 	}
 }
+
+// A look that listed the windows before a relaunch respawned the pane, and
+// reads the journal after the relaunch's event, sees the pane of the
+// previous session dead: it appends no death tmux dates before the
+// relaunch, so the relaunched agent, its pane alive and reporting, is not
+// ended (#198).
+func TestAStaleLookAtARelaunchedAgentEndsNobody(t *testing.T) {
+	t1 := time.Unix(1000, 0)
+	alive := []tmux.Window{lookWindow("1")}
+	dead := []tmux.Window{lookWindow("1")}
+	dead[0].PaneDead, dead[0].DeadAt = true, t1
+	s := newStore(map[string]string{})
+	s.report("a1", state.Report{State: state.Working, Since: t1.Add(-time.Minute), Prompt: "p"})
+	if a := Look(dead, Sandboxes{}, t1.Add(time.Second), s, nil)[0]; a.State != state.Ended {
+		t.Fatalf("not ended first: %+v", a)
+	}
+	// The relaunch's event first, as relaunchAgent appends it before it
+	// respawns the pane.
+	if _, err := s.Append("a1", state.Event{Source: state.SourceHQ, Kind: state.KindRelaunched, Time: t1.Add(2 * time.Second), Basis: journal.Basis(s.journalOf(t, "a1"))}); err != nil {
+		t.Fatal(err)
+	}
+	before := journaltest.Kinds(s.journalOf(t, "a1"))
+	Look(dead, Sandboxes{}, t1.Add(2*time.Second), s, nil)
+	if got := journaltest.Kinds(s.journalOf(t, "a1")); got != before {
+		t.Fatalf("the stale look appended: %s, was %s", got, before)
+	}
+	s.report("a1", state.Report{State: state.Working, Since: t1.Add(3 * time.Second), Prompt: "next"})
+	if a := Look(alive, Sandboxes{}, t1.Add(4*time.Second), s, nil)[0]; a.State != state.Working {
+		t.Fatalf("the relaunched agent, alive and reporting, is %s; journal %s", a.State, journaltest.Kinds(s.journalOf(t, "a1")))
+	}
+}

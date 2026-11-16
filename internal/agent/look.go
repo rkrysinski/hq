@@ -111,8 +111,13 @@ func (f *folded) witness(store journal.Store, id string, e state.Event, now time
 }
 
 // witnessDeath appends the death of a's pane, as tmux dates it, at now
-// (witness).
+// (witness); a death tmux dates before the agent's latest launch or
+// relaunch is its previous session's, seen by a look that listed the
+// windows before the relaunch respawned the pane, and is not appended.
 func (f *folded) witnessDeath(store journal.Store, a Agent, now time.Time) {
+	if f.fold.DiedBeforeLaunch(a.deadAt) {
+		return
+	}
 	e := state.Event{Source: state.SourceTmux, Kind: state.KindPaneDied}
 	e.Facts.From = a.deadAt
 	f.witness(store, a.ID, e, now)

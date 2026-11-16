@@ -431,7 +431,9 @@ func TestSendWaitEndsAtItsTimeoutWhenThereIsNothingToTypeIn(t *testing.T) {
 }
 
 func TestSendWaitStallsWithNoTimeoutWhenThereIsNothingToTypeIn(t *testing.T) {
-	// As above with no timeout: the bound still runs, so the call ends.
+	// As above with no timeout: the bound still runs, so the call ends,
+	// saying the message is no longer in the inbox, not that it waits there
+	// untyped, which hq cannot know.
 	f := sendFakes(state.Done)
 	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ typing\n", 1)
 	start := f.now
@@ -444,7 +446,8 @@ func TestSendWaitStallsWithNoTimeoutWhenThereIsNothingToTypeIn(t *testing.T) {
 			t.Fatal("still waiting long after the bound")
 		}
 	}
-	if code, _, errOut := f.run("send", "--wait", "--timeout", "0", "a", "hi"); code != ExitStalled || len(f.tmux.pasted) != 0 {
+	if code, _, errOut := f.run("send", "--wait", "--timeout", "0", "a", "hi"); code != ExitStalled || len(f.tmux.pasted) != 0 ||
+		errOut != "hq: stalled: a did not take the message: it is no longer in a's inbox, and no delivery of it is in a's journal; see hq read a before sending again\n" {
 		t.Fatalf("exit %d %q pasted %v", code, errOut, f.tmux.pasted)
 	}
 }
@@ -481,5 +484,28 @@ func TestSendWaitStallsWhenTheBoundHasHeldForExactly5s(t *testing.T) {
 	// not the one after it.
 	if held := f.now.Sub(atPrompt); held != stallBound {
 		t.Fatalf("stalled after %v at its prompt, want %v", held, stallBound)
+	}
+}
+
+// At the look where --timeout has passed, a waiting send types nothing in,
+// although the agent is back at its prompt by then with an empty box and
+// the message has waited waitingAfter: the message stays where it is
+// (#170, decision 6), and deliverWaiting is handed only the other agents.
+func TestSendWaitTypesNothingOnceItsTimeoutHasPassed(t *testing.T) {
+	f := sendFakes(state.Done)
+	turnFor(f, 1000, "")
+	start := f.now
+	f.onSleep = func() {
+		if f.now.Sub(start) >= 7*time.Second && f.states["id-a"].State == state.Working {
+			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: the earlier turn"}
+			f.tmux.screens["%4"] = emptyBox
+		}
+	}
+	code, out, errOut := f.run("send", "--wait", "--timeout", "7", "a", "hi")
+	if code != 0 || !strings.Contains(out, "nothing yet\n") {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if len(f.tmux.pasted) != 0 || len(f.inbox["id-a"]) != 1 {
+		t.Fatalf("typed in at the timeout: pasted %v, inbox %v", f.tmux.pasted, f.inbox)
 	}
 }

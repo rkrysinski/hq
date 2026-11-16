@@ -165,7 +165,7 @@ func runSend(env Env, d deps, args []string) error {
 		}
 	}
 	ready := d.now()
-	how, err := deliver(d, a, s.now, isCommand(s.text), limit(boxWait))
+	how, err := deliver(d, a, msg, s.now, isCommand(s.text), limit(boxWait))
 	if err != nil {
 		return err
 	}
@@ -213,14 +213,15 @@ func findAgent(d deps, name string) (agent.Agent, error) {
 // prompt with nothing in the box, by typing it in; otherwise it leaves it
 // to the agent's hooks. An agent working only on background work waits at
 // its prompt too (agent.OnBackgroundWork). It returns how the message goes,
-// command saying the message starts with a slash command, which the hooks
-// deliver as text (#173); within is how long it waits for an empty box.
-func deliver(d deps, a agent.Agent, now, command bool, within time.Duration) (string, error) {
+// msg naming the message and command saying it starts with a slash
+// command, which the hooks deliver as text (#173); within is how long it
+// waits for an empty box.
+func deliver(d deps, a agent.Agent, msg string, now, command bool, within time.Duration) (string, error) {
 	if atPrompt(a) {
-		return typeIn(d, a, within, command)
+		return typeIn(d, a, within, msg, command)
 	}
 	if d.pending(a.RepoPath, a.ID) == d.held(a.RepoPath, a.ID) {
-		return tookWithHooks(a, command), nil
+		return taken(d, a, msg, command), nil
 	}
 	return asText(queued(a, now), command), nil
 }
@@ -242,12 +243,29 @@ func asText(line string, command bool) string {
 	return line + "; if its hooks deliver it, the slash command arrives as text and does not run"
 }
 
-// tookWithHooks is the line of a message the agent's hooks took at once.
-func tookWithHooks(a agent.Agent, command bool) string {
-	if command {
-		return fmt.Sprintf("delivered: %s took it with its hooks, as text, so the slash command did not run", a.Name)
+// taken is the line of a message msg that was no longer there to take
+// when hq send looked: worded by the delivery that names it in the agent's
+// journal, typed in by hq (any hq process: deliverWaiting) or taken by the
+// agent's hooks, which deliver a slash command as text; with neither in
+// the journal, only that it was taken, which is all hq knows (#173).
+func taken(d deps, a agent.Agent, msg string, command bool) string {
+	var t taking
+	if msg != "" {
+		_ = d.journal.Ingest(a.RepoPath, a.ID)
+		if j, err := d.journal.Read(a.ID); err == nil {
+			t = takingOf(j.Events, msg)
+		}
 	}
-	return fmt.Sprintf("delivered: %s took it with its hooks", a.Name)
+	switch {
+	case !t.taken:
+		return fmt.Sprintf("delivered: %s took it", a.Name)
+	case t.byHQ:
+		return fmt.Sprintf("delivered: typed into %s as its next prompt", a.Name)
+	case command:
+		return fmt.Sprintf("delivered: %s took it with its hooks, as text, so the slash command did not run", a.Name)
+	default:
+		return fmt.Sprintf("delivered: %s took it with its hooks", a.Name)
+	}
 }
 
 // atPrompt reports whether the agent waits at its prompt, where hq types
@@ -270,7 +288,7 @@ func deliverWaiting(d deps, as []agent.Agent) {
 			continue
 		}
 		if at, ok := d.oldestMessage(a.RepoPath, a.ID); ok && d.now().Sub(at) >= waitingAfter {
-			_, _ = typeIn(d, a, 0, false)
+			_, _ = typeIn(d, a, 0, "", false)
 		}
 	}
 }
@@ -316,9 +334,9 @@ func queued(a agent.Agent, now bool) string {
 // #173). A prompt made only of the supervisor's messages is the
 // supervisor's: the agent's hooks are told before it is typed (spec §5).
 // It returns once Claude has taken the prompt out of the box, or leaveWait
-// on (awaitBoxLeft). command says the message hq send left starts with a
-// slash command, for the line it returns.
-func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, error) {
+// on (awaitBoxLeft). msg names the message hq send left and command says
+// it starts with a slash command, for the line it returns.
+func typeIn(d deps, a agent.Agent, within time.Duration, msg string, command bool) (string, error) {
 	if !boxAtRest(d, a, within) {
 		return asText(fmt.Sprintf("queued: %s has something in its prompt box, delivered with its next prompt", a.Name), command), nil
 	}
@@ -327,7 +345,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 		return "", envErr("cannot take the messages for %s: %v", a.Name, err)
 	}
 	if len(all) == 0 {
-		return tookWithHooks(a, command), nil
+		return taken(d, a, msg, command), nil
 	}
 	ps := prompts(all)
 	msgs := ps[0]

@@ -263,6 +263,40 @@ func TestARelaunchWithdrawnLeavesTheAgentTakenDown(t *testing.T) {
 	}
 }
 
+// A pane death tmux dates before the agent's latest relaunch is its
+// previous session's: appended after the relaunch, by a look that listed
+// the windows before the relaunch respawned the pane, it ends nobody,
+// whatever the relaunched session reports after it. A death dated after
+// the relaunch, within its second (tmux dates to the second), or not
+// dated at all ends the agent.
+func TestAPaneDeathDatedBeforeTheLatestRelaunchEndsNobody(t *testing.T) {
+	relaunched := []Event{
+		userPrompt(1, "t1"),
+		seenEvent(2, SourceTmux, KindPaneDied, 1, Facts{From: atSecond(2)}),
+		seenEvent(3, SourceHQ, KindRelaunched, 1, Facts{}),
+	}
+	relaunched[2].Time = atSecond(3).Add(500 * time.Millisecond)
+	stale := seenEvent(4, SourceTmux, KindPaneDied, 1, Facts{From: atSecond(2)})
+	journal := append(slices.Clone(relaunched), stale)
+	if r := Reduce(journal, Reply{}, atSecond(9)); r.State != Starting || r.Entered.Number != 3 {
+		t.Errorf("the stale death: %+v", r)
+	}
+	journal = append(journal, hookEvent(5, "prompt", "UserPromptSubmit", Facts{Turn: "t2", Prompt: "next"}))
+	if r := Reduce(journal, Reply{}, atSecond(9)); r.State != Working || r.Entered.Number != 5 {
+		t.Errorf("the relaunched session at work: %+v", r)
+	}
+	f := Fold{}.With(relaunched...)
+	if !f.DiedBeforeLaunch(atSecond(2)) || f.DiedBeforeLaunch(atSecond(3)) || f.DiedBeforeLaunch(time.Time{}) {
+		t.Errorf("died before the launch at second 3.5: second 2 %v, second 3 %v, undated %v", f.DiedBeforeLaunch(atSecond(2)), f.DiedBeforeLaunch(atSecond(3)), f.DiedBeforeLaunch(time.Time{}))
+	}
+	for _, from := range []time.Time{atSecond(4), atSecond(3), time.Time{}} {
+		died := seenEvent(4, SourceTmux, KindPaneDied, 1, Facts{From: from})
+		if r := Reduce(append(slices.Clone(relaunched), died), Reply{}, atSecond(9)); r.State != Ended || r.Entered.Number != 4 {
+			t.Errorf("a death dated %v: %+v", from, r)
+		}
+	}
+}
+
 // Claude at work on a prompt it took from its queue hands the hook's state
 // over to it, working since then, the queued turn's mark of a tool's end
 // gone; with no prompt queued nothing is handed over.

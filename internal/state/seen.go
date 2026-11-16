@@ -1,6 +1,9 @@
 package state
 
-import "slices"
+import (
+	"slices"
+	"time"
+)
 
 // The reducer, part two (#197): what hq saw of an agent beyond its hook's
 // reports, and what hq did to it, read beside the hook's state as the look
@@ -35,6 +38,19 @@ type seen struct {
 	// wake-up after a turn the user ended.
 	turnEnd, atRest, atWork, own, woke *evidence
 }
+
+// diedBefore reports whether a pane death tmux dates at from (zero when
+// tmux gave no date) came before the latest launch or relaunch: tmux dates
+// it to the second, so a death within the second of the launch is taken
+// as the launched session's.
+func (s seen) diedBefore(from time.Time) bool {
+	return !from.IsZero() && from.Before(s.launched.Time.Truncate(time.Second))
+}
+
+// DiedBeforeLaunch reports whether a pane death tmux dates at from is of
+// the session before the agent's latest launch or relaunch, which the look
+// does not append (diedBefore).
+func (f Fold) DiedBeforeLaunch(from time.Time) bool { return f.seen.diedBefore(from) }
 
 // evidence is an event of the screen with the number of the hook's report
 // it was seen at (key); for a wake-up, the turn end it follows (after).
@@ -84,7 +100,15 @@ func (f *Fold) see(e Event) bool {
 		if s.turnEnd != nil {
 			s.woke = &evidence{Event: e, key: h.Entered.Number, after: s.turnEnd.Number}
 		}
-	case KindPaneDied, KindTakenDown:
+	case KindPaneDied:
+		// A death of the session before the latest launch, which a look
+		// that listed the windows before a relaunch respawned the pane
+		// appends after it, ends nobody.
+		if s.diedBefore(e.Facts.From) {
+			return false
+		}
+		s.ends = append(s.ends, e)
+	case KindTakenDown:
 		s.ends = append(s.ends, e)
 	case KindNotRunning:
 		// An answer that carries no moment asked ends nobody.

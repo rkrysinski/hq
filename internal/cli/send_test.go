@@ -143,9 +143,16 @@ func TestSendToAStartingAgentWaitsForItsFirstReport(t *testing.T) {
 	}
 }
 
+// hookTook records in agent a's journal that its hooks delivered the
+// message of text.
+func hookTook(f *fakes, text string) {
+	f.seen("/w/app", "id-a", state.SourceHook, state.KindDelivery, state.Facts{Messages: []string{fakeName(text)}}, f.now)
+}
+
 func TestSendSaysWhenTheHooksAlreadyTookIt(t *testing.T) {
 	// The hook takes it between hq's post and its look at the inbox.
 	f := sendFakes(state.Working)
+	hookTook(f, "hi")
 	d := f.deps()
 	d.pending = func(string, string) int { return 0 }
 	var out strings.Builder
@@ -154,11 +161,54 @@ func TestSendSaysWhenTheHooksAlreadyTookIt(t *testing.T) {
 	}
 	// At rest, but the hooks of a turn just begun took it first.
 	f = sendFakes(state.Done)
+	hookTook(f, "hi")
 	d = f.deps()
 	d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
 	out.Reset()
 	if err := runSend(Env{Stdout: &out}, d, []string{"a", "hi"}); err != nil || out.String() != "delivered: a took it with its hooks\n" || len(f.tmux.pasted) != 0 {
 		t.Fatalf("%v %q", err, out.String())
+	}
+}
+
+// A message gone from the inbox before hq send takes it is worded by the
+// delivery that names it in the agent's journal: another hq process (the
+// list's deliverWaiting) typed a slash command in, so it ran; with no
+// delivery of it in the journal, hq says only that it was taken (#173).
+func TestSendSaysWhoTookItByItsDelivery(t *testing.T) {
+	for _, st := range []string{state.Working, state.Done} {
+		for _, text := range []string{"/clear", "hi"} {
+			f := sendFakes(st)
+			d := f.deps()
+			d.pending = func(string, string) int { return 0 }
+			d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
+			f.seen("/w/app", "id-a", state.SourceHQ, state.KindDelivery, state.Facts{Messages: []string{fakeName(text)}}, f.now)
+			var out strings.Builder
+			if err := runSend(Env{Stdout: &out}, d, []string{"a", text}); err != nil || out.String() != "delivered: typed into a as its next prompt\n" {
+				t.Errorf("%s, %q typed in by hq: %v %q", st, text, err, out.String())
+			}
+			// Nothing in the journal names it.
+			f = sendFakes(st)
+			d = f.deps()
+			d.pending = func(string, string) int { return 0 }
+			d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
+			f.seen("/w/app", "id-a", state.SourceHook, state.KindDelivery, state.Facts{Messages: []string{fakeName("another")}}, f.now)
+			out.Reset()
+			if err := runSend(Env{Stdout: &out}, d, []string{"a", text}); err != nil || out.String() != "delivered: a took it\n" {
+				t.Errorf("%s, %q with no delivery: %v %q", st, text, err, out.String())
+			}
+		}
+	}
+	// A delivery withdrawn (typing it in failed) delivered nothing.
+	f := sendFakes(state.Working)
+	d := f.deps()
+	d.pending = func(string, string) int { return 0 }
+	names := state.Facts{Messages: []string{fakeName("/clear")}}
+	f.seen("/w/app", "id-a", state.SourceHQ, state.KindDelivery, names, f.now)
+	names.Withdrawn = state.KindDelivery
+	f.seen("/w/app", "id-a", state.SourceHQ, state.KindWithdrawn, names, f.now)
+	var out strings.Builder
+	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/clear"}); err != nil || out.String() != "delivered: a took it\n" {
+		t.Errorf("withdrawn: %v %q", err, out.String())
 	}
 }
 
@@ -627,8 +677,9 @@ func TestSendTakesTheCommandWordBackWhenThePasteAfterItFails(t *testing.T) {
 func TestSendSaysTheHooksTookItWhileOthersAreHeld(t *testing.T) {
 	f := sendFakes(state.Working)
 	f.held["id-a"] = []string{"/probe held"}
+	hookTook(f, "/probe go")
 	d := f.deps()
-	d.postMessage = func(string, string, state.Message, bool) (string, error) { return "", nil }
+	d.postMessage = func(string, string, state.Message, bool) (string, error) { return fakeName("/probe go"), nil }
 	var out strings.Builder
 	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != "delivered: a took it with its hooks, as text, so the slash command did not run\n" {
 		t.Fatalf("%v %q", err, out.String())
@@ -682,13 +733,17 @@ func TestSendSaysAnyCommandItLeavesToTheHooksArrivesAsText(t *testing.T) {
 	// Taken by the hooks at once, while it works or as a turn begins: it
 	// did not run.
 	const taken = "delivered: a took it with its hooks, as text, so the slash command did not run\n"
-	d := sendFakes(state.Working).deps()
+	f = sendFakes(state.Working)
+	hookTook(f, "/probe go")
+	d := f.deps()
 	d.pending = func(string, string) int { return 0 }
 	var out strings.Builder
 	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != taken {
 		t.Errorf("taken: %v %q", err, out.String())
 	}
-	d = sendFakes(state.Done).deps()
+	f = sendFakes(state.Done)
+	hookTook(f, "/probe go")
+	d = f.deps()
 	d.takeMessages = func(string, string) ([]state.Message, error) { return nil, nil }
 	out.Reset()
 	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != taken {
