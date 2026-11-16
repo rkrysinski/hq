@@ -66,44 +66,46 @@ type evidence struct {
 func (x *evidence) at(key int64) bool { return x != nil && x.key == key }
 
 // see follows event e of hq's own (screen, tmux, sbx, hq), and reports
-// whether it is one the reducer reads. Their kinds are unique across
-// their sources, so the kind alone tells them.
+// whether it is one the reducer reads: evidence by its group (EvidenceOf),
+// one mark each, and hq's own events by their kind.
 func (f *Fold) see(e Event) bool {
 	h := f.reading(nil)
 	key := h.report.Number
 	s := &f.seen
 	mark := &evidence{Event: e, key: key}
-	switch e.Kind {
-	case KindTurnEnded, KindRewound, KindTurnNotTaken:
+	switch EvidenceOf(e.Kind) {
+	case EvidenceTurnEnd:
 		// The first turn end seen for a report stands.
 		if !s.turnEnd.at(key) {
 			s.turnEnd = mark
 		}
-	case KindAtRest, KindToolCut:
+	case EvidenceAtRest:
 		if !s.atRest.at(key) || s.atRest.Facts.Screen != e.Facts.Screen {
 			s.atRest = mark
 		}
-	case KindAtWork:
+	case EvidenceAtWork:
 		if !s.atWork.at(key) {
 			s.atWork = mark
 		}
-	case KindOwnDialog:
+	case EvidenceOwnDialog:
+		if e.Kind == KindOwnDialogGone {
+			if s.own.at(key) {
+				s.own = nil
+			}
+			break
+		}
 		// The same dialog seen again, wherever its cursor is, is the one
 		// first seen; another, or one opened again, counts anew.
 		if !s.own.at(key) || s.own.Facts.Screen != e.Facts.Screen {
 			s.own = mark
 		}
-	case KindOwnDialogGone:
-		if s.own.at(key) {
-			s.own = nil
-		}
-	case KindTookQueued:
+	case EvidenceTookQueued:
 		f.handOver(e)
-	case KindWokeUp:
+	case EvidenceWokeUp:
 		if s.turnEnd != nil {
 			s.woke = &evidence{Event: e, key: h.Entered.Number, after: s.turnEnd.Number}
 		}
-	case KindPaneDied:
+	case EvidencePaneDied:
 		// A death of the session before the latest launch, which a look
 		// that listed the windows before a relaunch respawned the pane
 		// appends after it, ends nobody.
@@ -111,13 +113,24 @@ func (f *Fold) see(e Event) bool {
 			return false
 		}
 		s.ends = append(s.ends, e)
-	case KindTakenDown:
-		s.ends = append(s.ends, e)
-	case KindNotRunning:
+	case EvidenceNotRunning:
 		// An answer that carries no moment asked ends nobody.
 		if e.Facts.Asked.IsZero() {
 			return false
 		}
+		s.ends = append(s.ends, e)
+	default:
+		return f.follow(e)
+	}
+	return true
+}
+
+// follow follows event e of hq's own, no evidence (see), and reports
+// whether it is one the reducer reads.
+func (f *Fold) follow(e Event) bool {
+	s := &f.seen
+	switch e.Kind {
+	case KindTakenDown:
 		s.ends = append(s.ends, e)
 	case KindLaunched, KindRelaunched:
 		b := f.seen
@@ -229,9 +242,8 @@ func (f *Fold) firstPromptDue() bool {
 // ended applies the end of the agent to r, and reports whether it ended:
 // its session's end report, dated by it; else the first of its pane's
 // death, its sandbox not running and a restart taking it down. sbx's
-// answer counts only for an agent of whose session a report came, none of
-// them newer than the moment sbx was asked: its sandbox may still be
-// starting, or ran after it (#48). The pane's death counts from when tmux
+// answer counts as NotRunningEnds says: r is no report of the session
+// when session is false. The pane's death counts from when tmux
 // dates it, after the moment the state counted from; anything else that
 // ends the agent from the event, never before its latest report. An ended
 // agent keeps the line of a turn the user ended that its screen showed
@@ -246,7 +258,7 @@ func (f *Fold) ended(r *Reduced, session bool) bool {
 	default:
 		var by *Event
 		for i, e := range f.seen.ends {
-			if e.Kind == KindNotRunning && (!session || r.report.Time.After(e.Facts.Asked)) {
+			if e.Kind == KindNotRunning && !r.NotRunningEnds(e.Facts.Asked) {
 				continue
 			}
 			by = &f.seen.ends[i]

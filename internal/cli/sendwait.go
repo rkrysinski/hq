@@ -97,16 +97,14 @@ func namesIt(named []string, name string) bool {
 // itself for, unless the agent needs the user or has ended (a slash command
 // that opened a dialog of Claude Code's own). An agent with no number
 // (ended with a journal hq can no longer read) is returned as hq wait's
-// gone returns it.
+// gone returns it (returnable).
 func settled(a agent.Agent, t taking, through int64) (string, bool) {
-	if !slices.Contains(waitStates, a.State) {
+	seq, numbered, ok := returnable(a, through)
+	if !ok {
 		return "", false
 	}
-	seq, numbered := a.StateSeq()
 	stopped := a.State == state.NeedsInput || a.State == state.Ended
 	switch {
-	case !numbered && a.State != state.Ended, numbered && seq > through:
-		return "", false
 	case !t.taken:
 		return endNotTaken, stopped
 	case !numbered:

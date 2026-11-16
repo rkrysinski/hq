@@ -217,13 +217,10 @@ func SandboxesOf(all []sbx.Sandbox, asked time.Time) Sandboxes {
 	return Sandboxes{Running: running, Asked: asked}
 }
 
-// stopped reports whether the answer ends a: its sandbox does not run, and
-// a's session has reported, but not since hq asked. Before its first
-// report its session may still wait for sbx run to start the sandbox (S2).
-// A report after the question proves the sandbox ran after it: the answer
-// was taken while the sandbox started, and the next one decides (#48).
+// stopped reports whether the answer ends a: its sandbox does not run, by
+// the rule of #48 (state.Reduced.NotRunningEnds).
 func (s Sandboxes) stopped(a Agent) bool {
-	return s.notRunning(a) && a.reduced.Reported && !a.reduced.Latest.After(s.Asked)
+	return s.notRunning(a) && a.reduced.NotRunningEnds(s.Asked)
 }
 
 // notRunning reports whether sbx said that a's sandbox does not run: listed

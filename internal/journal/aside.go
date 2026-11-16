@@ -111,35 +111,24 @@ func (ev Evidence) Holds(e state.Event) bool {
 	return kind != "" && ok && got == key
 }
 
-// identity is the kind of evidence an event is, kind, which a later one of
-// the same kind replaces, and what tells it from another of that kind,
-// key; kind is "" for an event that is no evidence. The kinds of hq's own
-// events are unique across their sources, so the event's kind alone tells
-// it, once it is not the hook's.
+// identity is the group of evidence an event is, kind (state.EvidenceOf),
+// which a later one of the same group replaces, and what tells it from
+// another of that group, key; kind is "" for an event that is no evidence,
+// of the hook or of hq.
 func identity(e state.Event) (kind, key string) {
 	if e.Source == state.SourceHook || e.Source == state.SourceHQ {
 		return "", ""
 	}
-	basis := strconv.FormatInt(e.Basis, 10)
-	switch e.Kind {
-	case state.KindTurnEnded, state.KindRewound, state.KindTurnNotTaken:
-		return "turn end", basis
-	case state.KindAtRest, state.KindToolCut:
-		return "at rest", basis + " " + e.Facts.Screen
-	case state.KindOwnDialog:
-		return "own dialog", basis + " " + e.Facts.Screen
-	case state.KindOwnDialogGone:
-		return "own dialog", basis + " -"
-	case state.KindAtWork:
-		return "at work", basis
-	case state.KindTookQueued:
-		return "took queued", basis
-	case state.KindWokeUp:
-		return "woke up", basis
-	case state.KindPaneDied:
-		return "pane died", strconv.FormatInt(e.Facts.From.UnixNano(), 10)
-	case state.KindNotRunning:
-		return "not running", basis
+	kind, key = state.EvidenceOf(e.Kind), strconv.FormatInt(e.Basis, 10)
+	switch {
+	case kind == "":
+		return "", ""
+	case kind == state.EvidencePaneDied:
+		key = strconv.FormatInt(e.Facts.From.UnixNano(), 10)
+	case e.Kind == state.KindOwnDialogGone:
+		key += " -"
+	case kind == state.EvidenceAtRest, kind == state.EvidenceOwnDialog:
+		key += " " + e.Facts.Screen
 	}
-	return "", ""
+	return kind, key
 }
