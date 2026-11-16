@@ -54,11 +54,11 @@ func journalOf(t *testing.T, f *fakes, id string) []state.Event {
 	return j.Events
 }
 
-// ofSource are the events of source among es.
-func ofSource(es []state.Event, source string) []state.Event {
+// ofSource are the events of the sources among es.
+func ofSource(es []state.Event, sources ...string) []state.Event {
 	var out []state.Event
 	for _, e := range es {
-		if e.Source == source {
+		if slices.Contains(sources, e.Source) {
 			out = append(out, e)
 		}
 	}

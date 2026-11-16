@@ -169,6 +169,11 @@ func TestTheJournalHoldsWhatHqDidAndSawBesideTheHooksReports(t *testing.T) {
 			break
 		}
 	}
+	// What the screen showed a look is not this test's: a turn at work may
+	// look at rest for a moment (state.AtRest), and whether a look appends
+	// that between a prompt and its turn's end depends on when it looks
+	// (#191).
+	j.Events = ofSource(j.Events, state.SourceHQ, state.SourceHook, state.SourceTmux)
 	want := "Launched SessionStart UserPromptSubmit PostToolUse Stop delivery UserPromptSubmit Stop SessionEnd PaneDied"
 	if got := journaltest.Kinds(j.Events); got != want {
 		t.Fatalf("journal %s\nwant    %s", got, want)
