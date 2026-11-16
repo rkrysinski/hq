@@ -336,6 +336,10 @@ func TestEndsTellsWhatIsLeftToEndInASandbox(t *testing.T) {
 	asked := time.Unix(200, 0)
 	before := &state.Report{State: state.Done, Since: asked.Add(-time.Second)}
 	after := &state.Report{State: state.Done, Since: asked.Add(time.Millisecond)}
+	// A session that ends as its sandbox stops reports its end, which
+	// may come after the answer while its pane still runs: no sign that
+	// the sandbox ran after it (#191).
+	endedAfter := &state.Report{State: state.Ended, Since: asked.Add(time.Millisecond)}
 	live := sbxWindows()[0]
 	dead := sbxWindows()[0]
 	dead.PaneDead = true
@@ -352,6 +356,7 @@ func TestEndsTellsWhatIsLeftToEndInASandbox(t *testing.T) {
 		{"dead pane, sandbox not listed at all", dead, nil, Sandboxes{Running: map[string]bool{"claude-lib": true}, Asked: asked}, true},
 		{"live pane, never reported, sandbox not started (S2)", live, nil, stopped, false},
 		{"live pane, reported after the answer", live, after, stopped, false},
+		{"live pane, its session's end reported after the answer", live, endedAfter, stopped, true},
 		{"live pane, reported, sandbox running", live, before, Sandboxes{Running: map[string]bool{"claude-app": true}, Asked: asked}, false},
 		{"dead pane, sandbox running (an orphan)", dead, nil, Sandboxes{Running: map[string]bool{"claude-app": true}, Asked: asked}, false},
 		{"sbx could not say", dead, before, Sandboxes{}, false},
