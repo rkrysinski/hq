@@ -1,0 +1,11 @@
+$ scripts/check.sh   # in the release worktree at the candidate 11125839e6caacd55891411bd9a9e4b0f9cc4af6
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: ok   unit
+check: ok   integration
+check: ok   coverage
+check: ok   e2e
+check: all 8 steps passed on 11125839e6caacd55891411bd9a9e4b0f9cc4af6
+(exit status 0; started 2026-11-16T15:24:51Z, finished 2026-11-16T15:27:24Z)

@@ -1,0 +1,17 @@
+$ scripts/build-release.sh v0.14.0 .local-dev/release-files && ls .local-dev/release-files && ".local-dev/release-files/hq-linux-$(go env GOARCH)" --version
+built hq-darwin-arm64
+built hq-darwin-amd64
+built hq-linux-amd64
+built hq-linux-arm64
+wrote GENERATION (4)
+wrote SHA256SUMS
+GENERATION
+SHA256SUMS
+hq-darwin-amd64
+hq-darwin-arm64
+hq-linux-amd64
+hq-linux-arm64
+install.sh
+hq v0.14.0
+(exit status 0)
+(go env GOARCH here: arm64)
