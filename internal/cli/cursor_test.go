@@ -262,7 +262,7 @@ func TestSendsCursorIsTheCounterAsItLeavesTheMessage(t *testing.T) {
 // counter of its reads). With alternate, b's dialog changes at every look,
 // so every look appends anew. looks counts the looks (each reads the
 // counter once, before it lists the windows).
-func dialogOnB(alternate bool, looks *int) *fakes {
+func dialogOnB(t *testing.T, alternate bool, looks *int) *fakes {
 	f := newWaitFakes()
 	f.tmux.windows[1].Pane, f.tmux.windows[2].Pane = "%1", "%2"
 	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
@@ -273,7 +273,9 @@ func dialogOnB(alternate bool, looks *int) *fakes {
 	}
 	f.tmux.screens = map[string]string{"%1": "● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n", "%2": dialog(0)}
 	f.onThrough = func() {
-		*looks++
+		if *looks++; *looks > 2*coverLooks {
+			t.Fatalf("still looking at look %d", *looks)
+		}
 		if alternate {
 			f.tmux.screens["%2"] = dialog(*looks)
 		}
@@ -287,7 +289,7 @@ func dialogOnB(alternate bool, looks *int) *fakes {
 // return the row the list already showed (#166).
 func TestTheListsCursorStandsForEveryRowItShows(t *testing.T) {
 	looks := 0
-	f := dialogOnB(false, &looks)
+	f := dialogOnB(t, false, &looks)
 	var ls waitOutput
 	if err := json.Unmarshal([]byte(mustRun(t, f, "ls", "--json")), &ls); err != nil {
 		t.Fatal(err)
@@ -306,7 +308,7 @@ func TestTheListsCursorStandsForEveryRowItShows(t *testing.T) {
 	}
 	// The plain table has no cursor, and looks once.
 	looks = 0
-	f = dialogOnB(false, &looks)
+	f = dialogOnB(t, false, &looks)
 	mustRun(t, f, "ls")
 	if looks != 1 {
 		t.Fatalf("the table took %d looks", looks)
@@ -317,7 +319,7 @@ func TestTheListsCursorStandsForEveryRowItShows(t *testing.T) {
 // coverLooks times at most, then prints the last look.
 func TestTheListLooksAgainOnlyAFewTimes(t *testing.T) {
 	looks := 0
-	f := dialogOnB(true, &looks)
+	f := dialogOnB(t, true, &looks)
 	var ls waitOutput
 	if err := json.Unmarshal([]byte(mustRun(t, f, "ls", "--json")), &ls); err != nil {
 		t.Fatal(err)

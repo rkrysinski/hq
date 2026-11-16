@@ -263,6 +263,9 @@ func TestMCPReadGivesALongReplyInPages(t *testing.T) {
 	var got strings.Builder
 	args := map[string]any{"name": "a"}
 	for pages := 1; ; pages++ {
+		if pages > 3 {
+			t.Fatalf("still reading at page %d: %v", pages, args)
+		}
 		out, isErr := call(t, cs, "read", args)
 		var v readJSON
 		if isErr || json.Unmarshal([]byte(out), &v) != nil || v.ReplySize != len(reply) {

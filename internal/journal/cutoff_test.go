@@ -112,3 +112,43 @@ func TestAnAppendAfterAWholeIngestLeavesItToFinish(t *testing.T) {
 		t.Fatal("the event file is still there")
 	}
 }
+
+// An ingest whose append is whole, exactly to the size its record names,
+// when its process dies is finished by the next ingest: its file is
+// removed and its event keeps its number, not undone and appended anew.
+func TestTheNextIngestFinishesAWholeIngest(t *testing.T) {
+	const id = "0123456789abcdef"
+	root, store := t.TempDir(), Files{Dir: t.TempDir()}
+	dir := state.EventsDir(root, id)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(dir, "0001-stop")
+	if err := os.WriteFile(file, []byte("not an event\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	afterAppend = func() { panic("died") }
+	func() {
+		defer func() { _ = recover() }()
+		_ = store.Ingest(root, id)
+	}()
+	afterAppend = nil
+	before, err := store.Read(id)
+	if err != nil || len(before.Events) != 1 {
+		t.Fatalf("journal %+v %v", before.Events, err)
+	}
+	// The next ingest needs a file to look at.
+	if err := os.WriteFile(filepath.Join(dir, "0002-stop"), []byte("not an event either\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Ingest(root, id); err != nil {
+		t.Fatal(err)
+	}
+	after, err := store.Read(id)
+	if err != nil || len(after.Events) != 2 || after.Events[0].Number != before.Events[0].Number || after.Events[0].File != "0001-stop" {
+		t.Fatalf("journal %+v %v, want the first event kept as it was", after.Events, err)
+	}
+	if _, err := os.Lstat(file); err == nil {
+		t.Fatal("the event file is still there")
+	}
+}

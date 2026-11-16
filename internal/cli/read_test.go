@@ -258,6 +258,9 @@ func TestReadGivesALongReplyInPagesOfTheSameReply(t *testing.T) {
 	var first readJSON
 	args := []string{"read", "42", "--json"}
 	for pages := 1; ; pages++ {
+		if pages > 3 {
+			t.Fatalf("still reading at page %d: %v", pages, args)
+		}
 		code, out, errOut := f.run(args...)
 		var v readJSON
 		if code != 0 || json.Unmarshal([]byte(out), &v) != nil || v.ReplySize != len(reply) {
