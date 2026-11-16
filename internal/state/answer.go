@@ -222,7 +222,10 @@ func LeaveAnswer(root, id string, q Questions, decision []byte) error {
 	if !idRE.MatchString(id) || q.name == "" {
 		return errors.New("no dialog to answer")
 	}
-	dir := InboxDir(root, id)
+	dir, err := inboxDir(root, id)
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
@@ -256,7 +259,11 @@ func AnswerTaken(root, id string, q Questions) bool {
 	if !idRE.MatchString(id) || q.name == "" {
 		return false
 	}
-	_, err := os.Lstat(filepath.Join(InboxDir(root, id), q.name))
+	dir, err := inboxDir(root, id)
+	if err != nil {
+		return false
+	}
+	_, err = os.Lstat(filepath.Join(dir, q.name))
 	return errors.Is(err, os.ErrNotExist)
 }
 
@@ -266,7 +273,10 @@ func WithdrawAnswer(root, id string, q Questions) bool {
 	if !idRE.MatchString(id) || q.name == "" {
 		return false
 	}
-	dir := InboxDir(root, id)
+	dir, err := inboxDir(root, id)
+	if err != nil {
+		return false
+	}
 	r := make([]byte, 4)
 	_, _ = rand.Read(r)
 	back := filepath.Join(dir, ".withdrawn-"+hex.EncodeToString(r))
