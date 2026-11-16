@@ -187,8 +187,9 @@ func (f *Fold) look(reply *Reply) looked {
 
 // awaitsFirstPrompt says r, from the hook's report h, is the done of a new
 // session's start of an agent launched with a first prompt, which the
-// screen did not overrule: a dialog of Claude's own still needs input, and
-// a screen at rest that says the prompt does not come makes it done.
+// screen did not overrule: a dialog of Claude's own still needs input. A
+// first prompt Claude never reports keeps it starting until its next
+// report (#191).
 func (f *Fold) awaitsFirstPrompt(r, h Reduced) bool {
 	return r.State == Done && r.Entered == h.Entered && f.firstPromptDue()
 }

@@ -159,7 +159,8 @@ func runSend(env Env, d deps, args []string) error {
 	// A starting agent has not started its session yet, or has not taken
 	// the first prompt it was launched with (#191): wait for it to leave
 	// starting, then deliver as its state says; a message still waiting
-	// then goes along with that first prompt, through its hooks.
+	// then goes along with that first prompt, through its hooks, and waits
+	// while that prompt is never reported.
 	for deadline := d.now().Add(limit(startWait)); a.State == state.Starting && d.now().Before(deadline); {
 		d.sleep(pollEvery)
 		if a, err = findAgent(d, s.name); err != nil {
