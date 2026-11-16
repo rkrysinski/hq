@@ -1,6 +1,7 @@
 package journaltest
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -79,6 +80,63 @@ func TestReportFilesOfANotification(t *testing.T) {
 		fs := ReportFiles(HookState{State: state.NeedsInput, Since: at, Last: "Waiting"}, state.Detail{Ask: ask})
 		if d := string(fs[len(fs)-1].Data); !strings.Contains(d, `"Notification"`) || !strings.Contains(d, want) {
 			t.Errorf("%+v: %s", ask, d)
+		}
+	}
+}
+
+// payloadOf is the hook's payload in event file f, after its branch line.
+func payloadOf(t *testing.T, f File) map[string]any {
+	t.Helper()
+	_, data, _ := strings.Cut(string(f.Data), "\n")
+	var p map[string]any
+	if err := json.Unmarshal([]byte(data), &p); err != nil {
+		t.Fatalf("%s: %v", f.Kind, err)
+	}
+	return p
+}
+
+// The hook's payloads name the prompt of a report that has one, and only
+// then; a turn end lists the agent's own tasks, numbered from b1, and no
+// background tasks when it has none.
+func TestReportFilesNameThePromptAndTheOwnTasks(t *testing.T) {
+	at := time.Unix(1000, 0)
+	fs := ReportFiles(HookState{State: state.Working, Since: at, Prompt: "fix"}, state.Detail{})
+	if p := payloadOf(t, fs[len(fs)-1]); p["prompt_id"] != "p-fix" {
+		t.Errorf("with a prompt: %v", p)
+	}
+	fs = ReportFiles(HookState{State: state.Done, Since: at, Last: "Done."}, state.Detail{})
+	p := payloadOf(t, fs[0])
+	if _, tasks := p["background_tasks"]; p["prompt_id"] != nil || tasks || p["last_assistant_message"] != "Done." {
+		t.Errorf("without a prompt or tasks: %v", p)
+	}
+	own := []state.Task{{Type: state.ShellTask, Text: "npm run dev"}, {Type: state.MonitorTask, Text: "the logs"}}
+	fs = ReportFiles(HookState{State: state.Done, Since: at, Last: "Done.", OwnTasks: own}, state.Detail{})
+	tasks, _ := payloadOf(t, fs[0])["background_tasks"].([]any)
+	var ids []string
+	for _, task := range tasks {
+		ids = append(ids, task.(map[string]any)["id"].(string))
+	}
+	if strings.Join(ids, " ") != "b1 b2" {
+		t.Errorf("own tasks: %v", tasks)
+	}
+}
+
+// The contract's check of a journal's numbers: each above zero and above
+// the one before it.
+func TestNumberedInOrderWantsEachNumberAboveTheOneBefore(t *testing.T) {
+	for _, tc := range []struct {
+		numbers []int64
+		want    bool
+	}{
+		{nil, true}, {[]int64{1}, true}, {[]int64{1, 2, 5}, true},
+		{[]int64{0}, false}, {[]int64{-1, 2}, false}, {[]int64{2, 2}, false}, {[]int64{3, 2}, false}, {[]int64{1, 3, 3}, false},
+	} {
+		var events []state.Event
+		for _, n := range tc.numbers {
+			events = append(events, state.Event{Number: n})
+		}
+		if got := numberedInOrder(events); got != tc.want {
+			t.Errorf("%v: %v", tc.numbers, got)
 		}
 	}
 }

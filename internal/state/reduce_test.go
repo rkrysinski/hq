@@ -415,3 +415,40 @@ func TestOwnTasksTakeTheirTextsFromTheReply(t *testing.T) {
 		}
 	}
 }
+
+// A resumed session keeps the branch and worktree of the report before it
+// and its session id; resumed again before any prompt, still those of the
+// report before the first resume; a report that cannot be read gives it
+// nothing to keep.
+func TestAResumedSessionKeepsWhereTheReportBeforeItWorked(t *testing.T) {
+	in := func(f Facts, branch, cwd string) Facts {
+		f.Branch, f.Cwd, f.Session = branch, cwd, "s1"
+		return f
+	}
+	resume := func(n int64) Event {
+		return hookEvent(n, CaseResume, KindSessionStart, in(Facts{Start: "resume"}, "main", "/w/app"))
+	}
+	journal := []Event{
+		hookEvent(1, CaseStart, KindSessionStart, in(Facts{Start: "startup"}, "main", "/w/app")),
+		hookEvent(2, "prompt", "UserPromptSubmit", in(Facts{Turn: "t1", Prompt: "say hi"}, "feat", "/w/feat")),
+		hookEvent(3, "stop", KindTurnEnd, in(Facts{Turn: "t1"}, "feat", "/w/feat")),
+		hookEvent(4, CaseEnd, KindSessionEnd, in(Facts{}, "feat", "/w/feat")),
+		resume(5),
+		resume(6),
+	}
+	for _, n := range []int64{5, 6} {
+		if r := reducedAt(journal, n); r.State != Done || r.Branch != "feat" || r.Worktree != "/w/feat" || r.Session != "s1" {
+			t.Errorf("resumed at %d: %+v", n, r)
+		}
+	}
+	unreadable := []Event{
+		{Number: 1, Source: SourceHook, Kind: KindUnreadable, Time: atSecond(1), Facts: Facts{Size: 9, Hook: "stop"}},
+		resume(2),
+	}
+	if r := reducedAt(unreadable, 2); r.State != Done || r.Branch != "main" || r.Worktree != "/w/app" {
+		t.Errorf("resumed after an unreadable report: %+v", r)
+	}
+	if r := reducedAt(journal[:1], 1); r.Session != "" || r.Branch != "main" {
+		t.Errorf("a new session: %+v", r)
+	}
+}

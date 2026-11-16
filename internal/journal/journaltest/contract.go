@@ -90,7 +90,7 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		j := read(t, h.Store, "a1")
 		{
 			got := Kinds(j.Events)
-			require(t, got == "PostToolUse UserPromptSubmit" && j.Events[1].Number > j.Events[0].Number, "%s: %+v", got, j.Events)
+			require(t, got == "PostToolUse UserPromptSubmit" && numberedInOrder(j.Events), "%s: %+v", got, j.Events)
 		}
 	})
 
@@ -112,8 +112,9 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		for _, id := range []string{"a1", "b2"} {
 			j := read(t, h.Store, id)
 			through = max(through, j.Through)
-			for i, e := range j.Events {
-				expect(t, !seen[e.Number] && e.Number > 0 && !(i > 0 && e.Number <= j.Events[i-1].Number), "%s: number %d (%+v)", id, e.Number, j.Events)
+			expect(t, numberedInOrder(j.Events), "%s: numbers not in order (%+v)", id, j.Events)
+			for _, e := range j.Events {
+				expect(t, !seen[e.Number], "%s: number %d twice (%+v)", id, e.Number, j.Events)
 				seen[e.Number] = true
 			}
 		}
@@ -403,6 +404,17 @@ func asides(events []state.Event) string {
 		out = append(out, cmp.Or(e.Aside, "-"))
 	}
 	return strings.Join(out, " ")
+}
+
+// numberedInOrder says every event of events has a number, each above the
+// one before it, as a journal reads them.
+func numberedInOrder(events []state.Event) bool {
+	for i, e := range events {
+		if e.Number <= 0 || i > 0 && e.Number <= events[i-1].Number {
+			return false
+		}
+	}
+	return true
 }
 
 // expect fails the test, going on, unless ok.

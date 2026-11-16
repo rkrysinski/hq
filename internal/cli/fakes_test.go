@@ -53,6 +53,7 @@ type fakeTmux struct {
 	clients      []string // terminals of the clients attached to hq's session
 	shown        string   // window shown to them
 	windowsErr   error
+	windowsRead  int              // times Windows was called
 	killErr      map[string]error // fails KillWindow of that window
 
 	dash       tmux.Dash // the dashboard window, once made
@@ -260,6 +261,7 @@ func (f *fakeTmux) Version() (string, error) {
 }
 
 func (f *fakeTmux) Windows() ([]tmux.Window, error) {
+	f.windowsRead++
 	if f.windowsErr != nil {
 		return nil, f.windowsErr
 	}
