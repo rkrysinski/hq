@@ -2,6 +2,10 @@ package state
 
 import (
 	"encoding/json"
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -196,5 +200,39 @@ func TestAMessagePutBackWithoutNowIsTheSameMessage(t *testing.T) {
 		if SameMessage(name, b) != want || SameMessage(b, name) != want {
 			t.Errorf("SameMessage(%q, %q) is not %v", name, b, want)
 		}
+	}
+}
+
+// Post returns the name the message waits under, which its deliveries name
+// it by: the name Take gives it. A message put back under a name another
+// already waits under is not written, and Post returns no name and the
+// error.
+func TestPostReturnsTheNameTheMessageWaitsUnder(t *testing.T) {
+	const id = "0123456789ab"
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	name, err := Post(root, id, Message{Text: "hi"}, false, time.Unix(1000, 0))
+	if err != nil || !keptName(name) {
+		t.Fatalf("posted under %q: %v", name, err)
+	}
+	if _, err := os.Stat(filepath.Join(InboxDir(root, id), name)); err != nil {
+		t.Fatalf("no message under %q: %v", name, err)
+	}
+	taken, err := Take(root, id)
+	if err != nil || len(taken) != 1 || taken[0].Name != name || taken[0].Text != "hi" {
+		t.Fatalf("took %+v %v, want hi under %q", taken, err, name)
+	}
+	// Put back under its name, then put back again while it waits there.
+	if back, err := Post(root, id, taken[0], false, time.Unix(2000, 0)); err != nil || back != name {
+		t.Fatalf("put back under %q: %v, want %q", back, err, name)
+	}
+	again, err := Post(root, id, taken[0], false, time.Unix(3000, 0))
+	if again != "" || !errors.Is(err, fs.ErrExist) {
+		t.Fatalf("put back twice: %q %v, want no name and %v", again, err, fs.ErrExist)
+	}
+	if n := Pending(root, id); n != 1 {
+		t.Fatalf("%d messages wait, want 1", n)
 	}
 }
