@@ -116,6 +116,16 @@ func TestAnInboxWithNoLinkIsTaken(t *testing.T) {
 	if err != nil || len(msgs) != 1 || msgs[0].Text != "hi" {
 		t.Fatalf("took %+v %v", msgs, err)
 	}
+	if err := Hold(root, linkedInboxID, msgs); err != nil || Held(root, linkedInboxID) != 1 {
+		t.Fatalf("held %d: %v", Held(root, linkedInboxID), err)
+	}
+	q := Questions{name: "answer.1.2"}
+	if err := LeaveAnswer(root, linkedInboxID, q, []byte("{}")); err != nil || AnswerTaken(root, linkedInboxID, q) {
+		t.Fatalf("answer left: %v", err)
+	}
+	if !WithdrawAnswer(root, linkedInboxID, q) || !AnswerTaken(root, linkedInboxID, q) {
+		t.Fatal("the answer was not withdrawn")
+	}
 	if err := removeInbox(root, linkedInboxID); err != nil {
 		t.Fatal(err)
 	}
