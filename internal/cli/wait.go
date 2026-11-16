@@ -143,9 +143,15 @@ func runWait(env Env, d deps, args []string) error {
 				}
 			}
 			// An agent already in its state when the call starts is not
-			// returned, or a caller waiting in a loop would spin.
+			// returned, or a caller waiting in a loop would spin: the call
+			// starts after everything its first look showed, including what
+			// that look appended for an agent after it read another, which
+			// its cursor does not yet stand for.
 			if !w.sinceArg {
 				w.since = since{cursor: next, isCursor: true}
+				if n, err := d.journal.Through(); err == nil {
+					w.since.cursor = n
+				}
 			}
 		}
 		watched := waitedOn(as, w.names)
@@ -204,7 +210,7 @@ func arrived(as []agent.Agent, s since, through int64) []agent.Agent {
 	var hits []agent.Agent
 	for _, a := range as {
 		seq, ok := a.StateSeq()
-		if ok && seq <= through && slices.Contains(waitStates, a.State) && s.before(a, seq) {
+		if ok && seq <= through && slices.Contains(waitStates, a.State) && s.changedAfter(a, seq) {
 			hits = append(hits, a)
 		}
 	}

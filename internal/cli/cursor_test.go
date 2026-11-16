@@ -160,7 +160,7 @@ func TestWaitReturnsAnEndedAgentWhoseJournalCannotBeReadAsAKilledOne(t *testing.
 
 // A look vouches only for what it could see: an agent whose window
 // appeared while it looked had changes it did not read.
-func TestNewAgentsAreThoseWhoseWindowAppeared(t *testing.T) {
+func TestAnAgentAppearedWhenItsWindowDid(t *testing.T) {
 	a := tmux.Window{Options: map[string]string{"id": "a1"}}
 	b := tmux.Window{Options: map[string]string{"id": "b2"}}
 	dash := tmux.Window{Options: map[string]string{}}
@@ -174,7 +174,7 @@ func TestNewAgentsAreThoseWhoseWindowAppeared(t *testing.T) {
 		{[]tmux.Window{a}, []tmux.Window{a, b}, true},
 		{nil, []tmux.Window{b}, true},
 	} {
-		if got := newAgents(tc.before, tc.after); got != tc.want {
+		if got := agentAppeared(tc.before, tc.after); got != tc.want {
 			t.Errorf("%v -> %v: %v", tc.before, tc.after, got)
 		}
 	}
@@ -209,5 +209,30 @@ func TestALooksCursorLeavesWhatAnotherProcessNumberedMeanwhileToTheNextWait(t *t
 	w := waitJSON(t, mustRun(t, f, "wait", "--since", ls.NextSince, "--json"))
 	if len(w.Agents) != 1 || w.Agents[0].Name != "a" || *w.Agents[0].StateSeq != last || w.Agents[0].Last != fmt.Sprintf("turn %d", turns) {
 		t.Fatalf("wait: %+v (a's last turn %d)", w.Agents, last)
+	}
+}
+
+// Without --since a call starts from its first look: an agent that look
+// shows in such a state is not returned, though the look itself appended
+// the event that put it there, numbered above the counter of its read of
+// an agent it read before (here a dialog of Claude's own on b's screen).
+func TestWaitWithoutSinceNeverReturnsWhatItsFirstLookShowed(t *testing.T) {
+	f := newWaitFakes()
+	f.tmux.windows[1].Pane, f.tmux.windows[2].Pane = "%1", "%2"
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	f.states["id-b"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	rule := strings.Repeat("─", 40)
+	f.tmux.screens = map[string]string{
+		"%1": "● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n",
+		"%2": "● hi\n" + strings.Repeat("▔", 40) + "\n   Change effort level?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n",
+	}
+	code, out, _ := f.run("wait", "--timeout", "2s", "--json")
+	w := waitJSON(t, out)
+	if code != 0 || len(w.Agents) != 0 {
+		t.Fatalf("exit %d: %+v", code, w.Agents)
+	}
+	// Nor by a call from its cursor: it is no change after it.
+	if again := waitJSON(t, mustRun(t, f, "wait", "--since", w.NextSince, "--timeout", "2s", "--json")); len(again.Agents) != 0 {
+		t.Fatalf("again: %+v", again.Agents)
 	}
 }

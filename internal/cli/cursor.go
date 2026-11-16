@@ -45,9 +45,9 @@ func parseSince(s string, now time.Time) (since, error) {
 	return since{}, usageErr("--since '%s' is neither a next_since as hq printed it (c1234), a moment (2026-09-28T10:25:01.25Z) nor a duration back from now (10m)", s)
 }
 
-// before reports whether agent a's last change, numbered seq, came after
+// changedAfter reports whether agent a's last change, numbered seq, came after
 // s: numbered above the cursor, or, for a moment, entered after it.
-func (s since) before(a agent.Agent, seq int64) bool {
+func (s since) changedAfter(a agent.Agent, seq int64) bool {
 	if s.isCursor {
 		return seq > s.cursor
 	}
@@ -88,15 +88,15 @@ func (l looked) cursor(d deps) int64 {
 		return l.counter
 	}
 	ws, err := d.tmux.Windows()
-	if err != nil || newAgents(l.windows, ws) {
+	if err != nil || agentAppeared(l.windows, ws) {
 		return l.counter
 	}
 	return n
 }
 
-// newAgents reports whether after holds the home window of an agent that
+// agentAppeared reports whether after holds the home window of an agent that
 // before does not.
-func newAgents(before, after []tmux.Window) bool {
+func agentAppeared(before, after []tmux.Window) bool {
 	for _, w := range after {
 		id := w.Options["id"]
 		if id != "" && !slices.ContainsFunc(before, func(b tmux.Window) bool { return b.Options["id"] == id }) {
