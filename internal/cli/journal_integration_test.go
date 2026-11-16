@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -169,6 +170,11 @@ func TestTheJournalHoldsWhatHqDidAndSawBesideTheHooksReports(t *testing.T) {
 			break
 		}
 	}
+	// A turn at work may look at rest for a moment (state.AtRest), so
+	// whether a look appends an at-rest event between a prompt and its
+	// turn's end depends on when it looks (#191). Any other evidence of the
+	// screen or sbx here would be a wrong state shown.
+	j.Events = slices.DeleteFunc(j.Events, func(e state.Event) bool { return e.Kind == state.KindAtRest })
 	want := "Launched SessionStart UserPromptSubmit PostToolUse Stop delivery UserPromptSubmit Stop SessionEnd PaneDied"
 	if got := journaltest.Kinds(j.Events); got != want {
 		t.Fatalf("journal %s\nwant    %s", got, want)
