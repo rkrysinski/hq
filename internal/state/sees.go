@@ -50,14 +50,23 @@ func (f *Fold) session(h Reduced) bool {
 	return h.Reported && (f.seen.launched.Time.IsZero() || !h.Since.Before(f.seen.launched.Time))
 }
 
+// NotRunningEnds reports whether sbx's answer that the agent's sandbox
+// does not run, asked at asked, ends the agent whose session since its
+// latest launch is in state r: that session has reported, but not since
+// sbx was asked (#48). Before its first report its session may still wait
+// for sbx run to start the sandbox (S2); a report after the question
+// proves the sandbox ran after it: the answer was taken while the sandbox
+// started, and the next one decides.
+func (r Reduced) NotRunningEnds(asked time.Time) bool {
+	return r.Reported && !r.Latest.After(asked)
+}
+
 // Stopped reports whether sbx's answer that the agent's sandbox does not
-// run, asked at asked, ends it: the agent's session has reported, but not
-// since sbx was asked (#48). Before its first report its session may
-// still wait for sbx run to start the sandbox (S2). The look appends that
+// run, asked at asked, ends it (NotRunningEnds). The look appends that
 // answer only then.
 func (f Fold) Stopped(asked time.Time) bool {
 	h := f.reading(nil)
-	return !asked.IsZero() && f.session(h) && !h.Latest.After(asked)
+	return !asked.IsZero() && f.session(h) && h.NotRunningEnds(asked)
 }
 
 // TakenDown reports whether hq takes the agent down since its latest

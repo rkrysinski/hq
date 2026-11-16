@@ -342,7 +342,8 @@ func command(ctx context.Context, dir string, env []string, name string, args ..
 // stageTree makes src a copy of the files of top's working tree that git
 // tracks or would track (not the ignored ones, so neither other worktrees
 // nor build output), with a git repository of its own in gitDir, outside
-// src, whose HEAD is mergeBase and whose index holds every copied file. Its
+// src, whose HEAD is mergeBase, whose index holds every copied file and
+// whose diffs have no context lines, so the tool sees every changed line. Its
 // objects are top's, borrowed through an alternate, so nothing of top's git
 // data is copied; the tool copies src once per worker, and src holds only a
 // one-line .git file.
@@ -365,6 +366,13 @@ func stageTree(ctx context.Context, top, mergeBase, src, gitDir string, env []st
 		return err
 	}
 	if err := git("init", "-q", "--separate-git-dir", gitDir, src); err != nil {
+		return err
+	}
+	// The tool reads each hunk of git diff as one run of added lines, from
+	// its first after the leading context: a changed line after an
+	// unchanged one in the same hunk would get no mutant. With no context
+	// lines every hunk is one run of changed lines.
+	if err := git("config", "diff.context", "0"); err != nil {
 		return err
 	}
 	alternates := filepath.Join(gitDir, "objects", "info", "alternates")

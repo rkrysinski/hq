@@ -23,7 +23,9 @@ const (
 // Collapses reports whether Claude Code collapses text pasted into its
 // prompt box into "[Pasted text #N]": more than pasteMaxLines lines (a
 // newline at the end starts a line too) or more than pasteMaxChars
-// characters, newlines included, whatever their bytes or columns.
+// characters, newlines included, whatever their bytes or columns. The
+// captures are all ASCII and without blank or trailing lines: what this
+// says of those is extrapolated from them (paste_test.go).
 func Collapses(text string) bool {
 	return strings.Count(text, "\n")+1 > pasteMaxLines || utf8.RuneCountInString(text) > pasteMaxChars
 }

@@ -113,8 +113,12 @@ An event whose source is the agent's hook: what Claude's session told hq through
 _Avoid_: hook event, payload, state file
 
 **State number**:
-The number of the event at which an agent's state, or the dialog it is at, last changed (`state_seq`); a report that leaves both as they were does not move it. The **completion number** (`completion_seq`) is the number of the event that ended the agent's last completed turn: a turn end its hook reported as `done` or `question`, or the screen's word that the turn Claude owed after such an end, kept `working` for background work, does not come. An agent with no event behind its state has neither.
+The number of the event at which an agent's state, or the dialog it is at, last changed (`state_seq`); a report that leaves both as they were does not move it. An agent with no event behind its state has none.
 _Avoid_: version, revision, timestamp
+
+**Completion number**:
+The number of the event that ended the agent's last completed turn (`completion_seq`): a turn end its hook reported as `done` or `question`, or the screen's word that the turn Claude owed after such an end, kept `working` for background work, does not come. An agent with no event behind its state has none.
+_Avoid_: completed turn count, version, timestamp
 
 **Cursor**:
 What hq gives as `next_since` and takes back as `--since`: an opaque text standing for a number of the host's one count such that the look that gave it saw every change numbered up to it, so a watch that passes each result's cursor to its next call misses no change and repeats none. Not the cursor row of the list.

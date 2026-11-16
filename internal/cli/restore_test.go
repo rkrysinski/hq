@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -38,9 +39,9 @@ func lostFakes() *fakes {
 		"/w/app": {{ID: "id-a", Name: "a", Sandbox: "claude-x", Generation: version.Generation}, {ID: "id-d", Name: "d", Sandbox: "hq-local-app", Generation: version.Generation}},
 		"/w/lib": {{ID: "id-c", Name: "c", Sandbox: "claude-lib", Generation: version.Generation}},
 	}
-	f.states["id-a"] = state.Report{State: state.Working, SessionID: sessionA, Cwd: "/w/app/.claude/worktrees/x", Branch: "feat/a"}
-	f.states["id-c"] = state.Report{State: state.Done, SessionID: sessionC, Cwd: "/w/lib"}
-	f.states["id-d"] = state.Report{State: state.Done, SessionID: sessionD, Cwd: "/w/app"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, SessionID: sessionA, Cwd: "/w/app/.claude/worktrees/x", Branch: "feat/a"}
+	f.states["id-c"] = journaltest.HookState{State: state.Done, SessionID: sessionC, Cwd: "/w/lib"}
+	f.states["id-d"] = journaltest.HookState{State: state.Done, SessionID: sessionD, Cwd: "/w/app"}
 	return f
 }
 
@@ -116,9 +117,9 @@ func TestRestoreReportsTheAgentsItCannotRelaunch(t *testing.T) {
 		state.Record{ID: "id-g", Name: "g", Sandbox: "claude-x", Generation: version.Generation},
 		state.Record{ID: "id-h", Name: "h", Sandbox: "hq-gone-app", Generation: version.Generation},
 		state.Record{ID: "id-i", Name: "i", Sandbox: "claude-x", Generation: version.Generation})
-	f.states["id-e"] = state.Report{State: state.Done, SessionID: "0000000e-0000-4000-8000-00000000000e", Cwd: "/w/app/.claude/worktrees/gone"}
-	f.states["id-g"] = state.Report{State: state.Done} // a session that never had a prompt
-	f.states["id-h"] = state.Report{State: state.Done, SessionID: "0000000f-0000-4000-8000-00000000000f", Cwd: "/w/app"}
+	f.states["id-e"] = journaltest.HookState{State: state.Done, SessionID: "0000000e-0000-4000-8000-00000000000e", Cwd: "/w/app/.claude/worktrees/gone"}
+	f.states["id-g"] = journaltest.HookState{State: state.Done} // a session that never had a prompt
+	f.states["id-h"] = journaltest.HookState{State: state.Done, SessionID: "0000000f-0000-4000-8000-00000000000f", Cwd: "/w/app"}
 	// i never reported, and its journal is gone.
 	code, out, errOut := f.run("restore", "app")
 	want := "restored a in app (sandbox claude-x)\nrestored d in app (sandbox hq-local-app)\n" +
@@ -213,8 +214,8 @@ func TestSandboxRestartAlsoRestoresItsLostAgents(t *testing.T) {
 		"/w/app": {{ID: "id-e", Name: "e", Sandbox: "claude-x", Generation: version.Generation}, {ID: "id-g", Name: "g", Sandbox: "claude-x", Generation: version.Generation}},
 		"/w/lib": {{ID: "id-l", Name: "l", Sandbox: "claude-lib", Generation: version.Generation}},
 	}
-	f.states["id-e"] = state.Report{State: state.Done, SessionID: sessionA, Cwd: "/w/app"}
-	f.states["id-l"] = state.Report{State: state.Done, SessionID: sessionC, Cwd: "/w/lib"}
+	f.states["id-e"] = journaltest.HookState{State: state.Done, SessionID: sessionA, Cwd: "/w/app"}
+	f.states["id-l"] = journaltest.HookState{State: state.Done, SessionID: sessionC, Cwd: "/w/lib"}
 	f.stdin = "y\n"
 	code, out, errOut := f.run("sandbox", "restart", "app")
 	if code != 0 || !strings.Contains(out, "Restart the sandbox claude-x? This ends and relaunches 2 agents (a, b) and restores 2 lost agents (e, g).") ||

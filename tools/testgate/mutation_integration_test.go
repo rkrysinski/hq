@@ -38,20 +38,22 @@ func newMutationRepo(t *testing.T) *mutationRepo {
 	write(t, r.dir, "lib/lib.go", "package lib\n\n// Half halves x.\nfunc Half(x int) int { return x / 2 }\n")
 	write(t, r.dir, "lib/lib_test.go", "package lib\n\nimport \"testing\"\n\n"+
 		"func TestHalf(t *testing.T) {\n\tif Half(8) != 4 {\n\t\tt.Fatal(\"Half(8)\")\n\t}\n}\n")
-	write(t, r.dir, "cmd/tool/main.go", "package main\n\nfunc main() {}\n")
+	write(t, r.dir, "cmd/tool/main.go", "package main\n\nfunc main() {}\n\n// keep stays as it was.\nfunc keep() {}\n")
 	r.base = r.commit("README.md", "m\n", "Base")
 	r.git(r.dir, "checkout", "-q", "-b", "work")
 	return r
 }
 
 // change gives work its changes: in package main a comparison that the
-// tests do not tell from its boundary mutant and a line no test runs,
-// committed; on main afterwards a change to the line of Half, which work
+// tests do not tell from its boundary mutant and, after two unchanged lines
+// in the same hunk of the diff, a line no test runs, committed; on main
+// afterwards a change to the line of Half, which work
 // must not be charged for; and uncommitted in work a line of lib that only
 // a test of another package, untracked, runs.
 func (r *mutationRepo) change() {
 	write(r.t, r.dir, "cmd/tool/main.go", "package main\n\nfunc main() {}\n\n"+
 		"// big tells whether n is big.\nfunc big(n int) bool { return n > 10 }\n\n"+
+		"// keep stays as it was.\nfunc keep() {}\n\n"+
 		"func unused(n int) int { return n + 1 }\n")
 	write(r.t, r.dir, "cmd/tool/main_test.go", "package main\n\nimport \"testing\"\n\n"+
 		"func TestBig(t *testing.T) {\n\tif !big(20) || big(1) {\n\t\tt.Fatal(\"big\")\n\t}\n}\n")
@@ -116,7 +118,8 @@ func TestMutationJudgesTheChangedLinesWithTheWholeUnitSuite(t *testing.T) {
 		// package main: a real test run, so alive, not falsely killed
 		"alive      cmd/tool/main.go:6:33 conditionals boundary",
 		// killed: big's negation, and Double, whose only test is in package user;
-		// not covered: unused; nothing of Half, which only main changed
+		// not covered: unused, a changed line that follows unchanged ones in
+		// its hunk; nothing of Half, which only main changed
 		"mutation: 2 killed, 1 alive, 0 timed out, 1 not covered against main on " + head + " with uncommitted changes",
 	}
 	if !reflect.DeepEqual(lines, want) {

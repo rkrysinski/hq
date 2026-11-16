@@ -62,14 +62,10 @@ func parseRead(args []string, now time.Time) (readArgs, error) {
 		case a == "--json":
 			r.asJSON = true
 		case flag == "--offset" || flag == "--since":
-			if !inline {
-				if i+1 == len(args) {
-					return r, usageErr("%s needs a value (usage: %s)", flag, readUsage)
-				}
-				i++
-				value = args[i]
+			value, err := optionValue(args, &i, flag, value, inline, readUsage)
+			if err != nil {
+				return r, err
 			}
-			var err error
 			if flag == "--since" {
 				r.since, err = parseSince(value, now)
 				r.sinceArg = true
@@ -79,10 +75,12 @@ func parseRead(args []string, now time.Time) (readArgs, error) {
 			if err != nil {
 				return r, err
 			}
-		case r.name == "" && !strings.HasPrefix(a, "-"):
+		case strings.HasPrefix(a, "-"):
+			return r, unknownOption(a, readUsage)
+		case r.name == "":
 			r.name = a
 		default:
-			return r, usageErr("usage: %s", readUsage)
+			return r, unexpectedArgument(a, readUsage)
 		}
 	}
 	if r.name == "" {

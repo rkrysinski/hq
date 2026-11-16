@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
@@ -320,7 +321,7 @@ func inTheWayFakes(t *testing.T) *fakes {
 		agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false),
 		agentWindow("@2", "b", "/w/app", f.now.Add(-time.Hour), true),
 	}
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Minute), Last: "on it"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Minute), Last: "on it"}
 	f.records = map[string][]state.Record{"/w/lib": {{ID: "id-c", Name: "c", Sandbox: "claude-lib", Generation: version.Generation}}}
 	return f
 }
@@ -464,15 +465,16 @@ func TestUpdateAcrossGenerationsIsRefusedWhenHqCannotTell(t *testing.T) {
 	}
 }
 
-// A generation hq cannot read, or one its checksums do not vouch for, stops
-// the update before anything is replaced.
+// A generation its checksums do not vouch for stops the update before
+// anything is replaced, refused with exit code 1 as the binary's mismatch
+// is (#165, story 27).
 func TestUpdateStopsOnAGenerationItCannotRead(t *testing.T) {
 	withVersion(t, "v0.1.0")
 	f := newLsFakes()
 	installed(t, f, "old")
 	f.publish("v0.2.0", "new")
 	f.releases.files["v0.2.0"][update.GenerationFile] = []byte(other + "\n")
-	if code, _, errOut := f.run("update"); code != ExitEnvironment || errOut != "hq: could not read the generation of hq v0.2.0: checksum mismatch for GENERATION; nothing was replaced\n" {
+	if code, _, errOut := f.run("update"); code != ExitUsage || errOut != "hq: could not read the generation of hq v0.2.0: checksum mismatch for GENERATION; nothing was replaced\n" {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 	replaced(t, f, "old")

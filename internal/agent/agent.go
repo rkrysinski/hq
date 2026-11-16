@@ -87,6 +87,25 @@ func OutdatedLast(gen int) string { return StartedBy(gen) + ": kill it and start
 // agent refuses an outdated agent with: its name and its last message.
 func (a Agent) OutdatedErr() string { return a.Name + " was " + OutdatedLast(a.Generation) }
 
+// ofGeneration gives a its generation gen: of another than this hq's, it
+// is outdated, and nothing of its own is read: its state, its age and its
+// branch are unknown to this hq (see FromJournals).
+func (a *Agent) ofGeneration(gen int) {
+	a.Generation = gen
+	if gen != version.Generation {
+		a.State, a.Last = state.Outdated, OutdatedLast(gen)
+	}
+}
+
+// Lost is the agent of the record r in the repository at root, which no
+// window of this tmux server has (#140): of another generation than this
+// hq's, it is outdated, as one with a window is (FromWindows).
+func Lost(r state.Record, root string) Agent {
+	a := Agent{ID: r.ID, Name: r.Name, RepoPath: root, Sandbox: r.Sandbox}
+	a.ofGeneration(r.Generation)
+	return a
+}
+
 // Repo is the repository's display name.
 func (a Agent) Repo() string { return filepath.Base(a.RepoPath) }
 
@@ -120,7 +139,7 @@ func NewID() string {
 
 // Stamp is how hq stores a start time on a home window: Unix seconds with
 // milliseconds, fine enough to tell a report of the session before a
-// relaunch from one of the relaunched session (see Apply).
+// relaunch from one of the relaunched session.
 func Stamp(t time.Time) string {
 	return strconv.FormatFloat(float64(t.UnixMilli())/1000, 'f', 3, 64)
 }
@@ -166,12 +185,8 @@ func FromWindows(ws []tmux.Window) []Agent {
 		if w.PaneDead || o["ending"] != "" {
 			a.State = state.Ended
 		}
-		a.Generation, _ = strconv.Atoi(o[GenerationOption])
-		if a.Generation != version.Generation {
-			// Nothing of its own is read: its state, its age and its
-			// branch are unknown to this hq (see FromJournals).
-			a.State, a.Last = state.Outdated, OutdatedLast(a.Generation)
-		}
+		gen, _ := strconv.Atoi(o[GenerationOption])
+		a.ofGeneration(gen)
 		a.New = o["new"] != "" && a.State == state.Starting
 		as = append(as, a)
 	}
@@ -202,13 +217,10 @@ func SandboxesOf(all []sbx.Sandbox, asked time.Time) Sandboxes {
 	return Sandboxes{Running: running, Asked: asked}
 }
 
-// stopped reports whether the answer ends a: its sandbox does not run, and
-// a's session has reported, but not since hq asked. Before its first
-// report its session may still wait for sbx run to start the sandbox (S2).
-// A report after the question proves the sandbox ran after it: the answer
-// was taken while the sandbox started, and the next one decides (#48).
+// stopped reports whether the answer ends a: its sandbox does not run, by
+// the rule of #48 (state.Reduced.NotRunningEnds).
 func (s Sandboxes) stopped(a Agent) bool {
-	return s.notRunning(a) && a.reduced.Reported && !a.reduced.Latest.After(s.Asked)
+	return s.notRunning(a) && a.reduced.NotRunningEnds(s.Asked)
 }
 
 // notRunning reports whether sbx said that a's sandbox does not run: listed
@@ -388,10 +400,6 @@ func (a Agent) OnBackgroundWork() bool { return a.reduced.Background && a.State 
 // unchanged, before hq takes the turn for one the user rewound (design
 // §3.4, state.RestDelay).
 const RestDelay = state.RestDelay
-
-// Rewound is the last message of a turn the user rewound: an early Esc
-// that put the prompt back in the box, which Claude reports nowhere.
-const Rewound = state.RewoundLast
 
 // Resting reports whether the look saw the agent's screen at rest in a
 // way that one more look, RestDelay later, decides: with its prompt put

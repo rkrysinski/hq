@@ -57,7 +57,7 @@ const boxPoll = 150 * time.Millisecond
 // then says it was taken.
 const waitingAfter = boxWait + 2*time.Second
 
-const sendUsage = "usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]"
+const sendUsage = "hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]"
 
 // sendArgs are hq send's arguments.
 type sendArgs struct {
@@ -85,34 +85,30 @@ func parseSend(args []string) (sendArgs, error) {
 		case a == "--wait":
 			s.wait = true
 		case flag == "--timeout" && !strings.ContainsAny(a, " \t\n"):
-			if !inline {
-				if i+1 == len(args) {
-					return s, usageErr("--timeout needs a value (%s)", sendUsage)
-				}
-				i++
-				value = args[i]
+			value, err := optionValue(args, &i, flag, value, inline, sendUsage)
+			if err != nil {
+				return s, err
 			}
-			var err error
 			if s.timeout, err = parseTimeout(value); err != nil {
 				return s, err
 			}
 			s.timeoutGiven = true
 		case len(a) > 1 && strings.HasPrefix(a, "-") && !strings.ContainsAny(a, " \t\n"):
-			return s, usageErr("unknown option '%s' (%s)", a, sendUsage)
+			return s, unknownOption(a, sendUsage)
 		default:
 			rest = append(rest, a)
 		}
 	}
 	if len(rest) != 2 {
-		return s, usageErr("%s; quote the text", sendUsage)
+		return s, usageErr("usage: %s; quote the text", sendUsage)
 	}
 	if s.timeoutGiven && !s.wait {
-		return s, usageErr("--timeout goes with --wait (%s)", sendUsage)
+		return s, usageErr("--timeout goes with --wait (usage: %s)", sendUsage)
 	}
 	s.name, s.text = rest[0], state.CleanMessage(rest[1])
 	switch {
 	case s.text == "":
-		return s, usageErr("empty message (%s)", sendUsage)
+		return s, usageErr("empty message (usage: %s)", sendUsage)
 	case len(s.text) > state.MaxMessage:
 		return s, usageErr("message too long: at most %d bytes", state.MaxMessage)
 	}
@@ -144,7 +140,7 @@ func runSend(env Env, d deps, args []string) error {
 	}
 	// The cursor before the message is left: the reply it brings is a
 	// change numbered above it, for hq wait --since.
-	sent := counterAt(d, a)
+	sent := counterBefore(d, a)
 	msg, err := d.postMessage(a.RepoPath, a.ID, state.Message{Text: s.text, Supervisor: d.supervisor}, s.now)
 	if err != nil {
 		return envErr("cannot leave the message for %s: %v", a.Name, err)
@@ -168,7 +164,7 @@ func runSend(env Env, d deps, args []string) error {
 		}
 	}
 	ready := d.now()
-	how, err := deliver(d, a, s.now, isCommand(s.text), limit(boxWait))
+	how, err := deliver(d, a, msg, s.now, isCommand(s.text), limit(boxWait))
 	if err != nil {
 		return err
 	}
@@ -198,7 +194,7 @@ type sendOutput struct {
 	NextSince string `json:"next_since"`
 }
 
-// findAgent collects the agents as hq ls does, turns the user ended
+// findAgent looks at the agents as hq ls does, turns the user ended
 // included, and returns the one named name.
 func findAgent(d deps, name string) (agent.Agent, error) {
 	l, err := lookNow(d)
@@ -216,14 +212,15 @@ func findAgent(d deps, name string) (agent.Agent, error) {
 // prompt with nothing in the box, by typing it in; otherwise it leaves it
 // to the agent's hooks. An agent working only on background work waits at
 // its prompt too (agent.OnBackgroundWork). It returns how the message goes,
-// command saying the message starts with a slash command, which the hooks
-// deliver as text (#173); within is how long it waits for an empty box.
-func deliver(d deps, a agent.Agent, now, command bool, within time.Duration) (string, error) {
+// msg naming the message and command saying it starts with a slash
+// command, which the hooks deliver as text (#173); within is how long it
+// waits for an empty box.
+func deliver(d deps, a agent.Agent, msg string, now, command bool, within time.Duration) (string, error) {
 	if atPrompt(a) {
-		return typeIn(d, a, within, command)
+		return typeIn(d, a, within, msg, command)
 	}
-	if d.pending(a.RepoPath, a.ID) == d.held(a.RepoPath, a.ID) {
-		return tookWithHooks(a, command), nil
+	if d.pending(a.RepoPath, a.ID) == len(d.held(a.RepoPath, a.ID)) {
+		return taken(d, a, msg, command), nil
 	}
 	return asText(queued(a, now), command), nil
 }
@@ -245,12 +242,34 @@ func asText(line string, command bool) string {
 	return line + "; if its hooks deliver it, the slash command arrives as text and does not run"
 }
 
-// tookWithHooks is the line of a message the agent's hooks took at once.
-func tookWithHooks(a agent.Agent, command bool) string {
-	if command {
-		return fmt.Sprintf("delivered: %s took it with its hooks, as text, so the slash command did not run", a.Name)
+// taken is the line of a message msg that was no longer there to take
+// when hq send looked: held behind an earlier message another hq process
+// typed in, which follows as a prompt of its own, as typeIn words it;
+// otherwise worded by the delivery that names it in the agent's journal,
+// typed in by hq (any hq process: deliverWaiting) or taken by the agent's
+// hooks, which deliver a slash command as text; with neither in the
+// journal, only that it was taken, which is all hq knows (#173).
+func taken(d deps, a agent.Agent, msg string, command bool) string {
+	if msg != "" && namesIt(d.held(a.RepoPath, a.ID), msg) {
+		return followsLine(a)
 	}
-	return fmt.Sprintf("delivered: %s took it with its hooks", a.Name)
+	var t taking
+	if msg != "" {
+		_ = d.journal.Ingest(a.RepoPath, a.ID)
+		if j, err := d.journal.Read(a.ID); err == nil {
+			t = takingOf(j.Events, msg)
+		}
+	}
+	switch {
+	case !t.taken:
+		return fmt.Sprintf("delivered: %s took it", a.Name)
+	case t.byHQ:
+		return fmt.Sprintf("delivered: typed into %s as its next prompt", a.Name)
+	case command:
+		return fmt.Sprintf("delivered: %s took it with its hooks, as text, so the slash command did not run", a.Name)
+	default:
+		return fmt.Sprintf("delivered: %s took it with its hooks", a.Name)
+	}
 }
 
 // atPrompt reports whether the agent waits at its prompt, where hq types
@@ -265,15 +284,16 @@ func atPrompt(a agent.Agent) bool {
 // message for the next prompt when the box does not settle in time, and a
 // slash command fires no hook, so an agent that stays at its prompt would
 // keep it for a prompt the user types, which never comes for an agent the
-// supervisor drives (#125). hq calls it wherever it looks at the agents:
-// hq ls, hq read, hq wait and the list.
+// supervisor drives (#125). hq calls it where it looks at the agents to
+// show or watch them: hq ls, hq read, hq wait, hq send --wait (for the
+// agents but its own) and the list; hq explain looks and delivers nothing.
 func deliverWaiting(d deps, as []agent.Agent) {
 	for _, a := range as {
 		if !atPrompt(a) {
 			continue
 		}
 		if at, ok := d.oldestMessage(a.RepoPath, a.ID); ok && d.now().Sub(at) >= waitingAfter {
-			_, _ = typeIn(d, a, 0, false)
+			_, _ = typeIn(d, a, 0, "", false)
 		}
 	}
 }
@@ -283,7 +303,7 @@ func deliverWaiting(d deps, as []agent.Agent) {
 func queued(a agent.Agent, now bool) string {
 	var when string
 	switch dialog := a.Dialog(); {
-	case dialog.Whose == agent.OwnDialog:
+	case dialog.Whose == state.DialogOwn:
 		// A dialog of Claude's own, at its start or after a turn: closing
 		// it fires no hook, so nothing delivers the message until the next
 		// prompt (#29, #66).
@@ -319,9 +339,9 @@ func queued(a agent.Agent, now bool) string {
 // #173). A prompt made only of the supervisor's messages is the
 // supervisor's: the agent's hooks are told before it is typed (spec §5).
 // It returns once Claude has taken the prompt out of the box, or leaveWait
-// on (awaitBoxLeft). command says the message hq send left starts with a
-// slash command, for the line it returns.
-func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, error) {
+// on (awaitBoxLeft). msg names the message hq send left and command says
+// it starts with a slash command, for the line it returns.
+func typeIn(d deps, a agent.Agent, within time.Duration, msg string, command bool) (string, error) {
 	if !boxAtRest(d, a, within) {
 		return asText(fmt.Sprintf("queued: %s has something in its prompt box, delivered with its next prompt", a.Name), command), nil
 	}
@@ -330,7 +350,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 		return "", envErr("cannot take the messages for %s: %v", a.Name, err)
 	}
 	if len(all) == 0 {
-		return tookWithHooks(a, command), nil
+		return taken(d, a, msg, command), nil
 	}
 	ps := prompts(all)
 	msgs := ps[0]
@@ -380,9 +400,16 @@ func typeIn(d deps, a agent.Agent, within time.Duration, command bool) (string, 
 		awaitPrompt(d, a)
 	}
 	if len(ps) > 1 {
-		return fmt.Sprintf("queued: typed an earlier message into %s as its next prompt; this one follows as a prompt of its own once %s is back at its prompt", a.Name, a.Name), nil
+		return followsLine(a), nil
 	}
 	return fmt.Sprintf("delivered: typed into %s as its next prompt", a.Name), nil
+}
+
+// followsLine is the line of a message held behind an earlier one typed
+// into agent a as its next prompt: it follows as a prompt of its own
+// (#173).
+func followsLine(a agent.Agent) string {
+	return fmt.Sprintf("queued: typed an earlier message into %s as its next prompt; this one follows as a prompt of its own once %s is back at its prompt", a.Name, a.Name)
 }
 
 // prompts groups messages, oldest first, into the prompts hq types in, in

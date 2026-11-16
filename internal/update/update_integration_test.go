@@ -113,11 +113,16 @@ func TestReleasesGeneration(t *testing.T) {
 		t.Fatalf("tampered: %v %v", published, err)
 	}
 	put("v0.4.0", map[string]string{GenerationFile: "4\n"})
-	if _, _, err := r.Generation("v0.4.0"); err == nil || !strings.Contains(err.Error(), "has no SHA256SUMS") {
+	if _, _, err := r.Generation("v0.4.0"); err == nil || !strings.Contains(err.Error(), "has no SHA256SUMS yet") {
 		t.Fatalf("no sums: %v", err)
 	}
+	// One whose checksums list a generation not attached yet.
+	put("v0.6.0", map[string]string{SumsFile: string(sumsOf(map[string]string{GenerationFile: "4\n"}))})
+	if _, published, err := r.Generation("v0.6.0"); err == nil || published || !strings.Contains(err.Error(), "has no GENERATION yet") {
+		t.Fatalf("not attached yet: %v %v", published, err)
+	}
 	// A file far larger than a number is not read whole.
-	put("v0.5.0", map[string]string{GenerationFile: strings.Repeat("4", 100)})
+	put("v0.5.0", map[string]string{GenerationFile: strings.Repeat("4", 100), SumsFile: string(sumsOf(map[string]string{GenerationFile: "4\n"}))})
 	if _, _, err := r.Generation("v0.5.0"); err == nil || !strings.Contains(err.Error(), "larger than") {
 		t.Fatalf("large: %v", err)
 	}

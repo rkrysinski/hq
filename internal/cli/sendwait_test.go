@@ -2,10 +2,12 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -24,12 +26,12 @@ func onSubmit(f *fakes, then func()) {
 // on its screen, until sleeps more sleeps have passed, then done with
 // reply, back at its empty box.
 func turnFor(f *fakes, sleeps int, reply string) {
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Prompt: "p"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now, Prompt: "p"}
 	f.tmux.screens["%4"] = workingScreen
 	n := 0
 	f.onSleep = func() {
 		if n++; n == sleeps {
-			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: reply}
+			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: reply}
 			f.tmux.screens["%4"] = emptyBox
 		}
 	}
@@ -98,7 +100,7 @@ func TestSendWaitOnAWorkingAgentReturnsTheEndOfTheTurnThatTookIt(t *testing.T) {
 				}
 				hookTakes(f, text, tc.hook)
 			case 80:
-				f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Checked the logs"}
+				f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Checked the logs"}
 				f.tmux.screens["%4"] = emptyBox
 			}
 		}
@@ -141,7 +143,7 @@ func TestSendWaitReturnsAnAgentThatNeedsTheUserBeforeItTookTheMessage(t *testing
 	n := 0
 	f.onSleep = func() {
 		if n++; n == 5 {
-			f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now}
+			f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: f.now}
 			f.tmux.screens["%4"] = "Do you want to proceed?\n❯ 1. Yes\n  2. No\nEsc to cancel\n"
 		}
 	}
@@ -158,7 +160,7 @@ func TestSendWaitReturnsAnAgentThatEndedBeforeItTookTheMessage(t *testing.T) {
 	n := 0
 	f.onSleep = func() {
 		if n++; n == 5 {
-			f.states["id-a"] = state.Report{State: state.Ended, Since: f.now}
+			f.states["id-a"] = journaltest.HookState{State: state.Ended, Since: f.now}
 		}
 	}
 	code, out, _ := f.run("send", "--wait", "a", "then commit")
@@ -262,7 +264,7 @@ func TestSendWaitOnACommandReturnsAsTheCommandGoes(t *testing.T) {
 	// One that opens a dialog of Claude Code's own: needs input.
 	f = sendFakes(state.Done)
 	onSubmit(f, func() {
-		f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now}
+		f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: f.now}
 		f.tmux.screens["%4"] = "Change effort level?\n❯ 1. Yes\n  2. No\n"
 	})
 	if got := sendWaitJSON(t, f, "a", "/effort"); got.Outcome != endTurn || got.Agents[0].State != state.NeedsInput {
@@ -290,7 +292,7 @@ func TestSendWaitTimesOutWithTheMessageWhereItWas(t *testing.T) {
 	// hq wait from its next_since returns that turn's end, once.
 	next := strings.TrimSuffix(out[strings.Index(out, "--since ")+len("--since "):], "\n")
 	f.onSleep = nil
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: hi"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Done: hi"}
 	f.tmux.screens["%4"] = emptyBox
 	var w waitOutput
 	if err := json.Unmarshal([]byte(mustRun(t, f, "wait", "a", "--since", next, "--json")), &w); err != nil || len(w.Agents) != 1 || w.Agents[0].Last != "Done: hi" {
@@ -390,7 +392,7 @@ func TestTheStallClockRunsOnlyWhileItsConditionHolds(t *testing.T) {
 		{"typed 9", at.Add(8 * time.Second), at.Add(10 * time.Second), 2 * time.Second},
 	}
 	for i, s := range steps {
-		if got := c.held(s.key, s.origin, s.now); got != s.want {
+		if got := c.lasted(s.key, s.origin, s.now); got != s.want {
 			t.Fatalf("step %d: %v, want %v", i, got, s.want)
 		}
 	}
@@ -401,7 +403,7 @@ func TestSendWaitWithNoTimeoutWaitsForAStartingAgentAsSendDoes(t *testing.T) {
 	n := 0
 	f.onSleep = func() {
 		if n++; n == 3 {
-			f.states["id-a"] = state.Report{State: state.Done, Since: f.now}
+			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now}
 		}
 	}
 	onSubmit(f, func() { turnFor(f, 4, "Done: hi") })
@@ -431,7 +433,9 @@ func TestSendWaitEndsAtItsTimeoutWhenThereIsNothingToTypeIn(t *testing.T) {
 }
 
 func TestSendWaitStallsWithNoTimeoutWhenThereIsNothingToTypeIn(t *testing.T) {
-	// As above with no timeout: the bound still runs, so the call ends.
+	// As above with no timeout: the bound still runs, so the call ends,
+	// saying the message is no longer in the inbox, not that it waits there
+	// untyped, which hq cannot know.
 	f := sendFakes(state.Done)
 	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ typing\n", 1)
 	start := f.now
@@ -444,7 +448,8 @@ func TestSendWaitStallsWithNoTimeoutWhenThereIsNothingToTypeIn(t *testing.T) {
 			t.Fatal("still waiting long after the bound")
 		}
 	}
-	if code, _, errOut := f.run("send", "--wait", "--timeout", "0", "a", "hi"); code != ExitStalled || len(f.tmux.pasted) != 0 {
+	if code, _, errOut := f.run("send", "--wait", "--timeout", "0", "a", "hi"); code != ExitStalled || len(f.tmux.pasted) != 0 ||
+		errOut != "hq: stalled: a did not take the message: it is no longer in a's inbox, and no delivery of it is in a's journal; see hq read a before sending again\n" {
 		t.Fatalf("exit %d %q pasted %v", code, errOut, f.tmux.pasted)
 	}
 }
@@ -468,7 +473,7 @@ func TestSendWaitStallsWhenTheBoundHasHeldForExactly5s(t *testing.T) {
 	n := 0
 	f.onSleep = func() {
 		if n++; n == 4 {
-			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: earlier"}
+			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Done: earlier"}
 			f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ typing\n", 1)
 			atPrompt = f.now
 		}
@@ -481,5 +486,56 @@ func TestSendWaitStallsWhenTheBoundHasHeldForExactly5s(t *testing.T) {
 	// not the one after it.
 	if held := f.now.Sub(atPrompt); held != stallBound {
 		t.Fatalf("stalled after %v at its prompt, want %v", held, stallBound)
+	}
+}
+
+// At the look where --timeout has passed, a waiting send types nothing in,
+// although the agent is back at its prompt by then with an empty box and
+// the message has waited waitingAfter: the message stays where it is
+// (#170, decision 6), and deliverWaiting is handed only the other agents.
+func TestSendWaitTypesNothingOnceItsTimeoutHasPassed(t *testing.T) {
+	f := sendFakes(state.Done)
+	turnFor(f, 1000, "")
+	start := f.now
+	// Past waitingAfter by more than a look, so the message has waited
+	// that long at the look where the timeout comes.
+	timeout := waitingAfter + 2*time.Second
+	f.onSleep = func() {
+		if f.now.Sub(start) >= timeout && f.states["id-a"].State == state.Working {
+			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Done: the earlier turn"}
+			f.tmux.screens["%4"] = emptyBox
+		}
+	}
+	code, out, errOut := f.run("send", "--wait", "--timeout", timeout.String(), "a", "hi")
+	if code != 0 || !strings.Contains(out, "nothing yet\n") {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	if len(f.tmux.pasted) != 0 || len(f.inbox["id-a"]) != 1 {
+		t.Fatalf("typed in at the timeout: pasted %v, inbox %v", f.tmux.pasted, f.inbox)
+	}
+}
+
+// A paste that fails when the waiting call types its message in fails the
+// call as it fails a plain send, with tmux's words and exit code 3, the
+// message back in the inbox: it is not retried at every look and does not
+// end as stalled (#170 on #173).
+func TestSendWaitFailsAsSendDoesWhenTypingItInFails(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1)
+	f.onSleep = func() {
+		if f.now.Sub(time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC)) >= boxWait+500*time.Millisecond && f.tmux.screens["%4"] != emptyBox {
+			f.tmux.screens["%4"] = emptyBox
+			f.tmux.pasteErr = errors.New("no pane %4")
+		}
+	}
+	code, _, errOut := f.run("send", "--wait", "a", "hi")
+	if code != ExitEnvironment || errOut != "hq: no pane %4\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if got := strings.Join(f.inbox["id-a"], "|"); got != "hi" {
+		t.Fatalf("inbox %q", got)
+	}
+	if got := f.eventsOf("id-a", state.SourceHQ); got != "delivery Withdrawn" {
+		t.Fatalf("hq's events %q: one delivery, withdrawn", got)
 	}
 }
