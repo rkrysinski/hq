@@ -251,15 +251,20 @@ func TestReplyPageCutsAReplyIntoPagesOfWholeCharacters(t *testing.T) {
 func TestReadGivesALongReplyInPagesOfTheSameReply(t *testing.T) {
 	f := readFakes()
 	reply := longReply()
-	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
-	f.details["id-42"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
+	replied := f.now.Add(-time.Minute)
+	f.states["id-42"] = state.Report{State: state.Done, Since: replied, Last: state.Clean(reply)}
+	f.details["id-42"] = state.Detail{Reply: reply, ReplyAt: replied}
 	var got strings.Builder
+	var first readJSON
 	args := []string{"read", "42", "--json"}
 	for pages := 1; ; pages++ {
 		code, out, errOut := f.run(args...)
 		var v readJSON
 		if code != 0 || json.Unmarshal([]byte(out), &v) != nil || v.ReplySize != len(reply) {
 			t.Fatalf("page %d %v: exit %d %q\n%.300s", pages, args, code, errOut, out)
+		}
+		if pages == 1 {
+			first = v
 		}
 		got.WriteString(v.Reply)
 		if v.NextOffset == nil {
@@ -272,11 +277,12 @@ func TestReadGivesALongReplyInPagesOfTheSameReply(t *testing.T) {
 		f.now = f.now.Add(time.Second)
 	}
 
-	// For a person: which bytes, and the command for the next page.
+	// For a person: which bytes, and the command for the next page, with
+	// the read's cursor.
 	_, out, _ := f.run("read", "42")
-	since := lookedAt(f.now).Format(time.RFC3339Nano)
-	first, next, _ := replyPage(reply, 0)
-	if !strings.Contains(out, fmt.Sprintf("\nreply     bytes 0-%d of %d\n  Recon: ", len(first)-1, len(reply))) || !strings.HasSuffix(out, fmt.Sprintf("\n\nnext      hq read 42 --offset %d --since %s\n", *next, since)) {
+	since := first.NextSince
+	page, next, _ := replyPage(reply, 0)
+	if !strings.HasPrefix(since, "c") || !strings.Contains(out, fmt.Sprintf("\nreply     bytes 0-%d of %d\n  Recon: ", len(page)-1, len(reply))) || !strings.HasSuffix(out, fmt.Sprintf("\n\nnext      hq read 42 --offset %d --since %s\n", *next, since)) {
 		t.Fatalf("text:\n%.200s\n...\n%s", out, out[len(out)-200:])
 	}
 	second, _, _ := replyPage(reply, *next)
@@ -286,11 +292,30 @@ func TestReadGivesALongReplyInPagesOfTheSameReply(t *testing.T) {
 		t.Fatalf("last page:\n%.200s", out)
 	}
 
-	// The agent replied anew after the page before: the next page says so.
-	f.details["id-42"] = state.Detail{Reply: reply + " And one more thing.", ReplyAt: f.now}
-	code, out, errOut := f.run("read", "42", "--json", "--offset", strconv.Itoa(*next), "--since", lookedAt(f.now.Add(-time.Second)).Format(time.RFC3339Nano))
-	if code != ExitUsage || out != "" || !strings.Contains(errOut, "hq: 42's reply changed since ") || !strings.HasSuffix(errOut, ": read it again from its start, without --offset\n") {
+	// A moment, as an older hq printed next_since, ties the page to the
+	// reply by its time, as before: one taken after the reply gives it.
+	before := replied.Add(-time.Second).UTC().Format(time.RFC3339Nano)
+	after := replied.Add(time.Second).UTC().Format(time.RFC3339Nano)
+	if code, _, errOut := f.run("read", "42", "--offset", strconv.Itoa(*next), "--since", after); code != 0 {
+		t.Fatalf("moment after the reply: exit %d %q", code, errOut)
+	}
+	if code, _, _ := f.run("read", "42", "--offset", strconv.Itoa(*next), "--since", before); code != ExitUsage {
+		t.Fatalf("moment before the reply: exit %d", code)
+	}
+
+	// The agent replied anew after the page before: its Stop is numbered
+	// above the read's cursor, and the next page says so, however close
+	// in time the two replies are.
+	f.details["id-42"] = state.Detail{Reply: reply + " And one more thing.", ReplyAt: f.now.Add(-time.Minute)}
+	f.states["id-42"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "And one more thing."}
+	code, out, errOut := f.run("read", "42", "--json", "--offset", strconv.Itoa(*next), "--since", since)
+	if code != ExitUsage || out != "" || errOut != "hq: 42 has replied anew since the read that gave the offset: read it again from its start, without --offset\n" {
 		t.Fatalf("changed: exit %d %q %q", code, out, errOut)
+	}
+	// A cursor hq did not give, above the counter, is refused (#166,
+	// decision 11).
+	if code, _, errOut := f.run("read", "42", "--offset", strconv.Itoa(*next), "--since", "c999999"); code != ExitUsage || !strings.Contains(errOut, "take a new one from hq ls --json") {
+		t.Fatalf("a cursor ahead: exit %d %q", code, errOut)
 	}
 	// A page needs the moment of the read before it, and an offset that read gave.
 	f.details["id-42"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
@@ -319,7 +344,7 @@ func TestReadNeedsOneKnownAgent(t *testing.T) {
 		t.Fatalf("unknown: exit %d %q %q", code, out, errOut)
 	}
 	for _, args := range [][]string{{"read"}, {"read", "--json"}, {"read", "42", "43"}, {"read", "42", "-y"}} {
-		if code, _, errOut := f.run(args...); code != ExitUsage || errOut != "hq: usage: hq read NAME [--offset N --since TIME] [--json]\n" {
+		if code, _, errOut := f.run(args...); code != ExitUsage || errOut != "hq: usage: hq read NAME [--offset N --since SINCE] [--json]\n" {
 			t.Errorf("%v: exit %d %q", args, code, errOut)
 		}
 	}

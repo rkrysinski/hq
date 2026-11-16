@@ -39,6 +39,10 @@ type Agent struct {
 	// cannot be read is starting, or ended when its pane is dead.
 	reduced   state.Reduced
 	journaled bool
+	// through is what the counter held when its journal was last read
+	// (journal.Journal.Through): every event of any agent numbered up to it
+	// was in its journal then; 0 when it was not read.
+	through int64
 	// fold, reply and ask are the journal folded, its reply of the latest
 	// turn end and what the open dialog of its hooks asks, for Detail.
 	fold      state.Fold
@@ -229,7 +233,7 @@ func (s Sandboxes) Ends(a Agent) bool {
 // counts from its start.
 func (a *Agent) apply(f *folded, now time.Time, screen string, captured bool) {
 	r := f.fold.Result(f.reply, now)
-	a.reduced, a.journaled, a.fold, a.reply = r, true, f.fold, f.reply
+	a.reduced, a.journaled, a.fold, a.reply, a.through = r, true, f.fold, f.reply, f.through
 	a.State, a.Since, a.Last, a.Branch, a.Worktree, a.OwnTasks = r.State, r.Since, r.Last, r.Branch, r.Worktree, r.OwnTasks
 	if a.Since.IsZero() {
 		a.Since = a.Started
@@ -253,7 +257,7 @@ func (a *Agent) apply(f *folded, now time.Time, screen string, captured bool) {
 // the journal keeps it of the dialog's report.
 func (a Agent) Detail() state.Detail {
 	text, at := a.fold.LastReply(a.reply)
-	return state.Detail{Reply: text, Ask: a.ask, ReplyAt: at}
+	return state.Detail{Reply: text, Ask: a.ask, ReplyAt: at, ReplyNumber: a.fold.LastReplyNumber()}
 }
 
 // Session is the Claude session of the agent's latest report, as its
@@ -269,14 +273,72 @@ func (a *Agent) unread() {
 	}
 }
 
+// StateSeq is the number of the event at which the agent's state, or the
+// dialog it is at, last changed (state_seq, ADR 0019); ok is false for an
+// agent with no event behind its state: outdated, one whose journal could
+// not be read, one starting before its journal holds an event, and one gone
+// (Gone).
+func (a Agent) StateSeq() (n int64, ok bool) {
+	n = a.reduced.Changed.Number
+	return n, a.journaled && !a.Outdated() && n > 0
+}
+
+// CompletionSeq is the number of the event that ended the agent's last
+// completed turn (completion_seq, ADR 0019, state.Reduced.TurnEnded): a
+// turn end its hook reported as done or question, or the screen's word that
+// the turn Claude owed after one does not come; ok is false before the
+// first, and for an agent with no StateSeq.
+func (a Agent) CompletionSeq() (n int64, ok bool) {
+	n = a.reduced.TurnEnded
+	_, numbered := a.StateSeq()
+	return n, numbered && n > 0
+}
+
+// Through is what the counter held when the look last read the agent's
+// journal: every event of any agent numbered up to it was in its journal
+// then; 0 when the look did not read it (an outdated agent, or a journal
+// that cannot be read). The cursor of a look is built on it (ADR 0019).
+func (a Agent) Through() int64 { return a.through }
+
+// SeenThrough is the lowest counter among the look's reads of the agents'
+// journals (Through), outdated agents aside: the look saw every change of
+// theirs numbered up to it, whatever other processes numbered meanwhile
+// (ADR 0019). ok is false when it vouches for nothing: no journal was
+// read, or one could not be.
+func SeenThrough(as []Agent) (n int64, ok bool) {
+	for _, a := range as {
+		if a.Outdated() {
+			continue
+		}
+		if a.through == 0 {
+			return 0, false
+		}
+		if !ok || a.through < n {
+			n, ok = a.through, true
+		}
+	}
+	return n, ok
+}
+
+// Gone is the agent, waited on at the last look, now gone from tmux
+// (killed): ended at at, with what it last showed, and no numbers, since
+// its journal went with it.
+func (a Agent) Gone(at time.Time) Agent {
+	a.State, a.Since, a.journaled, a.through = state.Ended, at, false, 0
+	if a.Last == "" {
+		a.Last = EndedLast
+	}
+	return a
+}
+
 // Entered is the moment from which any hq process can see the agent in its
-// state (design §3.4, "Entered after a moment"), which hq wait compares with
-// its --since: the time of the event that decided the state (a report of
-// its hook, or what hq saw: a turn the user ended, a rewind decided
-// RestDelay after its screen was first seen at rest, the pane's death),
-// which may be later than Since, the moment AGE counts from. Every process
-// folds the same journal, so all agree on it; an agent with no event yet
-// entered it at its start.
+// state: the time of the event that decided the state (a report of its
+// hook, or what hq saw: a turn the user ended, a rewind decided RestDelay
+// after its screen was first seen at rest, the pane's death), which may be
+// later than Since, the moment AGE counts from. hq wait compares a moment
+// given as --since with it (design §3.4, "Changes after a cursor"); a
+// cursor is compared with StateSeq. Every process folds the same journal,
+// so all agree on it; an agent with no event yet entered it at its start.
 func (a Agent) Entered() time.Time {
 	if t := a.reduced.Entered.Time; !t.IsZero() {
 		return t

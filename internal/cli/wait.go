@@ -18,18 +18,10 @@ import (
 // returns "nothing yet" before its caller gives up on it.
 const DefaultWaitTimeout = 50 * time.Second
 
-// How hq wait looks (design §3.4 "Entered after a moment", §5.1).
+// How hq wait looks (design §3.4 "Changes after a cursor", §5.1).
 const (
 	// waitEvery is how often it looks, as the list does.
 	waitEvery = 250 * time.Millisecond
-	// waitSettle is how long after a moment a look is sure to see every
-	// state entered by then: an event file's time is set as the hook
-	// writes it, a moment before it is moved into place, and a moment hq
-	// saw is taken just before its event is appended. A look reports only
-	// what entered its state at least this long before it began, and its
-	// moment, the next call's --since, is that far back, so what a look
-	// could not see yet falls to the next one.
-	waitSettle = 250 * time.Millisecond
 	// waitSbxEvery is how often it asks sbx which sandboxes run, as the
 	// list does; the answer comes in the background, so a slow sbx never
 	// holds up a look.
@@ -41,19 +33,20 @@ var waitStates = []string{state.Done, state.Question, state.NeedsInput, state.En
 
 // waitOutput is what hq wait --json prints.
 type waitOutput struct {
-	Agents    []lsRow   `json:"agents"`
-	NextSince time.Time `json:"next_since"`
+	Agents []lsRow `json:"agents"`
+	// NextSince is the look's cursor (ADR 0019), to pass back as given.
+	NextSince string `json:"next_since"`
 }
 
 type waitArgs struct {
 	names    []string
-	since    time.Time // zero: from the call's start
+	since    since // without sinceArg: from the call's first look
 	timeout  time.Duration
 	asJSON   bool
 	sinceArg bool
 }
 
-const waitUsage = "hq wait [NAME...] [--since TIME] [--timeout DURATION] [--json]"
+const waitUsage = "hq wait [NAME...] [--since SINCE] [--timeout DURATION] [--json]"
 
 func parseWait(args []string, now time.Time) (waitArgs, error) {
 	w := waitArgs{timeout: DefaultWaitTimeout}
@@ -97,18 +90,6 @@ func parseWait(args []string, now time.Time) (waitArgs, error) {
 	return w, nil
 }
 
-// parseSince reads --since: a moment as hq wait prints it (RFC 3339), or a
-// duration back from now (10m).
-func parseSince(s string, now time.Time) (time.Time, error) {
-	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
-		return t, nil
-	}
-	if d, err := time.ParseDuration(s); err == nil && d >= 0 {
-		return now.Add(-d), nil
-	}
-	return time.Time{}, usageErr("--since '%s' is neither a moment as hq wait prints it (2026-09-28T10:25:01.25Z) nor a duration back from now (10m)", s)
-}
-
 // parseTimeout reads --timeout: a duration (30s, 5m) or whole seconds; 0
 // waits with no limit.
 func parseTimeout(s string) (time.Duration, error) {
@@ -121,11 +102,14 @@ func parseTimeout(s string) (time.Duration, error) {
 	return 0, usageErr("--timeout '%s' is not a duration (30s, 5m; 0 waits with no limit)", s)
 }
 
-// runWait returns as soon as an agent it waits on enters done, question,
-// needs input or ended after --since (spec §4.1, design §3.4), with those
-// that do so by its next look, or at the timeout with nothing. It looks as
-// the list does, through the same collection (design §3.8), and leaves
-// nothing running when it returns.
+// runWait returns as soon as an agent it waits on changes into done,
+// question, needs input or ended after --since (spec §4.1, design §3.4),
+// with those that do so by its next look, or at the timeout with nothing.
+// A change after a cursor is one numbered above it and seen by the look,
+// so it is returned with no settle time; after a moment, one entered after
+// it. Every result carries the cursor of its look. It looks as the list
+// does, through the same collection (design §3.8), and leaves nothing
+// running when it returns.
 func runWait(env Env, d deps, args []string) error {
 	start := d.now()
 	w, err := parseWait(args, start)
@@ -139,13 +123,16 @@ func runWait(env Env, d deps, args []string) error {
 	var seen map[string]agent.Agent // the agents waited on at the last look, by id
 	var found []agent.Agent         // what the first look with a hit returned
 	for first := true; ; first = false {
-		at := d.now()
-		as, err := lookWith(d, sbxs.running(at, first))
+		l, err := lookWith(d, sbxs.running(d.now(), first))
 		if err != nil {
 			return err
 		}
+		as, next := l.agents, l.cursor(d)
 		deliverWaiting(d, as)
 		if first {
+			if w.since.ahead(l) {
+				return aheadErr(w.since)
+			}
 			for _, n := range w.names {
 				a, ok := agent.Find(as, n)
 				if !ok {
@@ -158,11 +145,10 @@ func runWait(env Env, d deps, args []string) error {
 			// An agent already in its state when the call starts is not
 			// returned, or a caller waiting in a loop would spin.
 			if !w.sinceArg {
-				w.since = d.now()
+				w.since = since{cursor: next, isCursor: true}
 			}
 		}
 		watched := waitedOn(as, w.names)
-		next := later(w.since, at.Add(-waitSettle))
 		hits := arrived(watched, w.since, next)
 		hits = append(hits, gone(seen, watched, d.now())...)
 		if found != nil {
@@ -198,14 +184,6 @@ func joined(before, last []agent.Agent) []agent.Agent {
 	return out
 }
 
-// later is the later of two moments.
-func later(a, b time.Time) time.Time {
-	if b.After(a) {
-		return b
-	}
-	return a
-}
-
 // waitedOn are the agents named, or all when none are but the outdated
 // ones, whose state hq cannot read (spec §4.1).
 func waitedOn(as []agent.Agent, names []string) []agent.Agent {
@@ -218,37 +196,44 @@ func waitedOn(as []agent.Agent, names []string) []agent.Agent {
 	return ws
 }
 
-// arrived are the agents that entered a state hq wait returns after since
-// and by until (design §3.4, "Entered after a moment").
-func arrived(as []agent.Agent, since, until time.Time) []agent.Agent {
+// arrived are the agents whose last change, numbered at most through, put
+// them in a state hq wait returns after s (design §3.4, "Changes after a
+// cursor"): through is the look's cursor, so no change is returned that a
+// result's cursor does not stand for.
+func arrived(as []agent.Agent, s since, through int64) []agent.Agent {
 	var hits []agent.Agent
 	for _, a := range as {
-		e := a.Entered()
-		if slices.Contains(waitStates, a.State) && e.After(since) && !e.After(until) {
+		seq, ok := a.StateSeq()
+		if ok && seq <= through && slices.Contains(waitStates, a.State) && s.before(a, seq) {
 			hits = append(hits, a)
 		}
 	}
 	return hits
 }
 
-// gone are the agents waited on at the last look that no longer exist
-// (killed), as ended now with what they last showed.
+// gone are the agents waited on at the last look that ended with no event
+// behind it since (#166, decision 10 and 3A): those that no longer exist
+// (killed), as ended now with what they last showed (agent.Gone), and those
+// whose journal can no longer be read and whose pane is dead. They have no
+// number to compare, so only the call that saw them before returns them.
 func gone(seen map[string]agent.Agent, now []agent.Agent, at time.Time) []agent.Agent {
 	var out []agent.Agent
 	for id, a := range seen {
-		if !slices.ContainsFunc(now, func(b agent.Agent) bool { return b.ID == id }) {
-			a.State, a.Since = state.Ended, at
-			if a.Last == "" {
-				a.Last = agent.EndedLast
-			}
-			out = append(out, a)
+		i := slices.IndexFunc(now, func(b agent.Agent) bool { return b.ID == id })
+		if i < 0 {
+			out = append(out, a.Gone(at))
+			continue
+		}
+		_, numbered := now[i].StateSeq()
+		if _, was := a.StateSeq(); now[i].State == state.Ended && !numbered && (was || a.State != state.Ended) {
+			out = append(out, now[i])
 		}
 	}
 	return out
 }
 
-func printWait(out io.Writer, w waitArgs, rows []lsRow, next time.Time) error {
-	next = next.UTC()
+func printWait(out io.Writer, w waitArgs, rows []lsRow, cursor int64) error {
+	next := cursorText(cursor)
 	if w.asJSON {
 		return writeJSON(out, waitOutput{Agents: rows, NextSince: next})
 	}
@@ -261,7 +246,7 @@ func printWait(out io.Writer, w waitArgs, rows []lsRow, next time.Time) error {
 	if names != "" {
 		names += " "
 	}
-	_, err := fmt.Fprintf(out, "next: hq wait %s--since %s\n", names, next.Format(time.RFC3339Nano))
+	_, err := fmt.Fprintf(out, "next: hq wait %s--since %s\n", names, next)
 	return err
 }
 

@@ -164,10 +164,25 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("instructions have no %q", want)
 		}
 	}
-	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "Watch from one moment: the next_since of your most recent wait or list result", "Never take since from read, send or answer", "Name every agent you follow in each wait", "act on the agents the list shows done, in question, needing input or ended", "call list first", "Never answer a permission or any other dialog", "answer them with answer, only on the user's word", "send /model with the model's name instead", "never on your own initiative"} {
+	for _, want := range []string{"Status comes from hq, never from asking an agent", "the next wait returns the agent when it answers, then read it", "next_since is an opaque string: pass it back exactly as given", "Watch from the next_since of your most recent wait or list result", "the next wait returns the turn of the earlier prompt first, with pending still counting yours", "a slash command that reaches an agent at work arrives as text and does not run", "Never take since from read, send or answer", "Name every agent you follow in each wait", "act on the agents the list shows done, in question, needing input or ended", "call list first", "Never answer a permission or any other dialog", "answer them with answer, only on the user's word", "send /model with the model's name instead", "never on your own initiative"} {
 		if !strings.Contains(cs.InitializeResult().Instructions, want) {
 			t.Errorf("instructions have no %q", want)
 		}
+	}
+	// Every tool that gives a next_since says to pass it back as given
+	// (ADR 0019), and send what its next wait returns (#173).
+	for _, name := range []string{"list", "read", "wait", "send", "answer"} {
+		if !strings.Contains(tools[name].Description, "exactly as given") {
+			t.Errorf("%s: next_since is not passed back as given: %q", name, tools[name].Description)
+		}
+	}
+	for _, want := range []string{"the next wait returns that prompt's turn, with pending still counting yours", "when the agent's hooks deliver it, it arrives as text and does not run"} {
+		if !strings.Contains(tools["send"].Description, want) {
+			t.Errorf("send: no %q", want)
+		}
+	}
+	if !strings.Contains(tools["list"].Description, "state_seq and completion_seq") {
+		t.Errorf("list: no numbers in %q", tools["list"].Description)
 	}
 	// What each tool must be given.
 	for name, want := range map[string][]string{"new": {"name", "dir"}, "send": {"name", "text"}, "read": {"name"}, "go": {"name"}, "kill": {"name"}, "wait": {"since"}, "list": nil, "answer": {"name", "dialog"}} {
@@ -258,7 +273,7 @@ func TestMCPWaitInALoopWithSinceReturnsEachChangeOnce(t *testing.T) {
 		t.Fatalf("list %v: %s", err, out)
 	}
 	start := f.now
-	out, isErr := call(t, cs, "wait", map[string]any{"since": ls.NextSince.Format(time.RFC3339Nano)})
+	out, isErr := call(t, cs, "wait", map[string]any{"since": ls.NextSince})
 	first := waitJSON(t, out)
 	if isErr || len(first.Agents) != 0 || f.now.Sub(start) < DefaultWaitTimeout || f.now.Sub(start) > DefaultWaitTimeout+time.Second {
 		t.Fatalf("first call after %v: %s", f.now.Sub(start), out)
@@ -267,14 +282,14 @@ func TestMCPWaitInALoopWithSinceReturnsEachChangeOnce(t *testing.T) {
 	f.now = f.now.Add(5 * time.Second)
 	f.states["id-a"] = state.Report{State: state.Question, Since: f.now, Last: "Shall I go on?"}
 	f.now = f.now.Add(5 * time.Second)
-	out, _ = call(t, cs, "wait", map[string]any{"since": first.NextSince.Format(time.RFC3339Nano)})
+	out, _ = call(t, cs, "wait", map[string]any{"since": first.NextSince})
 	second := waitJSON(t, out)
 	if len(second.Agents) != 1 || second.Agents[0].Name != "a" || second.Agents[0].State != state.Question || second.Agents[0].Last != "Shall I go on?" {
 		t.Fatalf("second call: %s", out)
 	}
 	// Once only; the names narrow it and the timeout shortens it.
 	start = f.now
-	out, _ = call(t, cs, "wait", map[string]any{"since": second.NextSince.Format(time.RFC3339Nano), "names": []string{"a", "b"}, "timeout": 3})
+	out, _ = call(t, cs, "wait", map[string]any{"since": second.NextSince, "names": []string{"a", "b"}, "timeout": 3})
 	if third := waitJSON(t, out); len(third.Agents) != 0 || f.now.Sub(start) < 3*time.Second || f.now.Sub(start) > 4*time.Second {
 		t.Fatalf("third call after %v: %s", f.now.Sub(start), out)
 	}
@@ -354,7 +369,7 @@ func TestMCPWaitSaysHowLongItMayWait(t *testing.T) {
 func TestMCPSendLeavesTheMessageAsHqSendDoes(t *testing.T) {
 	f := sendFakes(state.Working)
 	cs := mcpSession(t, f)
-	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "Any blockers? Answer briefly when you finish."}); isErr || out != "{\n  \"delivery\": \"queued: a is working, delivered when it stops\",\n  \"next_since\": \"2026-09-27T11:59:59.75Z\"\n}\n" {
+	if out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "Any blockers? Answer briefly when you finish."}); isErr || out != "{\n  \"delivery\": \"queued: a is working, delivered when it stops\",\n  \"next_since\": \"c2\"\n}\n" {
 		t.Fatalf("%v %q", isErr, out)
 	}
 	if out, _ := call(t, cs, "send", map[string]any{"name": "a", "text": "use the v2 API", "now": true}); !strings.Contains(out, `"delivery": "queued: a is working, delivered after its next tool call, or when it stops"`) {
@@ -384,14 +399,14 @@ func TestMCPWaitFromSendsNextSinceReturnsAnAnswerGivenBeforeWaitWasCalled(t *tes
 	cs := mcpSession(t, f)
 	out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "No"})
 	var sent sendOutput
-	if err := json.Unmarshal([]byte(out), &sent); isErr || err != nil || sent.Delivery != "delivered: typed into a as its next prompt" || !sent.NextSince.Before(f.now) {
+	if err := json.Unmarshal([]byte(out), &sent); isErr || err != nil || sent.Delivery != "delivered: typed into a as its next prompt" || sent.NextSince != f.cursorBefore(t, "id-a", state.KindDelivery) {
 		t.Fatalf("send %v %v: %s", isErr, err, out)
 	}
 	// a answers within two seconds; the supervisor calls wait a minute later.
 	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(2 * time.Second), Last: "Understood, I will not."}
 	f.now = f.now.Add(time.Minute)
 	start := f.now
-	out, _ = call(t, cs, "wait", map[string]any{"since": sent.NextSince.Format(time.RFC3339Nano), "names": []string{"a"}})
+	out, _ = call(t, cs, "wait", map[string]any{"since": sent.NextSince, "names": []string{"a"}})
 	got := waitJSON(t, out)
 	if len(got.Agents) != 1 || got.Agents[0].State != state.Done || got.Agents[0].Last != "Understood, I will not." || f.now.Sub(start) > time.Second {
 		t.Fatalf("wait after %v: %s", f.now.Sub(start), out)

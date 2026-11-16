@@ -130,11 +130,11 @@ func runExplain(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	as, err := lookDecided(d, func(d deps) ([]agent.Agent, error) { return lookWith(d, runningSandboxes(d)) })
+	l, err := lookDecided(d, func(d deps) (looked, error) { return lookWith(d, runningSandboxes(d)) })
 	if err != nil {
 		return err
 	}
-	a, ok := agent.Find(as, x.name)
+	a, ok := agent.Find(l.agents, x.name)
 	if !ok {
 		if a, ok = lostAgent(d, x.name); ok {
 			if a.Generation != version.Generation {

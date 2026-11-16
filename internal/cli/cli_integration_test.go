@@ -469,7 +469,7 @@ func TestALongReplyIsDoneReadInPagesAndTakesAMessage(t *testing.T) {
 			}
 			break
 		}
-		args = []string{"read", "a", "--json", "--offset", strconv.Itoa(*v.NextOffset), "--since", v.NextSince.Format(time.RFC3339Nano)}
+		args = []string{"read", "a", "--json", "--offset", strconv.Itoa(*v.NextOffset), "--since", v.NextSince}
 	}
 	h.waitAtRest("a")
 	h.send("delivered: typed into a as its next prompt", "a", "thanks")
@@ -1287,7 +1287,7 @@ func TestAnAgentWhoseTurnEndedWhileItsSubagentsRunStaysWorkingUntilTheClosingTur
 		t.Fatalf("done %v after the wake-up, before its screen had rested", took)
 	}
 	// Once: a wait from there on returns nothing more.
-	if code, out, _ := h.run("wait", "a", "--since", since(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
+	if code, out, _ := h.run("wait", "a", "--since", nextSince(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
 		t.Fatalf("the same end again: exit %d %q", code, out)
 	}
 }
@@ -1342,7 +1342,7 @@ func TestAnAgentWhoseOwnWatchRunsIsDoneAtItsTurnEnd(t *testing.T) {
 	h.typeIn("a", "publish the report")
 	r := h.waited(ch)
 	h.only(r, "a", "done", "Done: publish the report")
-	if code, out, _ := h.run("wait", "a", "--since", since(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
+	if code, out, _ := h.run("wait", "a", "--since", nextSince(r), "--timeout", "1s"); code != 0 || !strings.HasPrefix(out, "nothing yet") {
 		t.Fatalf("the same end again: exit %d %q", code, out)
 	}
 	h.waitAtRest("a")
@@ -1466,13 +1466,19 @@ func TestRestoreBringsBackTheAgentsOfAKilledTmuxServer(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The numbers before the server went, and a cursor taken then.
+	code, out, errOut := h.run("ls", "--json")
+	var before waitOutput
+	if code != 0 || json.Unmarshal([]byte(out), &before) != nil {
+		t.Fatalf("ls: exit %d %s%s", code, out, errOut)
+	}
 	if out, err := exec.Command("tmux", "-u", "-L", h.socket, "kill-server").CombinedOutput(); err != nil {
 		t.Fatalf("kill-server: %v %s", err, out)
 	}
 	if rows := h.ls(); len(rows) != 0 {
 		t.Fatalf("agents after the server went: %+v", rows)
 	}
-	code, out, errOut := h.run("restore")
+	code, out, errOut = h.run("restore")
 	want := "restored a in app (sandbox claude-app)\nrestored b in app (sandbox claude-app)\nrestored d in app (sandbox hq-local-app)\n" +
 		"not restored w in app: its worktree " + gone + " is gone (hq kill w forgets it)\n"
 	if code != 0 || out != want {
@@ -1480,6 +1486,31 @@ func TestRestoreBringsBackTheAgentsOfAKilledTmuxServer(t *testing.T) {
 	}
 	for _, name := range []string{"a", "b", "d"} {
 		h.waitPane(name, "fake claude: resumed "+sessions[name])
+	}
+	// Each keeps its last completed turn; its state moved with the
+	// relaunch (#166, the operator's decision 2A). The cursor taken before
+	// returns what changed since, and no number is used twice on the host.
+	r := h.waited(h.wait("a", "--since", before.NextSince, "--timeout", "10s"))
+	i := slices.IndexFunc(before.Agents, func(row lsRow) bool { return row.Name == "a" })
+	if i < 0 || before.Agents[i].StateSeq == nil || before.Agents[i].CompletionSeq == nil {
+		t.Fatalf("a before: %+v", before.Agents)
+	}
+	if was := before.Agents[i]; len(r.out.Agents) != 1 || r.out.Agents[0].CompletionSeq == nil || *r.out.Agents[0].CompletionSeq != *was.CompletionSeq || *r.out.Agents[0].StateSeq <= *was.StateSeq {
+		t.Fatalf("a before %v/%v, after the restore %s", *was.StateSeq, *was.CompletionSeq, r.raw)
+	}
+	numbers := map[int64]string{}
+	ws, _ = h.d.tmux.Windows()
+	for _, a := range agent.FromWindows(ws) {
+		j, err := h.d.journal.Read(a.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range j.Events {
+			if other, ok := numbers[e.Number]; ok {
+				t.Fatalf("number %d is %s's and %s's", e.Number, other, a.Name)
+			}
+			numbers[e.Number] = a.Name
+		}
 	}
 	for _, r := range h.ls() {
 		if r.Name == "d" && (r.Sandbox != "hq-local-app" || r.Setup != "local") || r.Name != "d" && r.Sandbox != "claude-app" {

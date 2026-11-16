@@ -120,6 +120,20 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		expect(t, len(seen) == 10 && seen[through], "numbers %v, through %d", seen, through)
 	})
 
+	t.Run("the counter read on its own", func(t *testing.T) {
+		h := newHarness(t)
+		n, err := h.Store.Through()
+		require(t, err == nil && n == 0, "before any event: %d %v", n, err)
+		root := h.Root()
+		h.Leave(root, "a1", "000000001.1", prompt, at)
+		must(t, h.Store.Ingest(root, "a1"))
+		_, err = h.Store.Append("b2", state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: at}, state.Event{Source: state.SourceScreen, Kind: "rest", Time: at})
+		must(t, err)
+		n, err = h.Store.Through()
+		b := read(t, h.Store, "b2")
+		expect(t, err == nil && n == 3 && n == b.Through && b.Events[1].Number == n, "after three events: %d %v (%+v)", n, err, b)
+	})
+
 	t.Run("the latest turn end keeps its reply", func(t *testing.T) {
 		h := newHarness(t)
 		root := h.Root()

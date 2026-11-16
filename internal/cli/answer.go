@@ -103,11 +103,12 @@ func parseAnswer(arg string) state.Answer {
 }
 
 // answerOutput is what hq answer --json prints: the agent's state once it
-// has left the dialog, and the moment before the answer was left, for hq
-// wait --since, so what the agent does with the answer counts as after it.
+// has left the dialog, and the agent's cursor from before the answer was
+// left (ADR 0019), for hq wait --since, so what the agent does with the
+// answer counts as after it.
 type answerOutput struct {
-	State     string    `json:"state"`
-	NextSince time.Time `json:"next_since"`
+	State     string `json:"state"`
+	NextSince string `json:"next_since"`
 }
 
 // answer leaves the answer for the agent's question dialog, for the hook
@@ -153,9 +154,9 @@ func answer(env Env, d deps, r answerRequest) error {
 	if hook := templateAnswers(d, a, q); hook != "" {
 		return usageErr("%s's dialog cannot be answered from hq: its sandbox's template answers AskUserQuestion by itself (its PermissionRequest hook %s gives a decision), so Claude would take no answer from hq; answer it at the agent (hq go %s), and recreate the sandbox from a template whose hooks leave AskUserQuestion alone (hq sandbox rm %s)", a.Name, hook, a.Name, a.Repo())
 	}
-	// The moment before the answer is left: what the agent does with it is
-	// a change after it, for hq wait --since.
-	left := lookedAt(d.now())
+	// The cursor before the answer is left: what the agent does with it is
+	// a change numbered above it, for hq wait --since.
+	left := counterNow(d, a)
 	// The answer is in the agent's journal before the hook can give it, so
 	// what Claude reports of it comes after it (#195).
 	appendEvent(d, a.ID, state.KindAnswer, state.Facts{Whose: state.DialogHooks})
@@ -389,9 +390,9 @@ func answerOwn(env Env, d deps, a agent.Agent, r answerRequest) error {
 	if err != nil {
 		return usageErr("%s not answered: %v", a.Name, err)
 	}
-	// The moment before the first key: what the agent does after the
-	// dialog is a change after it, for hq wait --since.
-	left := lookedAt(d.now())
+	// The cursor before the first key: what the agent does after the
+	// dialog is a change numbered above it, for hq wait --since.
+	left := counterNow(d, a)
 	if err := moveTo(d, a, open, v, pick); err != nil {
 		return err
 	}

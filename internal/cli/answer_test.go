@@ -181,13 +181,11 @@ func TestAnswerGivesEveryQuestionItsAnswer(t *testing.T) {
 	if !reflect.DeepEqual(f.got["id-a"], want) {
 		t.Fatalf("Claude got %v", f.got["id-a"])
 	}
-	// The state once it left the dialog, and the moment before the answer
-	// was left, for hq wait --since.
-	var v struct {
-		State     string    `json:"state"`
-		NextSince time.Time `json:"next_since"`
-	}
-	if err := json.Unmarshal([]byte(out), &v); err != nil || v.State != state.Working || !v.NextSince.Equal(lookedAt(time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC))) {
+	// The state once it left the dialog, and the agent's cursor from before
+	// the answer was left, for hq wait --since: what the agent does with
+	// it is numbered above it.
+	var v answerOutput
+	if err := json.Unmarshal([]byte(out), &v); err != nil || v.State != state.Working || v.NextSince != f.cursorBefore(t, "id-a", state.KindAnswer) {
 		t.Fatalf("%q: %+v %v", out, v, err)
 	}
 }
@@ -663,12 +661,12 @@ func TestAnswerPicksAnOptionOfADialogOfClaudesOwnWithKeys(t *testing.T) {
 			t.Errorf("%+v: left %v, pasted %v", tc, f.answerLeft, f.tmux.pasted)
 		}
 	}
-	// --json: the state, and the moment before the first key, for hq wait.
+	// --json: the state, and the cursor from before the first key, for hq
+	// wait.
 	f, _, id := ownDialogFakes(t)
-	before := f.now
 	_, out, _ := f.run("answer", "a", "--dialog", id, "2", "--json")
 	var got answerOutput
-	if err := json.Unmarshal([]byte(out), &got); err != nil || got.State != state.Done || got.NextSince.After(before) || before.Sub(got.NextSince) > time.Second {
+	if err := json.Unmarshal([]byte(out), &got); err != nil || got.State != state.Done || got.NextSince != f.cursorBefore(t, "id-a", state.KindAnswer) {
 		t.Fatalf("json %q: %+v %v", out, got, err)
 	}
 	// An outdated agent is refused, its dialog of Claude's own too, and

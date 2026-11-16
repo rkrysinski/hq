@@ -64,7 +64,7 @@ func (h *realHQ) only(r waitResult, name, state, last string) lsRow {
 	return r.out.Agents[0]
 }
 
-func since(r waitResult) string { return r.out.NextSince.Format(time.RFC3339Nano) }
+func nextSince(r waitResult) string { return r.out.NextSince }
 
 func TestWaitReturnsAsAnAgentNeedsTheUserAndMissesNothingBetweenCalls(t *testing.T) {
 	testutil.FakeClaude(t)
@@ -94,14 +94,14 @@ func TestWaitReturnsAsAnAgentNeedsTheUserAndMissesNothingBetweenCalls(t *testing
 	h.typeIn("a", "needs input")
 	h.waitReport("a", "needs input", "Which colour do you pick?")
 	start := time.Now()
-	second := h.waited(h.wait("--since", since(first)))
+	second := h.waited(h.wait("--since", nextSince(first)))
 	h.only(second, "a", "needs input", "Which colour do you pick?")
 	if took := second.at.Sub(start); took > time.Second {
 		t.Fatalf("the change between the calls took %v", took)
 	}
 
 	// The dialog answered, the turn goes on and ends: done.
-	ch = h.wait("--since", since(second))
+	ch = h.wait("--since", nextSince(second))
 	h.typeIn("a", "yes")
 	h.only(h.waited(ch), "a", "done", "Done: needs input")
 

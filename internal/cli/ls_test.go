@@ -135,11 +135,16 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 	if code != 0 || json.Unmarshal([]byte(out), &l) != nil || len(l.Agents) != 1 {
 		t.Fatalf("exit %d, %q", code, out)
 	}
-	// The moment of the look, as far back as hq wait's own (design §3.4).
-	if l.NextSince != "2026-09-27T11:59:59.75Z" {
+	// The look's cursor (ADR 0019): it saw every change up to the one
+	// event, the turn end, that put a in its question and completed its
+	// turn.
+	if l.NextSince != "c1" {
 		t.Fatalf("next_since %q", l.NextSince)
 	}
 	r := l.Agents[0]
+	if r["state_seq"] != 1.0 || r["completion_seq"] != 1.0 {
+		t.Fatalf("numbers %v %v", r["state_seq"], r["completion_seq"])
+	}
 	if r["name"] != "a" || r["repo"] != "app" || r["state"] != "question" || r["age_seconds"] != 90.0 || r["branch"] != "" || r["last"] != long ||
 		r["since"] != "2026-09-27T11:58:30Z" || r["pending"] != 2.0 {
 		t.Fatalf("row %v", r)
@@ -346,7 +351,7 @@ func TestLsWithNoAgentsPrintsNothing(t *testing.T) {
 	if code, out, _ := f.run("ls"); code != 0 || out != "" {
 		t.Fatalf("exit %d %q", code, out)
 	}
-	if code, out, _ := f.run("ls", "--json"); code != 0 || out != "{\n  \"agents\": [],\n  \"next_since\": \"2026-09-27T11:59:59.75Z\"\n}\n" {
+	if code, out, _ := f.run("ls", "--json"); code != 0 || out != "{\n  \"agents\": [],\n  \"next_since\": \"c0\"\n}\n" {
 		t.Fatalf("json: exit %d %q", code, out)
 	}
 }
