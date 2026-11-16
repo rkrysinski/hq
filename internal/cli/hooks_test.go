@@ -49,6 +49,13 @@ func (j hookedJournal) Append(id string, events ...state.Event) ([]state.Event, 
 	return j.Memory.Append(journalID(id), events...)
 }
 
+func (j hookedJournal) Through() (int64, error) {
+	if j.f.onThrough != nil {
+		j.f.onThrough()
+	}
+	return j.Memory.Through()
+}
+
 func (j hookedJournal) Read(id string) (journal.Journal, error) {
 	return j.ReadFrom(id, 0)
 }

@@ -236,3 +236,22 @@ func TestWaitWithoutSinceNeverReturnsWhatItsFirstLookShowed(t *testing.T) {
 		t.Fatalf("again: %+v", again.Agents)
 	}
 }
+
+// hq send's cursor is the counter as it leaves the message, not that of
+// the look before it: a change another process numbers in between is
+// before the message, and a wait from the cursor does not take it for the
+// agent's answer.
+func TestSendsCursorIsTheCounterAsItLeavesTheMessage(t *testing.T) {
+	f := sendFakes(state.Done)
+	b := journalID("id-b")
+	f.onThrough = func() {
+		_, _ = f.journal.Append(b, state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: f.now})
+	}
+	var sent sendOutput
+	if err := json.Unmarshal([]byte(mustRun(t, f, "send", "a", "No", "--json")), &sent); err != nil {
+		t.Fatal(err)
+	}
+	if want := f.cursorBefore(t, "id-a", state.KindDelivery); sent.NextSince != want {
+		t.Fatalf("next_since %s, want %s, the counter just before the delivery", sent.NextSince, want)
+	}
+}
