@@ -60,7 +60,7 @@ Three more differences come with the translation:
 
 hq deploys nothing: a release is installed by people, with the install one-liner of the README or `hq update`. `docs/deployment.md` does not exist.
 
-The release workflow, `.github/workflows/release.yml`, builds hq for macOS (arm64, amd64) and Linux (amd64, arm64) with `scripts/build-release.sh` before it writes the notes, baking the tag in as the version, and attaches the binaries (`hq-<os>-<arch>`), `install.sh` and `SHA256SUMS` to the release after them. `install.sh` and `hq update` take the latest release and verify the binary against `SHA256SUMS` before installing it. To check the build without a tag: `scripts/build-release.sh v0.0.1 /tmp/dist`.
+The release workflow, `.github/workflows/release.yml`, builds hq for macOS (arm64, amd64) and Linux (amd64, arm64) with `scripts/build-release.sh` before it writes the notes, baking the tag in as the version, and attaches the binaries (`hq-<os>-<arch>`), `install.sh`, `GENERATION` and `SHA256SUMS` to the release after them. `install.sh` and `hq update` take the latest release, read its `GENERATION` and verify it and the binary against `SHA256SUMS` before installing it. To check the build without a tag: `scripts/build-release.sh v0.0.1 /tmp/dist`.
 
 ## Without GitHub Actions
 
@@ -68,10 +68,10 @@ When GitHub Actions starts no runs on the repository (for example, the account's
 
 ```bash
 git checkout v0.3.0
-scripts/build-release.sh v0.3.0 /tmp/dist     # hq for every platform, install.sh, SHA256SUMS
+scripts/build-release.sh v0.3.0 /tmp/dist     # hq for every platform, install.sh, GENERATION, SHA256SUMS
 git checkout -                                # back to the branch you came from
 scripts/release.sh v0.3.0                     # the release, its notes, the milestone, the comments
 gh release upload v0.3.0 /tmp/dist/* --clobber
 ```
 
-Build from the tag, so the binaries are exactly what was tagged. Check the result before announcing it: the release is marked latest, it has six files, and the install one-liner from the README installs the new version (`hq --version`).
+Build from the tag, so the binaries are exactly what was tagged. Check the result before announcing it: the release is marked latest, it has seven files, and the install one-liner from the README installs the new version (`hq --version`).

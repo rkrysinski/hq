@@ -196,6 +196,10 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 	if !strings.Contains(tools["answer"].Description, "with the completion_seq it had: that is no new reply") {
 		t.Errorf("answer: nothing on the dialog of Claude Code's own: %q", tools["answer"].Description)
 	}
+	// A row's since is not the since wait takes (#166 against #170).
+	if want := "since (the time it entered that state: not what wait takes as since)"; !strings.Contains(tools["list"].Description, want) {
+		t.Errorf("list: no %q in %q", want, tools["list"].Description)
+	}
 	if !strings.Contains(tools["list"].Description, "state_seq and completion_seq") {
 		t.Errorf("list: no numbers in %q", tools["list"].Description)
 	}

@@ -168,4 +168,4 @@ In that sandbox the tools appear as `mcp__mcp-gateway__new`, `mcp__mcp-gateway__
 
 ## Uninstall
 
-Delete `~/.local/bin/hq`, the `hq` entry under `mcpServers` in Claude Desktop's configuration if you added it (in Claude Code: `claude mcp remove --scope user hq`; for sbx: `sbx mcp rm hq`), `~/.config/hq` and, on macOS, `~/Library/Application Support/iTerm2/DynamicProfiles/hq.json`.
+Delete `~/.local/bin/hq`, the `hq` entry under `mcpServers` in Claude Desktop's configuration if you added it (in Claude Code: `claude mcp remove --scope user hq`; for sbx: `sbx mcp rm hq`), `~/.config/hq`, hq's state directory `~/.local/state/hq` (`$XDG_STATE_HOME/hq` when that is set), which holds the journals and the counter, and, on macOS, `~/Library/Application Support/iTerm2/DynamicProfiles/hq.json`.
