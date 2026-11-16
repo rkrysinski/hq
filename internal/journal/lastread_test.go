@@ -16,17 +16,18 @@ import (
 // without evidence is read anew from the journal's start.
 func TestAnAppendReadsOnFromWhatWasKeptUpToTheJournalsEnd(t *testing.T) {
 	const id = "0123456789abcdef"
-	store := Files{Dir: t.TempDir()}
 	at := time.Unix(1000, 0)
-	if _, err := store.Append(id, state.Event{Source: state.SourceScreen, Kind: state.KindTurnEnded, Time: at}); err != nil {
-		t.Fatal(err)
-	}
-	path := store.journalPath(id)
 	atWork := state.Event{Source: state.SourceScreen, Kind: state.KindAtWork, Time: at}
 	for kept, want := range map[string]string{
 		`{"offset":%d,"basis":0,"evidence":{"at work":"0"}}`: state.AsideDuplicate,
 		`{"offset":%d,"basis":0}`:                            "",
 	} {
+		// A journal of its own each, holding a turn end and no work.
+		store := Files{Dir: t.TempDir()}
+		if _, err := store.Append(id, state.Event{Source: state.SourceScreen, Kind: state.KindTurnEnded, Time: at}); err != nil {
+			t.Fatal(err)
+		}
+		path := store.journalPath(id)
 		if err := os.WriteFile(path+readSuffix, fmt.Appendf(nil, kept, size(path)), 0o600); err != nil {
 			t.Fatal(err)
 		}
