@@ -87,8 +87,8 @@ func TestAnAgentOfAnotherGenerationIsOutdated(t *testing.T) {
 	} {
 		ws := []tmux.Window{{ID: "@1", Name: "a", PaneDead: c.dead, Options: map[string]string{"id": "a1", "repo": "/w/app", "started": "100", "new": "1", GenerationOption: c.gen}}}
 		s := newStore(nil)
-		s.Memory.Report("/w/app", "a1", state.Report{State: state.Working, Since: time.Unix(200, 0), Branch: "main"}, state.Detail{Reply: "on it"})
-		s.Memory.Report("/w/app", "a1", state.Report{State: state.Working, Since: time.Unix(201, 0), Branch: "main", Prompt: "go on"}, state.Detail{})
+		s.Memory.Report("/w/app", "a1", journaltest.HookState{State: state.Working, Since: time.Unix(200, 0), Branch: "main"}, state.Detail{Reply: "on it"})
+		s.Memory.Report("/w/app", "a1", journaltest.HookState{State: state.Working, Since: time.Unix(201, 0), Branch: "main", Prompt: "go on"}, state.Detail{})
 		for _, a := range []Agent{FromJournals(ws, s, time.Unix(300, 0), nil)[0], Look(ws, Sandboxes{}, time.Unix(300, 0), s, nil)[0]} {
 			if a.State != c.state || a.Last != c.last || a.Generation != c.generated || a.Outdated() != (c.state == state.Outdated) {
 				t.Errorf("generation %q, dead %v: %s %q generation %d outdated %v, want %s %q generation %d", c.gen, c.dead, a.State, a.Last, a.Generation, a.Outdated(), c.state, c.last, c.generated)
@@ -131,7 +131,7 @@ func states(as []Agent) string {
 
 func TestTheLookEndsAgentsWhoseSandboxIsNotRunning(t *testing.T) {
 	now := time.Unix(1000, 0)
-	rs := map[string]state.Report{
+	rs := map[string]journaltest.HookState{
 		"a1": {State: state.Done, Since: time.Unix(200, 0), Last: "on it a"},
 		"b2": {State: state.Done, Since: time.Unix(200, 0), Last: "on it b"},
 	}
@@ -153,7 +153,7 @@ func TestAnAnswerOfSbxOlderThanAnAgentsReportDoesNotEndIt(t *testing.T) {
 	// in it and reported after that (#48). a reported before the question:
 	// its sandbox has stopped.
 	asked := time.Unix(200, 0)
-	rs := map[string]state.Report{
+	rs := map[string]journaltest.HookState{
 		"a1": {State: state.Done, Since: asked.Add(-time.Second), Last: "Done."},
 		"b2": {State: state.Done, Since: asked.Add(time.Millisecond), Last: "Done."},
 	}
@@ -173,7 +173,7 @@ func TestAnAnswerOfSbxOlderThanAnAgentsReportDoesNotEndIt(t *testing.T) {
 	}
 	// A turn end that left background work running is a report too.
 	s = newStore(nil)
-	bg := map[string]state.Report{"a1": {State: state.Working, Since: asked.Add(-time.Minute), Latest: asked.Add(time.Millisecond), Background: true}}
+	bg := map[string]journaltest.HookState{"a1": {State: state.Working, Since: asked.Add(-time.Minute), Latest: asked.Add(time.Millisecond), Background: true}}
 	if a := s.look(sbxWindows()[:1], bg, Sandboxes{Running: map[string]bool{}, Asked: asked}, asked.Add(time.Second))[0]; a.State != state.Working {
 		t.Fatalf("an agent whose turn end is newer than the answer: %s", a.State)
 	}
@@ -199,14 +199,14 @@ func TestTheLookLeavesAnAgentStartingWhileItsSandboxHasNotStarted(t *testing.T) 
 
 func TestTheLookTakesTheReportedStateWhileThePaneLives(t *testing.T) {
 	since := time.Unix(500, 0)
-	r := state.Report{State: state.Question, Since: since, Last: "Shall I?", Branch: "feat/42-x", Cwd: "/w/app/.claude/worktrees/x"}
+	r := journaltest.HookState{State: state.Question, Since: since, Last: "Shall I?", Branch: "feat/42-x", Cwd: "/w/app/.claude/worktrees/x"}
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2")}
 	ws[1].PaneDead, ws[1].DeadAt = true, time.Unix(550, 0)
 	s := newStore(nil)
 	if a := s.look(ws[:1], nil, Sandboxes{}, time.Unix(400, 0))[0]; a.State != state.Starting || a.Since.Unix() != 100 {
 		t.Fatalf("before any report: %+v", a)
 	}
-	as := s.look(ws, map[string]state.Report{"a1": r, "a2": r}, Sandboxes{}, time.Unix(600, 0))
+	as := s.look(ws, map[string]journaltest.HookState{"a1": r, "a2": r}, Sandboxes{}, time.Unix(600, 0))
 	if a := as[0]; a.State != state.Question || a.Since != since || a.Last != "Shall I?" || a.Branch != "feat/42-x" || a.Worktree != "/w/app/.claude/worktrees/x" {
 		t.Fatalf("%+v", a)
 	}
@@ -225,7 +225,7 @@ func TestAnAgentIsNewUntilItsFirstReport(t *testing.T) {
 	}
 	s := newStore(nil)
 	var got []string
-	for _, a := range s.look(ws, map[string]state.Report{"b2": {State: state.Working, Since: time.Unix(200, 0)}}, sbxSays(map[string]bool{"": true}), time.Unix(300, 0)) {
+	for _, a := range s.look(ws, map[string]journaltest.HookState{"b2": {State: state.Working, Since: time.Unix(200, 0)}}, sbxSays(map[string]bool{"": true}), time.Unix(300, 0)) {
 		if a.New {
 			got = append(got, a.Name)
 		}
@@ -243,7 +243,7 @@ func TestAnEndedAgentWithoutAMessageSaysItsSessionEnded(t *testing.T) {
 		{ID: "@4", Name: "quiet", Options: map[string]string{GenerationOption: gen, "id": "d4", "repo": "/w/app", "sandbox": "claude-app"}},
 		{ID: "@5", Name: "silent", PaneDead: true, Options: map[string]string{GenerationOption: gen, "id": "e5", "repo": "/w/app", "sandbox": "claude-app"}},
 	}
-	rs := map[string]state.Report{
+	rs := map[string]journaltest.HookState{
 		"c3": {State: state.Done, Since: time.Unix(200, 0), Last: "hi"},
 		// reported, but never a message
 		"b2": {State: state.Working, Since: time.Unix(200, 0)},
@@ -283,7 +283,7 @@ func TestAReportFromBeforeALaunchGivesTheMessageButNotTheState(t *testing.T) {
 	ws := []tmux.Window{lookWindow("1")}
 	ws[0].Options["started"] = "900"
 	s := newStore(nil)
-	s.Memory.Report("/w/app", "a1", state.Report{State: state.Done, Since: time.Unix(500, 0), Last: "PR #58 opened", Branch: "feat/42", Cwd: "/w/app/.claude/worktrees/42", SessionID: "s1"}, state.Detail{})
+	s.Memory.Report("/w/app", "a1", journaltest.HookState{State: state.Done, Since: time.Unix(500, 0), Last: "PR #58 opened", Branch: "feat/42", Cwd: "/w/app/.claude/worktrees/42", SessionID: "s1"}, state.Detail{})
 	if err := s.Ingest("/w/app", "a1"); err != nil {
 		t.Fatal(err)
 	}
@@ -294,7 +294,7 @@ func TestAReportFromBeforeALaunchGivesTheMessageButNotTheState(t *testing.T) {
 	if a.State != state.Starting || a.Since.Unix() != 900 || a.Last != "PR #58 opened" || a.Branch != "feat/42" || a.Worktree != "/w/app/.claude/worktrees/42" || a.Session() != "s1" {
 		t.Fatalf("relaunched: %+v, session %q", a, a.Session())
 	}
-	s.report("a1", state.Report{State: state.Working, Since: time.Unix(901, 0), Branch: "feat/42", SessionID: "s1"})
+	s.report("a1", journaltest.HookState{State: state.Working, Since: time.Unix(901, 0), Branch: "feat/42", SessionID: "s1"})
 	if a := FromJournals(ws, s, time.Unix(950, 0), nil)[0]; a.State != state.Working || a.Since.Unix() != 901 {
 		t.Fatalf("after its first report: %+v", a)
 	}
@@ -311,7 +311,7 @@ func TestEnteredIsWhenTheStateCanBeSeen(t *testing.T) {
 	s := newStore(map[string]string{"%2": declinedScreen()})
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2")}
 	seen := asked.Add(5 * time.Second)
-	as := s.look(ws, map[string]state.Report{
+	as := s.look(ws, map[string]journaltest.HookState{
 		"a1": {State: state.Question, Since: asked, Last: "Shall I?"},
 		"a2": {State: state.NeedsInput, Since: asked, Last: "Pick one"},
 	}, Sandboxes{}, seen)
@@ -334,12 +334,12 @@ func TestEndsTellsWhatIsLeftToEndInASandbox(t *testing.T) {
 	// (#87, #101). An agent starting in a sandbox that has not started yet
 	// (S2) has a session on its way, which hq kill must still end.
 	asked := time.Unix(200, 0)
-	before := &state.Report{State: state.Done, Since: asked.Add(-time.Second)}
-	after := &state.Report{State: state.Done, Since: asked.Add(time.Millisecond)}
+	before := &journaltest.HookState{State: state.Done, Since: asked.Add(-time.Second)}
+	after := &journaltest.HookState{State: state.Done, Since: asked.Add(time.Millisecond)}
 	// A session that ends as its sandbox stops reports its end, which
 	// may come after the answer while its pane still runs: no sign that
 	// the sandbox ran after it (#191).
-	endedAfter := &state.Report{State: state.Ended, Since: asked.Add(time.Millisecond)}
+	endedAfter := &journaltest.HookState{State: state.Ended, Since: asked.Add(time.Millisecond)}
 	live := sbxWindows()[0]
 	dead := sbxWindows()[0]
 	dead.PaneDead = true
@@ -347,7 +347,7 @@ func TestEndsTellsWhatIsLeftToEndInASandbox(t *testing.T) {
 	for _, c := range []struct {
 		name string
 		w    tmux.Window
-		r    *state.Report
+		r    *journaltest.HookState
 		s    Sandboxes
 		want bool
 	}{

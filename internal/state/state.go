@@ -5,7 +5,6 @@ package state
 import (
 	"bytes"
 	"strings"
-	"time"
 	"unicode"
 	"unicode/utf8"
 )
@@ -22,58 +21,6 @@ const (
 	// generation than the hq that looks: no hook's report counts for it.
 	Outdated = "outdated"
 )
-
-// Report is an agent's state as a hook's reports give it: what the tests
-// describe an agent by, which the fake journal turns into the event files
-// its hook leaves (journaltest.ReportFiles).
-type Report struct {
-	State string
-	Since time.Time // host modification time of the file (design §7.1)
-	Last  string    // the agent's last message, one line, stripped
-	// LastStop is the latest Stop's message, one line, stripped: Last, unless
-	// an open dialog's text stands in for it.
-	LastStop  string
-	SessionID string // Claude's session id
-	Cwd       string // where Claude works (a worktree or the repository), as the sandbox sees it
-	Branch    string // the branch checked out in Cwd, empty when detached or unknown
-	Prompt    string // while working since a prompt: the prompt, as the user sent it
-	// Latest is the time of the agent's latest report: Since, or the later
-	// time of an event that left it working without restarting its time
-	// (Kept).
-	Latest time.Time
-	// Background says the agent's turn ended while background work still
-	// runs (subagents): it waits at its prompt, working, until Claude wakes
-	// it for the closing turn (design §3.4).
-	Background bool
-	// Owed says that of a Background agent nothing runs any more: its
-	// background work finished together, and Claude has not yet taken the
-	// turn it owes for the last of it. That turn comes within moments, or
-	// the agent is done (design §3.4).
-	Owed bool
-	// Woken says the agent works on a turn Claude woke itself for after
-	// background work finished: no prompt of the user's shows on its screen
-	// for it.
-	Woken bool
-	// Acted says that Claude has acted on the turn the agent works on: a
-	// tool of its own has ended in it (the hook's mark, .acted), or an MCP
-	// elicitation it opened was answered, so no early Esc rewinds it any
-	// more (design §3.4, #77, #100).
-	Acted bool
-	// SubagentDialog says the dialog the agent needs input for is one of
-	// its subagents': the event that reported it carries the subagent's
-	// agent_id, as a subagent's tool events do (design §3.4).
-	SubagentDialog bool
-	// Queued says a prompt the user typed while the agent works waits in
-	// Claude's queue (the hook's copy, .queued, pending): Claude takes it
-	// into the turn at work, or runs it as a turn of its own after the
-	// turn's Stop, which the hook reports, or after an Esc on the turn,
-	// which only the screen shows (design §3.4, #82, #88).
-	Queued bool
-	// OwnTasks are the agent's own tasks while it is done or has a question
-	// from its latest event, a Stop: what it left running itself at that
-	// turn end (Own); nil otherwise.
-	OwnTasks []Task
-}
 
 // Task is one of the agent's own tasks (#78): a background shell command
 // or a watch (the Monitor tool) the agent itself started, running at the

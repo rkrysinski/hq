@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -25,12 +26,12 @@ func onSubmit(f *fakes, then func()) {
 // on its screen, until sleeps more sleeps have passed, then done with
 // reply, back at its empty box.
 func turnFor(f *fakes, sleeps int, reply string) {
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Prompt: "p"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now, Prompt: "p"}
 	f.tmux.screens["%4"] = workingScreen
 	n := 0
 	f.onSleep = func() {
 		if n++; n == sleeps {
-			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: reply}
+			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: reply}
 			f.tmux.screens["%4"] = emptyBox
 		}
 	}
@@ -99,7 +100,7 @@ func TestSendWaitOnAWorkingAgentReturnsTheEndOfTheTurnThatTookIt(t *testing.T) {
 				}
 				hookTakes(f, text, tc.hook)
 			case 80:
-				f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Checked the logs"}
+				f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Checked the logs"}
 				f.tmux.screens["%4"] = emptyBox
 			}
 		}
@@ -142,7 +143,7 @@ func TestSendWaitReturnsAnAgentThatNeedsTheUserBeforeItTookTheMessage(t *testing
 	n := 0
 	f.onSleep = func() {
 		if n++; n == 5 {
-			f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now}
+			f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: f.now}
 			f.tmux.screens["%4"] = "Do you want to proceed?\n❯ 1. Yes\n  2. No\nEsc to cancel\n"
 		}
 	}
@@ -159,7 +160,7 @@ func TestSendWaitReturnsAnAgentThatEndedBeforeItTookTheMessage(t *testing.T) {
 	n := 0
 	f.onSleep = func() {
 		if n++; n == 5 {
-			f.states["id-a"] = state.Report{State: state.Ended, Since: f.now}
+			f.states["id-a"] = journaltest.HookState{State: state.Ended, Since: f.now}
 		}
 	}
 	code, out, _ := f.run("send", "--wait", "a", "then commit")
@@ -263,7 +264,7 @@ func TestSendWaitOnACommandReturnsAsTheCommandGoes(t *testing.T) {
 	// One that opens a dialog of Claude Code's own: needs input.
 	f = sendFakes(state.Done)
 	onSubmit(f, func() {
-		f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now}
+		f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: f.now}
 		f.tmux.screens["%4"] = "Change effort level?\n❯ 1. Yes\n  2. No\n"
 	})
 	if got := sendWaitJSON(t, f, "a", "/effort"); got.Outcome != endTurn || got.Agents[0].State != state.NeedsInput {
@@ -291,7 +292,7 @@ func TestSendWaitTimesOutWithTheMessageWhereItWas(t *testing.T) {
 	// hq wait from its next_since returns that turn's end, once.
 	next := strings.TrimSuffix(out[strings.Index(out, "--since ")+len("--since "):], "\n")
 	f.onSleep = nil
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: hi"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Done: hi"}
 	f.tmux.screens["%4"] = emptyBox
 	var w waitOutput
 	if err := json.Unmarshal([]byte(mustRun(t, f, "wait", "a", "--since", next, "--json")), &w); err != nil || len(w.Agents) != 1 || w.Agents[0].Last != "Done: hi" {
@@ -402,7 +403,7 @@ func TestSendWaitWithNoTimeoutWaitsForAStartingAgentAsSendDoes(t *testing.T) {
 	n := 0
 	f.onSleep = func() {
 		if n++; n == 3 {
-			f.states["id-a"] = state.Report{State: state.Done, Since: f.now}
+			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now}
 		}
 	}
 	onSubmit(f, func() { turnFor(f, 4, "Done: hi") })
@@ -472,7 +473,7 @@ func TestSendWaitStallsWhenTheBoundHasHeldForExactly5s(t *testing.T) {
 	n := 0
 	f.onSleep = func() {
 		if n++; n == 4 {
-			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: earlier"}
+			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Done: earlier"}
 			f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ typing\n", 1)
 			atPrompt = f.now
 		}
@@ -498,7 +499,7 @@ func TestSendWaitTypesNothingOnceItsTimeoutHasPassed(t *testing.T) {
 	start := f.now
 	f.onSleep = func() {
 		if f.now.Sub(start) >= 7*time.Second && f.states["id-a"].State == state.Working {
-			f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done: the earlier turn"}
+			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Done: the earlier turn"}
 			f.tmux.screens["%4"] = emptyBox
 		}
 	}

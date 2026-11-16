@@ -28,11 +28,11 @@ type memStore struct {
 	screens    map[string]string
 	captureErr error // the capture fails
 	captures   []string
-	reports    map[string]state.Report
+	reports    map[string]journaltest.HookState
 }
 
 func newStore(screens map[string]string) *memStore {
-	return &memStore{Memory: journaltest.NewMemory(), screens: screens, reports: map[string]state.Report{}}
+	return &memStore{Memory: journaltest.NewMemory(), screens: screens, reports: map[string]journaltest.HookState{}}
 }
 
 func (s *memStore) Screens(panes []string) (map[string]string, error) {
@@ -51,7 +51,7 @@ func (s *memStore) Screens(panes []string) (map[string]string, error) {
 
 // report has the hook of agent id of /w/app report r, as Claude's payloads
 // (journaltest.Memory.Report), unless it reported r last.
-func (s *memStore) report(id string, r state.Report) {
+func (s *memStore) report(id string, r journaltest.HookState) {
 	if old, ok := s.reports[id]; ok && reflect.DeepEqual(old, r) {
 		return
 	}
@@ -61,7 +61,7 @@ func (s *memStore) report(id string, r state.Report) {
 
 // look has the agents' hooks report rs, then looks at the agents of ws at
 // now, with sbx's answer sbxs.
-func (s *memStore) look(ws []tmux.Window, rs map[string]state.Report, sbxs Sandboxes, now time.Time) []Agent {
+func (s *memStore) look(ws []tmux.Window, rs map[string]journaltest.HookState, sbxs Sandboxes, now time.Time) []Agent {
 	for id, r := range rs {
 		s.report(id, r)
 	}
@@ -293,7 +293,7 @@ func TestTheLookCapturesEveryScreenThatMayTellInOneCall(t *testing.T) {
 	now := time.Unix(1000, 0)
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2"), lookWindow("3"), lookWindow("4")}
 	ws[3].PaneDead, ws[3].DeadAt = true, now.Add(-time.Minute)
-	rs := map[string]state.Report{
+	rs := map[string]journaltest.HookState{
 		"a1": {State: state.Working, Since: now.Add(-time.Minute)},            // the user may have ended its turn
 		"a2": {State: state.Done, Since: now.Add(-10 * time.Minute)},          // Claude may show a dialog of its own
 		"a3": {State: state.Working, Since: now.Add(-100 * time.Millisecond)}, // too fresh for the screen to overrule
@@ -325,7 +325,7 @@ func TestWhatTheJournalHoldsStandsWhenTheLookCannotCaptureTheScreens(t *testing.
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2")}
-	rs := map[string]state.Report{
+	rs := map[string]journaltest.HookState{
 		"a1": {State: state.Working, Since: asked, Last: "Red or blue?"},
 		"a2": {State: state.Working, Since: asked, Last: "Thinking."},
 	}
@@ -364,7 +364,7 @@ func TestTheLookLeavesAnOutdatedAgentAlone(t *testing.T) {
 		{ID: "@2", Pane: "%2", Name: "b", PaneDead: true, Options: map[string]string{"id": "b2", "repo": "/w/app", "started": "100", GenerationOption: "2"}},
 	}
 	s := newStore(map[string]string{"%1": "❯ \n", "%2": "❯ \n"})
-	s.report("a1", state.Report{State: state.Working, Since: time.Unix(200, 0)})
+	s.report("a1", journaltest.HookState{State: state.Working, Since: time.Unix(200, 0)})
 	as := Look(ws, Sandboxes{Running: map[string]bool{}, Asked: time.Unix(300, 0)}, time.Unix(1000, 0), s, nil)
 	for _, a := range as {
 		if a.State != state.Outdated || a.Since != a.Started {
@@ -419,7 +419,7 @@ func TestALongRunningLookFoldsOnlyWhatIsNew(t *testing.T) {
 	s := &countingStore{memStore: newStore(nil)}
 	ws := []tmux.Window{lookWindow("1")}
 	folds := NewFolds()
-	s.report("a1", state.Report{State: state.Working, Since: now.Add(-time.Minute), Last: "Earlier."})
+	s.report("a1", journaltest.HookState{State: state.Working, Since: now.Add(-time.Minute), Last: "Earlier."})
 	Look(ws, Sandboxes{}, now, s, folds)
 	if s.read != 2 {
 		t.Fatalf("the first look read %d events", s.read)
@@ -429,7 +429,7 @@ func TestALongRunningLookFoldsOnlyWhatIsNew(t *testing.T) {
 	if s.read != 0 {
 		t.Fatalf("a look with nothing new read %d events", s.read)
 	}
-	s.report("a1", state.Report{State: state.Done, Since: now.Add(2 * time.Second), Last: "Done."})
+	s.report("a1", journaltest.HookState{State: state.Done, Since: now.Add(2 * time.Second), Last: "Done."})
 	a := Look(ws, Sandboxes{}, now.Add(3*time.Second), s, folds)[0]
 	if s.read != 1 || a.State != state.Done || a.Last != "Done." || !a.Since.Equal(now.Add(2*time.Second)) {
 		t.Fatalf("read %d events: %+v", s.read, a)
@@ -440,8 +440,8 @@ func TestALongRunningLookFoldsOnlyWhatIsNew(t *testing.T) {
 	if err := s.Remove("/w/app", "a1"); err != nil {
 		t.Fatal(err)
 	}
-	s.reports = map[string]state.Report{}
-	s.report("a1", state.Report{State: state.Working, Since: now.Add(4 * time.Second)})
+	s.reports = map[string]journaltest.HookState{}
+	s.report("a1", journaltest.HookState{State: state.Working, Since: now.Add(4 * time.Second)})
 	if a := Look(ws, Sandboxes{}, now.Add(5*time.Second), s, folds)[0]; a.State != state.Working || a.Last != "" {
 		t.Fatalf("after the removal: %+v", a)
 	}
@@ -457,7 +457,7 @@ func TestFromJournalsAppendsOnlyAPanesDeathAndCapturesNoScreen(t *testing.T) {
 	ws := []tmux.Window{lookWindow("1")}
 	ws[0].PaneDead = true
 	s := newStore(map[string]string{"%1": declinedScreen()})
-	s.report("a1", state.Report{State: state.Working, Since: now.Add(-time.Minute), Branch: "feat/1", Cwd: "/w/app/wt"})
+	s.report("a1", journaltest.HookState{State: state.Working, Since: now.Add(-time.Minute), Branch: "feat/1", Cwd: "/w/app/wt"})
 	for range 2 {
 		a := FromJournals(ws, s, now, nil)[0]
 		j := s.journalOf(t, "a1")
@@ -466,7 +466,7 @@ func TestFromJournalsAppendsOnlyAPanesDeathAndCapturesNoScreen(t *testing.T) {
 			t.Fatalf("%+v, captures %v, journal %s", a, s.captures, journaltest.Kinds(j))
 		}
 	}
-	s.report("b1", state.Report{State: state.Working, Since: now.Add(-time.Minute), Cwd: "/w/app/wt"})
+	s.report("b1", journaltest.HookState{State: state.Working, Since: now.Add(-time.Minute), Cwd: "/w/app/wt"})
 	lost := []Agent{{ID: "b1", Name: "b", RepoPath: "/w/app", Generation: version.Generation, State: state.Starting}}
 	ReadStates(lost, s, now, nil)
 	if lost[0].State != state.Working || lost[0].Worktree != "/w/app/wt" || journaltest.Kinds(s.journalOf(t, "b1")) != "UserPromptSubmit" {
@@ -519,12 +519,12 @@ func TestTheDetailIsTheLatestReplyAndWhatTheOpenDialogAsks(t *testing.T) {
 	ws := []tmux.Window{lookWindow("1")}
 	s := newStore(nil)
 	ask := &state.Ask{Tool: "Bash", Description: "Clean", Command: "rm -rf build"}
-	s.Memory.Report("/w/app", "a1", state.Report{State: state.NeedsInput, Since: now.Add(-time.Minute), LastStop: "On it."}, state.Detail{Reply: "On it.\n\nNext.", Ask: ask})
+	s.Memory.Report("/w/app", "a1", journaltest.HookState{State: state.NeedsInput, Since: now.Add(-time.Minute), LastStop: "On it."}, state.Detail{Reply: "On it.\n\nNext.", Ask: ask})
 	a := Look(ws, Sandboxes{}, now, s, nil)[0]
 	if d := a.Detail(); d.Reply != "On it.\n\nNext." || !d.ReplyAt.Equal(now.Add(-time.Minute-time.Millisecond)) || !reflect.DeepEqual(d.Ask, ask) || a.Dialog().Asks(d.Ask) != d.Ask {
 		t.Fatalf("at the dialog: %+v", d)
 	}
-	s.report("a1", state.Report{State: state.Working, Since: now})
+	s.report("a1", journaltest.HookState{State: state.Working, Since: now})
 	a = Look(ws, Sandboxes{}, now, s, nil)[0]
 	if d := a.Detail(); d.Reply != "On it.\n\nNext." || d.Ask != nil {
 		t.Fatalf("working on: %+v", d)
@@ -543,7 +543,7 @@ func TestTheClockMovedBetweenLooksChangesNothingButTheAges(t *testing.T) {
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2"), lookWindow("3")}
 	ws[2].PaneDead, ws[2].DeadAt = true, now.Add(-30*time.Minute)
 	s := newStore(map[string]string{"%1": declinedScreen()})
-	rs := map[string]state.Report{
+	rs := map[string]journaltest.HookState{
 		"a1": {State: state.Working, Since: now.Add(-time.Hour)},
 		"a2": {State: state.Done, Since: now.Add(-time.Hour), Last: "Done."},
 		"a3": {State: state.Working, Since: now.Add(-time.Hour)},
@@ -566,7 +566,7 @@ func TestLooksAtOnceShowTheSameStateAndAge(t *testing.T) {
 	now := time.Unix(1000, 0)
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2")}
 	s := newStore(map[string]string{"%1": declinedScreen(), "%2": capture(t, "fs-esc-idle")})
-	rs := map[string]state.Report{
+	rs := map[string]journaltest.HookState{
 		"a1": {State: state.Working, Since: now.Add(-time.Minute)},
 		"a2": {State: state.Working, Since: now.Add(-time.Minute), Prompt: "Count."},
 	}
@@ -642,7 +642,7 @@ func TestAStaleLookAtARelaunchedAgentEndsNobody(t *testing.T) {
 	dead := []tmux.Window{lookWindow("1")}
 	dead[0].PaneDead, dead[0].DeadAt = true, t1
 	s := newStore(map[string]string{})
-	s.report("a1", state.Report{State: state.Working, Since: t1.Add(-time.Minute), Prompt: "p"})
+	s.report("a1", journaltest.HookState{State: state.Working, Since: t1.Add(-time.Minute), Prompt: "p"})
 	if a := Look(dead, Sandboxes{}, t1.Add(time.Second), s, nil)[0]; a.State != state.Ended {
 		t.Fatalf("not ended first: %+v", a)
 	}
@@ -656,7 +656,7 @@ func TestAStaleLookAtARelaunchedAgentEndsNobody(t *testing.T) {
 	if got := journaltest.Kinds(s.journalOf(t, "a1")); got != before {
 		t.Fatalf("the stale look appended: %s, was %s", got, before)
 	}
-	s.report("a1", state.Report{State: state.Working, Since: t1.Add(3 * time.Second), Prompt: "next"})
+	s.report("a1", journaltest.HookState{State: state.Working, Since: t1.Add(3 * time.Second), Prompt: "next"})
 	if a := Look(alive, Sandboxes{}, t1.Add(4*time.Second), s, nil)[0]; a.State != state.Working {
 		t.Fatalf("the relaunched agent, alive and reporting, is %s; journal %s", a.State, journaltest.Kinds(s.journalOf(t, "a1")))
 	}

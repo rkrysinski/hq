@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -29,13 +30,13 @@ func (s *memStore) latest(t *testing.T, id string) int64 {
 func TestAnAgentCarriesTheNumbersOfItsLastChangeAndOfItsLastCompletedTurn(t *testing.T) {
 	ws := []tmux.Window{lookWindow("1")}
 	s := newStore(nil)
-	look := func(r state.Report) Agent {
+	look := func(r journaltest.HookState) Agent {
 		t.Helper()
-		as := s.look(ws, map[string]state.Report{"a1": r}, Sandboxes{}, time.Unix(1000, 0))
+		as := s.look(ws, map[string]journaltest.HookState{"a1": r}, Sandboxes{}, time.Unix(1000, 0))
 		return as[0]
 	}
 
-	a := look(state.Report{State: state.Working, Since: time.Unix(200, 0), Prompt: "Run the tests"})
+	a := look(journaltest.HookState{State: state.Working, Since: time.Unix(200, 0), Prompt: "Run the tests"})
 	prompt := s.latest(t, "a1")
 	if st, c := seqs(a); st != prompt || c != 0 || a.State != state.Working {
 		t.Fatalf("working: state_seq %d completion_seq %d (prompt %d) %s", st, c, prompt, a.State)
@@ -44,17 +45,17 @@ func TestAnAgentCarriesTheNumbersOfItsLastChangeAndOfItsLastCompletedTurn(t *tes
 		t.Fatal("a completion before the first completed turn")
 	}
 
-	a = look(state.Report{State: state.Done, Since: time.Unix(300, 0), Last: "Done: tests pass"})
+	a = look(journaltest.HookState{State: state.Done, Since: time.Unix(300, 0), Last: "Done: tests pass"})
 	stop := s.latest(t, "a1")
 	if st, c := seqs(a); st != stop || c != stop || stop <= prompt {
 		t.Fatalf("done: state_seq %d completion_seq %d (stop %d)", st, c, stop)
 	}
 	// A look more, with nothing new: nothing moves.
-	if st, c := seqs(look(state.Report{State: state.Done, Since: time.Unix(300, 0), Last: "Done: tests pass"})); st != stop || c != stop {
+	if st, c := seqs(look(journaltest.HookState{State: state.Done, Since: time.Unix(300, 0), Last: "Done: tests pass"})); st != stop || c != stop {
 		t.Fatalf("again: state_seq %d completion_seq %d", st, c)
 	}
 
-	a = look(state.Report{State: state.Working, Since: time.Unix(400, 0), Prompt: "Now the docs"})
+	a = look(journaltest.HookState{State: state.Working, Since: time.Unix(400, 0), Prompt: "Now the docs"})
 	next := s.latest(t, "a1")
 	if st, c := seqs(a); st != next || c != stop {
 		t.Fatalf("working again: state_seq %d completion_seq %d (prompt %d, stop %d)", st, c, next, stop)
@@ -99,7 +100,7 @@ func TestAnAgentWithNoEventBehindItsStateHasNoNumbers(t *testing.T) {
 func TestAGoneAgentIsEndedWithNoNumbers(t *testing.T) {
 	ws := []tmux.Window{lookWindow("1")}
 	s := newStore(nil)
-	a := s.look(ws, map[string]state.Report{"a1": {State: state.Done, Since: time.Unix(300, 0), Last: "Done: tests pass"}}, Sandboxes{}, time.Unix(1000, 0))[0]
+	a := s.look(ws, map[string]journaltest.HookState{"a1": {State: state.Done, Since: time.Unix(300, 0), Last: "Done: tests pass"}}, Sandboxes{}, time.Unix(1000, 0))[0]
 	g := a.Gone(time.Unix(2000, 0))
 	if _, ok := g.StateSeq(); ok || g.State != state.Ended || !g.Since.Equal(time.Unix(2000, 0)) || g.Last != "Done: tests pass" {
 		t.Fatalf("gone: %+v", g)
@@ -156,7 +157,7 @@ func TestAnAgentJustLaunchedHasTheLaunchsNumber(t *testing.T) {
 		t.Fatal("just launched: a completion")
 	}
 	// Its first report moves it.
-	a = s.look(ws, map[string]state.Report{"a1": {State: state.Working, Since: time.Unix(200, 0), Prompt: "go"}}, Sandboxes{}, time.Unix(1000, 0))[0]
+	a = s.look(ws, map[string]journaltest.HookState{"a1": {State: state.Working, Since: time.Unix(200, 0), Prompt: "go"}}, Sandboxes{}, time.Unix(1000, 0))[0]
 	if st, _ := a.StateSeq(); st != s.latest(t, "a1") || st <= launched {
 		t.Fatalf("after its first report: state_seq %d", st)
 	}

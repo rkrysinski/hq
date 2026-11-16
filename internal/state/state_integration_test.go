@@ -148,7 +148,7 @@ func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) 
 	notify := func(kind, payload string) string {
 		return run(t, root, root, id, hook(kind, "[%s]"), fixture(t, payload))
 	}
-	state := func() (Report, string) {
+	state := func() (hookState, string) {
 		t.Helper()
 		r, ok := reported(root, id)
 		if !ok {
@@ -227,7 +227,7 @@ func TestAnElicitationIsReportedAtOnceAndClosedWhenItsFormIsAnswered(t *testing.
 	notify := func(kind string, payload []byte) string {
 		return run(t, root, root, id, hook(kind, "[%s]"), payload)
 	}
-	state := func() (Report, string) {
+	state := func() (hookState, string) {
 		t.Helper()
 		r, ok := reported(root, id)
 		if !ok {
@@ -549,7 +549,7 @@ func TestATurnEndingWhileASubagentRunsLeavesTheAgentWorkingAndNotifiesNobody(t *
 	notify := func(kind, payload string) string {
 		return run(t, root, root, id, hook(kind, "[%s]"), fixture(t, payload))
 	}
-	read := func() Report {
+	read := func() hookState {
 		t.Helper()
 		r, ok := reported(root, id)
 		if !ok {
@@ -617,7 +617,7 @@ func TestATurnEndingWhileASubagentRunsLeavesTheAgentWorkingAndNotifiesNobody(t *
 func TestADialogNotifiedWhileTheAgentWaitsOnASubagentIsTheSubagents(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	read := func() Report {
+	read := func() hookState {
 		t.Helper()
 		r, ok := reported(root, id)
 		if !ok {
@@ -704,7 +704,7 @@ func TestOnlyRunningBackgroundWorkThatIsNoCommandOrWatchOfTheAgentsOwnKeepsATurn
 func TestATurnEndWithASubagentRunningStillDeliversMessagesAndFollowsWhatCameBefore(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	read := func() Report {
+	read := func() hookState {
 		t.Helper()
 		r, _ := reported(root, id)
 		return r
@@ -876,7 +876,7 @@ func TestSubagentsThatFinishTogetherNotifyOnceWhenClaudeHasTakenItsTurnForEach(t
 		t.Helper()
 		return run(t, root, root, id, hook(kind, "[%s]"), payload)
 	}
-	read := func() Report {
+	read := func() hookState {
 		t.Helper()
 		r, _ := reported(root, id)
 		return r
@@ -1386,7 +1386,7 @@ func TestAPromptQueuedWhileTheAgentWorksIsATurnOfItsOwnWhenTheTurnEndsWithIt(t *
 func testAQueuedPromptsTurn(t *testing.T, clear bool) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	report := func(when string) Report {
+	report := func(when string) hookState {
 		t.Helper()
 		r, ok := reported(root, id)
 		if !ok {
@@ -1519,7 +1519,7 @@ func TestAQueuedPromptLeavesTheTurnAtWorkActedOnAndQueuesAgainInTheTurnItIsTaken
 func TestAToolOfATurnTakenAfterAnEscHandsOverToTheQueuedPrompt(t *testing.T) {
 	root := testutil.GitRepo(t, "app")
 	const id = "0a1b2c3d4e5f"
-	report := func(when string) Report {
+	report := func(when string) hookState {
 		t.Helper()
 		r, ok := reported(root, id)
 		if !ok {

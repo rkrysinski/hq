@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
@@ -320,7 +321,7 @@ func inTheWayFakes(t *testing.T) *fakes {
 		agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false),
 		agentWindow("@2", "b", "/w/app", f.now.Add(-time.Hour), true),
 	}
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Minute), Last: "on it"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Minute), Last: "on it"}
 	f.records = map[string][]state.Record{"/w/lib": {{ID: "id-c", Name: "c", Sandbox: "claude-lib", Generation: version.Generation}}}
 	return f
 }

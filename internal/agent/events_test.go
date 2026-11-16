@@ -47,7 +47,7 @@ func since(es []state.Event, n int64) []state.Event {
 func TestTheLookAppendsThePanesDeathAndTheSandboxNotRunning(t *testing.T) {
 	now := time.Unix(1000, 0)
 	died := now.Add(-3 * time.Second)
-	rs := map[string]state.Report{"a1": {State: state.Done, Since: now.Add(-time.Minute), Last: "Done."}}
+	rs := map[string]journaltest.HookState{"a1": {State: state.Done, Since: now.Add(-time.Minute), Last: "Done."}}
 	s := newStore(nil)
 	s.report("a1", rs["a1"])
 	basis := basisOf(t, s)
@@ -73,7 +73,7 @@ func TestTheLookAppendsThePanesDeathAndTheSandboxNotRunning(t *testing.T) {
 		}
 	}
 	stale := newStore(nil)
-	stale.report("a1", state.Report{State: state.Done, Since: asked.Add(time.Millisecond)})
+	stale.report("a1", journaltest.HookState{State: state.Done, Since: asked.Add(time.Millisecond)})
 	if a := stale.look([]tmux.Window{evWindow()}, nil, Sandboxes{Running: map[string]bool{}, Asked: asked}, now)[0]; a.State != state.Done || ofSourceKinds(stale.journalOf(t, "a1"), state.SourceSbx) != "" {
 		t.Fatalf("a report after the answer: %+v", a)
 	}
@@ -159,7 +159,7 @@ func TestTheLookAppendsAWakeUpBesideOtherEvidenceOfTheScreen(t *testing.T) {
 func TestAHundredLooksAtTheSameScreenAddOneEvent(t *testing.T) {
 	now := time.Unix(1000, 0)
 	s := newStore(map[string]string{"%1": declinedScreen()})
-	s.report("a1", state.Report{State: state.Working, Since: now.Add(-time.Minute)})
+	s.report("a1", journaltest.HookState{State: state.Working, Since: now.Add(-time.Minute)})
 	basis := basisOf(t, s)
 	folds := NewFolds()
 	for i := range 100 {
@@ -193,7 +193,7 @@ func (s racingStore) Append(id string, events ...state.Event) ([]state.Event, er
 func TestOfEightLooksRacingOneEventStands(t *testing.T) {
 	now := time.Unix(1000, 0)
 	s := newStore(map[string]string{"%1": declinedScreen()})
-	s.report("a1", state.Report{State: state.Working, Since: now.Add(-time.Minute)})
+	s.report("a1", journaltest.HookState{State: state.Working, Since: now.Add(-time.Minute)})
 	basis := basisOf(t, s)
 	var ready, done sync.WaitGroup
 	ready.Add(8)
@@ -245,7 +245,7 @@ func (s overtakingStore) Append(id string, events ...state.Event) ([]state.Event
 func TestEvidenceALaterReportOvertookIsSetAside(t *testing.T) {
 	now := time.Unix(1000, 0)
 	s := newStore(map[string]string{"%1": declinedScreen()})
-	s.report("a1", state.Report{State: state.Working, Since: now.Add(-time.Minute)})
+	s.report("a1", journaltest.HookState{State: state.Working, Since: now.Add(-time.Minute)})
 	basis := basisOf(t, s)
 	a := Look([]tmux.Window{evWindow()}, Sandboxes{}, now, overtakingStore{s, t}, nil)[0]
 	es := since(s.journalOf(t, "a1"), basis)

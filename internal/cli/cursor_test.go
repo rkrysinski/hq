@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -58,7 +59,7 @@ func TestParseSinceTellsACursorFromAMomentAndADuration(t *testing.T) {
 func TestRowsCarryTheTwoNumbersAndAnOutdatedOneNone(t *testing.T) {
 	f := newWaitFakes()
 	f.tmux.windows[2].Options[agent.GenerationOption] = "2"
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Second), Last: "Done: hello"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Second), Last: "Done: hello"}
 	var ls struct {
 		Agents []map[string]any `json:"agents"`
 	}
@@ -79,11 +80,11 @@ func TestRowsCarryTheTwoNumbersAndAnOutdatedOneNone(t *testing.T) {
 
 	// a works again: its state moves, its completed turn stays; then it is
 	// done again, and only a is returned, never the outdated b.
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now, Last: "on it"}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now, Last: "on it"}
 	mustRun(t, f, "ls", "--json")
 	working := f.cursorOf(t, "id-a")
 	f.after(time.Second, func() {
-		f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "Done again"}
+		f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Done again"}
 		f.tmux.windows[2].PaneDead = true
 	})
 	w := waitJSON(t, mustRun(t, f, "wait", "--since", cursorText(working), "--json"))
@@ -101,14 +102,14 @@ func TestWaitWithACursorMissesNothingWhenTheClockMovesBackAndForth(t *testing.T)
 	first := waitJSON(t, mustRun(t, f, "wait", "--timeout", "1s", "--json"))
 
 	f.now = f.now.Add(-10 * time.Minute)
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now, Last: "a done"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "a done"}
 	second := waitJSON(t, mustRun(t, f, "wait", "--since", first.NextSince, "--json"))
 	if len(second.Agents) != 1 || second.Agents[0].Name != "a" {
 		t.Fatalf("back: %+v", second.Agents)
 	}
 
 	f.now = f.now.Add(20 * time.Minute)
-	f.states["id-b"] = state.Report{State: state.Question, Since: f.now, Last: "b asks?"}
+	f.states["id-b"] = journaltest.HookState{State: state.Question, Since: f.now, Last: "b asks?"}
 	third := waitJSON(t, mustRun(t, f, "wait", "--since", second.NextSince, "--json"))
 	if len(third.Agents) != 1 || third.Agents[0].Name != "b" {
 		t.Fatalf("forward: %+v", third.Agents)
@@ -193,8 +194,8 @@ func TestALooksCursorLeavesWhatAnotherProcessNumberedMeanwhileToTheNextWait(t *t
 		}
 		turns++
 		a := journalID("id-a")
-		f.journal.Report("/w/app", a, state.Report{State: state.Working, Since: f.now, Prompt: "go on"}, state.Detail{})
-		f.journal.Report("/w/app", a, state.Report{State: state.Done, Since: f.now, Last: fmt.Sprintf("turn %d", turns)}, state.Detail{})
+		f.journal.Report("/w/app", a, journaltest.HookState{State: state.Working, Since: f.now, Prompt: "go on"}, state.Detail{})
+		f.journal.Report("/w/app", a, journaltest.HookState{State: state.Done, Since: f.now, Last: fmt.Sprintf("turn %d", turns)}, state.Detail{})
 		_ = f.journal.Ingest("/w/app", a)
 	}
 	var ls waitOutput
@@ -219,8 +220,8 @@ func TestALooksCursorLeavesWhatAnotherProcessNumberedMeanwhileToTheNextWait(t *t
 func TestWaitWithoutSinceNeverReturnsWhatItsFirstLookShowed(t *testing.T) {
 	f := newWaitFakes()
 	f.tmux.windows[1].Pane, f.tmux.windows[2].Pane = "%1", "%2"
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
-	f.states["id-b"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	f.states["id-b"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
 	rule := strings.Repeat("─", 40)
 	f.tmux.screens = map[string]string{
 		"%1": "● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n",
@@ -265,8 +266,8 @@ func TestSendsCursorIsTheCounterAsItLeavesTheMessage(t *testing.T) {
 func dialogOnB(t *testing.T, alternate bool, looks *int) *fakes {
 	f := newWaitFakes()
 	f.tmux.windows[1].Pane, f.tmux.windows[2].Pane = "%1", "%2"
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
-	f.states["id-b"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	f.states["id-b"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
 	rule := strings.Repeat("─", 40)
 	dialog := func(n int) string {
 		return "● hi\n" + strings.Repeat("▔", 40) + fmt.Sprintf("\n   Change effort level %d?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n", n)

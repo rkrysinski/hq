@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -27,9 +28,9 @@ func TestTheDialogVerdictSaysWhoseDialogTheAgentIsAt(t *testing.T) {
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2"), lookWindow("3"), lookWindow("4")}
 	s := newStore(map[string]string{"%1": "Bash command\n", "%2": "Bash command\n", "%3": ownEffortScreen(), "%4": "✶ Brewing…\n"})
 	reported := &state.Ask{Tool: "Bash", Command: "make test"}
-	s.Memory.Report("/w/app", "a1", state.Report{State: state.NeedsInput, Since: asked}, state.Detail{Ask: reported})
-	s.Memory.Report("/w/app", "a2", state.Report{State: state.NeedsInput, Since: asked, SubagentDialog: true}, state.Detail{Ask: reported})
-	as := s.look(ws, map[string]state.Report{
+	s.Memory.Report("/w/app", "a1", journaltest.HookState{State: state.NeedsInput, Since: asked}, state.Detail{Ask: reported})
+	s.Memory.Report("/w/app", "a2", journaltest.HookState{State: state.NeedsInput, Since: asked, SubagentDialog: true}, state.Detail{Ask: reported})
+	as := s.look(ws, map[string]journaltest.HookState{
 		"a3": {State: state.Done, Since: asked, Last: "hi"},
 		"a4": {State: state.Working, Since: asked},
 	}, Sandboxes{}, now)
@@ -61,7 +62,7 @@ func TestTheDialogVerdictSaysWhoseDialogTheAgentIsAt(t *testing.T) {
 func TestADialogTheHooksReportedClosesWhenTheScreenShowsClaudeAtWork(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"a1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", LastStop: "Hi."}}
+	rs := map[string]journaltest.HookState{"a1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", LastStop: "Hi."}}
 	s := newStore(map[string]string{"%1": capture(t, "fs-elicit-answered")})
 	ws := []tmux.Window{lookWindow("1")}
 	if a := s.look(ws, rs, Sandboxes{}, now)[0]; a.State != state.Working || !a.Since.Equal(asked) || a.Last != "Hi." || a.Dialog().Open() || a.Entered() != now {
@@ -80,7 +81,7 @@ func TestADialogTheHooksReportedClosesWhenTheScreenShowsClaudeAtWork(t *testing.
 	}
 	// What hq saw of an earlier report closes no later dialog.
 	s.screens["%1"] = capture(t, "fs-ask-open")
-	later := map[string]state.Report{"a1": {State: state.NeedsInput, Since: now.Add(3 * time.Second), Last: "Bash: make"}}
+	later := map[string]journaltest.HookState{"a1": {State: state.NeedsInput, Since: now.Add(3 * time.Second), Last: "Bash: make"}}
 	if a := s.look(ws, later, Sandboxes{}, now.Add(time.Minute))[0]; a.State != state.NeedsInput || a.Dialog().Whose != HooksDialog {
 		t.Fatalf("a later dialog: %+v", a)
 	}
@@ -90,7 +91,7 @@ func TestADialogTheHooksReportedClosesWhenTheScreenShowsClaudeAtWork(t *testing.
 func TestASubagentsDialogStaysOpenWhateverTheScreenShows(t *testing.T) {
 	now := time.Unix(1000, 0)
 	asked := now.Add(-time.Minute)
-	rs := map[string]state.Report{"a1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", SubagentDialog: true}}
+	rs := map[string]journaltest.HookState{"a1": {State: state.NeedsInput, Since: asked, Last: "Claude Code needs your input", SubagentDialog: true}}
 	for _, name := range []string{"fs-subagent-elicit-open", "fs-subagent-elicit-answered", "fs-elicit-answered", "fs-thinking"} {
 		s := newStore(map[string]string{"%1": capture(t, name)})
 		a := s.look([]tmux.Window{lookWindow("1")}, rs, Sandboxes{}, now)[0]
@@ -106,7 +107,7 @@ func TestASubagentsDialogStaysOpenWhateverTheScreenShows(t *testing.T) {
 func TestADialogOfClaudesOwnCountsOnBackgroundWork(t *testing.T) {
 	now := time.Unix(10000, 0)
 	prompted, stopped := now.Add(-time.Hour), now.Add(-time.Minute)
-	rs := map[string]state.Report{"a1": {State: state.Working, Since: prompted, Latest: stopped, Background: true, Last: "It started."}}
+	rs := map[string]journaltest.HookState{"a1": {State: state.Working, Since: prompted, Latest: stopped, Background: true, Last: "It started."}}
 	s := newStore(map[string]string{"%1": capture(t, "own-model-background")})
 	ws := []tmux.Window{lookWindow("1")}
 	a := s.look(ws, rs, Sandboxes{}, now)[0]
@@ -134,7 +135,7 @@ func TestADialogOfClaudesOwnCountsOnBackgroundWork(t *testing.T) {
 // names it by the same fingerprint.
 func TestTheVerdictOfADialogOfClaudesOwnKnowsItsScreen(t *testing.T) {
 	now := time.Unix(1000, 0)
-	rs := map[string]state.Report{"a1": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}, "a2": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}}
+	rs := map[string]journaltest.HookState{"a1": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}, "a2": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}}
 	s := newStore(map[string]string{"%1": capture(t, "own-effort-low"), "%2": capture(t, "own-model-2304")})
 	ws := []tmux.Window{lookWindow("1"), lookWindow("2")}
 	as := s.look(ws, rs, Sandboxes{}, now)

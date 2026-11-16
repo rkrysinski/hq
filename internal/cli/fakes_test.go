@@ -565,7 +565,7 @@ type fakes struct {
 	// that holds in full (its reply, what its dialog asks): the fakes' hook
 	// leaves each new report in the agent's journal as Claude's payloads
 	// (hookedJournal); left is what it left last.
-	states  map[string]state.Report
+	states  map[string]journaltest.HookState
 	details map[string]state.Detail
 	left    map[string]leftReport
 	// onAppend is called as hq appends events to agent id's journal, e.g.
@@ -708,7 +708,7 @@ func newFakes() *fakes {
 		now:  time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
 		tty:  true,
 
-		states:  map[string]state.Report{},
+		states:  map[string]journaltest.HookState{},
 		left:    map[string]leftReport{},
 		inbox:   map[string][]string{},
 		held:    map[string][]string{},

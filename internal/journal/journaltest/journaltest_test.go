@@ -63,10 +63,10 @@ func TestReportFilesOfAnEndedAgent(t *testing.T) {
 		}
 		return strings.Join(s, " ")
 	}
-	if got := kinds(ReportFiles(state.Report{State: state.Ended, Since: at, Last: "Bye."}, state.Detail{})); got != "stop end" {
+	if got := kinds(ReportFiles(HookState{State: state.Ended, Since: at, Last: "Bye."}, state.Detail{})); got != "stop end" {
 		t.Errorf("with a message: %s", got)
 	}
-	if got := kinds(ReportFiles(state.Report{State: state.Ended, Since: at}, state.Detail{})); got != "end" {
+	if got := kinds(ReportFiles(HookState{State: state.Ended, Since: at}, state.Detail{})); got != "end" {
 		t.Errorf("without one: %s", got)
 	}
 }
@@ -76,7 +76,7 @@ func TestReportFilesOfAnEndedAgent(t *testing.T) {
 func TestReportFilesOfANotification(t *testing.T) {
 	at := time.Unix(1000, 0)
 	for ask, want := range map[*state.Ask]string{nil: `"message":"Waiting"`, {Message: "Pick a colour"}: `"message":"Pick a colour"`} {
-		fs := ReportFiles(state.Report{State: state.NeedsInput, Since: at, Last: "Waiting"}, state.Detail{Ask: ask})
+		fs := ReportFiles(HookState{State: state.NeedsInput, Since: at, Last: "Waiting"}, state.Detail{Ask: ask})
 		if d := string(fs[len(fs)-1].Data); !strings.Contains(d, `"Notification"`) || !strings.Contains(d, want) {
 			t.Errorf("%+v: %s", ask, d)
 		}

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
@@ -34,9 +35,9 @@ func chordFakes() *fakes {
 		agentWindow("@6", "c", "/w/lib", f.now, false),
 	}
 	for _, n := range []string{"a", "b", "c"} {
-		f.states["id-"+n] = state.Report{State: state.Working, Since: f.now}
+		f.states["id-"+n] = journaltest.HookState{State: state.Working, Since: f.now}
 	}
-	f.states["id-b"] = state.Report{State: state.NeedsInput, Since: f.now}
+	f.states["id-b"] = journaltest.HookState{State: state.NeedsInput, Since: f.now}
 	f.prefs = prefs.Prefs{Sort: "repo"}
 	f.tmux.session = map[string]string{}
 	return f

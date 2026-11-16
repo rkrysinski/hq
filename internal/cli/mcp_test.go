@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
 	"github.com/rkrysinski/hq/internal/platform"
@@ -217,7 +218,7 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 func TestMCPListAndReadGiveWhatHqLsAndHqReadPrint(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false)}
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened", Branch: "feat/58"}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened", Branch: "feat/58"}
 	f.details["id-a"] = state.Detail{Reply: "Opened PR #58.\n\nAll tests pass."}
 	cs := mcpSession(t, f)
 	_, ls, _ := f.run("ls", "--json")
@@ -229,7 +230,7 @@ func TestMCPListAndReadGiveWhatHqLsAndHqReadPrint(t *testing.T) {
 		t.Fatalf("read %v:\n%s\nwant\n%s", isErr, out, read)
 	}
 	// What an MCP form asks, the same in both (#100).
-	f.states["id-a"] = state.Report{State: state.NeedsInput, Since: f.now.Add(-time.Second), Last: "Which color should I use?"}
+	f.states["id-a"] = journaltest.HookState{State: state.NeedsInput, Since: f.now.Add(-time.Second), Last: "Which color should I use?"}
 	f.details["id-a"] = state.Detail{Ask: &state.Ask{Server: "elicit", Message: "Which color should I use?", Fields: []state.AskField{{Name: "color", Type: "string", Required: true}}}}
 	_, ls, _ = f.run("ls", "--json")
 	_, read, _ = f.run("read", "a", "--json")
@@ -257,7 +258,7 @@ func TestMCPReadGivesALongReplyInPages(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, agentWindow("@1", "a", "/w/app", f.now.Add(-time.Hour), false)}
 	reply := longReply()
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: state.Clean(reply)}
 	f.details["id-a"] = state.Detail{Reply: reply, ReplyAt: f.now.Add(-time.Minute)}
 	cs := mcpSession(t, f)
 	var got strings.Builder
@@ -302,7 +303,7 @@ func TestMCPWaitInALoopWithSinceReturnsEachChangeOnce(t *testing.T) {
 	}
 	// Between the calls a asks a question.
 	f.now = f.now.Add(5 * time.Second)
-	f.states["id-a"] = state.Report{State: state.Question, Since: f.now, Last: "Shall I go on?"}
+	f.states["id-a"] = journaltest.HookState{State: state.Question, Since: f.now, Last: "Shall I go on?"}
 	f.now = f.now.Add(5 * time.Second)
 	out, _ = call(t, cs, "wait", map[string]any{"since": first.NextSince})
 	second := waitJSON(t, out)
@@ -481,7 +482,7 @@ func TestMCPWaitFromSendsNextSinceReturnsAnAnswerGivenBeforeWaitWasCalled(t *tes
 		t.Fatalf("send %v %v: %s", isErr, err, out)
 	}
 	// a answers within two seconds; the supervisor calls wait a minute later.
-	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(2 * time.Second), Last: "Understood, I will not."}
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(2 * time.Second), Last: "Understood, I will not."}
 	f.now = f.now.Add(time.Minute)
 	start := f.now
 	out, _ = call(t, cs, "wait", map[string]any{"since": sent.NextSince, "names": []string{"a"}})

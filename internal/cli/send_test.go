@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -22,7 +23,7 @@ func sendFakes(st string) *fakes {
 	w.Pane, w.Options["inbox"] = "%4", generation
 	f.tmux.windows = []tmux.Window{{ID: "@0", Name: "hq", Options: map[string]string{}}, w}
 	if st != "" {
-		f.states["id-a"] = state.Report{State: st, Since: f.now.Add(-time.Second)}
+		f.states["id-a"] = journaltest.HookState{State: st, Since: f.now.Add(-time.Second)}
 	}
 	f.tmux.screens = map[string]string{"%4": emptyBox}
 	return f
@@ -121,7 +122,7 @@ func TestSendToAStartingAgentWaitsForItsFirstReport(t *testing.T) {
 	sleeps := 0
 	f.onSleep = func() {
 		if sleeps++; sleeps == 3 {
-			f.states["id-a"] = state.Report{State: state.Done, Since: f.now}
+			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now}
 		}
 	}
 	code, out, _ := f.run("send", "a", "hi")
@@ -137,7 +138,7 @@ func TestSendToAStartingAgentWaitsForItsFirstReport(t *testing.T) {
 	}
 	// Its first prompt was typed in the meantime: working, it stops later.
 	f = sendFakes("")
-	f.onSleep = func() { f.states["id-a"] = state.Report{State: state.Working, Since: f.now} }
+	f.onSleep = func() { f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now} }
 	if _, out, _ = f.run("send", "a", "hi"); out != "queued: a is working, delivered when it stops\n" {
 		t.Fatalf("%q", out)
 	}
@@ -335,7 +336,7 @@ func TestSendTypesIntoABoxShowingOnlyClaudesFaintHint(t *testing.T) {
 
 func TestSendToAnAgentWaitingForItsSubagentsTypesItInAsItsNextPrompt(t *testing.T) {
 	f := sendFakes("")
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Minute), Latest: f.now.Add(-time.Second), Background: true}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Minute), Latest: f.now.Add(-time.Second), Background: true}
 	code, out, errOut := f.run("send", "a", "also run the linter")
 	if code != 0 || out != "delivered: typed into a as its next prompt\n" {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
@@ -345,7 +346,7 @@ func TestSendToAnAgentWaitingForItsSubagentsTypesItInAsItsNextPrompt(t *testing.
 	}
 	// With the user typing there it waits for the next prompt, as for done.
 	f = sendFakes("")
-	f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Minute), Latest: f.now.Add(-time.Second), Background: true}
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Minute), Latest: f.now.Add(-time.Second), Background: true}
 	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ ", "❯ a draft", 1)
 	if code, out, _ := f.run("send", "a", "hi"); code != 0 || out != "queued: a has something in its prompt box, delivered with its next prompt\n" || len(f.tmux.pasted) != 0 {
 		t.Fatalf("typing: exit %d %q", code, out)
@@ -473,11 +474,13 @@ func TestAMessageLeftWaitingIsTypedInOnlyAtAnEmptyBoxAtRest(t *testing.T) {
 	for name, change := range map[string]func(f *fakes){
 		// hq send is still on it.
 		"just sent": func(f *fakes) { f.oldest["id-a"] = f.now.Add(-time.Second) },
-		"working":   func(f *fakes) { f.states["id-a"] = state.Report{State: state.Working, Since: f.now.Add(-time.Second)} },
-		"typing":    func(f *fakes) { f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1) },
-		"in box":    func(f *fakes) { f.tmux.screens["%4"] = inBox },
-		"panel":     func(f *fakes) { f.tmux.screens["%4"] = panel },
-		"outdated":  func(f *fakes) { f.tmux.windows[1].Options[genOption] = "" },
+		"working": func(f *fakes) {
+			f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Second)}
+		},
+		"typing":   func(f *fakes) { f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1) },
+		"in box":   func(f *fakes) { f.tmux.screens["%4"] = inBox },
+		"panel":    func(f *fakes) { f.tmux.screens["%4"] = panel },
+		"outdated": func(f *fakes) { f.tmux.windows[1].Options[genOption] = "" },
 	} {
 		f := waitingFakes()
 		change(f)
