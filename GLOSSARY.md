@@ -76,6 +76,22 @@ _Avoid_: background work, job, pending task, running
 Text the user leaves for an agent with `hq send`, delivered to it when it is ready; it waits in the agent's inbox until then.
 _Avoid_: feedback, note, mail
 
+**Slash command**:
+A message whose first line starts with `/`; it runs only when hq types it in as the agent's prompt, and arrives as text when the agent's hooks deliver it.
+_Avoid_: command (that is one of hq's own), skill
+
+**Held message**:
+A message hq took out of the inbox and keeps there apart, out of its hooks' reach, to enter as a prompt of its own once the agent is back at its prompt; it still waits, and is not taken.
+_Avoid_: queued message
+
+**Taken**:
+Said of a message once it has left the agent's inbox for Claude: handed over by its hooks, or entered by hq as its prompt; a message hq entered and then put back after a failed typing is not taken.
+_Avoid_: delivered (for a message only left), read
+
+**Stalled message**:
+A message that an agent waiting at its prompt did not take within 5 s, its box not coming free or Claude not sending what hq entered, so that `hq send --wait` fails; hq leaves it where it is.
+_Avoid_: lost message, failed message
+
 **Supervisor**:
 A conversation in Claude Desktop or Claude Code that starts, watches and messages agents through hq's MCP tools (`hq mcp`); an MCP client, not an agent, with no row of its own.
 _Avoid_: sup agent, orchestrator, manager

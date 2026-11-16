@@ -74,6 +74,8 @@
 //     Claude taking a turn for it, and no hook fires;
 //   - the line "draft" is no prompt: it draws the box holding "a draft", as
 //     when the user has typed that and not sent it yet;
+//   - a prompt that starts with "unsent" is one Claude does not take: it
+//     stays in the box, which it draws holding it, and no hook fires (#170);
 //   - a line "/effort LEVEL" is no prompt: it changes the effort level
 //     (high at the start). As Claude Code 2.1.304 does, it asks first only
 //     when a turn has run since the session started or the level last
@@ -291,6 +293,11 @@ func main() {
 			fmt.Print(leaveAltScreen)
 			return
 		default:
+			if strings.HasPrefix(line, "unsent") {
+				// Not taken: still in the box; no hook fires.
+				promptBox("", line)
+				continue
+			}
 			if words := strings.Fields(line); command && words[0] == "/effort" && len(words) == 2 {
 				// A slash command, no prompt: its dialog takes the box's
 				// place until it is answered; no hook fires.

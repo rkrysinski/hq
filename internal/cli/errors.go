@@ -12,6 +12,7 @@ const (
 	ExitUsage       = 1 // usage error or refused (duplicate name, sandbox rm with running agents)
 	ExitNotFound    = 2 // agent, repository or sandbox not found
 	ExitEnvironment = 3 // tmux, sbx or another prerequisite unavailable
+	ExitStalled     = 4 // hq send --wait: the agent did not take the message (#170)
 )
 
 // Error is a failure reported to the user as one line on stderr, prefixed

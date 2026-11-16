@@ -51,7 +51,7 @@ func post(t *testing.T, root, id string, now bool, texts ...string) {
 func postFrom(t *testing.T, root, id string, supervisor, now bool, texts ...string) {
 	t.Helper()
 	for _, text := range texts {
-		if err := Post(root, id, Message{Text: text, Supervisor: supervisor}, now, time.Now()); err != nil {
+		if _, err := Post(root, id, Message{Text: text, Supervisor: supervisor}, now, time.Now()); err != nil {
 			t.Fatal(err)
 		}
 		time.Sleep(time.Millisecond)
@@ -145,7 +145,7 @@ func TestOldestIsWhenTheFirstMessageWaitingWasSent(t *testing.T) {
 	}
 	at := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
 	for _, sent := range []time.Time{at.Add(time.Second), at, at.Add(time.Minute)} {
-		if err := Post(root, id, Message{Text: "hi"}, false, sent); err != nil {
+		if _, err := Post(root, id, Message{Text: "hi"}, false, sent); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -389,15 +389,17 @@ func TestAMessageKeepsItsNameWhenHeldOrPutBack(t *testing.T) {
 	if err := Hold(root, id, taken[1:]); err == nil || !strings.Contains(err.Error(), "held already") {
 		t.Fatalf("held twice: %v", err)
 	}
-	// The first put back after a failed typing, the held one taken again.
-	if err := Post(root, id, taken[0], false, time.Now()); err != nil {
+	// The first put back after a failed typing, the held one taken again;
+	// Post says the name it waits under.
+	back, err := Post(root, id, taken[0], false, time.Now())
+	if err != nil {
 		t.Fatal(err)
 	}
 	first := strings.TrimSuffix(names[0], ".now")
-	if got := messages(InboxDir(root, id)); len(got) != 1 || got[0] != first || first == names[0] {
-		t.Fatalf("put back %v, want %s", got, first)
+	if got := messages(InboxDir(root, id)); len(got) != 1 || got[0] != first || first == names[0] || back != first {
+		t.Fatalf("put back %v as %s, want %s", got, back, first)
 	}
-	if err := Post(root, id, taken[0], false, time.Now()); err == nil {
+	if _, err := Post(root, id, taken[0], false, time.Now()); err == nil {
 		t.Fatal("put back over a message of its name")
 	}
 	again, err := Take(root, id)
@@ -405,10 +407,10 @@ func TestAMessageKeepsItsNameWhenHeldOrPutBack(t *testing.T) {
 		t.Fatalf("took again %+v %v", again, err)
 	}
 	// Put back with --now asked again, it keeps the whole name.
-	if err := Post(root, id, taken[0], true, time.Now()); err != nil {
+	if back, err = Post(root, id, taken[0], true, time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	if got := messages(InboxDir(root, id)); len(got) != 1 || got[0] != names[0] {
+	if got := messages(InboxDir(root, id)); len(got) != 1 || got[0] != names[0] || back != names[0] {
 		t.Fatalf("put back with now %v, want %s", got, names[0])
 	}
 }

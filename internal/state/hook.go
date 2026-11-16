@@ -508,7 +508,7 @@ const (
 	killInput   = "name confirmed"
 	answerInput = "name dialog answers cancel confirmed"
 	answerNeeds = "dialog"
-	sendInput   = "name text now"
+	sendInput   = "name text now wait timeout"
 	sendNeeds   = "text"
 )
 

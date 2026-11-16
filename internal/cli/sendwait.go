@@ -1,0 +1,325 @@
+package cli
+
+import (
+	"fmt"
+	"io"
+	"slices"
+	"time"
+
+	"github.com/rkrysinski/hq/internal/agent"
+	"github.com/rkrysinski/hq/internal/state"
+)
+
+// stallBound is how long a message that an agent at its prompt could take
+// may go without starting a turn before hq send --wait calls it stalled
+// (#170, decision 3): the box not free that long with the message waiting,
+// or no prompt reported that long after hq typed it in. It never runs
+// while the agent works, is starting or is at a dialog.
+const stallBound = 5 * time.Second
+
+// The ways a hq send --wait ends but a stall, as --json names them (#170).
+const (
+	// The agent stopped after taking the message: the end of the turn
+	// that took it, as hq wait returns it.
+	endTurn = "turn_ended"
+	// The agent waits for the user, or has ended, before it took the
+	// message.
+	endNotTaken = "not_taken"
+	// A slash command hq typed in left the box and started no turn.
+	endNoTurn = "no_turn"
+	// The timeout passed first.
+	endTimeout = "timeout"
+)
+
+// Where a message not taken is, for endNotTaken.
+const (
+	msgWaits = "waiting" // in the inbox, delivered as without --wait
+	msgKept  = "kept"    // the agent ended; delivered once it is relaunched
+	msgGone  = "gone"    // the agent was killed; the message went with it
+)
+
+// sendWaitOutput is what hq send --wait --json prints: how the message went,
+// how the wait ended (and where a message not taken is), the agent's row
+// as hq wait --json gives it (none at the timeout), and the cursor of the
+// look that returned it (ADR 0019), still that one agent's (decision 9).
+type sendWaitOutput struct {
+	Delivery  string  `json:"delivery"`
+	Outcome   string  `json:"outcome"`
+	Message   string  `json:"message,omitempty"`
+	Agents    []lsRow `json:"agents"`
+	NextSince string  `json:"next_since"`
+}
+
+// taking is what an agent's events after a send say of its message: taken
+// once a delivery names it (the hook's, or hq's before it types it in) with
+// no withdrawal of that delivery after it (the typing failed and the
+// message went back into the inbox). A held message is not taken until a
+// later look types it in (#173).
+type taking struct {
+	taken bool
+	byHQ  bool      // hq typed it in as a prompt; else the hook handed it over
+	at    time.Time // when the delivery was made
+	// delivery is the number of that delivery, and prompt that of the
+	// first prompt Claude reported after it that is not its own wake-up
+	// for background work (none: 0): the turn a typed message started.
+	delivery, prompt int64
+}
+
+// takingOf reads the taking of the message named name off events, an
+// agent's events in their order.
+func takingOf(events []state.Event, name string) taking {
+	var t taking
+	for _, e := range events {
+		switch {
+		case e.Aside != "":
+		case e.Kind == state.KindDelivery && namesIt(e.Facts.Messages, name):
+			t = taking{taken: true, byHQ: e.Source == state.SourceHQ, at: e.Time, delivery: e.Number}
+		case e.Kind == state.KindWithdrawn && e.Facts.Withdrawn == state.KindDelivery && t.taken && namesIt(e.Facts.Messages, name):
+			t = taking{}
+		case e.Kind == state.KindPrompt && !e.Facts.Wake && t.taken && t.prompt == 0 && e.Number > t.delivery:
+			t.prompt = e.Number
+		}
+	}
+	return t
+}
+
+// namesIt reports whether the message named name is among those named.
+func namesIt(named []string, name string) bool {
+	return slices.ContainsFunc(named, func(n string) bool { return state.SameMessage(n, name) })
+}
+
+// settled says how agent a, as a look whose cursor is through shows it,
+// ends a hq send --wait whose message's taking is t, if it does: in one of
+// the states hq wait returns, by a change the look's cursor stands for
+// (decision 7). A change at or below the delivery came before the message
+// was taken and is never returned; for a message hq typed in, neither is
+// one before the turn it started, such as the end of a turn Claude woke
+// itself for, unless the agent needs the user or has ended (a slash command
+// that opened a dialog of Claude Code's own). An agent with no number
+// (ended with a journal hq can no longer read) is returned as hq wait's
+// gone returns it.
+func settled(a agent.Agent, t taking, through int64) (string, bool) {
+	if !slices.Contains(waitStates, a.State) {
+		return "", false
+	}
+	seq, numbered := a.StateSeq()
+	stopped := a.State == state.NeedsInput || a.State == state.Ended
+	switch {
+	case !numbered && a.State != state.Ended, numbered && seq > through:
+		return "", false
+	case !t.taken:
+		return endNotTaken, stopped
+	case !numbered:
+		return endTurn, true
+	case !t.byHQ:
+		return endTurn, seq > t.delivery
+	case t.prompt > 0:
+		return endTurn, seq > t.prompt
+	default:
+		return endTurn, stopped && seq > t.delivery
+	}
+}
+
+// stallClock measures how long the condition key has held without a break:
+// "" for none, which pauses it, so the bound never runs while the agent
+// works, is starting or is at a dialog. A new key counts from the origin
+// given with it (the moment the message could first be taken), or from now
+// when it follows a pause.
+type stallClock struct {
+	// key is the condition the clock measures: keyWaiting, or that hq
+	// typed the message in with a delivery of a given number.
+	key    string
+	from   time.Time
+	paused bool
+}
+
+// keyWaiting is the stall clock's condition of a message that waits for an
+// agent at its prompt, not taken.
+const keyWaiting = "waiting"
+
+// held is how long, at now, the condition key has held: since origin when
+// it is new, since now after a pause; 0 for no condition.
+func (c *stallClock) held(key string, origin, now time.Time) time.Duration {
+	switch {
+	case key == "":
+		c.key, c.paused = "", true
+		return 0
+	case key != c.key:
+		c.key, c.from = key, origin
+		if c.paused {
+			c.from = now
+		}
+		c.paused = false
+	}
+	return now.Sub(c.from)
+}
+
+// waitedSend is a hq send --wait after its message was left and the line
+// that says how it goes was made (#170).
+type waitedSend struct {
+	agent        agent.Agent // as the send found it last
+	msg          string      // the name the message was left under
+	slashCommand bool        // it starts with a slash command
+	sent         int64       // the cursor before it was left
+	ready        time.Time   // when the send began to deliver it
+	start        time.Time   // when the call started, for timeout
+	timeout      time.Duration
+}
+
+// sendEnd is how a waited send ended: its outcome, where a message not
+// taken is, the agent's row (none at the timeout) and the look's cursor.
+type sendEnd struct {
+	outcome, message string
+	agents           []agent.Agent
+	next             int64
+}
+
+// wait looks at the agents as hq wait does until the send ends in one of
+// its five ways (#170): the agent stopped after taking the message, it
+// waits for the user or has ended before taking it, a slash command hq
+// typed in started no turn, the message stalled (an error, ExitStalled), or
+// the timeout. Meanwhile it types the message in itself as soon as the
+// agent waits at its prompt with an empty box at rest, and leaves the
+// others' messages to deliverWaiting, as hq wait does; it never types the
+// message in again and takes nothing back.
+func (w waitedSend) wait(d deps) (sendEnd, error) {
+	var (
+		events []state.Event // the agent's events numbered above sent
+		pos    int64         // where the next read of its journal starts
+		clock  stallClock
+		end    sendEnd
+	)
+	err := watchLooks(d, func(l looked, next int64, _ bool) (bool, error) {
+		i := slices.IndexFunc(l.agents, func(b agent.Agent) bool { return b.ID == w.agent.ID })
+		others := slices.Clone(l.agents)
+		if i >= 0 {
+			others = slices.Delete(others, i, i+1)
+		}
+		deliverWaiting(d, others)
+		if j, err := d.journal.ReadFrom(w.agent.ID, pos); err == nil {
+			if j.From != pos {
+				events = nil
+			}
+			for _, e := range j.Events {
+				if e.Number > w.sent {
+					events = append(events, e)
+				}
+			}
+			pos = j.Next
+		}
+		t := takingOf(events, w.msg)
+		now := d.now()
+		if i < 0 {
+			// Killed since the last look: gone with its inbox, as hq wait
+			// returns it (gone).
+			end = sendEnd{outcome: endTurn, agents: []agent.Agent{w.agent.Gone(now)}, next: next}
+			if !t.taken {
+				end.outcome, end.message = endNotTaken, msgGone
+			}
+			return true, nil
+		}
+		a := l.agents[i]
+		w.agent = a
+		if outcome, ok := settled(a, t, next); ok {
+			end = sendEnd{outcome: outcome, agents: []agent.Agent{a}, next: next}
+			if outcome == endNotTaken {
+				end.message = notTakenWhere(d, a)
+			}
+			return true, nil
+		}
+		var key string
+		origin := w.ready
+		switch {
+		case !atPrompt(a):
+		case !t.taken:
+			key = keyWaiting
+		case t.byHQ && t.prompt == 0:
+			key, origin = fmt.Sprint("typed ", t.delivery), t.at
+		}
+		late := w.timeout > 0 && !now.Before(w.start.Add(w.timeout))
+		if key == keyWaiting && !late && boxAtRest(d, a, 0) {
+			// Typed in now, by the send that left it: deliverWaiting
+			// would wait waitingAfter, beyond the bound. When nothing was
+			// there to take (another process took it, and its delivery is
+			// not in the journal yet), the bound and the timeout run on.
+			before := d.pending(a.RepoPath, a.ID)
+			_, _ = typeIn(d, a, 0, w.slashCommand)
+			if d.pending(a.RepoPath, a.ID) < before {
+				return false, nil
+			}
+		}
+		if clock.held(key, origin, now) >= stallBound {
+			switch box := w.box(d); {
+			case !t.taken:
+				return true, stalledErr(a, "it still waits in "+a.Name+"'s inbox, and nothing was typed in")
+			case box != "":
+				return true, stalledErr(a, "it is typed into "+a.Name+"'s prompt box and not sent")
+			case w.slashCommand:
+				end = sendEnd{outcome: endNoTurn, agents: []agent.Agent{a}, next: next}
+				return true, nil
+			default:
+				return true, stalledErr(a, "it left "+a.Name+"'s prompt box and started no turn")
+			}
+		}
+		if late {
+			end = sendEnd{outcome: endTimeout, next: next}
+			return true, nil
+		}
+		return false, nil
+	})
+	return end, err
+}
+
+// box is what the agent's prompt box holds, Claude's faint hints aside: ""
+// when it is empty or gone, as once Claude has taken a prompt.
+func (w waitedSend) box(d deps) string {
+	styled, err := d.tmux.StyledScreen(w.agent.Pane)
+	if err != nil {
+		return ""
+	}
+	return state.BoxText(state.WithoutHints(styled))
+}
+
+// notTakenWhere is where the message of agent a, which has not taken it,
+// is: waiting while it needs input, and once it has ended kept for its
+// relaunch while its inbox holds messages, else gone. Nothing takes a
+// message out of an ended agent's inbox but a kill, which removes it whole,
+// so a message not taken is still there while any is.
+func notTakenWhere(d deps, a agent.Agent) string {
+	switch {
+	case a.State != state.Ended:
+		return msgWaits
+	case d.pending(a.RepoPath, a.ID) > 0:
+		return msgKept
+	default:
+		return msgGone
+	}
+}
+
+// stalledErr is the failure of a stalled message (decisions 4 and 5),
+// saying where the message is.
+func stalledErr(a agent.Agent, where string) error {
+	return &Error{Code: ExitStalled, Msg: fmt.Sprintf("stalled: %s did not take the message: %s; see hq read %s before sending again", a.Name, where, a.Name)}
+}
+
+// printSendWait prints how a waited send ended, after the line that said
+// how the message goes (printed already, but with --json): a line for a
+// message not taken and for a command that started no turn, then the
+// agent's row and the cursor as hq wait prints them.
+func printSendWait(out io.Writer, d deps, name, how string, asJSON bool, e sendEnd) error {
+	rows := lsRows(d, e.agents)
+	if asJSON {
+		return writeJSON(out, sendWaitOutput{Delivery: how, Outcome: e.outcome, Message: e.message, Agents: rows, NextSince: cursorText(e.next)})
+	}
+	switch {
+	case e.outcome == endNoTurn:
+		fmt.Fprintf(out, "no turn: the slash command left %s's prompt box and started no turn\n", name)
+	case e.message == msgWaits:
+		fmt.Fprintf(out, "not taken: %s needs input before it took the message, which still waits for it\n", name)
+	case e.message == msgKept:
+		fmt.Fprintf(out, "not taken: %s has ended before it took the message, which is kept for its relaunch\n", name)
+	case e.message == msgGone:
+		fmt.Fprintf(out, "not taken: %s has ended before it took the message, which went with it\n", name)
+	}
+	return printWait(out, waitArgs{names: []string{name}}, rows, e.next)
+}

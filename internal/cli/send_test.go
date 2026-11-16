@@ -217,13 +217,17 @@ func TestSendUsage(t *testing.T) {
 		code int
 		err  string
 	}{
-		{[]string{"send"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--json]; quote the text\n"},
-		{[]string{"send", "a"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--json]; quote the text\n"},
-		{[]string{"send", "a", "run", "tests"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--json]; quote the text\n"},
-		{[]string{"send", "a", "hi", "-f"}, ExitUsage, "hq: unknown option '-f' (usage: hq send NAME TEXT [--now] [--json])\n"},
-		{[]string{"send", "a", " \x1b[31m \n"}, ExitUsage, "hq: empty message (usage: hq send NAME TEXT [--now] [--json])\n"},
+		{[]string{"send"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]; quote the text\n"},
+		{[]string{"send", "a"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]; quote the text\n"},
+		{[]string{"send", "a", "run", "tests"}, ExitUsage, "hq: usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]; quote the text\n"},
+		{[]string{"send", "a", "hi", "-f"}, ExitUsage, "hq: unknown option '-f' (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
+		{[]string{"send", "a", " \x1b[31m \n"}, ExitUsage, "hq: empty message (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
 		{[]string{"send", "a", strings.Repeat("x", state.MaxMessage+1)}, ExitUsage, "hq: message too long: at most 8192 bytes\n"},
 		{[]string{"send", "nobody", "hi"}, ExitNotFound, "hq: no agent 'nobody' (see hq ls)\n"},
+		// --timeout is --wait's (#170, decision 6).
+		{[]string{"send", "a", "hi", "--timeout", "5s"}, ExitUsage, "hq: --timeout goes with --wait (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
+		{[]string{"send", "a", "hi", "--wait", "--timeout"}, ExitUsage, "hq: --timeout needs a value (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
+		{[]string{"send", "a", "hi", "--wait", "--timeout=soon"}, ExitUsage, "hq: --timeout 'soon' is not a duration (30s, 5m; 0 waits with no limit)\n"},
 	} {
 		f := sendFakes(state.Working)
 		code, _, errOut := f.run(tc.args...)
@@ -234,10 +238,13 @@ func TestSendUsage(t *testing.T) {
 			t.Errorf("%q: inbox %v", tc.args, f.inbox)
 		}
 	}
-	// A message that starts with a dash is the text, not an option.
-	f := sendFakes(state.Working)
-	if code, _, errOut := f.run("send", "a", "-v is not a flag here"); code != 0 || f.inbox["id-a"][0] != "-v is not a flag here" {
-		t.Fatalf("exit %d %q %v", code, errOut, f.inbox)
+	// A message that starts with a dash is the text, not an option, one
+	// that starts as --timeout= included (#170).
+	for _, text := range []string{"-v is not a flag here", "--timeout=0 does not work in the script, look at it"} {
+		f := sendFakes(state.Working)
+		if code, _, errOut := f.run("send", "a", text); code != 0 || f.inbox["id-a"][0] != text {
+			t.Fatalf("%q: exit %d %q %v", text, code, errOut, f.inbox)
+		}
 	}
 }
 
@@ -621,7 +628,7 @@ func TestSendSaysTheHooksTookItWhileOthersAreHeld(t *testing.T) {
 	f := sendFakes(state.Working)
 	f.held["id-a"] = []string{"/probe held"}
 	d := f.deps()
-	d.postMessage = func(string, string, state.Message, bool) error { return nil }
+	d.postMessage = func(string, string, state.Message, bool) (string, error) { return "", nil }
 	var out strings.Builder
 	if err := runSend(Env{Stdout: &out}, d, []string{"a", "/probe go"}); err != nil || out.String() != "delivered: a took it with its hooks, as text, so the slash command did not run\n" {
 		t.Fatalf("%v %q", err, out.String())

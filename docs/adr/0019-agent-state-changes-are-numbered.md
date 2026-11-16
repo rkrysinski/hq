@@ -22,5 +22,5 @@ Now every change of an agent's state is numbered: by the number the host's one c
 
 - The moments derived for `hq wait` ("Entered after a moment") and its 250 ms settle time are gone; a call with a cursor uses neither the moment an agent entered its state nor any settle time. That moment stays for `AGE` and for the moment form of `--since`: numbers order changes, times measure them.
 - `next_since` is a string where it was a time; the descriptions of the supervisor's tools and the server's instructions say to pass it back as given.
-- `completion_seq` is a reliable "this turn finished" for later features: `hq send --wait` (#170, return when the turn the message started ends) and a seen or unseen `done` in the list (#167).
+- `completion_seq` is a reliable "this turn finished" for later features, such as a seen or unseen `done` in the list (#167). `hq send --wait` (#170, return when the turn the message started ends) returns on what `hq wait` returns instead: a `state_seq` above the number of the delivery that took the message, since a turn the user ended, a dialog, an end and a queued prompt move the two numbers apart.
 - Returning a change that left an agent where it was before (an agent back at `done` once a dialog of Claude's own closes) is a change like any other: `state_seq` moves, and `hq wait` returns it once.
