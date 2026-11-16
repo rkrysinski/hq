@@ -95,7 +95,7 @@ func TestATestsTmuxServerAndItsSocketFileAreGoneWhenItEnds(t *testing.T) {
 	socketFileGone(t, path)
 	// Gone as the cleanup tells it: an exited program its parent has not
 	// reaped yet still answers a signal 0 (#191).
-	if slices.Contains(running([]int{pid}), pid) {
+	if slices.ContainsFunc(running([]int{pid}), func(p process) bool { return p.pid == pid }) {
 		t.Fatalf("pane program %d still running", pid)
 	}
 }

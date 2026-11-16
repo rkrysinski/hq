@@ -34,7 +34,7 @@ func TmuxSocket(t *testing.T) string {
 		t.Skip("tmux not installed")
 	}
 	name := fmt.Sprintf("hq-test-%d-%d", os.Getpid(), sockets.Add(1))
-	t.Cleanup(func() { killServer(name) })
+	t.Cleanup(func() { killServer(name, t.Logf) })
 	return name
 }
 
@@ -48,10 +48,11 @@ func TmuxSocket(t *testing.T) string {
 // a hook of its own, one it started after the hangup, which then writes on
 // with no parent (#191): tmux makes each pane's program lead a process
 // group, which what it starts keeps, so killServer waits until no process
-// of those groups is left (running). tmux 3.6 leaves the socket file behind
+// of those groups is left (running, waitGone), and names through logf what
+// still runs when it stops waiting. tmux 3.6 leaves the socket file behind
 // however its server ends (#74), and gives its path only while the server
 // runs.
-func killServer(socket string) {
+func killServer(socket string, logf func(format string, args ...any)) {
 	path := socketPath(socket)
 	out, _ := exec.Command("tmux", "-u", "-L", socket, "list-panes", "-a", "-F", "#{pane_pid}").Output()
 	var panes []int
@@ -60,30 +61,28 @@ func killServer(socket string) {
 			panes = append(panes, pid)
 		}
 	}
-	all := running(panes)
-	_ = exec.Command("tmux", "-u", "-L", socket, "kill-server").Run()
-	for i := 0; i < 50; i++ {
-		if len(running(all)) == 0 {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
+	all := append([]int{}, panes...)
+	for _, p := range running(panes) {
+		all = append(all, p.pid)
 	}
+	_ = exec.Command("tmux", "-u", "-L", socket, "kill-server").Run()
+	waitGone(all, running, time.Sleep, logf)
 	_ = os.Remove(path)
 }
 
 // running is what runs of pids, of the processes below them and of the
 // process groups they lead, as ps lists the processes now (within); what
-// runs of pids alone when ps cannot list them. A process that has exited
-// runs nothing, though until its parent reaps it a signal 0 still finds
-// it: what a test asks of a process the cleanup waited for, it asks here,
-// so the two agree on when the process is gone (#191).
-func running(pids []int) []int {
-	out, err := exec.Command("ps", "-A", "-o", "pid=,ppid=,pgid=,stat=").Output()
+// runs of pids alone when ps cannot list them, with no command. A process
+// that has exited runs nothing, though until its parent reaps it a signal
+// 0 still finds it: what a test asks of a process the cleanup waited for,
+// it asks here, so the two agree on when the process is gone (#191).
+func running(pids []int) []process {
+	out, err := exec.Command("ps", "-A", "-o", "pid=,ppid=,pgid=,stat=,args=").Output()
 	if err != nil {
-		var alive []int
+		var alive []process
 		for _, pid := range pids {
 			if syscall.Kill(pid, 0) == nil {
-				alive = append(alive, pid)
+				alive = append(alive, process{pid: pid})
 			}
 		}
 		return alive
