@@ -1,0 +1,5 @@
+$ tmux -L hq-dev-2936405649 set-option -w -t @2 @hq_inbox 3; hq ls --json | jq -c '.agents[] | {name, state, state_seq, completion_seq}'; hq wait --since c0 --timeout 2s --json | jq -c '{next_since, agents: [.agents[] | {name, state, state_seq}]}'
+{"name":"b","state":"outdated","state_seq":null,"completion_seq":null}
+{"name":"a","state":"done","state_seq":11,"completion_seq":11}
+{"next_since":"c17","agents":[{"name":"a","state":"done","state_seq":11}]}
+$ 

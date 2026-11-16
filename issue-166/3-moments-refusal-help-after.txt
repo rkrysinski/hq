@@ -1,0 +1,12 @@
+$ hq wait --since 10m --timeout 2s; hq wait --since $(date -u -d '-10 min' +%Y-%m-%dT%H:%M:%SZ) --timeout 2s --json | jq -c '{next_since, agents: [.agents[] | {name, state, state_seq}]}'; hq wait --since c999999 --timeout 2s; echo exit $?; hq help | grep -E 'SINCE'
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   11s  Done: once more
+b     repo  main    done   57s  Done: hi
+next: hq wait --since c11
+{"next_since":"c11","agents":[{"name":"a","state":"done","state_seq":11},{"name":"b","state":"done","state_seq":8}]}
+hq: --since 'c999999' is ahead of every change hq has numbered on this host (was its state directory lost?): take a new one from hq ls --json
+exit 1
+  hq read NAME [--offset N --since SINCE] [--json] show that agent in full: its last reply (a long one in pages) and what it asks
+hq wait also takes --since SINCE and --timeout DURATION (default 50s; 0 waits with no limit).
+SINCE: the next_since hq printed last, passed back as given, which misses no change and repeats none; or a moment (2026-09-28T10:25:01Z) or a duration back from now (10m), both approximate.
+$ 

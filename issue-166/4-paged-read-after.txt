@@ -1,0 +1,8 @@
+$ S=$(hq send b 'a long reply please' --json | jq -r .next_since); hq wait b --since $S >/dev/null; R=$(hq read b --json); echo "$R" | jq -c '{state, reply_size, next_offset, next_since}'; O=$(echo "$R" | jq .next_offset); N=$(echo "$R" | jq -r .next_since); hq read b --offset $O --since $N --json | jq -c '{reply_size, next_offset}'; S=$(hq send b 'say hi' --json | jq -r .next_since); hq wait b --since $S | head -2; hq read b --offset $O --since $N; echo exit $?
+{"state":"done","reply_size":82022,"next_offset":32768,"next_since":"c14"}
+{"reply_size":82022,"next_offset":65536}
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     repo  main    done   0s   Done: say hi
+hq: b has replied anew since the read that gave the offset: read it again from its start, without --offset
+exit 1
+$ 

@@ -1,0 +1,8 @@
+$ hq ls --json | jq -c '{next_since, agents: [.agents[] | {name, state, state_seq, completion_seq}]}'
+{"next_since":"c8","agents":[{"name":"b","state":"done","state_seq":8,"completion_seq":8},{"name":"a","state":"done","state_seq":5,"completion_seq":5}]}
+$ C=$(hq ls --json | jq -r .next_since); hq send a 'once more' --json | jq -c .; W=$(hq wait --since $C --json); echo "$W" | jq -c '{next_since, agents: [.agents[] | {name, state, state_seq, completion_seq, last}]}'; hq wait --since $(echo "$W" | jq -r .next_since) --timeout 2s
+{"delivery":"delivered: typed into a as its next prompt","next_since":"c8"}
+{"next_since":"c11","agents":[{"name":"a","state":"done","state_seq":11,"completion_seq":11,"last":"Done: once more"}]}
+nothing yet
+next: hq wait --since c11
+$ 
