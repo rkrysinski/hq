@@ -1,0 +1,4 @@
+$ hq help | grep -E "^  hq (send|answer) "
+  hq send NAME TEXT [--now] [--wait [--timeout DURATION]] leave a message for that agent, delivered when it is ready; --wait returns when the turn that took it
+ends
+  hq answer NAME --dialog ID ANSWER...|--cancel answer that agent's question dialog, or cancel it; or pick an option of a dialog of Claude's own
