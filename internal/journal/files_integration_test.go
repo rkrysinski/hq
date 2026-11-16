@@ -3,6 +3,8 @@
 package journal_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -567,28 +569,51 @@ func TestAnAppendReadsOnFromTheAppendBefore(t *testing.T) {
 	}
 }
 
-// With journals of 50,000 events, an append after the first reads only
-// what was appended since, well within the list's tick.
-func TestAnAppendToALongJournalIsQuick(t *testing.T) {
+// An append reads on from the append before (design 3.4): what it kept
+// beside the journal stands for every byte read before, which it does not
+// read again however long the journal. With those bytes overwritten by
+// events that, read, would make the event appended last no longer the
+// latest turn end (another basis), the append still sets that event aside
+// as a duplicate, as it can only by what it kept and by reading none of
+// them, neither in place of what it kept nor on top of it (#191).
+func TestAnAppendReadsNothingTheAppendBeforeRead(t *testing.T) {
 	root, dir := newRoot(t), t.TempDir()
 	s := journal.Files{Dir: dir}
 	const id = "a1"
 	at := time.Unix(1000, 0)
-	for n := range 50 {
-		for i := range 1000 {
-			leave(t, root, id, fmt.Sprintf("%09d.prompt.1", n*1000+i+1), journaltest.Hook("main", map[string]any{"hook_event_name": "UserPromptSubmit", "prompt_id": fmt.Sprint(i)}), at)
-		}
-		if err := s.Ingest(root, id); err != nil {
-			t.Fatal(err)
-		}
+	for i := range 1000 {
+		leave(t, root, id, fmt.Sprintf("%09d.prompt.1", i+1), journaltest.Hook("main", map[string]any{"hook_event_name": "UserPromptSubmit", "prompt_id": fmt.Sprint(i)}), at)
 	}
-	e := state.Event{Source: state.SourceScreen, Kind: state.KindTurnEnded, Time: at, Basis: 50_000}
+	if err := s.Ingest(root, id); err != nil {
+		t.Fatal(err)
+	}
+	e := state.Event{Source: state.SourceScreen, Kind: state.KindTurnEnded, Time: at, Basis: 1000}
 	if _, err := s.Append(id, e); err != nil {
 		t.Fatal(err)
 	}
-	start := time.Now()
+	path := filepath.Join(dir, "journals", id)
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := json.Marshal(state.Event{Number: 1, Source: state.SourceScreen, Kind: state.KindTurnEnded, Time: at, Basis: 999})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// As many lines of the other turn end as the journal's bytes take, the
+	// last padded with spaces to their length.
+	line := append(other, '\n')
+	overwritten := bytes.Repeat(line, int(info.Size())/len(line)-1)
+	pad := int(info.Size()) - len(overwritten) - len(line)
+	overwritten = append(overwritten, append(append(other, bytes.Repeat([]byte(" "), pad)...), '\n')...)
+	if err := os.WriteFile(path, overwritten, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if j, err := s.Read(id); err != nil || int64(len(overwritten)) != info.Size() || len(j.Events) == 0 || j.Events[len(j.Events)-1].Basis != 999 {
+		t.Fatalf("overwritten %d bytes of %d: %v, %d events", len(overwritten), info.Size(), err, len(j.Events))
+	}
 	out, err := s.Append(id, e)
-	if took := time.Since(start); err != nil || took > 25*time.Millisecond || out[0].Aside != state.AsideDuplicate {
-		t.Fatalf("the second append took %v: %v %+v", took, err, out)
+	if err != nil || len(out) != 1 || out[0].Aside != state.AsideDuplicate {
+		t.Fatalf("the append after the journal's bytes were overwritten: %v %+v", err, out)
 	}
 }

@@ -39,25 +39,57 @@ func TmuxSocket(t *testing.T) string {
 }
 
 // killServer ends a test's tmux server, waits for the programs in its panes
-// to exit and removes its socket file. tmux returns before the programs
-// exit, and one still starting (the stub sbx right after hq new) would write
-// into a directory the test's cleanup is removing. tmux 3.6 leaves the
-// socket file behind however its server ends (#74), and gives its path only
-// while the server runs.
+// and every process below them to exit, and removes its socket file. tmux
+// returns before the programs exit, and one still starting (the stub sbx
+// right after hq new) would write into a directory the test's cleanup is
+// removing. A pane's program can exit before what runs below it: the
+// server's hangup ends hq's session command at once, while the fake Claude
+// it runs fires its SessionEnd hook, which writes beside the repository
+// (#191). tmux 3.6 leaves the socket file behind however its server ends
+// (#74), and gives its path only while the server runs.
 func killServer(socket string) {
 	path := socketPath(socket)
 	out, _ := exec.Command("tmux", "-u", "-L", socket, "list-panes", "-a", "-F", "#{pane_pid}").Output()
-	_ = exec.Command("tmux", "-u", "-L", socket, "kill-server").Run()
+	var panes []int
 	for _, f := range strings.Fields(string(out)) {
-		pid, err := strconv.Atoi(f)
-		if err != nil {
-			continue
+		if pid, err := strconv.Atoi(f); err == nil {
+			panes = append(panes, pid)
 		}
+	}
+	all := withDescendants(panes)
+	_ = exec.Command("tmux", "-u", "-L", socket, "kill-server").Run()
+	for _, pid := range all {
 		for i := 0; i < 50 && syscall.Kill(pid, 0) == nil; i++ {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
 	_ = os.Remove(path)
+}
+
+// withDescendants is pids and every process below them, as ps lists the
+// processes now; pids alone when ps cannot list them.
+func withDescendants(pids []int) []int {
+	out, err := exec.Command("ps", "-A", "-o", "pid=,ppid=").Output()
+	if err != nil {
+		return pids
+	}
+	children := map[int][]int{}
+	for _, line := range strings.Split(string(out), "\n") {
+		f := strings.Fields(line)
+		if len(f) != 2 {
+			continue
+		}
+		pid, err1 := strconv.Atoi(f[0])
+		ppid, err2 := strconv.Atoi(f[1])
+		if err1 == nil && err2 == nil {
+			children[ppid] = append(children[ppid], pid)
+		}
+	}
+	all := append([]int{}, pids...)
+	for i := 0; i < len(all); i++ {
+		all = append(all, children[all[i]]...)
+	}
+	return all
 }
 
 // socketPath is the socket file of the server on socket: as tmux gives it

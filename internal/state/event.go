@@ -188,6 +188,10 @@ type Facts struct {
 	// the agent exists (journal.Home).
 	Repo string `json:"repo,omitempty"`
 	Tmux string `json:"tmux,omitempty"`
+	// Prompted is, for a launch, that hq gave the agent a first prompt: it
+	// is starting until it reports it, not done at its session's start
+	// (spec §5, S2). A launch from before the fact has none.
+	Prompted bool `json:"prompted,omitempty"`
 	// Size is the size of an event file hq cannot read.
 	Size int64 `json:"size,omitempty"`
 }

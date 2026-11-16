@@ -228,6 +228,15 @@ func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Sources, f
 		}
 		screen, captured := screens[a.Pane]
 		if captured {
+			// What the hook reported before the capture comes before what
+			// the screen shows: Claude reports a turn's end a moment
+			// before it draws its empty prompt box again, and a session's
+			// end before its screen goes (#191). The screen tells only if
+			// it may still tell then.
+			_ = store.Ingest(a.RepoPath, a.ID)
+			_ = f.update(store, a.ID)
+		}
+		if captured && f.fold.ScreenMayTell(now) {
 			events, resting := f.fold.Sees(screen, now)
 			a.resting = resting
 			for _, e := range events {

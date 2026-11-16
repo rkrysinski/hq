@@ -115,7 +115,10 @@
 // text of several lines, ended with Enter, as one prompt.
 //
 // FAKE_CLAUDE_DELAY (a Go duration, default 200ms) is how long it takes to
-// start and how long a turn works.
+// start and how long a turn works. FAKE_CLAUDE_FIRST_PROMPT_DELAY (a Go
+// duration, default none) is how long after its session's start it takes
+// a first prompt given on its command line: the moment a slow machine
+// gives hq to look at an agent whose session started before its prompt.
 //
 // With FAKE_CLAUDE_START_DIALOG set it shows, once started and before it
 // takes any prompt, the dialog Claude Code 2.1.285 shows on the first start
@@ -276,6 +279,9 @@ func main() {
 		promptBox("")
 	}
 	if prompt != "" {
+		if d, err := time.ParseDuration(os.Getenv("FAKE_CLAUDE_FIRST_PROMPT_DELAY")); err == nil {
+			time.Sleep(d)
+		}
 		c.turn(prompt)
 	}
 	for in := range c.lines {

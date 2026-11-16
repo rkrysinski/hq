@@ -35,7 +35,7 @@ var pinned = struct {
 	forms: map[string]string{
 		"the hook's script": "550cbb74dac151bf",
 		"the record":        "7d2c1be547e68487",
-		"the journal":       "5ce88b31272fc6b0",
+		"the journal":       "acb23b5dfe1fdd87",
 		"the events taken":  "7a3e690550c42f25",
 	},
 }

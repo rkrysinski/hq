@@ -77,11 +77,14 @@ func (f Fold) TakenDown() bool {
 // user may have ended its turn; that it needs input, so the user may have
 // ended its turn or answered a dialog no hook reports the end of; or that
 // it waits at its prompt, done, with a question, or working only on
-// background work, where Claude may show a dialog of its own (Sees).
+// background work, where Claude may show a dialog of its own (Sees); or
+// that it started and waits for the first prompt hq launched it with,
+// where Claude may show one in that prompt's way.
 func (f Fold) ScreenMayTell(now time.Time) bool {
 	h := f.reading(nil)
 	r := f.look(nil)
-	return f.session(h) && r.State != Starting && r.State != Ended && now.Sub(h.Latest) >= OverruleDelay
+	waits := r.State != Starting || f.firstPromptDue()
+	return f.session(h) && waits && r.State != Ended && now.Sub(h.Latest) >= OverruleDelay
 }
 
 // Sees is what a look at now appends of the screen of an agent, when that
