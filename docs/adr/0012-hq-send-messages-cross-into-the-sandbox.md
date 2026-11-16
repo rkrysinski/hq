@@ -7,7 +7,7 @@
 - **Type every message in through tmux**: needs the prompt box, so it cannot reach a working agent without interrupting it, and keys sent while a dialog opens would answer it.
 - **Deliver only when the agent stops (Stop hook alone)**: a long turn gets the correction only at its end; `--now` exists for that.
 - **The hook reads and encodes the message itself**: needs a JSON encoder in the sandbox that ADR 0009's tool set does not guarantee; the host encodes it once instead, and the hook copies bytes.
-- **A lock file around the inbox**: renaming a message out of the inbox is atomic, so whoever renames it first, a hook or `hq send`, delivers it, and no lock is needed. Amended: a look of any hq process delivers too, typing in a message that has waited for an agent at its prompt, and takes it by the same rename.
+- **A lock file around the inbox**: renaming a message out of the inbox is atomic, so whoever renames it first, a hook or `hq send`, delivers it, and no lock is needed. Amended: the look of `hq ls`, `hq read`, `hq wait` (and of `hq send --wait`, for the agents but its own) or the list delivers too, typing in a message that has waited for an agent at its prompt, and takes it by the same rename; `hq explain` and the lookups of `hq go`, `hq code` and the dock deliver nothing.
 
 ## Consequences
 
