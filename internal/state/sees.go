@@ -77,11 +77,14 @@ func (f Fold) TakenDown() bool {
 // user may have ended its turn; that it needs input, so the user may have
 // ended its turn or answered a dialog no hook reports the end of; or that
 // it waits at its prompt, done, with a question, or working only on
-// background work, where Claude may show a dialog of its own (Sees).
+// background work, where Claude may show a dialog of its own (Sees); or
+// that it started and waits for the first prompt hq launched it with,
+// which may not come.
 func (f Fold) ScreenMayTell(now time.Time) bool {
 	h := f.reading(nil)
 	r := f.look(nil)
-	return f.session(h) && r.State != Starting && r.State != Ended && now.Sub(h.Latest) >= OverruleDelay
+	waits := r.State != Starting || f.firstPromptDue()
+	return f.session(h) && waits && r.State != Ended && now.Sub(h.Latest) >= OverruleDelay
 }
 
 // Sees is what a look at now appends of the screen of an agent, when that
@@ -120,6 +123,19 @@ func (f Fold) Sees(screen string, now time.Time) (events []Event, resting bool) 
 	st := h.State
 	if s.turnEnd.at(key) {
 		st = Done
+	}
+	if st == Done && !s.turnEnd.at(key) && f.firstPromptDue() {
+		// Its session started and the first prompt hq launched it with has
+		// not come: a dialog of Claude's own may stand in its way; else a
+		// screen at rest for RestDelay says it does not come, as for a turn
+		// Claude owes (#191).
+		if events := f.seesDialog(screen, key, now); len(events) > 0 || s.own.at(key) {
+			return events, false
+		}
+		if !Idle(screen) {
+			return nil, false
+		}
+		return f.restedOn(screen, key, now, KindAtRest, KindTurnNotTaken, true)
 	}
 	if st == Done || st == Question || st == Working && h.Background && !h.Owed {
 		return f.seesDialog(screen, key, now), false
@@ -161,6 +177,15 @@ func (f Fold) Sees(screen string, now time.Time) (events []Event, resting bool) 
 	if !rest {
 		return nil, false
 	}
+	return f.restedOn(screen, key, now, seenKind, decision, again)
+}
+
+// restedOn is what a look at now appends of a screen at rest for the
+// hook's report key: the screen first seen so (seenKind), and once it has
+// stayed the same for RestDelay, the decision, dated from then; again says
+// one more look, RestDelay later, tells.
+func (f Fold) restedOn(screen string, key int64, now time.Time, seenKind, decision string, again bool) ([]Event, bool) {
+	s := f.seen
 	fp := Fingerprint(screen)
 	if !s.atRest.at(key) || s.atRest.Facts.Screen != fp {
 		e := screenEvent(seenKind, now)

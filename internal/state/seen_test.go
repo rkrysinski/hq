@@ -3,6 +3,7 @@ package state
 import (
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -375,5 +376,62 @@ func TestAnAgentLaunchedWithAPromptIsStartingUntilItReportsIt(t *testing.T) {
 	// It keeps what its session's start told: the session and the worktree.
 	if r := Reduce([]Event{launch(1, true), start(2, newSource)}, Reply{}, atSecond(9)); r.Worktree != "/w/app" || !r.Since.Equal(atSecond(1)) {
 		t.Errorf("starting from its launch: %+v", r)
+	}
+}
+
+// An agent launched with a first prompt that it never reports (a command
+// of Claude Code's own, a prompt Claude drops) does not stay starting for
+// good: once its screen has stayed at rest at an empty prompt box for
+// RestDelay, the prompt does not come and it is done, waiting at its
+// prompt, as when Claude does not take a turn it owes (#191). The ordinary
+// moment between its session's start and the prompt decides nothing.
+func TestAFirstPromptThatNeverComesEndsInDoneOnceTheScreenStaysAtRest(t *testing.T) {
+	ready := screen(t, "start-ready")
+	launch := seenEvent(1, SourceHQ, KindLaunched, 0, Facts{Start: "new", Prompted: true})
+	start := hookEvent(2, CaseStart, KindSessionStart, Facts{Start: newSource, Session: "s1"})
+	journal := []Event{launch, start}
+	f := Fold{}.With(journal...)
+	early := atSecond(2).Add(OverruleDelay)
+	if !f.ScreenMayTell(early) || f.ScreenMayTell(atSecond(2).Add(OverruleDelay-time.Millisecond)) {
+		t.Fatal("its screen may tell only once the overrule delay has run")
+	}
+	seen, resting := f.Sees(ready, early)
+	if len(seen) != 1 || seen[0].Kind != KindAtRest || !resting {
+		t.Fatalf("first at rest: %+v %v", seen, resting)
+	}
+	// A dialog of Claude's own at the start stands in the prompt's way: it
+	// is seen there, and is no rest.
+	if seen, _ := f.Sees(screen(t, "own-auto-mode"), early); len(seen) != 1 || seen[0].Kind != KindOwnDialog {
+		t.Fatalf("a dialog of Claude's own: %+v", seen)
+	}
+	rest := seen[0]
+	rest.Number, rest.Basis = 3, 2
+	journal = append(journal, rest)
+	f = Fold{}.With(journal...)
+	if seen, _ := f.Sees(ready, early.Add(RestDelay-time.Millisecond)); len(seen) != 0 {
+		t.Fatalf("before the rest delay: %+v", seen)
+	}
+	if r := Reduce(journal, Reply{}, atSecond(9)); r.State != Starting {
+		t.Fatalf("at rest, not yet decided: %s", r.State)
+	}
+	// The ordinary moment: its prompt comes before the delay has run.
+	if r := Reduce(append(slices.Clone(journal), userPrompt(4, "t1")), Reply{}, atSecond(9)); r.State != Working {
+		t.Fatalf("the prompt within the delay: %s", r.State)
+	}
+	seen, _ = f.Sees(ready, early.Add(RestDelay))
+	if len(seen) != 1 || seen[0].Kind != KindTurnNotTaken || !seen[0].Facts.From.Equal(early) {
+		t.Fatalf("after the rest delay: %+v", seen)
+	}
+	decided := seen[0]
+	decided.Number, decided.Basis = 4, 2
+	r := Reduce(append(journal, decided), Reply{}, atSecond(9))
+	if r.State != Done || r.Entered.Number != 4 || !r.Since.Equal(early) || r.Changed.Number != 4 {
+		t.Fatalf("decided: %s entered %d since %v changed %d", r.State, r.Entered.Number, r.Since, r.Changed.Number)
+	}
+	// A screen that changed meanwhile (the user typing in the box) is at
+	// rest anew, from then.
+	typed := strings.Replace(ready, "Try", "draft Try", 1)
+	if seen, _ := f.Sees(typed, early.Add(RestDelay)); len(seen) != 1 || seen[0].Kind != KindAtRest {
+		t.Fatalf("a changed screen: %+v", seen)
 	}
 }

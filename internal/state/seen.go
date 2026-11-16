@@ -187,11 +187,18 @@ func (f *Fold) look(reply *Reply) looked {
 
 // awaitsFirstPrompt says r, from the hook's report h, is the done of a new
 // session's start of an agent launched with a first prompt, which the
-// screen did not overrule (a dialog of Claude's own still needs input).
+// screen did not overrule: a dialog of Claude's own still needs input, and
+// a screen at rest that says the prompt does not come makes it done.
 func (f *Fold) awaitsFirstPrompt(r, h Reduced) bool {
+	return r.State == Done && r.Entered == h.Entered && f.firstPromptDue()
+}
+
+// firstPromptDue says the agent's latest report is its new session's
+// start after a launch with a first prompt (Facts.Prompted), which it has
+// not reported yet.
+func (f *Fold) firstPromptDue() bool {
 	c := f.report
-	return f.seen.prompted && r.State == Done && r.Entered == h.Entered &&
-		c.Kind == KindSessionStart && c.Facts.Start == newSource
+	return f.seen.prompted && c != nil && c.Kind == KindSessionStart && c.Facts.Start == newSource
 }
 
 // ended applies the end of the agent to r, and reports whether it ended:
