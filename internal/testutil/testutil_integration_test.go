@@ -8,9 +8,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -93,7 +93,9 @@ func under(t *testing.T, path, dir string) {
 func TestATestsTmuxServerAndItsSocketFileAreGoneWhenItEnds(t *testing.T) {
 	path, pid := runServerTest(t, "sleep 60", func(*testing.T, string) {})
 	socketFileGone(t, path)
-	if syscall.Kill(pid, 0) == nil {
+	// Gone as the cleanup tells it: an exited program its parent has not
+	// reaped yet still answers a signal 0 (#191).
+	if slices.Contains(running([]int{pid}), pid) {
 		t.Fatalf("pane program %d still running", pid)
 	}
 }

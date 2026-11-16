@@ -73,7 +73,10 @@ func killServer(socket string) {
 
 // running is what runs of pids, of the processes below them and of the
 // process groups they lead, as ps lists the processes now (within); what
-// runs of pids alone when ps cannot list them.
+// runs of pids alone when ps cannot list them. A process that has exited
+// runs nothing, though until its parent reaps it a signal 0 still finds
+// it: what a test asks of a process the cleanup waited for, it asks here,
+// so the two agree on when the process is gone (#191).
 func running(pids []int) []int {
 	out, err := exec.Command("ps", "-A", "-o", "pid=,ppid=,pgid=,stat=").Output()
 	if err != nil {
