@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -507,5 +508,30 @@ func TestSendWaitTypesNothingOnceItsTimeoutHasPassed(t *testing.T) {
 	}
 	if len(f.tmux.pasted) != 0 || len(f.inbox["id-a"]) != 1 {
 		t.Fatalf("typed in at the timeout: pasted %v, inbox %v", f.tmux.pasted, f.inbox)
+	}
+}
+
+// A paste that fails when the waiting call types its message in fails the
+// call as it fails a plain send, with tmux's words and exit code 3, the
+// message back in the inbox: it is not retried at every look and does not
+// end as stalled (#170 on #173).
+func TestSendWaitFailsAsSendDoesWhenTypingItInFails(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1)
+	f.onSleep = func() {
+		if f.now.Sub(time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC)) >= boxWait+500*time.Millisecond && f.tmux.screens["%4"] != emptyBox {
+			f.tmux.screens["%4"] = emptyBox
+			f.tmux.pasteErr = errors.New("no pane %4")
+		}
+	}
+	code, _, errOut := f.run("send", "--wait", "a", "hi")
+	if code != ExitEnvironment || errOut != "hq: no pane %4\n" {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if got := strings.Join(f.inbox["id-a"], "|"); got != "hi" {
+		t.Fatalf("inbox %q", got)
+	}
+	if got := f.eventsOf("id-a", state.SourceHQ); got != "delivery Withdrawn" {
+		t.Fatalf("hq's events %q: one delivery, withdrawn", got)
 	}
 }

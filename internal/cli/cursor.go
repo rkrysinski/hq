@@ -27,6 +27,11 @@ type since struct {
 	cursor   int64
 	isCursor bool
 	moment   time.Time
+	// from is, for a wait without --since, the state number each agent
+	// of its first look stood at (0 for one with none): a change of such an
+	// agent counts when numbered above it, though another process numbered
+	// it before the call's cursor was read (#166).
+	from map[string]int64
 }
 
 // parseSince reads --since at now: a cursor, a moment or a duration.
@@ -48,6 +53,9 @@ func parseSince(s string, now time.Time) (since, error) {
 // changedAfter reports whether agent a's last change, numbered seq, came after
 // s: numbered above the cursor, or, for a moment, entered after it.
 func (s since) changedAfter(a agent.Agent, seq int64) bool {
+	if from, ok := s.from[a.ID]; ok {
+		return seq > from
+	}
 	if s.isCursor {
 		return seq > s.cursor
 	}

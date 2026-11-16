@@ -139,11 +139,18 @@ func runWait(env Env, d deps, args []string) error {
 			}
 			// An agent already in its state when the call starts is not
 			// returned, or a caller waiting in a loop would spin: the call
-			// starts after everything its first look showed, including what
-			// that look appended for an agent after it read another, which
-			// its cursor does not yet stand for.
+			// starts each agent of its first look from the state number that
+			// look showed for it, so a change another process numbers after
+			// that look, while deliverWaiting types, is still returned. An
+			// agent the first look did not show starts after everything
+			// numbered once that look is done, including what it appended
+			// for an agent after it read another, which its cursor does not
+			// yet stand for.
 			if !w.sinceArg {
-				w.since = since{cursor: next, isCursor: true}
+				w.since = since{cursor: next, isCursor: true, from: map[string]int64{}}
+				for _, a := range as {
+					w.since.from[a.ID], _ = a.StateSeq()
+				}
 				if n, err := d.journal.Through(); err == nil {
 					w.since.cursor = n
 				}

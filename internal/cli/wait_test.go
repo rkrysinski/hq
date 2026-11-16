@@ -361,3 +361,30 @@ func TestWaitKeepsAnAgentFoundByItsFirstHitThatMovesOnBeforeItReturns(t *testing
 		t.Fatalf("want a done, got %s", out)
 	}
 }
+
+// A wait without --since starts each agent from the state number its
+// first look showed: a turn end another process numbers after that look,
+// before the call reads where it starts (while deliverWaiting types), is
+// still returned (#166: "Without --since, a hq wait starts from its first
+// look").
+func TestWaitWithoutSinceReturnsAChangeNumberedRightAfterItsFirstLook(t *testing.T) {
+	f := newWaitFakes()
+	// The first read of the counter is the first look's own, before it
+	// lists the windows; the second is the call's, for where it starts.
+	reads := 0
+	f.onThrough = func() {
+		if reads++; reads != 2 {
+			return
+		}
+		// The list of another hq process ingests b's turn end.
+		f.states["id-b"] = state.Report{State: state.Done, Since: f.now, Last: "Done: in between"}
+		_ = f.deps().journal.Ingest("/w/app", "id-b")
+	}
+	code, out, errOut := f.run("wait", "--timeout", "3s", "--json")
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	if w := waitJSON(t, out); len(w.Agents) != 1 || w.Agents[0].Name != "b" || w.Agents[0].Last != "Done: in between" {
+		t.Fatalf("want b done, got %s", out)
+	}
+}

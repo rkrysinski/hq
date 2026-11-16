@@ -255,3 +255,74 @@ func TestSendsCursorIsTheCounterAsItLeavesTheMessage(t *testing.T) {
 		t.Fatalf("next_since %s, want %s, the counter just before the delivery", sent.NextSince, want)
 	}
 }
+
+// dialogOnB has two agents done at their prompts, b's screen showing a
+// dialog of Claude's own, which a look appends for b after it has read a:
+// the look shows b at a change numbered above its cursor (the lowest
+// counter of its reads). With alternate, b's dialog changes at every look,
+// so every look appends anew. looks counts the looks (each reads the
+// counter once, before it lists the windows).
+func dialogOnB(alternate bool, looks *int) *fakes {
+	f := newWaitFakes()
+	f.tmux.windows[1].Pane, f.tmux.windows[2].Pane = "%1", "%2"
+	f.states["id-a"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	f.states["id-b"] = state.Report{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
+	rule := strings.Repeat("─", 40)
+	dialog := func(n int) string {
+		return "● hi\n" + strings.Repeat("▔", 40) + fmt.Sprintf("\n   Change effort level %d?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n", n)
+	}
+	f.tmux.screens = map[string]string{"%1": "● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n", "%2": dialog(0)}
+	f.onThrough = func() {
+		*looks++
+		if alternate {
+			f.tmux.screens["%2"] = dialog(*looks)
+		}
+	}
+	return f
+}
+
+// hq ls --json shows no row its cursor does not stand for: a look that
+// shows b at a change numbered above its cursor is followed by another,
+// whose cursor covers it, so a wait from the list's next_since does not
+// return the row the list already showed (#166).
+func TestTheListsCursorStandsForEveryRowItShows(t *testing.T) {
+	looks := 0
+	f := dialogOnB(false, &looks)
+	var ls waitOutput
+	if err := json.Unmarshal([]byte(mustRun(t, f, "ls", "--json")), &ls); err != nil {
+		t.Fatal(err)
+	}
+	f.onThrough = nil
+	if looks != 2 {
+		t.Fatalf("%d looks, want a second one", looks)
+	}
+	for _, r := range ls.Agents {
+		if r.StateSeq == nil || *r.StateSeq > cursorNumber(t, ls.NextSince) {
+			t.Fatalf("row %s at %v, the cursor %s", r.Name, r.StateSeq, ls.NextSince)
+		}
+	}
+	if w := waitJSON(t, mustRun(t, f, "wait", "--since", ls.NextSince, "--timeout", "1s", "--json")); len(w.Agents) != 0 {
+		t.Fatalf("wait returned what the list showed: %+v", w.Agents)
+	}
+	// The plain table has no cursor, and looks once.
+	looks = 0
+	f = dialogOnB(false, &looks)
+	mustRun(t, f, "ls")
+	if looks != 1 {
+		t.Fatalf("the table took %d looks", looks)
+	}
+}
+
+// Agents that change at every look still get a list: hq ls --json looks
+// coverLooks times at most, then prints the last look.
+func TestTheListLooksAgainOnlyAFewTimes(t *testing.T) {
+	looks := 0
+	f := dialogOnB(true, &looks)
+	var ls waitOutput
+	if err := json.Unmarshal([]byte(mustRun(t, f, "ls", "--json")), &ls); err != nil {
+		t.Fatal(err)
+	}
+	if looks != coverLooks || len(ls.Agents) != 2 {
+		t.Fatalf("%d looks, want %d; rows %+v", looks, coverLooks, ls.Agents)
+	}
+}

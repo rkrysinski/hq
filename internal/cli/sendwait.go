@@ -243,7 +243,11 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 			// there to take (another process took it, and its delivery is
 			// not in the journal yet), the bound and the timeout run on.
 			before := d.pending(a.RepoPath, a.ID)
-			_, _ = typeIn(d, a, 0, w.msg, w.slashCommand)
+			if _, err := typeIn(d, a, 0, w.msg, w.slashCommand); err != nil {
+				// The messages are back in the inbox, as a plain send leaves
+				// them: the call fails as one does.
+				return true, err
+			}
 			if d.pending(a.RepoPath, a.ID) < before {
 				return false, nil
 			}
