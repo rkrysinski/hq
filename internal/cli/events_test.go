@@ -215,6 +215,18 @@ func TestLaunchRestartAndRelaunchAreEvents(t *testing.T) {
 	if len(es) != 1 || es[0].Source != state.SourceHQ || es[0].Kind != state.KindLaunched || es[0].Facts.Start != "new" || !es[0].Time.Equal(f.now) {
 		t.Fatalf("launched %+v", es)
 	}
+	// With a first prompt the launch says so: the agent is starting until it
+	// reports it (#191).
+	if code, _, errOut := f.run("new", "b", "/w/app", "hello"); code != 0 {
+		t.Fatalf("new b: exit %d %s", code, errOut)
+	}
+	if es[0].Facts.Prompted {
+		t.Fatalf("a, no prompt: %+v", es[0])
+	}
+	b := journalOf(t, f, f.tmux.windows[len(f.tmux.windows)-1].Options["id"])
+	if len(b) != 1 || b[0].Kind != state.KindLaunched || !b[0].Facts.Prompted {
+		t.Fatalf("b, with a prompt: %+v", b)
+	}
 
 	// A new agent that never ran leaves no journal.
 	f = newFakes()

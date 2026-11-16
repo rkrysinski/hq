@@ -359,6 +359,9 @@ func (s *supervisor) shell(args ...string) string {
 func TestWorkTheSupervisorSentEndsWithoutANotification(t *testing.T) {
 	record := filepath.Join(t.TempDir(), "notified")
 	t.Setenv("FAKE_CLAUDE_NOTIFIED", record)
+	// An agent started with a prompt is starting, not done, until it
+	// reports it, however long its session waits for it (#191).
+	t.Setenv("FAKE_CLAUDE_FIRST_PROMPT_DELAY", "400ms")
 	s := newSupervisor(t)
 	app := testutil.GitRepo(t, "app")
 	// notified reads the notifications sent so far, as "agent text".
