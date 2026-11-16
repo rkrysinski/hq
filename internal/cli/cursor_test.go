@@ -255,3 +255,16 @@ func TestSendsCursorIsTheCounterAsItLeavesTheMessage(t *testing.T) {
 		t.Fatalf("next_since %s, want %s, the counter just before the delivery", sent.NextSince, want)
 	}
 }
+
+// A look whose journals hold nothing past the counter it began with (the
+// look before appended all it saw) vouches for that counter at once: it
+// lists the windows once, not again to see whether an agent appeared.
+func TestAQuietLookListsTheWindowsOnce(t *testing.T) {
+	f := sendFakes(state.Done)
+	mustRun(t, f, "ls", "--json") // its look appends what it saw
+	f.tmux.windowsRead = 0
+	mustRun(t, f, "ls", "--json")
+	if f.tmux.windowsRead != 1 {
+		t.Fatalf("windows listed %d times", f.tmux.windowsRead)
+	}
+}
