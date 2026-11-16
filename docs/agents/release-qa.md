@@ -56,5 +56,9 @@ export XDG_STATE_HOME="$(mktemp -d)"   # the journals and the counter, out of th
 "$hq" send rq "/clear" --wait      # a built-in command (or /model NAME on an agent with no turn yet): returns "no turn: the slash command left rq's prompt box and started no turn"; /model NAME after a first turn opens Switch model? and returns needs input, which is no failure
 "$hq" explain rq                   # the hook's events, numbered
 "$hq" kill rq -y                   # ended; the sandbox stays
-tmux -L hq-release-check kill-server; rm -rf "$XDG_STATE_HOME"
+fresh=$(mktemp -d) && git -C "$fresh" init -q && git -C "$fresh" commit -q --allow-empty -m init   # a repository with no sandbox yet
+"$hq" new fresh "$fresh" "say hi"  # "creating a sandbox for ...": sbx create against the real sbx, then the agent starts
+"$hq" kill fresh -y                # ended; its sandbox stays
+"$hq" sandbox rm "$fresh" -y       # "removed the sandbox ..."
+tmux -L hq-release-check kill-server; rm -rf "$XDG_STATE_HOME" "$fresh"
 ```

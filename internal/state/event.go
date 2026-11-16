@@ -125,7 +125,8 @@ const (
 )
 
 // Facts are what an event holds beside its kind and time: only what a rule
-// of design §3.4 reads (spec #165, the operator's decision 3). Prompt and
+// of design §3.4 reads (spec #165, the operator's decision 3), and Reason
+// and Notice, which no rule reads, kept for hq explain (ADR 0018). Prompt and
 // Text are the conversation's text a rule or the row reads, never shown by
 // hq explain; a turn end's reply is not here but in the journal's Reply.
 type Facts struct {
