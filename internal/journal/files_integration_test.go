@@ -4,6 +4,7 @@ package journal_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -570,9 +571,11 @@ func TestAnAppendReadsOnFromTheAppendBefore(t *testing.T) {
 
 // An append reads on from the append before (design 3.4): what it kept
 // beside the journal stands for every byte read before, which it does not
-// read again however long the journal. With those bytes overwritten, the
-// append still sets aside the same event it appended last, as it can only
-// by what it kept (#191).
+// read again however long the journal. With those bytes overwritten by
+// events that, read, would make the event appended last no longer the
+// latest turn end (another basis), the append still sets that event aside
+// as a duplicate, as it can only by what it kept and by reading none of
+// them, neither in place of what it kept nor on top of it (#191).
 func TestAnAppendReadsNothingTheAppendBeforeRead(t *testing.T) {
 	root, dir := newRoot(t), t.TempDir()
 	s := journal.Files{Dir: dir}
@@ -589,21 +592,25 @@ func TestAnAppendReadsNothingTheAppendBeforeRead(t *testing.T) {
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, "journals", id)
-	data, err := os.ReadFile(path)
+	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	overwritten := bytes.Map(func(r rune) rune {
-		if r == '\n' {
-			return r
-		}
-		return 'x'
-	}, data)
-	if len(overwritten) != len(data) {
-		t.Fatalf("overwritten %d bytes of %d", len(overwritten), len(data))
+	other, err := json.Marshal(state.Event{Number: 1, Source: state.SourceScreen, Kind: state.KindTurnEnded, Time: at, Basis: 999})
+	if err != nil {
+		t.Fatal(err)
 	}
+	// As many lines of the other turn end as the journal's bytes take, the
+	// last padded with spaces to their length.
+	line := append(other, '\n')
+	overwritten := bytes.Repeat(line, int(info.Size())/len(line)-1)
+	pad := int(info.Size()) - len(overwritten) - len(line)
+	overwritten = append(overwritten, append(append(other, bytes.Repeat([]byte(" "), pad)...), '\n')...)
 	if err := os.WriteFile(path, overwritten, 0o600); err != nil {
 		t.Fatal(err)
+	}
+	if j, err := s.Read(id); err != nil || int64(len(overwritten)) != info.Size() || len(j.Events) == 0 || j.Events[len(j.Events)-1].Basis != 999 {
+		t.Fatalf("overwritten %d bytes of %d: %v, %d events", len(overwritten), info.Size(), err, len(j.Events))
 	}
 	out, err := s.Append(id, e)
 	if err != nil || len(out) != 1 || out[0].Aside != state.AsideDuplicate {
