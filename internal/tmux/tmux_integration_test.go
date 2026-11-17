@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -446,22 +447,39 @@ func TestValuesWithADollarNameReadBackAsStored(t *testing.T) {
 
 // longInputPasses reports whether a pane's program gets all of a long input
 // tmux types, without hq. In a Docker sandbox (kernel 7.0) it gets 4095
-// bytes and the rest stays in tmux, with every tmux from 3.4 to 3.7c, while
-// the runners' tmux delivers all of it (#41).
+// bytes and the rest stays behind until more input comes, with every tmux
+// from 3.4 to 3.7c, while the runners' tmux delivers all of it (#41).
+// There, the answer depends on whether the program reads while tmux writes:
+// a program that keeps up may get all of it, and under load the probe then
+// passed where the paste that followed came short (#242). So the program
+// reads nothing until tmux has written all it can: the answer is the same
+// in every run.
 func longInputPasses(t *testing.T) bool {
 	t.Helper()
 	socket := testutil.TmuxSocket(t)
-	got := filepath.Join(t.TempDir(), "got")
-	if out, err := exec.Command("tmux", "-u", "-L", socket, "new-session", "-d", "sh", "-c", `stty raw -echo; echo ready; exec cat >>"$0"`, got).CombinedOutput(); err != nil {
-		t.Fatalf("%v %s", err, out)
+	dir := t.TempDir()
+	got, start := filepath.Join(dir, "got"), filepath.Join(dir, "start")
+	if err := syscall.Mkfifo(start, 0o600); err != nil {
+		t.Fatal(err)
 	}
+	tmux := func(args ...string) {
+		t.Helper()
+		if out, err := exec.Command("tmux", append([]string{"-u", "-L", socket}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("tmux %v: %v %s", args, err, out)
+		}
+	}
+	tmux("new-session", "-d", "sh", "-c", `stty raw -echo; echo ready; read go <"$1"; exec cat >>"$0"`, got, start)
 	eventually(t, "the program", func() bool {
 		out, _ := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p").Output()
 		return strings.Contains(string(out), "ready")
 	})
 	const n = 5000
-	if out, err := exec.Command("tmux", "-u", "-L", socket, "send-keys", "-l", strings.Repeat("x", n)).CombinedOutput(); err != nil {
-		t.Fatalf("%v %s", err, out)
+	tmux("send-keys", "-l", strings.Repeat("x", n))
+	// tmux writes the input to the pane before it takes its next command.
+	tmux("display-message", "-p", "")
+	// Opening the pipe waits for the program, which opens it next.
+	if err := os.WriteFile(start, []byte("go\n"), 0o600); err != nil {
+		t.Fatal(err)
 	}
 	return waitFor(func() bool { b, _ := os.ReadFile(got); return len(b) == n })
 }
