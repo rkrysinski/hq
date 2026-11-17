@@ -514,3 +514,30 @@ func TestLsSaysAnSbxIsTooOld(t *testing.T) {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
 }
+
+// hq kill waits for an agent's session to end, then kills its home window
+// and removes its journal: a look of hq ls can list the window, its pane
+// dead, and find no journal after (#239). It leaves the agent out, as the
+// next look does, rather than show it as one that ended without a word.
+func TestLsBetweenTheStepsOfAKillLeavesTheAgentOut(t *testing.T) {
+	f := newWaitFakes()
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Done: hi"}
+	f.tmux.windows[1].PaneDead, f.tmux.windows[1].DeadAt = true, f.now.Add(-time.Second)
+	killed := false
+	f.onRead = func(id string) {
+		if id != "id-a" || killed {
+			return
+		}
+		killed = true
+		if code, _, errOut := f.run("kill", "a", "-y"); code != 0 {
+			t.Errorf("kill: %s", errOut)
+		}
+	}
+	code, out, _ := f.run("ls", "--json")
+	var ls struct {
+		Agents []lsRow `json:"agents"`
+	}
+	if err := json.Unmarshal([]byte(out), &ls); !killed || code != 0 || err != nil || len(ls.Agents) != 1 || ls.Agents[0].Name != "b" {
+		t.Fatalf("killed %v, exit %d:\n%s", killed, code, out)
+	}
+}
