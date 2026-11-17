@@ -124,6 +124,10 @@
 // takes any prompt, the dialog Claude Code 2.1.285 shows on the first start
 // in a sandbox ("Make auto mode your default permission mode?"), which no
 // hook reports, until Enter answers it (#29).
+//
+// The stub sbx runs as SBX_STUB_CLAUDE no program but this one, which it
+// tells by the package path Go writes into the binary's build information
+// (#227): moving or renaming this package changes that check too.
 package main
 
 import (

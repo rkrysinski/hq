@@ -9,7 +9,8 @@
 # SBX_STUB_OLD=none fails. Sandboxes
 # are files in $SBX_STUB_DIR/sandboxes (line 1 status, line 2 workspace), and
 # `run` behaves like a Claude session that stays until it is terminated, or
-# runs the fake claude (SBX_STUB_CLAUDE) that fires hq's injected hooks.
+# runs the fake claude (SBX_STUB_CLAUDE) that fires hq's injected hooks, and
+# refuses any other program there, the real Claude Code first of all (#227).
 # Workspaces may be Windows paths, as sbx.exe sees them from WSL.
 # With SBX_STUB_BOOT set to a path, `run` starts a sandbox that is not
 # running only once that file exists, as sbx takes a while to start one
@@ -123,6 +124,16 @@ run)
         exit 0
         ;;
     esac
+    # The session is the fake claude or none, never another program: the
+    # real Claude Code run here has none of the sandbox's proxy variables,
+    # and its first request, refused with a 401, logs out every session of
+    # the sandbox (#227). The fake is told, without running it, by the
+    # package path Go writes into its build information.
+    if [ -n "${SBX_STUB_CLAUDE:-}" ] &&
+        ! LC_ALL=C grep -a -q -F -e "$(printf 'path\t%s' github.com/rkrysinski/hq/tools/fakeclaude)" "$SBX_STUB_CLAUDE" 2>/dev/null; then
+        printf 'stub: SBX_STUB_CLAUDE is not the fake claude (tools/fakeclaude), not run: %s\n' "$SBX_STUB_CLAUDE" >&2
+        exit 1
+    fi
     [ "$1" = --name ] || { echo "stub: run needs --name" >&2; exit 1; }
     name=$2
     shift 3 # --name NAME --
