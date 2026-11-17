@@ -1,0 +1,30 @@
+▝▜██████▀  Haiku 5.5 · Claude Ultra
+ ▝▝   ▝▝   /tmp/probe-225
+
+
+› From main
+❯ Run, in the foreground, the Bash
+  command for i in $(seq 540); do sleep
+  1; done with a timeout of 600000 ms.
+  Do not run it in the background.
+  When it finishes, reply with just the
+  word: done
+▾ 1 komenda · ◐ ·
+ ▸◐Wait 540 seconds… ░░░░░░░░░░░░░
+                     ░░░░░░░
+
+✽ Ideating… (2m 25s · ↓ 34.2k tokens)
+  ⎿  Tip: Use /btw to ask a side
+     question without interrupting
+     Claude
+
+────────── Run 540-second sleep loop B ─
+❯ Message @general-purpose…
+────────────────────────────────────────
+  ▐◕◡◕▌  Haiku 5.5 medium │ ctx ▕▊░░░…
+  ↑/↓ to select · enter to view
+                           ◆ Tools ▾
+
+❯ ◯ main
+  ◯ general-purpose 2m 25s · ↓ 34.2k to…
+  ● general-purpose 2m 25s · ↓ 34.2k to…
