@@ -141,10 +141,12 @@ func TestTheQuestionDialogsHookWaitsForItsDialogsReport(t *testing.T) {
 	askedAgain(t, root, id, payload)
 	// A hook that ended before its dialog's report came, another report's
 	// note newer than its copy, leaves the same questions asked again
-	// waiting too.
+	// waiting too. That report comes over a second after the hook starts:
+	// the /bin/sh of macOS, where this test runs and the hook never does in
+	// an agent (it runs in the sandbox), compares -nt by whole seconds.
 	fire(t, root, root, id, "answer", fixture(t, "answer-ask-several"))
 	k = hold(t, root, root, id, payload)
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(1100 * time.Millisecond)
 	fire(t, root, root, id, "dialog", []byte(strings.Replace(string(payload), `"hook_event_name"`, `"agent_id":"a1b2c3","hook_event_name"`, 1)))
 	if out, ok := k.ended(3 * time.Second); !ok || out != "" {
 		t.Fatalf("before its report: %v %q", ok, out)
