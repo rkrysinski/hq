@@ -1,0 +1,11 @@
+$ clear; hq ls; hq wait a & sleep 2; hq kill a -y; wait; hq ls; hq killed
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   2m   Done: hi
+[1] 1210844
+killed a; the sandbox stays
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    ended  0s   Done: hi
+next: hq wait a --since c6
+[1]+  Done                       hq wait a
+2026-11-17 14:17:21  a in repo (sandbox claude-repo), by hq kill
+$

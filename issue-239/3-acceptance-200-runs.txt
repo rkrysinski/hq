@@ -1,0 +1,407 @@
+head c59cf630831681cdeaa1c27eea5f52d084a5a312
+cores 10, busy processes 10
+start 14:21:49
+$ go test -tags integration ./internal/cli -run 'TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne$' -count=200 -v -timeout 40m
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (7.99s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.80s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.65s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.94s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.62s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.37s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.31s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.67s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.75s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.52s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.46s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.59s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.59s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.58s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.35s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.59s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.67s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.58s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.74s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.24s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.49s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.43s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.50s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.90s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.72s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.70s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.73s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.68s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.82s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.60s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.83s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.37s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.65s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.75s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (2.97s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.42s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.54s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.64s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.45s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.73s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.70s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.62s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.84s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.56s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.57s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.65s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.72s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.59s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.35s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.53s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.71s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.49s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.42s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.77s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.25s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.65s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.55s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.53s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.63s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.82s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.83s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.44s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.64s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.70s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.75s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.83s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.69s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.69s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.65s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.78s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.28s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.68s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.78s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.65s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.50s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.59s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.82s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.54s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.64s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.79s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.67s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.39s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.64s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.52s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.75s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.74s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.83s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.50s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.61s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.37s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.67s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.70s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.46s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.71s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.50s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.61s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.39s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.68s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.59s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.90s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.71s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.81s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.56s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.73s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.84s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.67s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.74s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.82s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.56s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.80s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.70s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.40s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.82s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.82s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.72s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.65s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.88s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.64s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.40s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.71s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.82s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.38s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.16s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.79s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.82s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.78s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.56s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.61s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.54s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.58s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.17s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.56s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.79s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.85s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.83s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.56s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.75s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.46s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.80s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.56s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.57s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.85s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.77s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.77s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.64s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.41s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.80s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.73s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.88s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.68s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.93s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.84s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.77s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.50s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.99s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.65s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.47s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.79s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.83s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.60s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.64s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.68s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.72s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.91s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.57s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.83s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.81s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.74s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.48s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.65s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.85s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.64s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.93s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.57s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.68s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.79s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.80s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.68s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.72s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.89s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.72s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.54s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.69s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.82s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.61s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.88s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.76s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.35s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.68s)
+=== RUN   TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne
+--- PASS: TestWaitReturnsAnAgentKilledWhileWaitedOnAndRefusesAnUnknownOne (3.58s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/cli	735.150s
+exit 0 end 14:34:06
