@@ -138,6 +138,20 @@ func TestTheQuestionDialogsHookWaitsForItsDialogsReport(t *testing.T) {
 	if out, ok := k.ended(2 * time.Second); !ok || out != string(q.Cancel())+"\n" {
 		t.Fatalf("%v %q", ok, out)
 	}
+	// The same questions asked again in the turn are a dialog of the same
+	// report: its hook still waits for that report, the first dialog's
+	// having closed (#209).
+	fire(t, root, root, id, "answer", fixture(t, "answer-ask-several"))
+	k = hold(t, root, root, id, payload)
+	time.Sleep(500 * time.Millisecond)
+	q = openDialog(t, root, id, payload)
+	if _, ok := k.ended(time.Second); ok {
+		t.Fatal("the same questions again: did not hold")
+	}
+	leave(t, root, id, q, q.Cancel())
+	if out, ok := k.ended(2 * time.Second); !ok || out != string(q.Cancel())+"\n" {
+		t.Fatalf("the same questions again: %v %q", ok, out)
+	}
 }
 
 // Once the dialog closes otherwise (answered at the terminal), the hook

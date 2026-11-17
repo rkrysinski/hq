@@ -81,10 +81,13 @@ const actedSuffix = ".acted"
 const queuedSuffix = ".queued"
 
 // askedSuffix names, in Dir, the hook's note of the latest dialog it
-// reported: that report's cksum, written once the report is the note, so
-// the hook of kind hold that first looks after its dialog was answered,
-// the note no longer its dialog's, knows the dialog has closed and ends
-// at once, not after the bound it gives a report that never comes (#209).
+// reported: that report's cksum, written once the report is the note and
+// before its event, so the hook of kind hold that first looks after its
+// dialog was answered, the note no longer its dialog's, knows the dialog
+// has closed and ends at once, not after the bound it gives a report that
+// never comes (#209). The hook of kind hold removes it as it ends when it
+// is its own dialog's, so the same questions asked again in the turn, a
+// report of the same cksum, are waited for.
 const askedSuffix = ".asked"
 
 // agentFiles are the files Remove deletes in Dir for an agent: the hook's

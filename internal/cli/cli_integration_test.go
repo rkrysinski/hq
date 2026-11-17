@@ -174,17 +174,13 @@ const hookWait = 5 * time.Second
 // runs: nothing of them is left beside the hook's notes.
 func (h *realHQ) waitHooksEnded() {
 	h.t.Helper()
-	deadline := time.Now().Add(hookWait)
-	for {
-		left, _ := filepath.Glob(filepath.Join(state.Dir(h.cwd), "*.[0-9]*"))
-		if len(left) == 0 {
+	var left []string
+	for deadline := time.Now().Add(hookWait); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
+		if left, _ = filepath.Glob(filepath.Join(state.Dir(h.cwd), "*.[0-9]*")); len(left) == 0 {
 			return
 		}
-		if !time.Now().Before(deadline) {
-			h.t.Fatalf("left beside the hook's notes after %v: %v", hookWait, left)
-		}
-		time.Sleep(100 * time.Millisecond)
 	}
+	h.t.Fatalf("left beside the hook's notes after %v: %v", hookWait, left)
 }
 
 // pane is what the agent's session has printed.
