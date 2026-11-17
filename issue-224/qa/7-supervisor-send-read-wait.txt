@@ -1,0 +1,68 @@
+tool 2 -> {
+  "delivery": "delivered: typed into a as its next prompt",
+  "outcome": "turn_ended",
+  "agents": [
+    {
+      "name": "a",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-2786167955/repo",
+      "branch": "main",
+      "state": "done",
+      "state_seq": 28,
+      "completion_seq": 28,
+      "since": "2026-11-17T16:04:00.330241039Z",
+      "age_seconds": 0,
+      "last": "Login expired · Please run /login",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c28"
+}
+tool 3 -> {
+  "name": "a",
+  "repo": "repo",
+  "repo_path": "/tmp/hq-stub-2786167955/repo",
+  "branch": "main",
+  "state": "done",
+  "state_seq": 28,
+  "completion_seq": 28,
+  "since": "2026-11-17T16:04:00.330241039Z",
+  "age_seconds": 6,
+  "last": "Login expired · Please run /login",
+  "sandbox": "claude-repo",
+  "setup": "default",
+  "pending": 0,
+  "own_tasks": [],
+  "asks": null,
+  "worktree": "/tmp/hq-stub-2786167955/repo",
+  "reply": "Login expired · Please run /login",
+  "reply_size": 34,
+  "next_offset": null,
+  "next_since": "c28"
+}
+tool 4 -> {
+  "agents": [
+    {
+      "name": "a",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-2786167955/repo",
+      "branch": "main",
+      "state": "done",
+      "state_seq": 28,
+      "completion_seq": 28,
+      "since": "2026-11-17T16:04:00.330241039Z",
+      "age_seconds": 10,
+      "last": "Login expired · Please run /login",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c28"
+}
