@@ -103,6 +103,7 @@ Requirements:
   - Whether the supervisor waits for the agent (`wait`) makes no difference: a supervised turn ends without a notification even when nobody is listening. The row shows the state, and the user asks the supervisor. No setting turns this off.
 - Two agents on the same branch are allowed; their states may then be indistinguishable. Documented limitation.
 - Every agent started by hq reports its state with no setup: nothing is installed, configured or committed in the repository, and nothing per machine beyond installing hq.
+- In the prompt box of an agent started by hq, Claude Code suggests no next prompt after a turn: nothing waits there that the user did not type. A session started by an earlier hq keeps its suggestions until it is launched again.
 
 ### 5.1 Messages
 
