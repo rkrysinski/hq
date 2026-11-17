@@ -1,6 +1,7 @@
 // Command testgate holds hq's CI gates: the shape of the test suite, its
-// coverage, no private details in the public text, and platform-specific
-// code in the platform package only (docs/hq/testing.md):
+// coverage, no private details in the public text, platform-specific code
+// in the platform package only, and no test bounding real elapsed time under
+// one second (docs/hq/testing.md):
 //
 //	go run ./tools/testgate pyramid          # counts tests per level, checks the shape
 //	go run ./tools/testgate coverage FILE    # checks a coverage profile against the threshold
@@ -8,6 +9,7 @@
 //	go run ./tools/testgate prepush REPO     # no private details in what a push sends (the pre-push hook)
 //	go run ./tools/testgate prepost          # no private details in what a gh command posts (Claude Code's hook)
 //	go run ./tools/testgate platform [ROOT]  # platform-specific names only in internal/platform
+//	go run ./tools/testgate timebound [ROOT] # no test bounds real elapsed time under 1s
 //	go run ./tools/testgate mutation BASE    # mutation tests of the lines changed against BASE
 //
 // private, prepush and prepost read the pattern list from
@@ -36,7 +38,7 @@ import (
 	"syscall"
 )
 
-const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | mutation BASE"
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE"
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
@@ -138,6 +140,20 @@ func main() {
 			os.Exit(2)
 		}
 		fmt.Printf("platform: %d names checked, uses outside internal/platform: %d\n", len(platformNames), len(hits))
+		for _, h := range hits {
+			problems = append(problems, h.String())
+		}
+	case "timebound":
+		root := "."
+		if len(os.Args) > 2 {
+			root = os.Args[2]
+		}
+		hits, checked, err := checkTimebound(root)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "testgate:", err)
+			os.Exit(2)
+		}
+		fmt.Printf("timebound: %d test files checked, upper bounds under %s on real elapsed time: %d\n", checked, timeboundLimit, len(hits))
 		for _, h := range hits {
 			problems = append(problems, h.String())
 		}
