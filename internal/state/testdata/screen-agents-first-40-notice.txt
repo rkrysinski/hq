@@ -1,0 +1,30 @@
+  wait for them: end your turn right
+  after launching them, with one short
+  sentence.
+
+● 2 background agents launched (↓ to
+  manage)
+   ├ Run 540-second sleep loop A
+   └ Run 540-second sleep loop B
+╭─────────────────────────────────────╮
+│ ● Claude                            │
+│ Both sleep-loop subagents (A and B) │
+│ are running in the background;      │
+│ I'll be notified when each reports  │
+│ done.                               │
+╰─────────────────────────────────────╯
+
+✻ Waiting for 2 background agents to
+  finish
+
+────────────────────────────────────────
+❯ wait for the sleep loops to finish
+────────────────────────────────────────
+  ⚠ Transcript saving is off — CLAUDE…
+  ▐◕◡◕▌  Haiku 5.5 medium │ ctx ▕▊░░░…
+  enter to view · x to stop
+                           ◆ Tools ▾
+
+  ● main
+❯ ◯ general-purpose 2m 13s · ↓ 33.0k to…
+  ◯ general-purpose 2m 13s · ↓ 33.0k to…

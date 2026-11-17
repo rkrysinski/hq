@@ -185,3 +185,54 @@ func TestOwnViewPickTakesOneOptionByItsNumber(t *testing.T) {
 		}
 	}
 }
+
+// agentsScreens are the captures of #225 (Claude Code 2.1.326, setup M in
+// testdata/README.md): a session whose turn ended with two background
+// subagents running, at three pane sizes, with a footer of its own and
+// with the notice line above it. In the main view the agents list stands
+// below the footer with no cursor (list), the cursor on main (main), on
+// the first subagent's row (first) or on the last one's (last); Enter on
+// the last opens its view, with the cursor on its row (view-last), on the
+// other's (view-first) or on main (view-main).
+func agentsScreens(t *testing.T) map[string]string {
+	t.Helper()
+	screens := map[string]string{}
+	for _, state := range []string{"list", "main", "first", "last", "view-last", "view-first", "view-main"} {
+		for _, pane := range []string{"100", "80", "40"} {
+			for _, footer := range []string{"", "-notice"} {
+				name := "screen-agents-" + state + "-" + pane + footer + ".txt"
+				screens[name] = readScreen(t, name)
+			}
+		}
+	}
+	return screens
+}
+
+// The agents list Claude Code draws below its footer while subagents run,
+// with its cursor anywhere, and a subagent's view open in the pane, are no
+// dialog of Claude's own: the list's rows are no options, the status line
+// no question (#225).
+func TestViewOwnDialogIsNoAgentsListNorASubagentsView(t *testing.T) {
+	for name, s := range agentsScreens(t) {
+		for _, screen := range []string{s, WithoutHints(s)} {
+			if v, ok := ViewOwnDialog(screen); ok || v.Ask != nil {
+				t.Errorf("%s: a dialog %+v", name, v.Ask)
+			}
+		}
+	}
+}
+
+// /model opened while two subagents run in the background, in the main
+// view (Claude Code 2.1.326, #225): the picker stands in place of the box,
+// and of the agents list, which it hides whatever the pane's height; Esc
+// puts the box and the list back.
+func TestViewOwnDialogSeesTheModelPickerOverTheAgentsList(t *testing.T) {
+	v, ok := ViewOwnDialog(readScreen(t, "screen-own-model-agents.txt"))
+	if !ok || v.Ask.Questions[0].Question != "Select model" || v.Cursor != 4 ||
+		v.Ask.Questions[0].Options[4].Label != "Haiku 5.5 ✔ Fastest for quick answers" {
+		t.Fatalf("model: %v %+v", ok, v)
+	}
+	if _, ok := ViewOwnDialog(readScreen(t, "screen-agents-model-closed.txt")); ok {
+		t.Fatal("closed with Esc: still a dialog")
+	}
+}
