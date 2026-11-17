@@ -206,6 +206,32 @@ func TestWaitReturnsAnAgentKilledWhileWaitedOnAsEnded(t *testing.T) {
 	}
 }
 
+// A look of hq wait can list an agent's window before hq kill removes it
+// and read its journal after the kill removed that too (#239): the agent
+// still comes back ended with what it last showed, not as one that never
+// said anything.
+func TestWaitReturnsAnAgentKilledBetweenTheStepsOfItsLookWithItsLastMessage(t *testing.T) {
+	f := newWaitFakes()
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Done: hi"}
+	killAt, killed := f.now.Add(time.Second), false
+	f.onRead = func(id string) {
+		if id != "id-a" || killed || f.now.Before(killAt) {
+			return
+		}
+		// The look has listed the windows; the whole kill runs before it
+		// reads a's journal.
+		killed = true
+		if code, _, errOut := f.run("kill", "a", "-y"); code != 0 {
+			t.Errorf("kill: %s", errOut)
+		}
+	}
+	code, out, _ := f.run("wait", "a", "--json")
+	w := waitJSON(t, out)
+	if !killed || code != 0 || len(w.Agents) != 1 || w.Agents[0].Name != "a" || w.Agents[0].State != state.Ended || w.Agents[0].Last != "Done: hi" {
+		t.Fatalf("killed %v, exit %d:\n%s", killed, code, out)
+	}
+}
+
 func TestWaitReturnsEachStateThatNeedsAttention(t *testing.T) {
 	for _, st := range []string{state.Done, state.Question, state.NeedsInput, state.Ended} {
 		f := newWaitFakes()

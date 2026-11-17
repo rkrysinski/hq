@@ -661,3 +661,47 @@ func TestAStaleLookAtARelaunchedAgentEndsNobody(t *testing.T) {
 		t.Fatalf("the relaunched agent, alive and reporting, is %s; journal %s", a.State, journaltest.Kinds(s.journalOf(t, "a1")))
 	}
 }
+
+// A look notes an agent whose journal it found gone (#239): one that holds
+// nothing yet, before the launch, and still once the look has appended the
+// death of the agent's dead pane to it; not one that holds events.
+func TestTheLookNotesAJournalThatHoldsNothing(t *testing.T) {
+	now := time.Unix(1000, 0)
+	s := newStore(nil)
+	ws := []tmux.Window{lookWindow("1"), lookWindow("2"), lookWindow("3")}
+	ws[1].PaneDead, ws[1].DeadAt = true, now.Add(-time.Second)
+	s.report("a3", journaltest.HookState{State: state.Done, Since: now.Add(-time.Minute), Last: "Done."})
+	as := Look(ws, Sandboxes{}, now, s, nil)
+	if !as[0].JournalGone() || !as[1].JournalGone() || as[2].JournalGone() {
+		t.Fatalf("gone: starting %v, dead pane %v, done %v", as[0].JournalGone(), as[1].JournalGone(), as[2].JournalGone())
+	}
+	if ks := journaltest.Kinds(s.journalOf(t, "a2")); ks != state.KindPaneDied {
+		t.Fatalf("the dead pane's journal: %q", ks)
+	}
+}
+
+// A long-running program's look notes a journal removed since the look
+// before (#239), also when the hook wrote a shorter one meanwhile, and
+// stops noting it once a look finds the journal holding events again.
+func TestALongRunningLookNotesAJournalRemovedSinceTheLookBefore(t *testing.T) {
+	now := time.Unix(1000, 0)
+	s := newStore(nil)
+	ws := []tmux.Window{lookWindow("1")}
+	folds := NewFolds()
+	s.report("a1", journaltest.HookState{State: state.Working, Since: now.Add(-time.Minute), Last: "Earlier."})
+	s.report("a1", journaltest.HookState{State: state.Done, Since: now.Add(-time.Second), Last: "Done."})
+	if a := Look(ws, Sandboxes{}, now, s, folds)[0]; a.JournalGone() {
+		t.Fatal("a journal with events noted gone")
+	}
+	if err := s.Remove("/w/app", "a1"); err != nil {
+		t.Fatal(err)
+	}
+	s.reports = map[string]journaltest.HookState{}
+	s.report("a1", journaltest.HookState{State: state.Done, Since: now, Last: "Again."})
+	if a := Look(ws, Sandboxes{}, now.Add(time.Second), s, folds)[0]; !a.JournalGone() || a.Last != "Again." {
+		t.Fatalf("after the removal: gone %v, %+v", a.JournalGone(), a)
+	}
+	if a := Look(ws, Sandboxes{}, now.Add(2*time.Second), s, folds)[0]; a.JournalGone() {
+		t.Fatal("the journal still noted gone a look later")
+	}
+}
