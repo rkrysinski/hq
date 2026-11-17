@@ -1,0 +1,9 @@
+$ go run ./tools/testgate mutation origin/release-v0.15.0 tools/testgate; echo "exit $?"
+mutation: staging the tree in /tmp/hq-mutation-1142769251
+mutation: installing go-gremlins v0.6.0
+mutation: part 1 of 1, tools/testgate
+mutation: running the unit tests once, then once per mutant
+mutation: done in 31s
+mutation: 9 killed, 0 alive, 0 timed out, 29 not covered, 0 changed files in no part against origin/release-v0.15.0 on 89e78d2bfdb40de32f02ee5f4c0947797b63eb79
+exit 0
+$ 

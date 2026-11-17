@@ -1,0 +1,9 @@
+$ testgate-before mutation main 2>/dev/null; echo "exit $?"
+alive      cmd/tool/main.go:6:33 conditionals boundary
+mutation: 4 killed, 1 alive, 0 timed out, 3 not covered against main on 4c118e5c267e182c9d3ab5de0dacf330e7e41948
+exit 1
+$ testgate mutation main 2>/dev/null; echo "exit $?"
+alive      cmd/tool/main.go:6:33 conditionals boundary
+mutation: 4 killed, 1 alive, 0 timed out, 3 not covered against main on 4c118e5c267e182c9d3ab5de0dacf330e7e41948
+exit 1
+$ 

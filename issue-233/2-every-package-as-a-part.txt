@@ -1,0 +1,19 @@
+$ testgate mutation main lib cmd/tool state state/sub; echo "exit $?"
+mutation: staging the tree in /tmp/hq-mutation-2577854291
+mutation: installing go-gremlins v0.6.0
+mutation: part 1 of 4, lib
+mutation: running the unit tests once, then once per mutant
+mutation: done in 2s
+mutation: part 2 of 4, cmd/tool
+mutation: running the unit tests once, then once per mutant
+mutation: done in 2s
+mutation: part 3 of 4, state
+mutation: running the unit tests once, then once per mutant
+mutation: done in 2s
+mutation: part 4 of 4, state/sub
+mutation: running the unit tests once, then once per mutant
+mutation: done in 2s
+alive      cmd/tool/main.go:6:33 conditionals boundary
+mutation: 4 killed, 1 alive, 0 timed out, 3 not covered, 0 changed files in no part against main on 4c118e5c267e182c9d3ab5de0dacf330e7e41948
+exit 1
+$ 

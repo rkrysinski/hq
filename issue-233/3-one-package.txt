@@ -1,0 +1,8 @@
+$ testgate mutation main state 2>/dev/null; echo "exit $?"
+no part    cmd/tool/flags.go
+no part    cmd/tool/main.go
+no part    lib/lib.go
+no part    state/sub/sub.go
+mutation: 2 killed, 0 alive, 0 timed out, 0 not covered, 4 changed files in no part against main on 4c118e5c267e182c9d3ab5de0dacf330e7e41948
+exit 0
+$ 

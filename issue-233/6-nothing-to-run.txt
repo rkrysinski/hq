@@ -1,0 +1,11 @@
+$ testgate mutation main other lib/lib_test.go; echo "exit $?"
+mutation: the part other changes no production file, nothing to run
+mutation: the part lib/lib_test.go changes no production file, nothing to run
+no part    cmd/tool/flags.go
+no part    cmd/tool/main.go
+no part    lib/lib.go
+no part    state/hook.go
+no part    state/sub/sub.go
+mutation: no mutants in the lines changed, 5 changed files in no part against main on 4c118e5c267e182c9d3ab5de0dacf330e7e41948
+exit 0
+$ 

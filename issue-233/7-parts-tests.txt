@@ -1,0 +1,18 @@
+$ go test -count=1 -tags integration -run "TestMutationIn" -v ./tools/testgate/ 2>&1 | grep -E "^(=== RUN|--- |ok|FAIL|PASS)"
+=== RUN   TestMutationInterruptedLeavesNothingBehind
+--- PASS: TestMutationInterruptedLeavesNothingBehind (9.70s)
+=== RUN   TestMutationInPartsJudgesAsTheRunOverTheWholeTree
+--- PASS: TestMutationInPartsJudgesAsTheRunOverTheWholeTree (17.62s)
+=== RUN   TestMutationInOnePackageRunsOnlyItsMutants
+--- PASS: TestMutationInOnePackageRunsOnlyItsMutants (12.99s)
+=== RUN   TestMutationInAFilePartRunsOnlyThatFile
+--- PASS: TestMutationInAFilePartRunsOnlyThatFile (13.09s)
+=== RUN   TestMutationInPartsRunsNoToolWithoutAPartToRun
+--- PASS: TestMutationInPartsRunsNoToolWithoutAPartToRun (0.28s)
+=== RUN   TestMutationInPartsEndsWithAPartThatFails
+--- PASS: TestMutationInPartsEndsWithAPartThatFails (12.61s)
+=== RUN   TestMutationInPartsInterruptedLeavesNothingBehind
+--- PASS: TestMutationInPartsInterruptedLeavesNothingBehind (9.39s)
+PASS
+ok  	github.com/rkrysinski/hq/tools/testgate	75.678s
+$ 

@@ -1,0 +1,26 @@
+$ testgate mutation main lib nothing; echo "exit $?"
+testgate: mutation: the part nothing does not exist
+exit 2
+$ testgate mutation main lib /usr/bin; echo "exit $?"
+testgate: mutation: the part /usr/bin lies outside the repository
+exit 2
+$ testgate mutation main lib ..; echo "exit $?"
+testgate: mutation: the part .. lies outside the repository
+exit 2
+$ testgate mutation main .git; echo "exit $?"
+testgate: mutation: the part .git holds no Go file of the repository
+exit 2
+$ testgate mutation main go.mod; echo "exit $?"
+testgate: mutation: the part go.mod is not a Go file of the repository
+exit 2
+$ testgate mutation main lib lib/lib.go; echo "exit $?"
+testgate: mutation: the parts lib and lib/lib.go both cover lib/lib.go
+exit 2
+$ testgate mutation main lib ./lib/; echo "exit $?"
+testgate: mutation: the parts lib and ./lib/ both cover lib/lib.go
+exit 2
+$ testgate mutation; echo "exit $?"
+testgate: mutation needs the base the pull request goes into, for example: go run ./tools/testgate mutation origin/dev
+usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]
+exit 2
+$ 
