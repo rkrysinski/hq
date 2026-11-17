@@ -31,5 +31,8 @@ What was learned and why it matters. Next time: what to do differently.
 
 ## Entries
 
+### 2026-11-17 - A mutant you call equivalent: write the killing test first
+Twice in release v0.14.0 a surviving mutant passed as equivalent and changed behaviour: `internal/cli/sendwait.go:251:35` stalled one look later at exactly 5 s (fixed forward in #214), and `internal/cli/cursor.go:87:14` made one more `list-windows` call per quiet look; a third survivor, `internal/state/inbox.go:234:9`, was handed to the whole release's run and came back. "One look later" or "one call more" feels harmless while the reason is written. Next time: write the test that would kill the survivor first, and write a reason only when no input tells it from the original (`docs/hq/testing.md`, *What passes*); never leave a survivor to another run.
+
 ### 2026-11-17 - A 401 from an agent you started: stop
 A 401 or "Login expired" from an agent you started means the real Claude Code ran without the sandbox's proxy variables, and its first request logged out every session of the sandbox; each new start logs them out again (three times in release v0.14.0, #227). Next time: stop and report it, and start nothing again.

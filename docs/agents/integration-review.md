@@ -1,6 +1,6 @@
 # Integration review: this project's surfaces
 
-Read by the integration reviewer, who reads each ticket's diff against the release branch as it stands and once more over the whole release, and by `/release-ship` to classify a hotfix merged into the release branch. The review's questions, the *block* and *note* tags and where findings go are the skill's; this file holds the lists only the project knows. They grow from use: a hotfix path that cost a full Release QA is added afterwards.
+Read by the integration reviewer, who reads each ticket's diff against the release branch as it stands and once more over the whole release, and by `/release-ship` to classify a hotfix merged into the release branch. The review's questions, the *block* and *note* tags and where findings go are the skill's; this file holds the lists and the checks only the project knows. They grow from use: a hotfix path that cost a full Release QA is added afterwards.
 
 ## Shared surfaces
 
@@ -17,3 +17,7 @@ Files, keys, prompts, migrations or manifests more than one ticket may touch, an
 | The platform code and the dashboard, `internal/platform` and `internal/dash` | Both platforms behave the same after both changes: what one adds for one platform the other platform has, platform names stay in `internal/platform` (`go run ./tools/testgate platform`), and the dashboard's keys, views and columns do not collide |
 | The MCP tool descriptions, `internal/cli/mcp.go` | Every tool's description matches what the tool does after both changes, and the descriptions do not contradict one another (in particular on `since`, `wait` and when to use `send` or `now`) |
 | The test gates, `tools/testgate` | A threshold only goes up, in the pull request that moves the figure; two changes that each fit the margin must fit it together |
+
+## Reasons of equivalence
+
+A surviving mutant is accepted only when no test can kill it (`docs/hq/testing.md`, *Mutation tests*, *What passes*), and a reason that only sounds harmless lets a change of behaviour through. So for every reason of equivalence in the pull request's `## QA` (`gh pr view <pr> --json body`), in every mutation block, whatever its base, the reviewer tries to write the unit test that kills the mutant: in a worktree of its own that it never pushes, the test passes on the original code and fails with the mutant put in by hand. The reason stands only when no input tells the mutant from the original. A test that tells them apart is a *block* finding on the survivor's line, quoting the test: the run does not pass until the test is in. A result that comes later, one call more or fewer, or the same result reached another way is such a difference, not equivalence.
