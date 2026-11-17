@@ -1,0 +1,4 @@
+$ go run ./tools/testgate timebound   # before the Detach rewrite
+timebound: 137 test files checked, upper bounds under 1s on real elapsed time: 1
+FAIL: internal/proc/proc_integration_test.go:129 bounds real elapsed time by 300ms: a test's upper bound on real time is 1s or more, or the test follows the order of events instead of a clock
+exit 1

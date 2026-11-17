@@ -1,0 +1,18 @@
+$ # this branch with Detach patched to wait for its program
+$ git diff internal/proc/proc.go | grep "^[-+]"
+--- a/internal/proc/proc.go
++++ b/internal/proc/proc.go
+-	if err := cmd.Start(); err != nil {
+-		return err
+-	}
+-	return cmd.Process.Release()
++	return cmd.Run() // QA only: a Detach that waits for its program
+$ go test -count=1 -tags integration -run TestDetach -v ./internal/proc/; echo "exit $?"
+=== RUN   TestDetachReturnsAtOnceAndTheProgramRunsOn
+    proc_integration_test.go:157: Detach waited for its program: the program ran out of patience before Detach returned
+--- FAIL: TestDetachReturnsAtOnceAndTheProgramRunsOn (10.35s)
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/proc	10.351s
+FAIL
+exit 1
+$

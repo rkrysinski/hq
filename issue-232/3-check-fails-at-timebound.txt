@@ -1,0 +1,13 @@
+$ # this branch plus internal/proc/planted_test.go with a 500ms bound
+$ scripts/check.sh; echo "exit $?"
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: FAIL timebound
+timebound: 138 test files checked, upper bounds under 1s on real elapsed time: 1
+FAIL: internal/proc/planted_test.go:11 bounds real elapsed time by 500ms: a test's upper bound on real time is 1s or more, or the test follows the order of events instead of a clock
+exit status 1
+check: stopped at timebound on ca10233defe6b9d6e0a16bd84e0ca0c77053fd7c
+exit 1
+$

@@ -1,0 +1,21 @@
+$ go test -count=1 -tags integration -run TestDetach -v ./internal/proc/ | grep -E "^(---|ok)"
+--- PASS: TestDetachReturnsAtOnceAndTheProgramRunsOn (0.05s)
+ok  	github.com/rkrysinski/hq/internal/proc	0.052s
+$ go test -count=1 -run Timebound -v ./tools/testgate/ | grep -E "^(---|ok)"
+--- PASS: TestTimeboundFindsUpperBoundsUnderASecondOnRealTime (0.00s)
+--- PASS: TestTimeboundIgnoresBoundsOfASecondOrMoreLowerBoundsFakeClocksAndTimers (0.00s)
+--- PASS: TestTimeboundFollowsTheTimePackageUnderAnyName (0.00s)
+--- PASS: TestTimeboundStopsAtConstantsThatReferToThemselves (0.00s)
+--- PASS: TestTimeboundReadsPastAnImplicitlyRepeatedConstant (0.00s)
+--- PASS: TestTimeboundHitNamesFileLineAndBound (0.00s)
+--- PASS: TestTimeboundReportsAFileItCannotParse (0.00s)
+--- PASS: TestCheckTimeboundReadsTestFilesOfEveryTagAndOnlyThem (0.00s)
+ok  	github.com/rkrysinski/hq/tools/testgate	0.002s
+$ go test -count=1 -tags integration -run TestCheckPrintsTheFullBuildContract -v ./scripts/ | grep -E "^ *(---|ok)"
+--- PASS: TestCheckPrintsTheFullBuildContract (0.05s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_passing_run_names_every_step_and_the_commit (0.01s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_failing_step_stops_the_run_with_its_output (0.01s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_tight_time_bound_in_a_test_stops_the_run_after_the_platform_gate (0.01s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_dirty_tree_is_named_in_the_passing_and_in_the_failing_last_line (0.01s)
+ok  	github.com/rkrysinski/hq/scripts	0.047s
+$
