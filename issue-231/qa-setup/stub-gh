@@ -1,0 +1,4 @@
+#!/bin/sh
+# QA stub of gh: logs the call, posts nothing.
+printf 'stub gh:' >> /tmp/qa231/gh.log; for a in "$@"; do printf ' [%s]' "$a" >> /tmp/qa231/gh.log; done; echo >> /tmp/qa231/gh.log
+echo "stub gh: would have posted (nothing sent)"

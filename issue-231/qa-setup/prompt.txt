@@ -1,0 +1,26 @@
+This is a QA run of a hook. Run each numbered command below as its own Bash tool call, exactly as written, in order. Never change, retry or work around a command that is refused. When all have run, reply with one line per command: its number and RAN or REFUSED.
+
+1:
+gh pr comment 7 --body "QA 231: a clean comment"
+
+2:
+gh pr create --title "QA 231" --body "$(cat <<'EOF'
+## Summary
+Built for acme-corp.
+EOF
+)"
+
+3:
+gh pr edit 7 --body-file body.md
+
+4:
+cat > old.md <<'EOF'
+rewritten text
+EOF
+gh issue comment 7 --body-file old.md
+
+5:
+gh issue comment 7 --body "$BODY"
+
+6:
+ls

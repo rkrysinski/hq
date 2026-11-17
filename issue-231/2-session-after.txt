@@ -1,0 +1,62 @@
+
+$ gh pr comment 7 --body "QA 231: a clean comment"
+=> ran:
+stub gh: would have posted (nothing sent)
+
+$ gh pr create --title "QA 231" --body "$(cat <<'EOF'
+## Summary
+Built for acme-corp.
+EOF
+)"
+=> REFUSED / error:
+PreToolUse:Bash hook error: ["$CLAUDE_PROJECT_DIR"/scripts/claude-hooks/prepost]: prepost: 1 patterns, 2 texts, 1 matching lines
+FAIL: gh pr create --body:2 matches private pattern 1
+refused: take the private detail out (write <org>, ~/work/app and the like, docs/hq/testing.md, Private details), or put a text the hook cannot see in a file it can; a text that has to go out anyway is posted by the operator outside Claude Code
+exit status 1
+
+
+$ gh pr edit 7 --body-file body.md
+=> REFUSED / error:
+PreToolUse:Bash hook error: ["$CLAUDE_PROJECT_DIR"/scripts/claude-hooks/prepost]: prepost: 1 patterns, 1 texts, 1 matching lines
+FAIL: body.md:2 matches private pattern 1
+refused: take the private detail out (write <org>, ~/work/app and the like, docs/hq/testing.md, Private details), or put a text the hook cannot see in a file it can; a text that has to go out anyway is posted by the operator outside Claude Code
+exit status 1
+
+
+$ cat > old.md <<'EOF'
+rewritten text
+EOF
+gh issue comment 7 --body-file old.md
+=> REFUSED / error:
+PreToolUse:Bash hook error: ["$CLAUDE_PROJECT_DIR"/scripts/claude-hooks/prepost]: prepost: 1 patterns, 1 texts, 0 matching lines
+FAIL: old.md: is written by this same command: write it first, then post it in a second command
+refused: take the private detail out (write <org>, ~/work/app and the like, docs/hq/testing.md, Private details), or put a text the hook cannot see in a file it can; a text that has to go out anyway is posted by the operator outside Claude Code
+exit status 1
+
+
+$ gh issue comment 7 --body "$BODY"
+=> REFUSED / error:
+PreToolUse:Bash hook error: ["$CLAUDE_PROJECT_DIR"/scripts/claude-hooks/prepost]: prepost: 1 patterns, 1 texts, 0 matching lines
+FAIL: gh issue comment --body: holds $..., $(...) or `...`, whose text the hook cannot see: write the text to a file and pass the file (--body-file, -F body=@file)
+refused: take the private detail out (write <org>, ~/work/app and the like, docs/hq/testing.md, Private details), or put a text the hook cannot see in a file it can; a text that has to go out anyway is posted by the operator outside Claude Code
+exit status 1
+
+
+$ ls
+=> ran:
+body.md
+go.mod
+go.sum
+old.md
+scripts
+tools
+
+agent: 1: RAN (the stub `gh` reported "would have posted (nothing sent)")
+2: REFUSED (the hook blocked it: the PR body matched a private-detail pattern)
+3: REFUSED (the hook blocked it: `body.md` matched a private-detail pattern)
+4: REFUSED (the hook blocked the whole command: `old.md` is written by the same command, so it has to be written in one command and posted in a second)
+5: REFUSED (the hook blocked it: `$BODY` is an unseen shell expansion, so the text must go through a file)
+6: RAN (`ls` listed body.md, go.mod, go.sum, old.md, scripts, tools)
+
+--- stub gh received:
+stub gh: [pr] [comment] [7] [--body] [QA 231: a clean comment]

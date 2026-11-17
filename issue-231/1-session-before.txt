@@ -1,0 +1,52 @@
+
+$ gh pr comment 7 --body "QA 231: a clean comment"
+=> ran:
+stub gh: would have posted (nothing sent)
+
+$ gh pr create --title "QA 231" --body "$(cat <<'EOF'
+## Summary
+Built for acme-corp.
+EOF
+)"
+=> ran:
+stub gh: would have posted (nothing sent)
+
+$ gh pr edit 7 --body-file body.md
+=> ran:
+stub gh: would have posted (nothing sent)
+
+$ cat > old.md <<'EOF'
+rewritten text
+EOF
+gh issue comment 7 --body-file old.md
+=> ran:
+stub gh: would have posted (nothing sent)
+
+$ gh issue comment 7 --body "$BODY"
+=> ran:
+stub gh: would have posted (nothing sent)
+
+$ ls
+=> ran:
+body.md
+go.mod
+go.sum
+old.md
+tools
+
+agent: 1. RAN
+2. RAN
+3. RAN
+4. RAN
+5. RAN
+6. RAN
+
+All six ran without a refusal. The `gh` calls returned `stub gh: would have posted (nothing sent)`, so nothing was posted. Command 4 overwrote `old.md`, which was an untracked file in the repo before this run.
+
+--- stub gh received:
+stub gh: [pr] [comment] [7] [--body] [QA 231: a clean comment]
+stub gh: [pr] [create] [--title] [QA 231] [--body] [## Summary
+Built for acme-corp.]
+stub gh: [pr] [edit] [7] [--body-file] [body.md]
+stub gh: [issue] [comment] [7] [--body-file] [old.md]
+stub gh: [issue] [comment] [7] [--body] []

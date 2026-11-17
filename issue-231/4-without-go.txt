@@ -1,0 +1,16 @@
+PATH without go:
+
+$ gh pr comment 7 --body fine
+prepost: go is not installed, so this gh command cannot be checked for private details: refused
+=> hook exit 2
+
+$ gh issue view 231 --json title
+=> hook exit 0
+
+$ git log --oneline -3
+=> hook exit 0
+
+$
+
+
+

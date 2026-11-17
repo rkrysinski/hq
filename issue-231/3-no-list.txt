@@ -1,0 +1,11 @@
+
+$ gh pr comment 7 --body "QA 231: a clean comment"
+=> REFUSED / error:
+PreToolUse:Bash hook error: ["$CLAUDE_PROJECT_DIR"/scripts/claude-hooks/prepost]: prepost: no pattern list, refused
+FAIL: no pattern list: set HQ_PRIVATE_PATTERNS or put the list in "$(git rev-parse --git-common-dir)/info/hq-private-patterns" (ask the owner for it); a text that has to go out anyway is posted by the operator outside Claude Code
+exit status 1
+
+
+agent: REFUSED: the PreToolUse hook (`prepost`) reported no pattern list, so the comment was not posted.
+
+--- stub gh received:
