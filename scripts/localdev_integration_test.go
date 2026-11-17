@@ -221,6 +221,9 @@ func TestARunKeepsItsTemporaryFilesInADirectoryOfTheCheckoutsOwnUntilKillServer(
 	if info, err := os.Stat(want); err != nil || !info.IsDir() {
 		t.Fatalf("%s is no directory: %v", want, err)
 	}
+	// From a shell that has that TMPDIR, as the server's own panes do,
+	// --kill-server finds the same directory.
+	d.env = append(d.env, "TMPDIR="+want)
 	d.must("--kill-server")
 	if _, err := os.Stat(want); !os.IsNotExist(err) {
 		t.Fatalf("%s left: %v", want, err)

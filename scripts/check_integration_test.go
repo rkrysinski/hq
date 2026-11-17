@@ -242,6 +242,9 @@ func TestCheckKeepsTheTemporaryFilesOfARunInADirectoryOfTheCheckoutsOwn(t *testi
 	if again := tmpdir(a, base+"/"); again != dir {
 		t.Errorf("the checkout's next run had TMPDIR %s, want its own %s again", again, dir)
 	}
+	if within := tmpdir(a, dir); within != dir {
+		t.Errorf("a run from the TMPDIR it exports had %s, want %s again", within, dir)
+	}
 	if other := tmpdir(b, base); other == dir || filepath.Dir(other) != base {
 		t.Errorf("another checkout had TMPDIR %s beside %s, want one of its own in %s", other, dir, base)
 	}

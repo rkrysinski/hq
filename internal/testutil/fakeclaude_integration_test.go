@@ -50,7 +50,7 @@ func TestTheFakeClaudeGoesWithTheTestsThatBuiltIt(t *testing.T) {
 		out, err := cmd.CombinedOutput()
 		return tmp, string(out), err
 	}
-	empty := func(t *testing.T, tmp string) {
+	wantEmpty := func(t *testing.T, tmp string) {
 		t.Helper()
 		entries, err := os.ReadDir(tmp)
 		if err != nil {
@@ -71,7 +71,7 @@ func TestTheFakeClaudeGoesWithTheTestsThatBuiltIt(t *testing.T) {
 		if !ok || !strings.HasPrefix(bin, tmp+string(filepath.Separator)) {
 			t.Fatalf("no fake claude built in the child's temporary directory %s:\n%s", tmp, out)
 		}
-		empty(t, tmp)
+		wantEmpty(t, tmp)
 	})
 
 	t.Run("run without Main", func(t *testing.T) {
@@ -79,6 +79,6 @@ func TestTheFakeClaudeGoesWithTheTestsThatBuiltIt(t *testing.T) {
 		if err == nil || !strings.Contains(out, "testutil.Main") {
 			t.Fatalf("FakeClaude did not refuse, naming testutil.Main: %v\n%s", err, out)
 		}
-		empty(t, tmp)
+		wantEmpty(t, tmp)
 	})
 }

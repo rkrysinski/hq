@@ -36,7 +36,8 @@
 #
 # Temporary files go to a directory of the checkout's own outside the tree,
 # hq-dev-ID in the caller's TMPDIR or /tmp, exported as TMPDIR to hq and so
-# to the tmux server it starts (#226).
+# to the tmux server it starts (#226); a caller whose TMPDIR is already that
+# directory, as a shell of that server is, stays in it.
 #
 # Usage: scripts/local-dev.sh [--stub MODE] [--before] [hq arguments...]
 #        scripts/local-dev.sh --kill-server   end this checkout's tmux server
@@ -57,7 +58,11 @@ HQ_TMUX_SOCKET="hq-dev-$ID"
 export HQ_TMUX_SOCKET
 STUB_ENV=/tmp/hq-stub-$ID
 base=${TMPDIR:-/tmp}
-TMP_DIR=${base%/}/hq-dev-$ID
+base=${base%/}
+case $base in
+*/hq-dev-"$ID") DEV_TMP=$base ;;
+*) DEV_TMP=$base/hq-dev-$ID ;;
+esac
 TESTUTIL=$ROOT/internal/testutil
 GH_CONFIG_DIR=${GH_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/gh}
 XDG_CONFIG_HOME="$ROOT/.local-dev/config"
@@ -89,9 +94,9 @@ kill_server() {
         rm -rf "$STUB_ENV"
         echo "stub environment $STUB_ENV removed"
     fi
-    if [ -d "$TMP_DIR" ]; then
-        rm -rf "$TMP_DIR"
-        echo "temporary directory $TMP_DIR removed"
+    if [ -d "$DEV_TMP" ]; then
+        rm -rf "$DEV_TMP"
+        echo "temporary directory $DEV_TMP removed"
     fi
 }
 
@@ -122,8 +127,8 @@ case $mode in
 '' | native | wsl-linux | wsl-exe | none) ;;
 *) die "unknown --stub mode $mode: native, wsl-linux, wsl-exe or none" ;;
 esac
-mkdir -p "$TMP_DIR"
-TMPDIR=$TMP_DIR
+mkdir -p "$DEV_TMP"
+TMPDIR=$DEV_TMP
 export TMPDIR
 
 # A tmux server keeps the environment of the hq that started it, which its

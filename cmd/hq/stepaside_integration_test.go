@@ -67,7 +67,8 @@ func TestTheListStepsAsideOnlyForAnHqOfAnotherGeneration(t *testing.T) {
 	other := buildRelease(t, "v0.99.0", version.Generation+1)
 	s := supervisorEnv(t)
 	repo := testutil.GitRepo(t, "app")
-	env := append(s.env, "SHELL=/bin/sh")
+	overrides := append(append([]string{}, s.overrides...), "SHELL=/bin/sh")
+	env := append(os.Environ(), overrides...)
 	hq := func(args ...string) string {
 		t.Helper()
 		cmd := exec.Command(s.bin, args...)
@@ -86,10 +87,10 @@ func TestTheListStepsAsideOnlyForAnHqOfAnotherGeneration(t *testing.T) {
 
 	// The terminal runs hq, which docks a as it opens the dashboard. Its
 	// new server has the test's environment, so the command line names only
-	// what the test sets over it: tmux refuses a command of more than 16 KiB,
-	// which the whole environment can exceed (#226).
+	// the overrides: tmux refuses a command of more than 16 KiB, which the
+	// whole environment can exceed (#226).
 	term := testutil.TmuxSocket(t)
-	args := append(append([]string{"-u", "-L", term, "new-session", "-d", "-x", "120", "-y", "30", "-c", repo, "env"}, s.set...), "SHELL=/bin/sh")
+	args := append([]string{"-u", "-L", term, "new-session", "-d", "-x", "120", "-y", "30", "-c", repo, "env"}, overrides...)
 	if out, err := exec.Command("tmux", append(args, "sh", "-c", `"$@"; exec sleep 600`, "sh", s.bin)...).CombinedOutput(); err != nil {
 		t.Fatalf("terminal: %v %s", err, out)
 	}

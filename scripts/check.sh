@@ -28,9 +28,15 @@ cd "$(dirname "$0")/.." || exit 1
 # directory of this checkout's own outside the tree, in the caller's
 # TMPDIR or /tmp (#226): a test run leaves no file loose in the shared
 # temporary directory, and removing what this checkout's runs left there
-# never touches another checkout's run. A run that ends leaves it empty.
+# never touches another checkout's run. A run that ends leaves it empty. A
+# run from a shell whose TMPDIR is already that directory stays in it.
 base=${TMPDIR:-/tmp}
-TMPDIR=${base%/}/hq-check-$(printf %s "$(pwd)" | cksum | cut -d' ' -f1)
+base=${base%/}
+name=hq-check-$(printf %s "$(pwd)" | cksum | cut -d' ' -f1)
+case $base in
+*/"$name") TMPDIR=$base ;;
+*) TMPDIR=$base/$name ;;
+esac
 mkdir -p "$TMPDIR" || exit 1
 export TMPDIR
 
