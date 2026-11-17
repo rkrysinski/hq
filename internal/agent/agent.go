@@ -39,6 +39,8 @@ type Agent struct {
 	// cannot be read is starting, or ended when its pane is dead.
 	reduced   state.Reduced
 	journaled bool
+	// journalGone says the look found its journal gone (JournalGone).
+	journalGone bool
 	// through is what the counter held when its journal was last read
 	// (journal.Journal.Through): every event of any agent numbered up to it
 	// was in its journal then; 0 when it was not read.
@@ -249,6 +251,7 @@ func (s Sandboxes) Ends(a Agent) bool {
 func (a *Agent) apply(f *folded, now time.Time, screen string, captured bool) {
 	r := f.fold.Result(f.reply, now)
 	a.reduced, a.journaled, a.fold, a.reply, a.through = r, true, f.fold, f.reply, f.through
+	a.journalGone = f.gone
 	a.State, a.Since, a.Last, a.Branch, a.Worktree, a.OwnTasks = r.State, r.Since, r.Last, r.Branch, r.Worktree, r.OwnTasks
 	if a.Since.IsZero() {
 		a.Since = a.Started
@@ -287,6 +290,14 @@ func (a *Agent) unread() {
 		a.Last = EndedLast
 	}
 }
+
+// JournalGone reports whether the look found the agent's journal gone:
+// holding nothing when it read it, or removed while it looked. That is an
+// agent whose launch is not in its journal yet, one whose journal was
+// lost, or one hq kill is removing: hq kill kills an agent's home window
+// before it removes its journal, so a look can list the window and find
+// the journal gone after (#239).
+func (a Agent) JournalGone() bool { return a.journalGone }
 
 // StateSeq is the number of the event at which the agent's state, or the
 // dialog it is at, last changed (state_seq, ADR 0019): for an agent starting
