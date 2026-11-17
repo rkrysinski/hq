@@ -138,6 +138,38 @@ func TestTheQuestionDialogsHookWaitsForItsDialogsReport(t *testing.T) {
 	if out, ok := k.ended(2 * time.Second); !ok || out != string(q.Cancel())+"\n" {
 		t.Fatalf("%v %q", ok, out)
 	}
+	askedAgain(t, root, id, payload)
+	// A hook that ended before its dialog's report came, another report's
+	// note newer than its copy, leaves the same questions asked again
+	// waiting too.
+	fire(t, root, root, id, "answer", fixture(t, "answer-ask-several"))
+	k = hold(t, root, root, id, payload)
+	time.Sleep(500 * time.Millisecond)
+	fire(t, root, root, id, "dialog", []byte(strings.Replace(string(payload), `"hook_event_name"`, `"agent_id":"a1b2c3","hook_event_name"`, 1)))
+	if out, ok := k.ended(3 * time.Second); !ok || out != "" {
+		t.Fatalf("before its report: %v %q", ok, out)
+	}
+	openDialog(t, root, id, payload)
+	askedAgain(t, root, id, payload)
+}
+
+// askedAgain answers the dialog of payload at the terminal and asks the
+// same questions again in the turn, a dialog of the same report, its hook
+// looking before that report: the hook still waits for it and takes the
+// answer hq leaves, whatever ended the earlier hooks (#209).
+func askedAgain(t *testing.T, root, id string, payload []byte) {
+	t.Helper()
+	fire(t, root, root, id, "answer", fixture(t, "answer-ask-several"))
+	k := hold(t, root, root, id, payload)
+	time.Sleep(500 * time.Millisecond)
+	q := openDialog(t, root, id, payload)
+	if _, ok := k.ended(time.Second); ok {
+		t.Fatal("the same questions again: did not hold")
+	}
+	leave(t, root, id, q, q.Cancel())
+	if out, ok := k.ended(2 * time.Second); !ok || out != string(q.Cancel())+"\n" {
+		t.Fatalf("the same questions again: %v %q", ok, out)
+	}
 }
 
 // Once the dialog closes otherwise (answered at the terminal), the hook
@@ -163,6 +195,31 @@ func TestTheQuestionDialogsHookEndsWhenItsDialogCloses(t *testing.T) {
 	}
 	if !WithdrawAnswer(root, id, q) || len(inboxLeft(root, id)) != 0 {
 		t.Fatalf("not withdrawn: %v", inboxLeft(root, id))
+	}
+}
+
+// Claude starts the dialog's two hooks side by side, but on a busy machine
+// the question dialog's may first look after its dialog was reported and
+// answered at the terminal: it ends then too, at once, not after the bound
+// it gives a report that never comes (#209), and takes no answer.
+func TestTheQuestionDialogsHookThatLooksAfterItsDialogClosedEnds(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	payload := fixture(t, "dialog-ask-several")
+	q := openDialog(t, root, id, payload)
+	fire(t, root, root, id, "answer", fixture(t, "answer-ask-several"))
+	leave(t, root, id, q, q.Cancel())
+	k := hold(t, root, root, id, payload)
+	// Well under the ten seconds of the bound it would otherwise hold
+	// for, and with room for a busy machine.
+	if out, ok := k.ended(5 * time.Second); !ok || out != "" {
+		t.Fatalf("after the dialog closed: %v %q", ok, out)
+	}
+	if AnswerTaken(root, id, q) {
+		t.Fatal("an answer taken after the dialog closed")
+	}
+	if left, _ := filepath.Glob(filepath.Join(Dir(root), id+".[0-9]*")); len(left) != 0 {
+		t.Fatalf("left beside the hook's notes: %v", left)
 	}
 }
 
@@ -210,6 +267,7 @@ func TestTheQuestionDialogsHookEndsQuietlyAtItsTimeout(t *testing.T) {
 	if left, _ := filepath.Glob(filepath.Join(Dir(root), id+".[0-9]*")); len(left) != 0 {
 		t.Fatalf("left beside the hook's notes: %v", left)
 	}
+	askedAgain(t, root, id, payload)
 }
 
 // One answer waits for a dialog at a time: another for the same dialog is

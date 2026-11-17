@@ -208,9 +208,10 @@ func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) 
 	if r, _ := state(); r.State != Working {
 		t.Fatalf("permission granted, tool failed: %+v", r)
 	}
-	// Only the hook's note of its latest report, and the mark that a tool
+	// Only the hook's note of its latest report, the cksums of the
+	// dialogs it reported (#209), here the two, and the mark that a tool
 	// of the turn ended, naming the turn.
-	if got := files(t, root, id); len(got) != 2 || got[actedSuffix] != "0000001b-0000-4000-8000-00000000001b\n" {
+	if got := files(t, root, id); len(got) != 3 || got[actedSuffix] != "0000001b-0000-4000-8000-00000000001b\n" || len(strings.Fields(got[askedSuffix])) != 4 {
 		t.Fatalf("left files behind: %v", got)
 	}
 }
@@ -494,7 +495,7 @@ func TestRemoveDeletesThatAgentsFilesOnly(t *testing.T) {
 	outside := filepath.Join(dir, "..", "..", "keep")
 	// The hook's working files, hq's word and record, and what the hook
 	// of an earlier generation wrote too (an outdated agent's).
-	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abc.last", "abc.ended", "abc.on", "abc.owe", "abc.sup", "abc.next", "abc.acted", "abc.queued", "abc.hq", "abcd", "abcd.stop", "abcd.last", "def", "../../keep"} {
+	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abc.last", "abc.ended", "abc.on", "abc.owe", "abc.sup", "abc.next", "abc.acted", "abc.queued", "abc.asked", "abc.hq", "abcd", "abcd.stop", "abcd.last", "def", "../../keep"} {
 		os.WriteFile(filepath.Join(dir, p), []byte("x"), 0o644)
 	}
 	if err := Remove(root, "abc"); err != nil {
