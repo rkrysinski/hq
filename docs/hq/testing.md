@@ -64,7 +64,7 @@ When the changed lines hold no mutant, the last line is `mutation: no mutants in
 
 ## CI
 
-A pull request into `dev` gets a run, unlike the template's *Merging* says: `.github/workflows/pull-request-tests.yml` runs `scripts/check.sh` on macOS and Ubuntu, for every change but one of only the paths its header lists as skipped. Every push to `dev` runs it once more on Ubuntu (`.github/workflows/tests.yml`), for every change but one of only the paths its `paths-ignore` lists. A pull request into any other branch, a release branch among them, gets no run. A PR with a red CI job is not merged.
+A pull request into `dev` or into a release branch (`release-vX.Y.Z`, `docs/agents/issue-tracker.md`, *Working a release*) gets a run, unlike the template's *Merging* says: `.github/workflows/pull-request-tests.yml` runs `scripts/check.sh` on macOS and Ubuntu, for every change but one of only the paths its header lists as skipped. For a ticket of a supervised release it is the only run of the full build in CI before its squash, since the release branch gets no `Tests` run. Every push to `dev` runs it once more on Ubuntu (`.github/workflows/tests.yml`), for every change but one of only the paths its `paths-ignore` lists. A pull request into any other branch gets no run. A PR with a red CI job is not merged.
 
 ## Thresholds
 
