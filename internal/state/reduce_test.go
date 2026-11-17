@@ -524,3 +524,53 @@ func TestATurnAnAPIErrorEndedIsDoneWithClaudesErrorLine(t *testing.T) {
 		t.Errorf("rate limit: %s %q, turn ended at %d", r.State, r.Last, r.TurnEnded)
 	}
 }
+
+// A turn an API error ended is done whatever still runs, as a turn the user
+// ended (spec §5, Background work): background subagents the turn started,
+// a turn end that background work kept working, or a subagent's open
+// dialog. When the subagents finish, Claude's wake-up for them shows
+// working, and the closing turn ends as any turn does.
+func TestATurnAnAPIErrorEndedIsDoneWhateverStillRuns(t *testing.T) {
+	failed := func(n int64, turn string) Event {
+		return hookEvent(n, CaseFail, KindTurnFailed, Facts{Turn: turn, Reason: "authentication_failed"})
+	}
+	started := hookEvent(2, "answer", "PostToolUse", Facts{Turn: "t1", Tool: "Agent", Started: "a1"})
+	for _, tc := range []struct {
+		name    string
+		journal []Event
+	}{
+		{"a subagent started in the failed turn", []Event{userPrompt(1, "t1"), started, failed(3, "t1")}},
+		{"a turn end kept working for it, then a wake-up that fails", []Event{
+			userPrompt(1, "t1"), started, endOfTurn(3, "t1", false, subagentRunning("a1"), subagentRunning("a2")),
+			hookEvent(4, "prompt", "UserPromptSubmit", Facts{Turn: "w1", Wake: true, Woke: "a2"}), failed(5, "w1"),
+		}},
+		{"a subagent's dialog open", []Event{
+			userPrompt(1, "t1"), started, endOfTurn(3, "t1", false, subagentRunning("a1")),
+			hookEvent(4, "dialog", "PermissionRequest", Facts{Turn: "t1", Tool: "Bash", Subagent: true}), failed(5, "t1"),
+		}},
+	} {
+		end := tc.journal[len(tc.journal)-1]
+		before := reducedAt(tc.journal, end.Number-1)
+		if before.State == Done {
+			t.Fatalf("%s: done before the end: %+v", tc.name, before)
+		}
+		r := Reduce(tc.journal, Reply{Number: end.Number, Text: "Login expired · Please run /login"}, atSecond(100))
+		if r.State != Done || r.Background || r.Dialog.Open || r.Last != "Login expired · Please run /login" || r.TurnEnded != end.Number || !r.Since.Equal(end.Time) {
+			t.Errorf("%s: %s, background %v, dialog open %v, %q, turn ended at %d, since %v", tc.name, r.State, r.Background, r.Dialog.Open, r.Last, r.TurnEnded, r.Since)
+		}
+	}
+
+	// The subagent finishes: Claude's wake-up for it is the agent at work
+	// again, and the closing turn ends done as any turn.
+	journal := []Event{
+		userPrompt(1, "t1"), started, failed(3, "t1"),
+		hookEvent(4, "prompt", "UserPromptSubmit", Facts{Turn: "w1", Wake: true, Woke: "a1"}),
+		endOfTurn(5, "w1", false),
+	}
+	if r := reducedAt(journal, 4); r.State != Working {
+		t.Errorf("the wake-up after the failed end: %s", r.State)
+	}
+	if r := reducedAt(journal, 5); r.State != Done || r.TurnEnded != 5 {
+		t.Errorf("the closing turn: %s, turn ended at %d", r.State, r.TurnEnded)
+	}
+}

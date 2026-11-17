@@ -192,15 +192,36 @@ func TestWaitReturnsAnAgentWhoseTurnAnAPIErrorEnded(t *testing.T) {
 	h.stillWaiting(ch)
 	h.typeIn("c", "go on")
 	first := h.only(h.waited(ch), "c", "done", line)
-	if rows := h.ls(); rows[0].Pending != 1 {
-		t.Fatalf("the message went with the end: %+v", rows)
-	}
 
-	// The next look types the message in once it has waited (#125); its
-	// turn ends in the same error.
+	// A look types the message in once it has waited (#125); its turn ends
+	// in the same error.
 	again := h.waitRow("c", "done", func(r lsRow) bool { return r.Since.After(first.Since) })
 	if again.Last != line || again.Pending != 0 {
 		t.Fatalf("after the message: %+v", again)
 	}
 	h.waitPane("c", "❯ apierror again")
+
+	// The hook took nothing at the error's end: hq typed the message in,
+	// between the two ends, as the journal says whenever the look came.
+	code, out, errOut := h.run("explain", "c", "--all", "--json")
+	var journal struct {
+		Events []struct{ Source, Kind string } `json:"events"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &journal) != nil {
+		t.Fatalf("explain: exit %d %s %s", code, out, errOut)
+	}
+	var ends, typed []string
+	for _, e := range journal.Events {
+		switch {
+		case e.Kind == "StopFailure":
+			ends = append(ends, e.Kind)
+		case e.Kind == "delivery" && e.Source == "hook":
+			t.Fatalf("the hook delivered the message: %s", out)
+		case e.Kind == "delivery" && len(ends) == 1:
+			typed = append(typed, e.Source)
+		}
+	}
+	if len(ends) != 2 || len(typed) == 0 {
+		t.Fatalf("ends %v, typed in between by %v: %s", ends, typed, out)
+	}
 }
