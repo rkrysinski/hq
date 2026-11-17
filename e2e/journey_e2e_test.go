@@ -24,6 +24,12 @@ type journey struct {
 	browsed string // the pull requests the stand-in for gh opened
 }
 
+// TestMain runs the journeys through testutil.Main, which removes the fake
+// claude newJourney has built for them (#226).
+func TestMain(m *testing.M) {
+	os.Exit(testutil.Main(m))
+}
+
 func newJourney(t *testing.T) *journey {
 	j := &journey{t: t, bin: filepath.Join(t.TempDir(), "hq"), socket: testutil.TmuxSocket(t)}
 	if out, err := exec.Command("go", "build", "-o", j.bin, "../cmd/hq").CombinedOutput(); err != nil {

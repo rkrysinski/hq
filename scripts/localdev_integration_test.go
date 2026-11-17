@@ -206,3 +206,26 @@ func TestKillServerRemovesTheStubEnvironment(t *testing.T) {
 		t.Fatal("tmux server still runs")
 	}
 }
+
+// A run keeps its temporary files in a directory of the checkout's own in
+// the caller's TMPDIR, hq-dev-ID as its tmux server, which the server hq
+// starts there has too, and --kill-server removes it (#226).
+func TestARunKeepsItsTemporaryFilesInADirectoryOfTheCheckoutsOwnUntilKillServer(t *testing.T) {
+	d := newLocalDev(t)
+	d.must("--stub", "native", "new", "a", d.dir()+"/repo", "hello")
+	want := filepath.Join(os.TempDir(), "hq-dev-"+d.id)
+	out, err := exec.Command("tmux", "-u", "-L", "hq-dev-"+d.id, "show-environment", "-g", "TMPDIR").Output()
+	if got := strings.TrimSpace(string(out)); err != nil || got != "TMPDIR="+want {
+		t.Fatalf("the server's %q (%v), want TMPDIR=%s", got, err, want)
+	}
+	if info, err := os.Stat(want); err != nil || !info.IsDir() {
+		t.Fatalf("%s is no directory: %v", want, err)
+	}
+	// From a shell that has that TMPDIR, as the server's own panes do,
+	// --kill-server finds the same directory.
+	d.env = append(d.env, "TMPDIR="+want)
+	d.must("--kill-server")
+	if _, err := os.Stat(want); !os.IsNotExist(err) {
+		t.Fatalf("%s left: %v", want, err)
+	}
+}

@@ -7,15 +7,18 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 )
 
-// stubGo stands in for the toolchain: it logs each call, prints a gate's
-// figure as "figure <gate>", and fails with "boom" when the call contains
-// STUB_FAIL. stubGofmt names an unformatted file when STUB_UNFORMATTED is set.
+// stubGo stands in for the toolchain: it logs each call and the TMPDIR it
+// runs with, prints a gate's figure as "figure <gate>", and fails with
+// "boom" when the call contains STUB_FAIL. stubGofmt names an unformatted
+// file when STUB_UNFORMATTED is set.
 const stubGo = `#!/bin/sh
 echo "go $*" >> "$STUB_LOG"
+echo "TMPDIR=$TMPDIR" >> "$STUB_LOG"
 case "$*" in "run ./tools/testgate "*) echo "figure $3" ;; esac
 case "$*" in *"$STUB_FAIL"*) [ -n "$STUB_FAIL" ] && { echo boom; exit 1; } ;; esac
 exit 0
@@ -28,7 +31,8 @@ exit 0
 `
 
 // checkRepo is a git repository holding a copy of scripts/check.sh, with the
-// stub toolchain first on PATH.
+// stub toolchain first on PATH and a TMPDIR of the test's own, where the
+// script makes its directory.
 type checkRepo struct {
 	t   *testing.T
 	dir string
@@ -52,7 +56,7 @@ func newCheckRepo(t *testing.T) *checkRepo {
 	writeFile(t, filepath.Join(r.dir, "e2e", "journey_test.go"), "package e2e\n", 0o644)
 	r.env = append(os.Environ(),
 		"PATH="+stubs+string(os.PathListSeparator)+os.Getenv("PATH"),
-		"STUB_LOG="+r.log, "STUB_FAIL=", "STUB_UNFORMATTED=", "GITHUB_STEP_SUMMARY=")
+		"STUB_LOG="+r.log, "STUB_FAIL=", "STUB_UNFORMATTED=", "GITHUB_STEP_SUMMARY=", "TMPDIR="+t.TempDir())
 	r.git("init", "-q")
 	r.git("add", ".")
 	r.git("-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-qm", "init")
@@ -197,4 +201,56 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 			t.Fatalf("exit %d", code)
 		}
 	})
+}
+
+// The steps run with a temporary directory of the checkout's own, outside
+// it, so a test run leaves no file loose in the shared one and one
+// checkout's cleanup never meets another checkout's run (#226).
+func TestCheckKeepsTheTemporaryFilesOfARunInADirectoryOfTheCheckoutsOwn(t *testing.T) {
+	base := t.TempDir()
+	// tmpdir runs the script with TMPDIR set to tmp and returns the one
+	// TMPDIR every step ran with.
+	tmpdir := func(r *checkRepo, tmp string) string {
+		t.Helper()
+		if err := os.Truncate(r.log, 0); err != nil && !os.IsNotExist(err) {
+			t.Fatal(err)
+		}
+		lines, code := r.run("TMPDIR=" + tmp)
+		if last := lines[len(lines)-1]; code != 0 || strings.HasSuffix(last, "with uncommitted changes") {
+			t.Fatalf("exit %d, last line %q", code, last)
+		}
+		var dirs []string
+		for _, line := range strings.Split(r.calls(), "\n") {
+			if dir, ok := strings.CutPrefix(line, "TMPDIR="); ok && !slices.Contains(dirs, dir) {
+				dirs = append(dirs, dir)
+			}
+		}
+		if len(dirs) != 1 {
+			t.Fatalf("the steps ran with TMPDIR %q, want one directory", dirs)
+		}
+		if info, err := os.Stat(dirs[0]); err != nil || !info.IsDir() {
+			t.Fatalf("TMPDIR %s is no directory: %v", dirs[0], err)
+		}
+		return dirs[0]
+	}
+
+	a, b := newCheckRepo(t), newCheckRepo(t)
+	dir := tmpdir(a, base)
+	if filepath.Dir(dir) != base || !strings.HasPrefix(filepath.Base(dir), "hq-check-") {
+		t.Fatalf("TMPDIR %s, want a directory hq-check-* in the caller's %s", dir, base)
+	}
+	if again := tmpdir(a, base+"/"); again != dir {
+		t.Errorf("the checkout's next run had TMPDIR %s, want its own %s again", again, dir)
+	}
+	if within := tmpdir(a, dir); within != dir {
+		t.Errorf("a run from the TMPDIR it exports had %s, want %s again", within, dir)
+	}
+	if other := tmpdir(b, base); other == dir || filepath.Dir(other) != base {
+		t.Errorf("another checkout had TMPDIR %s beside %s, want one of its own in %s", other, dir, base)
+	}
+	shared := tmpdir(a, "")
+	t.Cleanup(func() { _ = os.Remove(shared) })
+	if filepath.Dir(shared) != "/tmp" || filepath.Base(shared) != filepath.Base(dir) {
+		t.Errorf("without a TMPDIR the run had %s, want /tmp/%s", shared, filepath.Base(dir))
+	}
 }

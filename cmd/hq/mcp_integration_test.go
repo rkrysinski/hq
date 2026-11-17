@@ -46,9 +46,11 @@ type supervisor struct {
 	cs     *mcp.ClientSession
 	socket string
 	// bin is the hq it started and env that hq's environment, for running
-	// hq from a shell beside it, as the user does.
-	bin string
-	env []string
+	// hq from a shell beside it, as the user does: the test's own, with
+	// overrides over it.
+	bin       string
+	env       []string
+	overrides []string
 }
 
 // row is an agent as the list, read and wait tools give it.
@@ -76,6 +78,12 @@ func newSupervisor(t *testing.T) *supervisor {
 	return s
 }
 
+// TestMain runs the tests through testutil.Main, which removes the fake
+// claude supervisorEnv has built for them (#226).
+func TestMain(m *testing.M) {
+	os.Exit(testutil.Main(m))
+}
+
 // supervisorEnv is a supervisor not yet connected: hq built, and the
 // environment it runs in, on the fake Claude and the stub sbx.
 func supervisorEnv(t *testing.T) *supervisor {
@@ -89,7 +97,8 @@ func supervisorEnv(t *testing.T) *supervisor {
 	s := &supervisor{t: t, socket: testutil.TmuxSocket(t), bin: buildHQ(t)}
 	// Its own preferences file too: CI runners set XDG_CONFIG_HOME, which
 	// would otherwise share the runner's file between tests (#141).
-	s.env = append(os.Environ(), "PATH="+path+string(os.PathListSeparator)+os.Getenv("PATH"), "HQ_TMUX_SOCKET="+s.socket, "HOME="+t.TempDir(), "XDG_CONFIG_HOME="+t.TempDir(), "XDG_STATE_HOME="+t.TempDir(), "TMUX=")
+	s.overrides = []string{"PATH=" + path + string(os.PathListSeparator) + os.Getenv("PATH"), "HQ_TMUX_SOCKET=" + s.socket, "HOME=" + t.TempDir(), "XDG_CONFIG_HOME=" + t.TempDir(), "XDG_STATE_HOME=" + t.TempDir(), "TMUX="}
+	s.env = append(os.Environ(), s.overrides...)
 	return s
 }
 

@@ -55,7 +55,8 @@ func TestMain(m *testing.M) {
 	os.Setenv("HOME", home)
 	os.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	os.Setenv("XDG_STATE_HOME", filepath.Join(home, ".local", "state"))
-	code := m.Run()
+	// testutil.Main removes the fake claude the tests built (#226).
+	code := testutil.Main(m)
 	os.RemoveAll(home)
 	os.Exit(code)
 }
