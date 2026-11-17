@@ -9,58 +9,43 @@ import (
 )
 
 // testSrc is a test file whose one function holds body, with the time,
-// context and testing packages imported.
+// context and testing packages imported; body starts on line 13.
 func testSrc(body string) []byte {
 	return []byte("package a\n\nimport (\n\t\"context\"\n\t\"testing\"\n\t\"time\"\n)\n\n" +
 		"var _ = context.Background\n\nfunc TestX(t *testing.T) {\n\tstart := time.Now()\n" + body + "\n}\n")
 }
 
-// bodyLine is the line of the first line of a testSrc body.
-const bodyLine = 13
-
 func TestTimeboundFindsUpperBoundsUnderASecondOnRealTime(t *testing.T) {
-	for _, tc := range []struct{ body, bound string }{
-		{"\tif time.Since(start) > 300*time.Millisecond {\n\t\tt.Fatal()\n\t}", "300ms"},
-		{"\tif time.Since(start) >= 999*time.Millisecond {\n\t\tt.Fatal()\n\t}", "999ms"},
-		{"\tif time.Now().Sub(start) > time.Second/2 {\n\t\tt.Fatal()\n\t}", "500ms"},
-		{"\tif 300*time.Millisecond < time.Since(start) {\n\t\tt.Fatal()\n\t}", "300ms"},
-		{"\tif 300*time.Millisecond <= time.Now().Sub(start) {\n\t\tt.Fatal()\n\t}", "300ms"},
-		{"\tif d := time.Since(start); d > 300*time.Millisecond {\n\t\tt.Fatal(d)\n\t}", "300ms"},
-		{"\td := time.Since(start)\n\tif d >= 300*time.Millisecond {\n\t\tt.Fatal(d)\n\t}", "300ms"},
-		{"\td := time.Now().Sub(start)\n\tif d > 300*time.Millisecond {\n\t\tt.Fatal(d)\n\t}", "300ms"},
-		{"\tvar d time.Duration\n\td = time.Since(start)\n\tif 300*time.Millisecond < d {\n\t\tt.Fatal(d)\n\t}", "300ms"},
-		{"\tvar d = time.Since(start)\n\tif 300*time.Millisecond <= d {\n\t\tt.Fatal(d)\n\t}", "300ms"},
-		{"\tif time.Since(start) > 2*time.Second-1500*time.Millisecond {\n\t\tt.Fatal()\n\t}", "500ms"},
-		{"\tif time.Since(start) > time.Second-time.Nanosecond {\n\t\tt.Fatal()\n\t}", "999.999999ms"},
-		{"\tif time.Since(start) > (time.Duration(3) * 100 * time.Millisecond) {\n\t\tt.Fatal()\n\t}", "300ms"},
-		{"\tif time.Since(start) > 3e8 {\n\t\tt.Fatal()\n\t}", "300ms"},
-		{"\tconst bound = 300 * time.Millisecond\n\tif time.Since(start) > bound {\n\t\tt.Fatal()\n\t}", "300ms"},
-		{"\tok := time.Since(start) > 300*time.Millisecond\n\t_ = ok", "300ms"},
+	for _, tc := range []struct {
+		body  string
+		line  int
+		bound string
+	}{
+		{"\tif time.Since(start) > 300*time.Millisecond {\n\t\tt.Fatal()\n\t}", 13, "300ms"},
+		{"\tif time.Since(start) >= 999*time.Millisecond {\n\t\tt.Fatal()\n\t}", 13, "999ms"},
+		{"\tif time.Now().Sub(start) > time.Second/2 {\n\t\tt.Fatal()\n\t}", 13, "500ms"},
+		{"\tif 300*time.Millisecond < time.Since(start) {\n\t\tt.Fatal()\n\t}", 13, "300ms"},
+		{"\tif 300*time.Millisecond <= time.Now().Sub(start) {\n\t\tt.Fatal()\n\t}", 13, "300ms"},
+		{"\tif d := time.Since(start); d > 300*time.Millisecond {\n\t\tt.Fatal(d)\n\t}", 13, "300ms"},
+		{"\td := time.Since(start)\n\tif d >= 300*time.Millisecond {\n\t\tt.Fatal(d)\n\t}", 14, "300ms"},
+		{"\td := time.Now().Sub(start)\n\tif d > 300*time.Millisecond {\n\t\tt.Fatal(d)\n\t}", 14, "300ms"},
+		{"\tvar d time.Duration\n\td = time.Since(start)\n\tif 300*time.Millisecond < d {\n\t\tt.Fatal(d)\n\t}", 15, "300ms"},
+		{"\tvar d = time.Since(start)\n\tif 300*time.Millisecond <= d {\n\t\tt.Fatal(d)\n\t}", 14, "300ms"},
+		{"\tif time.Since(start) > 2*time.Second-1500*time.Millisecond {\n\t\tt.Fatal()\n\t}", 13, "500ms"},
+		{"\tif time.Since(start) > time.Second-time.Nanosecond {\n\t\tt.Fatal()\n\t}", 13, "999.999999ms"},
+		{"\tif time.Since(start) > (time.Duration(3) * 100 * time.Millisecond) {\n\t\tt.Fatal()\n\t}", 13, "300ms"},
+		{"\tif time.Since(start) > 3e8 {\n\t\tt.Fatal()\n\t}", 13, "300ms"},
+		{"\tconst bound = 300 * time.Millisecond\n\tif time.Since(start) > bound {\n\t\tt.Fatal()\n\t}", 14, "300ms"},
+		{"\tok := time.Since(start) > 300*time.Millisecond\n\t_ = ok", 13, "300ms"},
 	} {
-		hits, err := scanTimebound("a_test.go", testSrc(tc.body))
+		hits, err := scanTimebound("a_test.go", testSrc(tc.body), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		line := bodyLine + strings.Count(tc.body[:boundIndex(tc.body)], "\n")
-		want := []timeboundHit{{"a_test.go", line, tc.bound}}
-		if !reflect.DeepEqual(hits, want) {
+		if want := []timeboundHit{{"a_test.go", tc.line, tc.bound}}; !reflect.DeepEqual(hits, want) {
 			t.Errorf("%q: hits %v, want %v", tc.body, hits, want)
 		}
 	}
-}
-
-// boundIndex is where the comparison of a testSrc body starts: its first
-// line with a comparison operator.
-func boundIndex(body string) int {
-	lines := strings.SplitAfter(body, "\n")
-	n := 0
-	for _, l := range lines {
-		if strings.ContainsAny(l, "<>") {
-			return n
-		}
-		n += len(l)
-	}
-	return 0
 }
 
 func TestTimeboundIgnoresBoundsOfASecondOrMoreLowerBoundsFakeClocksAndTimers(t *testing.T) {
@@ -83,10 +68,11 @@ func TestTimeboundIgnoresBoundsOfASecondOrMoreLowerBoundsFakeClocksAndTimers(t *
 		"\tlimit := 300 * time.Millisecond\n\tif time.Since(start) > limit {\n\t\tt.Fatal()\n\t}",
 		"\tif time.Since(start) > 300*time.Millisecond+limitOf(t) {\n\t\tt.Fatal()\n\t}",
 		"\td := 300 * time.Millisecond\n\tif d > 200*time.Millisecond {\n\t\tt.Fatal(d)\n\t}",
+		"\td := time.Since(start)\n\td = time.Hour\n\tif d > 300*time.Millisecond {\n\t\tt.Fatal(d)\n\t}",
+		"\td := time.Since(start)\n\td += time.Hour\n\tif d > 300*time.Millisecond {\n\t\tt.Fatal(d)\n\t}",
 	} {
-		src := testSrc(body + "\n\t_ = start")
-		src = append(src, []byte("\nfunc limitOf(*testing.T) time.Duration { return 0 }\n")...)
-		hits, err := scanTimebound("a_test.go", src)
+		src := append(testSrc(body+"\n\t_ = start"), "\nfunc limitOf(*testing.T) time.Duration { return 0 }\n"...)
+		hits, err := scanTimebound("a_test.go", src, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -98,7 +84,7 @@ func TestTimeboundIgnoresBoundsOfASecondOrMoreLowerBoundsFakeClocksAndTimers(t *
 
 func TestTimeboundFollowsTheTimePackageUnderAnyName(t *testing.T) {
 	src := "package a\n\nimport tm \"time\"\n\nfunc f(start tm.Time) bool {\n\treturn tm.Since(start) > 300*tm.Millisecond\n}\n"
-	hits, err := scanTimebound("a_test.go", []byte(src))
+	hits, err := scanTimebound("a_test.go", []byte(src), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +92,7 @@ func TestTimeboundFollowsTheTimePackageUnderAnyName(t *testing.T) {
 		t.Fatalf("hits %v, want %v", hits, want)
 	}
 	other := "package a\n\nimport time \"example.com/clock\"\n\nfunc f(start int) bool {\n\treturn time.Since(start) > 3\n}\n"
-	if hits, err := scanTimebound("a_test.go", []byte(other)); err != nil || len(hits) != 0 {
+	if hits, err := scanTimebound("a_test.go", []byte(other), nil); err != nil || len(hits) != 0 {
 		t.Fatalf("another package named time: hits %v, err %v", hits, err)
 	}
 }
@@ -121,7 +107,7 @@ func TestTimeboundHitNamesFileLineAndBound(t *testing.T) {
 }
 
 func TestTimeboundReportsAFileItCannotParse(t *testing.T) {
-	if _, err := scanTimebound("a_test.go", []byte("package a\n\nfunc {")); err == nil {
+	if _, err := scanTimebound("a_test.go", []byte("package a\n\nfunc {"), nil); err == nil {
 		t.Fatal("a file that does not parse is no error")
 	}
 }
@@ -141,6 +127,12 @@ func TestCheckTimeboundReadsTestFilesOfEveryTagAndOnlyThem(t *testing.T) {
 		"internal/a/testdata/t_test.go":    "package t\n" + bound,
 		".claude/worktrees/w/b_test.go":    "package b\n" + bound,
 		"internal/a/notes.txt":             "time.Since(start) > 300*time.Millisecond",
+		// Constants of the package, in other files and under another name
+		// for the time package.
+		"internal/c/bounds_test.go": "package c\n\nimport \"time\"\n\nconst tight = 300 * time.Millisecond\n",
+		"internal/c/c.go":           "package c\n\nimport tm \"time\"\n\nconst loose, half = 2 * tm.Second, tm.Second / 2\n",
+		"internal/c/c_test.go": "package c\n\nimport (\n\t\"testing\"\n\t\"time\"\n)\n\nfunc TestX(t *testing.T) {\n" +
+			"\tif time.Since(time.Now()) > loose || time.Since(time.Now()) > tight || time.Since(time.Now()) > half {\n\t\tt.Fatal()\n\t}\n}\n",
 	}
 	for name, content := range files {
 		path := filepath.Join(root, filepath.FromSlash(name))
@@ -159,10 +151,12 @@ func TestCheckTimeboundReadsTestFilesOfEveryTagAndOnlyThem(t *testing.T) {
 		{"e2e/journey_test.go", 11, "300ms"},
 		{"internal/a/a_integration_test.go", 11, "300ms"},
 		{"internal/a/a_test.go", 9, "300ms"},
+		{"internal/c/c_test.go", 9, "300ms"},
+		{"internal/c/c_test.go", 9, "500ms"},
 		{"tools/x/x_test.go", 9, "300ms"},
 	}
-	if !reflect.DeepEqual(hits, want) || checked != 4 {
-		t.Fatalf("hits %v in %d files, want %v in 4", hits, checked, want)
+	if !reflect.DeepEqual(hits, want) || checked != 6 {
+		t.Fatalf("hits %v in %d files, want %v in 6", hits, checked, want)
 	}
 
 	if err := os.WriteFile(filepath.Join(root, "internal", "a", "bad_test.go"), []byte("package a\nfunc {"), 0o644); err != nil {

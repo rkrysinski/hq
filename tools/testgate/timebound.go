@@ -43,56 +43,22 @@ var timeUnits = map[string]int64{
 
 // scanTimebound reports every upper bound under timeboundLimit on real
 // elapsed time in the Go source file rel: a comparison that holds when
-// time.Since(x) or time.Now().Sub(x), directly or through a variable it was
-// assigned to, is greater than (>, >=, or < and <= written the other way
-// round) a constant duration under the limit. A fake clock's Sub, a lower
-// bound, timers and timeouts are not such a bound.
-func scanTimebound(rel string, src []byte) ([]timeboundHit, error) {
+// time.Since(x) or time.Now().Sub(x), directly or through a variable that
+// is only ever assigned one of them, is greater than (>, >=, or < and <=
+// written the other way round) a constant duration under the limit. A fake
+// clock's Sub, a lower bound, timers and timeouts are not such a bound.
+// consts are the constants the file's package declares in its other files.
+func scanTimebound(rel string, src []byte, consts map[string]pkgConst) ([]timeboundHit, error) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, rel, src, 0)
 	if err != nil {
 		return nil, err
 	}
-	pkg := ""
-	for _, imp := range file.Imports {
-		if path, _ := strconv.Unquote(imp.Path.Value); path == "time" {
-			pkg = "time"
-			if imp.Name != nil {
-				pkg = imp.Name.Name
-			}
-		}
-	}
-	if pkg == "" {
+	s := newTimeScan(file, consts)
+	if s.pkg == "" {
 		return nil, nil
 	}
-	s := timeScan{pkg: pkg, elapsed: map[*ast.Object]bool{}}
-	// The variables that hold the elapsed time, also through one another.
-	for grew := true; grew; {
-		grew = false
-		mark := func(lhs ast.Expr, rhs ast.Expr) {
-			if id, ok := lhs.(*ast.Ident); ok && id.Obj != nil && !s.elapsed[id.Obj] && s.isElapsed(rhs) {
-				s.elapsed[id.Obj] = true
-				grew = true
-			}
-		}
-		ast.Inspect(file, func(node ast.Node) bool {
-			switch x := node.(type) {
-			case *ast.AssignStmt:
-				if len(x.Lhs) == len(x.Rhs) {
-					for i := range x.Lhs {
-						mark(x.Lhs[i], x.Rhs[i])
-					}
-				}
-			case *ast.ValueSpec:
-				if len(x.Names) == len(x.Values) {
-					for i := range x.Names {
-						mark(x.Names[i], x.Values[i])
-					}
-				}
-			}
-			return true
-		})
-	}
+	s.markElapsed(file)
 	var hits []timeboundHit
 	ast.Inspect(file, func(node ast.Node) bool {
 		x, ok := node.(*ast.BinaryExpr)
@@ -120,10 +86,89 @@ func scanTimebound(rel string, src []byte) ([]timeboundHit, error) {
 }
 
 // timeScan holds what scanTimebound knows of one file: the name it imports
-// the time package under and the variables that hold real elapsed time.
+// the time package under, the variables that hold real elapsed time and the
+// constants of its package declared in other files.
 type timeScan struct {
 	pkg     string
 	elapsed map[*ast.Object]bool
+	consts  map[string]pkgConst
+}
+
+// pkgConst is a constant a package declares, with the file it stands in.
+type pkgConst struct {
+	value ast.Expr
+	file  timeScan
+}
+
+func newTimeScan(file *ast.File, consts map[string]pkgConst) timeScan {
+	s := timeScan{elapsed: map[*ast.Object]bool{}, consts: consts}
+	for _, imp := range file.Imports {
+		if path, _ := strconv.Unquote(imp.Path.Value); path == "time" {
+			s.pkg = "time"
+			if imp.Name != nil {
+				s.pkg = imp.Name.Name
+			}
+		}
+	}
+	return s
+}
+
+// markElapsed finds the variables of file that hold real elapsed time: every
+// assignment to them assigns time.Since(x), time.Now().Sub(x) or another
+// such variable. A variable that is also given anything else is not one.
+func (s timeScan) markElapsed(file *ast.File) {
+	for range 16 { // a chain of variables longer than this is not followed
+		since, other := map[*ast.Object]bool{}, map[*ast.Object]bool{}
+		assign := func(lhs ast.Expr, rhs ast.Expr) {
+			id, ok := lhs.(*ast.Ident)
+			if !ok || id.Obj == nil {
+				return
+			}
+			if rhs != nil && s.isElapsed(rhs) {
+				since[id.Obj] = true
+			} else {
+				other[id.Obj] = true
+			}
+		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			switch x := node.(type) {
+			case *ast.AssignStmt:
+				for i, lhs := range x.Lhs {
+					var rhs ast.Expr
+					if (x.Tok == token.DEFINE || x.Tok == token.ASSIGN) && len(x.Lhs) == len(x.Rhs) {
+						rhs = x.Rhs[i]
+					}
+					assign(lhs, rhs)
+				}
+			case *ast.ValueSpec:
+				if len(x.Values) > 0 {
+					for i, name := range x.Names {
+						var rhs ast.Expr
+						if len(x.Names) == len(x.Values) {
+							rhs = x.Values[i]
+						}
+						assign(name, rhs)
+					}
+				}
+			case *ast.IncDecStmt:
+				assign(x.X, nil)
+			case *ast.RangeStmt:
+				assign(x.Key, nil)
+				assign(x.Value, nil)
+			}
+			return true
+		})
+		grew := false
+		for obj := range since {
+			if !other[obj] && !s.elapsed[obj] {
+				s.elapsed[obj] = true
+				grew = true
+			}
+		}
+		if !grew {
+			return
+		}
+	}
 }
 
 // isTime reports whether e is the selector time.<sel> of the time package.
@@ -160,7 +205,7 @@ func (s timeScan) isElapsed(e ast.Expr) bool {
 }
 
 // duration evaluates e as a constant duration: literals, the time
-// package's units, constants declared in the file, conversions to
+// package's units, constants of the package, conversions to
 // time.Duration and arithmetic on them. depth stops a constant that refers
 // to itself.
 func (s timeScan) duration(e ast.Expr, depth int) (time.Duration, bool) {
@@ -188,7 +233,13 @@ func (s timeScan) constant(e ast.Expr, depth int) (constant.Value, bool) {
 			}
 		}
 	case *ast.Ident:
-		if x.Obj == nil || x.Obj.Kind != ast.Con {
+		if x.Obj == nil { // declared in another file of the package, or not a constant
+			if c, ok := s.consts[x.Name]; ok {
+				return c.file.constant(c.value, depth+1)
+			}
+			return nil, false
+		}
+		if x.Obj.Kind != ast.Con {
 			return nil, false
 		}
 		spec, ok := x.Obj.Decl.(*ast.ValueSpec)
@@ -241,6 +292,7 @@ func (s timeScan) constant(e ast.Expr, depth int) (constant.Value, bool) {
 func checkTimebound(root string) ([]timeboundHit, int, error) {
 	var hits []timeboundHit
 	checked := 0
+	var consts map[string]map[string]pkgConst // of the directory being read, by package
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -249,7 +301,8 @@ func checkTimebound(root string) ([]timeboundHit, int, error) {
 			if name := d.Name(); path != root && (strings.HasPrefix(name, ".") || name == "testdata") {
 				return filepath.SkipDir
 			}
-			return nil
+			consts, err = packageConsts(path)
+			return err
 		}
 		if !strings.HasSuffix(path, "_test.go") {
 			return nil
@@ -259,7 +312,7 @@ func checkTimebound(root string) ([]timeboundHit, int, error) {
 			return err
 		}
 		rel, _ := filepath.Rel(root, path)
-		h, err := scanTimebound(filepath.ToSlash(rel), src)
+		h, err := scanTimebound(filepath.ToSlash(rel), src, consts[packageName(src)])
 		if err != nil {
 			return err
 		}
@@ -268,4 +321,58 @@ func checkTimebound(root string) ([]timeboundHit, int, error) {
 		return nil
 	})
 	return hits, checked, err
+}
+
+// packageConsts reads the package-level constants that the Go files of dir
+// declare, by package name, each with the file it stands in.
+func packageConsts(dir string) (map[string]map[string]pkgConst, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	consts := map[string]map[string]pkgConst{}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") {
+			continue
+		}
+		path := filepath.Join(dir, e.Name())
+		src, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), path, src, 0)
+		if err != nil {
+			return nil, err
+		}
+		pkg := file.Name.Name
+		if consts[pkg] == nil {
+			consts[pkg] = map[string]pkgConst{}
+		}
+		s := newTimeScan(file, consts[pkg])
+		for _, decl := range file.Decls {
+			g, ok := decl.(*ast.GenDecl)
+			if !ok || g.Tok != token.CONST {
+				continue
+			}
+			for _, spec := range g.Specs {
+				v := spec.(*ast.ValueSpec)
+				for i, name := range v.Names {
+					if len(v.Names) == len(v.Values) {
+						consts[pkg][name.Name] = pkgConst{v.Values[i], s}
+					}
+				}
+			}
+		}
+	}
+	return consts, nil
+}
+
+// packageName is the package clause of a Go source file, or "" when it has
+// none that parses.
+func packageName(src []byte) string {
+	file, err := parser.ParseFile(token.NewFileSet(), "", src, parser.PackageClauseOnly)
+	if err != nil {
+		return ""
+	}
+	return file.Name.Name
 }

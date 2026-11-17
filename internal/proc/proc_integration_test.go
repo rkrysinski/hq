@@ -118,12 +118,12 @@ func TestForegroundPassesATerminationRequestOnToTheProgram(t *testing.T) {
 	}
 }
 
-// detachedProgram waits for the file "$1.go", which the test creates only
-// after Detach has returned, then writes its session to "$1". When the file
+// detachedProgram waits for the file "$1.returned", which the test creates
+// only after Detach has returned, then writes its session to "$1". When the file
 // never comes (a Detach that waits for its program), it gives up after
 // about 10 s and writes "waited" instead, so the test fails, not hangs.
 const detachedProgram = `i=0
-while [ ! -e "$1.go" ]; do
+while [ ! -e "$1.returned" ]; do
 	i=$((i + 1))
 	if [ "$i" -gt 200 ]; then echo waited > "$1.tmp"; mv "$1.tmp" "$1"; exit 0; fi
 	sleep 0.05
@@ -138,7 +138,7 @@ func TestDetachReturnsAtOnceAndTheProgramRunsOn(t *testing.T) {
 	if err := (Exec{}).Detach("sh", "-c", detachedProgram, "sh", done); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(done+".go", nil, 0o644); err != nil {
+	if err := os.WriteFile(done+".returned", nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	var data []byte
