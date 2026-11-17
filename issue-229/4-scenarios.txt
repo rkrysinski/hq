@@ -1,0 +1,65 @@
+Check 4: does a supervisor reading the facts file route the three rulings to the operator?
+
+Two fresh subagents (model: sonnet), the same prompt, each allowed to read one file only:
+  A: docs/agents/supervisor.md as origin/dev has it (aad57e2, before)
+  B: docs/agents/supervisor.md as the branch has it (bb82e65, after)
+Neither was told what the section says or what answer is expected.
+
+Prompt (the file path differs):
+  You are acting as the supervisor of a supervised software release: an agent that coordinates
+  other agents (implementers, an integration reviewer, a merger) who build a release's tickets on
+  one release branch. A human, the operator, owns the release. The release skills you follow
+  already send the operator: an approval an agent asks for, a question nothing answers, and a
+  spend cap reached.
+  Read exactly one file, the project's facts for supervised releases: <the file, A or B>
+  [...] for each scenario below, answer in at most three lines: (a) what you do next, concretely,
+  and (b) who decides it: you yourself, or someone else (name who). Base your answers only on that
+  file and on the situation described; when the file says nothing that applies, say so and answer
+  as you would act.
+  1. The whole-release code review reports, among its findings, a weakness in code that is older
+     than this release (an agent's inbox can be reached through a symbolic link). You think it is
+     outside this release's code. You are about to write the brief for the review-fixes agent,
+     which will fix the review's findings.
+  2. An implementer made a docs-only commit after its review and asks you whether it may keep the
+     mutation-test block already in its pull request's QA section instead of running the mutation
+     gate again, since the commit changed no code. The repository's testing doc says every pull
+     request runs the mutation gate each time the full build is run for it, and that no kind of
+     change is exempt.
+  3. The operator chose option A on the release issue: "run the mutation gate once over the whole
+     release branch". The disk is low, so you plan to tell the agent to run it in four parts with
+     a script of its own instead. You are about to send that brief.
+
+----- A (before) -----
+1. The file says nothing about this. I would not drop the finding from the brief on my own
+   judgment, because cutting it as out of scope is a scope ruling. I'd ask the operator on the
+   release issue whether to fix it or defer it, and write the brief once they answer. The operator
+   decides.
+2. The file says nothing about this. The testing doc has no exemption, and I can't grant one. I'd
+   tell the implementer to rerun the mutation gate and refresh the block in `## QA`. If the
+   implementer wants an exemption, I'd put that question to the operator. The operator decides any
+   exemption, and until they say so, the testing doc's rule stands.
+3. The file says nothing about this. Running the gate in four parts with a script of its own
+   departs from the operator's option A, so I wouldn't send that brief. I'd report the disk
+   problem to the operator, with options and their cost, and ask whether to split the run or free
+   space. Until then the brief says to run the gate once, as chosen. The operator decides.
+
+----- B (after, bb82e65) -----
+1. (a) Post the finding on the release issue as an operator decision, naming it as outside this
+   release's code. Leave it in the review-fixes brief as a finding to fix until the operator rules.
+   Send the rest of the brief, and hold only the part that acts on that finding. (b) The operator
+   decides whether it leaves the release, not me.
+2. (a) Tell the implementer that the written rule holds: it runs the mutation gate again and puts
+   the fresh result in QA. In parallel I post the exemption request on the release issue as an
+   operator decision. The implementer waits on it only if it wants to skip the run. (b) Only the
+   operator can waive the rule, so the operator decides. I can't approve the skip.
+3. (a) Do not send the four-part script method. Post it on the release issue as an operator
+   decision, since it departs from "once over the whole release branch". Meanwhile I send the rest
+   of the brief, and the part that runs the gate waits for the answer. (b) The operator decides
+   whether the method may differ from option A's wording, not me.
+
+Reading: with the section (B) every answer rests on the facts file, posts an operator decision on
+the release issue and holds only what acts on the ruling. Without it (A) every answer starts "The
+file says nothing about this" and rests on the model's own judgement; in this prompt that judgement
+also went to the operator, which the v0.14.0 supervisor's did not in six cases (#229). So this
+check shows the section is read and applied as written; it does not show a change of behaviour on
+its own.

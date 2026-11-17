@@ -1,0 +1,24 @@
+on bb82e6524fc873887a2abdc33263e8a993d93d5d
+
+# The release skills' check of the project's files: required sections, no marker, no placeholder
+## Agent policy        present
+## Preflight           present
+Cap per release, USD   present
+Cap per agent, USD     present
+
+$ grep -n "<!-- to confirm -->$" docs/agents/supervisor.md docs/agents/release-qa.md docs/agents/integration-review.md
+(exit 1: no marker)
+
+$ grep -n "<[^>]*>" docs/agents/supervisor.md docs/agents/release-qa.md docs/agents/integration-review.md
+(exit 1: no placeholder)
+
+# The new section is not the '## Operator' section the release skills skip
+$ grep -nx "## Operator" docs/agents/supervisor.md
+(exit 1: no such heading)
+
+# No em dash
+$ grep -n "—" docs/agents/supervisor.md
+(exit 1: none)
+
+$ go run ./tools/testgate private docs/agents/supervisor.md
+private: 11 patterns, 0 matching lines

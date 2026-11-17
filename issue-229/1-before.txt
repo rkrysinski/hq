@@ -1,0 +1,9 @@
+$ grep -n "^## " docs/agents/supervisor.md
+5:## Agent policy
+16:## Environment
+24:## Preflight
+
+$ grep -n -i "rules on\|ruling\|Operator decision" docs/agents/supervisor.md
+(exit 1)
+
+on aad57e2165bd50685f596193a27b260e2cf94d9d (origin/dev)
