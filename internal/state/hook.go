@@ -585,12 +585,15 @@ const inTmux = "hq"
 // Settings is the --settings hq gives Claude: the agent's identity and the
 // hook script as environment, and the hook set that reports its state (ADR
 // 0009) and sends notifications with the platform's sequence (ADR 0010).
+// It turns off Claude's suggested next prompt, which would wait in the
+// prompt box where nobody watching through hq sees it (#230).
 func Settings(name, id, notify string) string {
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
 	enc.SetEscapeHTML(false) // the script's redirections stay readable
 	_ = enc.Encode(map[string]any{
-		"env": map[string]string{"HQ_AGENT": name, "HQ_ID": id, "TMUX": inTmux, hookEnv: hookScript},
+		"promptSuggestionEnabled": false,
+		"env":                     map[string]string{"HQ_AGENT": name, "HQ_ID": id, "TMUX": inTmux, hookEnv: hookScript},
 		"hooks": map[string][]hookMatcher{
 			"UserPromptSubmit": {{Hooks: []hookCommand{hook("prompt", "")}}},
 			"PermissionRequest": {
