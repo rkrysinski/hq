@@ -577,7 +577,21 @@ func runTool(ctx context.Context, src, dir, config, diffRef string, env []string
 		return nil, fmt.Errorf("go-gremlins wrote no report: %v\n%s", err, out)
 	}
 	defer f.Close()
-	return parseGremlinsReport(f)
+	ms, err := parseGremlinsReport(f)
+	if err != nil {
+		return nil, err
+	}
+	// The tool counts every failing run of the unit tests as a kill, also
+	// one that fails for the machine (a full disk), not for its mutant. So
+	// the unit tests run once more without a mutant, uncached, with the
+	// run's own build cache and temporary directory: if they fail, no mutant
+	// is judged.
+	fmt.Fprintln(progress, "mutation: running the unit tests once more, without a mutant")
+	if out, err := command(ctx, src, env, "go", "test", "-count=1", "./...").CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("the unit tests fail without a mutant after the mutants ran: "+
+			"the machine failed them, not a mutant, so no mutant is judged: %v\n%s", err, out)
+	}
+	return ms, nil
 }
 
 // renameSources are the deleted files that git, in nameStatus (git diff

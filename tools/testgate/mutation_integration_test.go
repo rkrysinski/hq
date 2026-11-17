@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -69,10 +70,11 @@ func (r *mutationRepo) change() {
 
 // Each real run of the tool installs it with an empty cache and starts as
 // many workers as there are cores, which loads the machine while the other
-// packages' integration tests run: so only two tests of this file run it,
-// this one and the interrupted run, and six tests of runs in parts add
-// seven runs (mutation_parts_integration_test.go). The passing run and a change
-// without mutants are proven by the unit tests of mutationReport.
+// packages' integration tests run: so only three tests of this file run it
+// (the next one, the machine that fails and the interrupted run), and six
+// tests of runs in parts add seven runs (mutation_parts_integration_test.go).
+// The passing run and a change without mutants are proven by the unit tests
+// of mutationReport.
 
 // isolated points the temporary directory and the shared build cache of
 // the test at empty directories of its own and returns them.
@@ -128,6 +130,31 @@ func TestMutationJudgesTheChangedLinesWithTheWholeUnitSuite(t *testing.T) {
 	}
 	if !failed {
 		t.Error("an alive mutant passes")
+	}
+	assertEmpty(t, "the temporary directory", tmp)
+	assertEmpty(t, "the shared build cache", cache)
+}
+
+// A unit test that passes in the tool's first run and fails in every run
+// after it, mutant or not, as when the disk fills during a run: the run
+// ends with an error, and no mutant is judged.
+func TestMutationEndsWhenTheMachineFailsTheTests(t *testing.T) {
+	r := newMutationRepo(t)
+	r.change()
+	full := filepath.Join(t.TempDir(), "full")
+	write(t, r.dir, "machine/machine_test.go", "package machine\n\nimport (\n\t\"os\"\n\t\"testing\"\n)\n\n"+
+		"func TestDisk(t *testing.T) {\n"+
+		"\tif _, err := os.Stat("+strconv.Quote(full)+"); err == nil {\n"+
+		"\t\tt.Fatal(\"no space left on device (simulated)\")\n\t}\n"+
+		"\tif err := os.WriteFile("+strconv.Quote(full)+", nil, 0o644); err != nil {\n\t\tt.Fatal(err)\n\t}\n}\n")
+	tmp, cache := isolated(t)
+	lines, failed, err := runMutationIn(t, r.dir, "main")
+	if err == nil || !strings.Contains(err.Error(), "the unit tests fail without a mutant") ||
+		!strings.Contains(err.Error(), "no space left on device (simulated)") {
+		t.Errorf("err %v; want one saying the unit tests fail without a mutant, with their output", err)
+	}
+	if failed || !reflect.DeepEqual(lines, []string{""}) {
+		t.Errorf("printed %q, failed %v; want nothing", lines, failed)
 	}
 	assertEmpty(t, "the temporary directory", tmp)
 	assertEmpty(t, "the shared build cache", cache)
