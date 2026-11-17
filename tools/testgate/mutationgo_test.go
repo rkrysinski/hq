@@ -54,11 +54,11 @@ func TestRerunArgs(t *testing.T) {
 func TestRerunDeadlineEndsAMarginBeforeTheMutantsTimeLimit(t *testing.T) {
 	start := time.Date(2026, 11, 17, 15, 0, 0, 0, time.UTC)
 	got, ok := rerunDeadline([]string{"test", "-timeout", "32s", "-failfast", "./..."}, start)
-	// The tool gives go test its limit of 30 s plus 2 s.
-	if want := start.Add(29 * time.Second); !ok || !got.Equal(want) {
+	// The tool gives go test its limit of 30 s plus 2 s; the margin is 2 s.
+	if want := start.Add(28 * time.Second); !ok || !got.Equal(want) {
 		t.Errorf("got %v, %v; want %v", got, ok, want)
 	}
-	if got, ok := rerunDeadline([]string{"-timeout", "3s"}, start); !ok || !got.Equal(start) {
+	if got, ok := rerunDeadline([]string{"-timeout", "4s"}, start); !ok || !got.Equal(start) {
 		t.Errorf("-timeout first: got %v, %v; want %v", got, ok, start)
 	}
 	for _, args := range [][]string{

@@ -19,7 +19,11 @@ import (
 )
 
 // The mutation tool: go-gremlins, pinned here and nowhere else, so every
-// agent runs the same one and go.mod names no tool (#204).
+// agent runs the same one and go.mod names no tool (#204). The run's go
+// (mutationgo.go) rests on two of this version's internals: only a mutant's
+// go test has -failfast (isMutantRun), and its -timeout is the mutant's time
+// limit plus 2 s (gremlinsTimeoutSlack). A new version is checked against
+// both.
 const (
 	gremlinsPackage = "github.com/go-gremlins/gremlins/cmd/gremlins"
 	gremlinsVersion = "v0.6.0"
@@ -590,7 +594,8 @@ func runTool(ctx context.Context, src, dir, config, diffRef string, env []string
 
 // mutationGoEnv is env for the tool with the go of mutationGo first in its
 // PATH, the gate's own binary linked as go in a directory of dir, and the
-// directory of dir where that go leaves its records (machineFailed).
+// directory of dir where that go tells the gate the machine failed, ready:
+// its file ok and its directory records (tellMachineFailed, machineFailed).
 func mutationGoEnv(env []string, src, dir string) (toolEnv []string, machine string, err error) {
 	self, err := os.Executable()
 	if err != nil {
@@ -601,10 +606,13 @@ func mutationGoEnv(env []string, src, dir string) (toolEnv []string, machine str
 		return nil, "", err
 	}
 	bin, machine := filepath.Join(dir, "mutation-go"), filepath.Join(dir, "machine")
-	for _, d := range []string{bin, machine} {
+	for _, d := range []string{bin, machine, filepath.Join(machine, "records")} {
 		if err := os.Mkdir(d, 0o755); err != nil {
 			return nil, "", err
 		}
+	}
+	if err := os.WriteFile(filepath.Join(machine, "ok"), nil, 0o644); err != nil {
+		return nil, "", err
 	}
 	if err := os.Symlink(self, filepath.Join(bin, "go")); err != nil {
 		return nil, "", err
@@ -620,20 +628,28 @@ func mutationGoEnv(env []string, src, dir string) (toolEnv []string, machine str
 }
 
 // machineFailed is the error of a run in which the tests that failed with a
-// mutant failed without it too (mutationGo left a record of it in machine),
-// nil when none did.
+// mutant failed without it too (mutationGo told so in machine: it removed
+// machine/ok and left a record in machine/records when it could), nil when
+// none did.
 func machineFailed(machine string) error {
-	records, err := filepath.Glob(filepath.Join(machine, "machine-*"))
-	if err != nil || len(records) == 0 {
-		return err
-	}
-	first, err := os.ReadFile(records[0])
+	records, err := filepath.Glob(filepath.Join(machine, "records", "machine-*"))
 	if err != nil {
 		return err
 	}
-	return fmt.Errorf("the unit tests that failed with a mutant fail without it too, after %d of the mutants' runs: "+
-		"the machine or a test that fails now and then failed them, not the mutant, so no mutant is judged; the first:\n%s",
-		len(records), first)
+	_, okErr := os.Stat(filepath.Join(machine, "ok"))
+	if okErr == nil && len(records) == 0 {
+		return nil
+	}
+	const failed = "the unit tests that failed with a mutant fail without it too"
+	const cause = "the machine or a test that fails now and then failed them, not the mutant, so no mutant is judged"
+	if len(records) == 0 {
+		return fmt.Errorf("%s: %s; no record of it could be written (is the disk full?)", failed, cause)
+	}
+	one, err := os.ReadFile(records[0])
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("%s, in %d of the mutants' runs: %s; one of them:\n%s", failed, len(records), cause, one)
 }
 
 // renameSources are the deleted files that git, in nameStatus (git diff

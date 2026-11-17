@@ -23,17 +23,23 @@ import (
 const (
 	envRealGo  = "HQ_MUTATION_GO"      // the real go
 	envSource  = "HQ_MUTATION_SRC"     // the staged tree, without a mutant
-	envMachine = "HQ_MUTATION_MACHINE" // the directory of the records of runs the machine failed
+	envMachine = "HQ_MUTATION_MACHINE" // the directory where this go tells the gate the machine failed (tellMachineFailed)
 )
 
 // gremlinsTimeoutSlack is what the tool adds to a mutant's time limit in the
-// -timeout it gives go test, so that its own limit ends the run first.
+// -timeout it gives go test, so that its own limit ends the run first: an
+// internal of go-gremlins v0.6.0, as -failfast is (isMutantRun).
 const gremlinsTimeoutSlack = 2 * time.Second
 
 // rerunMargin is how long before the end of the mutant's time limit the
 // run again without the mutant has to be over, so the tool still gets this
-// go's exit code in time.
-const rerunMargin = time.Second
+// go's exit code in time; rerunWaitDelay is how long a run again stopped at
+// that point may keep its output open (a test binary the stopped go left
+// running), within the margin.
+const (
+	rerunMargin    = 2 * time.Second
+	rerunWaitDelay = 500 * time.Millisecond
+)
 
 // isMutationGo tells whether a process started as arg0, with realGo the
 // value of envRealGo, is the go a mutation run put in front of the real one.
@@ -72,6 +78,7 @@ func mutationGo(args []string) int {
 	for _, again := range rerunArgs(out.String()) {
 		rerun := exec.CommandContext(ctx, realGo, again...)
 		rerun.Dir = os.Getenv(envSource)
+		rerun.WaitDelay = rerunWaitDelay
 		got, err := rerun.CombinedOutput()
 		if err == nil {
 			continue
@@ -79,13 +86,22 @@ func mutationGo(args []string) int {
 		if ctx.Err() != nil {
 			break // not over in time, nothing told: the mutant counts as the tool says
 		}
-		if f, err := os.CreateTemp(os.Getenv(envMachine), "machine-*"); err == nil {
-			fmt.Fprintf(f, "go %s: %v\n%s", strings.Join(again, " "), err, got)
-			f.Close()
-		}
+		tellMachineFailed(os.Getenv(envMachine), fmt.Sprintf("go %s: %v\n%s", strings.Join(again, " "), err, got))
 		break
 	}
 	return code
+}
+
+// tellMachineFailed tells the gate, through dir, that a run again without
+// the mutant failed: it leaves record in dir/records when it can, and
+// removes dir/ok, which needs no free disk, so a disk too full even for an
+// empty file still ends the run (machineFailed).
+func tellMachineFailed(dir, record string) {
+	if f, err := os.CreateTemp(filepath.Join(dir, "records"), "machine-*"); err == nil {
+		f.WriteString(record)
+		f.Close()
+	}
+	os.Remove(filepath.Join(dir, "ok"))
 }
 
 // exitCode is the exit code of a finished command: -1 for one ended by a
