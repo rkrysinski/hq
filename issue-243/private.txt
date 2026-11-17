@@ -1,0 +1,7 @@
+# on 9b85dde25a490ded929cd1a87f4164b55b5e1a58
+$ go run ./tools/testgate private
+private: 11 patterns, 0 matching lines
+exit 0
+$ go run ./tools/testgate private issue-243/   # the evidence, before it was published
+private: 11 patterns, 0 matching lines
+exit 0

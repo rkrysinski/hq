@@ -1,0 +1,12 @@
+# on 9b85dde25a490ded929cd1a87f4164b55b5e1a58, against origin/dev 5c9bc2f8086b93968269d996b9e516359a613403
+$ git diff --stat origin/dev...HEAD
+ docs/agents/integration-review.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+$ git diff --word-diff --unified=0 origin/dev...HEAD
+diff --git a/docs/agents/integration-review.md b/docs/agents/integration-review.md
+index 03ec636..1b4645b 100644
+--- a/docs/agents/integration-review.md
++++ b/docs/agents/integration-review.md
+@@ -23 +23 @@ Files, keys, prompts, migrations or manifests more than one ticket may touch, an
+A surviving mutant is accepted only when no test can kill it (`docs/hq/testing.md`, *Mutation tests*, *What passes*, which also names the differences that are not equivalence), and a reason that only sounds harmless lets a change of behaviour through. So for every reason of equivalence in the pull request's `## QA` (`gh pr view [-<pr>-]{+PR+} --json [-body`),-]{+body` with PR its number),+} in every mutation block whatever its base, the reviewer tries to write the unit test that kills the mutant, in a worktree of its own that it never pushes: a test that passes on the original code and fails with the mutant put in by hand. The reason stands only when no input tells the mutant from the original. A test that tells them apart is a *block* finding, quoting the test: on the survivor's line when the pull request's diff holds it, in the review's body when it does not. The pull request's implementer adds the test before the merge.

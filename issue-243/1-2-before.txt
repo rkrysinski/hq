@@ -1,0 +1,7 @@
+# before, on 5c9bc2f8086b93968269d996b9e516359a613403 (origin/dev)
+$ grep -n '<[^>!]*>' docs/agents/supervisor.md docs/agents/release-qa.md docs/agents/integration-review.md; echo "exit $?"
+docs/agents/integration-review.md:23:A surviving mutant is accepted only when no test can kill it (`docs/hq/testing.md`, *Mutation tests*, *What passes*, which also names the differences that are not equivalence), and a reason that only sounds harmless lets a change of behaviour through. So for every reason of equivalence in the pull request's `## QA` (`gh pr view <pr> --json body`), in every mutation block whatever its base, the reviewer tries to write the unit test that kills the mutant, in a worktree of its own that it never pushes: a test that passes on the original code and fails with the mutant put in by hand. The reason stands only when no input tells the mutant from the original. A test that tells them apart is a *block* finding, quoting the test: on the survivor's line when the pull request's diff holds it, in the review's body when it does not. The pull request's implementer adds the test before the merge.
+exit 0
+
+$ grep -n '<!-- to confirm -->$' docs/agents/supervisor.md docs/agents/release-qa.md docs/agents/integration-review.md; echo "exit $?"
+exit 1
