@@ -5,11 +5,14 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 // The runs in parts below run the tool, as two tests of
@@ -77,39 +80,80 @@ func TestMutationInPartsJudgesAsTheRunOverTheWholeTree(t *testing.T) {
 	assertEmpty(t, "the shared build cache", cache)
 }
 
-func TestMutationInAFilePartRunsOnlyThatFile(t *testing.T) {
+func TestMutationInOnePackageRunsOnlyItsMutants(t *testing.T) {
 	r := newMutationRepo(t)
 	r.change()
-	write(t, r.dir, "lib/extra.go", "package lib\n\n// Triple triples x.\nfunc Triple(x int) int { return x * 3 }\n")
+	// lib/lib.go as it was moves to lib/half.go, a rename with no line
+	// changed, and Double goes to a new file
+	if err := os.Remove(filepath.Join(r.dir, "lib/lib.go")); err != nil {
+		t.Fatal(err)
+	}
+	write(t, r.dir, "lib/half.go", "package lib\n\n// Half halves x.\nfunc Half(x int) int { return x / 2 }\n")
+	write(t, r.dir, "lib/extra.go", "package lib\n\n// Double doubles x.\nfunc Double(x int) int { return x * 2 }\n")
 	tmp, cache := isolated(t)
-	lines, failed, err := runPartsIn(t, r.dir, "main", io.Discard, "lib/lib.go")
+	lines, failed, err := runPartsIn(t, r.dir, "main", io.Discard, "lib")
 	if err != nil {
 		t.Fatal(err)
 	}
 	head := r.git(r.dir, "rev-parse", "HEAD")
 	want := []string{
-		// the alive mutant of cmd/tool is not run, and lib/extra.go of the
-		// same package is in no part as well
+		// the alive mutant of cmd/tool is not run, and none of the renamed
+		// file's lines, which the run over the whole tree does not change
 		"no part    cmd/tool/main.go",
-		"no part    lib/extra.go",
-		"mutation: 1 killed, 0 alive, 0 timed out, 0 not covered, 2 changed files in no part against main on " +
+		"mutation: 1 killed, 0 alive, 0 timed out, 0 not covered, 1 changed file in no part against main on " +
 			head + " with uncommitted changes",
 	}
 	if !reflect.DeepEqual(lines, want) {
 		t.Errorf("got\n%s\nwant\n%s", strings.Join(lines, "\n"), strings.Join(want, "\n"))
 	}
 	if failed {
-		t.Error("the run fails on files in no part")
+		t.Error("the run fails on a file in no part")
 	}
 	assertEmpty(t, "the temporary directory", tmp)
 	assertEmpty(t, "the shared build cache", cache)
 }
 
-func TestMutationInPartsThatChangeNothing(t *testing.T) {
+func TestMutationInAFilePartRunsOnlyThatFile(t *testing.T) {
+	r := newMutationRepo(t)
+	r.change()
+	write(t, r.dir, "cmd/tool/other.go", "package main\n\n// small tells whether n is small.\nfunc small(n int) bool { return n < 5 }\n")
+	write(t, r.dir, "cmd/tool/other_test.go", "package main\n\nimport \"testing\"\n\n"+
+		"func TestSmall(t *testing.T) {\n\tif !small(1) || small(10) {\n\t\tt.Fatal(\"small\")\n\t}\n}\n")
+	tmp, cache := isolated(t)
+	lines, failed, err := runPartsIn(t, r.dir, "main", io.Discard, "cmd/tool/other.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	head := r.git(r.dir, "rev-parse", "HEAD")
+	want := []string{
+		"alive      cmd/tool/other.go:4:35 conditionals boundary",
+		// main.go of the same package, with its alive mutant, and lib are in no part
+		"no part    cmd/tool/main.go",
+		"no part    lib/lib.go",
+		"mutation: 1 killed, 1 alive, 0 timed out, 0 not covered, 2 changed files in no part against main on " +
+			head + " with uncommitted changes",
+	}
+	if !reflect.DeepEqual(lines, want) {
+		t.Errorf("got\n%s\nwant\n%s", strings.Join(lines, "\n"), strings.Join(want, "\n"))
+	}
+	if !failed {
+		t.Error("an alive mutant of the part passes")
+	}
+	assertEmpty(t, "the temporary directory", tmp)
+	assertEmpty(t, "the shared build cache", cache)
+}
+
+func TestMutationInPartsRunsNoToolWithoutAPartToRun(t *testing.T) {
 	r := newMutationRepo(t)
 	r.change()
 	tmp, cache := isolated(t)
-	// user holds only a test; cmd/tool/main.go stays in no part
+	// A part that does not exist: refused before lib runs.
+	if _, _, err := runPartsIn(t, r.dir, "main", io.Discard, "lib", "cmd/nothing"); err == nil ||
+		err.Error() != "the part cmd/nothing does not exist" {
+		t.Errorf("err %v; want the missing part named", err)
+	}
+	// user holds only a test, lib/lib_test.go is one: no part changes a
+	// production file, and cmd/tool/main.go and lib/lib.go are in no part.
 	lines, failed, err := runPartsIn(t, r.dir, "main", io.Discard, "user", "lib/lib_test.go")
 	head := r.git(r.dir, "rev-parse", "HEAD")
 	want := []string{"no part    cmd/tool/main.go", "no part    lib/lib.go",
@@ -117,7 +161,7 @@ func TestMutationInPartsThatChangeNothing(t *testing.T) {
 	if err != nil || failed || !reflect.DeepEqual(lines, want) {
 		t.Errorf("got %q, failed %v, err %v\nwant %q", lines, failed, err, want)
 	}
-	assertEmpty(t, "the temporary directory", tmp) // no part ran the tool
+	assertEmpty(t, "the temporary directory", tmp) // nothing staged, no tool run
 	assertEmpty(t, "the shared build cache", cache)
 }
 
@@ -137,13 +181,39 @@ func TestMutationInPartsEndsWithAPartThatFails(t *testing.T) {
 	assertEmpty(t, "the shared build cache", cache)
 }
 
-func TestMutationRefusesAPartBeforeRunningAny(t *testing.T) {
+func TestMutationInPartsInterruptedLeavesNothingBehind(t *testing.T) {
 	r := newMutationRepo(t)
+	// A slow unit suite, so the tool is still running when the run is cancelled.
+	write(t, r.dir, "lib/slow_test.go", "package lib\n\nimport (\n\t\"testing\"\n\t\"time\"\n)\n\n"+
+		"func TestSlow(t *testing.T) { time.Sleep(30 * time.Second) }\n")
 	r.change()
 	tmp, cache := isolated(t)
-	_, _, err := runPartsIn(t, r.dir, "main", io.Discard, "lib", "cmd/nothing")
-	if err == nil || err.Error() != "the part cmd/nothing does not exist" {
-		t.Errorf("err %v; want the missing part named", err)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		_, err := runMutationParts(ctx, r.dir, "main", []string{"user", "lib"}, io.Discard, io.Discard)
+		done <- err
+	}()
+	deadline := time.Now().Add(time.Minute)
+	for {
+		if dirs, _ := filepath.Glob(filepath.Join(tmp, "hq-mutation-*", "part-*", "cache")); len(dirs) > 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the part lib did not start within a minute")
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	time.Sleep(time.Second) // the tool's first run of the tests is under way
+	cancel()
+	select {
+	case err := <-done:
+		if !errors.Is(err, errInterrupted) {
+			t.Errorf("err %v, want %v", err, errInterrupted)
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("the run did not stop within 20 s of being cancelled")
 	}
 	assertEmpty(t, "the temporary directory", tmp)
 	assertEmpty(t, "the shared build cache", cache)

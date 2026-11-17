@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -118,7 +119,7 @@ func TestTheChangedSourcesInNoPartAreListedInPathOrder(t *testing.T) {
 		p    part
 		want bool
 	}{{parts[0], true}, {parts[1], true}, {parts[2], false}, {part{"c", []string{"c/c_test.go"}}, false}} {
-		if got := c.p.changes(sources); got != c.want {
+		if got := c.p.coversAny(sources); got != c.want {
 			t.Errorf("part %q changes a source: %v, want %v", c.p.path, got, c.want)
 		}
 	}
@@ -170,5 +171,24 @@ func TestPartsReportWithoutMutantsStillCountsTheFilesInNoPart(t *testing.T) {
 		if err != nil || failed || !reflect.DeepEqual(lines, want) {
 			t.Errorf("%v: got %q, failed %v, err %v\nwant %q", ms, lines, failed, err, want)
 		}
+	}
+}
+
+func TestMutationArgsAreTheBaseAndThePaths(t *testing.T) {
+	for _, c := range []struct {
+		args  []string
+		base  string
+		paths []string
+	}{
+		{[]string{"origin/dev"}, "origin/dev", nil},
+		{[]string{"origin/dev", "internal/state", "internal/cli/cursor.go"}, "origin/dev", []string{"internal/state", "internal/cli/cursor.go"}},
+	} {
+		base, paths, err := mutationArgs(c.args)
+		if err != nil || base != c.base || !slices.Equal(paths, c.paths) {
+			t.Errorf("%q: base %q, paths %q, err %v; want %q, %q", c.args, base, paths, err, c.base, c.paths)
+		}
+	}
+	if _, _, err := mutationArgs(nil); err == nil || !strings.Contains(err.Error(), "needs the base") {
+		t.Errorf("no base: err %v, want one asking for the base", err)
 	}
 }

@@ -107,7 +107,7 @@ func main() {
 		fmt.Println(summary)
 		problems = p
 	case "prepush":
-		if len(os.Args) < 3 {
+		if len(os.Args) != 3 {
 			fmt.Fprintln(os.Stderr, usage)
 			os.Exit(2)
 		}
@@ -161,13 +161,14 @@ func main() {
 			problems = append(problems, h.String())
 		}
 	case "mutation":
-		if len(os.Args) != 3 {
-			fmt.Fprintln(os.Stderr, "testgate: mutation needs the base the pull request goes into, for example: go run ./tools/testgate mutation origin/dev")
+		base, paths, err := mutationArgs(os.Args[2:])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "testgate:", err)
 			fmt.Fprintln(os.Stderr, usage)
 			os.Exit(2)
 		}
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		failed, err := runMutationParts(ctx, ".", os.Args[2], os.Args[3:], os.Stdout, os.Stderr)
+		failed, err := runMutationParts(ctx, ".", base, paths, os.Stdout, os.Stderr)
 		stop()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate: mutation:", err)

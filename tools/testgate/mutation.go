@@ -156,26 +156,22 @@ func report(ms []mutant, base, head string, noPart []string, parts bool) (lines 
 	for _, s := range shown {
 		lines = append(lines, fmt.Sprintf("%-10s %s:%d:%d %s", s.verdict, s.file, s.line, s.col, kindName(s.kind)))
 	}
-	inNoPart := ""
+	noPartCount := ""
 	if parts {
 		for _, f := range noPart {
 			lines = append(lines, fmt.Sprintf("%-10s %s", "no part", f))
 		}
-		inNoPart = fmt.Sprintf(", %d changed files in no part", len(noPart))
+		noPartCount = fmt.Sprintf(", %d changed files in no part", len(noPart))
 		if len(noPart) == 1 {
-			inNoPart = ", 1 changed file in no part"
+			noPartCount = ", 1 changed file in no part"
 		}
 	}
 	if len(counts) == 0 {
-		return append(lines, fmt.Sprintf("mutation: no mutants in the lines changed%s against %s on %s", inNoPart, base, head)), false, nil
+		return append(lines, fmt.Sprintf("mutation: no mutants in the lines changed%s against %s on %s", noPartCount, base, head)), false, nil
 	}
 	lines = append(lines, fmt.Sprintf("mutation: %d killed, %d alive, %d timed out, %d not covered%s against %s on %s",
-		counts[verdictKilled], counts[verdictAlive], counts[verdictTimedOut], counts[verdictNotCovered], inNoPart, base, head))
+		counts[verdictKilled], counts[verdictAlive], counts[verdictTimedOut], counts[verdictNotCovered], noPartCount, base, head))
 	return lines, len(shown) > 0, nil
-}
-
-func noMutantsLine(base, head string) string {
-	return fmt.Sprintf("mutation: no mutants in the lines changed against %s on %s", base, head)
 }
 
 // kindName is how a line names the tool's kind of mutation:
@@ -273,11 +269,11 @@ func resolveParts(top, dir string, paths, files []string) ([]part, error) {
 		if err != nil {
 			return nil, fmt.Errorf("the part %s: %w", p, err)
 		}
-		real, err := filepath.EvalSymlinks(abs)
+		resolved, err := filepath.EvalSymlinks(abs)
 		if err != nil {
 			return nil, fmt.Errorf("the part %s: %w", p, err)
 		}
-		rel, err := filepath.Rel(realTop, real)
+		rel, err := filepath.Rel(realTop, resolved)
 		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 			return nil, fmt.Errorf("the part %s lies outside the repository %s", p, top)
 		}
@@ -309,9 +305,13 @@ func resolveParts(top, dir string, paths, files []string) ([]part, error) {
 // order: the Go files, not tests, among the changed paths that are among
 // the repository's files, so not a deleted one.
 func changedSources(changed, files []string) []string {
+	exists := map[string]bool{}
+	for _, f := range files {
+		exists[f] = true
+	}
 	var sources []string
 	for _, f := range changed {
-		if strings.HasSuffix(f, ".go") && !strings.HasSuffix(f, "_test.go") && slices.Contains(files, f) {
+		if strings.HasSuffix(f, ".go") && !strings.HasSuffix(f, "_test.go") && exists[f] {
 			sources = append(sources, f)
 		}
 	}
@@ -330,10 +330,19 @@ func inNoPart(sources []string, parts []part) []string {
 	return none
 }
 
-// changes tells whether the part covers one of the sources: a part that
+// coversAny tells whether the part covers one of the sources: a part that
 // does not gets no run of the tool.
-func (p part) changes(sources []string) bool {
+func (p part) coversAny(sources []string) bool {
 	return slices.ContainsFunc(p.files, func(f string) bool { return slices.Contains(sources, f) })
+}
+
+// mutationArgs reads the mutation command's arguments: the base, then the
+// PATHs of the parts, if any.
+func mutationArgs(args []string) (base string, paths []string, err error) {
+	if len(args) == 0 {
+		return "", nil, errors.New("mutation needs the base the pull request goes into, for example: go run ./tools/testgate mutation origin/dev")
+	}
+	return args[0], args[1:], nil
 }
 
 // runMutation runs the mutants of the lines the tree of repo changes against
@@ -380,18 +389,19 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 	if err != nil {
 		return false, err
 	}
-	print := func(lines []string) {
+	printLines := func(lines []string) {
 		for _, l := range lines {
 			fmt.Fprintln(out, l)
 		}
 	}
 
-	var parts []part
+	var toRun []part
 	var noPart []string
 	if len(paths) == 0 {
 		if !hasMutableGo(changed) {
-			fmt.Fprintln(out, noMutantsLine(base, head))
-			return false, nil
+			lines, _, err := mutationReport(nil, base, head)
+			printLines(lines)
+			return false, err
 		}
 	} else {
 		files, err := repoFiles(top)
@@ -402,20 +412,23 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 		if err != nil {
 			return false, err
 		}
-		if parts, err = resolveParts(top, dir, paths, files); err != nil {
+		parts, err := resolveParts(top, dir, paths, files)
+		if err != nil {
 			return false, err
 		}
 		sources := changedSources(changed, files)
 		noPart = inNoPart(sources, parts)
-		if !slices.ContainsFunc(parts, func(p part) bool { return p.changes(sources) }) {
-			lines, _, err := partsReport(nil, noPart, base, head)
-			print(lines)
-			return false, err
-		}
-		for i := range parts {
-			if !parts[i].changes(sources) {
-				parts[i].files = nil // no run of the tool
+		for _, p := range parts {
+			if p.coversAny(sources) {
+				toRun = append(toRun, p)
+			} else {
+				fmt.Fprintf(progress, "mutation: the part %s changes no production file, nothing to run\n", p.path)
 			}
+		}
+		if len(toRun) == 0 {
+			lines, _, err := partsReport(nil, noPart, base, head)
+			printLines(lines)
+			return false, err
 		}
 	}
 
@@ -424,7 +437,7 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 		return false, err
 	}
 	defer os.RemoveAll(tmp)
-	ms, err := runGremlins(ctx, top, mergeBase, tmp, parts, progress)
+	ms, err := runGremlins(ctx, top, mergeBase, tmp, toRun, progress)
 	if ctx.Err() != nil {
 		return false, errInterrupted
 	}
@@ -440,7 +453,7 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 	if err != nil {
 		return false, err
 	}
-	print(lines)
+	printLines(lines)
 	return failed, nil
 }
 
@@ -480,10 +493,10 @@ func repoFiles(top string) ([]string, error) {
 
 // runGremlins stages the tree of top in tmp, installs the tool there and
 // runs it against mergeBase, and returns the mutants of its report. With
-// parts it runs the tool once for each part that has files, in their
-// order, each run in a directory of its own under tmp, which holds its
-// build cache and temporary files and is removed when the part ends; a
-// part sees only its own files changed (partCommit).
+// parts it runs the tool once for each part, in their order, each run in a
+// directory of its own under tmp, which holds its build cache and
+// temporary files and is removed before the next part starts; a part sees
+// only its own files changed (partCommit).
 func runGremlins(ctx context.Context, top, mergeBase, tmp string, parts []part, progress io.Writer) ([]mutant, error) {
 	env := mutationEnv(os.Environ(), tmp)
 	if err := os.Mkdir(filepath.Join(tmp, "tmp"), 0o755); err != nil {
@@ -512,10 +525,6 @@ func runGremlins(ctx context.Context, top, mergeBase, tmp string, parts []part, 
 	}
 	var ms []mutant
 	for i, p := range parts {
-		if len(p.files) == 0 {
-			fmt.Fprintf(progress, "mutation: %s changes no production file, nothing to run\n", p.path)
-			continue
-		}
 		fmt.Fprintf(progress, "mutation: part %d of %d, %s\n", i+1, len(parts), p.path)
 		dir := filepath.Join(tmp, fmt.Sprintf("part-%d", i+1))
 		partEnv := mutationEnv(os.Environ(), dir)
@@ -562,11 +571,14 @@ func runTool(ctx context.Context, src, dir, config, diffRef string, env []string
 }
 
 // partCommit makes the staging repository's HEAD a commit, on top of
-// mergeBase, that holds every staged file as it is in the working tree but
-// files as they are in mergeBase (absent when mergeBase has none), and
-// returns it: the tool, which mutates the lines changed against the commit
-// it is given, then sees only the part's files changed. The index it
-// builds the commit from is a copy, in dir.
+// mergeBase, that holds every staged file as it is in the working tree,
+// except the part's files and the files the tree deletes, which are as
+// they are in mergeBase (absent when mergeBase has none), and returns it:
+// the tool, which mutates the lines changed against the commit it is
+// given, then sees only the part's files changed. A deleted file is put
+// back so that git still finds a renamed file's source, and the part gets
+// a mutant only in its lines that changed, as the run over the whole tree
+// does. The index it builds the commit from is a copy, in dir.
 func partCommit(ctx context.Context, src, gitDir, dir, mergeBase string, files []string, env []string) (string, error) {
 	index := filepath.Join(dir, "index")
 	if err := copyEntry(filepath.Join(gitDir, "index"), index); err != nil {
@@ -575,14 +587,22 @@ func partCommit(ctx context.Context, src, gitDir, dir, mergeBase string, files [
 	env = append(slices.Clip(env), "GIT_INDEX_FILE="+index,
 		"GIT_AUTHOR_NAME=testgate", "GIT_AUTHOR_EMAIL=testgate@localhost",
 		"GIT_COMMITTER_NAME=testgate", "GIT_COMMITTER_EMAIL=testgate@localhost")
-	git := func(args ...string) (string, error) {
-		out, err := command(ctx, src, env, "git", args...).Output()
+	gitIn := func(stdin string, args ...string) (string, error) {
+		cmd := command(ctx, src, env, "git", args...)
+		cmd.Stdin = strings.NewReader(stdin)
+		out, err := cmd.Output()
 		if err != nil {
 			return "", fmt.Errorf("git %s: %v", args[0], err)
 		}
 		return strings.TrimSpace(string(out)), nil
 	}
-	if _, err := git(append([]string{"--literal-pathspecs", "reset", "-q", mergeBase, "--"}, files...)...); err != nil {
+	git := func(args ...string) (string, error) { return gitIn("", args...) }
+	deleted, err := git("diff", "-z", "--cached", "--name-only", "--no-renames", "--diff-filter=D", mergeBase)
+	if err != nil {
+		return "", err
+	}
+	reset := strings.Join(files, "\x00") + "\x00" + deleted
+	if _, err := gitIn(reset, "--literal-pathspecs", "reset", "-q", "--pathspec-from-file=-", "--pathspec-file-nul", mergeBase); err != nil {
 		return "", err
 	}
 	tree, err := git("write-tree")
