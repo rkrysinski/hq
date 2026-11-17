@@ -52,8 +52,10 @@ func isMutationGo(arg0, realGo string) bool {
 // what failed runs again in the staged tree, without the mutant, and has to
 // be over a margin before the mutant's time limit ends, so the tool's verdict
 // on a healthy machine stays what it was. If it fails there too, the mutant's
-// tests did not fail for the mutant, and a record of it is left for the gate,
-// which then judges no mutant; if it is not over in time, nothing is told.
+// tests did not fail for the mutant, and the gate is told by removing
+// machine/ok, with a record of it when one can be written
+// (tellMachineFailed); the gate then judges no mutant. If it is not over in
+// time, nothing is told.
 func mutationGo(args []string) int {
 	start := time.Now()
 	realGo := os.Getenv(envRealGo)

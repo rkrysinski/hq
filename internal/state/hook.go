@@ -8,7 +8,7 @@ import (
 
 // hookSource runs inside the sandbox on each lifecycle event, in Claude's
 // current directory, with the event payload on stdin, the event's kind in $1
-// and, on stop, dialog and input, the notification sequence in $2. It
+// and, on stop, dialog, input and idle, the notification sequence in $2. It
 // reports each event a rule reads as a file of its own in the main
 // repository's .git/hq/events/$HQ_ID (ev, ADR 0018): the branch checked out
 // there as a header line, then the payload, copied under another name and
@@ -41,8 +41,8 @@ import (
 // no dialog is open, so a dialog is reported once, when it opens, and
 // result (the form answered at the agent, ElicitationResult) only when it
 // closes a form (design §3.4, #100). On stop, dialog and input it then
-// prints the desktop notification for Claude to write to its terminal
-// (design §3.5).
+// prints the desktop notification for Claude to write to its terminal,
+// and so does idle, below (design §3.5).
 //
 // It also delivers the messages hq send left in the agent's inbox (ADR
 // 0012): it takes them out of the inbox by renaming them, only the files
@@ -121,9 +121,10 @@ import (
 //
 // On hold, the kind of a second hook on a question dialog's
 // PermissionRequest (AskUserQuestion), run beside the dialog's own, it
-// writes nothing and holds for hq's answer (hq answer, ADR 0013): once the
-// note is the dialog's report, of the same cksum as its own copy of the
-// payload (the dialog's hook may report it a moment later), it looks every
+// reports nothing and holds for hq's answer (hq answer, ADR 0013), writing
+// only its line in .asked (below): once the note is the dialog's report,
+// of the same cksum as its own copy of the payload (the dialog's hook may
+// report it a moment later), it looks every
 // 0.2 s for the answer hq leaves in the inbox, named for that report by
 // its cksum, takes it by renaming it and prints it, a decision hq wrote
 // whole, as its output. It ends with no output once the note is no longer
