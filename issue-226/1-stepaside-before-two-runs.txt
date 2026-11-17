@@ -1,0 +1,9 @@
+$ TMPDIR=<scratch>/before go test -count=1 -tags integration -run 'TestTheListStepsAsideOnlyForAnHqOfAnotherGeneration$' ./cmd/hq/   # on origin/dev aad57e2
+--- FAIL: TestTheListStepsAsideOnlyForAnHqOfAnotherGeneration (1.58s)
+    stepaside_integration_test.go:91: terminal: exit status 1 command too long
+FAIL
+FAIL	github.com/rkrysinski/hq/cmd/hq	1.588s
+FAIL
+$ ls <scratch>/before
+hq-fakeclaude-1235511789
+hq-fakeclaude-1876873083
