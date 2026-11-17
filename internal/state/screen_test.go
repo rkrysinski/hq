@@ -570,3 +570,30 @@ func TestTheReadersHoldOnABoxWithAPastePlaceholder(t *testing.T) {
 		}
 	}
 }
+
+// In the main view, the agents list below the footer, with its cursor
+// anywhere, leaves Claude's prompt box found, at every pane size and with
+// the notice line too: the agent's turn ended, it waits at its box
+// (#225). A subagent's view puts that subagent's box in its place, the
+// upper rule carrying the subagent's task: it tells nothing of the
+// agent's own turn, so none of the readers of that turn finds a box there.
+func TestTheAgentsListLeavesTheBoxAndASubagentsViewShowsNoneOfTheAgents(t *testing.T) {
+	for name, s := range agentsScreens(t) {
+		view := strings.HasPrefix(name, "screen-agents-view-")
+		if _, ok := promptBox(s); ok == view {
+			t.Errorf("%s: box found %v", name, ok)
+		}
+		if Idle(s) == view {
+			t.Errorf("%s: idle %v", name, !view)
+		}
+		if rest, _ := AtRest(s, ""); rest && view {
+			t.Errorf("%s: at rest", name)
+		}
+		if AtWork(s) {
+			t.Errorf("%s: at work", name)
+		}
+		if _, ended := EndedByUser(s); ended {
+			t.Errorf("%s: ended by the user", name)
+		}
+	}
+}

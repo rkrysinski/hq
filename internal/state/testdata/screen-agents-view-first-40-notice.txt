@@ -1,0 +1,30 @@
+
+ ▐▛███▛█   Claude Code v2.1.326
+▝▜██████▀  Haiku 5.5 · Claude Ultra
+ ▝▝   ▝▝   /tmp/probe-225
+
+▾ 1 komenda · ◐ ·
+ ▸◐Run 540-second for… ░░░░░░░░░░░
+                       ░░░░░░░░░
+
+
+
+
+
+
+✽ Skedaddling… (2m 18s)
+  ⎿  Tip: Use /btw to ask a side
+     question without interrupting
+     Claude
+
+────────── Run 540-second sleep loop B ─
+❯ Message @general-purpose…
+────────────────────────────────────────
+  ⚠ Transcript saving is off — CLAUDE…
+  ▐◕◡◕▌  Haiku 5.5 medium │ ctx ▕▊░░░…
+  enter to view · x to stop
+                           ◆ Tools ▾
+
+  ◯ main
+❯ ◯ general-purpose 2m 18s · ↓ 33.0k to…
+  ● general-purpose 2m 18s · ↓ 33.0k to…

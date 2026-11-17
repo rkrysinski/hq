@@ -1,0 +1,50 @@
+
+ ▐▛███▛█   Claude Code v2.1.326
+▝▜██████▀  Haiku 5.5 · Claude Ultra
+ ▝▝   ▝▝   /tmp/probe-225
+
+
+❯ Launch two general-purpose subagents in the background (run_in_background true), both at once in
+  one message. Tell each to run, in the foreground, the Bash command for i in $(seq 540); do sleep
+  1; done with a timeout of 600000 ms, and then reply done. Describe the first as "Run 540-second
+  sleep loop A" and the second as "Run 540-second sleep loop B". Do not wait for them: end your
+  turn right after launching them, with one short sentence.
+
+● 2 background agents launched (↓ to manage)
+   ├ Run 540-second sleep loop A
+   └ Run 540-second sleep loop B
+╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                        │
+│ Both sleep-loop agents are launched in the background and I'm not waiting on them.              │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Waiting for 2 background agents to finish
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Select model
+   Switch between Claude models. Your pick becomes the default for new sessions. For other or
+   older models, use --model.
+
+     1.  Default (recommended)  Opus 5.5 · Best for everyday, complex tasks
+     2.  Opus 5.5               For complex work and everyday tasks
+     3.  Fable 5.2              For your toughest challenges
+     4.  Sonnet 5.5             Most efficient for simpler tasks
+   ❯ 5.  Haiku 5.5 ✔            Fastest for quick answers
+     ▸   More models
+
+   ◐ Medium effort (default) ←/→ to adjust
+
+   Enter to set as default · s to use this session only · Esc to cancel
