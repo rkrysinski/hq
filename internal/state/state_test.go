@@ -166,7 +166,7 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	// that wrote each in its name (#196). Without the old files and with
 	// the notes the hook keeps for itself instead, 10,220 (#199). 10 KiB
 	// and 256 bytes since the question dialog's hook that first looks
-	// after its dialog closed ends at once (.asked): 10,343 (#209).
+	// after its dialog closed ends at once (.asked): 10,379 (#209).
 	if len(hookScript) > 10<<10+256 {
 		t.Errorf("hook script of %d bytes", len(hookScript))
 	}
