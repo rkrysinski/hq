@@ -6,13 +6,16 @@
 //	go run ./tools/testgate coverage FILE    # checks a coverage profile against the threshold
 //	go run ./tools/testgate private [PATH...] # no private details in tracked files (or PATHs)
 //	go run ./tools/testgate prepush REPO     # no private details in what a push sends (the pre-push hook)
+//	go run ./tools/testgate prepost          # no private details in what a gh command posts (Claude Code's hook)
 //	go run ./tools/testgate platform [ROOT]  # platform-specific names only in internal/platform
 //	go run ./tools/testgate mutation BASE    # mutation tests of the lines changed against BASE
 //
-// private and prepush read the pattern list from $HQ_PRIVATE_PATTERNS or,
-// without it, from the repository's .git/info/hq-private-patterns (see
-// private.go). Without a list private passes with a notice and prepush
-// refuses the push (#185).
+// private, prepush and prepost read the pattern list from
+// $HQ_PRIVATE_PATTERNS or, without it, from the repository's
+// .git/info/hq-private-patterns (see private.go). Without a list private
+// passes with a notice, prepush refuses the push (#185) and prepost a
+// command that posts a text (#231). prepost reads the PreToolUse hook's
+// input on stdin (prepost.go).
 //
 // mutation prints one line per mutant left alive or timed out and a last
 // line with the counts, and exits 1 when there is such a mutant (#204,
@@ -33,7 +36,7 @@ import (
 	"syscall"
 )
 
-const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | platform [ROOT] | mutation BASE"
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | mutation BASE"
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
@@ -112,6 +115,25 @@ func main() {
 		problems = p
 		if len(p) > 0 && p[0] != noList { // the summary says why a push without a list is refused
 			refused = "push refused: take the private details out of the commits that hold them (a later commit that removes one still pushes it), or fix the list"
+		}
+	case "prepost":
+		list, err := privateList(os.Getenv(PrivatePatternsEnv), gitCommonDir("."))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "testgate:", err, "- refused")
+			os.Exit(2)
+		}
+		home, _ := os.UserHomeDir()
+		summary, p, err := checkPost(list, os.Stdin, home)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "testgate: prepost:", err, "- refused")
+			os.Exit(2)
+		}
+		if summary != "" {
+			fmt.Println(summary)
+		}
+		problems = p
+		if len(p) > 0 && p[0] != noPostList { // the summary says why a command without a list is refused
+			refused = postRefused
 		}
 	case "platform":
 		root := "."
