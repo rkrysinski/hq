@@ -1,0 +1,3 @@
+$ go run ./tools/testgate mutation origin/dev
+mutation: no mutants in the lines changed against origin/dev on d773315baf8518e403c2345b8ada0a37f066ad99
+exit 0

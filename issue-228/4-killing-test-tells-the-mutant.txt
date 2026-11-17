@@ -1,0 +1,24 @@
+$ grep -n ">= stallBound" internal/cli/sendwait.go
+256:		if clock.lasted(key, origin, now) >= stallBound {
+
+# original code
+$ go test -count=1 -run TestSendWaitStallsWhenTheBoundHasHeldForExactly5s ./internal/cli
+ok  	github.com/rkrysinski/hq/internal/cli	0.002s
+exit 0
+
+# the mutant put in by hand: conditionals boundary, >= into > (v0.14.0: sendwait.go:251:35)
+$ git diff --unified=0 internal/cli/sendwait.go
+--- a/internal/cli/sendwait.go
++++ b/internal/cli/sendwait.go
+@@ -256 +256 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
+-		if clock.lasted(key, origin, now) >= stallBound {
++		if clock.lasted(key, origin, now) > stallBound {
+$ go test -count=1 -run TestSendWaitStallsWhenTheBoundHasHeldForExactly5s ./internal/cli
+--- FAIL: TestSendWaitStallsWhenTheBoundHasHeldForExactly5s (0.00s)
+    sendwait_test.go:488: stalled after 5.25s at its prompt, want 5s
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	0.002s
+FAIL
+exit 1
+
+$ git status --short   # the mutant taken out again

@@ -1,0 +1,2 @@
+$ go run ./tools/testgate private
+private: 11 patterns, 0 matching lines
