@@ -1,0 +1,20 @@
+Release QA v0.15.0, step 1: full build
+Candidate e309c8cf8070a604e4f96fd4c2ca13cb498782c9, run in the release worktree at the candidate.
+
+Disk space before the build:
+$ df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+overlay          20G  8.1G   11G  44% /
+
+$ scripts/check.sh   # in the release worktree at the candidate e309c8cf8070a604e4f96fd4c2ca13cb498782c9
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: ok   timebound
+check: ok   unit
+check: ok   integration
+check: ok   coverage
+check: ok   e2e
+check: all 9 steps passed on e309c8cf8070a604e4f96fd4c2ca13cb498782c9
+(exit status 0; started 2026-11-17T19:01:43Z, finished 2026-11-17T19:04:25Z)

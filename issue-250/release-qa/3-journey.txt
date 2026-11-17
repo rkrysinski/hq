@@ -1,0 +1,56 @@
+Release QA v0.15.0, step 3: one journey on the stubbed setup
+Candidate e309c8cf8070a604e4f96fd4c2ca13cb498782c9, run from the release worktree (shown below as <release worktree>).
+
+Setup, in the tester's shell in <release worktree>:
+$ export LOCAL_DEV_ID=release-qa
+$ scripts/local-dev.sh --stub native --version
+hq dev
+(exit status 0)
+$ tmux -L release-qa-term new-session -d -s rq-term -x 120 -y 30 -c "$PWD" "env PS1='$ ' LOCAL_DEV_ID=release-qa bash --norc --noprofile"
+(the terminal's shell starts in <release worktree> with a neutral prompt and LOCAL_DEV_ID=release-qa; its screen is cleared before each step, so each screenshot shows that step only)
+
+Each step below: the commands typed into the terminal's pane (tmux -L release-qa-term send-keys -t rq-term: "COMMAND" Enter) and the pane's text as it stood when
+scripts/qa-screenshot.sh -L release-qa-term rq-term: 3-journey-N.png rendered it. Before the ls of step 2 and the read of step 3 the tester waited until rq had answered.
+
+=== Step 1: new rq - the agent starts (3-journey-1.png)
+$ scripts/local-dev.sh --stub native new rq /tmp/hq-stub-release-qa/repo "say hi"
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started rq in repo (sandbox claude-repo); enter it with: hq go rq
+$
+
+=== Step 2: ls - it is listed, and done once it answered (3-journey-2.png)
+$ scripts/local-dev.sh --stub native ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+rq    repo  main    done   16s  Done: say hi
+$
+
+=== Step 3: send rq, then read rq - its next reply (3-journey-3.png)
+$ scripts/local-dev.sh --stub native send rq "say bye"
+delivered: typed into rq as its next prompt
+$ scripts/local-dev.sh --stub native read rq
+name      rq
+repo      repo  /tmp/hq-stub-release-qa/repo
+branch    main
+worktree  /tmp/hq-stub-release-qa/repo
+sandbox   claude-repo
+state     done 0s
+pending   0
+
+reply
+  Done: say bye
+$
+
+=== Step 4: kill rq -y, then ls - it is gone, ls lists no agent (3-journey-4.png)
+$ scripts/local-dev.sh --stub native kill rq -y
+killed rq; the sandbox stays
+$ scripts/local-dev.sh --stub native ls
+$
+
+=== Clean up, in the tester's shell in <release worktree>
+$ tmux -L release-qa-term kill-server
+(exit status 0)
+$ LOCAL_DEV_ID=release-qa scripts/local-dev.sh --kill-server
+tmux server hq-dev-release-qa ended
+stub environment /tmp/hq-stub-release-qa removed
+temporary directory /tmp/hq-dev-release-qa removed
+(exit status 0)
