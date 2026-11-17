@@ -23,13 +23,19 @@ func eventually(t *testing.T, what string, ok func() bool) {
 	}
 }
 
-// waitFor polls ok for up to 5 s.
+// waitBound is how long waitFor polls, at least: one poll every pollEvery.
+const (
+	waitBound = 5 * time.Second
+	pollEvery = 100 * time.Millisecond
+)
+
+// waitFor polls ok for up to waitBound.
 func waitFor(ok func() bool) bool {
-	for i := 0; i < 50; i++ {
+	for i := 0; i < int(waitBound/pollEvery); i++ {
 		if ok() {
 			return true
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(pollEvery)
 	}
 	return false
 }
@@ -103,9 +109,23 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 	if ws, _ := c.Windows(); ws[1].DeadAt.Before(started.Truncate(time.Second)) || ws[1].DeadAt.After(time.Now()) {
 		t.Fatalf("died at %v, started %v", ws[1].DeadAt, started)
 	}
-	out, _ := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p", "-t", id).Output()
-	if !strings.Contains(string(out), `a b|'q"|$HOME|;exit|`) {
-		t.Fatalf("arguments were not passed verbatim:\n%s", out)
+	// The output may reach the pane a moment after tmux learns how the pane
+	// ended (#211): wait for it. Past the bound, the pane's whole history and
+	// tmux's version tell output that came late from output that was lost.
+	want := `a b|'q"|$HOME|;exit|`
+	if !waitFor(func() bool {
+		out, _ := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p", "-t", id).Output()
+		return strings.Contains(string(out), want)
+	}) {
+		history, err := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p", "-S", "-", "-E", "-", "-t", id).CombinedOutput()
+		if err != nil {
+			history = append(history, "\n(capture-pane: "+err.Error()+")"...)
+		}
+		v, err := c.Version()
+		if err != nil {
+			v = "unknown (" + err.Error() + ")"
+		}
+		t.Fatalf("the arguments, passed verbatim, did not appear in the dead pane within %v: want %q\ntmux %s; the pane's whole history:\n%s", waitBound, want, v, history)
 	}
 	if err := c.SetOption(id, "ending", "1"); err != nil {
 		t.Fatal(err)
