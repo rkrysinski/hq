@@ -44,6 +44,10 @@ git config core.hooksPath scripts/git-hooks
 
 The list, which the owner gives, goes into the clone's `.git/info/hq-private-patterns` (`"$(git rev-parse --git-common-dir)/info/hq-private-patterns"`), or into `HQ_PRIVATE_PATTERNS`. A sandbox that mounts the host's checkout shares its `.git`, its configuration and that file, so the hook and the list outlive the sandbox. A clone without the setting runs no hook at all, and neither does a worktree whose checkout has no `scripts/git-hooks` (a branch from before the hook, `qa-artifacts`): nothing there says the push went out unchecked, so a sandbox with a clone of its own needs both put in again before its first push. The hook runs the gate with `go run`, so a machine that pushes needs Go.
 
+## Posting to GitHub
+
+A Bash command that a Claude Code session runs in hq to post a pull request, an issue or a comment through `gh` is checked first by the hook `scripts/claude-hooks/prepost`, which `.claude/settings.json` sets: against the same list, it refuses the command on a private detail or on a text it cannot see (`docs/hq/testing.md`, *Private details*). Nothing needs enabling; it needs the list and Go, and holds in the sessions started after it came in.
+
 ## Updating from the template
 
 `.copier-answers.yml` records the template's address as the alias `git+template:upstream`, so that the public repository never names it. Every machine that runs an update from the template (the host, and the sandbox the agents run in) maps the alias once, in its global git configuration, where Copier's own clone of the template reads it:

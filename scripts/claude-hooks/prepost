@@ -1,0 +1,22 @@
+#!/bin/sh
+# Claude Code's PreToolUse hook on Bash (.claude/settings.json): refuses a gh
+# command that would post a private detail to GitHub, or whose text cannot
+# be checked, before it runs (#231). Claude Code hands it the tool call as
+# JSON on stdin; exit 2 refuses the call and shows the agent what it prints
+# on stderr. Only a command that may post through gh starts the gate (go run
+# ./tools/testgate prepost of the checkout this script belongs to); every
+# other command passes at once. Without go, such a command is refused, as
+# the pre-push hook refuses a push: not checked, so not posted (see
+# docs/hq/testing.md, Private details).
+# The subcommands are those of postingSubcommands in tools/testgate/prepost.go.
+input=$(cat)
+sep='([[:space:]]|\\[nt]|\\\\)+'
+repo="((-R|--repo)(=|$sep)?[^[:space:]]+$sep)*"
+printf '%s' "$input" | grep -qE "(^|[^[:alnum:]_.-]|\\\\[nt])gh$sep((pr|issue|release)$sep$repo(create|new|edit|comment|review|merge|close)|api)"
+[ $? -eq 1 ] && exit 0 # no gh command; a grep that fails (2, 127) leaves the check to the gate
+cd "$(dirname "$0")/../.." || exit 2
+if ! command -v go >/dev/null 2>&1; then
+    echo "prepost: go is not installed, so this gh command cannot be checked for private details: refused" >&2
+    exit 2
+fi
+printf '%s' "$input" | go run ./tools/testgate prepost >&2 || exit 2
