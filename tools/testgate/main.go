@@ -10,7 +10,7 @@
 //	go run ./tools/testgate prepost          # no private details in what a gh command posts (Claude Code's hook)
 //	go run ./tools/testgate platform [ROOT]  # platform-specific names only in internal/platform
 //	go run ./tools/testgate timebound [ROOT] # no test bounds real elapsed time under 1s
-//	go run ./tools/testgate mutation BASE    # mutation tests of the lines changed against BASE
+//	go run ./tools/testgate mutation BASE [PATH...] # mutation tests of the lines changed against BASE, part by part
 //
 // private, prepush and prepost read the pattern list from
 // $HQ_PRIVATE_PATTERNS or, without it, from the repository's
@@ -21,7 +21,10 @@
 //
 // mutation prints one line per mutant left alive or timed out and a last
 // line with the counts, and exits 1 when there is such a mutant (#204,
-// mutation.go). Like every gate it exits 2 on an error of its own.
+// mutation.go). Each PATH, a package's directory or a Go file, is a part:
+// the parts run one after another, each with a build cache of its own, and
+// the changed production files no part covers get a line each (#233).
+// Like every gate it exits 2 on an error of its own.
 //
 // A test's level is its file's build constraint: none is unit, the
 // "integration" tag is integration, the "e2e" tag is end-to-end.
@@ -38,7 +41,7 @@ import (
 	"syscall"
 )
 
-const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE"
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]"
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
@@ -104,7 +107,7 @@ func main() {
 		fmt.Println(summary)
 		problems = p
 	case "prepush":
-		if len(os.Args) != 3 {
+		if len(os.Args) < 3 {
 			fmt.Fprintln(os.Stderr, usage)
 			os.Exit(2)
 		}
@@ -164,7 +167,7 @@ func main() {
 			os.Exit(2)
 		}
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		failed, err := runMutation(ctx, ".", os.Args[2], os.Stdout, os.Stderr)
+		failed, err := runMutationParts(ctx, ".", os.Args[2], os.Args[3:], os.Stdout, os.Stderr)
 		stop()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate: mutation:", err)
