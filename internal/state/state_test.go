@@ -164,8 +164,10 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	// about 9.6 KiB. The event files of ADR 0018 took it to 10,229 bytes
 	// (#193), while it writes the old files too, and 10,236 with the case
 	// that wrote each in its name (#196). Without the old files and with
-	// the notes the hook keeps for itself instead, 10,220 (#199).
-	if len(hookScript) > 10<<10 {
+	// the notes the hook keeps for itself instead, 10,220 (#199). 10 KiB
+	// and 256 bytes since the question dialog's hook that first looks
+	// after its dialog closed ends at once (.asked): 10,343 (#209).
+	if len(hookScript) > 10<<10+256 {
 		t.Errorf("hook script of %d bytes", len(hookScript))
 	}
 	for _, event := range []string{"PermissionRequest", "PostToolUse", "PostToolUseFailure"} {

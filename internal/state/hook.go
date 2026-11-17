@@ -23,8 +23,8 @@ import (
 // K=note in hookAwk: the event's kind, the turn's id, the tool, the MCP
 // server, whether a subagent reported it, and its cksum), replaced in one
 // step, the same of the latest turn end it reported (.ended), and the
-// cksum of the latest dialog it reported (.asked), written after the
-// note and before the event. It keeps no state file and no copy of the
+// note of the latest dialog it reported, copied (.asked) after the note
+// and before the event. It keeps no state file and no copy of the
 // turn end. It writes an event file with each such report: just after the
 // note, so the hook of kind hold sees a dialog's report there as soon as
 // it can; a turn end it keeps beside the
@@ -132,10 +132,11 @@ import (
 // the report there, a note newer than its copy that is not the dialog's
 // report tells it, and so does the dialog's cksum in .asked when it first
 // looks only after that note, its copy then the newer one (#209); it
-// removes that cksum as it ends, so the same questions asked again in the
-// turn wait for their own report. It never takes an answer after that.
-// It ends at Claude's SIGTERM too (its timeout, the session's end), and at
-// once for a subagent's dialog (agent_id), which hq does not answer.
+// removes .asked as it ends when it is its dialog's, so the same
+// questions asked again in the turn wait for their own report. It never
+// takes an answer after that. It ends at Claude's SIGTERM too (its
+// timeout, the session's end), and at once for a subagent's dialog
+// (agent_id), which hq does not answer.
 //
 // On refuse, the kind of the PreToolUse hook on an MCP tool named kill,
 // answer or send, it reads only the payload and writes nothing: it denies
@@ -237,10 +238,10 @@ end) taken && grep -Eq '` + clearedSession + `' "$t" && exit 0 ;;
 start) taken && grep -Eq '` + clearedSession + `' "$t" && sid=$(get session_id "$t") &&
     S=$sid K=session awk "$A" "$f` + queuedSuffix + `" >"$t.c" && mv -f "$t.c" "$t"; rm -f "$t.c" ;;
 esac
-case $1 in dialog | answer | input | result) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" "$f` + askedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
+case $1 in dialog | answer | input | result) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
 [ "$1" = stop ] && note "$f` + endedSuffix + `"
 note "$y"
-[ "$1" = dialog ] && cksum <"$t" >"$t.c" && mv -f "$t.c" "$f` + askedSuffix + `"; rm -f "$t.c"
+[ "$1" = dialog ] && put "$f` + askedSuffix + `" "$y"
 [ "$x" = 2 ] || ev
 [ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && { owes || rm -f "$f` + supervisedSuffix + `"; exit 0; }
 case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$t" ;; esac

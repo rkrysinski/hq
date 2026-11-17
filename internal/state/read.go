@@ -80,9 +80,9 @@ const actedSuffix = ".acted"
 // until that turn reports (#82).
 const queuedSuffix = ".queued"
 
-// askedSuffix names, in Dir, the hook's note of the latest dialog it
-// reported: that report's cksum, written once the report is the note and
-// before its event, so the hook of kind hold that first looks after its
+// askedSuffix names, in Dir, the hook's copy of its note of the latest
+// dialog it reported, with that report's cksum, made once the report is
+// the note and before its event, so the hook of kind hold that first looks after its
 // dialog was answered, the note no longer its dialog's, knows the dialog
 // has closed and ends at once, not after the bound it gives a report that
 // never comes (#209). The hook of kind hold removes it as it ends when it
