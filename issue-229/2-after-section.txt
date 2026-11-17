@@ -1,10 +1,10 @@
-on bb82e6524fc873887a2abdc33263e8a993d93d5d
+on 6d7315cca3f51f44364fe3fb6cf460806ead56c0
 
 $ grep -n "^## " docs/agents/supervisor.md
 5:## Agent policy
 16:## Environment
-24:## What the operator rules on
-34:## Preflight
+25:## What the operator rules on
+35:## Preflight
 
 $ sed -n "/^## What the operator rules on/,/^## Preflight/p" docs/agents/supervisor.md
 ## What the operator rules on

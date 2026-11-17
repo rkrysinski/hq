@@ -1,4 +1,4 @@
-on bb82e6524fc873887a2abdc33263e8a993d93d5d
+on 6d7315cca3f51f44364fe3fb6cf460806ead56c0
 
 # The release skills' check of the project's files: required sections, no marker, no placeholder
 ## Agent policy        present
