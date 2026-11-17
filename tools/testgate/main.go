@@ -24,9 +24,9 @@
 // mutation.go). Each PATH, a package's directory or a Go file, is a part:
 // the parts run one after another, each with a build cache of its own, and
 // the changed production files no part covers get a line each (#233).
-// Like every gate it exits 2 on an error of its own, unit tests that fail
-// without a mutant once the mutants have run included: the machine failed
-// them, and no mutant is judged (#234).
+// Like every gate it exits 2 on an error of its own, unit tests that failed
+// with a mutant and fail without it too included: no mutant is judged
+// (#234, mutationgo.go).
 //
 // A test's level is its file's build constraint: none is unit, the
 // "integration" tag is integration, the "e2e" tag is end-to-end.
@@ -55,6 +55,9 @@ const (
 )
 
 func main() {
+	if isMutationGo(os.Args[0], os.Getenv(envRealGo)) {
+		os.Exit(mutationGo(os.Args[1:]))
+	}
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(2)
