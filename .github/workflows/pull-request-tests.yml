@@ -1,10 +1,9 @@
 # Runs the full build, scripts/check.sh and nothing else, on every pull
 # request into dev (#176) and into a release branch, release-vX.Y.Z (#223),
-# on both host platforms hq supports (WSL is Linux). A ticket of a supervised
-# release gets no other CI run before its squash: the release branch gets no
-# push run. A pull request into any other branch gets no run; the push to dev
-# runs tests.yml - see docs/hq/testing.md. hq's own workflow: the template's
-# pull-request.yml checks the description (#177).
+# on both host platforms hq supports (WSL is Linux). A pull request into any
+# other branch gets no run; the push to dev runs tests.yml - see
+# docs/hq/testing.md. hq's own workflow: the template's pull-request.yml
+# checks the description (#177).
 #
 # Skipped when every changed file is one nothing in the build, the tests,
 # tools/testgate or e2e reads (#108): Markdown anywhere and docs/ (no
