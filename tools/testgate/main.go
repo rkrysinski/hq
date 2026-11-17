@@ -24,7 +24,9 @@
 // mutation.go). Each PATH, a package's directory or a Go file, is a part:
 // the parts run one after another, each with a build cache of its own, and
 // the changed production files no part covers get a line each (#233).
-// Like every gate it exits 2 on an error of its own.
+// Like every gate it exits 2 on an error of its own, unit tests that fail
+// without a mutant once the mutants have run included: the machine failed
+// them, and no mutant is judged (#234).
 //
 // A test's level is its file's build constraint: none is unit, the
 // "integration" tag is integration, the "e2e" tag is end-to-end.

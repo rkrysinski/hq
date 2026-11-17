@@ -70,9 +70,10 @@ func (r *mutationRepo) change() {
 
 // Each real run of the tool installs it with an empty cache and starts as
 // many workers as there are cores, which loads the machine while the other
-// packages' integration tests run: so only three tests of this file run it
-// (the next one, the machine that fails and the interrupted run), and six
-// tests of runs in parts add seven runs (mutation_parts_integration_test.go).
+// packages' integration tests run: so only four tests of this file run it,
+// five times (the next one, the machine that fails, the slowed run, which
+// runs it twice, and the interrupted run), and six tests of runs in parts
+// add seven runs (mutation_parts_integration_test.go).
 // The passing run and a change without mutants are proven by the unit tests
 // of mutationReport.
 
@@ -274,6 +275,83 @@ func TestMutationInterruptedLeavesNothingBehind(t *testing.T) {
 	}
 	if waited := time.Since(start); waited > 10*time.Second {
 		t.Errorf("the run took %s to stop: the tests it started were not ended", waited)
+	}
+	assertEmpty(t, "the temporary directory", tmp)
+	assertEmpty(t, "the shared build cache", cache)
+}
+
+// slowGoFactor is how many times longer every mutant's run of the unit
+// tests takes in TestMutationJudgesTheSameWhenEveryMutantRunsSlower: on #213's
+// change the runs with every core kept busy took 1.2 times as long as those on
+// an idle machine, and 3 leaves a margin of 2.5 over that (#234).
+const slowGoFactor = 3
+
+// slowGo puts first in PATH a go that runs the real one and, for a mutant's
+// run of the unit tests (the tool's only go test with -failfast), then waits
+// factor-1 times as long as that run took, as a loaded machine would make it
+// take factor times as long.
+func slowGo(t *testing.T, factor int) {
+	t.Helper()
+	real, err := exec.LookPath("go")
+	if err != nil {
+		t.Skip("no go")
+	}
+	dir := t.TempDir()
+	write(t, dir, "go.mod", "module slowgo\n\ngo 1.26\n")
+	write(t, dir, "main.go", `package main
+
+import (
+	"errors"
+	"os"
+	"os/exec"
+	"slices"
+	"time"
+)
+
+func main() {
+	cmd := exec.Command(`+strconv.Quote(real)+`, os.Args[1:]...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	start := time.Now()
+	err := cmd.Run()
+	if slices.Contains(os.Args[1:], "-failfast") {
+		time.Sleep(`+strconv.Itoa(factor-1)+` * time.Since(start))
+	}
+	var exit *exec.ExitError
+	if errors.As(err, &exit) {
+		os.Exit(exit.ExitCode())
+	}
+	if err != nil {
+		os.Exit(1)
+	}
+}
+`)
+	bin := filepath.Join(dir, "bin")
+	build := exec.Command(real, "build", "-o", filepath.Join(bin, "go"), ".")
+	build.Dir = dir
+	build.Env = append(os.Environ(), "GOCACHE="+t.TempDir())
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("building the slow go: %v\n%s", err, out)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+}
+
+func TestMutationJudgesTheSameWhenEveryMutantRunsSlower(t *testing.T) {
+	r := newMutationRepo(t)
+	r.change()
+	isolated(t)
+	want, wantFailed, err := runMutationIn(t, r.dir, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	slowGo(t, slowGoFactor)
+	tmp, cache := isolated(t)
+	lines, failed, err := runMutationIn(t, r.dir, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(lines, want) || failed != wantFailed {
+		t.Errorf("every mutant %d times slower: got\n%s\nfailed %v; want\n%s\nfailed %v",
+			slowGoFactor, strings.Join(lines, "\n"), failed, strings.Join(want, "\n"), wantFailed)
 	}
 	assertEmpty(t, "the temporary directory", tmp)
 	assertEmpty(t, "the shared build cache", cache)
