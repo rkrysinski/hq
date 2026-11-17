@@ -1,204 +1,204 @@
 $ go test -count=100 -tags integration -v -run '^TestDockingMovesAgentsWithoutResizingThem$' ./internal/tmux
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.74s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.58s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.62s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.66s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.72s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.75s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.68s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.84s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.69s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.65s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.69s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.78s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.76s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.63s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.64s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.73s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.56s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.52s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.84s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.78s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.67s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.69s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.63s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.66s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.51s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.72s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.65s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.67s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.57s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.83s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.61s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.78s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.63s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.58s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.67s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.67s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.62s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.74s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.61s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.78s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.69s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.91s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.54s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.73s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.62s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.74s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.39s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.53s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.40s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.50s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.53s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.50s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.59s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.66s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.45s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.59s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.62s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.69s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.61s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.50s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.48s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.75s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.61s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.58s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.63s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.72s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.64s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.64s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.59s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.69s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.60s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.56s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.68s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.62s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.60s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.72s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.60s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.43s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.65s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.68s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.57s)
-=== RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.50s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.70s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.66s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.60s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.63s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.45s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.55s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.59s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.67s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.42s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.54s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.49s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.70s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.78s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.83s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.57s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.56s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.75s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.66s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.58s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.36s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.66s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.68s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.69s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.40s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.46s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.53s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.55s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.45s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.57s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.69s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.64s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.62s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.57s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.46s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
 --- PASS: TestDockingMovesAgentsWithoutResizingThem (1.51s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.72s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.53s)
 === RUN   TestDockingMovesAgentsWithoutResizingThem
---- PASS: TestDockingMovesAgentsWithoutResizingThem (1.54s)
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.63s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.49s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.68s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.58s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.66s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.53s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.55s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.56s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.58s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.60s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.70s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.56s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.58s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.44s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.57s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.55s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.66s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.58s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.59s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.56s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.51s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.58s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.53s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.51s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.70s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.53s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.64s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.65s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.67s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.58s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.55s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.63s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.51s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.64s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.70s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.62s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.56s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.63s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.52s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.61s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.51s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.53s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.48s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.70s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.64s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.50s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.68s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.73s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.71s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.51s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.65s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.47s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.74s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.61s)
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+--- PASS: TestDockingMovesAgentsWithoutResizingThem (1.72s)
 PASS
-ok  	github.com/rkrysinski/hq/internal/tmux	163.728s
+ok  	github.com/rkrysinski/hq/internal/tmux	160.132s
 exit 0

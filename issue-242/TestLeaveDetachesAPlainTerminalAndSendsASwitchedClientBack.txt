@@ -1,404 +1,404 @@
 $ go test -count=200 -tags integration -v -run '^TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack$' ./internal/tmux
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.66s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.77s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.66s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.67s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.66s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.45s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.49s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.30s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.46s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.31s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.67s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.42s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.42s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.66s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.45s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.41s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.33s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.68s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.39s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.42s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.84s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.69s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.68s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.37s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.41s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.66s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.68s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.46s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.49s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.70s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.68s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.74s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.35s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.68s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.71s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.67s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.42s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.45s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.57s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.37s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.46s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.28s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.49s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.75s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.77s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.66s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.74s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.34s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.69s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.72s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.38s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.57s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.40s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.73s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.57s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.76s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.57s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.46s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.45s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.57s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.71s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.57s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.49s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.49s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.49s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.42s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.57s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.67s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.68s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.40s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.70s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.49s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.81s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.65s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.45s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.67s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.70s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.66s)
-=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.72s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.69s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.79s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.46s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.33s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.45s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.38s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.66s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.74s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.32s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.64s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.40s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.41s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.46s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.45s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.60s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.34s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.32s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
 --- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.59s)
 === RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
---- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.36s)
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.39s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.49s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.57s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.33s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.66s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.45s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.49s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.35s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.37s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.57s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.48s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.55s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.44s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.38s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.39s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.41s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.34s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.43s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.61s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.49s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.62s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.63s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.39s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.47s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.51s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.32s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.53s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.50s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.56s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.52s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.54s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.45s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.58s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.41s)
+=== RUN   TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack
+--- PASS: TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack (0.40s)
 PASS
-ok  	github.com/rkrysinski/hq/internal/tmux	113.868s
+ok  	github.com/rkrysinski/hq/internal/tmux	104.123s
 exit 0

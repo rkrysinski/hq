@@ -1,4 +1,4 @@
-head: 456d906760572475d9a09149ae9aa28586d49db4, with this injection into internal/tmux/dash.go (not committed):
+head: 4dc1f9b7ee7b8f22dcd44248af981a55aff67fe1, with this injection into internal/tmux/dash.go (not committed):
 diff --git a/internal/tmux/dash.go b/internal/tmux/dash.go
 index f830fd1..8d13630 100644
 --- a/internal/tmux/dash.go
@@ -16,10 +16,10 @@ index f830fd1..8d13630 100644
 
 $ go test -count=1 -tags integration -v -run '^TestDockingMovesAgentsWithoutResizingThem$' ./internal/tmux
 === RUN   TestDockingMovesAgentsWithoutResizingThem
-    dash_integration_test.go:1137: a resized 1 times in five docks
+    dash_integration_test.go:1137: a resized 2 times in five docks
     dash_integration_test.go:1140: b resized 3 times, want 2: to 70x20, then fitted once
---- FAIL: TestDockingMovesAgentsWithoutResizingThem (1.28s)
+--- FAIL: TestDockingMovesAgentsWithoutResizingThem (1.40s)
 FAIL
-FAIL	github.com/rkrysinski/hq/internal/tmux	1.282s
+FAIL	github.com/rkrysinski/hq/internal/tmux	1.400s
 FAIL
 exit 1
