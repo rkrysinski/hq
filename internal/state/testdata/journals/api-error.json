@@ -1,5 +1,5 @@
 {
-  "about": "Turns an API error ended, the host's delivery for #224 (Claude Code 2.1.326, an expired login): case A, the login expired while a tool ran, ends with StopFailure and no Stop: done, its last message Claude's error line; a message left while the agent worked is not taken at that end and rides along with the next prompt, case B, which the same error ends at once.",
+  "about": "Turns an API error ended, the host's delivery for #224 (Claude Code 2.1.326, an expired login): case A, the login expired while a tool ran, ends with StopFailure and no Stop: done, its last message Claude's error line; Claude's idle Notification a minute later reports nothing; a message left while the agent worked is not taken at that end and rides along with the next prompt, case B, which the same error ends at once.",
   "steps": [
     {
       "hook": "start",
@@ -116,6 +116,15 @@
       }
     },
     {
+      "hook": "idle",
+      "payload": "api-error-idle",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Login expired · Please run /login"
+      }
+    },
+    {
       "hook": "prompt",
       "payload": "api-error-prompt-again",
       "events": [
@@ -123,7 +132,7 @@
           "n": 5,
           "source": "hook",
           "kind": "delivery",
-          "time": "2026-01-01T00:00:06Z",
+          "time": "2026-01-01T00:00:07Z",
           "file": "000000005.prompt.1",
           "facts": {
             "messages": [
@@ -136,7 +145,7 @@
           "n": 6,
           "source": "hook",
           "kind": "UserPromptSubmit",
-          "time": "2026-01-01T00:00:06Z",
+          "time": "2026-01-01T00:00:07Z",
           "file": "000000006.prompt.1",
           "facts": {
             "branch": "main",
@@ -150,7 +159,7 @@
       ],
       "look": {
         "state": "working",
-        "since": "2026-01-01T00:00:06Z",
+        "since": "2026-01-01T00:00:07Z",
         "last": "Login expired · Please run /login"
       }
     },
@@ -163,7 +172,7 @@
           "n": 7,
           "source": "hook",
           "kind": "StopFailure",
-          "time": "2026-01-01T00:00:07Z",
+          "time": "2026-01-01T00:00:08Z",
           "file": "000000007.fail.1",
           "facts": {
             "branch": "main",
@@ -181,7 +190,7 @@
       },
       "look": {
         "state": "done",
-        "since": "2026-01-01T00:00:07Z",
+        "since": "2026-01-01T00:00:08Z",
         "last": "Login expired · Please run /login"
       }
     }

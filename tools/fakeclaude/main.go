@@ -78,6 +78,9 @@
 //     again: the turn Claude wakes itself for, under the subagent's id;
 //   - the line "lose" is no prompt: a background subagent goes without
 //     Claude taking a turn for it, and no hook fires;
+//   - the line "idle" is no prompt: Claude's Notification of kind
+//     idle_prompt, which Claude Code 2.1.326 sends 60 s after a turn's end
+//     with no prompt since (#224);
 //   - the line "draft" is no prompt: it draws the box holding "a draft", as
 //     when the user has typed that and not sent it yet;
 //   - a prompt that starts with "unsent" is one Claude does not take: it
@@ -299,6 +302,8 @@ func main() {
 		command := !in.collapsed && strings.HasPrefix(line, "/")
 		switch line {
 		case "":
+		case "idle":
+			c.fire("Notification", map[string]any{"message": "Claude is waiting for your input", "notification_type": "idle_prompt"})
 		case "draft":
 			// The user has typed something in the box and not sent it:
 			// Claude draws the box holding it; no hook fires.

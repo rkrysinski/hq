@@ -146,6 +146,15 @@ import (
 // as the note, and drops the marks of the turn (.on, .acted, .queued); the
 // list of background work and the supervised mark stay.
 //
+// On idle, Claude's Notification of kind idle_prompt, which comes 60 s
+// after a turn's end with no prompt since, it prints the desktop
+// notification of a turn an API error ended, "Done: <branch>", which it
+// could not print on fail: only while the note is that StopFailure (no
+// prompt has come since; any other end has notified already) and the turn
+// is not a supervised turn (.sup, which fail keeps). It then makes that
+// Notification the note, which every rule reads as it reads the
+// StopFailure, so a later one notifies nothing more; it reports no event.
+//
 // On refuse, the kind of the PreToolUse hook on an MCP tool named kill,
 // answer or send, it reads only the payload and writes nothing: it denies
 // the call (Claude does not make it) when it is a call of hq's tool that
@@ -241,6 +250,7 @@ answer) o=; grep -q '"agent_id"' "$t" || { o=1; p=$(turn "$t")
     grep -q '` + toolEndEvent + `' "$t" && [ "$o" ] && soon && take && say '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"' '"}}'
     [ "$x" = 2 ] || exit 0 ;;
 input) ask && exit 0 ;;
+idle) grep -Eq '` + failedEvent + `' "$y" && [ ! -f "$f` + supervisedSuffix + `" ] && [ "$2" ] && note "$y" && K=stop T=$2 L=$l awk "$A" "$t"; exit 0 ;;
 result) form || exit 0 ;;
 end) taken && grep -Eq '` + clearedSession + `' "$t" && exit 0 ;;
 start) taken && grep -Eq '` + clearedSession + `' "$t" && sid=$(get session_id "$t") &&
@@ -274,6 +284,10 @@ const dialogEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"(PermissionReque
 // elicitEvent is what the hook's grep finds in its note of an MCP
 // elicitation's form, drawn and not yet answered.
 const elicitEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"Elicitation"`
+
+// failedEvent is what the hook's grep -E finds in its note of a turn an
+// API error ended (StopFailure).
+const failedEvent = `"hook_event_name"[[:blank:]]*:[[:blank:]]*"StopFailure"`
 
 // toolEndEvent is what the hook's grep finds in the payload of a tool that
 // ended successfully, whose result can carry messages (PostToolUse).
@@ -517,6 +531,12 @@ const branchHeader = "branch"
 // out: its own hook reports it as it is drawn (#100).
 const attentionNotifications = "permission_prompt|agent_needs_input"
 
+// idleNotification is the Notification kind Claude sends 60 s after a
+// turn's end with no prompt since, which the hook's idle notifies at for a
+// turn an API error ended: Claude ignores what the hook prints for its
+// StopFailure (#224).
+const idleNotification = "idle_prompt"
+
 // The keys of the input of hq's kill, answer and send as its MCP server
 // takes them, and the key each requires besides name, for the hook's refuse
 // to tell a call of hq's from another server's (#142). They must follow the
@@ -623,7 +643,10 @@ func Settings(name, id, notify string) string {
 			"PostToolUseFailure": {{Hooks: []hookCommand{hook("answer", "")}}},
 			"Stop":               {{Hooks: []hookCommand{hook("stop", notify)}}},
 			"StopFailure":        {{Hooks: []hookCommand{hook("fail", "")}}},
-			"Notification":       {{Matcher: attentionNotifications, Hooks: []hookCommand{hook("input", notify)}}},
+			"Notification": {
+				{Matcher: attentionNotifications, Hooks: []hookCommand{hook("input", notify)}},
+				{Matcher: idleNotification, Hooks: []hookCommand{hook("idle", notify)}},
+			},
 			"SessionStart": {
 				{Matcher: newSessions, Hooks: []hookCommand{hook("start", "")}},
 				{Matcher: resumeSource, Hooks: []hookCommand{hook("resume", "")}},
