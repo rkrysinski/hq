@@ -1,0 +1,47 @@
+$ ViewOwnDialog on every screen-*agents*.txt (this branch, eaa4db9)
+screen-agents-first-100-notice.txt           dialog false -
+screen-agents-first-100.txt                  dialog false -
+screen-agents-first-40-notice.txt            dialog false -
+screen-agents-first-40.txt                   dialog false -
+screen-agents-first-80-notice.txt            dialog false -
+screen-agents-first-80.txt                   dialog false -
+screen-agents-last-100-notice.txt            dialog false -
+screen-agents-last-100.txt                   dialog false -
+screen-agents-last-40-notice.txt             dialog false -
+screen-agents-last-40.txt                    dialog false -
+screen-agents-last-80-notice.txt             dialog false -
+screen-agents-last-80.txt                    dialog false -
+screen-agents-list-100-notice.txt            dialog false -
+screen-agents-list-100.txt                   dialog false -
+screen-agents-list-40-notice.txt             dialog false -
+screen-agents-list-40.txt                    dialog false -
+screen-agents-list-80-notice.txt             dialog false -
+screen-agents-list-80.txt                    dialog false -
+screen-agents-main-100-notice.txt            dialog false -
+screen-agents-main-100.txt                   dialog false -
+screen-agents-main-40-notice.txt             dialog false -
+screen-agents-main-40.txt                    dialog false -
+screen-agents-main-80-notice.txt             dialog false -
+screen-agents-main-80.txt                    dialog false -
+screen-agents-model-closed.txt               dialog false -
+screen-agents-view-first-100-notice.txt      dialog false -
+screen-agents-view-first-100.txt             dialog false -
+screen-agents-view-first-40-notice.txt       dialog false -
+screen-agents-view-first-40.txt              dialog false -
+screen-agents-view-first-80-notice.txt       dialog false -
+screen-agents-view-first-80.txt              dialog false -
+screen-agents-view-last-100-notice.txt       dialog false -
+screen-agents-view-last-100.txt              dialog false -
+screen-agents-view-last-40-notice.txt        dialog false -
+screen-agents-view-last-40.txt               dialog false -
+screen-agents-view-last-80-notice.txt        dialog false -
+screen-agents-view-last-80.txt               dialog false -
+screen-agents-view-main-100-notice.txt       dialog false -
+screen-agents-view-main-100.txt              dialog false -
+screen-agents-view-main-40-notice.txt        dialog false -
+screen-agents-view-main-40.txt               dialog false -
+screen-agents-view-main-80-notice.txt        dialog false -
+screen-agents-view-main-80.txt               dialog false -
+screen-own-model-agents-50.txt               dialog true  "Select model", 6 options
+screen-own-model-agents.txt                  dialog true  "Select model", 6 options
+45 screens, 2 read as a dialog

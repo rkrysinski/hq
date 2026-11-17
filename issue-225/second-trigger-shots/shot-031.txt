@@ -1,0 +1,24 @@
+╭────────────────────────╮
+│ ● Claude               │
+│ ▸ 1 komenda · ✓ · 45 s │
+╰────────────────────────╯
+
+● Agent "Run 30-second sleep loop" finished · 36s
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ The 30-second sleep-loop subagent reported done; the 60- and 120-second     │
+│ ones are still running.                                                     │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+✻ Waiting for 2 background agents to finish
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…
+  ▐◕◡◕▌  Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream …
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · /tasks to see subagents · ↓…
+                                                                   ◆ Tools ▾
+
+  ● main
+  ◯ general-purpose  Sleeping for 60 seconds in loop      55s · ↓ 35.9k tokens
+  ◯ general-purpose  Running 120-second sleep loop        55s · ↓ 35.9k tokens

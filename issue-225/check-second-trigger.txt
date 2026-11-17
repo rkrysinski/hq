@@ -1,0 +1,5 @@
+$ ViewOwnDialog on the 71 shots of the no-key session (this branch)
+71 shots read as no dialog
+71 screens, 0 read as a dialog
+$ the same on origin/release-v0.15.0
+71 screens, 0 read as a dialog

@@ -1,0 +1,24 @@
+● 3 background agents launched (↓ to manage)
+   ├ Run 30-second sleep loop
+   ├ Run 60-second sleep loop
+   └ Run 120-second sleep loop
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                    │
+│ ▾ 1 komenda · ◑ · 41 s                                                      │
+│   ▸ ◑ Run 45-second sleep loop             ━━━━━━░░░░░░░░░░░░░░       41 s  │
+╰─────────────────────────────────────────────────────────────────────────────╯
+     (ctrl+b ctrl+b (twice) to run in background)
+
+· Run 45-second sleep loop… (48s · ↓ 884 tokens)
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…
+  ▐◕◡◕▌  Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream …
+  ⏵⏵ bypass permissions on · /tasks to see subagents · esc to interrupt · ↓ t…
+                                                                   ◆ Tools ▾
+
+  ● main
+  ◯ general-purpose  Sleeping for 60 seconds in loop      43s · ↓ 35.9k tokens
+  ◯ general-purpose  Running 120-second sleep loop        43s · ↓ 35.9k tokens

@@ -1,0 +1,24 @@
+
+ ▐▛███▛█   Claude Code v2.1.326
+▝▜██████▀  Haiku 5.5 · Claude Ultra
+ ▝▝   ▝▝   /tmp/probe-225
+
+
+
+
+
+
+
+
+                                                            ◐ medium · /effort
+─── ↑ 4 more ───────────────────────────────────────────────────────────────────
+  60-second sleep loop", `for i in $(seq 60); do sleep 1; done`; the third,
+  "Run 120-second sleep loop", `for i in $(seq 120); do sleep 1; done`, each
+  with a timeout of 600000 ms. Right after launching them, run yourself, in
+  the foreground, the Bash command `for i in $(seq 45); do sleep 1; done` with
+  a timeout of 600000 ms, then end your turn with one short sentence. When a
+  subagent reports, answer with one short sentence.
+────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…
+  ▐◕◡◕▌  Haiku 5.5 medium │ master ✓ no upstream │ $0.00           ◆ Tools ▾
+  ⏵⏵ bypass permissions on (shift+tab to cycle)

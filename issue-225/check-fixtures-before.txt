@@ -1,0 +1,47 @@
+$ ViewOwnDialog on every screen-*agents*.txt (origin/release-v0.15.0)
+screen-agents-first-100-notice.txt           dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --resume will not find th…", 3 options
+screen-agents-first-100.txt                  dialog false -
+screen-agents-first-40-notice.txt            dialog true  "⚠ Transcript saving is off — CLAUDE…", 3 options
+screen-agents-first-40.txt                   dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░…", 3 options
+screen-agents-first-80-notice.txt            dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…", 3 options
+screen-agents-first-80.txt                   dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream …", 3 options
+screen-agents-last-100-notice.txt            dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --resume will not find th…", 3 options
+screen-agents-last-100.txt                   dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ $0.01 ◆ Tools ▾", 3 options
+screen-agents-last-40-notice.txt             dialog true  "⚠ Transcript saving is off — CLAUDE…", 3 options
+screen-agents-last-40.txt                    dialog true  "▐◐◡◐▌ Haiku 5.5 medium │ ctx ▕▊░░░…", 3 options
+screen-agents-last-80-notice.txt             dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…", 3 options
+screen-agents-last-80.txt                    dialog true  "▐–◡–▌ Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream …", 3 options
+screen-agents-list-100-notice.txt            dialog false -
+screen-agents-list-100.txt                   dialog false -
+screen-agents-list-40-notice.txt             dialog false -
+screen-agents-list-40.txt                    dialog false -
+screen-agents-list-80-notice.txt             dialog false -
+screen-agents-list-80.txt                    dialog false -
+screen-agents-main-100-notice.txt            dialog false -
+screen-agents-main-100.txt                   dialog false -
+screen-agents-main-40-notice.txt             dialog true  "⚠ Transcript saving is off — CLAUDE…", 3 options
+screen-agents-main-40.txt                    dialog false -
+screen-agents-main-80-notice.txt             dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…", 3 options
+screen-agents-main-80.txt                    dialog false -
+screen-agents-model-closed.txt               dialog false -
+screen-agents-view-first-100-notice.txt      dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --resume will not find th…", 3 options
+screen-agents-view-first-100.txt             dialog true  "▐–◡–▌ Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ $0.01 ◆ Tools ▾", 3 options
+screen-agents-view-first-40-notice.txt       dialog true  "⚠ Transcript saving is off — CLAUDE…", 3 options
+screen-agents-view-first-40.txt              dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░…", 3 options
+screen-agents-view-first-80-notice.txt       dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…", 3 options
+screen-agents-view-first-80.txt              dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream …", 3 options
+screen-agents-view-last-100-notice.txt       dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --resume will not find th…", 3 options
+screen-agents-view-last-100.txt              dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ $0.01 ◆ Tools ▾", 3 options
+screen-agents-view-last-40-notice.txt        dialog true  "⚠ Transcript saving is off — CLAUDE…", 3 options
+screen-agents-view-last-40.txt               dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░…", 3 options
+screen-agents-view-last-80-notice.txt        dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…", 3 options
+screen-agents-view-last-80.txt               dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream …", 3 options
+screen-agents-view-main-100-notice.txt       dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --resume will not find th…", 3 options
+screen-agents-view-main-100.txt              dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ $0.01 ◆ Tools ▾", 3 options
+screen-agents-view-main-40-notice.txt        dialog true  "⚠ Transcript saving is off — CLAUDE…", 3 options
+screen-agents-view-main-40.txt               dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░…", 3 options
+screen-agents-view-main-80-notice.txt        dialog true  "⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…", 3 options
+screen-agents-view-main-80.txt               dialog true  "▐◕◡◕▌ Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream …", 3 options
+screen-own-model-agents-50.txt               dialog true  "Select model", 6 options
+screen-own-model-agents.txt                  dialog true  "Select model", 6 options
+45 screens, 33 read as a dialog

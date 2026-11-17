@@ -1,0 +1,24 @@
+▝▜██████▀  Haiku 5.5 · Claude Ultra
+ ▝▝   ▝▝   /tmp/probe-225
+
+
+❯ Launch three general-purpose subagents in the background (run_in_background
+  true), all at once in one message. Tell each to run, in the foreground, a
+  Bash sleep loop and then reply done: the first, described as "Run 30-second
+  sleep loop", for i in $(seq 30); do sleep 1; done; the second, "Run 60-second
+  sleep loop", for i in $(seq 60); do sleep 1; done; the third, "Run
+  120-second sleep loop", for i in $(seq 120); do sleep 1; done, each with a
+  timeout of 600000 ms. Right after launching them, run yourself, in the
+  foreground, the Bash command for i in $(seq 45); do sleep 1; done with a
+  timeout of 600000 ms, then end your turn with one short sentence. When a
+  subagent reports, answer with one short sentence.
+
+✽ Spinning…
+                                                            ◐ medium · /effort
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --res…
+  ▐◕◡◕▌  Haiku 5.5 medium │ master ✓ no upstream │ $0.00
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · esc to interrupt
+                                                                   ◆ Tools ▾
