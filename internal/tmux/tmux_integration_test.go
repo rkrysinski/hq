@@ -492,9 +492,6 @@ func longInputPasses(t *testing.T) bool {
 // since Claude asks for that, its lines kept, then Enter; no buffer stays.
 func TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter(t *testing.T) {
 	if !longInputPasses(t) {
-		if os.Getenv("CI") != "" {
-			t.Fatal("temporary (#242): the probe says this CI runner keeps part of a long input back")
-		}
 		t.Skip("this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)")
 	}
 	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
