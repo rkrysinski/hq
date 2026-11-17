@@ -10,7 +10,8 @@
 # docs/hq/testing.md, Private details).
 input=$(cat)
 sep='([[:space:]]|\\[nt]|\\\\)+'
-printf '%s' "$input" | grep -qE "gh$sep((pr|issue|release)$sep(create|new|edit|comment|review|merge|close)|api)" || exit 0
+printf '%s' "$input" | grep -qE "gh$sep((pr|issue|release)$sep(create|new|edit|comment|review|merge|close)|api)"
+[ $? -eq 1 ] && exit 0 # no gh command; a grep that fails (2, 127) leaves the check to the gate
 cd "$(dirname "$0")/../.." || exit 2
 if ! command -v go >/dev/null 2>&1; then
     echo "prepost: go is not installed, so this gh command cannot be checked for private details: refused" >&2

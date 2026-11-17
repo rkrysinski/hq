@@ -121,6 +121,27 @@ func TestWithoutGoTheClaudeHookRefusesAPostAndPassesAnythingElse(t *testing.T) {
 	}
 }
 
+func TestWhenGrepFailsTheClaudeHookStillChecks(t *testing.T) {
+	needGo(t)
+	bin := t.TempDir()
+	for _, tool := range []string{"sh", "cat", "dirname", "go"} {
+		p, err := exec.LookPath(tool)
+		if err != nil {
+			t.Skip(tool + " not installed")
+		}
+		if err := os.Symlink(p, filepath.Join(bin, tool)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(bin, "grep"), []byte("#!/bin/sh\nexit 2\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	code, out := runPrepost(t, t.TempDir(), "gh pr comment 3 --body acme", "PATH="+bin, "HQ_PRIVATE_PATTERNS=acme")
+	if code != 2 || !strings.Contains(out, "gh pr comment --body:1 matches private pattern 1") {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+}
+
 func TestTheProjectSettingsRunTheHookOnEveryBashCommand(t *testing.T) {
 	body, err := os.ReadFile("../.claude/settings.json")
 	if err != nil {
