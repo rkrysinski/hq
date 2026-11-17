@@ -494,7 +494,7 @@ func TestRemoveDeletesThatAgentsFilesOnly(t *testing.T) {
 	outside := filepath.Join(dir, "..", "..", "keep")
 	// The hook's working files, hq's word and record, and what the hook
 	// of an earlier generation wrote too (an outdated agent's).
-	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abc.last", "abc.ended", "abc.on", "abc.owe", "abc.sup", "abc.next", "abc.acted", "abc.queued", "abc.hq", "abcd", "abcd.stop", "abcd.last", "def", "../../keep"} {
+	for _, p := range []string{"abc", "abc.stop", "abc.prev", "abc.last", "abc.ended", "abc.on", "abc.owe", "abc.sup", "abc.next", "abc.acted", "abc.queued", "abc.asked", "abc.hq", "abcd", "abcd.stop", "abcd.last", "def", "../../keep"} {
 		os.WriteFile(filepath.Join(dir, p), []byte("x"), 0o644)
 	}
 	if err := Remove(root, "abc"); err != nil {

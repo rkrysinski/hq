@@ -166,6 +166,31 @@ func TestTheQuestionDialogsHookEndsWhenItsDialogCloses(t *testing.T) {
 	}
 }
 
+// Claude starts the dialog's two hooks side by side, but on a busy machine
+// the question dialog's may first look after its dialog was reported and
+// answered at the terminal: it ends then too, at once, not after the bound
+// it gives a report that never comes (#209), and takes no answer.
+func TestTheQuestionDialogsHookThatLooksAfterItsDialogClosedEnds(t *testing.T) {
+	root := testutil.GitRepo(t, "app")
+	const id = "0a1b2c3d4e5f"
+	payload := fixture(t, "dialog-ask-several")
+	q := openDialog(t, root, id, payload)
+	fire(t, root, root, id, "answer", fixture(t, "answer-ask-several"))
+	leave(t, root, id, q, q.Cancel())
+	k := hold(t, root, root, id, payload)
+	// Well under the ten seconds of the bound it would otherwise hold
+	// for, and with room for a busy machine.
+	if out, ok := k.ended(5 * time.Second); !ok || out != "" {
+		t.Fatalf("after the dialog closed: %v %q", ok, out)
+	}
+	if AnswerTaken(root, id, q) {
+		t.Fatal("an answer taken after the dialog closed")
+	}
+	if left, _ := filepath.Glob(filepath.Join(Dir(root), id+".[0-9]*")); len(left) != 0 {
+		t.Fatalf("left beside the hook's notes: %v", left)
+	}
+}
+
 // An answer is for one dialog's report: the hook of another, the same
 // questions asked in another turn included, never takes it, and the hook
 // of a subagent's dialog, which hq does not answer, holds nothing.

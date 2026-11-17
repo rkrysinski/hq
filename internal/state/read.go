@@ -80,12 +80,19 @@ const actedSuffix = ".acted"
 // until that turn reports (#82).
 const queuedSuffix = ".queued"
 
+// askedSuffix names, in Dir, the hook's note of the latest dialog it
+// reported: that report's cksum, written once the report is the note, so
+// the hook of kind hold that first looks after its dialog was answered,
+// the note no longer its dialog's, knows the dialog has closed and ends
+// at once, not after the bound it gives a report that never comes (#209).
+const askedSuffix = ".asked"
+
 // agentFiles are the files Remove deletes in Dir for an agent: the hook's
 // working files, hq's word to it and record of it, and the state file,
 // the latest turn end and the report before a resumed session that the
 // hook of an earlier generation wrote ("", .stop, .prev), so killing an
 // outdated agent leaves none of them behind.
-var agentFiles = [...]string{"", ".stop", ".prev", noteSuffix, endedSuffix, keptSuffix, owedSuffix, supervisedSuffix, announcedSuffix, actedSuffix, queuedSuffix, recordSuffix}
+var agentFiles = [...]string{"", ".stop", ".prev", noteSuffix, endedSuffix, keptSuffix, owedSuffix, supervisedSuffix, announcedSuffix, actedSuffix, queuedSuffix, askedSuffix, recordSuffix}
 
 // Remove deletes the files in Dir and the inbox of agent id of the
 // repository at root, once the agent is gone (design §3.4); files already

@@ -22,8 +22,9 @@ import (
 // takes for the agent's state, only what those rules read ($HQ_ID.last,
 // K=note in hookAwk: the event's kind, the turn's id, the tool, the MCP
 // server, whether a subagent reported it, and its cksum), replaced in one
-// step, and the same of the latest turn end it reported (.ended). It keeps
-// no state file and no copy of the turn end. It writes an event file with
+// step, the same of the latest turn end it reported (.ended), and the
+// cksum of the latest dialog it reported (.asked), written after the note.
+// It keeps no state file and no copy of the turn end. It writes an event file with
 // each such report: just after the note, so the hook of kind hold sees a
 // dialog's report there as soon as it can; a turn end it keeps beside the
 // note (.on, below), and of the ends of a tool (answer) only one that tells
@@ -126,9 +127,10 @@ import (
 // its cksum, takes it by renaming it and prints it, a decision hq wrote
 // whole, as its output. It ends with no output once the note is no longer
 // the dialog's (answered at the terminal, the session ended, a dialog's
-// report never coming; a note newer than its copy that is not the dialog's
-// report tells it, should the dialog be answered before it first saw the
-// report there), never taking an answer after that, at Claude's SIGTERM
+// report never coming; should the dialog be answered before it first saw
+// the report there, a note newer than its copy that is not the dialog's
+// report tells it, and so does the dialog's cksum in .asked when it first
+// looks only after that note, its copy then the newer (#209)), never taking an answer after that, at Claude's SIGTERM
 // (its timeout, the session's end), and at once for a subagent's dialog
 // (agent_id), which hq does not answer.
 //
@@ -194,9 +196,10 @@ say() {
 }
 nap() { sleep .2 || sleep 1; }
 mine() { grep -qx "$k" "$y"; }
+told() { grep -qx "$k" "$f` + askedSuffix + `"; }
 case $1 in
 hold) grep -q '"agent_id"' "$t" || { k=$(cksum <"$t") && a=$i/` + answerPrefix + `${k% *}.${k#* } && trap 'rm -f "$t"; exit 0' HUP TERM &&
-    { w=0; until mine || [ "$y" -nt "$t" ] || [ $((w+=1)) -gt 50 ]; do nap; done
+    { w=0; until mine || told || [ "$y" -nt "$t" ] || [ $((w+=1)) -gt 50 ]; do nap; done
     while mine; do mv -f "$a" "$t" && cat "$t" && break; nap; done; }; }
     exit 0 ;;
 stop) take && { say '{"decision":"block","reason":"' '"}'; exit 0; }
@@ -230,9 +233,10 @@ end) taken && grep -Eq '` + clearedSession + `' "$t" && exit 0 ;;
 start) taken && grep -Eq '` + clearedSession + `' "$t" && sid=$(get session_id "$t") &&
     S=$sid K=session awk "$A" "$f` + queuedSuffix + `" >"$t.c" && mv -f "$t.c" "$t"; rm -f "$t.c" ;;
 esac
-case $1 in dialog | answer | input | result) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
+case $1 in dialog | answer | input | result) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" "$f` + askedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
 [ "$1" = stop ] && note "$f` + endedSuffix + `"
 note "$y"; [ "$x" = 2 ] || ev
+[ "$1" = dialog ] && cksum <"$t" >"$t.c" && mv -f "$t.c" "$f` + askedSuffix + `"; rm -f "$t.c"
 [ "$1" = stop ] && [ -f "$f` + supervisedSuffix + `" ] && { owes || rm -f "$f` + supervisedSuffix + `"; exit 0; }
 case $1 in stop | dialog | input) [ -n "$2" ] && K=$1 T=$2 L=$l awk "$A" "$t" ;; esac
 exit 0`

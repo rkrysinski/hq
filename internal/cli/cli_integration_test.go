@@ -162,6 +162,31 @@ func (h *realHQ) waitReport(name, state, last string) {
 	h.t.Fatalf("%s never showed %s with %q: %+v", name, state, last, h.ls())
 }
 
+// hookWait is how long waitHooksEnded waits, by the clock, for the
+// agents' hooks to end: a hook reports an event before it ends and removes
+// its copy of the payload only as it exits, and the question dialog's
+// looks every 0.2 s whether its dialog has closed, so on a busy machine
+// their files outlive the report a moment (#209). Half the ten seconds the
+// question dialog's hook would hold for a dialog's report that never came.
+const hookWait = 5 * time.Second
+
+// waitHooksEnded waits until no hook of the repository's agents still
+// runs: nothing of them is left beside the hook's notes.
+func (h *realHQ) waitHooksEnded() {
+	h.t.Helper()
+	deadline := time.Now().Add(hookWait)
+	for {
+		left, _ := filepath.Glob(filepath.Join(state.Dir(h.cwd), "*.[0-9]*"))
+		if len(left) == 0 {
+			return
+		}
+		if !time.Now().Before(deadline) {
+			h.t.Fatalf("left beside the hook's notes after %v: %v", hookWait, left)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 // pane is what the agent's session has printed.
 func (h *realHQ) pane(name string) string {
 	h.t.Helper()
