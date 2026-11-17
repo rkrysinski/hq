@@ -1,0 +1,18 @@
+agent@claude-hq:/tmp/hq-stub-411735905/repo$ hqb new before . hello >/dev/null && sleep 2 && echo '1
+. started by hq of release-v0.15.0:' && ps1 before
+1. started by hq of release-v0.15.0:
+before: no promptSuggestionEnabled
+agent@claude-hq:/tmp/hq-stub-411735905/repo$ hq new after . hello >/dev/null && sleep 2 && echo '2.
+started by hq of issue-230:' && ps1 after
+2. started by hq of issue-230:
+"promptSuggestionEnabled":false
+agent@claude-hq:/tmp/hq-stub-411735905/repo$ hq sandbox restart repo -y && sleep 3 && echo '3. after
+ hq sandbox restart, both:' && ps1 before && ps1 after && hq ls
+restarted the sandbox claude-repo; relaunched before, after
+3. after hq sandbox restart, both:
+"promptSuggestionEnabled":false
+"promptSuggestionEnabled":false
+NAME    REPO  BRANCH  STATE  AGE  LAST
+after   repo  main    done   3s   Done: hello
+before  repo  main    done   3s   Done: hello
+agent@claude-hq:/tmp/hq-stub-411735905/repo$
