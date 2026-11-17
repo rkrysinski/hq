@@ -1,0 +1,31 @@
+--- FAIL: TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit (5.48s)
+    tmux_integration_test.go:129: the arguments, passed verbatim, did not appear in the dead pane within 5s: want "a b|'q\"|$HOME|;exit|"
+        tmux 3.6; the pane's whole history:
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        Pane is dead (status 0, Tue Nov 17 12:20:36 2026)
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	44.936s
+FAIL

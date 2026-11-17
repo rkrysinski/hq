@@ -1,0 +1,19 @@
+$ ./load.sh   # on d7e0ae6: 10 busy loops + 3 x go test -count=150 at once
+cores: 10, busy processes: 10, started 11:20:11Z
+ended 11:20:56Z, load average: 12.54 5.47 3.08
+process 1:
+ok  	github.com/rkrysinski/hq/internal/tmux	39.978s
+process 2:
+FAIL	github.com/rkrysinski/hq/internal/tmux	44.936s
+FAIL
+process 3:
+ok  	github.com/rkrysinski/hq/internal/tmux	38.098s
+
+$ grep -v "^ *$" run2.txt   # the failure of process 2
+--- FAIL: TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit (5.48s)
+    tmux_integration_test.go:129: the arguments, passed verbatim, did not appear in the dead pane within 5s: want "a b|'q\"|$HOME|;exit|"
+        tmux 3.6; the pane's whole history:
+        Pane is dead (status 0, Tue Nov 17 12:20:36 2026)
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	44.936s
+FAIL

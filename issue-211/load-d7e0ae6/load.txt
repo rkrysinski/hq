@@ -1,0 +1,10 @@
+$ ./load.sh   # on d7e0ae6: 10 busy loops + 3 x go test -count=150 at once
+cores: 10, busy processes: 10, started 11:20:11Z
+ended 11:20:56Z, load average: 12.54 5.47 3.08
+process 1:
+ok  	github.com/rkrysinski/hq/internal/tmux	39.978s
+process 2:
+FAIL	github.com/rkrysinski/hq/internal/tmux	44.936s
+FAIL
+process 3:
+ok  	github.com/rkrysinski/hq/internal/tmux	38.098s
