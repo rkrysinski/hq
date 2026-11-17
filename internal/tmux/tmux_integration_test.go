@@ -23,13 +23,14 @@ func eventually(t *testing.T, what string, ok func() bool) {
 	}
 }
 
-// waitBound is how long waitFor polls, at least: one poll every pollEvery.
+// waitFor polls every pollEvery, waitBound in all at least: each poll adds
+// its own time to the sleeps.
 const (
 	waitBound = 5 * time.Second
 	pollEvery = 100 * time.Millisecond
 )
 
-// waitFor polls ok for up to waitBound.
+// waitFor polls ok until it holds or the bound has passed.
 func waitFor(ok func() bool) bool {
 	for i := 0; i < int(waitBound/pollEvery); i++ {
 		if ok() {
@@ -113,11 +114,11 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 	// ended (#211): wait for it. Past the bound, the pane's whole history and
 	// tmux's version tell output that came late from output that was lost.
 	want := `a b|'q"|$HOME|;exit|`
+	var history []byte
 	if !waitFor(func() bool {
-		out, _ := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p", "-t", id).Output()
-		return strings.Contains(string(out), want)
+		history, err = exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p", "-S", "-", "-E", "-", "-t", id).CombinedOutput()
+		return err == nil && strings.Contains(string(history), want)
 	}) {
-		history, err := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p", "-S", "-", "-E", "-", "-t", id).CombinedOutput()
 		if err != nil {
 			history = append(history, "\n(capture-pane: "+err.Error()+")"...)
 		}
