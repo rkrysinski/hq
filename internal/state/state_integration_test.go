@@ -208,9 +208,10 @@ func TestADialogIsReportedOnceWhenItOpensAndClosesWhenItsToolRuns(t *testing.T) 
 	if r, _ := state(); r.State != Working {
 		t.Fatalf("permission granted, tool failed: %+v", r)
 	}
-	// Only the hook's note of its latest report, and the mark that a tool
-	// of the turn ended, naming the turn.
-	if got := files(t, root, id); len(got) != 2 || got[actedSuffix] != "0000001b-0000-4000-8000-00000000001b\n" {
+	// Only the hook's note of its latest report, its copy of the note of
+	// the latest dialog (#209), and the mark that a tool of the turn ended,
+	// naming the turn.
+	if got := files(t, root, id); len(got) != 3 || got[actedSuffix] != "0000001b-0000-4000-8000-00000000001b\n" || !strings.Contains(got[askedSuffix], `"hook_event_name": "PermissionRequest"`) {
 		t.Fatalf("left files behind: %v", got)
 	}
 }
