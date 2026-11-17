@@ -77,7 +77,7 @@ func scanTimebound(rel string, src []byte, consts map[string]pkgConst) ([]timebo
 		if !s.isElapsed(elapsed) {
 			return true
 		}
-		if d, ok := s.duration(bound, 0); ok && d < timeboundLimit {
+		if d, ok := s.duration(bound); ok && d < timeboundLimit {
 			hits = append(hits, timeboundHit{rel, fset.Position(x.Pos()).Line, d.String()})
 		}
 		return true
@@ -206,10 +206,9 @@ func (s timeScan) isElapsed(e ast.Expr) bool {
 
 // duration evaluates e as a constant duration: literals, the time
 // package's units, constants of the package, conversions to
-// time.Duration and arithmetic on them. depth stops a constant that refers
-// to itself.
-func (s timeScan) duration(e ast.Expr, depth int) (time.Duration, bool) {
-	v, ok := s.constant(e, depth)
+// time.Duration and arithmetic on them.
+func (s timeScan) duration(e ast.Expr) (time.Duration, bool) {
+	v, ok := s.constant(e, map[ast.Expr]bool{})
 	if !ok {
 		return 0, false
 	}
@@ -217,10 +216,9 @@ func (s timeScan) duration(e ast.Expr, depth int) (time.Duration, bool) {
 	return time.Duration(n), exact
 }
 
-func (s timeScan) constant(e ast.Expr, depth int) (constant.Value, bool) {
-	if depth > 16 {
-		return nil, false
-	}
+// constant evaluates e; open holds the constants' values being evaluated,
+// so a constant that refers to itself is no value instead of no end.
+func (s timeScan) constant(e ast.Expr, open map[ast.Expr]bool) (constant.Value, bool) {
 	switch x := ast.Unparen(e).(type) {
 	case *ast.BasicLit:
 		if x.Kind == token.INT || x.Kind == token.FLOAT {
@@ -235,7 +233,7 @@ func (s timeScan) constant(e ast.Expr, depth int) (constant.Value, bool) {
 	case *ast.Ident:
 		if x.Obj == nil { // declared in another file of the package, or not a constant
 			if c, ok := s.consts[x.Name]; ok {
-				return c.file.constant(c.value, depth+1)
+				return c.file.named(c.value, open)
 			}
 			return nil, false
 		}
@@ -248,23 +246,23 @@ func (s timeScan) constant(e ast.Expr, depth int) (constant.Value, bool) {
 		}
 		for i, name := range spec.Names {
 			if name.Obj == x.Obj && i < len(spec.Values) {
-				return s.constant(spec.Values[i], depth+1)
+				return s.named(spec.Values[i], open)
 			}
 		}
 	case *ast.CallExpr:
 		if len(x.Args) == 1 && s.isTime(x.Fun, "Duration") {
-			return s.constant(x.Args[0], depth+1)
+			return s.constant(x.Args[0], open)
 		}
 	case *ast.UnaryExpr:
-		if v, ok := s.constant(x.X, depth+1); ok && (x.Op == token.SUB || x.Op == token.ADD) {
+		if v, ok := s.constant(x.X, open); ok && (x.Op == token.SUB || x.Op == token.ADD) {
 			return constant.UnaryOp(x.Op, v, 0), true
 		}
 	case *ast.BinaryExpr:
-		a, ok := s.constant(x.X, depth+1)
+		a, ok := s.constant(x.X, open)
 		if !ok {
 			return nil, false
 		}
-		b, ok := s.constant(x.Y, depth+1)
+		b, ok := s.constant(x.Y, open)
 		if !ok {
 			return nil, false
 		}
@@ -283,6 +281,17 @@ func (s timeScan) constant(e ast.Expr, depth int) (constant.Value, bool) {
 		}
 	}
 	return nil, false
+}
+
+// named evaluates the value of a named constant, unless it is already
+// being evaluated.
+func (s timeScan) named(value ast.Expr, open map[ast.Expr]bool) (constant.Value, bool) {
+	if open[value] {
+		return nil, false
+	}
+	open[value] = true
+	defer delete(open, value)
+	return s.constant(value, open)
 }
 
 // checkTimebound scans every test file under root, whatever its build tag,

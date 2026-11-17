@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go/ast"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -35,6 +36,9 @@ func TestTimeboundFindsUpperBoundsUnderASecondOnRealTime(t *testing.T) {
 		{"\tif time.Since(start) > time.Second-time.Nanosecond {\n\t\tt.Fatal()\n\t}", 13, "999.999999ms"},
 		{"\tif time.Since(start) > (time.Duration(3) * 100 * time.Millisecond) {\n\t\tt.Fatal()\n\t}", 13, "300ms"},
 		{"\tif time.Since(start) > 3e8 {\n\t\tt.Fatal()\n\t}", 13, "300ms"},
+		{"\tif time.Since(start) > time.Second/3 {\n\t\tt.Fatal()\n\t}", 13, "333.333333ms"},
+		{"\tif time.Since(start) > 1.5e9/3 {\n\t\tt.Fatal()\n\t}", 13, "500ms"},
+		{"\tconst half = 250 * time.Millisecond\n\tif time.Since(start) > half+half {\n\t\tt.Fatal()\n\t}", 14, "500ms"},
 		{"\tconst bound = 300 * time.Millisecond\n\tif time.Since(start) > bound {\n\t\tt.Fatal()\n\t}", 14, "300ms"},
 		{"\tok := time.Since(start) > 300*time.Millisecond\n\t_ = ok", 13, "300ms"},
 	} {
@@ -94,6 +98,34 @@ func TestTimeboundFollowsTheTimePackageUnderAnyName(t *testing.T) {
 	other := "package a\n\nimport time \"example.com/clock\"\n\nfunc f(start int) bool {\n\treturn time.Since(start) > 3\n}\n"
 	if hits, err := scanTimebound("a_test.go", []byte(other), nil); err != nil || len(hits) != 0 {
 		t.Fatalf("another package named time: hits %v, err %v", hits, err)
+	}
+}
+
+func TestTimeboundStopsAtConstantsThatReferToThemselves(t *testing.T) {
+	src := "package a\n\nimport \"time\"\n\nconst (\n\tloop = again\n\tagain = loop * time.Millisecond\n)\n\n" +
+		"func f(start time.Time) bool {\n\treturn time.Since(start) > loop\n}\n"
+	if hits, err := scanTimebound("a_test.go", []byte(src), nil); err != nil || len(hits) != 0 {
+		t.Fatalf("hits %v, err %v, want none", hits, err)
+	}
+	other := map[string]pkgConst{}
+	file := newTimeScan(&ast.File{}, other)
+	file.pkg = "time"
+	other["far"] = pkgConst{ast.NewIdent("near"), file}
+	other["near"] = pkgConst{ast.NewIdent("far"), file}
+	cyclic := "package a\n\nimport \"time\"\n\nfunc f(start time.Time) bool {\n\treturn time.Since(start) > far\n}\n"
+	if hits, err := scanTimebound("a_test.go", []byte(cyclic), other); err != nil || len(hits) != 0 {
+		t.Fatalf("across files: hits %v, err %v, want none", hits, err)
+	}
+}
+
+// A constant that repeats the one before it implicitly is not followed,
+// and does not stop the scan.
+func TestTimeboundReadsPastAnImplicitlyRepeatedConstant(t *testing.T) {
+	src := "package a\n\nimport \"time\"\n\nconst (\n\tfirst = 2 * time.Second\n\tsecond\n)\n\n" +
+		"func f(start time.Time) bool {\n\treturn time.Since(start) > second || time.Since(start) > first/4\n}\n"
+	hits, err := scanTimebound("a_test.go", []byte(src), nil)
+	if want := []timeboundHit{{"a_test.go", 11, "500ms"}}; err != nil || !reflect.DeepEqual(hits, want) {
+		t.Fatalf("hits %v, err %v, want %v", hits, err, want)
 	}
 }
 
