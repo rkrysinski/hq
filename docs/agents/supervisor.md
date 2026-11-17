@@ -18,6 +18,7 @@ The rows for implementation and the release tester are left out: the skills' def
 - The supervisor runs as an hq agent `sup-X.Y.Z` (the release's version) in the repository's sandbox, with hq loaded there (`hq mcp load REPO`).
 - The project accepts that every agent in that sandbox sees hq's tools while hq is loaded there.
 - The release tester runs in that sandbox too and reaches no real sandbox: its steps use the stub `sbx` (`docs/agents/release-qa.md`).
+- A ticket pull request gets the `Pull request tests` run, the full build on macOS and Ubuntu (`docs/hq/testing.md`, *CI*): the supervisor holds its merge until that run is green on the pull request's head, unless the change touches only the paths the workflow's header lists as skipped, which get no run.
 - The user pushes the tag.
 - A release deploys nothing: people install it with the README's one-liner or `hq update` (`docs/hq/releasing.md`).
 
