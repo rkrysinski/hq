@@ -156,6 +156,14 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 			j := read(t, h.Store, "a1")
 			expect(t, j.Reply.Text == long && j.Events[4].Kind == state.KindUnreadable && j.Events[4].Facts.Size == 10, "after an unreadable file: %+v", j.Events[4])
 		}
+		// A turn an API error ended keeps Claude's error line as its reply.
+		failed := Hook("feat-42", map[string]any{"hook_event_name": "StopFailure", "prompt_id": "p1", "error": "authentication_failed", "last_assistant_message": "Login expired · Please run /login"})
+		h.Leave(root, "a1", "000000006.1", failed, at)
+		must(t, h.Store.Ingest(root, "a1"))
+		{
+			j := read(t, h.Store, "a1")
+			expect(t, j.Reply.Text == "Login expired · Please run /login" && j.Reply.Number == j.Events[5].Number, "after an API error: reply %d %q", j.Reply.Number, j.Reply.Text)
+		}
 	})
 
 	t.Run("a delivery", func(t *testing.T) {

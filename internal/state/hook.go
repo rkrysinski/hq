@@ -138,6 +138,14 @@ import (
 // SIGTERM too (its timeout, the session's end), and at once for a
 // subagent's dialog (agent_id), which hq does not answer.
 //
+// On fail, Claude's StopFailure, which fires in Stop's stead when an API
+// error ended the turn (an expired login, a rate limit, ...) and whose
+// output Claude ignores (#224), it takes nothing from the inbox: a message
+// waits for the next prompt, which hq types in. It reports the end as a
+// stop it does not keep: it notes it as the latest turn end (.ended) and
+// as the note, and drops the marks of the turn (.on, .acted, .queued); the
+// list of background work and the supervised mark stay.
+//
 // On refuse, the kind of the PreToolUse hook on an MCP tool named kill,
 // answer or send, it reads only the payload and writes nothing: it denies
 // the call (Claude does not make it) when it is a call of hq's tool that
@@ -239,7 +247,7 @@ start) taken && grep -Eq '` + clearedSession + `' "$t" && sid=$(get session_id "
     S=$sid K=session awk "$A" "$f` + queuedSuffix + `" >"$t.c" && mv -f "$t.c" "$t"; rm -f "$t.c" ;;
 esac
 case $1 in dialog | answer | input | result) ;; start | resume | end) rm -f "$f` + keptSuffix + `" "$f` + owedSuffix + `" "$f` + supervisedSuffix + `" "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; *) rm -f "$f` + keptSuffix + `"; [ "$q" ] || rm -f "$f` + actedSuffix + `" "$f` + queuedSuffix + `" ;; esac
-[ "$1" = stop ] && note "$f` + endedSuffix + `"
+case $1 in stop | fail) note "$f` + endedSuffix + `" ;; esac
 note "$y"
 [ "$1" = dialog ] && cksum <"$t" >>"$z"
 [ "$x" = 2 ] || ev
@@ -614,6 +622,7 @@ func Settings(name, id, notify string) string {
 			"PostToolUse":        {{Hooks: []hookCommand{hook("answer", "")}}},
 			"PostToolUseFailure": {{Hooks: []hookCommand{hook("answer", "")}}},
 			"Stop":               {{Hooks: []hookCommand{hook("stop", notify)}}},
+			"StopFailure":        {{Hooks: []hookCommand{hook("fail", "")}}},
 			"Notification":       {{Matcher: attentionNotifications, Hooks: []hookCommand{hook("input", notify)}}},
 			"SessionStart": {
 				{Matcher: newSessions, Hooks: []hookCommand{hook("start", "")}},

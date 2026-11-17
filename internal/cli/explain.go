@@ -307,6 +307,11 @@ func hookWhat(e state.Event) string {
 		if len(running) > 0 {
 			what += ", running: " + strings.Join(running, ", ")
 		}
+	case state.KindTurnFailed:
+		what = "turn end by an API error"
+		if f.Reason != "" {
+			what += " (" + state.Clean(f.Reason) + ")"
+		}
 	case state.KindPermission:
 		what = "dialog of tool " + state.Clean(f.Tool)
 	case state.KindNotification:

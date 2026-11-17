@@ -34,6 +34,12 @@
 //     to interrupt" below the box, as Claude Code 2.1.301 draws it in a
 //     sandbox (#70), until the next line ends the tool (PostToolUse) and
 //     lets the turn finish;
+//   - a prompt containing "apierror" ends its turn as an API error ends
+//     it in Claude Code 2.1.326, an expired login (#224): after whatever
+//     else the prompt asks for, StopFailure (error authentication_failed,
+//     last_assistant_message its error line) in place of Stop, its hooks'
+//     output ignored; it draws the error line and the box holding the
+//     faint "Once fixed, resend your message";
 //   - a prompt containing "slow" works until a line comes: "esc" (or a line
 //     with ESC in it) interrupts the turn, which ends it with no hook, as
 //     Claude Code 2.1.283 does; any other line lets it finish;
@@ -618,6 +624,15 @@ func (c *claude) turn(prompt string) {
 		}
 		time.Sleep(c.delay)
 	}
+	if strings.Contains(prompt, "apierror") {
+		// No Stop, and whatever the hooks print is ignored.
+		for _, cmd := range c.hooks("StopFailure", map[string]any{"error": "authentication_failed", "last_assistant_message": apiError}) {
+			_ = cmd.Run()
+		}
+		fmt.Println("● " + apiError)
+		promptBox("", "\x1b[2m"+resendHint+"\x1b[0m")
+		return
+	}
 	reply := "Done: " + prompt
 	if woken {
 		reply = fmt.Sprintf("The background work is done, %d still running.", c.subagents())
@@ -746,6 +761,14 @@ func (c *claude) subagents() (n int) {
 	}
 	return n
 }
+
+// apiError is the line Claude Code 2.1.326 ends a turn with when the
+// login has expired, and resendHint what it then draws faint in the box
+// (#224).
+const (
+	apiError   = "Login expired · Please run /login"
+	resendHint = "Once fixed, resend your message"
+)
 
 // question is what the fake's question dialog asks.
 const question = "Which colour do you pick?"
@@ -901,7 +924,8 @@ func (c *claude) endHooks() {
 
 // hooks are the commands of the hooks registered for event, each with a
 // Claude-like payload on its standard input. A hook's matcher is matched
-// against the event's tool, its notification's kind or its source.
+// against the event's tool, its notification's kind, its source or its
+// error's kind.
 func (c *claude) hooks(event string, fields map[string]any) []*exec.Cmd {
 	p := map[string]any{"session_id": c.session, "cwd": c.cwd, "permission_mode": "bypassPermissions", "hook_event_name": event}
 	for k, v := range fields {
@@ -919,6 +943,9 @@ func (c *claude) hooks(event string, fields map[string]any) []*exec.Cmd {
 	}
 	if tool, ok := fields["tool_name"].(string); ok {
 		kind = tool
+	}
+	if e, ok := fields["error"].(string); ok {
+		kind = e
 	}
 	var cmds []*exec.Cmd
 	for _, m := range c.s.Hooks[event] {

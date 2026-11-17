@@ -97,10 +97,12 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	}
 	// Only Stop, a dialog (an MCP elicitation's too) and the attention
 	// Notifications notify, with the sequence; the end of any tool may close
-	// a dialog, and the answer to an elicitation's form closes it.
+	// a dialog, and the answer to an elicitation's form closes it. A turn an
+	// API error ended is reported by StopFailure, whose output Claude
+	// ignores (#224): it notifies at the idle Notification, below.
 	events := map[string]string{
 		"UserPromptSubmit": "prompt", "PermissionRequest": "dialog \\u0007", "PostToolUse": "answer", "PostToolUseFailure": "answer",
-		"Stop": "stop \\u0007", "Notification": "input \\u0007", "SessionEnd": "end",
+		"Stop": "stop \\u0007", "StopFailure": "fail", "Notification": "input \\u0007", "SessionEnd": "end",
 		"Elicitation": "dialog \\u0007", "ElicitationResult": "result", "PreToolUse": "refuse",
 	}
 	// SessionStart: a new session or /clear starts, a resumed one resumes;
@@ -120,7 +122,7 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	}
 	for event, args := range events {
 		m := s.Hooks[event]
-		if event == "PermissionRequest" {
+		if event == "PermissionRequest" || event == "Notification" {
 			m = m[:1]
 		}
 		if len(m) != 1 || len(m[0].Hooks) != 1 {

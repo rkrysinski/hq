@@ -170,3 +170,37 @@ func TestWaitRightAfterNewNeverSeesTheAgentEndedOnAnOlderAnswerOfSbx(t *testing.
 	}
 	h.only(h.waited(h.wait("--since", "1m")), "a", "done", "Done: hello")
 }
+
+// A turn an API error ended, as an expired login ends one in Claude Code
+// 2.1.326 (#224), leaves the agent done with Claude's error line: hq wait
+// returns it, and a message sent while it worked is typed in as its next
+// prompt, which the same error ends again while the login stays expired.
+func TestWaitReturnsAnAgentWhoseTurnAnAPIErrorEnded(t *testing.T) {
+	const line = "Login expired · Please run /login"
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "c", "hi"); code != 0 {
+		t.Fatalf("new: %s", errOut)
+	}
+	h.waitReport("c", "done", "Done: hi")
+	h.typeIn("c", "slow apierror")
+	h.waitState("c", "working")
+	h.send("queued: c is working, delivered when it stops", "c", "apierror again")
+	ch := h.wait("c")
+	time.Sleep(time.Second)
+	h.stillWaiting(ch)
+	h.typeIn("c", "go on")
+	first := h.only(h.waited(ch), "c", "done", line)
+	if rows := h.ls(); rows[0].Pending != 1 {
+		t.Fatalf("the message went with the end: %+v", rows)
+	}
+
+	// The next look types the message in once it has waited (#125); its
+	// turn ends in the same error.
+	again := h.waitRow("c", "done", func(r lsRow) bool { return r.Since.After(first.Since) })
+	if again.Last != line || again.Pending != 0 {
+		t.Fatalf("after the message: %+v", again)
+	}
+	h.waitPane("c", "❯ apierror again")
+}

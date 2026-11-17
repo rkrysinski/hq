@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -450,5 +451,76 @@ func TestAResumedSessionKeepsWhereTheReportBeforeItWorked(t *testing.T) {
 	}
 	if r := reducedAt(journal[:1], 1); r.Session != "" || r.Branch != "main" {
 		t.Errorf("a new session: %+v", r)
+	}
+}
+
+// fromFiles are the events of the hook's event files, numbered from 1 and
+// a minute apart: each a case of the hook and a fixture it wrote as the
+// event file's payload.
+func fromFiles(t *testing.T, files ...[2]string) []Event {
+	t.Helper()
+	start := time.Date(2026, 11, 17, 14, 47, 0, 0, time.UTC)
+	var events []Event
+	for i, f := range files {
+		n := int64(i + 1)
+		e, _ := ParseEvent(fmt.Sprintf("%09d.%s.1", n, f[0]), eventFile(t, f[1]), start.Add(time.Duration(i)*time.Minute))
+		e.Number = n
+		events = append(events, e)
+	}
+	return events
+}
+
+// An agent whose turn an API error ended is done, its last message
+// Claude's error line, its time from the end, and the end is the last
+// completed turn's: case A of the host's delivery for #224 (the login
+// expired while a tool ran) and case B (a prompt to a session whose login
+// had expired), which Claude Code 2.1.326 ended with StopFailure and no
+// Stop. Without that event, as before hq heard it, the same turn left the
+// agent working.
+func TestATurnAnAPIErrorEndedIsDoneWithClaudesErrorLine(t *testing.T) {
+	const line = "Login expired · Please run /login"
+	caseA := [][2]string{
+		{"start", "api-error-session-start"}, {"prompt", "api-error-prompt"},
+		{"answer", "api-error-tool"}, {"answer", "api-error-tool-last"},
+	}
+	failed := [2]string{"fail", "api-error-stop-failure"}
+	again := [][2]string{{"prompt", "api-error-prompt-again"}, {"fail", "api-error-stop-failure-again"}}
+
+	before := fromFiles(t, caseA...)
+	if r := Reduce(before, Reply{}, before[3].Time); r.State != Working || r.TurnEnded != 0 {
+		t.Errorf("case A without its end: %s, turn ended at %d", r.State, r.TurnEnded)
+	}
+	cases := []struct {
+		name  string
+		files [][2]string
+	}{
+		{"case A", append(slices.Clone(caseA), failed)},
+		{"case B, after case A", append(append(slices.Clone(caseA), failed), again...)},
+		{"case B alone", append([][2]string{{"start", "api-error-session-start"}}, again...)},
+	}
+	for _, tc := range cases {
+		events := fromFiles(t, tc.files...)
+		end := events[len(events)-1]
+		reply := Reply{Number: end.Number, Text: line}
+		r := Reduce(events, reply, end.Time.Add(time.Minute))
+		if r.State != Done || r.Last != line || !r.Since.Equal(end.Time) || r.TurnEnded != end.Number || r.Entered.Number != end.Number {
+			t.Errorf("%s: %s %q since %v, turn ended at %d, entered at %d", tc.name, r.State, r.Last, r.Since, r.TurnEnded, r.Entered.Number)
+		}
+		if text, at := (Fold{}).With(events...).LastReply(reply); text != line || !at.Equal(end.Time) {
+			t.Errorf("%s: last reply %q at %v", tc.name, text, at)
+		}
+	}
+
+	// Any other kind of API error ends the turn the same way: hq does not
+	// tell the kinds apart, and takes its line as the last message.
+	events := fromFiles(t, caseA...)
+	other, reply := ParseEvent("000000005.fail.1", []byte(`branch main
+{"session_id":"s","prompt_id":"aaaaaaaa-0000-4000-8000-000000000001","hook_event_name":"StopFailure","error":"rate_limit","last_assistant_message":"API Error: Rate limit reached"}`), events[3].Time.Add(time.Minute))
+	other.Number, reply.Number = 5, 5
+	if other.Facts.Reason != "rate_limit" || reply.Text != "API Error: Rate limit reached" {
+		t.Errorf("rate limit: %+v %+v", other, reply)
+	}
+	if r := Reduce(append(events, other), *reply, other.Time); r.State != Done || r.Last != "API Error: Rate limit reached" || r.TurnEnded != 5 {
+		t.Errorf("rate limit: %s %q, turn ended at %d", r.State, r.Last, r.TurnEnded)
 	}
 }

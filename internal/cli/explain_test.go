@@ -213,6 +213,8 @@ func TestEventWhatTellsEveryKind(t *testing.T) {
 		{hook("Stop", state.Facts{}), "turn end"},
 		{hook("Stop", state.Facts{Question: true, Tasks: []state.EventTask{{ID: "s1", Type: "shell", Status: "running"}, {ID: "w1", Type: "monitor", Status: "running", Artifact: true}, {ID: "d", Type: "shell", Status: "completed"}}}),
 			"turn end, the reply ends with ?, running: shell s1, monitor w1 (the artifact's watch)"},
+		{hook("StopFailure", state.Facts{Reason: "authentication_failed"}), "turn end by an API error (authentication_failed)"},
+		{hook("StopFailure", state.Facts{}), "turn end by an API error"},
 		{hook("PermissionRequest", state.Facts{Tool: "AskUserQuestion"}), "dialog of tool AskUserQuestion"},
 		{hook("Notification", state.Facts{Notice: "permission_prompt"}), "notification (permission_prompt)"},
 		{hook("Notification", state.Facts{}), "notification"},
@@ -284,6 +286,28 @@ func TestExplainShowsThatTheReplyEndsWithAQuestionMark(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "turn end, the reply ends with ?") || !strings.Contains(out, "question") ||
 		strings.Contains(out, "pull request") || strings.Contains(out, "tests pass") {
 		t.Fatalf("exit %d\n%s", code, out)
+	}
+}
+
+// An agent whose turn an API error ended is done on that event, which hq
+// explain names with the error's kind, never Claude's error line (#224).
+func TestExplainNamesTheAPIErrorTheStateRestsOn(t *testing.T) {
+	f := explainFakes()
+	at := func(m int) time.Time { return f.now.Add(time.Duration(m-10) * time.Minute) }
+	f.journal.Put(journalID("id-42"),
+		state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: at(0), Facts: state.Facts{Start: "new"}},
+		hookEvent("SessionStart", "start", at(1), state.Facts{Start: "startup", Session: "s1", Branch: "main"}),
+		hookEvent("UserPromptSubmit", "prompt", at(2), state.Facts{Prompt: "list the files", Turn: "t0", Branch: "main"}),
+		hookEvent(state.KindTurnFailed, state.CaseFail, at(3), state.Facts{Turn: "t0", Reason: "authentication_failed"}),
+	)
+	f.details["id-42"] = state.Detail{Reply: "Login expired · Please run /login"}
+	code, out, errOut := f.run("explain", "42")
+	if code != 0 {
+		t.Fatalf("exit %d %q", code, errOut)
+	}
+	if !strings.Contains(out, "state     done 7m") || !strings.Contains(out, "rests on  4\n") ||
+		!strings.Contains(out, "  4  2026-09-27 11:53:00.000  hook    turn end by an API error (authentication_failed)  done") || strings.Contains(out, "Login") {
+		t.Fatalf("got\n%s", out)
 	}
 }
 
