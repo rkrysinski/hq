@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -50,6 +51,25 @@ func (k *held) ended(within time.Duration) (out string, ok bool) {
 		return k.out.String(), true
 	case <-time.After(within):
 		return "", false
+	}
+}
+
+// copyWait bounds the wait for the hook's copy of its payload.
+const copyWait = 5 * time.Second
+
+// pastItsCopysSecond waits for the hook's copy of payload to be written,
+// then until the clock is past that copy's second.
+func (k *held) pastItsCopysSecond(t *testing.T, root, id string, payload []byte) {
+	t.Helper()
+	p := filepath.Join(Dir(root), id+"."+strconv.Itoa(k.cmd.Process.Pid))
+	for deadline := time.Now().Add(copyWait); ; time.Sleep(50 * time.Millisecond) {
+		if fi, err := os.Stat(p); err == nil && fi.Size() > int64(len(payload)) {
+			time.Sleep(time.Until(fi.ModTime().Truncate(time.Second).Add(time.Second)))
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no copy of the hook's payload after %v: %s", copyWait, p)
+		}
 	}
 }
 
@@ -141,12 +161,13 @@ func TestTheQuestionDialogsHookWaitsForItsDialogsReport(t *testing.T) {
 	askedAgain(t, root, id, payload)
 	// A hook that ended before its dialog's report came, another report's
 	// note newer than its copy, leaves the same questions asked again
-	// waiting too. That report comes over a second after the hook starts:
-	// the /bin/sh of macOS, where this test runs and the hook never does in
-	// an agent (it runs in the sandbox), compares -nt by whole seconds.
+	// waiting too. That report comes in a later second than the hook's
+	// copy: the /bin/sh of macOS, where this test runs and the hook never
+	// does in an agent (it runs in the sandbox), compares -nt by whole
+	// seconds.
 	fire(t, root, root, id, "answer", fixture(t, "answer-ask-several"))
 	k = hold(t, root, root, id, payload)
-	time.Sleep(1100 * time.Millisecond)
+	k.pastItsCopysSecond(t, root, id, payload)
 	fire(t, root, root, id, "dialog", []byte(strings.Replace(string(payload), `"hook_event_name"`, `"agent_id":"a1b2c3","hook_event_name"`, 1)))
 	if out, ok := k.ended(3 * time.Second); !ok || out != "" {
 		t.Fatalf("before its report: %v %q", ok, out)
