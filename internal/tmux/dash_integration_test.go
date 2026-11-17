@@ -729,9 +729,12 @@ func TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack(t *testing.T) {
 	}
 	// tmux detaches and switches the clients in its own time, after Leave
 	// returns: the plain terminal gone, the switched one back on work.
-	var on string
-	if !waitFor(func() bool { on = tm(t, socket, "list-clients", "-F", "#{session_name}"); return on == "work" }) {
-		t.Fatalf("clients still on %q after %v, want the plain terminal detached and the switched one back on work", on, waitBound)
+	var clients string
+	if !waitFor(func() bool {
+		clients = tm(t, socket, "list-clients", "-F", "#{session_name}")
+		return clients == "work"
+	}) {
+		t.Fatalf("clients still on %q after %v, want the plain terminal detached and the switched one back on work", clients, waitBound)
 	}
 	eventually(t, "the plain terminal back in its shell", func() bool {
 		return strings.Contains(tm(t, plain, "capture-pane", "-p"), "back-in-the-shell")
@@ -1044,12 +1047,12 @@ func resizes(t *testing.T, file string) int {
 
 // winchCounter is an agent's program that notes every resize of its pane in
 // file, as Claude redraws its screen on each (#130), and a mark for every
-// SIGUSR1, which handled sends it.
+// SIGUSR1, which resizesNoted sends it.
 func winchCounter(file string) []string {
 	return []string{"sh", "-c", `trap 'echo winch >>"$1"' WINCH; trap 'echo mark >>"$1"' USR1; echo ready; while :; do sleep 0.05; done`, "sh", file}
 }
 
-// handled waits until pane's program, a winchCounter noting in file, has
+// resizesNoted waits until pane's program, a winchCounter noting in file, has
 // noted every resize tmux sent it before the call. tmux sends a resize
 // before it takes its next command, so the one this call asks for the
 // program's pid comes after them: but not a resize tmux holds back, the
@@ -1059,7 +1062,7 @@ func winchCounter(file string) []string {
 // ran all together after it, in the order of their numbers rather than of
 // their coming, so a resize can be noted after the first mark, never after
 // the second.
-func handled(t *testing.T, socket, pane, file string) {
+func resizesNoted(t *testing.T, socket, pane, file string) {
 	t.Helper()
 	pid, err := strconv.Atoi(tm(t, socket, "display-message", "-p", "-t", pane, "#{pane_pid}"))
 	if err != nil {
@@ -1070,12 +1073,13 @@ func handled(t *testing.T, socket, pane, file string) {
 		return strings.Count(string(b), "mark")
 	}
 	n := marks()
-	for i := n + 1; i <= n+2; i++ {
+	for want := n + 1; want <= n+2; want++ {
 		if err := syscall.Kill(pid, syscall.SIGUSR1); err != nil {
 			t.Fatal(err)
 		}
-		if !waitFor(func() bool { return marks() >= i }) {
-			t.Fatalf("%s's program noted %d marks of %d after %v", pane, marks()-n, i-n, waitBound)
+		got := n
+		if !waitFor(func() bool { got = marks(); return got >= want }) {
+			t.Fatalf("%s's program noted %d marks of %d after %v", pane, got-n, want-n, waitBound)
 		}
 	}
 }
@@ -1105,8 +1109,8 @@ func TestDockingMovesAgentsWithoutResizingThem(t *testing.T) {
 		return strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", ap), "ready") &&
 			strings.Contains(tm(t, socket, "capture-pane", "-p", "-t", bp), "ready") && resizes(t, bFile) == 1
 	})
-	handled(t, socket, ap, aFile)
-	handled(t, socket, bp, bFile)
+	resizesNoted(t, socket, ap, aFile)
+	resizesNoted(t, socket, bp, bFile)
 	before := resizes(t, aFile)
 	for _, step := range []struct {
 		w    string
@@ -1123,11 +1127,12 @@ func TestDockingMovesAgentsWithoutResizingThem(t *testing.T) {
 	// b's fit comes within 250 ms of its resize to 70x20, so tmux may hold
 	// it back for the rest of that time. Then every resize tmux sent the
 	// programs is noted; one it still holds back is not (#242).
-	if !waitFor(func() bool { return resizes(t, bFile) >= 2 }) {
-		t.Fatalf("b resized %d times after %v, want 2: to 70x20, then fitted once", resizes(t, bFile), waitBound)
+	b := 0
+	if !waitFor(func() bool { b = resizes(t, bFile); return b >= 2 }) {
+		t.Fatalf("b resized %d times after %v, want 2: to 70x20, then fitted once", b, waitBound)
 	}
-	handled(t, socket, ap, aFile)
-	handled(t, socket, bp, bFile)
+	resizesNoted(t, socket, ap, aFile)
+	resizesNoted(t, socket, bp, bFile)
 	if got := resizes(t, aFile) - before; got != 0 {
 		t.Errorf("a resized %d times in five docks", got)
 	}

@@ -462,23 +462,27 @@ func longInputPasses(t *testing.T) bool {
 	if err := syscall.Mkfifo(start, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	tmux := func(args ...string) {
-		t.Helper()
-		if out, err := exec.Command("tmux", append([]string{"-u", "-L", socket}, args...)...).CombinedOutput(); err != nil {
-			t.Fatalf("tmux %v: %v %s", args, err, out)
-		}
-	}
-	tmux("new-session", "-d", "sh", "-c", `stty raw -echo; echo ready; read go <"$1"; exec cat >>"$0"`, got, start)
+	tm(t, socket, "new-session", "-d", "sh", "-c", `stty raw -echo; echo ready; read go <"$1"; exec cat >>"$0"`, got, start)
 	eventually(t, "the program", func() bool {
-		out, _ := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p").Output()
-		return strings.Contains(string(out), "ready")
+		return strings.Contains(tm(t, socket, "capture-pane", "-p"), "ready")
 	})
 	const n = 5000
-	tmux("send-keys", "-l", strings.Repeat("x", n))
+	tm(t, socket, "send-keys", "-l", strings.Repeat("x", n))
 	// tmux writes the input to the pane before it takes its next command.
-	tmux("display-message", "-p", "")
-	// Opening the pipe waits for the program, which opens it next.
-	if err := os.WriteFile(start, []byte("go\n"), 0o600); err != nil {
+	tm(t, socket, "display-message", "-p", "")
+	// The pipe opens for writing once the program has opened it to read,
+	// which it does next.
+	var pipe *os.File
+	if !waitFor(func() bool {
+		var err error
+		pipe, err = os.OpenFile(start, os.O_WRONLY|syscall.O_NONBLOCK, 0)
+		return err == nil
+	}) {
+		t.Fatalf("the program did not open its pipe to read within %v", waitBound)
+	}
+	_, err := pipe.WriteString("go\n")
+	pipe.Close()
+	if err != nil {
 		t.Fatal(err)
 	}
 	return waitFor(func() bool { b, _ := os.ReadFile(got); return len(b) == n })
