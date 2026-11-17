@@ -1,0 +1,20 @@
+$ go test -tags integration -count=1 -run 'TestMutationEndsWhenTheMachineFailsTheTests' -v ./tools/testgate   # on 5972424, with this branch's tools/testgate/mutation_integration_test.go
+=== RUN   TestMutationEndsWhenTheMachineFailsTheTests
+    mutation_integration_test.go:144: err the unit tests fail without a mutant after the mutants ran: the machine failed them, not a mutant, so no mutant is judged: exit status 1
+        ok  	example.com/m/cmd/tool	0.001s
+        ok  	example.com/m/lib	0.001s
+        --- FAIL: TestDisk (0.00s)
+            machine_test.go:13: no space left on device (simulated)
+        FAIL
+        FAIL	example.com/m/machine	0.001s
+        ok  	example.com/m/user	0.001s
+        FAIL
+        ; want one saying the tests that failed with a mutant fail without it too, with their output
+--- FAIL: TestMutationEndsWhenTheMachineFailsTheTests (6.04s)
+=== RUN   TestMutationEndsWhenTheMachineFailsTheTestsOnlyWhileTheMutantsRun
+    mutation_integration_test.go:157: err <nil>; want one saying the tests that failed with a mutant fail without it too, with their output
+    mutation_integration_test.go:157: printed ["mutation: 3 killed, 0 alive, 0 timed out, 1 not covered against main on 04257a4d8b654b19406b4fa04b61ba2408d2c673 with uncommitted changes"], failed false; want nothing
+--- FAIL: TestMutationEndsWhenTheMachineFailsTheTestsOnlyWhileTheMutantsRun (5.57s)
+FAIL
+FAIL	github.com/rkrysinski/hq/tools/testgate	11.618s
+FAIL

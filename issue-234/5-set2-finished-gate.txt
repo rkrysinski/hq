@@ -1,0 +1,111 @@
+# set2: the finished gate (this branch at 09cd29d) on #213's change, head 7df7e68 against fadb0e2, in a worktree of that head
+# Machine: 10 cores. Build cache emptied at 14:52 UTC; warmed before the set with one unmeasured build of 7df7e68 (go build ./..., unit tests compiled):
+#   warm-up start 2026-11-17T16:16:31Z
+#   warm-up done 2026-11-17T16:16:32Z
+# set set2: mode whole (11945 MB free at its start)
+# Per run: df -h / and the time (UTC) when the run was due; for an idle run the wait for a 1-minute load under 1.0; uptime when it started (the sandbox's local time, UTC+1); its exit code and duration; df -h / after it. A loaded run kept every core busy with a busy loop of its own (10 processes) for the whole run.
+
+## set2 idle-1
+# overlay          20G  6.9G   12G  37% /
+# 2026-11-17T16:16:32Z
+# waited 140 s for the 1-minute load under 1.0
+#  17:18:52 up  8:16,  0 users,  load average: 0.98, 2.87, 5.27
+# exit 1, 152 s
+# overlay          20G  6.9G   12G  38% /
+$ testgate mutation fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4
+timed out  internal/cli/mcp.go:720:13 conditionals boundary
+timed out  internal/cli/mcp.go:720:13 conditionals negation
+alive      internal/cli/sendwait.go:115:23 conditionals boundary
+alive      internal/cli/sendwait.go:117:23 conditionals boundary
+alive      internal/cli/sendwait.go:119:34 conditionals boundary
+alive      internal/cli/sendwait.go:195:8 conditionals boundary
+alive      internal/cli/sendwait.go:204:17 conditionals boundary
+alive      internal/cli/sendwait.go:251:35 conditionals boundary
+mutation: 54 killed, 6 alive, 2 timed out, 32 not covered against fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4 on 7df7e68c3ef5f278db7cdc1e786511bbd96342c7
+
+## set2 idle-2
+# overlay          20G  6.9G   12G  38% /
+# 2026-11-17T16:21:24Z
+# waited 290 s for the 1-minute load under 1.0
+#  17:26:14 up  8:24,  0 users,  load average: 0.91, 4.03, 5.45
+# exit 1, 152 s
+# overlay          20G  6.9G   12G  38% /
+$ testgate mutation fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4
+timed out  internal/cli/mcp.go:720:13 conditionals boundary
+timed out  internal/cli/mcp.go:720:13 conditionals negation
+alive      internal/cli/sendwait.go:115:23 conditionals boundary
+alive      internal/cli/sendwait.go:117:23 conditionals boundary
+alive      internal/cli/sendwait.go:119:34 conditionals boundary
+alive      internal/cli/sendwait.go:195:8 conditionals boundary
+alive      internal/cli/sendwait.go:204:17 conditionals boundary
+alive      internal/cli/sendwait.go:251:35 conditionals boundary
+mutation: 54 killed, 6 alive, 2 timed out, 32 not covered against fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4 on 7df7e68c3ef5f278db7cdc1e786511bbd96342c7
+
+## set2 idle-3
+# overlay          20G  6.9G   12G  38% /
+# 2026-11-17T16:28:46Z
+# waited 110 s for the 1-minute load under 1.0
+#  17:30:36 up  8:28,  0 users,  load average: 0.99, 3.93, 5.23
+# exit 1, 152 s
+# overlay          20G  6.9G   12G  38% /
+$ testgate mutation fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4
+timed out  internal/cli/mcp.go:720:13 conditionals boundary
+timed out  internal/cli/mcp.go:720:13 conditionals negation
+alive      internal/cli/sendwait.go:115:23 conditionals boundary
+alive      internal/cli/sendwait.go:117:23 conditionals boundary
+alive      internal/cli/sendwait.go:119:34 conditionals boundary
+alive      internal/cli/sendwait.go:195:8 conditionals boundary
+alive      internal/cli/sendwait.go:204:17 conditionals boundary
+alive      internal/cli/sendwait.go:251:35 conditionals boundary
+mutation: 54 killed, 6 alive, 2 timed out, 32 not covered against fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4 on 7df7e68c3ef5f278db7cdc1e786511bbd96342c7
+
+## set2 loaded-1
+# overlay          20G  6.9G   12G  38% /
+# 2026-11-17T16:33:08Z
+#  17:33:08 up  8:31,  0 users,  load average: 6.41, 5.76, 5.78
+# exit 1, 184 s
+# overlay          20G  6.9G   12G  38% /
+$ testgate mutation fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4
+timed out  internal/cli/mcp.go:720:13 conditionals boundary
+timed out  internal/cli/mcp.go:720:13 conditionals negation
+alive      internal/cli/sendwait.go:115:23 conditionals boundary
+alive      internal/cli/sendwait.go:117:23 conditionals boundary
+alive      internal/cli/sendwait.go:119:34 conditionals boundary
+alive      internal/cli/sendwait.go:195:8 conditionals boundary
+alive      internal/cli/sendwait.go:204:17 conditionals boundary
+alive      internal/cli/sendwait.go:251:35 conditionals boundary
+mutation: 54 killed, 6 alive, 2 timed out, 32 not covered against fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4 on 7df7e68c3ef5f278db7cdc1e786511bbd96342c7
+
+## set2 loaded-2
+# overlay          20G  6.9G   12G  38% /
+# 2026-11-17T16:36:12Z
+#  17:36:12 up  8:34,  0 users,  load average: 20.20, 13.96, 9.06
+# exit 1, 184 s
+# overlay          20G  6.9G   12G  38% /
+$ testgate mutation fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4
+timed out  internal/cli/mcp.go:720:13 conditionals boundary
+timed out  internal/cli/mcp.go:720:13 conditionals negation
+alive      internal/cli/sendwait.go:115:23 conditionals boundary
+alive      internal/cli/sendwait.go:117:23 conditionals boundary
+alive      internal/cli/sendwait.go:119:34 conditionals boundary
+alive      internal/cli/sendwait.go:195:8 conditionals boundary
+alive      internal/cli/sendwait.go:204:17 conditionals boundary
+alive      internal/cli/sendwait.go:251:35 conditionals boundary
+mutation: 54 killed, 6 alive, 2 timed out, 32 not covered against fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4 on 7df7e68c3ef5f278db7cdc1e786511bbd96342c7
+
+## set2 loaded-3
+# overlay          20G  6.9G   12G  38% /
+# 2026-11-17T16:39:16Z
+#  17:39:16 up  8:37,  0 users,  load average: 23.17, 19.81, 12.33
+# exit 1, 182 s
+# overlay          20G  6.9G   12G  38% /
+$ testgate mutation fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4
+timed out  internal/cli/mcp.go:720:13 conditionals boundary
+timed out  internal/cli/mcp.go:720:13 conditionals negation
+alive      internal/cli/sendwait.go:115:23 conditionals boundary
+alive      internal/cli/sendwait.go:117:23 conditionals boundary
+alive      internal/cli/sendwait.go:119:34 conditionals boundary
+alive      internal/cli/sendwait.go:195:8 conditionals boundary
+alive      internal/cli/sendwait.go:204:17 conditionals boundary
+alive      internal/cli/sendwait.go:251:35 conditionals boundary
+mutation: 54 killed, 6 alive, 2 timed out, 32 not covered against fadb0e2d1fb9e8db9bd4733b2321c23d6f970ce4 on 7df7e68c3ef5f278db7cdc1e786511bbd96342c7
