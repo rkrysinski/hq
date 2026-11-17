@@ -118,7 +118,7 @@ func (s Files) Ingest(root, id string) error {
 		if !ok {
 			continue
 		}
-		if e.Kind == state.KindTurnEnd {
+		if state.EndsTurn(e.Kind) {
 			reply, turnEnd = r, len(events)
 		}
 		if a, ok := state.AskedOf(e, data); ok {
@@ -355,7 +355,7 @@ func (s Files) ReadFrom(id string, from int64) (Journal, error) {
 	if j.Events, j.From, j.Next, err = readEventsFrom(path, from); err != nil {
 		return Journal{}, err
 	}
-	if n := latest(j.Events, func(e state.Event) bool { return e.Kind == state.KindTurnEnd }); n > 0 {
+	if n := latest(j.Events, func(e state.Event) bool { return state.EndsTurn(e.Kind) }); n > 0 {
 		var r state.Reply
 		if readJSON(path+replySuffix, &r) && r.Number == n {
 			j.Reply = r

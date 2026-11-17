@@ -37,6 +37,7 @@ func TestParseEventTakesOnlyWhatTheRulesRead(t *testing.T) {
 		{"session-start-resume", "SessionStart", Facts{Start: "resume"}},
 		{"session-end", "SessionEnd", Facts{Reason: "prompt_input_exit"}},
 		{"stop-background", "Stop", Facts{Tasks: []EventTask{{ID: "a58b43841609db047", Type: "subagent", Status: "running"}}}},
+		{"api-error-stop-failure", "StopFailure", Facts{Reason: "authentication_failed"}},
 	} {
 		e, _ := ParseEvent("000000001.42", eventFile(t, tc.fixture), at)
 		if e.Kind != tc.kind || e.Source != SourceHook || e.File != "000000001.42" || !e.Time.Equal(at) || e.Facts.Branch != "feat-42" {
@@ -69,6 +70,10 @@ func TestParseEventTakesOnlyWhatTheRulesRead(t *testing.T) {
 	}
 	if data, _ := json.Marshal(e); strings.Contains(string(data), "README") {
 		t.Errorf("the event keeps the reply: %s", data)
+	}
+	// A turn an API error ended: Claude's error line is its reply.
+	if e, r := ParseEvent("000000002.fail.1", eventFile(t, "api-error-stop-failure"), at); r == nil || r.Text != "Login expired · Please run /login" || e.Facts.Hook != CaseFail {
+		t.Errorf("api error: %+v %+v", e, r)
 	}
 	_, r = ParseEvent("000000003.1", eventFile(t, "stop-own-monitor"), at)
 	if r == nil || len(r.Tasks) == 0 || r.Tasks[0].ID == "" {

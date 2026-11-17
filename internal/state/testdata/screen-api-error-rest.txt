@@ -1,0 +1,24 @@
+▝▜██████▀  Sonnet 5.5 · API Usage Billing
+ ▝▝   ▝▝   /w/app
+
+  Fable 5.2 is here for your longest and toughest coding tasks. It draws down
+  usage faster than Opus 5.5. Switch with /model.
+
+❯ Run the Bash command sleep 20 ten times, one after another, each as its own
+  foreground Bash call, never in the background and never combined. After the
+  tenth, reply with the single word: done
+╭────────────────────────╮
+│ ● Claude               │
+│ ▸ 2 komendy · ✓ · 49 s │
+╰────────────────────────╯
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                    │
+│ Login expired · Please run /login                                           │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+────────────────────────────────────────────────────────────────────────────────
+❯ Once fixed, resend your message
+────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Sonnet 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                   ◆ Tools ▾
