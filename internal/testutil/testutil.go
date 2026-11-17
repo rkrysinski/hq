@@ -170,21 +170,41 @@ func WindowsStubs(dir string) (map[string]string, error) {
 }
 
 var (
+	mainRuns       bool
 	fakeClaudeOnce sync.Once
+	fakeClaudeDir  string
 	fakeClaudeBin  string
 	fakeClaudeErr  error
 )
 
-// FakeClaude builds the fake claude (once per test binary) and has the stub
-// sbx run it for this test's agents, so they fire the injected hooks.
+// Main runs a package's tests, then removes the fake claude FakeClaude
+// built for them. A package whose tests call FakeClaude runs them from its
+// TestMain with os.Exit(testutil.Main(m)); without it, every test run would
+// leave a copy of the fake in the temporary directory (#226).
+func Main(m *testing.M) int {
+	mainRuns = true
+	code := m.Run()
+	if fakeClaudeDir != "" {
+		_ = os.RemoveAll(fakeClaudeDir)
+	}
+	return code
+}
+
+// FakeClaude builds the fake claude (once per test binary, which removes
+// it in Main) and has the stub sbx run it for this test's agents, so they
+// fire the injected hooks.
 func FakeClaude(t *testing.T) {
 	t.Helper()
+	if !mainRuns {
+		t.Fatal("testutil.FakeClaude: run this package's tests with testutil.Main from its TestMain, which removes the fake claude when they end (#226)")
+	}
 	fakeClaudeOnce.Do(func() {
 		dir, err := os.MkdirTemp("", "hq-fakeclaude-")
 		if err != nil {
 			fakeClaudeErr = err
 			return
 		}
+		fakeClaudeDir = dir
 		_, file, _, _ := runtime.Caller(0)
 		fakeClaudeBin = filepath.Join(dir, "claude")
 		cmd := exec.Command("go", "build", "-o", fakeClaudeBin, "github.com/rkrysinski/hq/tools/fakeclaude")

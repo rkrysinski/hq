@@ -84,9 +84,12 @@ func TestTheListStepsAsideOnlyForAnHqOfAnotherGeneration(t *testing.T) {
 	}
 	hq("new", "a", "say hi")
 
-	// The terminal runs hq, which docks a as it opens the dashboard.
+	// The terminal runs hq, which docks a as it opens the dashboard. Its
+	// new server has the test's environment, so the command line names only
+	// what the test sets over it: tmux refuses a command of more than 16 KiB,
+	// which the whole environment can exceed (#226).
 	term := testutil.TmuxSocket(t)
-	args := append([]string{"-u", "-L", term, "new-session", "-d", "-x", "120", "-y", "30", "-c", repo, "env"}, env...)
+	args := append(append([]string{"-u", "-L", term, "new-session", "-d", "-x", "120", "-y", "30", "-c", repo, "env"}, s.set...), "SHELL=/bin/sh")
 	if out, err := exec.Command("tmux", append(args, "sh", "-c", `"$@"; exec sleep 600`, "sh", s.bin)...).CombinedOutput(); err != nil {
 		t.Fatalf("terminal: %v %s", err, out)
 	}

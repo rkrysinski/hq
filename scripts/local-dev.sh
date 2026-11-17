@@ -34,9 +34,14 @@
 # install). Each build is renamed into place, so a binary still running is
 # replaced without "Text file busy".
 #
+# Temporary files go to a directory of the checkout's own outside the tree,
+# hq-dev-ID in the caller's TMPDIR or /tmp, exported as TMPDIR to hq and so
+# to the tmux server it starts (#226).
+#
 # Usage: scripts/local-dev.sh [--stub MODE] [--before] [hq arguments...]
 #        scripts/local-dev.sh --kill-server   end this checkout's tmux server
 #                                             and remove its stub environment
+#                                             and temporary directory
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -51,6 +56,8 @@ esac
 HQ_TMUX_SOCKET="hq-dev-$ID"
 export HQ_TMUX_SOCKET
 STUB_ENV=/tmp/hq-stub-$ID
+base=${TMPDIR:-/tmp}
+TMP_DIR=${base%/}/hq-dev-$ID
 TESTUTIL=$ROOT/internal/testutil
 GH_CONFIG_DIR=${GH_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/gh}
 XDG_CONFIG_HOME="$ROOT/.local-dev/config"
@@ -82,6 +89,10 @@ kill_server() {
         rm -rf "$STUB_ENV"
         echo "stub environment $STUB_ENV removed"
     fi
+    if [ -d "$TMP_DIR" ]; then
+        rm -rf "$TMP_DIR"
+        echo "temporary directory $TMP_DIR removed"
+    fi
 }
 
 mode= before=
@@ -111,6 +122,9 @@ case $mode in
 '' | native | wsl-linux | wsl-exe | none) ;;
 *) die "unknown --stub mode $mode: native, wsl-linux, wsl-exe or none" ;;
 esac
+mkdir -p "$TMP_DIR"
+TMPDIR=$TMP_DIR
+export TMPDIR
 
 # A tmux server keeps the environment of the hq that started it, which its
 # panes (the stub sbx) run with: refuse to mix modes on one server.

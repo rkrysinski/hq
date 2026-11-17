@@ -32,7 +32,7 @@ Levels are Go build tags (none, `integration`, `e2e`), and the end-to-end journe
 
 hq is a terminal program: this section takes the place of `AGENTS.md`, *Local run and browser verification*, and `scripts/local-dev.project.sh` is not used.
 
-Run hq from the issue's worktree with `scripts/local-dev.sh [hq arguments]` (skill `local-dev`): it builds the checkout and runs it against a tmux server private to that worktree, so it never touches the user's own hq or other worktrees. Drive it the way a person would before calling the work done; `scripts/local-dev.sh --kill-server` cleans up.
+Run hq from the issue's worktree with `scripts/local-dev.sh [hq arguments]` (skill `local-dev`): it builds the checkout and runs it against a tmux server private to that worktree, with its temporary files in a directory of the worktree's own outside it (`TMPDIR`), so it never touches the user's own hq or other worktrees. Drive it the way a person would before calling the work done; `scripts/local-dev.sh --kill-server` cleans up.
 
 ## Pushing
 

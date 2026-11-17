@@ -24,6 +24,16 @@ set -u
 
 cd "$(dirname "$0")/.." || exit 1
 
+# Every temporary file of the run, the tests' among them, lives in a
+# directory of this checkout's own outside the tree, in the caller's
+# TMPDIR or /tmp (#226): a test run leaves no file loose in the shared
+# temporary directory, and removing what this checkout's runs left there
+# never touches another checkout's run. A run that ends leaves it empty.
+base=${TMPDIR:-/tmp}
+TMPDIR=${base%/}/hq-check-$(printf %s "$(pwd)" | cksum | cut -d' ' -f1)
+mkdir -p "$TMPDIR" || exit 1
+export TMPDIR
+
 commit=$(git rev-parse HEAD) || exit 1
 if [ -n "$(git status --porcelain)" ]; then
 	commit="$commit with uncommitted changes"
