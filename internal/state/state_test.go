@@ -66,6 +66,19 @@ func TestCleanStripsEscapesAndControlCharacters(t *testing.T) {
 	}
 }
 
+// Claude Code draws a suggested next prompt, faint, in an empty prompt box
+// after a turn; accepted, it would pass as the user's word (#230). The
+// settings hq gives Claude turn it off: absent or true, it stays on.
+func TestSettingsTurnPromptSuggestionsOff(t *testing.T) {
+	var s map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(Settings("a", "0123abcd", "")), &s); err != nil {
+		t.Fatal(err)
+	}
+	if got := string(s["promptSuggestionEnabled"]); got != "false" {
+		t.Fatalf("promptSuggestionEnabled: %q, want false", got)
+	}
+}
+
 func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	raw := Settings("a", "0123abcd", `\u0007`)
 	if !strings.Contains(raw, `"HQ_ID":"0123abcd"`) {
