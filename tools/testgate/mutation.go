@@ -19,7 +19,11 @@ import (
 )
 
 // The mutation tool: go-gremlins, pinned here and nowhere else, so every
-// agent runs the same one and go.mod names no tool (#204).
+// agent runs the same one and go.mod names no tool (#204). The run's go
+// (mutationgo.go) rests on two of this version's internals: only a mutant's
+// go test has -failfast (isMutantRun), and its -timeout is the mutant's time
+// limit plus 2 s (gremlinsTimeoutSlack). A new version is checked against
+// both.
 const (
 	gremlinsPackage = "github.com/go-gremlins/gremlins/cmd/gremlins"
 	gremlinsVersion = "v0.6.0"
@@ -194,13 +198,14 @@ func hasMutableGo(paths []string) bool {
 // mutationEnv is the environment of every command a run starts inside its
 // temporary directory tmp: the build cache, the temporary files and the
 // installed tool all live there, Go's own flags and git's and the tool's
-// variables from outside are dropped, and colours are off.
+// variables from outside are dropped, as are those of an outer run's go
+// (mutationGo), and colours are off.
 func mutationEnv(environ []string, tmp string) []string {
 	var env []string
 	for _, kv := range environ {
 		name, _, _ := strings.Cut(kv, "=")
 		switch {
-		case strings.HasPrefix(name, "GIT_"), strings.HasPrefix(name, "GREMLINS_"):
+		case strings.HasPrefix(name, "GIT_"), strings.HasPrefix(name, "GREMLINS_"), strings.HasPrefix(name, "HQ_MUTATION_"):
 			continue
 		case name == "GOCACHE", name == "GOFLAGS", name == "GOBIN", name == "TMPDIR", name == "GOTMPDIR", name == "NO_COLOR":
 			continue
@@ -562,13 +567,20 @@ func runGremlins(ctx context.Context, top, mergeBase, tmp string, parts []part, 
 func runTool(ctx context.Context, src, dir, config, diffRef string, env []string, progress io.Writer) ([]mutant, error) {
 	report := filepath.Join(dir, "report.json")
 	gremlins := filepath.Join(filepath.Dir(src), "bin", "gremlins")
+	toolEnv, machine, err := mutationGoEnv(env, src, dir)
+	if err != nil {
+		return nil, err
+	}
 	fmt.Fprintln(progress, "mutation: running the unit tests once, then once per mutant")
 	start := time.Now()
-	out, err := command(ctx, src, env, gremlins, gremlinsArgs(config, report, diffRef)...).CombinedOutput()
+	out, err := command(ctx, src, toolEnv, gremlins, gremlinsArgs(config, report, diffRef)...).CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("go-gremlins failed (do the unit tests pass?): %v\n%s", err, out)
 	}
 	fmt.Fprintf(progress, "mutation: done in %s\n", time.Since(start).Round(time.Second))
+	if err := machineFailed(machine); err != nil {
+		return nil, err
+	}
 	f, err := os.Open(report)
 	if errors.Is(err, fs.ErrNotExist) && strings.Contains(string(out), "No results to report") {
 		return nil, nil
@@ -578,6 +590,66 @@ func runTool(ctx context.Context, src, dir, config, diffRef string, env []string
 	}
 	defer f.Close()
 	return parseGremlinsReport(f)
+}
+
+// mutationGoEnv is env for the tool with the go of mutationGo first in its
+// PATH, the gate's own binary linked as go in a directory of dir, and the
+// directory of dir where that go tells the gate the machine failed, ready:
+// its file ok and its directory records (tellMachineFailed, machineFailed).
+func mutationGoEnv(env []string, src, dir string) (toolEnv []string, machine string, err error) {
+	self, err := os.Executable()
+	if err != nil {
+		return nil, "", err
+	}
+	realGo, err := exec.LookPath("go")
+	if err != nil {
+		return nil, "", err
+	}
+	bin, machine := filepath.Join(dir, "mutation-go"), filepath.Join(dir, "machine")
+	for _, d := range []string{bin, machine, filepath.Join(machine, "records")} {
+		if err := os.Mkdir(d, 0o755); err != nil {
+			return nil, "", err
+		}
+	}
+	if err := os.WriteFile(filepath.Join(machine, "ok"), nil, 0o644); err != nil {
+		return nil, "", err
+	}
+	if err := os.Symlink(self, filepath.Join(bin, "go")); err != nil {
+		return nil, "", err
+	}
+	path := bin
+	for _, kv := range env {
+		if p, ok := strings.CutPrefix(kv, "PATH="); ok {
+			path = bin + string(os.PathListSeparator) + p
+		}
+	}
+	return append(slices.Clip(env), "PATH="+path, envRealGo+"="+realGo, envSource+"="+src, envMachine+"="+machine),
+		machine, nil
+}
+
+// machineFailed is the error of a run in which the tests that failed with a
+// mutant failed without it too (mutationGo told so in machine: it removed
+// machine/ok and left a record in machine/records when it could), nil when
+// none did.
+func machineFailed(machine string) error {
+	records, err := filepath.Glob(filepath.Join(machine, "records", "machine-*"))
+	if err != nil {
+		return err
+	}
+	_, okErr := os.Stat(filepath.Join(machine, "ok"))
+	if okErr == nil && len(records) == 0 {
+		return nil
+	}
+	const failed = "the unit tests that failed with a mutant fail without it too"
+	const cause = "the machine or a test that fails now and then failed them, not the mutant, so no mutant is judged"
+	if len(records) == 0 {
+		return fmt.Errorf("%s: %s; no record of it could be written (is the disk full?)", failed, cause)
+	}
+	one, err := os.ReadFile(records[0])
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("%s, in %d of the mutants' runs: %s; one of them:\n%s", failed, len(records), cause, one)
 }
 
 // renameSources are the deleted files that git, in nameStatus (git diff
