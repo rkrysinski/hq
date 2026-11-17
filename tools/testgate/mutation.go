@@ -275,7 +275,7 @@ func resolveParts(top, dir string, paths, files []string) ([]part, error) {
 		}
 		rel, err := filepath.Rel(realTop, resolved)
 		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			return nil, fmt.Errorf("the part %s lies outside the repository %s", p, top)
+			return nil, fmt.Errorf("the part %s lies outside the repository", p)
 		}
 		rel = filepath.ToSlash(rel)
 		var covered []string

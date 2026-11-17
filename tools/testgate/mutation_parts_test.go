@@ -64,7 +64,7 @@ func TestAPartThatIsNoGoCodeOfTheRepositoryIsAnError(t *testing.T) {
 		{"nothing", "the part nothing does not exist"},
 		{"lib/gone.go", "the part lib/gone.go does not exist"},
 		{outside, "the part " + outside + " lies outside the repository"},
-		{"../" + filepath.Base(outside), "lies outside the repository"},
+		{"../" + filepath.Base(outside), "the part ../" + filepath.Base(outside) + " lies outside the repository"},
 		{"link/x.go", "the part link/x.go lies outside the repository"},
 		{"notes", "the part notes holds no Go file of the repository"},
 		{"ignored", "the part ignored holds no Go file of the repository"},
@@ -72,7 +72,7 @@ func TestAPartThatIsNoGoCodeOfTheRepositoryIsAnError(t *testing.T) {
 		{"ignored/ignored.go", "the part ignored/ignored.go is not a Go file of the repository"},
 	} {
 		parts, err := resolveParts(top, top, []string{"lib", c.path}, files)
-		if err == nil || !strings.Contains(err.Error(), c.want) {
+		if err == nil || err.Error() != c.want {
 			t.Errorf("%s: parts %q, err %v; want one saying %q", c.path, parts, err, c.want)
 		}
 	}
