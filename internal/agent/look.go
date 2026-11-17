@@ -34,7 +34,8 @@ func NewFolds() *Folds { return &Folds{by: map[string]*folded{}} }
 // folded is an agent's journal folded up to position next: the fold, the
 // journal's reply and ask, what decides whether evidence appended now
 // stands (journal.Standing), and what the counter held at its last read
-// (journal.Journal.Through).
+// (journal.Journal.Through). gone says the look found the journal gone
+// (update).
 type folded struct {
 	next     int64
 	through  int64
@@ -42,6 +43,7 @@ type folded struct {
 	reply    state.Reply
 	ask      state.Asked
 	standing journal.Standing
+	gone     bool
 }
 
 // newFolded is an empty journal folded.
@@ -71,15 +73,18 @@ func (fs *Folds) of(id string) *folded {
 
 // update folds the events appended to agent id's journal since f's
 // position; a journal that no longer reaches it (removed meanwhile) is
-// folded anew from its start.
+// folded anew from its start. It notes in gone, until the look's next
+// read, a journal removed meanwhile and one that holds nothing.
 func (f *folded) update(store journal.Store, id string) error {
 	j, err := store.ReadFrom(id, f.next)
 	if err != nil {
 		return err
 	}
+	gone := f.gone || j.From != f.next || j.Next == 0
 	if j.From != f.next {
 		*f = *newFolded()
 	}
+	f.gone = gone
 	f.fold = f.fold.With(j.Events...)
 	f.standing.Follow(j.Events...)
 	if j.Reply.Number != 0 {
@@ -131,6 +136,7 @@ func (a *Agent) read(store journal.Store, f *folded) bool {
 		return false
 	}
 	_ = store.Ingest(a.RepoPath, a.ID)
+	f.gone = false
 	if f.update(store, a.ID) != nil {
 		a.unread()
 		return false
