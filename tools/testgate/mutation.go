@@ -523,6 +523,12 @@ func runGremlins(ctx context.Context, top, mergeBase, tmp string, parts []part, 
 	if err := os.RemoveAll(filepath.Join(tmp, "cache")); err != nil {
 		return nil, err
 	}
+	// How git pairs deleted and new files over the whole tree, for the
+	// parts to pair them the same way.
+	diff, err := command(ctx, src, env, "git", "diff", "--merge-base", mergeBase, "--name-status", "-z").Output()
+	if err != nil {
+		return nil, fmt.Errorf("git diff in the staging repository: %v", err)
+	}
 	var ms []mutant
 	for i, p := range parts {
 		fmt.Fprintf(progress, "mutation: part %d of %d, %s\n", i+1, len(parts), p.path)
@@ -531,7 +537,11 @@ func runGremlins(ctx context.Context, top, mergeBase, tmp string, parts []part, 
 		if err := os.MkdirAll(filepath.Join(dir, "tmp"), 0o755); err != nil {
 			return nil, err
 		}
-		ref, err := partCommit(ctx, src, gitDir, dir, mergeBase, p.files, partEnv)
+		sources, err := renameSources(string(diff), p.files)
+		if err != nil {
+			return nil, err
+		}
+		ref, err := partCommit(ctx, src, gitDir, dir, mergeBase, append(slices.Clip(p.files), sources...), partEnv)
 		if err != nil {
 			return nil, fmt.Errorf("the part %s: %w", p.path, err)
 		}
@@ -570,16 +580,40 @@ func runTool(ctx context.Context, src, dir, config, diffRef string, env []string
 	return parseGremlinsReport(f)
 }
 
+// renameSources are the deleted files that git, in nameStatus (git diff
+// --name-status -z over the whole tree), pairs as renamed with one of
+// files, in path order. A part gets back exactly these: a deleted file
+// put back is a rename's source to git, so the part pairs its files as the
+// whole tree does and gets a mutant only in the lines the run over the
+// whole tree changes, no fewer (a deleted file paired with another part's
+// file) and no more (a renamed file whose source is missing).
+func renameSources(nameStatus string, files []string) ([]string, error) {
+	fields := strings.Split(strings.TrimSuffix(nameStatus, "\x00"), "\x00")
+	var sources []string
+	for i := 0; i < len(fields) && fields[i] != ""; i += 2 {
+		if !strings.HasPrefix(fields[i], "R") && !strings.HasPrefix(fields[i], "C") {
+			continue
+		}
+		if i+2 >= len(fields) {
+			return nil, fmt.Errorf("git diff --name-status: %s without its new path", fields[i])
+		}
+		if strings.HasPrefix(fields[i], "R") && slices.Contains(files, fields[i+2]) {
+			sources = append(sources, fields[i+1])
+		}
+		i++ // a rename or copy has two paths
+	}
+	slices.Sort(sources)
+	return sources, nil
+}
+
 // partCommit makes the staging repository's HEAD a commit, on top of
 // mergeBase, that holds every staged file as it is in the working tree,
-// except the part's files and the files the tree deletes, which are as
-// they are in mergeBase (absent when mergeBase has none), and returns it:
-// the tool, which mutates the lines changed against the commit it is
-// given, then sees only the part's files changed. A deleted file is put
-// back so that git still finds a renamed file's source, and the part gets
-// a mutant only in its lines that changed, as the run over the whole tree
-// does. The index it builds the commit from is a copy, in dir.
-func partCommit(ctx context.Context, src, gitDir, dir, mergeBase string, files []string, env []string) (string, error) {
+// except paths, which are as they are in mergeBase (absent when mergeBase
+// has none, present again when the tree deletes them), and returns it: the
+// tool, which mutates the lines changed against the commit it is given,
+// then sees only paths changed. paths are a part's files and their
+// renameSources. The index it builds the commit from is a copy, in dir.
+func partCommit(ctx context.Context, src, gitDir, dir, mergeBase string, paths []string, env []string) (string, error) {
 	index := filepath.Join(dir, "index")
 	if err := copyEntry(filepath.Join(gitDir, "index"), index); err != nil {
 		return "", err
@@ -597,12 +631,7 @@ func partCommit(ctx context.Context, src, gitDir, dir, mergeBase string, files [
 		return strings.TrimSpace(string(out)), nil
 	}
 	git := func(args ...string) (string, error) { return gitIn("", args...) }
-	deleted, err := git("diff", "-z", "--cached", "--name-only", "--no-renames", "--diff-filter=D", mergeBase)
-	if err != nil {
-		return "", err
-	}
-	reset := strings.Join(files, "\x00") + "\x00" + deleted
-	if _, err := gitIn(reset, "--literal-pathspecs", "reset", "-q", "--pathspec-from-file=-", "--pathspec-file-nul", mergeBase); err != nil {
+	if _, err := gitIn(strings.Join(paths, "\x00"), "--literal-pathspecs", "reset", "-q", "--pathspec-from-file=-", "--pathspec-file-nul", mergeBase); err != nil {
 		return "", err
 	}
 	tree, err := git("write-tree")

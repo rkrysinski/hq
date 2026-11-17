@@ -192,3 +192,26 @@ func TestMutationArgsAreTheBaseAndThePaths(t *testing.T) {
 		t.Errorf("no base: err %v, want one asking for the base", err)
 	}
 }
+
+func TestRenameSourcesAreTheDeletedFilesTheWholeTreePairsWithAPartsFiles(t *testing.T) {
+	// git diff --name-status -z over the whole tree: old/old.go moved to
+	// p1/b.go, lib/a.go to lib/b.go with changes; the rest one path each
+	nameStatus := "R100\x00old/old.go\x00p1/b.go\x00M\x00cmd/main.go\x00A\x00p2/c.go\x00" +
+		"R087\x00lib/a.go\x00lib/b.go\x00D\x00gone/gone.go\x00"
+	for _, c := range []struct {
+		files, want []string
+	}{
+		{[]string{"p1/b.go"}, []string{"old/old.go"}},
+		{[]string{"p2/c.go"}, nil}, // not paired over the whole tree
+		{[]string{"lib/b.go", "lib/b_test.go", "p1/b.go"}, []string{"lib/a.go", "old/old.go"}},
+		{[]string{"old/old.go", "gone/gone.go", "cmd/main.go"}, nil},
+	} {
+		got, err := renameSources(nameStatus, c.files)
+		if err != nil || !slices.Equal(got, c.want) {
+			t.Errorf("%q: got %q, err %v; want %q", c.files, got, err, c.want)
+		}
+	}
+	if _, err := renameSources("R100\x00old/old.go\x00", []string{"p1/b.go"}); err == nil {
+		t.Error("a rename without its new path is read without an error")
+	}
+}

@@ -16,8 +16,8 @@ import (
 )
 
 // The runs in parts below run the tool, as two tests of
-// mutation_integration_test.go do; a run whose parts change nothing does
-// not.
+// mutation_integration_test.go do: six tests, seven runs (one test also
+// runs over the whole tree); a run whose parts change nothing does not.
 
 func runPartsIn(t *testing.T, dir, base string, progress io.Writer, paths ...string) ([]string, bool, error) {
 	t.Helper()
@@ -217,4 +217,37 @@ func TestMutationInPartsInterruptedLeavesNothingBehind(t *testing.T) {
 	}
 	assertEmpty(t, "the temporary directory", tmp)
 	assertEmpty(t, "the shared build cache", cache)
+}
+
+// A file of the merge base is deleted; one new file is its exact copy (the
+// rename git finds over the whole tree) and another new file, in another
+// part, is the same text with one function more: the whole tree counts
+// every line of the second as new, and so does its part.
+func TestAPartJudgesACopyOfAMovedFileAsTheWholeTreeDoes(t *testing.T) {
+	r := newMutationRepo(t)
+	old := "package shape\n\n" +
+		"// Area gives the area.\nfunc Area(w, h int) int { return w * h }\n\n" +
+		"// Perimeter gives the perimeter.\nfunc Perimeter(w, h int) int { return 2 * (w + h) }\n\n" +
+		"// Bigger tells whether a is bigger.\nfunc Bigger(a, b int) bool { return a > b }\n"
+	r.git(r.dir, "checkout", "-q", "main")
+	r.commit("old/old.go", old, "Old")
+	r.git(r.dir, "checkout", "-q", "-B", "work", "main")
+	if err := os.Remove(filepath.Join(r.dir, "old/old.go")); err != nil {
+		t.Fatal(err)
+	}
+	write(t, r.dir, "p1/b.go", old)
+	write(t, r.dir, "p2/c.go", old+"\n// Twice doubles x.\nfunc Twice(x int) int { return x * 2 }\n")
+	isolated(t)
+	whole, _, err := runMutationIn(t, r.dir, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parts, _, err := runPartsIn(t, r.dir, "main", io.Discard, "p1", "p2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, p := whole[len(whole)-1], parts[len(parts)-1]
+	if strings.Replace(p, ", 0 changed files in no part", "", 1) != w {
+		t.Errorf("the counts differ:\nwhole tree: %s\nin parts:   %s", w, p)
+	}
 }
