@@ -22,6 +22,16 @@ The rows for implementation and the release tester are left out: the skills' def
 - The user pushes the tag.
 - A release deploys nothing: people install it with the README's one-liner or `hq update` (`docs/hq/releasing.md`).
 
+## What the operator rules on
+
+Beside the decisions the release skills already send to the operator, three rulings in a supervised release are the operator's (the user's), not the supervisor's:
+
+- **The scope of a review finding.** A review's findings go where the release skills send them; the supervisor moves none of them to "later", a follow-up issue or "not this branch". A finding it thinks should wait (outside this release's code, needing a decision, a risk to the release) goes to the operator, named with that reason, and only the operator's ruling moves it out of the release.
+- **An exemption from a written rule.** A rule of the repository's docs holds as written. Waiving it for a case is the operator's ruling: for example a mutation block left out after a docs-only commit, or a surviving mutant let through with a reason that `docs/hq/testing.md`, *What passes*, does not accept.
+- **A method that departs from the wording of a decision.** A brief carries out a decision (an option the operator chose, an ADR) as its words say. A method that differs from those words, or narrows or widens them, is the operator's ruling.
+
+The supervisor posts each as an operator decision on the release issue, the way the release skills post an approval, before any brief that acts on it goes out. Only what acts on the ruling waits for the answer; the rest of the brief goes out.
+
 ## Preflight
 
 Checks `/release-prepare` runs before the readiness table is built, in this order; each is a command and the condition under which it passes. The identity check (`gh` authenticated with push permission on the repository, the login recorded with the preflight results) is the skills' own and is not repeated here.
