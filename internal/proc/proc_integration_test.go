@@ -118,29 +118,46 @@ func TestForegroundPassesATerminationRequestOnToTheProgram(t *testing.T) {
 	}
 }
 
+// detachedProgram waits for the file "$1.returned", which the test creates
+// only after Detach has returned, then writes its session to "$1". When the file
+// never comes (a Detach that waits for its program), it gives up after
+// about 10 s and writes "waited" instead, so the test fails, not hangs.
+const detachedProgram = `i=0
+while [ ! -e "$1.returned" ]; do
+	i=$((i + 1))
+	if [ "$i" -gt 200 ]; then echo waited > "$1.tmp"; mv "$1.tmp" "$1"; exit 0; fi
+	sleep 0.05
+done
+ps -o sid= -p $$ > "$1.tmp"; mv "$1.tmp" "$1"`
+
 // A detached program runs on after Detach returns, in a session of its own.
+// No clock: the program goes on only once the test has seen Detach return,
+// so a Detach that waited for it would see it give up (#232).
 func TestDetachReturnsAtOnceAndTheProgramRunsOn(t *testing.T) {
-	dir := t.TempDir()
-	done := filepath.Join(dir, "done")
-	start := time.Now()
-	if err := (Exec{}).Detach("sh", "-c", `sleep 0.5; ps -o sid= -p $$ > "$1.tmp"; mv "$1.tmp" "$1"`, "sh", done); err != nil {
+	done := filepath.Join(t.TempDir(), "done")
+	if err := (Exec{}).Detach("sh", "-c", detachedProgram, "sh", done); err != nil {
 		t.Fatal(err)
 	}
-	if d := time.Since(start); d > 300*time.Millisecond {
-		t.Fatalf("Detach waited %s", d)
+	if err := os.WriteFile(done+".returned", nil, 0o644); err != nil {
+		t.Fatal(err)
 	}
 	var data []byte
-	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
+	for i := 0; i < 400 && data == nil; i++ { // about 20 s, twice the program's own bound
 		if b, err := os.ReadFile(done); err == nil {
 			data = b
-			break
+		} else {
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 	if data == nil {
 		t.Fatal("the detached program did not finish")
 	}
+	sid := strings.TrimSpace(string(data))
+	if sid == "waited" {
+		t.Fatal("Detach waited for its program: the program ran out of patience before Detach returned")
+	}
 	own, _ := unix.Getsid(0)
-	if sid := strings.TrimSpace(string(data)); sid == "" || sid == strconv.Itoa(own) {
+	if sid == "" || sid == strconv.Itoa(own) {
 		t.Fatalf("the program's session %q is hq's (%d)", sid, own)
 	}
 	if err := (Exec{}).Detach("hq-no-such-program"); err == nil {

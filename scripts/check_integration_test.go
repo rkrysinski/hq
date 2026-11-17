@@ -130,11 +130,12 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 			"check: ok   format",
 			"check: ok   pyramid",
 			"check: ok   platform",
+			"check: ok   timebound",
 			"check: ok   unit",
 			"check: ok   integration",
 			"check: ok   coverage",
 			"check: ok   e2e",
-			"check: all 8 steps passed on " + sha,
+			"check: all 9 steps passed on " + sha,
 		})
 		if code != 0 {
 			t.Fatalf("exit %d", code)
@@ -148,6 +149,7 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 			"gofmt -l .",
 			"go run ./tools/testgate pyramid",
 			"go run ./tools/testgate platform",
+			"go run ./tools/testgate timebound",
 			"go test ./...",
 			"go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=",
 			"go run ./tools/testgate coverage ",
@@ -180,13 +182,35 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 		}
 	})
 
+	t.Run("a tight time bound in a test stops the run after the platform gate", func(t *testing.T) {
+		r := newCheckRepo(t)
+		lines, code := r.run("STUB_FAIL=testgate timebound")
+		sha := r.git("rev-parse", "HEAD")
+		equalLines(t, lines, []string{
+			"check: ok   vet",
+			"check: ok   format",
+			"check: ok   pyramid",
+			"check: ok   platform",
+			"check: FAIL timebound",
+			"figure timebound",
+			"boom",
+			"check: stopped at timebound on " + sha,
+		})
+		if code != 1 {
+			t.Fatalf("exit %d", code)
+		}
+		if calls := r.calls(); strings.Contains(calls, "go test") {
+			t.Fatalf("a later step ran:\n%s", calls)
+		}
+	})
+
 	t.Run("a dirty tree is named in the passing and in the failing last line", func(t *testing.T) {
 		r := newCheckRepo(t)
 		writeFile(t, filepath.Join(r.dir, "new.txt"), "x\n", 0o644)
 		sha := r.git("rev-parse", "HEAD")
 
 		lines, code := r.run()
-		if last := lines[len(lines)-1]; code != 0 || last != "check: all 8 steps passed on "+sha+" with uncommitted changes" {
+		if last := lines[len(lines)-1]; code != 0 || last != "check: all 9 steps passed on "+sha+" with uncommitted changes" {
 			t.Fatalf("exit %d, last line %q", code, last)
 		}
 
