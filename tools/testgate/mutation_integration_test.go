@@ -69,9 +69,10 @@ func (r *mutationRepo) change() {
 
 // Each real run of the tool installs it with an empty cache and starts as
 // many workers as there are cores, which loads the machine while the other
-// packages' integration tests run: so only two tests run it, this one and
-// the interrupted run. The passing run and a change without mutants are
-// proven by the unit tests of mutationReport.
+// packages' integration tests run: so only two tests of this file run it,
+// this one and the interrupted run, and six tests of runs in parts add
+// seven runs (mutation_parts_integration_test.go). The passing run and a change
+// without mutants are proven by the unit tests of mutationReport.
 
 // isolated points the temporary directory and the shared build cache of
 // the test at empty directories of its own and returns them.
