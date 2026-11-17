@@ -1,0 +1,24 @@
+
+claude in claude-repo: hello
+fake claude: ready
+❯ hello
+● Done: hello
+────────────────────────────────────────
+❯
+────────────────────────────────────────
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

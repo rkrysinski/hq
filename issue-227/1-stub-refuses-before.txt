@@ -1,0 +1,16 @@
+$ cat claude
+#!/bin/sh
+# Stands in for the real claude: it only says it ran.
+echo "the stand-in for the real claude ran"
+: >ran
+$ ./sbx create claude /w/app
+$ ./sbx run --name claude-app -- hello; echo "exit $?"
+claude in claude-app: hello
+the stand-in for the real claude ran
+exit 0
+$ ls
+claude	ran  sbx  state
+$ ./sbx ls --json
+[{"name":"claude-app","agent":"claude","status":"running","workspaces":["/w/app"]}]
+$
+

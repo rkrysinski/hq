@@ -1,0 +1,22 @@
+$ hq new a . hello
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started a in repo (sandbox claude-repo); enter it with: hq go a
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   5s   Done: hello
+$ hq read a
+name      a
+repo      repo  /tmp/hq-stub-3186405068/repo
+branch    main
+worktree  /tmp/hq-stub-3186405068/repo
+sandbox   claude-repo
+state     done 17s
+pending   0
+
+reply
+  Done: hello
+$
+
+
+
+

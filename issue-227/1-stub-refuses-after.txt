@@ -1,0 +1,16 @@
+$ cat claude
+#!/bin/sh
+# Stands in for the real claude: it only says it ran.
+echo "the stand-in for the real claude ran"
+: >ran
+$ ./sbx create claude /w/app
+$ ./sbx run --name claude-app -- hello; echo "exit $?"
+stub: SBX_STUB_CLAUDE is not the fake claude (tools/fakeclaude), not run: ./claude
+exit 1
+$ ls
+claude	sbx  state
+$ ./sbx ls --json
+[{"name":"claude-app","agent":"claude","status":"stopped","workspaces":["/w/app"]}]
+$
+
+
