@@ -1,0 +1,4 @@
+$ go test -tags integration -count=1 -run TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit -v ./internal/tmux/
+--- PASS: TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit (0.03s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/tmux	0.033s

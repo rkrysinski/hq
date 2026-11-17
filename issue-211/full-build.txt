@@ -1,0 +1,9 @@
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: ok   unit
+check: ok   integration
+check: ok   coverage
+check: ok   e2e
+check: all 8 steps passed on d7e0ae69df29cb9d01d367af8a99f4be71d64376
