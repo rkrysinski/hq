@@ -1,0 +1,7 @@
+head: 456d906760572475d9a09149ae9aa28586d49db4 
+load: 10 busy processes (sh -c 'while :; do :; done') on 10 cores, tmux 3.6, go1.26.0 linux/arm64
+started: 2026-11-17T12:12:00Z
+TestLeaveDetachesAPlainTerminalAndSendsASwitchedClientBack: 200 passed, 0 failed, 0 skipped; ok  	github.com/rkrysinski/hq/internal/tmux	113.868s
+TestDockingMovesAgentsWithoutResizingThem: 100 passed, 0 failed, 0 skipped; ok  	github.com/rkrysinski/hq/internal/tmux	163.728s
+TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter: 0 passed, 0 failed, 30 skipped; ok  	github.com/rkrysinski/hq/internal/tmux	154.626s
+ended: 2026-11-17T12:19:14Z

@@ -1,0 +1,94 @@
+$ go test -count=30 -tags integration -v -run '^TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter$' ./internal/tmux
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.08s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.23s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.08s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.23s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.24s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.33s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.10s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.08s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.24s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.13s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.14s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.10s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.22s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.09s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.12s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.19s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.09s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.22s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.17s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.21s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.11s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.12s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.12s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.11s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.22s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.10s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.10s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.12s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.15s)
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.20s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/tmux	154.626s
+exit 0

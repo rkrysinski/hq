@@ -1,0 +1,25 @@
+head: 456d906760572475d9a09149ae9aa28586d49db4, with this injection into internal/tmux/dash.go (not committed):
+diff --git a/internal/tmux/dash.go b/internal/tmux/dash.go
+index f830fd1..8d13630 100644
+--- a/internal/tmux/dash.go
++++ b/internal/tmux/dash.go
+@@ -782,6 +782,9 @@ func dockPlan(ps []pane, window, title string, keys bool) ([][]string, error) {
+ 		if size := fmt.Sprintf("%dx%d", slot.width, slot.height); p.windowSize != size && slot.width > 0 && slot.height > 0 {
+ 			cmds = append(cmds, []string{"resize-window", "-t", p.window, "-x", strconv.Itoa(slot.width), "-y", strconv.Itoa(slot.height)})
+ 		}
++		// QA injection (#242): one extra resize of every home window taking part, there and back.
++		cmds = append(cmds, []string{"resize-window", "-t", p.window, "-x", strconv.Itoa(slot.width - 1), "-y", strconv.Itoa(slot.height)},
++			[]string{"resize-window", "-t", p.window, "-x", strconv.Itoa(slot.width), "-y", strconv.Itoa(slot.height)})
+ 	}
+ 	fit(home)
+ 	target := slot.id
+
+$ go test -count=1 -tags integration -v -run '^TestDockingMovesAgentsWithoutResizingThem$' ./internal/tmux
+=== RUN   TestDockingMovesAgentsWithoutResizingThem
+    dash_integration_test.go:1137: a resized 1 times in five docks
+    dash_integration_test.go:1140: b resized 3 times, want 2: to 70x20, then fitted once
+--- FAIL: TestDockingMovesAgentsWithoutResizingThem (1.28s)
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/tmux	1.282s
+FAIL
+exit 1
