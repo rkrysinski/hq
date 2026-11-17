@@ -1,2 +1,2 @@
-$ go run ./tools/testgate pyramid   # on 03718a1fb3ffebc35bcc62464a22933967f22aa0, before
-unit 838, integration 271, e2e 3 (unit share 76%, minimum 75%)
+$ go run ./tools/testgate pyramid   # on e1357f15fa56b0d6f685b976daa56e054562d8e2 (origin/dev), before
+unit 838, integration 274, e2e 3 (unit share 75%, minimum 75%)
