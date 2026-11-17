@@ -140,12 +140,10 @@ func TestATestsCleanupWaitsForWhatAPanesProgramLeftRunning(t *testing.T) {
 	}
 }
 
-// sbxStub runs the stub sbx with args and returns what it printed and
-// whether it succeeded.
-func sbxStub(t *testing.T, bin string, args ...string) (string, bool) {
-	t.Helper()
+// runSbxStub runs the stub sbx with args and returns what it printed.
+func runSbxStub(bin string, args ...string) (string, error) {
 	out, err := exec.Command(bin, args...).CombinedOutput()
-	return string(out), err == nil
+	return string(out), err
 }
 
 // The stub sbx runs as the session no program but the fake Claude: the real
@@ -155,8 +153,8 @@ func sbxStub(t *testing.T, bin string, args ...string) (string, bool) {
 // the real one, is refused before it runs, and the sandbox stays as it was.
 func TestTheStubSbxRefusesAClaudeThatIsNotTheFake(t *testing.T) {
 	bin, dir := SbxStub(t)
-	if out, ok := sbxStub(t, bin, "create", "claude", "/w/app"); !ok {
-		t.Fatal(out)
+	if out, err := runSbxStub(bin, "create", "claude", "/w/app"); err != nil {
+		t.Fatal(err, out)
 	}
 	other := filepath.Join(t.TempDir(), "claude")
 	ran := other + ".ran"
@@ -165,9 +163,9 @@ func TestTheStubSbxRefusesAClaudeThatIsNotTheFake(t *testing.T) {
 	}
 	for _, claude := range []string{other, filepath.Join(t.TempDir(), "none")} {
 		t.Setenv("SBX_STUB_CLAUDE", claude)
-		out, ok := sbxStub(t, bin, "run", "--name", "claude-app", "--", "hello")
-		if ok || !strings.Contains(out, "stub: SBX_STUB_CLAUDE is not the fake claude (tools/fakeclaude), not run: "+claude) {
-			t.Fatalf("%s: %v %q", claude, ok, out)
+		out, err := runSbxStub(bin, "run", "--name", "claude-app", "--", "hello")
+		if err == nil || !strings.Contains(out, "stub: SBX_STUB_CLAUDE is not the fake claude (tools/fakeclaude), not run: "+claude) {
+			t.Fatalf("%s: %v %q", claude, err, out)
 		}
 	}
 	if _, err := os.Stat(ran); !errors.Is(err, fs.ErrNotExist) {
@@ -185,8 +183,8 @@ func TestTheStubSbxRunsTheFakeClaude(t *testing.T) {
 	bin, _ := SbxStub(t)
 	FakeClaude(t)
 	t.Setenv("FAKE_CLAUDE_DELAY", "1ms")
-	if out, ok := sbxStub(t, bin, "create", "claude", "/w/app"); !ok {
-		t.Fatal(out)
+	if out, err := runSbxStub(bin, "create", "claude", "/w/app"); err != nil {
+		t.Fatal(err, out)
 	}
 	b, err := os.ReadFile(os.Getenv("SBX_STUB_CLAUDE"))
 	if err != nil {
@@ -198,8 +196,8 @@ func TestTheStubSbxRunsTheFakeClaude(t *testing.T) {
 	}
 	t.Setenv("SBX_STUB_CLAUDE", moved)
 	// Its input at an end, the fake takes the prompt and exits.
-	out, ok := sbxStub(t, bin, "run", "--name", "claude-app", "--", "hello")
-	if !ok || !strings.Contains(out, "fake claude: ready") {
-		t.Fatalf("%v %q", ok, out)
+	out, err := runSbxStub(bin, "run", "--name", "claude-app", "--", "hello")
+	if err != nil || !strings.Contains(out, "fake claude: ready") {
+		t.Fatalf("%v %q", err, out)
 	}
 }
