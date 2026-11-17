@@ -1,0 +1,18 @@
+$ go test -tags integration -count=1 -run 'TestMutationGo' -v ./tools/testgate   # on 3eb9893
+--- PASS: TestMutationGoLeavesTheKillToTheToolWhenTheRunAgainIsNotOverInTime (1.50s)
+--- PASS: TestMutationGoTellsTheGateWhenNoRecordCanBeWritten (0.00s)
+ok  	github.com/rkrysinski/hq/tools/testgate	1.503s
+
+# Without the break that leaves a late run again to the tool (mutationgo.go, the line 'break // not over in time, ...'):
+    mutationgo_integration_test.go:57: a run again not over in time told the gate: the unit tests that failed with a mutant fail without it too, in 1 of the mutants' runs: the machine or a test that fails now and then failed them, not the mutant, so no mutant is judged; one of them:
+--- FAIL: TestMutationGoLeavesTheKillToTheToolWhenTheRunAgainIsNotOverInTime (1.50s)
+FAIL
+FAIL	github.com/rkrysinski/hq/tools/testgate	1.503s
+FAIL
+
+# Without the removal of machine/ok (tellMachineFailed), so only a record could tell the gate:
+    mutationgo_integration_test.go:75: err <nil>; want one saying the tests fail without the mutant and no record could be written
+--- FAIL: TestMutationGoTellsTheGateWhenNoRecordCanBeWritten (0.00s)
+FAIL
+FAIL	github.com/rkrysinski/hq/tools/testgate	0.002s
+FAIL

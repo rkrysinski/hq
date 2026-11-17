@@ -2,8 +2,8 @@ $ go run ./tools/testgate mutation origin/release-v0.15.0
 mutation: staging the tree in /tmp/hq-mutation-<n>
 mutation: installing go-gremlins v0.6.0
 mutation: running the unit tests once, then once per mutant
-mutation: done in 32s
-mutation: 22 killed, 0 alive, 0 timed out, 28 not covered against origin/release-v0.15.0 on d8f26e228583445807f20a8acfd3f886ed2fbf6c
+mutation: done in 29s
+mutation: 22 killed, 0 alive, 0 timed out, 32 not covered against origin/release-v0.15.0 on 3eb989304841f6eec09c27d26ca75cf4034a40bf
 
 $ scripts/check.sh
 check: ok   vet
@@ -15,4 +15,4 @@ check: ok   unit
 check: ok   integration
 check: ok   coverage
 check: ok   e2e
-check: all 9 steps passed on d8f26e228583445807f20a8acfd3f886ed2fbf6c
+check: all 9 steps passed on 3eb989304841f6eec09c27d26ca75cf4034a40bf
