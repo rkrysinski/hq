@@ -31,4 +31,5 @@ What was learned and why it matters. Next time: what to do differently.
 
 ## Entries
 
-<!-- None yet. -->
+### 2026-11-17 - A 401 from an agent you started: stop
+In release v0.14.0 an agent put a "Login expired" from an agent it had started down to when the operator ran `/login`, and started it twice more. The real Claude Code run without the sandbox's proxy variables gets a 401 on its first request, which logs out every session of the sandbox, so each new start stopped all work again (#227). Next time: on a 401 or "Login expired" from an agent you started, stop and report it, and start nothing again.
