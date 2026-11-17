@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -25,34 +27,43 @@ func hookJSON(t *testing.T, cwd, command string) *strings.Reader {
 	return strings.NewReader(string(b))
 }
 
-// within runs checkPost and fails the test when it has not returned within
-// five seconds: a reader that stops advancing fails instead of hanging.
-func within(t *testing.T, list string, input *strings.Reader, home string) (string, []string, error) {
+// inTime returns what f returns and fails the test when f has not returned
+// within five seconds: a reader that stops advancing fails instead of
+// hanging the run.
+func inTime[T any](t *testing.T, f func() T) T {
+	t.Helper()
+	done := make(chan T, 1)
+	go func() { done <- f() }()
+	select {
+	case v := <-done:
+		return v
+	case <-time.After(5 * time.Second):
+		t.Fatal("did not return within 5s")
+		var zero T
+		return zero
+	}
+}
+
+// checkInTime runs checkPost within five seconds.
+func checkInTime(t *testing.T, list string, input *strings.Reader, home string) (string, []string, error) {
 	t.Helper()
 	type result struct {
 		summary  string
 		problems []string
 		err      error
 	}
-	done := make(chan result, 1)
-	go func() {
+	r := inTime(t, func() result {
 		summary, problems, err := checkPost(list, input, home)
-		done <- result{summary, problems, err}
-	}()
-	select {
-	case r := <-done:
-		return r.summary, r.problems, r.err
-	case <-time.After(5 * time.Second):
-		t.Fatal("checkPost did not return within 5s")
-		return "", nil, nil
-	}
+		return result{summary, problems, err}
+	})
+	return r.summary, r.problems, r.err
 }
 
 // post runs checkPost on command, run in cwd, with the list "acme" and the
 // home directory /home/u.
 func post(t *testing.T, cwd, command string) (string, []string) {
 	t.Helper()
-	summary, problems, err := within(t, "acme\n", hookJSON(t, cwd, command), "/home/u")
+	summary, problems, err := checkInTime(t, "acme\n", hookJSON(t, cwd, command), "/home/u")
 	if err != nil {
 		t.Fatalf("checkPost(%q): %v", command, err)
 	}
@@ -61,7 +72,7 @@ func post(t *testing.T, cwd, command string) (string, []string) {
 
 func TestACommandThatPostsNothingPassesSilentlyEvenWithoutAList(t *testing.T) {
 	for _, c := range []string{"ls -la", "gh pr view 12 --json body", "gh issue list --search acme", "echo acme"} {
-		summary, problems, err := within(t, "", hookJSON(t, "/w", c), "/home/u")
+		summary, problems, err := checkInTime(t, "", hookJSON(t, "/w", c), "/home/u")
 		if err != nil || summary != "" || problems != nil {
 			t.Errorf("%q: summary %q problems %v err %v", c, summary, problems, err)
 		}
@@ -98,6 +109,10 @@ func TestABodyFileIsReadFromTheCommandsDirectory(t *testing.T) {
 func TestATextTheHookCannotSeeIsRefused(t *testing.T) {
 	dir := t.TempDir()
 	write(t, dir, "old.md", "fine\n")
+	write(t, dir, "locked.md", "fine\n")
+	if err := os.Chmod(filepath.Join(dir, "locked.md"), 0); err != nil {
+		t.Fatal(err)
+	}
 	for _, c := range []struct{ command, want string }{
 		{`gh pr create --title t --body "$BODY"`, "gh pr create --body: holds $"},
 		{`gh pr comment 1 --body "$(cat body.md)"`, "gh pr comment --body: holds $"},
@@ -111,7 +126,13 @@ func TestATextTheHookCannotSeeIsRefused(t *testing.T) {
 		{"cd \"$X\" && gh pr comment 1 -F old.md", "old.md: is a relative path in a directory the hook cannot tell"},
 		{"gh pr comment 1 -F ~bob/x.md", "~bob/x.md: is a relative path"},
 		{"cat old.md | gh pr comment 1 --body-file -", "gh pr comment stdin: reads its text from standard input"},
-		{"gh pr comment 1 --body-file . ", ".: cannot be read"},
+		{"gh pr comment 1 --body-file . ", ".: is not a regular file"},
+		{"gh pr comment 1 --body-file locked.md", "locked.md: cannot be read"},
+		{"cp new.md old.md && gh pr comment 1 -F old.md", "old.md: is written by this same command"},
+		{"mv -f new.md old.md; gh pr comment 1 -F old.md", "old.md: is written by this same command"},
+		{"sed -i.bak 's/a/b/' old.md && gh pr comment 1 -F old.md", "old.md: is written by this same command"},
+		{"perl -pi -e 's/a/b/' old.md && gh pr comment 1 -F old.md", "old.md: is written by this same command"},
+		{"sed --in-place=.bak 's/a/b/' old.md && gh pr comment 1 -F old.md", "old.md: is written by this same command"},
 	} {
 		summary, problems := post(t, dir, c.command)
 		if len(problems) != 1 || !strings.HasPrefix(problems[0], c.want) || !strings.HasSuffix(summary, "0 matching lines") {
@@ -121,17 +142,17 @@ func TestATextTheHookCannotSeeIsRefused(t *testing.T) {
 }
 
 func TestWithoutAListAPostingCommandIsRefused(t *testing.T) {
-	summary, problems, err := within(t, "# no patterns\n", hookJSON(t, "/w", `gh issue comment 3 --body "fine"`), "/home/u")
+	summary, problems, err := checkInTime(t, "# no patterns\n", hookJSON(t, "/w", `gh issue comment 3 --body "fine"`), "/home/u")
 	if err != nil || summary != "prepost: no pattern list, refused" || !reflect.DeepEqual(problems, []string{noPostList}) {
 		t.Fatalf("summary %q problems %v err %v", summary, problems, err)
 	}
 }
 
 func TestABadListOrInputIsAnError(t *testing.T) {
-	if _, _, err := within(t, "(unclosed\n", hookJSON(t, "/w", `gh issue comment 3 --body "fine"`), ""); err == nil || strings.Contains(err.Error(), "unclosed") {
+	if _, _, err := checkInTime(t, "(unclosed\n", hookJSON(t, "/w", `gh issue comment 3 --body "fine"`), ""); err == nil || strings.Contains(err.Error(), "unclosed") {
 		t.Errorf("bad pattern: err %v, want one that does not quote it", err)
 	}
-	if _, _, err := within(t, "acme\n", strings.NewReader("not json"), ""); err == nil {
+	if _, _, err := checkInTime(t, "acme\n", strings.NewReader("not json"), ""); err == nil {
 		t.Error("input that is not JSON: no error")
 	}
 }
@@ -220,12 +241,12 @@ func TestGhIsFoundInsideSubstitutionsShellsAndEval(t *testing.T) {
 func TestAPathFromHomeIsReadFromThere(t *testing.T) {
 	home := t.TempDir()
 	write(t, home, "b.md", "acme\n")
-	summary, problems, err := within(t, "acme\n", hookJSON(t, "/w", "gh pr comment 1 -F ~/b.md && cd && gh pr comment 1 -F b.md"), home)
+	summary, problems, err := checkInTime(t, "acme\n", hookJSON(t, "/w", "gh pr comment 1 -F ~/b.md && cd && gh pr comment 1 -F b.md"), home)
 	want := []string{"~/b.md:1 matches private pattern 1", "b.md:1 matches private pattern 1"}
 	if err != nil || !reflect.DeepEqual(problems, want) {
 		t.Fatalf("summary %q problems %v err %v", summary, problems, err)
 	}
-	if _, problems, _ := within(t, "acme\n", hookJSON(t, "/w", "gh pr comment 1 -F ~/b.md"), ""); len(problems) != 1 || !strings.Contains(problems[0], "cannot tell") {
+	if _, problems, _ := checkInTime(t, "acme\n", hookJSON(t, "/w", "gh pr comment 1 -F ~/b.md"), ""); len(problems) != 1 || !strings.Contains(problems[0], "cannot tell") {
 		t.Fatalf("without a home: problems %v", problems)
 	}
 }
@@ -236,5 +257,40 @@ func TestTheEdgesOfAPIMethodsStandardInputAndRedirections(t *testing.T) {
 	want := []string{"gh api -f:1 matches private pattern 1", "gh pr comment stdin:1 matches private pattern 1"}
 	if !reflect.DeepEqual(problems, want) {
 		t.Fatalf("problems %v, want %v", problems, want)
+	}
+}
+
+func TestWhatOnlyReadsAFileOrNamesItDoesNotCountAsWritingIt(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "body.md", "acme\n")
+	for _, c := range []string{
+		"go run ./tools/testgate private body.md && gh pr comment 1 -F body.md",
+		"cp body.md /tmp/copy.md && sed 's/a/b/' body.md && gh pr comment 1 -F body.md",
+		"cp; ln -s x y; gh pr comment 1 -F body.md 2>&1",
+	} {
+		if _, problems := post(t, dir, c); !reflect.DeepEqual(problems, []string{"body.md:1 matches private pattern 1"}) {
+			t.Errorf("%q: problems %v, want body.md checked", c, problems)
+		}
+	}
+}
+
+func TestStandardInputByAnyOfItsNamesAndARepoBeforeTheSubcommandAreChecked(t *testing.T) {
+	for _, c := range []string{
+		"gh pr create -t x --body-file /dev/stdin <<'EOF'\nfor acme\nEOF\n",
+		"gh api repos/{owner}/{repo}/issues/1/comments --input /dev/fd/0 <<< acme",
+		"gh issue comment 1 -F /proc/self/fd/0 <<< acme",
+		"gh pr -R owner/repo create --body acme",
+		"gh issue --repo owner/repo comment 1 --body acme",
+		"gh issue --repo=owner/repo -Rowner/repo comment 1 --body acme",
+		"bash <<'EOF'\ngh issue comment 1 --body acme\nEOF\n",
+	} {
+		if _, problems := post(t, "/w", c); len(problems) != 1 || !strings.HasSuffix(problems[0], ":1 matches private pattern 1") {
+			t.Errorf("%q: problems %v, want one hit", c, problems)
+		}
+	}
+	for _, c := range []string{"gh pr -R owner/repo view 1 -b acme", "gh pr -R", "gh issue --repo owner/repo", "bash < script.sh"} {
+		if summary, problems := post(t, "/w", c); summary != "" || problems != nil {
+			t.Errorf("%q: summary %q problems %v, want nothing checked", c, summary, problems)
+		}
 	}
 }

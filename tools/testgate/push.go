@@ -9,10 +9,13 @@ import (
 	"strings"
 )
 
+// listWhere says where the pattern list goes, for a gate refusing without it.
+var listWhere = fmt.Sprintf("set %s or put the list in \"$(git rev-parse --git-common-dir)/%s\" (ask the owner for it)",
+	PrivatePatternsEnv, PrivatePatternsFile)
+
 // noList is what a push without a pattern list is refused with (#185):
 // pushing unchecked is the leak the hook is there to stop.
-var noList = fmt.Sprintf("no pattern list: set %s or put the list in \"$(git rev-parse --git-common-dir)/%s\" "+
-	"(ask the owner for it); git push --no-verify skips this check", PrivatePatternsEnv, PrivatePatternsFile)
+var noList = "no pattern list: " + listWhere + "; git push --no-verify skips this check"
 
 // patchArgs make git show print a commit's patch the way scanPatch reads it:
 // no message, no context lines, no a/ b/ prefixes, every added path in full

@@ -117,19 +117,11 @@ func main() {
 			refused = "push refused: take the private details out of the commits that hold them (a later commit that removes one still pushes it), or fix the list"
 		}
 	case "prepost":
-		list, err := privateList(os.Getenv(PrivatePatternsEnv), gitCommonDir("."))
+		p, err := runPrepost()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "testgate:", err, "- refused")
-			os.Exit(2)
-		}
-		home, _ := os.UserHomeDir()
-		summary, p, err := checkPost(list, os.Stdin, home)
-		if err != nil {
+			// Not checked, so not posted: the hook refuses on any failure.
 			fmt.Fprintln(os.Stderr, "testgate: prepost:", err, "- refused")
 			os.Exit(2)
-		}
-		if summary != "" {
-			fmt.Println(summary)
 		}
 		problems = p
 		if len(p) > 0 && p[0] != noPostList { // the summary says why a command without a list is refused
@@ -192,5 +184,23 @@ func runPrepush(repo string) ([]string, error) {
 		return nil, err
 	}
 	fmt.Println(summary)
+	return problems, nil
+}
+
+// runPrepost checks the Bash command of the PreToolUse hook's input on
+// stdin, prints its summary when it posts a text, and returns its problems.
+func runPrepost() ([]string, error) {
+	list, err := privateList(os.Getenv(PrivatePatternsEnv), gitCommonDir("."))
+	if err != nil {
+		return nil, err
+	}
+	home, _ := os.UserHomeDir()
+	summary, problems, err := checkPost(list, os.Stdin, home)
+	if err != nil {
+		return nil, err
+	}
+	if summary != "" {
+		fmt.Println(summary)
+	}
 	return problems, nil
 }

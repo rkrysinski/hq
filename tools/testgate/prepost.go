@@ -18,18 +18,18 @@ import (
 // posting gh command is given in a flag (--title, --body, -f body=...) and
 // in the files and heredocs it reads (--body-file, -F body=@file, --input).
 // A text the gate cannot see (a variable, $(cat file), a pipe, a file that
-// does not exist yet or that the same command writes) is refused, and so
-// is every posting command without a list: nothing goes out unchecked. It
+// is not a regular one, does not exist yet or that the same command writes)
+// is refused, and so is every posting command without a list: nothing goes
+// out unchecked. It
 // reads the command as written and runs nothing, so a gh command hidden in
 // a variable or a script file is not seen: it stops an accident, not
 // someone set on getting around it.
 
 // noPostList is what a posting command is refused with without a list.
-var noPostList = fmt.Sprintf("no pattern list: set %s or put the list in \"$(git rev-parse --git-common-dir)/%s\" "+
-	"(ask the owner for it); a text that has to go out anyway is posted by the operator outside Claude Code", PrivatePatternsEnv, PrivatePatternsFile)
+var noPostList = "no pattern list: " + listWhere + "; a text that has to go out anyway is posted by the operator outside Claude Code"
 
 // postRefused ends the output of a refused command.
-const postRefused = "refused: take the private detail out (a placeholder, docs/hq/testing.md, Private details), " +
+const postRefused = "refused: take the private detail out (write <org>, ~/work/app and the like, docs/hq/testing.md, Private details), " +
 	"or put a text the hook cannot see in a file it can; a text that has to go out anyway is posted by the operator outside Claude Code"
 
 // hookInput is what Claude Code hands a PreToolUse hook, as far as the gate
@@ -76,14 +76,7 @@ func checkPost(list string, input io.Reader, home string) (string, []string, err
 	for _, s := range sources {
 		body := []byte(s.text)
 		if s.path != "" {
-			b, err := os.ReadFile(s.path)
-			switch {
-			case errors.Is(err, fs.ErrNotExist):
-				s.unseen = "does not exist yet: write it first, then post it in a second command"
-			case err != nil:
-				s.unseen = "cannot be read: " + err.Error()
-			}
-			body = b
+			body, s.unseen = readPosted(s.path)
 		}
 		if s.unseen != "" {
 			problems = append(problems, s.name+": "+s.unseen)
@@ -97,6 +90,24 @@ func checkPost(list string, input io.Reader, home string) (string, []string, err
 	return fmt.Sprintf("prepost: %d patterns, %d texts, %d matching lines", len(pats), len(sources), matching), problems, nil
 }
 
+// readPosted returns the text of the file at path, or why the gate cannot
+// read it before gh does. Only a regular file is read: a pipe or a device
+// would not hold the text gh will read, or would block the hook.
+func readPosted(path string) ([]byte, string) {
+	info, err := os.Stat(path)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return nil, "does not exist yet: write it first, then post it in a second command"
+	case err == nil && !info.Mode().IsRegular():
+		return nil, "is not a regular file, which the hook cannot read ahead of gh"
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return nil, "cannot be read: " + err.Error()
+	}
+	return body, ""
+}
+
 // postedSources returns the texts command, run in the directory cwd, would
 // post through gh.
 func postedSources(command, cwd, home string) []source {
@@ -106,18 +117,9 @@ func postedSources(command, cwd, home string) []source {
 	dir := cwd
 	for i, c := range cmds {
 		dirs[i] = dir
-		for _, rd := range c.redirects {
-			if strings.HasPrefix(rd.op, ">") && rd.op != ">&" && rd.op != ">(" || strings.HasPrefix(rd.op, "&>") || rd.op == "<>" {
-				markWritten(written, rd.target, dir, home)
-			}
-		}
-		for j, w := range c.words {
-			if filepath.Base(w.text) == "tee" {
-				for _, a := range c.words[j+1:] {
-					if !strings.HasPrefix(a.text, "-") {
-						markWritten(written, a, dir, home)
-					}
-				}
+		for _, w := range writtenFiles(c) {
+			if p, ok := resolve(w, dir, home); ok {
+				written[p] = true
 			}
 		}
 		if len(c.words) > 0 && (c.words[0].text == "cd" || c.words[0].text == "pushd") {
@@ -131,10 +133,45 @@ func postedSources(command, cwd, home string) []source {
 	return sources
 }
 
-func markWritten(written map[string]bool, w shellWord, dir, home string) {
-	if p, ok := resolve(w, dir, home); ok {
-		written[p] = true
+// writtenFiles returns the words that name a file the command writes: the
+// target of a redirection that writes, every file tee names, the last file
+// cp, mv, install, ln or rsync names, and every file sed or perl names with
+// -i. The gate runs nothing, so a file another program changes is checked
+// as it was before.
+func writtenFiles(c *simpleCommand) []shellWord {
+	var files []shellWord
+	for _, rd := range c.redirects {
+		if rd.writes() {
+			files = append(files, rd.target)
+		}
 	}
+	for j, w := range c.words {
+		var args []shellWord
+		inPlace := false
+		for _, a := range c.words[j+1:] {
+			switch {
+			case strings.HasPrefix(a.text, "--in-place"):
+				inPlace = true
+			case strings.HasPrefix(a.text, "--"):
+			case strings.HasPrefix(a.text, "-"):
+				inPlace = inPlace || strings.Contains(a.text, "i")
+			default:
+				args = append(args, a)
+			}
+		}
+		switch filepath.Base(w.text) {
+		case "tee":
+			return append(files, args...)
+		case "cp", "mv", "install", "ln", "rsync":
+			return append(files, args[max(0, len(args)-1):]...)
+		case "sed", "perl":
+			if inPlace {
+				return append(files, args...)
+			}
+			return files
+		}
+	}
+	return files
 }
 
 // cdTarget is the directory cd with args leads to from dir, or "" when the
@@ -180,7 +217,8 @@ var shells = map[string]bool{"bash": true, "sh": true, "zsh": true, "dash": true
 
 // commandSources returns the texts one simple command posts: those of the
 // gh command it runs, also behind a wrapper (timeout 30 gh ...) or through
-// a shell's -c or eval. The words after the first of these are its own.
+// a shell's -c or heredoc or eval. The words after the first of these are
+// its own.
 func commandSources(c *simpleCommand, dir, home string, written map[string]bool) []source {
 	for i, w := range c.words {
 		switch {
@@ -189,6 +227,11 @@ func commandSources(c *simpleCommand, dir, home string, written map[string]bool)
 		case shells[filepath.Base(w.text)]:
 			if script, ok := shellScript(c.words[i+1:]); ok {
 				return postedSources(script, dir, home)
+			}
+			for _, rd := range c.redirects {
+				if rd.feedsText() { // bash <<'EOF' runs its heredoc
+					return postedSources(rd.target.text, dir, home)
+				}
 			}
 			return nil
 		case w.text == "eval":
@@ -204,7 +247,7 @@ func commandSources(c *simpleCommand, dir, home string, written map[string]bool)
 
 // shellScript returns the command a shell's arguments give it with -c.
 func shellScript(args []shellWord) (string, bool) {
-	c := false
+	sawC := false
 	for i := 0; i < len(args); i++ {
 		a := args[i].text
 		switch {
@@ -212,8 +255,8 @@ func shellScript(args []shellWord) (string, bool) {
 			i++
 		case strings.HasPrefix(a, "--"):
 		case strings.HasPrefix(a, "-"):
-			c = c || strings.Contains(a, "c")
-		case c:
+			sawC = sawC || strings.Contains(a, "c")
+		case sawC:
 			return a, true
 		default:
 			return "", false
@@ -223,6 +266,8 @@ func shellScript(args []shellWord) (string, bool) {
 }
 
 // postingSubcommands are the gh subcommands that post a text, beside gh api.
+// scripts/claude-hooks/prepost names the same ones to tell which commands
+// start the gate.
 var postingSubcommands = map[string]map[string]bool{
 	"pr":      {"create": true, "new": true, "edit": true, "comment": true, "review": true, "merge": true, "close": true},
 	"issue":   {"create": true, "new": true, "edit": true, "comment": true, "close": true},
@@ -269,12 +314,20 @@ func ghSources(c *simpleCommand, args []shellWord, dir, home string, written map
 		if method, ok := flagValue(args, map[string]flagKind{"-X": textFlag, "--method": textFlag}); ok && strings.EqualFold(method.text, "GET") {
 			return nil
 		}
-	case len(args) > 1 && postingSubcommands[args[0].text][args[1].text]:
-		call, flags = "gh "+args[0].text+" "+args[1].text, subcommandFlags
+	case postingSubcommands[args[0].text] != nil:
+		group := args[0].text
+		args = args[1:]
+		for n := repoFlag(args); n > 0; n = repoFlag(args) { // gh pr -R owner/repo create
+			args = args[n:]
+		}
+		if len(args) == 0 || !postingSubcommands[group][args[0].text] {
+			return nil
+		}
+		call, flags = "gh "+group+" "+args[0].text, subcommandFlags
 		if call == "gh pr review" {
 			flags = reviewFlags
 		}
-		args = args[2:]
+		args = args[1:]
 	default:
 		return nil
 	}
@@ -305,6 +358,20 @@ func ghSources(c *simpleCommand, args []shellWord, dir, home string, written map
 		}
 	}
 	return sources
+}
+
+// repoFlag returns how many of the leading words of args are a -R or --repo
+// flag with its value.
+func repoFlag(args []shellWord) int {
+	switch t := args[0:min(1, len(args))]; {
+	case len(t) == 0:
+		return 0
+	case (t[0].text == "-R" || t[0].text == "--repo") && len(args) > 1:
+		return 2
+	case strings.HasPrefix(t[0].text, "--repo=") || strings.HasPrefix(t[0].text, "-R") && len(t[0].text) > 2:
+		return 1
+	}
+	return 0
 }
 
 // flagValue returns the value of the first of flags in args.
@@ -351,17 +418,20 @@ func textSource(name string, w shellWord) source {
 	return source{name: name, text: w.text}
 }
 
+// stdinNames are the names gh reads standard input by.
+var stdinNames = map[string]bool{"-": true, "/dev/stdin": true, "/dev/fd/0": true, "/proc/self/fd/0": true}
+
 // fileSource is a text the gh command call reads from the file w names, or
-// from its standard input for -.
+// from its standard input for - and the like.
 func fileSource(call string, w shellWord, c *simpleCommand, dir, home string, written map[string]bool) source {
-	if w.text != "-" || w.opaque {
+	if !stdinNames[w.text] || w.opaque {
 		return pathSource(w, dir, home, written)
 	}
 	for i := len(c.redirects) - 1; i >= 0; i-- {
-		switch rd := c.redirects[i]; rd.op {
-		case "<<", "<<-", "<<<":
+		switch rd := c.redirects[i]; {
+		case rd.feedsText():
 			return textSource(call+" stdin", rd.target)
-		case "<":
+		case rd.op == "<":
 			return pathSource(rd.target, dir, home, written)
 		}
 	}

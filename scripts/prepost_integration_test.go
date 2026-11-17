@@ -25,8 +25,14 @@ func runPrepost(t *testing.T, cwd, command string, env ...string) (int, string) 
 	if err != nil {
 		t.Fatal(err)
 	}
+	return runHook(t, string(input), env...)
+}
+
+// runHook runs the hook with input on stdin.
+func runHook(t *testing.T, input string, env ...string) (int, string) {
+	t.Helper()
 	cmd := exec.Command("claude-hooks/prepost")
-	cmd.Stdin = strings.NewReader(string(input))
+	cmd.Stdin = strings.NewReader(input)
 	for _, kv := range os.Environ() {
 		if !strings.HasPrefix(kv, "HQ_PRIVATE_PATTERNS=") {
 			cmd.Env = append(cmd.Env, kv)
@@ -82,21 +88,17 @@ func TestTheClaudeHookRefusesAPostWithoutTheList(t *testing.T) {
 
 func TestTheClaudeHookRefusesInputItCannotRead(t *testing.T) {
 	needGo(t)
-	cmd := exec.Command("claude-hooks/prepost")
-	cmd.Stdin = strings.NewReader(`gh pr comment 3 --body fine`)
-	cmd.Env = append(os.Environ(), "HQ_PRIVATE_PATTERNS=acme")
-	out, err := cmd.CombinedOutput()
-	var exit *exec.ExitError
-	if !errors.As(err, &exit) || exit.ExitCode() != 2 || !strings.Contains(string(out), "refused") {
-		t.Fatalf("err %v\n%s", err, out)
+	if code, out := runHook(t, `gh pr comment 3 --body fine`, "HQ_PRIVATE_PATTERNS=acme"); code != 2 || !strings.Contains(out, "refused") {
+		t.Fatalf("exit %d\n%s", code, out)
 	}
 }
 
-// pathWithoutGo is a PATH that holds the tools the hook uses but no go.
-func pathWithoutGo(t *testing.T) string {
+// binWith is a directory of links to the named tools, for a PATH that holds
+// only them.
+func binWith(t *testing.T, tools ...string) string {
 	t.Helper()
 	bin := t.TempDir()
-	for _, tool := range []string{"sh", "cat", "grep", "dirname"} {
+	for _, tool := range tools {
 		p, err := exec.LookPath(tool)
 		if err != nil {
 			t.Skip(tool + " not installed")
@@ -105,16 +107,25 @@ func pathWithoutGo(t *testing.T) string {
 			t.Fatal(err)
 		}
 	}
-	return "PATH=" + bin
+	return bin
 }
 
+// Without go only the commands that may post reach the gate, which refuses
+// them: the hook tells them by the subcommands of postingSubcommands in
+// tools/testgate/prepost.go, so every one of them is refused here.
 func TestWithoutGoTheClaudeHookRefusesAPostAndPassesAnythingElse(t *testing.T) {
-	path := pathWithoutGo(t)
-	code, out := runPrepost(t, t.TempDir(), "gh api repos/{owner}/{repo}/issues/3/comments -f body=fine", path, "HQ_PRIVATE_PATTERNS=acme")
-	if code != 2 || !strings.Contains(out, "go is not installed") {
-		t.Fatalf("a post: exit %d\n%s", code, out)
+	path := "PATH=" + binWith(t, "sh", "cat", "grep", "dirname")
+	for _, c := range []string{
+		"gh pr create", "gh pr new", "gh pr edit", "gh pr comment", "gh pr review", "gh pr merge", "gh pr close",
+		"gh issue create", "gh issue new", "gh issue edit", "gh issue comment", "gh issue close",
+		"gh release create", "gh release new", "gh release edit", "gh api",
+		"gh pr -R o/r create", "gh issue --repo o/r comment", "gh issue --repo=o/r -Ro/r close", "cd /w &&\n  gh \\\n pr\tcomment", "true\ngh issue comment",
+	} {
+		if code, out := runPrepost(t, t.TempDir(), c+" -b fine", path, "HQ_PRIVATE_PATTERNS=acme"); code != 2 || !strings.Contains(out, "go is not installed") {
+			t.Errorf("%q: exit %d\n%s", c, code, out)
+		}
 	}
-	for _, c := range []string{"ls -la", "gh pr view 3 --json body", "git log --oneline -3"} {
+	for _, c := range []string{"ls -la", "gh pr view 3 --json body", "gh issue list -R o/r", "git log --oneline -3", "echo high api"} {
 		if code, out := runPrepost(t, t.TempDir(), c, path); code != 0 || out != "" {
 			t.Errorf("%q: exit %d\n%s", c, code, out)
 		}
@@ -123,16 +134,7 @@ func TestWithoutGoTheClaudeHookRefusesAPostAndPassesAnythingElse(t *testing.T) {
 
 func TestWhenGrepFailsTheClaudeHookStillChecks(t *testing.T) {
 	needGo(t)
-	bin := t.TempDir()
-	for _, tool := range []string{"sh", "cat", "dirname", "go"} {
-		p, err := exec.LookPath(tool)
-		if err != nil {
-			t.Skip(tool + " not installed")
-		}
-		if err := os.Symlink(p, filepath.Join(bin, tool)); err != nil {
-			t.Fatal(err)
-		}
-	}
+	bin := binWith(t, "sh", "cat", "dirname", "go")
 	if err := os.WriteFile(filepath.Join(bin, "grep"), []byte("#!/bin/sh\nexit 2\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}

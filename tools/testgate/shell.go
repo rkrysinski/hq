@@ -27,6 +27,21 @@ type redirect struct {
 	target shellWord
 }
 
+// writes reports whether the redirection writes the file it names.
+func (rd *redirect) writes() bool {
+	switch rd.op {
+	case ">", ">>", ">|", "&>", "&>>", "<>":
+		return true
+	}
+	return false
+}
+
+// feedsText reports whether the redirection feeds standard input a text
+// written in the command: a heredoc or a here-string.
+func (rd *redirect) feedsText() bool {
+	return rd.op == "<<" || rd.op == "<<-" || rd.op == "<<<"
+}
+
 // simpleCommand is a command name with its arguments and redirections.
 type simpleCommand struct {
 	words     []shellWord
@@ -322,10 +337,7 @@ func catHeredoc(cmds []*simpleCommand) (shellWord, bool) {
 		return shellWord{}, false
 	}
 	rd := cmds[0].redirects[0]
-	if rd.op != "<<" && rd.op != "<<-" && rd.op != "<<<" {
-		return shellWord{}, false
-	}
-	return rd.target, true
+	return rd.target, rd.feedsText()
 }
 
 // ansiQuoted reads a $'...' string, the opening quote read.

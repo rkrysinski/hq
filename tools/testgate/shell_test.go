@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 )
 
 // render writes the commands readShell returns one per line: each word
@@ -32,19 +31,10 @@ func render(cmds []*simpleCommand) []string {
 	return out
 }
 
-// read runs readShell and fails the test when it has not returned within
-// five seconds.
+// read renders what readShell returns for src, within five seconds.
 func read(t *testing.T, src string) []string {
 	t.Helper()
-	done := make(chan []string, 1)
-	go func() { done <- render(readShell(src)) }()
-	select {
-	case got := <-done:
-		return got
-	case <-time.After(5 * time.Second):
-		t.Fatalf("readShell(%q) did not return within 5s", src)
-		return nil
-	}
+	return inTime(t, func() []string { return render(readShell(src)) })
 }
 
 func TestTheReaderSplitsCommandsAtEveryOperator(t *testing.T) {
