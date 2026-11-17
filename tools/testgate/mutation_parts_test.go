@@ -211,6 +211,12 @@ func TestRenameSourcesAreTheDeletedFilesTheWholeTreePairsWithAPartsFiles(t *test
 			t.Errorf("%q: got %q, err %v; want %q", c.files, got, err, c.want)
 		}
 	}
+	// paths that start like a status, the rename last: each is read as a
+	// path, never as a status
+	got, err := renameSources("M\x00Copy/b.go\x00R100\x00Rules/a.go\x00Copy/a.go\x00", []string{"Copy/a.go"})
+	if err != nil || !slices.Equal(got, []string{"Rules/a.go"}) {
+		t.Errorf("paths like statuses: got %q, err %v; want [Rules/a.go]", got, err)
+	}
 	if _, err := renameSources("R100\x00old/old.go\x00", []string{"p1/b.go"}); err == nil {
 		t.Error("a rename without its new path is read without an error")
 	}
