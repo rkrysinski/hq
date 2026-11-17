@@ -100,8 +100,11 @@ const (
 	KindToolEnd  = "PostToolUse"
 	KindToolFail = "PostToolUseFailure"
 	// KindTurnEnd is the hook event that ends a turn, whose reply the
-	// journal keeps once, for the latest (Reply).
+	// journal keeps once, for the latest (Reply). KindTurnFailed ends one
+	// in its stead when an API error ended it (an expired login, a rate
+	// limit, ...), its reply Claude's error line (#224).
 	KindTurnEnd           = "Stop"
+	KindTurnFailed        = "StopFailure"
 	KindPermission        = "PermissionRequest"
 	KindElicitation       = "Elicitation"
 	KindElicitationResult = "ElicitationResult"
@@ -118,6 +121,7 @@ const (
 const (
 	CasePrompt = "prompt"
 	CaseStop   = "stop"
+	CaseFail   = "fail"
 	CaseAnswer = "answer"
 	CaseStart  = "start"
 	CaseResume = "resume"
@@ -138,7 +142,7 @@ type Facts struct {
 	Tool     string `json:"tool,omitempty"`     // the tool a dialog or a tool's end is about
 	Server   string `json:"server,omitempty"`   // the MCP server of an elicitation
 	Start    string `json:"start,omitempty"`    // how a session started (SessionStart's source), or how hq launched an agent ("new", "restore")
-	Reason   string `json:"reason,omitempty"`   // why a session ended (SessionEnd's reason)
+	Reason   string `json:"reason,omitempty"`   // why a session ended (SessionEnd's reason), or the kind of API error that ended a turn (StopFailure's error)
 	Notice   string `json:"notice,omitempty"`   // the kind of a Notification
 	// Screen is the fingerprint of a screen at rest, or of a dialog of
 	// Claude's own (its title and text), which tells screens apart without
@@ -227,6 +231,10 @@ type TaskTexts struct {
 // its event files (design §3.4, ADR 0018).
 func EventsDir(root, id string) string { return filepath.Join(root, ".git", eventsPath, id) }
 
+// EndsTurn reports whether an event of kind ends a turn with a reply the
+// journal keeps: a turn end, or a turn an API error ended.
+func EndsTurn(kind string) bool { return kind == KindTurnEnd || kind == KindTurnFailed }
+
 // IsID reports whether id is shaped as the ids hq issues to agents.
 func IsID(id string) bool { return idRE.MatchString(id) }
 
@@ -249,6 +257,7 @@ func TooLargeSize(err error) (int64, bool) {
 type eventPayload struct {
 	payload
 	Reason       string `json:"reason"`
+	Error        string `json:"error"`
 	Notification string `json:"notification_type"`
 	ToolResponse *struct {
 		Status           string `json:"status"`
@@ -267,9 +276,10 @@ var wakeTask = regexp.MustCompile(`^<task-notification>[^<]*<task-id>([^<"\\]+)`
 var messageNameRE = regexp.MustCompile(`^[0-9][0-9a-z.-]{0,99}$`)
 
 // ParseEvent is the event of the hook in the event file named name, with
-// data its content, at the host's time of the file, and for a turn end its
-// reply (nil otherwise). A file that holds no event hq knows is an event
-// of kind KindUnreadable with its size, never ignored (design §7.3).
+// data its content, at the host's time of the file, and for an event that
+// ends a turn (EndsTurn) its reply (nil otherwise). A file that holds no
+// event hq knows is an event of kind KindUnreadable with its size, never
+// ignored (design §7.3).
 func ParseEvent(name string, data []byte, at time.Time) (Event, *Reply) {
 	e := Event{Source: SourceHook, Time: at, File: name}
 	if rest, ok := bytes.CutPrefix(data, []byte(deliveryKind+" ")); ok {
@@ -315,6 +325,9 @@ func ParseEvent(name string, data []byte, at time.Time) (Event, *Reply) {
 			})
 			reply.Tasks = append(reply.Tasks, TaskTexts{ID: Clean(t.ID), Description: t.Description, Command: t.Command})
 		}
+	case KindTurnFailed:
+		f.Reason = Clean(p.Error)
+		reply = &Reply{Text: p.AssistantMessage}
 	}
 	e.Facts = f
 	return e, reply

@@ -34,7 +34,7 @@ func (h hooked) on(kind string, payload []byte) hookOutput {
 	h.t.Helper()
 	notify := ""
 	switch kind {
-	case "stop", "dialog", "input":
+	case "stop", "dialog", "input", "idle":
 		notify = "[%s]"
 	}
 	return decodeOutput(h.t, run(h.t, h.root, h.root, h.id, hook(kind, notify), payload))
@@ -134,6 +134,69 @@ func TestASupervisedTurnEndsWithoutANotificationButItsDialogNotifies(t *testing.
 	h.supervisorPrompt()
 	if got := h.notified("stop", "stop-done"); got != "" {
 		t.Fatalf("the supervisor's turn after the user's: %q", got)
+	}
+}
+
+// A turn an API error ended notifies at Claude's idle Notification a
+// minute later, since Claude ignores what any hook prints for StopFailure
+// (#224): once, as Done, and the hook reports nothing then; not after an
+// ordinary Stop, which notified already; not once a prompt has come since;
+// and not for a supervised turn, whose mark the failed end keeps.
+func TestATurnAnAPIErrorEndedNotifiesAtTheIdleNotification(t *testing.T) {
+	next := agents(t)
+
+	h := next()
+	h.event("prompt", "api-error-prompt")
+	h.event("answer", "api-error-tool")
+	if got := h.notified("fail", "api-error-stop-failure"); got != "" || h.state() != Done {
+		t.Fatalf("the end: notified %q, %s", got, h.state())
+	}
+	before := len(leftEvents(t, h.root, h.id))
+	if got := h.notified("idle", "api-error-idle"); got != doneNotice {
+		t.Fatalf("the idle notification after the end: %q", got)
+	}
+	if got := h.notified("idle", "api-error-idle"); got != "" {
+		t.Fatalf("a second idle notification: %q", got)
+	}
+	if after := len(leftEvents(t, h.root, h.id)); after != before || h.state() != Done {
+		t.Fatalf("the idle notification reported something: %d events, then %d; %s", before, after, h.state())
+	}
+
+	// After an ordinary Stop, which notified, the idle one says nothing.
+	h = next()
+	h.event("prompt", "prompt")
+	if got := h.notified("stop", "stop-done"); got != doneNotice {
+		t.Fatalf("the Stop: %q", got)
+	}
+	if got := h.notified("idle", "api-error-idle"); got != "" {
+		t.Fatalf("idle after a Stop: %q", got)
+	}
+
+	// A prompt within that minute: the agent is at work again, or ended
+	// that turn, by the time the idle notification comes.
+	h = next()
+	h.event("prompt", "api-error-prompt")
+	h.event("fail", "api-error-stop-failure")
+	h.event("prompt", "api-error-prompt-again")
+	if got := h.notified("idle", "api-error-idle"); got != "" {
+		t.Fatalf("idle after a prompt: %q", got)
+	}
+	h.event("fail", "api-error-stop-failure-again")
+	if got := h.notified("idle", "api-error-idle-again"); got != doneNotice {
+		t.Fatalf("idle after the next end: %q", got)
+	}
+
+	// The supervisor's turn notifies nobody, and the user's next one does.
+	h = next()
+	h.supervisorPromptOf(fixture(t, "api-error-prompt"))
+	h.event("fail", "api-error-stop-failure")
+	if got := h.notified("idle", "api-error-idle"); got != "" {
+		t.Fatalf("idle after a supervised turn: %q", got)
+	}
+	h.event("prompt", "api-error-prompt-again")
+	h.event("fail", "api-error-stop-failure-again")
+	if got := h.notified("idle", "api-error-idle-again"); got != doneNotice {
+		t.Fatalf("idle after the user's turn: %q", got)
 	}
 }
 

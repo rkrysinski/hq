@@ -1,0 +1,24 @@
+  foreground Bash call, never in the background and never combined. After the
+  tenth, reply with the single word: done
+╭────────────────────────╮
+│ ● Claude               │
+│ ▸ 2 komendy · ✓ · 49 s │
+╰────────────────────────╯
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                    │
+│ Login expired · Please run /login                                           │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+❯ Reply with the single word: hi
+  ⎿  1 skill available
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                    │
+│ Login expired · Please run /login                                           │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+────────────────────────────────────────────────────────────────────────────────
+❯ Once fixed, resend your message
+────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Sonnet 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+                                                                   ◆ Tools ▾
