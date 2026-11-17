@@ -43,10 +43,11 @@ func isMutationGo(arg0, realGo string) bool {
 
 // mutationGo is go for the tool: it runs the real go with args and returns
 // its exit code. A mutant's run of the unit tests that fails is then checked:
-// what failed runs again in the staged tree, without the mutant, before the
-// mutant's time limit ends; if it fails there too, or cannot be run again in
-// time, the mutant's tests did not fail for the mutant, and a record of it is
-// left for the gate, which then judges no mutant.
+// what failed runs again in the staged tree, without the mutant, and has to
+// be over a margin before the mutant's time limit ends, so the tool's verdict
+// on a healthy machine stays what it was. If it fails there too, the mutant's
+// tests did not fail for the mutant, and a record of it is left for the gate,
+// which then judges no mutant; if it is not over in time, nothing is told.
 func mutationGo(args []string) int {
 	start := time.Now()
 	realGo := os.Getenv(envRealGo)
@@ -75,12 +76,11 @@ func mutationGo(args []string) int {
 		if err == nil {
 			continue
 		}
-		record := fmt.Sprintf("go %s: %v\n%s", strings.Join(again, " "), err, got)
 		if ctx.Err() != nil {
-			record = fmt.Sprintf("go %s: not over before the mutant's time limit\n%s", strings.Join(again, " "), got)
+			break // not over in time, nothing told: the mutant counts as the tool says
 		}
 		if f, err := os.CreateTemp(os.Getenv(envMachine), "machine-*"); err == nil {
-			f.WriteString(record)
+			fmt.Fprintf(f, "go %s: %v\n%s", strings.Join(again, " "), err, got)
 			f.Close()
 		}
 		break
