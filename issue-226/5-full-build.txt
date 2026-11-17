@@ -1,4 +1,4 @@
-$ scripts/check.sh   # TMPDIR unset, as in CI
+$ scripts/check.sh   # TMPDIR unset, as in CI; after the rebase onto dev 03718a1
 check: ok   vet
 check: ok   format
 check: ok   pyramid
@@ -7,5 +7,5 @@ check: ok   unit
 check: ok   integration
 check: ok   coverage
 check: ok   e2e
-check: all 8 steps passed on 57e9bb459517a9aed02cda8dc26289982f1268c1
+check: all 8 steps passed on ebe2bbd6bc6ba631b6d36166fa2a65462e042efc
 $ ls -A /tmp/hq-check-243037243   # the checkout's directory after the run: empty
