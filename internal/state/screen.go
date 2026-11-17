@@ -278,7 +278,7 @@ var spinner = regexp.MustCompile(`^[·✢✳✶✻✽*] .*…`)
 type box struct {
 	lines, raw   []string
 	upper, lower int
-	view         bool
+	subagent     bool
 }
 
 // AtWork reports whether the screen of an agent's pane shows Claude at
@@ -307,8 +307,9 @@ func promptBox(screen string) (box, bool) {
 // rule offers Esc to interrupt (esc). A subagent's view, opened from the
 // agents list (Claude Code 2.1.326, #225), puts that subagent's transcript
 // and box in the pane, the box's upper rule carrying the subagent's task
-// (taskRule): that box is not the agent's and tells nothing of its turn,
-// so it is not found (ok is false), but b says it is there (b.view).
+// (subagentRule): that box is not the agent's and tells nothing of its
+// turn, so it is not found (ok is false), but b says it is there
+// (b.subagent).
 func findBox(screen string) (b box, ok, esc bool) {
 	// Claude puts a no-break space after its bullets; its indents vary.
 	raw := strings.Split(strings.ReplaceAll(screen, "\u00a0", " "), "\n")
@@ -341,7 +342,7 @@ func findBox(screen string) (b box, ok, esc bool) {
 	}
 	upper := -1
 	for i := lower - 1; i >= 0; i-- {
-		if isRule(lines[i]) || taskRule.MatchString(lines[i]) {
+		if isRule(lines[i]) || subagentRule.MatchString(lines[i]) {
 			upper = i
 			break
 		}
@@ -350,13 +351,13 @@ func findBox(screen string) (b box, ok, esc bool) {
 		return box{}, false, esc
 	}
 	b = box{lines, raw, upper, lower, !isRule(lines[upper])}
-	return b, !b.view, esc
+	return b, !b.subagent, esc
 }
 
-// taskRule is the upper rule of a subagent's box in its view (Claude Code
+// subagentRule is the upper rule of a subagent's box in its view (Claude Code
 // 2.1.326, #225), spaces collapsed: a rule with the subagent's task at its
 // right, as "──── Run 540-second sleep loop B ─".
-var taskRule = regexp.MustCompile(`^─+ .+ ─$`)
+var subagentRule = regexp.MustCompile(`^─+ .+ ─$`)
 
 // prompt starts Claude's input line and every prompt the user sent.
 const prompt = "❯"

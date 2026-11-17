@@ -469,14 +469,17 @@ func TestALookAtTheAgentsListOrASubagentsViewLeavesTheAgentAsItWas(t *testing.T)
 		if before.State != tc.state || before.Background != (tc.state == Working) {
 			t.Fatalf("%s: %s, background %v", tc.name, before.State, before.Background)
 		}
+		looked := slices.Clone(tc.journal)
 		for name, screen := range agentsScreens(t) {
 			for _, at := range []time.Duration{0, RestDelay, time.Hour} {
-				if seen, resting := f.Sees(screen, atSecond(3).Add(at)); len(seen) != 0 || resting {
+				seen, resting := f.Sees(screen, atSecond(3).Add(at))
+				if len(seen) != 0 || resting {
 					t.Errorf("%s, %s %v later: %+v %v", tc.name, name, at, seen, resting)
 				}
+				looked = append(looked, seen...)
 			}
 		}
-		if after := Reduce(tc.journal, Reply{}, atSecond(9)); after.Dialog.Open || after.Changed != before.Changed || after.State != tc.state {
+		if after := Reduce(looked, Reply{}, atSecond(9)); after.Dialog.Open || after.Changed != before.Changed || after.State != tc.state {
 			t.Errorf("%s: %+v", tc.name, after)
 		}
 	}

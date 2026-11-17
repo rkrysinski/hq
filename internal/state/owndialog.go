@@ -47,7 +47,7 @@ type OwnView struct {
 // list below the footer, its cursor included, and a subagent's view, whose
 // box stands in place of the agent's (findBox), are no dialog (#225).
 func ViewOwnDialog(screen string) (OwnView, bool) {
-	if b, box, esc := findBox(screen); box && !esc || b.view {
+	if b, ok := promptBox(screen); ok || b.subagent {
 		return OwnView{}, false
 	}
 	lines := strings.Split(strings.ReplaceAll(screen, "\u00a0", " "), "\n")

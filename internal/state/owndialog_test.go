@@ -224,13 +224,15 @@ func TestViewOwnDialogIsNoAgentsListNorASubagentsView(t *testing.T) {
 
 // /model opened while two subagents run in the background, in the main
 // view (Claude Code 2.1.326, #225): the picker stands in place of the box,
-// and of the agents list, which it hides whatever the pane's height; Esc
-// puts the box and the list back.
+// and of the agents list, which it hides in a pane of 30 lines and of 50
+// alike; Esc puts the box and the list back.
 func TestViewOwnDialogSeesTheModelPickerOverTheAgentsList(t *testing.T) {
-	v, ok := ViewOwnDialog(readScreen(t, "screen-own-model-agents.txt"))
-	if !ok || v.Ask.Questions[0].Question != "Select model" || v.Cursor != 4 ||
-		v.Ask.Questions[0].Options[4].Label != "Haiku 5.5 ✔ Fastest for quick answers" {
-		t.Fatalf("model: %v %+v", ok, v)
+	for _, name := range []string{"screen-own-model-agents.txt", "screen-own-model-agents-50.txt"} {
+		v, ok := ViewOwnDialog(readScreen(t, name))
+		if !ok || v.Ask.Questions[0].Question != "Select model" || v.Cursor != 4 ||
+			v.Ask.Questions[0].Options[4].Label != "Haiku 5.5 ✔ Fastest for quick answers" {
+			t.Errorf("%s: %v %+v", name, ok, v)
+		}
 	}
 	if _, ok := ViewOwnDialog(readScreen(t, "screen-agents-model-closed.txt")); ok {
 		t.Fatal("closed with Esc: still a dialog")
