@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -69,9 +70,12 @@ func (r *mutationRepo) change() {
 
 // Each real run of the tool installs it with an empty cache and starts as
 // many workers as there are cores, which loads the machine while the other
-// packages' integration tests run: so only two tests run it, this one and
-// the interrupted run. The passing run and a change without mutants are
-// proven by the unit tests of mutationReport.
+// packages' integration tests run: so only five tests of this file run it,
+// six times (the next one, the two machines that fail, the slowed run, which
+// runs it twice, and the interrupted run), and six tests of runs in parts
+// add seven runs (mutation_parts_integration_test.go).
+// The passing run and a change without mutants are proven by the unit tests
+// of mutationReport.
 
 // isolated points the temporary directory and the shared build cache of
 // the test at empty directories of its own and returns them.
@@ -127,6 +131,52 @@ func TestMutationJudgesTheChangedLinesWithTheWholeUnitSuite(t *testing.T) {
 	}
 	if !failed {
 		t.Error("an alive mutant passes")
+	}
+	assertEmpty(t, "the temporary directory", tmp)
+	assertEmpty(t, "the shared build cache", cache)
+}
+
+// A unit test that passes in the tool's first run and fails in every run
+// after it, mutant or not, as when the disk fills during a run: the run
+// ends with an error, and no mutant is judged.
+func TestMutationEndsWhenTheMachineFailsTheTests(t *testing.T) {
+	full := filepath.Join(t.TempDir(), "full")
+	assertNoMutantJudged(t, "func TestDisk(t *testing.T) {\n"+
+		"\tif _, err := os.Stat("+strconv.Quote(full)+"); err == nil {\n"+
+		"\t\tt.Fatal(\"no space left on device (simulated)\")\n\t}\n"+
+		"\tif err := os.WriteFile("+strconv.Quote(full)+", nil, 0o644); err != nil {\n\t\tt.Fatal(err)\n\t}\n}\n")
+}
+
+// A unit test that fails only while the mutants run, as on a disk that the
+// tool's copies of the tree fill and that it frees when it ends: it fails in
+// a mutant's run (with -failfast) and in a run of named tests (with -run),
+// and passes in the tool's first run and in a run of the whole unit suite.
+// A check of the unit tests once the mutants are over would pass; the run
+// still ends with an error.
+func TestMutationEndsWhenTheMachineFailsTheTestsOnlyWhileTheMutantsRun(t *testing.T) {
+	assertNoMutantJudged(t, "func TestDisk(t *testing.T) {\n"+
+		"\tif flag.Lookup(\"test.failfast\").Value.String() == \"true\" || flag.Lookup(\"test.run\").Value.String() != \"\" {\n"+
+		"\t\tt.Fatal(\"no space left on device (simulated)\")\n\t}\n}\n")
+}
+
+// assertNoMutantJudged runs the gate on the small repository's change with
+// test, the source of a unit test of a package of its own that fails for
+// the machine, and expects the run to end with an error that says so, with
+// the test's output, and to print nothing.
+func assertNoMutantJudged(t *testing.T, test string) {
+	t.Helper()
+	r := newMutationRepo(t)
+	r.change()
+	write(t, r.dir, "machine/machine_test.go", "package machine\n\nimport (\n\t\"flag\"\n\t\"os\"\n\t\"testing\"\n)\n\n"+
+		"var _, _ = flag.Lookup, os.Stat\n\n"+test)
+	tmp, cache := isolated(t)
+	lines, failed, err := runMutationIn(t, r.dir, "main")
+	if err == nil || !strings.Contains(err.Error(), "fail without it too") ||
+		!strings.Contains(err.Error(), "no space left on device (simulated)") {
+		t.Errorf("err %v; want one saying the tests that failed with a mutant fail without it too, with their output", err)
+	}
+	if failed || !reflect.DeepEqual(lines, []string{""}) {
+		t.Errorf("printed %q, failed %v; want nothing", lines, failed)
 	}
 	assertEmpty(t, "the temporary directory", tmp)
 	assertEmpty(t, "the shared build cache", cache)
@@ -246,6 +296,97 @@ func TestMutationInterruptedLeavesNothingBehind(t *testing.T) {
 	}
 	if waited := time.Since(start); waited > 10*time.Second {
 		t.Errorf("the run took %s to stop: the tests it started were not ended", waited)
+	}
+	assertEmpty(t, "the temporary directory", tmp)
+	assertEmpty(t, "the shared build cache", cache)
+}
+
+// slowGoFactor is how many times longer every mutant's run of the unit
+// tests takes in TestMutationJudgesTheSameWhenEveryMutantRunsSlower: on #213's
+// change the runs with every core kept busy took 1.2 times as long as those on
+// an idle machine, and 3 leaves a margin of 2.5 over that (#234).
+const slowGoFactor = 3
+
+// slowGo puts first in PATH a go that runs the real one and, for a mutant's
+// run of the unit tests (the tool's only go test with -failfast), then waits
+// factor-1 times as long as that run took, as a loaded machine would make it
+// take factor times as long. It returns a file that gets a line for every
+// run it slowed.
+func slowGo(t *testing.T, factor int) (slowed string) {
+	t.Helper()
+	realGo, err := exec.LookPath("go")
+	if err != nil {
+		t.Skip("no go")
+	}
+	dir := t.TempDir()
+	slowed = filepath.Join(dir, "slowed")
+	write(t, dir, "go.mod", "module slowgo\n\ngo 1.26\n")
+	write(t, dir, "main.go", `package main
+
+import (
+	"errors"
+	"os"
+	"os/exec"
+	"slices"
+	"time"
+)
+
+func main() {
+	cmd := exec.Command(`+strconv.Quote(realGo)+`, os.Args[1:]...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	start := time.Now()
+	err := cmd.Run()
+	if slices.Contains(os.Args[1:], "-failfast") {
+		time.Sleep(`+strconv.Itoa(factor-1)+` * time.Since(start))
+		if f, err := os.OpenFile(`+strconv.Quote(slowed)+`, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644); err == nil {
+			f.WriteString("slowed\n")
+			f.Close()
+		}
+	}
+	var exit *exec.ExitError
+	if errors.As(err, &exit) {
+		os.Exit(exit.ExitCode())
+	}
+	if err != nil {
+		os.Exit(1)
+	}
+}
+`)
+	bin := filepath.Join(dir, "bin")
+	build := exec.Command(realGo, "build", "-o", filepath.Join(bin, "go"), ".")
+	build.Dir = dir
+	build.Env = append(os.Environ(), "GOCACHE="+t.TempDir())
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("building the slow go: %v\n%s", err, out)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return slowed
+}
+
+func TestMutationJudgesTheSameWhenEveryMutantRunsSlower(t *testing.T) {
+	r := newMutationRepo(t)
+	r.change()
+	isolated(t)
+	want, wantFailed, err := runMutationIn(t, r.dir, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(want) < 2 {
+		t.Fatalf("the run that is not slowed prints no mutant's line: %q", want)
+	}
+	slowed := slowGo(t, slowGoFactor)
+	tmp, cache := isolated(t)
+	lines, failed, err := runMutationIn(t, r.dir, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(lines, want) || failed != wantFailed {
+		t.Errorf("every mutant %d times slower: got\n%s\nfailed %v; want\n%s\nfailed %v",
+			slowGoFactor, strings.Join(lines, "\n"), failed, strings.Join(want, "\n"), wantFailed)
+	}
+	// Three mutants run (two killed, one alive), each slowed once.
+	if got, _ := os.ReadFile(slowed); strings.Count(string(got), "slowed\n") != 3 {
+		t.Errorf("%d mutants' runs slowed, want 3", strings.Count(string(got), "slowed\n"))
 	}
 	assertEmpty(t, "the temporary directory", tmp)
 	assertEmpty(t, "the shared build cache", cache)

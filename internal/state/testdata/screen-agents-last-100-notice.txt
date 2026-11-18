@@ -1,0 +1,30 @@
+▝▜██████▀  Haiku 5.5 · Claude Ultra
+ ▝▝   ▝▝   /tmp/probe-225
+
+
+❯ Launch two general-purpose subagents in the background (run_in_background true), both at once in
+  one message. Tell each to run, in the foreground, the Bash command for i in $(seq 540); do sleep
+  1; done with a timeout of 600000 ms, and then reply done. Describe the first as "Run 540-second
+  sleep loop A" and the second as "Run 540-second sleep loop B". Do not wait for them: end your
+  turn right after launching them, with one short sentence.
+
+● 2 background agents launched (↓ to manage)
+   ├ Run 540-second sleep loop A
+   └ Run 540-second sleep loop B
+╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● Claude                                                                                        │
+│ Both sleep-loop agents (A and B) are launched in the background, and I'm not waiting on them.   │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+✻ Waiting for 2 background agents to finish
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ check on the sleep loop agents
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — CLAUDE_CODE_SKIP_PROMPT_HISTORY is set · --resume will not find th…
+  ▐◕◡◕▌  Haiku 5.5 medium │ ctx ▕▊░░░░░░░┆░░░░░░░▏ 5% │ master ✓ no upstream │ $0.01   ◆ Tools ▾
+  enter to view · x to stop · ctrl+x ctrl+k to stop all agents
+
+  ● main
+  ◯ general-purpose  Run 540-second sleep loop A                              14s · ↓ 33.0k tokens
+❯ ◯ general-purpose  Run 540-second sleep loop B                              13s · ↓ 33.2k tokens

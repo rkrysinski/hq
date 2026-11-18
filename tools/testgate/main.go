@@ -1,6 +1,7 @@
 // Command testgate holds hq's CI gates: the shape of the test suite, its
-// coverage, no private details in the public text, and platform-specific
-// code in the platform package only (docs/hq/testing.md):
+// coverage, no private details in the public text, platform-specific code
+// in the platform package only, and no test bounding real elapsed time under
+// one second (docs/hq/testing.md):
 //
 //	go run ./tools/testgate pyramid          # counts tests per level, checks the shape
 //	go run ./tools/testgate coverage FILE    # checks a coverage profile against the threshold
@@ -8,7 +9,8 @@
 //	go run ./tools/testgate prepush REPO     # no private details in what a push sends (the pre-push hook)
 //	go run ./tools/testgate prepost          # no private details in what a gh command posts (Claude Code's hook)
 //	go run ./tools/testgate platform [ROOT]  # platform-specific names only in internal/platform
-//	go run ./tools/testgate mutation BASE    # mutation tests of the lines changed against BASE
+//	go run ./tools/testgate timebound [ROOT] # no test bounds real elapsed time under 1s
+//	go run ./tools/testgate mutation BASE [PATH...] # mutation tests of the lines changed against BASE, part by part
 //
 // private, prepush and prepost read the pattern list from
 // $HQ_PRIVATE_PATTERNS or, without it, from the repository's
@@ -19,7 +21,12 @@
 //
 // mutation prints one line per mutant left alive or timed out and a last
 // line with the counts, and exits 1 when there is such a mutant (#204,
-// mutation.go). Like every gate it exits 2 on an error of its own.
+// mutation.go). Each PATH, a package's directory or a Go file, is a part:
+// the parts run one after another, each with a build cache of its own, and
+// the changed production files no part covers get a line each (#233).
+// Like every gate it exits 2 on an error of its own, unit tests that failed
+// with a mutant and fail without it too included: no mutant is judged
+// (#234, mutationgo.go).
 //
 // A test's level is its file's build constraint: none is unit, the
 // "integration" tag is integration, the "e2e" tag is end-to-end.
@@ -36,7 +43,7 @@ import (
 	"syscall"
 )
 
-const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | mutation BASE"
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]"
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
@@ -48,6 +55,9 @@ const (
 )
 
 func main() {
+	if isMutationGo(os.Args[0], os.Getenv(envRealGo)) {
+		os.Exit(mutationGo(os.Args[1:]))
+	}
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(2)
@@ -141,14 +151,29 @@ func main() {
 		for _, h := range hits {
 			problems = append(problems, h.String())
 		}
+	case "timebound":
+		root := "."
+		if len(os.Args) > 2 {
+			root = os.Args[2]
+		}
+		hits, checked, err := checkTimebound(root)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "testgate:", err)
+			os.Exit(2)
+		}
+		fmt.Printf("timebound: %d test files checked, upper bounds under %s on real elapsed time: %d\n", checked, timeboundLimit, len(hits))
+		for _, h := range hits {
+			problems = append(problems, h.String())
+		}
 	case "mutation":
-		if len(os.Args) != 3 {
-			fmt.Fprintln(os.Stderr, "testgate: mutation needs the base the pull request goes into, for example: go run ./tools/testgate mutation origin/dev")
+		base, paths, err := mutationArgs(os.Args[2:])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "testgate:", err)
 			fmt.Fprintln(os.Stderr, usage)
 			os.Exit(2)
 		}
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		failed, err := runMutation(ctx, ".", os.Args[2], os.Stdout, os.Stderr)
+		failed, err := runMutationParts(ctx, ".", base, paths, os.Stdout, os.Stderr)
 		stop()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate: mutation:", err)

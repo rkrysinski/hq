@@ -31,12 +31,12 @@ var pinned = struct {
 	generation int
 	forms      map[string]string
 }{
-	generation: 4,
+	generation: 5,
 	forms: map[string]string{
-		"the hook's script": "550cbb74dac151bf",
+		"the hook's script": "1c53ad4967521c88",
 		"the record":        "7d2c1be547e68487",
 		"the journal":       "acb23b5dfe1fdd87",
-		"the events taken":  "7a3e690550c42f25",
+		"the events taken":  "2806c785dc8d84a4",
 	},
 }
 
@@ -63,7 +63,7 @@ func probe(kind, prompt string) []byte {
 	p := map[string]any{
 		"hook_event_name": kind, "session_id": "s1", "prompt_id": "p1", "cwd": "/w/app", "agent_id": "", "tool_name": "AskUserQuestion",
 		"mcp_server_name": "srv", "source": "resume", "reason": "other", "notification_type": "permission_prompt", "message": "Allow?",
-		"prompt": prompt, "last_assistant_message": "Red or blue?",
+		"prompt": prompt, "last_assistant_message": "Red or blue?", "error": "authentication_failed",
 		"background_tasks": []map[string]string{{"id": "t1", "type": "local_agent", "status": "running", "description": "work", "command": "make"}},
 		"tool_input":       map[string]any{"questions": []map[string]string{{"question": "Red?"}}, "description": "d", "command": "c", "file_path": "f", "url": "u"},
 		"tool_response":    map[string]string{"status": "async_launched", "agentId": "a1", "taskId": "k1", "backgroundTaskId": "b1"},
@@ -78,7 +78,7 @@ func probe(kind, prompt string) []byte {
 func taken() string {
 	var files [][]byte
 	for _, kind := range []string{
-		state.KindPrompt, state.KindToolEnd, state.KindToolFail, state.KindTurnEnd, state.KindPermission, state.KindElicitation,
+		state.KindPrompt, state.KindToolEnd, state.KindToolFail, state.KindTurnEnd, state.KindTurnFailed, state.KindPermission, state.KindElicitation,
 		state.KindElicitationResult, state.KindNotification, state.KindSessionStart, state.KindSessionEnd,
 	} {
 		files = append(files, probe(kind, "Run the tests"))

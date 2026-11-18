@@ -22,7 +22,7 @@ The repository is public, and so is the evidence: before the commit, run `go run
 
 Below the check table, quote `go run ./tools/testgate pyramid` from before and after the change (`docs/hq/testing.md`). A pull request into `dev` also has a row for its CI run (every job green, with a link to the run); a red run blocks the merge. A PR that changes only files the test workflows skip (the header of `.github/workflows/pull-request-tests.yml` lists them) has no run, and the row says so.
 
-Above the full build block stands the mutation block (`docs/hq/testing.md`, *Mutation tests*), under a heading of its own: the command with its base, then its lines as it printed them, every alive or timed-out line followed by its one-line reason, and its last line. The last line names the same commit as the full build's, without ` with uncommitted changes`; after review fixes or a rebase both blocks are replaced with the new runs'. The master pull request of a release and a revert have none.
+Above the full build block stands the mutation block (`docs/hq/testing.md`, *Mutation tests*), under a heading of its own: the command with its base (and its PATHs for a run in parts), then its lines as it printed them, every alive or timed-out line followed by its one-line reason, and its last line. A run in parts whose last line counts changed files in no part needs another block under the same heading that covers them (`docs/hq/testing.md`, *Mutation tests*, *In parts*). The last line names the same commit as the full build's, without ` with uncommitted changes`; after review fixes or a rebase both blocks are replaced with the new runs'. The master pull request of a release and a revert have none.
 
 ~~~markdown
 ### Mutation tests

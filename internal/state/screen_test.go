@@ -173,13 +173,17 @@ func TestWithoutHintsReadsTheBoxAsEmptyUnderClaudesFaintHints(t *testing.T) {
 	if ok, _ := AtRest(regexp.MustCompile("\x1b\\[[0-9;]*m").ReplaceAllString(start, ""), ""); ok {
 		t.Fatal("the placeholder read as typed text is the reason for WithoutHints")
 	}
-	for _, name := range []string{"styled-start-placeholder", "styled-done"} {
+	// After a turn an API error ended, Claude Code 2.1.326 draws "Once
+	// fixed, resend your message" faint in the box, at rest a minute later
+	// and a second after the error alike (#224): hq types a waiting message
+	// in there as after any turn.
+	for _, name := range []string{"styled-start-placeholder", "styled-done", "styled-api-error-rest", "styled-api-error-again"} {
 		s := WithoutHints(screen(t, name))
 		if strings.Contains(s, "\x1b") {
 			t.Fatalf("%s: escapes left", name)
 		}
-		if ok, _ := AtRest(s, ""); !ok {
-			t.Errorf("%s: not at rest:\n%s", name, s)
+		if ok, _ := AtRest(s, ""); !ok || BoxText(s) != "" {
+			t.Errorf("%s: not at rest, or the box holds %q:\n%s", name, BoxText(s), s)
 		}
 	}
 	// A turn at work stays at work: its footer and spinner are kept.
@@ -567,6 +571,33 @@ func TestTheReadersHoldOnABoxWithAPastePlaceholder(t *testing.T) {
 		}
 		if ok, _ := AtRest(s, ""); ok != want.atRest {
 			t.Errorf("%s: at rest %v, want %v", name, ok, want.atRest)
+		}
+	}
+}
+
+// In the main view, the agents list below the footer, with its cursor
+// anywhere, leaves Claude's prompt box found, at every pane size and with
+// the notice line too: the agent's turn ended, it waits at its box
+// (#225). A subagent's view puts that subagent's box in its place, the
+// upper rule carrying the subagent's task: it tells nothing of the
+// agent's own turn, so none of the readers of that turn finds a box there.
+func TestTheAgentsListLeavesTheBoxAndASubagentsViewShowsNoneOfTheAgents(t *testing.T) {
+	for name, s := range agentsScreens(t) {
+		view := strings.HasPrefix(name, "screen-agents-view-")
+		if _, ok := promptBox(s); ok == view {
+			t.Errorf("%s: box found %v", name, ok)
+		}
+		if Idle(s) == view {
+			t.Errorf("%s: idle %v", name, !view)
+		}
+		if rest, _ := AtRest(s, ""); rest && view {
+			t.Errorf("%s: at rest", name)
+		}
+		if AtWork(s) {
+			t.Errorf("%s: at work", name)
+		}
+		if _, ended := EndedByUser(s); ended {
+			t.Errorf("%s: ended by the user", name)
 		}
 	}
 }

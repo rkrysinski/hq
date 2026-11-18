@@ -170,3 +170,58 @@ func TestWaitRightAfterNewNeverSeesTheAgentEndedOnAnOlderAnswerOfSbx(t *testing.
 	}
 	h.only(h.waited(h.wait("--since", "1m")), "a", "done", "Done: hello")
 }
+
+// A turn an API error ended, as an expired login ends one in Claude Code
+// 2.1.326 (#224), leaves the agent done with Claude's error line: hq wait
+// returns it, and a message sent while it worked is typed in as its next
+// prompt, which the same error ends again while the login stays expired.
+func TestWaitReturnsAnAgentWhoseTurnAnAPIErrorEnded(t *testing.T) {
+	const line = "Login expired · Please run /login"
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "c", "hi"); code != 0 {
+		t.Fatalf("new: %s", errOut)
+	}
+	h.waitReport("c", "done", "Done: hi")
+	h.typeIn("c", "slow apierror")
+	h.waitState("c", "working")
+	h.send("queued: c is working, delivered when it stops", "c", "apierror again")
+	ch := h.wait("c")
+	time.Sleep(time.Second)
+	h.stillWaiting(ch)
+	h.typeIn("c", "go on")
+	first := h.only(h.waited(ch), "c", "done", line)
+
+	// A look types the message in once it has waited (#125); its turn ends
+	// in the same error.
+	again := h.waitRow("c", "done", func(r lsRow) bool { return r.Since.After(first.Since) })
+	if again.Last != line || again.Pending != 0 {
+		t.Fatalf("after the message: %+v", again)
+	}
+	h.waitPane("c", "❯ apierror again")
+
+	// The hook took nothing at the error's end: hq typed the message in,
+	// between the two ends, as the journal says whenever the look came.
+	code, out, errOut := h.run("explain", "c", "--all", "--json")
+	var journal struct {
+		Events []struct{ Source, Kind string } `json:"events"`
+	}
+	if code != 0 || json.Unmarshal([]byte(out), &journal) != nil {
+		t.Fatalf("explain: exit %d %s %s", code, out, errOut)
+	}
+	var ends, typed []string
+	for _, e := range journal.Events {
+		switch {
+		case e.Kind == "StopFailure":
+			ends = append(ends, e.Kind)
+		case e.Kind == "delivery" && e.Source == "hook":
+			t.Fatalf("the hook delivered the message: %s", out)
+		case e.Kind == "delivery" && len(ends) == 1:
+			typed = append(typed, e.Source)
+		}
+	}
+	if len(ends) != 2 || len(typed) == 0 {
+		t.Fatalf("ends %v, typed in between by %v: %s", ends, typed, out)
+	}
+}

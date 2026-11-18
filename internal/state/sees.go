@@ -260,7 +260,7 @@ func (f Fold) LastReply(reply Reply) (text string, at time.Time) {
 		return "", time.Time{}
 	case e.Kind == KindUnreadable && e.Facts.Size > maxFile:
 		return TooLarge(e.Facts.Size), e.Time
-	case e.Kind == KindTurnEnd && reply.Number == e.Number:
+	case EndsTurn(e.Kind) && reply.Number == e.Number:
 		return CleanText(reply.Text), e.Time
 	default:
 		return "", e.Time

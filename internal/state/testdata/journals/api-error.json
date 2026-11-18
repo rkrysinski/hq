@@ -1,0 +1,198 @@
+{
+  "about": "Turns an API error ended, the host's delivery for #224 (Claude Code 2.1.326, an expired login): case A, the login expired while a tool ran, ends with StopFailure and no Stop: done, its last message Claude's error line; Claude's idle Notification a minute later reports nothing; a message left while the agent worked is not taken at that end and rides along with the next prompt, case B, which the same error ends at once.",
+  "steps": [
+    {
+      "hook": "start",
+      "payload": "api-error-session-start",
+      "events": [
+        {
+          "n": 1,
+          "source": "hook",
+          "kind": "SessionStart",
+          "time": "2026-01-01T00:00:01Z",
+          "file": "000000001.start.1",
+          "facts": {
+            "branch": "main",
+            "session": "11111111-2222-4333-8444-555555555555",
+            "cwd": "/w/app",
+            "start": "startup",
+            "hook": "start"
+          }
+        }
+      ],
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:01Z"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "api-error-prompt",
+      "events": [
+        {
+          "n": 2,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:02Z",
+          "file": "000000002.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "11111111-2222-4333-8444-555555555555",
+            "cwd": "/w/app",
+            "turn": "aaaaaaaa-0000-4000-8000-000000000001",
+            "prompt": "Run the Bash command `sleep 20` ten times, one after another, each as its own foreground Bash call, never in the background and never combined. After the tenth, reply with the single word: done",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "api-error-tool",
+      "events": [
+        {
+          "n": 3,
+          "source": "hook",
+          "kind": "PostToolUse",
+          "time": "2026-01-01T00:00:03Z",
+          "file": "000000003.answer.1",
+          "facts": {
+            "branch": "main",
+            "session": "11111111-2222-4333-8444-555555555555",
+            "cwd": "/w/app",
+            "turn": "aaaaaaaa-0000-4000-8000-000000000001",
+            "tool": "Bash",
+            "hook": "answer"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "answer",
+      "payload": "api-error-tool-last",
+      "messages": 1,
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:02Z"
+      }
+    },
+    {
+      "hook": "fail",
+      "payload": "api-error-stop-failure",
+      "screen": "api-error-rest",
+      "events": [
+        {
+          "n": 4,
+          "source": "hook",
+          "kind": "StopFailure",
+          "time": "2026-01-01T00:00:05Z",
+          "file": "000000004.fail.1",
+          "facts": {
+            "branch": "main",
+            "session": "11111111-2222-4333-8444-555555555555",
+            "cwd": "/w/app",
+            "turn": "aaaaaaaa-0000-4000-8000-000000000001",
+            "reason": "authentication_failed",
+            "hook": "fail"
+          }
+        }
+      ],
+      "reply": {
+        "n": 4,
+        "text": "Login expired · Please run /login"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Login expired · Please run /login"
+      }
+    },
+    {
+      "hook": "idle",
+      "payload": "api-error-idle",
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:05Z",
+        "last": "Login expired · Please run /login"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "api-error-prompt-again",
+      "events": [
+        {
+          "n": 5,
+          "source": "hook",
+          "kind": "delivery",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000005.prompt.1",
+          "facts": {
+            "messages": [
+              "1"
+            ],
+            "hook": "prompt"
+          }
+        },
+        {
+          "n": 6,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:07Z",
+          "file": "000000006.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "11111111-2222-4333-8444-555555555555",
+            "cwd": "/w/app",
+            "turn": "aaaaaaaa-0000-4000-8000-000000000002",
+            "prompt": "Reply with the single word: hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:07Z",
+        "last": "Login expired · Please run /login"
+      }
+    },
+    {
+      "hook": "fail",
+      "payload": "api-error-stop-failure-again",
+      "screen": "api-error-again",
+      "events": [
+        {
+          "n": 7,
+          "source": "hook",
+          "kind": "StopFailure",
+          "time": "2026-01-01T00:00:08Z",
+          "file": "000000007.fail.1",
+          "facts": {
+            "branch": "main",
+            "session": "11111111-2222-4333-8444-555555555555",
+            "cwd": "/w/app",
+            "turn": "aaaaaaaa-0000-4000-8000-000000000002",
+            "reason": "authentication_failed",
+            "hook": "fail"
+          }
+        }
+      ],
+      "reply": {
+        "n": 7,
+        "text": "Login expired · Please run /login"
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:08Z",
+        "last": "Login expired · Please run /login"
+      }
+    }
+  ]
+}

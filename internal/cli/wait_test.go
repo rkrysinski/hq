@@ -206,6 +206,32 @@ func TestWaitReturnsAnAgentKilledWhileWaitedOnAsEnded(t *testing.T) {
 	}
 }
 
+// A look of hq wait can list an agent's window before hq kill removes it
+// and read its journal after the kill removed that too (#239): the agent
+// still comes back ended with what it last showed, not as one that never
+// said anything.
+func TestWaitReturnsAnAgentKilledBetweenTheStepsOfItsLookWithItsLastMessage(t *testing.T) {
+	f := newWaitFakes()
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Done: hi"}
+	killAt, killed := f.now.Add(time.Second), false
+	f.onRead = func(id string) {
+		if id != "id-a" || killed || f.now.Before(killAt) {
+			return
+		}
+		// The look has listed the windows; the whole kill runs before it
+		// reads a's journal.
+		killed = true
+		if code, _, errOut := f.run("kill", "a", "-y"); code != 0 {
+			t.Errorf("kill: %s", errOut)
+		}
+	}
+	code, out, _ := f.run("wait", "a", "--json")
+	w := waitJSON(t, out)
+	if !killed || code != 0 || len(w.Agents) != 1 || w.Agents[0].Name != "a" || w.Agents[0].State != state.Ended || w.Agents[0].Last != "Done: hi" {
+		t.Fatalf("killed %v, exit %d:\n%s", killed, code, out)
+	}
+}
+
 func TestWaitReturnsEachStateThatNeedsAttention(t *testing.T) {
 	for _, st := range []string{state.Done, state.Question, state.NeedsInput, state.Ended} {
 		f := newWaitFakes()
@@ -397,5 +423,26 @@ func TestWaitWithoutSinceReturnsAChangeNumberedRightAfterItsFirstLook(t *testing
 	}
 	if w := waitJSON(t, out); len(w.Agents) != 1 || w.Agents[0].Name != "b" || w.Agents[0].Last != "Done: in between" {
 		t.Fatalf("want b done, got %s", out)
+	}
+}
+
+// An agent working only on background work, whose pane shows the agents
+// list with its cursor on a subagent's row and then a subagent's view, is
+// not returned: neither is a dialog of Claude's own (Claude Code 2.1.326,
+// #225). The picker of /model opened over the list is.
+func TestWaitDoesNotReturnAnAgentAtItsAgentsListOrASubagentsView(t *testing.T) {
+	f := newWaitFakes()
+	f.tmux.windows[1].Pane = "%1"
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Hour), Latest: f.now.Add(-time.Minute), Background: true, Last: "launched"}
+	f.tmux.screens = map[string]string{"%1": readFixture(t, "screen-agents-last-80.txt")}
+	f.after(5*time.Second, func() { f.tmux.screens["%1"] = readFixture(t, "screen-agents-view-last-80-notice.txt") })
+	code, out, errOut := f.run("wait", "a", "--timeout", "15s")
+	if code != 0 || !strings.HasPrefix(out, "nothing yet\n") {
+		t.Fatalf("exit %d: %s%s", code, out, errOut)
+	}
+	f.after(5*time.Second, func() { f.tmux.screens["%1"] = readFixture(t, "screen-own-model-agents.txt") })
+	code, out, errOut = f.run("wait", "a", "--json", "--timeout", "15s")
+	if w := waitJSON(t, out); code != 0 || len(w.Agents) != 1 || w.Agents[0].State != "needs input" || w.Agents[0].Last != "Select model" {
+		t.Fatalf("the picker: exit %d %s%s", code, out, errOut)
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -23,13 +24,20 @@ func eventually(t *testing.T, what string, ok func() bool) {
 	}
 }
 
-// waitFor polls ok for up to 5 s.
+// waitFor polls every pollEvery, waitBound in all at least: each poll adds
+// its own time to the sleeps.
+const (
+	waitBound = 5 * time.Second
+	pollEvery = 100 * time.Millisecond
+)
+
+// waitFor polls ok until it holds or the bound has passed.
 func waitFor(ok func() bool) bool {
-	for i := 0; i < 50; i++ {
+	for i := 0; i < int(waitBound/pollEvery); i++ {
 		if ok() {
 			return true
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(pollEvery)
 	}
 	return false
 }
@@ -103,9 +111,23 @@ func TestHomeWindowKeepsOptionsArgumentsAndOutputAfterExit(t *testing.T) {
 	if ws, _ := c.Windows(); ws[1].DeadAt.Before(started.Truncate(time.Second)) || ws[1].DeadAt.After(time.Now()) {
 		t.Fatalf("died at %v, started %v", ws[1].DeadAt, started)
 	}
-	out, _ := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p", "-t", id).Output()
-	if !strings.Contains(string(out), `a b|'q"|$HOME|;exit|`) {
-		t.Fatalf("arguments were not passed verbatim:\n%s", out)
+	// The output may reach the pane a moment after tmux learns how the pane
+	// ended (#211): wait for it. Past the bound, the pane's whole history and
+	// tmux's version tell output that came late from output that was lost.
+	want := `a b|'q"|$HOME|;exit|`
+	var history []byte
+	if !waitFor(func() bool {
+		history, err = exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p", "-S", "-", "-E", "-", "-t", id).CombinedOutput()
+		return err == nil && strings.Contains(string(history), want)
+	}) {
+		if err != nil {
+			history = append(history, "\n(capture-pane: "+err.Error()+")"...)
+		}
+		v, err := c.Version()
+		if err != nil {
+			v = "unknown (" + err.Error() + ")"
+		}
+		t.Fatalf("the arguments, passed verbatim, did not appear in the dead pane within %v: want %q\ntmux %s; the pane's whole history:\n%s", waitBound, want, v, history)
 	}
 	if err := c.SetOption(id, "ending", "1"); err != nil {
 		t.Fatal(err)
@@ -425,22 +447,43 @@ func TestValuesWithADollarNameReadBackAsStored(t *testing.T) {
 
 // longInputPasses reports whether a pane's program gets all of a long input
 // tmux types, without hq. In a Docker sandbox (kernel 7.0) it gets 4095
-// bytes and the rest stays in tmux, with every tmux from 3.4 to 3.7c, while
-// the runners' tmux delivers all of it (#41).
+// bytes and the rest stays behind until more input comes, with every tmux
+// from 3.4 to 3.7c, while the runners' tmux delivers all of it (#41).
+// There, the answer depends on whether the program reads while tmux writes:
+// a program that keeps up may get all of it, and under load the probe then
+// passed where the paste that followed came short (#242). So the program
+// reads nothing until tmux has written all it can: the answer is the same
+// in every run.
 func longInputPasses(t *testing.T) bool {
 	t.Helper()
 	socket := testutil.TmuxSocket(t)
-	got := filepath.Join(t.TempDir(), "got")
-	if out, err := exec.Command("tmux", "-u", "-L", socket, "new-session", "-d", "sh", "-c", `stty raw -echo; echo ready; exec cat >>"$0"`, got).CombinedOutput(); err != nil {
-		t.Fatalf("%v %s", err, out)
+	dir := t.TempDir()
+	got, start := filepath.Join(dir, "got"), filepath.Join(dir, "start")
+	if err := syscall.Mkfifo(start, 0o600); err != nil {
+		t.Fatal(err)
 	}
+	tm(t, socket, "new-session", "-d", "sh", "-c", `stty raw -echo; echo ready; read go <"$1"; exec cat >>"$0"`, got, start)
 	eventually(t, "the program", func() bool {
-		out, _ := exec.Command("tmux", "-u", "-L", socket, "capture-pane", "-p").Output()
-		return strings.Contains(string(out), "ready")
+		return strings.Contains(tm(t, socket, "capture-pane", "-p"), "ready")
 	})
 	const n = 5000
-	if out, err := exec.Command("tmux", "-u", "-L", socket, "send-keys", "-l", strings.Repeat("x", n)).CombinedOutput(); err != nil {
-		t.Fatalf("%v %s", err, out)
+	tm(t, socket, "send-keys", "-l", strings.Repeat("x", n))
+	// tmux writes the input to the pane before it takes its next command.
+	tm(t, socket, "display-message", "-p", "")
+	// The pipe opens for writing once the program has opened it to read,
+	// which it does next.
+	var pipe *os.File
+	if !waitFor(func() bool {
+		var err error
+		pipe, err = os.OpenFile(start, os.O_WRONLY|syscall.O_NONBLOCK, 0)
+		return err == nil
+	}) {
+		t.Fatalf("the program did not open its pipe to read within %v", waitBound)
+	}
+	_, err := pipe.WriteString("go\n")
+	pipe.Close()
+	if err != nil {
+		t.Fatal(err)
 	}
 	return waitFor(func() bool { b, _ := os.ReadFile(got); return len(b) == n })
 }

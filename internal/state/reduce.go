@@ -206,7 +206,7 @@ func (f Fold) With(events ...Event) Fold {
 		stop := false
 		if e.Source == SourceHook {
 			f.add(e)
-			stop = e.Facts.Hook == CaseStop && f.report.Number == e.Number
+			stop = (e.Facts.Hook == CaseStop || e.Facts.Hook == CaseFail) && f.report.Number == e.Number
 		} else if !f.see(e) {
 			continue
 		}
@@ -258,6 +258,8 @@ func (f *Fold) add(e Event) {
 	switch e.Facts.Hook {
 	case CaseStop:
 		f.atStop(e, at)
+	case CaseFail:
+		f.atFail(e, at)
 	case CasePrompt:
 		f.atPrompt(e, at)
 	case CaseAnswer:
@@ -304,6 +306,15 @@ func (f *Fold) atStop(e Event, at Ref) {
 	}
 	f.beside = nil
 	f.report = &written{e, at}
+}
+
+// atFail follows a turn an API error ended (the hook's fail): the latest
+// turn end, and the latest report, whatever the turn left; the hook drops
+// the marks of a turn as at any prompt or stop it does not keep, and keeps
+// its list of background work.
+func (f *Fold) atFail(e Event, at Ref) {
+	f.beside, f.acted, f.queued, f.stop = nil, nil, nil, &e
+	f.write(e, at)
 }
 
 // atPrompt follows a prompt: one of the user's, one Claude queues while
@@ -497,7 +508,7 @@ func (f *Fold) marked(mark string) map[string]bool {
 // message is the reply of turn end e, one line, as reply keeps it for the
 // latest turn end; "" for another (or with no reply).
 func message(e *Event, reply *Reply) string {
-	if e == nil || reply == nil || e.Kind != KindTurnEnd || reply.Number != e.Number {
+	if e == nil || reply == nil || !EndsTurn(e.Kind) || reply.Number != e.Number {
 		return ""
 	}
 	return Clean(reply.Text)
@@ -607,6 +618,8 @@ func parse(r *Reduced, c *Event, stop string, prev *Event) (subagent, before boo
 		if c.Facts.Question {
 			r.State = Question
 		}
+	case KindTurnFailed:
+		r.State = Done
 	case KindSessionStart:
 		r.State = Done
 		if c.Facts.Start == newSource {

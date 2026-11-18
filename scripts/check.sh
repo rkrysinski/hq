@@ -15,7 +15,8 @@
 # when the working tree is not clean (untracked files count, ignored ones not).
 #
 # The steps: vet (for every build tag), format, pyramid (tools/testgate),
-# platform (tools/testgate), unit, integration (with coverage of internal/),
+# platform (tools/testgate), timebound (tools/testgate: no test bounds real
+# elapsed time under 1s), unit, integration (with coverage of internal/),
 # coverage (tools/testgate's threshold), e2e. A passed step's output is not
 # printed; the figures of pyramid and coverage go to the GitHub job summary
 # when GITHUB_STEP_SUMMARY is set. See docs/hq/testing.md.
@@ -66,6 +67,8 @@ step_pyramid() { go run ./tools/testgate pyramid; }
 
 step_platform() { go run ./tools/testgate platform; }
 
+step_timebound() { go run ./tools/testgate timebound; }
+
 step_unit() { go test ./...; }
 
 # -count=1: a cached package's profile describes the code of the run that
@@ -81,7 +84,7 @@ step_e2e() {
 }
 
 n=0
-for step in vet format pyramid platform unit integration coverage e2e; do
+for step in vet format pyramid platform timebound unit integration coverage e2e; do
 	if ! "step_$step" >"$tmp/out" 2>&1; then
 		echo "check: FAIL $step"
 		cat "$tmp/out"

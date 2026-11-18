@@ -447,3 +447,60 @@ func TestAFirstPromptThatNeverComesLeavesTheAgentStartingWithNoCompletedTurn(t *
 		t.Fatalf("its next report: %s entered %d", r.State, r.Entered.Number)
 	}
 }
+
+// An agent whose turn ended while its background subagents run is working
+// (spec, Background work), and a look at its pane appends nothing for the
+// agents list with its cursor anywhere or for a subagent's view open
+// there: no dialog of Claude's own, so nothing for hq wait to return
+// (#225). The same holds for an agent done or with a question, whose
+// screen is looked at for such a dialog too. Each screen is met as the
+// look meets it: only at a moment its screen may tell (ScreenMayTell).
+func TestALookAtTheAgentsListOrASubagentsViewLeavesTheAgentAsItWas(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		journal []Event
+		state   string
+	}{
+		{"working on background work", []Event{userPrompt(1, "t1"), endOfTurn(2, "t1", false, subagentRunning("a1"), subagentRunning("a2"))}, Working},
+		{"done", []Event{userPrompt(1, "t1"), endOfTurn(2, "t1", false)}, Done},
+		{"with a question", []Event{userPrompt(1, "t1"), endOfTurn(2, "t1", true)}, Question},
+	} {
+		f := Fold{}.With(tc.journal...)
+		before := Reduce(tc.journal, Reply{}, atSecond(9))
+		if before.State != tc.state || before.Background != (tc.state == Working) {
+			t.Fatalf("%s: %s, background %v", tc.name, before.State, before.Background)
+		}
+		looked := slices.Clone(tc.journal)
+		for name, screen := range agentsScreens(t) {
+			for _, at := range []time.Duration{0, RestDelay, time.Hour} {
+				if !f.ScreenMayTell(atSecond(3).Add(at)) {
+					t.Fatalf("%s, %v later: its screen may not tell", tc.name, at)
+				}
+				seen, resting := f.Sees(screen, atSecond(3).Add(at))
+				if len(seen) != 0 || resting {
+					t.Errorf("%s, %s %v later: %+v %v", tc.name, name, at, seen, resting)
+				}
+				looked = append(looked, seen...)
+			}
+		}
+		if after := Reduce(looked, Reply{}, atSecond(9)); after.Dialog.Open || after.Changed != before.Changed || after.State != tc.state {
+			t.Errorf("%s: %+v", tc.name, after)
+		}
+	}
+	// The picker of /model opened over the list is a dialog all the same.
+	f := Fold{}.With(userPrompt(1, "t1"), endOfTurn(2, "t1", false, subagentRunning("a1"), subagentRunning("a2")))
+	if !f.ScreenMayTell(atSecond(3)) {
+		t.Fatal("the picker: its screen may not tell")
+	}
+	seen, _ := f.Sees(readScreen(t, "screen-own-model-agents.txt"), atSecond(3))
+	if len(seen) != 1 || seen[0].Kind != KindOwnDialog || seen[0].Facts.Text != "Select model" {
+		t.Fatalf("the picker: %+v", seen)
+	}
+	opened := Fold{}.With(userPrompt(1, "t1"), endOfTurn(2, "t1", false, subagentRunning("a1"), subagentRunning("a2")), seenEvent(3, SourceScreen, KindOwnDialog, 2, seen[0].Facts))
+	if !opened.ScreenMayTell(atSecond(4)) {
+		t.Fatal("the picker closed: its screen may not tell")
+	}
+	if gone, _ := opened.Sees(readScreen(t, "screen-agents-model-closed.txt"), atSecond(4)); len(gone) != 1 || gone[0].Kind != KindOwnDialogGone {
+		t.Fatalf("the picker closed: %+v", gone)
+	}
+}

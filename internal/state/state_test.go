@@ -66,6 +66,19 @@ func TestCleanStripsEscapesAndControlCharacters(t *testing.T) {
 	}
 }
 
+// Claude Code draws a suggested next prompt, faint, in an empty prompt box
+// after a turn; accepted, it would pass as the user's word (#230). The
+// settings hq gives Claude turn it off: absent or true, it stays on.
+func TestSettingsTurnPromptSuggestionsOff(t *testing.T) {
+	var s map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(Settings("a", "0123abcd", "")), &s); err != nil {
+		t.Fatal(err)
+	}
+	if got := string(s["promptSuggestionEnabled"]); got != "false" {
+		t.Fatalf("promptSuggestionEnabled: %q, want false", got)
+	}
+}
+
 func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	raw := Settings("a", "0123abcd", `\u0007`)
 	if !strings.Contains(raw, `"HQ_ID":"0123abcd"`) {
@@ -84,10 +97,12 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	}
 	// Only Stop, a dialog (an MCP elicitation's too) and the attention
 	// Notifications notify, with the sequence; the end of any tool may close
-	// a dialog, and the answer to an elicitation's form closes it.
+	// a dialog, and the answer to an elicitation's form closes it. A turn an
+	// API error ended is reported by StopFailure, whose output Claude
+	// ignores (#224): it notifies at the idle Notification, below.
 	events := map[string]string{
 		"UserPromptSubmit": "prompt", "PermissionRequest": "dialog \\u0007", "PostToolUse": "answer", "PostToolUseFailure": "answer",
-		"Stop": "stop \\u0007", "Notification": "input \\u0007", "SessionEnd": "end",
+		"Stop": "stop \\u0007", "StopFailure": "fail", "Notification": "input \\u0007", "SessionEnd": "end",
 		"Elicitation": "dialog \\u0007", "ElicitationResult": "result", "PreToolUse": "refuse",
 	}
 	// SessionStart: a new session or /clear starts, a resumed one resumes;
@@ -107,7 +122,7 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	}
 	for event, args := range events {
 		m := s.Hooks[event]
-		if event == "PermissionRequest" {
+		if event == "PermissionRequest" || event == "Notification" {
 			m = m[:1]
 		}
 		if len(m) != 1 || len(m[0].Hooks) != 1 {
@@ -136,6 +151,11 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	if s.Hooks["Notification"][0].Matcher != "permission_prompt|agent_needs_input" {
 		t.Errorf("matcher %q", s.Hooks["Notification"][0].Matcher)
 	}
+	// Claude's idle Notification has a hook of its own, with the sequence:
+	// it notifies a turn an API error ended (#224).
+	if n := s.Hooks["Notification"]; len(n) != 2 || n[1].Matcher != "idle_prompt" || len(n[1].Hooks) != 1 || strings.Join(n[1].Hooks[0].Args[3:], " ") != "idle \\u0007" {
+		t.Errorf("idle Notification: %+v", n)
+	}
 	// The settings are one argument of sbx run (hq __session writes them out,
 	// #40), which on WSL is sbx.exe: Windows takes a command line of at most
 	// 32 KiB, and the prompt and the rest of the line need their share.
@@ -151,8 +171,13 @@ func TestSettingsCarryIdentityAndOneHookPerEvent(t *testing.T) {
 	// about 9.6 KiB. The event files of ADR 0018 took it to 10,229 bytes
 	// (#193), while it writes the old files too, and 10,236 with the case
 	// that wrote each in its name (#196). Without the old files and with
-	// the notes the hook keeps for itself instead, 10,220 (#199).
-	if len(hookScript) > 10<<10 {
+	// the notes the hook keeps for itself instead, 10,220 (#199). 10 KiB
+	// and 256 bytes since the question dialog's hook that first looks
+	// after its dialog closed ends at once (.asked): 10,379 (#209). 10 KiB
+	// and 512 bytes since a turn an API error ended notifies at Claude's
+	// idle Notification, Claude ignoring what the hook prints for its
+	// StopFailure: 10,561 (#224).
+	if len(hookScript) > 10<<10+512 {
 		t.Errorf("hook script of %d bytes", len(hookScript))
 	}
 	for _, event := range []string{"PermissionRequest", "PostToolUse", "PostToolUseFailure"} {

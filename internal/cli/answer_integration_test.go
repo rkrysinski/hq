@@ -50,9 +50,7 @@ func TestAnswerFromTheCLIClosesTheDialogThroughItsHook(t *testing.T) {
 	h.waitPane("a", "· Which colour do you pick? → Blue\n  ⎿  Allowed by PermissionRequest hook")
 	h.waitReport("a", "done", "Answered: "+state.MessageLabel+"then commit")
 	// The hook ended with its decision: nothing of it is left.
-	if left, _ := filepath.Glob(filepath.Join(state.Dir(h.cwd), "*.[0-9]*")); len(left) != 0 {
-		t.Fatalf("left beside the hook's notes: %v", left)
-	}
+	h.waitHooksEnded()
 	if left, _ := filepath.Glob(filepath.Join(h.cwd, ".git", "hq", "inbox", "*", "*")); len(left) != 0 {
 		t.Fatalf("left in the inbox: %v", left)
 	}
@@ -122,16 +120,7 @@ func TestAnswerAfterTheTerminalAnsweredIsRefused(t *testing.T) {
 	// The hook looks every 0.2 s whether its note is still the
 	// dialog's, so it may end a moment after the report, later on a busy
 	// machine.
-	var left []string
-	for i := 0; i < 50; i++ {
-		if left, _ = filepath.Glob(filepath.Join(state.Dir(h.cwd), "*.[0-9]*")); len(left) == 0 {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	if len(left) != 0 {
-		t.Fatalf("the hook still holds: %v", left)
-	}
+	h.waitHooksEnded()
 	// A new dialog has an id of its own: the old one names it no more.
 	h.typeIn("a", "more input")
 	if again := h.dialogOf("a"); again == id {
