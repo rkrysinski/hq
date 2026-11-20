@@ -41,10 +41,7 @@ type loadCommand struct {
 // started load).
 func startLoadCommand(t *testing.T, viaShell bool, args ...string) *loadCommand {
 	t.Helper()
-	self, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
+	self := testBinary(t)
 	dir := t.TempDir()
 	c := &loadCommand{stdout: filepath.Join(dir, "stdout"), stderr: filepath.Join(dir, "stderr"),
 		started: filepath.Join(dir, "started"), done: make(chan struct{})}
@@ -161,6 +158,44 @@ func running(t *testing.T, g int) []string {
 	return left
 }
 
+// testBinary is this package's test binary, which is testgate load with
+// $TESTGATE_LOAD_HELPER set (TestMain).
+func testBinary(t *testing.T) string {
+	t.Helper()
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return self
+}
+
+// closedPipe is the writing end of a pipe whose reading end is closed
+// already: every write to it fails (EPIPE, and SIGPIPE to the writer).
+func closedPipe(t *testing.T) *os.File {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Close()
+	t.Cleanup(func() { w.Close() })
+	return w
+}
+
+// groupOf is the process group of the process pid.
+func groupOf(t *testing.T, pid string) int {
+	t.Helper()
+	out, err := exec.Command("ps", "-o", "pgid=", "-p", pid).Output()
+	if err != nil {
+		t.Fatalf("ps -o pgid= -p %s: %v", pid, err)
+	}
+	g, err := strconv.Atoi(strings.TrimSpace(string(out)))
+	if err != nil {
+		t.Fatalf("the process group of %s: %q", pid, out)
+	}
+	return g
+}
+
 // runs reports whether the process pid runs (not ended and waiting to be
 // reaped by whoever took it over).
 func runs(t *testing.T, pid int) bool {
@@ -243,27 +278,17 @@ func TestALoadRunLeavesNoLoadBehindHoweverItEnds(t *testing.T) {
 	}
 
 	// A write to a closed stdout or stderr does not end the command before
-	// it stops its tests: it ends as its tests do.
+	// it stops its tests: it ends as its tests do. Their reading end is
+	// closed before the command starts, so that every write it makes there
+	// fails.
 	t.Run("stdout and stderr closed", func(t *testing.T) {
-		self, err := os.Executable()
-		if err != nil {
-			t.Fatal(err)
-		}
-		cmd := exec.Command(self, "load", "-count", "1", "-run", "^TestPasses$", loadFixture)
+		cmd := exec.Command(testBinary(t), "load", "-count", "1", "-run", "^TestPasses$", loadFixture)
 		cmd.Env = append(os.Environ(), "TMPDIR="+t.TempDir(), envLoadHelper+"=1", envRealGo+"=")
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			t.Fatal(err)
-		}
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			t.Fatal(err)
-		}
+		cmd.Stdout = closedPipe(t)
+		cmd.Stderr = cmd.Stdout
 		if err := cmd.Start(); err != nil {
 			t.Fatal(err)
 		}
-		stdout.Close()
-		stderr.Close()
 		done := make(chan error, 1)
 		go func() { done <- cmd.Wait() }()
 		select {
@@ -276,6 +301,49 @@ func TestALoadRunLeavesNoLoadBehindHoweverItEnds(t *testing.T) {
 			<-done
 			t.Fatalf("testgate load did not end within %s", loadStartBound)
 		}
+	})
+
+	// The process that started the command ends, and with it the reading
+	// end of the command's stdout and stderr: the command stops its tests as
+	// on SIGTERM, though every write it makes there fails. Its test's process
+	// group is found from the process id the test writes, since stderr
+	// cannot be read.
+	t.Run("the process that started it ended, its stdout and stderr closed", func(t *testing.T) {
+		dir := t.TempDir()
+		started, pidFile := filepath.Join(dir, "started"), filepath.Join(dir, "pid")
+		sh := exec.Command("sh", "-c", `"$0" "$@" & echo $! >"$LOAD_PID"; wait`,
+			testBinary(t), "load", "-count", "1", "-run", "^TestWaits$", loadFixture)
+		sh.Env = append(os.Environ(), "TMPDIR="+t.TempDir(), envLoadHelper+"=1", envRealGo+"=",
+			"LOAD_FIXTURE_STARTED="+started, "LOAD_PID="+pidFile)
+		sh.Stdout = closedPipe(t)
+		sh.Stderr = sh.Stdout
+		if err := sh.Start(); err != nil {
+			t.Fatal(err)
+		}
+		shDone := make(chan struct{})
+		go func() { sh.Wait(); close(shDone) }()
+		group := 0
+		t.Cleanup(func() {
+			sh.Process.Kill()
+			<-shDone
+			if group != 0 {
+				syscall.Kill(-group, syscall.SIGKILL)
+			}
+		})
+		waitFor(t, loadStartBound, "TestWaits started under testgate load", func() bool { return readFile(started) != "" })
+		group = groupOf(t, strings.TrimSpace(readFile(started)))
+		pid, err := strconv.Atoi(strings.TrimSpace(readFile(pidFile)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		sh.Process.Kill() // sh passes no signal on
+		select {
+		case <-shDone:
+		case <-time.After(loadEndBound):
+			t.Fatalf("sh did not end within %s of SIGKILL", loadEndBound)
+		}
+		waitFor(t, loadEndBound, "testgate load ended after the process that started it", func() bool { return !runs(t, pid) })
+		waitFor(t, loadEndBound, "the test processes of group "+strconv.Itoa(group)+" ended", func() bool { return len(running(t, group)) == 0 })
 	})
 
 	t.Run("SIGKILL", func(t *testing.T) {
