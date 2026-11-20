@@ -238,13 +238,13 @@ func (f *Fold) look(reply *Reply) looked {
 }
 
 // awaitsFirstPrompt says r, from the hook's report h, is the done of a new
-// session's start of an agent launched with a first prompt, which the
-// screen did not overrule: a dialog of Claude's own still needs input. A
-// first prompt Claude never reports keeps it starting until its next
-// report (#191), or until its screen shows the prompt taken as a command
-// of Claude's own that starts no turn (#220); one whose screen shows no
-// such sign, as a prompt Claude drops at its start, until its next report
-// or hq kill.
+// session's start of an agent launched with a first prompt, which the screen
+// did not overrule: a dialog of Claude's own still needs input. A first
+// prompt Claude never reports keeps it starting until its next report
+// (#191), or until its screen shows the prompt taken as a slash command of
+// Claude's own that starts no turn (#220); one whose screen shows no such
+// sign, as a prompt Claude drops at its start, until its next report or hq
+// kill.
 func (f *Fold) awaitsFirstPrompt(r, h Reduced) bool {
 	return r.State == Done && r.Entered == h.Entered && f.firstPromptDue()
 }

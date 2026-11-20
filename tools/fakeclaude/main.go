@@ -98,7 +98,7 @@
 //     (#120);
 //   - a prompt "/model NAME", the first prompt or a line typed, is no
 //     prompt either: as Claude Code 2.1.329 does (#220), it starts no turn
-//     and fires no hook, and draws the command sent, what it did right
+//     and fires no hook, and draws the slash command sent, what it did right
 //     below it ("⎿  Set model to NAME") and the empty box;
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit;
 //   - any other prompt that starts with "/" is a slash command, as Claude
@@ -420,10 +420,10 @@ func (c *claude) setEffort(level string) {
 	promptBox("")
 }
 
-// setModel takes prompt when it is "/model NAME", a command of Claude
+// setModel takes prompt when it is "/model NAME", a slash command of Claude
 // Code's own that starts no turn and fires no hook (2.1.329, #220), and
-// draws it as that version does: the command sent, what it did right below
-// it, the empty box. It reports whether prompt was that command.
+// draws it as that version does: the slash command sent, what it did right
+// below it, the empty box. It reports whether prompt was that slash command.
 func setModel(prompt string) bool {
 	words := strings.Fields(prompt)
 	if len(words) != 2 || words[0] != "/model" {

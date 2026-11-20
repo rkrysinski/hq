@@ -545,11 +545,11 @@ var tookSlashCommandScreens = []string{
 	"first-model-kept-2329", "first-model-kept-2329-80",
 }
 
-// Claude Code 2.1.329 reports nothing for a slash command of its own that starts
-// no turn given as the first prompt (setup P: no event followed its
-// session's start). Once the screen shows that command sent with its
-// outcome below it, at the prompt box, the agent is done since the look
-// saw it: no completed turn, no last message (#220).
+// Claude Code 2.1.329 reports nothing for a slash command of its own that
+// starts no turn given as the first prompt (setup P: no event followed its
+// session's start). Once the screen shows that slash command sent with its
+// outcome below it, at the prompt box, the agent is done since the look saw
+// it: no completed turn, no last message (#220).
 func TestAFirstPromptClaudeTookAsASlashCommandOfItsOwnMakesTheAgentDone(t *testing.T) {
 	for _, name := range tookSlashCommandScreens {
 		journal := firstPromptJournal()
@@ -574,10 +574,10 @@ func TestAFirstPromptClaudeTookAsASlashCommandOfItsOwnMakesTheAgentDone(t *testi
 // once Claude reported taking it (setup P, (a)), and so is /probe, a slash
 // command of the repository's own that starts a turn; a slash command of
 // Claude's own shows only its header right after the start ((b), (c)); a
-// session given no prompt shows its box with a placeholder ((d)); the
-// slider of /effort is no dialog hq reads. Each leaves the agent starting, at rest or not,
-// 2 s, an hour and a day later, and its prompt reported then makes it
-// working.
+// session given no prompt shows its box with a placeholder ((d)); the slider
+// of /effort is no dialog hq reads. Each leaves the agent starting, at rest
+// or not, 2 s, an hour and a day later, and its prompt reported then makes
+// it working.
 func TestAFirstPromptThatIsOnlyLateLeavesTheAgentStarting(t *testing.T) {
 	for _, name := range []string{
 		"first-hook-2329", "first-hook-2329-80", "first-hook-taken-2329", "first-hook-taken-2329-80",
@@ -636,12 +636,12 @@ func TestTheModelPickerAsTheFirstPromptNeedsInputThenTheAgentIsDone(t *testing.T
 	}
 }
 
-// Of every screen in testdata only those of a slash command of Claude's own taken
-// as the first prompt show the sign TookSlashCommand reads (setup P, #220): a
-// command after a turn shows other prompts sent above it. Every other
-// screen at the prompt box at rest, a session given no prompt (d) among
-// them, changes nothing for an agent waiting for its first prompt, at
-// once, RestDelay or an hour later.
+// Of every screen in testdata only those of a slash command of Claude's own
+// taken as the first prompt show the sign TookSlashCommand reads (setup P,
+// #220): a slash command after a turn shows other prompts sent above it.
+// Every other screen at the prompt box at rest, a session given no prompt
+// (d) among them, changes nothing for an agent waiting for its first prompt,
+// at once, RestDelay or an hour later.
 func TestOnlyASlashCommandOfClaudesOwnAsTheFirstPromptShowsTheSign(t *testing.T) {
 	names, _ := filepath.Glob(filepath.Join("testdata", "screen-*.txt"))
 	if len(names) < 20 {

@@ -559,7 +559,7 @@ func TestTheLookTakesBackTheSupervisorsWordForAFirstPromptClaudeTookAsASlashComm
 	}
 	a, s := look("first-model-name-2329-rest")
 	if a.State != state.Done || !a.Since.Equal(now) || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != state.KindTookSlashCommand {
-		t.Fatalf("took a command: %+v, journal %s", a, journaltest.Kinds(s.journalOf(t, "a1")))
+		t.Fatalf("took a slash command: %+v, journal %s", a, journaltest.Kinds(s.journalOf(t, "a1")))
 	}
 	if !slices.Equal(s.withdrawn, []string{"/w/app a1 before " + state.KindTookSlashCommand}) {
 		t.Fatalf("withdrawn: %q", s.withdrawn)
