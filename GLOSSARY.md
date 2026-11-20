@@ -65,7 +65,7 @@ Subagents or workflows an agent started in the background that still run when it
 _Avoid_: pending tasks, children, jobs
 
 **Claude's agents list**:
-The list Claude Code draws below its footer while an agent's subagents run: `main`, then a line for each subagent. Claude Code's own cursor moves over it, and from it a subagent's view opens, whose box carries the subagent's description (the one it was started with) on its upper rule. Not hq's list: the cursor on it is neither the cursor nor the cursor row.
+The list Claude Code draws below its footer while an agent's subagents run: `main`, then a line for each subagent, over which Claude Code's own cursor moves and from which a subagent's view opens. Not hq's list: Claude Code's cursor on it is neither the cursor nor the cursor row.
 _Avoid_: agents list, agent list, background list
 
 **Closing turn**:

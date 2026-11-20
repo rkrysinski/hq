@@ -304,13 +304,12 @@ func promptBox(screen string) (box, bool) {
 
 // findBox finds Claude's prompt box at the bottom of a screen as promptBox
 // does, whatever its footer, and reports whether the footer below its lower
-// rule offers Esc to interrupt (esc). A subagent's view, opened from the
+// rule offers Esc to interrupt (esc). A subagent's view, opened from
 // Claude's agents list (Claude Code 2.1.326, #225), puts that subagent's
 // transcript and box in the pane, the box's upper rule carrying the
-// subagent's description
-// (subagentRule): that box is not the agent's and tells nothing of its
-// turn, so it is not found (ok is false), but b says it is there
-// (b.subagent).
+// subagent's description (subagentRule): that box is not the agent's and
+// tells nothing of its turn, so it is not found (ok is false), but b says
+// it is there (b.subagent).
 func findBox(screen string) (b box, ok, esc bool) {
 	// Claude puts a no-break space after its bullets; its indents vary.
 	raw := strings.Split(strings.ReplaceAll(screen, "\u00a0", " "), "\n")
@@ -371,7 +370,7 @@ const maxFooter = 4
 
 // listed reports whether a trimmed line is a row of Claude's agents list,
 // which Claude Code 2.1.291 draws below its footer while subagents run:
-// "● main", then a row for each subagent, as "◯ general-purpose Run the
+// "● main", then a line for each subagent, as "◯ general-purpose Run the
 // tests 7s · ↓ 26.5k tokens"; the one the user looks at has the filled
 // dot. In 2.1.326 a ↓ from the box puts Claude Code's cursor on
 // Claude's agents list, "❯ ● main" (#225).

@@ -77,7 +77,7 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | screen-own-trust | 2.1.285 | B | at least 110 cols, 36 lines | start dialog "trust this folder" | 254c5ec (#29, PR #36) |
 | screen-start-ready | 2.1.285 | B | at least 110 cols, 36 lines | session just started, mode pinned so no dialog, empty box | 254c5ec (#29, PR #36) |
 | screen-background-three | 2.1.291 | C | at least 120 cols, 40 lines | three background subagents on Claude's agents list below the footer; a suggestion in the box | 7cb35f8 (#38, PR #39) |
-| screen-styled-background | 2.1.291 | C, `-e` | at least 120 cols, 40 lines | one background subagent listed below the footer; faint suggestion in the box | 7cb35f8 (#38, PR #39) |
+| screen-styled-background | 2.1.291 | C, `-e` | at least 120 cols, 40 lines | one background subagent on Claude's agents list below the footer; faint suggestion in the box | 7cb35f8 (#38, PR #39) |
 | screen-interrupted-then-woken | 2.1.291 | C | at least 146 cols; 13 lines, blank lines left out | turn interrupted while a subagent ran, then the turn Claude woke itself for | fc772c5 (#38 review, PR #39) |
 | screen-own-effort | 2.1.300 | D | 160 cols (PR #67), 45 lines | "Change effort level?" after `/effort max`, under a `▔` rule | ffb9478 (#66, PR #67) |
 | screen-own-effort-80 | 2.1.300 | D | 80 cols (PR #67), 24 lines | the same at 80 columns | ffb9478 (#66, PR #67) |
@@ -118,7 +118,7 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | screen-fs-narrow-ask-open | 2.1.301 | E | 40x30 | AskUserQuestion open (e5) | 04cc17a (#70, PR #72) |
 | screen-fs-narrow-ask-answered | 2.1.301 | E | 40x30 | answered, spinner; footer cut (e6) | 04cc17a (#70, PR #72) |
 | screen-fs-narrow-done | 2.1.301 | E | 40x30 | turn over, bare box (e7) | 04cc17a (#70, PR #72) |
-| screen-fs-background-at-prompt | 2.1.301 | E | 100x30 | main at its box, a background subagent listed below the footer (x2) | 04cc17a (#70, PR #72) |
+| screen-fs-background-at-prompt | 2.1.301 | E | 100x30 | main at its box, a background subagent on Claude's agents list below the footer (x2) | 04cc17a (#70, PR #72) |
 | screen-own-model-background | 2.1.301 | E | 100x30 | `/model` picker opened while a background subagent runs (x3) | 04cc17a (#70, PR #72) |
 | screen-fs-model-closed-background | 2.1.301 | E | 100x30 | that picker closed with Esc: box with Claude's agents list (x4) | 04cc17a (#70, PR #72) |
 | screen-fs-esc-tool | 2.1.301 | E | 100x30 | Esc 11 s into a foreground Bash command, the turn's only tool: no `Interrupted` line, the card collapsed to `▸ 1 komenda · × · 7,7 s`, bare box | #77 |

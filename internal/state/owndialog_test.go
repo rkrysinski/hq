@@ -211,8 +211,7 @@ func agentsScreens(t *testing.T) map[string]string {
 // Claude's agents list, which Claude Code draws below its footer while
 // subagents run, with the cursor on it anywhere, and a subagent's view open
 // in the pane, are no dialog of Claude's own: the rows of Claude's agents
-// list are no options, the status line
-// no question (#225).
+// list are no options, the status line no question (#225).
 func TestViewOwnDialogIsNoClaudesAgentsListNorASubagentsView(t *testing.T) {
 	for name, s := range agentsScreens(t) {
 		for _, screen := range []string{s, WithoutHints(s)} {
