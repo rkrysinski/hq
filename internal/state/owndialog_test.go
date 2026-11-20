@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -236,5 +237,61 @@ func TestViewOwnDialogSeesTheModelPickerOverClaudesAgentsList(t *testing.T) {
 	}
 	if _, ok := ViewOwnDialog(readScreen(t, "screen-agents-model-closed.txt")); ok {
 		t.Fatal("closed with Esc: still a dialog")
+	}
+}
+
+// The picker of /model since Claude Code 2.1.326 ends its list in a row
+// with no number that opens the rest of it, ▸ More models, and shows ▾ on
+// that row once it is open, with a line ↑ 2 more above the options and
+// ↓ 7 more below them (2.1.329, #253): the list scrolls, and none of those
+// lines is an option, wherever the cursor is, at 100 columns and at 40.
+func TestViewOwnDialogSeesThatTheModelPickerOfMoreModelsScrolls(t *testing.T) {
+	models := []string{
+		"Default (recommended) Opus 5.5 · Best for everyday, complex tasks",
+		"Opus 5.5 For complex work and everyday tasks",
+		"Fable 5.2 For your toughest challenges",
+		"Sonnet 5.5 Most efficient for simpler tasks",
+		"Haiku 5.5 ✔ Fastest for quick answers",
+	}
+	opened := []string{models[2], models[3], models[4],
+		"Fable 5.1 Most capable for your hardest and longest-running tasks", "Haiku 4.5 Fastest for quick answers"}
+	text2326 := "Switch between Claude models. Your pick becomes the default for new sessions. For other or older models, use --model."
+	text2329 := "Your pick is the default for new sessions. For other models, use --model."
+	// The opened list with the ❯ moved from ▾ More models down to a model
+	// past it, as Down does: no capture shows it.
+	below := strings.Replace(strings.Replace(readScreen(t, "screen-own-model-2329-opened.txt"),
+		"  ❯ ▾   More models", "    ▾   More models", 1), "    6.  Fable 5.1", "  ❯ 6.  Fable 5.1", 1)
+	for _, tc := range []struct {
+		name, screen, text string
+		wrapped            bool // at 40 columns: the options' wrapped lines are read as options (#321), not checked
+		cursor             int  // -1: on no option
+		options            []string
+	}{
+		{name: "screen-own-model-agents.txt", text: text2326, cursor: 4, options: models},
+		{name: "screen-own-model-agents-50.txt", text: text2326, cursor: 4, options: models},
+		{name: "screen-own-model-2329.txt", text: text2329, cursor: 4, options: models},
+		{name: "screen-own-model-2329-more.txt", text: text2329, cursor: -1, options: models},
+		{name: "screen-own-model-2329-opened.txt", text: text2329, cursor: -1, options: opened},
+		{name: "the opened list, the cursor on a model below", screen: below, text: text2329, cursor: 3, options: opened},
+		{name: "screen-own-model-2329-40.txt", text: text2329, wrapped: true},
+	} {
+		if tc.screen == "" {
+			tc.screen = readScreen(t, tc.name)
+		}
+		v, ok := ViewOwnDialog(tc.screen)
+		if !ok || !v.Scrolls || v.Ask.Questions[0].Question != "Select model" || v.Ask.Description != tc.text {
+			t.Errorf("%s: %v %+v", tc.name, ok, v)
+			continue
+		}
+		var labels []string
+		for _, o := range v.Ask.Questions[0].Options {
+			labels = append(labels, o.Label)
+			if strings.Contains(o.Label, "More models") || strings.HasSuffix(o.Label, " more") {
+				t.Errorf("%s: option %q", tc.name, o.Label)
+			}
+		}
+		if !tc.wrapped && (v.Cursor != tc.cursor || !slices.Equal(labels, tc.options)) {
+			t.Errorf("%s: cursor %d, options %q", tc.name, v.Cursor, labels)
+		}
 	}
 }
