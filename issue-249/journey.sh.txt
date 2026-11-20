@@ -1,0 +1,37 @@
+#!/bin/sh
+# QA journey for #249: the checkout's hq as hq mcp sbx over stdio; its file
+# replaced by a build of another generation; a list call answered with the
+# sandbox's line. Run from the issue worktree.
+set -e
+work=${QA_WORK:?}
+rm -f "$work/in" "$work/out" && mkfifo "$work/in"
+gen=$(go run ./cmd/hq __generation)
+other=$((gen + 1))
+printf 'package version\n\nvar Version = "dev"\n\nconst Generation = %d\n' "$other" > "$work/version.go"
+printf '{"Replace":{"%s":"%s"}}' "$PWD/internal/version/version.go" "$work/version.go" > "$work/overlay.json"
+go build -overlay "$work/overlay.json" -ldflags "-X github.com/rkrysinski/hq/internal/version.Version=v0.99.0" -o "$work/hq-other" ./cmd/hq
+scripts/local-dev.sh --stub native mcp sbx < "$work/in" > "$work/out" 2>"$work/err" &
+pid=$!
+exec 3>"$work/in"
+send() { printf '%s\n' "$1" >&3; }
+reply() { # wait for the response with id $1 and print its text
+  timeout 30 sh -c 'until grep -q "\"id\":$1," "$2"; do sleep 0.2; done' sh "$1" "$work/out"
+  grep "\"id\":$1," "$work/out" | jq -r '.result | "isError: \(.isError // false)\n\(.content[0].text)"'
+}
+send '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"qa","version":"0"}}}'
+timeout 30 sh -c 'until grep -q "\"id\":1," "$1"; do sleep 0.2; done' sh "$work/out"
+send '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+exe=$(readlink "/proc/$pid/exe")
+echo "== hq mcp sbx (pid $pid, generation $gen) answers list:"
+send '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list","arguments":{}}}'
+reply 2 | head -4
+echo "== its file replaced by a build of generation $other (v0.99.0), as hq update does:"
+cp "$work/hq-other" "$exe.new" && mv "$exe.new" "$exe"
+"$exe" --version
+echo "== list again:"
+send '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list","arguments":{}}}'
+reply 3
+echo "== new, which would start an agent:"
+send '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"new","arguments":{"name":"qa1","dir":"/tmp","prompt":"hi"}}}'
+reply 4
+exec 3>&-
