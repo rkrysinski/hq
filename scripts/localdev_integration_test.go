@@ -112,6 +112,12 @@ func (d *localDev) stubs() []string {
 	return names
 }
 
+// exists tells whether path exists.
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
 func has(names []string, name string) bool {
 	for _, n := range names {
 		if n == name {
@@ -247,16 +253,11 @@ func TestARunKeepsItsTemporaryFilesInADirectoryOfTheCheckoutsOwnUntilKillServer(
 	}
 }
 
-// exists tells whether path exists.
-func exists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}
-
 // --stub-env prints the path of the checkout's stub environment and nothing
 // else, changes nothing, and names the directory a --stub run then creates
-// and --kill-server removes (#299).
-func TestStubEnvPrintsThePathAloneAndCreatesNothing(t *testing.T) {
+// and --kill-server removes; the --stub run that creates it says so on
+// stderr, and only that run, while its stdout stays hq's alone (#299).
+func TestStubEnvNamesTheEnvironmentTheStubRunThatCreatesItAnnounces(t *testing.T) {
 	d := newLocalDev(t)
 	devTmp := filepath.Join(os.TempDir(), "hq-dev-"+d.id)
 	// What --stub-env may not change: the stub environment, the checkout's
@@ -276,27 +277,8 @@ func TestStubEnvPrintsThePathAloneAndCreatesNothing(t *testing.T) {
 			t.Fatalf("stub environment, temporary directory, tmux server: %v before --stub-env, %v after", before, after)
 		}
 	}
-	printsThePathAndChangesNothing()
-	if s := state(); s != [3]bool{} {
-		t.Fatalf("stub environment, temporary directory, tmux server before any run: %v", s)
-	}
-	d.must("--stub", "native", "--version")
-	if !exists(d.dir()) {
-		t.Fatalf("--stub created no %s", d.dir())
-	}
-	printsThePathAndChangesNothing()
-	if out := d.must("--kill-server"); !strings.Contains(out, "stub environment "+d.dir()+" removed") || exists(d.dir()) {
-		t.Fatalf("--kill-server left %s: %s", d.dir(), out)
-	}
-	printsThePathAndChangesNothing()
-}
-
-// A --stub run that creates the stub environment says so on stderr, and
-// only then; its stdout is hq's alone (#299).
-func TestStubSaysOnStderrWhenItCreatesTheStubEnvironment(t *testing.T) {
-	d := newLocalDev(t)
 	line := "local-dev: stub environment " + d.dir() + " created\n"
-	run := func() (string, string) {
+	stub := func() (string, string) {
 		t.Helper()
 		stdout, stderr, ok := d.runApart("--stub", "native", "--version")
 		if !ok {
@@ -304,20 +286,28 @@ func TestStubSaysOnStderrWhenItCreatesTheStubEnvironment(t *testing.T) {
 		}
 		return stdout, stderr
 	}
-	first, stderr := run()
-	if !strings.Contains(stderr, line) {
-		t.Fatalf("first run's stderr %q has no %q", stderr, line)
+
+	printsThePathAndChangesNothing()
+	if s := state(); s != [3]bool{} {
+		t.Fatalf("stub environment, temporary directory, tmux server before any run: %v", s)
+	}
+	first, stderr := stub()
+	if !strings.Contains(stderr, line) || !exists(d.dir()) {
+		t.Fatalf("first run's stderr %q has no %q, or no %s", stderr, line, d.dir())
 	}
 	hqs, err := exec.Command(filepath.Join(d.dir(), "bin", "hq"), "--version").Output()
 	if err != nil || first != string(hqs) {
 		t.Fatalf("first run's stdout %q, hq's own %q (%v)", first, hqs, err)
 	}
-	second, stderr := run()
-	if strings.Contains(stderr, "stub environment") || second != first {
+	printsThePathAndChangesNothing()
+	if second, stderr := stub(); strings.Contains(stderr, "stub environment") || second != first {
 		t.Fatalf("second run: stdout %q (first %q), stderr %q", second, first, stderr)
 	}
-	d.must("--kill-server")
-	if _, stderr := run(); !strings.Contains(stderr, line) {
+	if out := d.must("--kill-server"); !strings.Contains(out, "stub environment "+d.dir()+" removed") || exists(d.dir()) {
+		t.Fatalf("--kill-server left %s: %s", d.dir(), out)
+	}
+	printsThePathAndChangesNothing()
+	if _, stderr := stub(); !strings.Contains(stderr, line) {
 		t.Fatalf("run after --kill-server: stderr %q has no %q", stderr, line)
 	}
 }
