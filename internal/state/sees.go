@@ -276,9 +276,7 @@ func (f Fold) LastReply(reply Reply) (text string, at time.Time) {
 		return TooLarge(e.Facts.Size), e.Time
 	case !EndsTurn(e.Kind):
 		return "", e.Time
-	case reply.Number == e.Number:
-		return orFailed(e, CleanText(reply.Text)), e.Time
 	default:
-		return orFailed(e, ""), e.Time
+		return replyOrFailedLast(e, &reply, CleanText), e.Time
 	}
 }
