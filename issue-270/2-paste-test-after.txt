@@ -1,0 +1,7 @@
+$ go test -count=1 -tags integration -run 'TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter$' -v ./internal/tmux
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:498: a pane's program got 4095 of 5000 bytes of a long input tmux typed, without hq, within 5s: the limit of tmux in a Docker sandbox (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.07s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/tmux	5.071s
+$

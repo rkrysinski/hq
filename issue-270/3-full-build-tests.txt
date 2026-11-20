@@ -1,0 +1,19 @@
+$ go test -count=1 -tags integration -run 'TestCheck' -v ./scripts 2>&1 | grep -E '^ *--- |^ok|^FAIL'
+--- PASS: TestCheckPrintsTheFullBuildContract (0.46s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_passing_run_names_every_step_and_the_commit (0.03s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_passing_run_names_each_test_a_test_step_skipped_after_its_ok_line,_in_the_job_summary_too (0.02s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_test_step_that_skipped_only_in_one_step_names_its_tests_after_that_step_alone (0.02s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_test_step_whose_skipped_tests_cannot_be_listed_fails (0.02s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_failing_test_step_prints_its_output_as_go_test_prints_it_without_-json (0.02s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_failing_test_step's_output_stays_when_testgate_cannot_read_it (0.01s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_failing_step_stops_the_run_with_its_output (0.01s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_tight_time_bound_in_a_test_stops_the_run_after_the_platform_gate (0.01s)
+    --- PASS: TestCheckPrintsTheFullBuildContract/a_dirty_tree_is_named_in_the_passing_and_in_the_failing_last_line (0.02s)
+--- PASS: TestCheckKeepsTheTemporaryFilesOfARunInADirectoryOfTheCheckoutsOwn (0.26s)
+--- PASS: TestCheckPRAsksForTheRollbackOfADeploymentStep (0.02s)
+--- PASS: TestCheckPRNamesTheEnglishHeadingOfAMisspeltSection (0.02s)
+--- PASS: TestCheckPRNamesTheEnglishHeadingOfAPolishSection (0.03s)
+--- PASS: TestCheckPRPassesTheTicketTemplateFilledIn (0.02s)
+--- PASS: TestCheckPRReadsTheClosingSectionOfTheReleaseTemplate (0.04s)
+ok  	github.com/rkrysinski/hq/scripts	0.856s
+$

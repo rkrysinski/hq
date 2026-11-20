@@ -1,0 +1,7 @@
+$ go test -count=1 -tags integration -run 'TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter$' -v ./internal/tmux
+=== RUN   TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter
+    tmux_integration_test.go:495: this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)
+--- SKIP: TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter (5.08s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/tmux	5.090s
+$
