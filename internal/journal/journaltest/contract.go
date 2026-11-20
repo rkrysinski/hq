@@ -269,8 +269,11 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		}
 		// While the window stands, the journal is begun with the evidence.
 		out, err = h.Store.AppendEvidence("c3", func() bool { return true }, died)
-		require(t, err == nil && len(out) == 1 && out[0].Number > 0, "its window standing: %v %+v", err, out)
-		expect(t, Kinds(read(t, h.Store, "c3").Events) == state.KindPaneDied, "begun: %+v", read(t, h.Store, "c3").Events)
+		require(t, err == nil && len(out) == 1, "its window standing: %v %+v", err, out)
+		{
+			j := read(t, h.Store, "c3")
+			expect(t, Kinds(j.Events) == state.KindPaneDied && j.Events[0].Number == out[0].Number, "begun: %+v, appended %+v", j.Events, out)
+		}
 		// Nothing to append asks nothing.
 		asked = 0
 		none, err := h.Store.AppendEvidence("d4", gone)
