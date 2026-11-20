@@ -35,8 +35,9 @@ func OwnDialog(screen string) (ask *Ask, ok bool) {
 // what it asks, the option its cursor is on, by its index in the options,
 // and whether its list scrolls to options the screen does not show, as
 // the picker of /model does (a ↓ or ↑ before an option, "… +3 models"
-// below them). hq answer moves the cursor to an option and presses Enter
-// (#120).
+// below them, a row ▸ More models after them, #253). Cursor is -1 on a
+// row of the list that is no option. hq answer moves the cursor to an
+// option and presses Enter (#120).
 type OwnView struct {
 	Ask     *Ask
 	Cursor  int
@@ -92,6 +93,11 @@ func ViewOwnDialog(screen string) (OwnView, bool) {
 	if last == first {
 		return OwnView{}, false
 	}
+	for i := first; i < at; i++ {
+		if listTop.MatchString(lines[i]) {
+			first = i
+		}
+	}
 	for _, l := range lines[last+1:] {
 		if isRule(l) || strings.Contains(l, working) {
 			return OwnView{}, false
@@ -105,9 +111,13 @@ func ViewOwnDialog(screen string) (OwnView, bool) {
 			v.Cursor = len(q.Options)
 		}
 		v.Scrolls = v.Scrolls || scrollMark.MatchString(l)
-		// "… +3 models": more options the list scrolls to.
-		if strings.HasPrefix(l, "…") {
+		// "… +3 models", "▸ More models", "↓ 7 more": more options the
+		// list scrolls to, no option; the cursor on one is on no option.
+		if strings.HasPrefix(l, "…") || moreMark.MatchString(l) {
 			v.Scrolls = true
+			if i == at-first {
+				v.Cursor = -1
+			}
 			continue
 		}
 		q.Options = append(q.Options, AskOption{Label: Clean(optionMark.ReplaceAllString(l, ""))})
@@ -154,6 +164,17 @@ var askTabs = regexp.MustCompile(`^(?:← )?[☐☒] `)
 // optionMark is what precedes an option's label on its line: the arrow
 // that says the list scrolls on, and the option's number.
 var optionMark = regexp.MustCompile(`^ ?(?:[↑↓] )?(?:\d+\. )?`)
+
+// moreMark starts a line of a list that scrolls which is no option
+// (#253): the row with no number that opens the rest of the list
+// (▸ More models, Claude Code 2.1.326 and 2.1.329) or, once open, closes
+// it (▾), and the count of the options above or below the screen
+// (↑ 2 more, ↓ 7 more), both seen with 2.1.329.
+var moreMark = regexp.MustCompile(`^ ?(?:[▸▾] |[↑↓] \d+ more$)`)
+
+// listTop is the first line of the list 2.1.329's picker shows once
+// ▸ More models is open, right below the text with no blank line (#253).
+var listTop = regexp.MustCompile(`^↑ \d+ more$`)
 
 // scrollMark is the arrow before an option that says the list scrolls on.
 var scrollMark = regexp.MustCompile(`^ ?[↑↓] `)

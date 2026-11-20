@@ -721,14 +721,17 @@ func TestAnswerToADialogOfClaudesOwnRefusedPressesNothing(t *testing.T) {
 		}
 	}
 	// A list that scrolls past the screen, the picker of /model: its
-	// options' numbers are not those of the whole list.
-	f, c, _ := ownDialogFakes(t)
-	f.tmux.screens["%4"] = readFixture(t, "screen-own-model-2304.txt")
-	_, ls, _ := f.run("ls", "--json")
-	id := ls[strings.Index(ls, `"dialog": "`)+11:][:6]
-	code, _, errOut := f.run("answer", "a", "--dialog", id, "4")
-	if code != ExitUsage || errOut != "hq: a is at a dialog of Claude's own whose list scrolls (Select model), which hq does not answer; answer it at the agent (hq go a)\n" || len(c.pressed) != 0 {
-		t.Fatalf("model picker: exit %d %q, pressed %v", code, errOut, c.pressed)
+	// options' numbers are not those of the whole list; since Claude Code
+	// 2.1.326 its last row, ▸ More models, opens the rest of it (#253).
+	for _, name := range []string{"screen-own-model-2304.txt", "screen-own-model-agents.txt", "screen-own-model-2329-more.txt"} {
+		f, c, _ := ownDialogFakes(t)
+		f.tmux.screens["%4"] = readFixture(t, name)
+		_, ls, _ := f.run("ls", "--json")
+		id := ls[strings.Index(ls, `"dialog": "`)+11:][:6]
+		code, _, errOut := f.run("answer", "a", "--dialog", id, "4")
+		if code != ExitUsage || errOut != "hq: a is at a dialog of Claude's own whose list scrolls (Select model), which hq does not answer; answer it at the agent (hq go a)\n" || len(c.pressed) != 0 {
+			t.Errorf("%s: exit %d %q, pressed %v", name, code, errOut, c.pressed)
+		}
 	}
 }
 
