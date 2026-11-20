@@ -1,0 +1,5 @@
+16:04:19.568234753 SessionStart source=startup
+16:04:19.568285044 slow SessionStart hook begins
+16:04:23.570670213 slow SessionStart hook ends
+16:04:23.583670421 UserPromptSubmit prompt="/probe"
+16:04:25.754715797 Stop

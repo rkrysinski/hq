@@ -1,0 +1,6 @@
+15:38:04.129076585 SessionEnd
+15:38:04.599032377 slow SessionStart hook begins
+15:38:04.599818960 SessionStart source=startup
+15:38:08.600819462 slow SessionStart hook ends
+15:38:08.621689670 UserPromptSubmit prompt="Reply with the single word ok."
+15:38:10.489924213 Stop

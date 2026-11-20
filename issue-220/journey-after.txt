@@ -1,0 +1,32 @@
+started a in repo (sandbox claude-repo); enter it with: hq go a
+NAME  REPO  BRANCH  STATE     AGE  LAST
+a     repo  main    starting  0s   -
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   -
+repo$ hq explain a
+name      a
+state     done 31s, since 2026-11-20 15:55:21.750
+rests on  4 5
+dialog    at none, never at one
+
+the state rests on, oldest first
+  N  TIME                     SOURCE  WHAT                                                                 STA
+TE
+  4  2026-11-20 15:55:17.176  hook    session start (startup)                                              sta
+rting
+  5  2026-11-20 15:55:21.750  screen  Claude took the first prompt as a command of its own: no turn comes  don
+e
+repo$
+
+
+
+
+
+
+
+
+
+
+
+
+
