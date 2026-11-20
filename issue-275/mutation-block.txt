@@ -17,23 +17,21 @@ not run    tools/testgate/levels.go:220
 not covered tools/testgate/levels.go:223:9 conditionals negation
 not covered tools/testgate/levels.go:227:9 conditionals negation
 not covered tools/testgate/levels.go:232:113 conditionals negation
-not run    tools/testgate/levels.go:233
-not covered tools/testgate/levels.go:269:9 conditionals negation
-not covered tools/testgate/levels.go:274:58 conditionals boundary
-not covered tools/testgate/levels.go:274:58 conditionals negation
-not covered tools/testgate/levels.go:276:80 arithmetic base
-not covered tools/testgate/levels.go:279:10 conditionals negation
-not covered tools/testgate/levels.go:285:45 conditionals negation
-not covered tools/testgate/levels.go:297:8 conditionals negation
-not covered tools/testgate/levels.go:301:9 conditionals negation
-not covered tools/testgate/levels.go:305:88 conditionals negation
-not covered tools/testgate/levels.go:365:15 conditionals negation
-not covered tools/testgate/levels.go:368:9 conditionals negation
-not covered tools/testgate/levels.go:402:36 conditionals negation
-not covered tools/testgate/levels.go:402:72 conditionals negation
-not covered tools/testgate/levels.go:417:9 conditionals negation
-not covered tools/testgate/levels.go:421:16 arithmetic base
-not covered tools/testgate/levels.go:421:16 invert negatives
+not covered tools/testgate/levels.go:278:58 conditionals boundary
+not covered tools/testgate/levels.go:278:58 conditionals negation
+not covered tools/testgate/levels.go:279:95 conditionals negation
+not covered tools/testgate/levels.go:286:10 conditionals negation
+not covered tools/testgate/levels.go:289:48 conditionals negation
+not covered tools/testgate/levels.go:301:8 conditionals negation
+not covered tools/testgate/levels.go:305:9 conditionals negation
+not covered tools/testgate/levels.go:309:88 conditionals negation
+not covered tools/testgate/levels.go:369:15 conditionals negation
+not covered tools/testgate/levels.go:372:9 conditionals negation
+not covered tools/testgate/levels.go:406:36 conditionals negation
+not covered tools/testgate/levels.go:406:72 conditionals negation
+not covered tools/testgate/levels.go:421:9 conditionals negation
+not covered tools/testgate/levels.go:425:16 arithmetic base
+not covered tools/testgate/levels.go:425:16 invert negatives
 not covered tools/testgate/mutation.go:221:13 conditionals negation
 not covered tools/testgate/mutation.go:221:32 conditionals negation
 not covered tools/testgate/mutation.go:221:51 conditionals negation
@@ -45,16 +43,13 @@ not covered tools/testgate/mutation.go:403:17 conditionals negation
 not covered tools/testgate/mutation.go:408:10 conditionals negation
 not run    tools/testgate/mutation.go:409
 not covered tools/testgate/mutation.go:470:60 conditionals negation
-not run    tools/testgate/mutation.go:471
 not covered tools/testgate/mutation.go:475:66 conditionals negation
 not covered tools/testgate/mutation.go:483:16 conditionals boundary
 not covered tools/testgate/mutation.go:483:16 conditionals negation
 not covered tools/testgate/mutation.go:491:9 conditionals negation
 not covered tools/testgate/mutation.go:496:9 conditionals negation
 not covered tools/testgate/mutation.go:502:102 conditionals negation
-not run    tools/testgate/mutation.go:503
 not covered tools/testgate/mutation.go:522:9 conditionals negation
-not run    tools/testgate/mutation.go:523
 not covered tools/testgate/mutation.go:526:9 conditionals negation
 not run    tools/testgate/mutation.go:527
 not covered tools/testgate/mutation.go:531:13 conditionals negation
@@ -82,5 +77,4 @@ not covered tools/testgate/mutationgo.go:127:31 conditionals negation
 not covered tools/testgate/mutationgo.go:134:10 conditionals negation
 not covered tools/testgate/mutationgo.go:135:50 conditionals negation
 timed out  tools/testgate/notrun.go:111:68 increment decrement
-mutation: 79 killed, 0 alive, 1 timed out, 75 not covered, 8 not run against origin/release-v0.16.0 on 9c147c5bd59c6f2e3c5530ca0780ea7f31f7e354
-exit 1 in 343 s
+mutation: 81 killed, 0 alive, 1 timed out, 74 not covered, 4 not run against origin/release-v0.16.0 on 8d659ede191c5e1771f4e1ed8c8131a9c1327678

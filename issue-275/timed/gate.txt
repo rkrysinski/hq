@@ -1,0 +1,91 @@
+start 2026-11-20T20:17:49Z load 0.36 2.46 3.13
+end 2026-11-20T20:23:35Z load 2.95 4.48 4.00 exit 1 in 346 s
+not covered tools/testgate/levels.go:90:33 conditionals negation
+not covered tools/testgate/levels.go:125:10 conditionals negation
+not covered tools/testgate/levels.go:125:25 conditionals negation
+not covered tools/testgate/levels.go:129:13 conditionals negation
+not covered tools/testgate/levels.go:129:27 conditionals negation
+not covered tools/testgate/levels.go:129:66 arithmetic base
+not covered tools/testgate/levels.go:143:66 arithmetic base
+not covered tools/testgate/levels.go:143:88 arithmetic base
+not covered tools/testgate/levels.go:143:92 arithmetic base
+not covered tools/testgate/levels.go:148:29 conditionals negation
+not covered tools/testgate/levels.go:176:28 arithmetic base
+not covered tools/testgate/levels.go:177:66 arithmetic base
+not covered tools/testgate/levels.go:177:76 arithmetic base
+not covered tools/testgate/levels.go:190:9 conditionals negation
+not covered tools/testgate/levels.go:219:9 conditionals negation
+not run    tools/testgate/levels.go:220
+not covered tools/testgate/levels.go:223:9 conditionals negation
+not covered tools/testgate/levels.go:227:9 conditionals negation
+not covered tools/testgate/levels.go:232:113 conditionals negation
+not covered tools/testgate/levels.go:278:58 conditionals boundary
+not covered tools/testgate/levels.go:278:58 conditionals negation
+not covered tools/testgate/levels.go:279:95 conditionals negation
+not covered tools/testgate/levels.go:286:10 conditionals negation
+not covered tools/testgate/levels.go:289:48 conditionals negation
+not covered tools/testgate/levels.go:301:8 conditionals negation
+not covered tools/testgate/levels.go:305:9 conditionals negation
+not covered tools/testgate/levels.go:309:88 conditionals negation
+not covered tools/testgate/levels.go:369:15 conditionals negation
+not covered tools/testgate/levels.go:372:9 conditionals negation
+not covered tools/testgate/levels.go:406:36 conditionals negation
+not covered tools/testgate/levels.go:406:72 conditionals negation
+not covered tools/testgate/levels.go:421:9 conditionals negation
+not covered tools/testgate/levels.go:425:16 arithmetic base
+not covered tools/testgate/levels.go:425:16 invert negatives
+not covered tools/testgate/mutation.go:221:13 conditionals negation
+not covered tools/testgate/mutation.go:221:32 conditionals negation
+not covered tools/testgate/mutation.go:221:51 conditionals negation
+not covered tools/testgate/mutation.go:221:68 conditionals negation
+not covered tools/testgate/mutation.go:221:86 conditionals negation
+not covered tools/testgate/mutation.go:221:106 conditionals negation
+not covered tools/testgate/mutation.go:221:126 conditionals negation
+not covered tools/testgate/mutation.go:403:17 conditionals negation
+not covered tools/testgate/mutation.go:408:10 conditionals negation
+not run    tools/testgate/mutation.go:409
+not covered tools/testgate/mutation.go:470:60 conditionals negation
+not covered tools/testgate/mutation.go:475:66 conditionals negation
+not covered tools/testgate/mutation.go:483:16 conditionals boundary
+not covered tools/testgate/mutation.go:483:16 conditionals negation
+not covered tools/testgate/mutation.go:491:9 conditionals negation
+not covered tools/testgate/mutation.go:496:9 conditionals negation
+not covered tools/testgate/mutation.go:502:102 conditionals negation
+not covered tools/testgate/mutation.go:522:9 conditionals negation
+not covered tools/testgate/mutation.go:526:9 conditionals negation
+not run    tools/testgate/mutation.go:527
+not covered tools/testgate/mutation.go:531:13 conditionals negation
+not covered tools/testgate/mutation.go:536:10 conditionals negation
+not covered tools/testgate/mutation.go:539:62 conditionals negation
+not covered tools/testgate/mutation.go:555:16 conditionals negation
+not covered tools/testgate/mutation.go:558:56 conditionals negation
+not covered tools/testgate/mutation.go:564:55 conditionals negation
+not covered tools/testgate/mutation.go:574:7 conditionals negation
+not covered tools/testgate/mutation.go:686:36 arithmetic base
+not covered tools/testgate/mutation.go:686:40 arithmetic base
+not covered tools/testgate/mutation.go:686:66 arithmetic base
+not covered tools/testgate/mutation.go:686:70 arithmetic base
+not covered tools/testgate/mutation.go:697:44 conditionals negation
+not covered tools/testgate/mutation.go:736:45 arithmetic base
+not covered tools/testgate/mutation.go:736:49 arithmetic base
+not covered tools/testgate/mutation.go:736:67 arithmetic base
+not covered tools/testgate/mutation.go:736:71 arithmetic base
+not covered tools/testgate/mutation.go:736:87 arithmetic base
+not covered tools/testgate/mutation.go:736:91 arithmetic base
+not covered tools/testgate/mutationgo.go:62:37 conditionals negation
+not run    tools/testgate/mutationgo.go:114
+not covered tools/testgate/mutationgo.go:127:11 conditionals negation
+not covered tools/testgate/mutationgo.go:127:31 conditionals negation
+not covered tools/testgate/mutationgo.go:134:10 conditionals negation
+not covered tools/testgate/mutationgo.go:135:50 conditionals negation
+timed out  tools/testgate/notrun.go:111:68 increment decrement
+mutation: 81 killed, 0 alive, 1 timed out, 74 not covered, 4 not run against origin/release-v0.16.0 on a94f91d96e0b891aa4d8b428b02c43314265308e
+mutation: staging the tree in /tmp/hq-mutation-2694619780
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 2m40s
+mutation: 209 changed lines are not run so far, running the integration tests once with coverage
+mutation: the integration tests done in 2m44s
+mutation: 4 changed lines are not run so far, running the journeys once with coverage
+mutation: the journeys done in 17s
+exit status 1

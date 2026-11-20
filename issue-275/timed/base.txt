@@ -1,0 +1,8 @@
+start 2026-11-20T20:23:35Z load 2.95 4.48 4.00
+end 2026-11-20T20:26:18Z load 3.10 5.18 4.45 exit 1 in 163 s
+timed out  tools/testgate/notrun.go:111:68 increment decrement
+mutation: 81 killed, 0 alive, 1 timed out, 74 not covered against origin/release-v0.16.0 on a94f91d96e0b891aa4d8b428b02c43314265308e
+mutation: staging the tree in /tmp/hq-mutation-1106014959
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 2m39s

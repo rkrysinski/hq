@@ -1,0 +1,14 @@
+start 2026-11-20T20:26:18Z load 3.10 5.18 4.45
+end 2026-11-20T20:29:02Z load 5.43 6.81 5.29 exit 0 in 164 s
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: ok   timebound
+check: ok   sees
+check: ok   unit
+check: ok   integration
+check: skip integration github.com/rkrysinski/hq/internal/tmux TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter: a pane's program got 4095 of 5000 bytes of a long input tmux typed, without hq, within 5s: the limit of tmux in a Docker sandbox (#41)
+check: ok   coverage
+check: ok   e2e
+check: all 10 steps passed on a94f91d96e0b891aa4d8b428b02c43314265308e
