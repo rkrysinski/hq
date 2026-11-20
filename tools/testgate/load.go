@@ -148,7 +148,7 @@ func runLoad(ctx context.Context, o loadOptions, pkg string, workers int, stdout
 		return fail("%v", err)
 	}
 	r := loadRun{head: head, cores: runtime.NumCPU(), workers: workers, command: append([]string{"go"}, goTestArgs(o, pkg)...),
-		procs: o.procs, timeout: o.timeout, dir: dir, subtests: topLevelPattern(o.run) != o.run}
+		procs: o.procs, timeout: o.timeout, dir: dir, subtestsNamed: subtestsNamed(o.run)}
 
 	ctx, cancel := context.WithTimeoutCause(ctx, o.timeout, fmt.Errorf("the time limit %s passed", o.timeout))
 	defer cancel()
@@ -337,7 +337,7 @@ func goTestArgs(o loadOptions, pkg string) []string {
 // listArgs are the arguments of the go test that lists the top-level tests
 // a load run runs, before any load: it fails when the package does not build.
 func listArgs(o loadOptions, pkg string) []string {
-	return append(withTags([]string{"test", "-list", topLevelPattern(o.run)}, o.tags), pkg)
+	return append(withTags([]string{"test", "-list", listPattern(o.run)}, o.tags), pkg)
 }
 
 // withTags adds the build tags to go test's arguments, when there are any.
@@ -348,30 +348,75 @@ func withTags(args []string, tags string) []string {
 	return append(args, "-tags", tags)
 }
 
-// topLevelPattern is the part of a -run pattern that names top-level tests:
-// what comes before its first slash outside brackets and parentheses, as go
-// test splits it (testing's splitRegexp).
-func topLevelPattern(run string) string {
-	escaped, class, parens := false, false, 0
+// runAlternatives splits a -run pattern as go test does (testing's
+// splitRegexp): into its alternatives at each "|", and each alternative into
+// the patterns of its levels (the top-level test, its subtest, ...) at each
+// "/", both outside brackets and parentheses.
+func runAlternatives(run string) [][]string {
+	var alternatives [][]string
+	var levels []string
+	escaped, class, parens, from := false, 0, 0, 0
 	for i, c := range []byte(run) {
 		switch {
 		case escaped:
 			escaped = false
 		case c == '\\':
 			escaped = true
-		case class:
-			class = c != ']'
 		case c == '[':
-			class = true
+			class++
+		case c == ']':
+			class = max(class-1, 0) // an unmatched ']' is legal
+		case class > 0:
 		case c == '(':
 			parens++
 		case c == ')':
 			parens--
-		case c == '/' && parens == 0:
-			return run[:i]
+		case parens != 0:
+		case c == '/':
+			levels = append(levels, run[from:i])
+			from = i + 1
+		case c == '|':
+			alternatives = append(alternatives, append(levels, run[from:i]))
+			levels, from = nil, i+1
 		}
 	}
-	return run
+	return append(alternatives, append(levels, run[from:]))
+}
+
+// listPattern is the pattern go test -list takes for the top-level tests a
+// -run pattern names: the top-level parts of its alternatives, or "." when
+// one of them is empty, since go test then runs every test.
+func listPattern(run string) string {
+	var tops []string
+	for _, a := range runAlternatives(run) {
+		if a[0] == "" {
+			return "."
+		}
+		tops = append(tops, a[0])
+	}
+	return strings.Join(tops, "|")
+}
+
+// subtestsNamed returns whether a run of a top-level test of the name tests
+// only the subtests a -run pattern names: whether every alternative of the
+// pattern that names the test names subtests of it too. A top-level part
+// that does not compile names no test (go test -list fails on it first).
+func subtestsNamed(run string) func(name string) bool {
+	alternatives := runAlternatives(run)
+	return func(name string) bool {
+		named := false
+		for _, a := range alternatives {
+			top, err := regexp.Compile(a[0])
+			if err != nil || !top.MatchString(name) {
+				continue
+			}
+			if len(a) == 1 {
+				return false
+			}
+			named = true
+		}
+		return named
+	}
 }
 
 // testName is a name go test -list prints for a test it runs with -run: a
@@ -439,11 +484,13 @@ type runCounts struct{ passed, failed, skipped int }
 
 // tally counts the runs of the top-level tests of a process's run, and gives
 // for each run that did not pass a line saying which, with its reason for a
-// skip, and for a failure what go test prints of it without -json. When the
-// run's pattern names subtests, a run that passed with no subtest tested
-// nothing and counts as skipped: go test runs a test whose subtests the
-// pattern misses, and it passes.
-func tally(proc int, run *testRun, subtests bool) (runCounts, []string) {
+// skip, and for a failure what go test prints of it without -json. A run of
+// a test whose subtests the pattern names (subtestsNamed; nil for none)
+// passes only when one of them passed and tested something; else it tested
+// nothing and counts as skipped, with the reason of each subtest that
+// skipped: go test runs a test whose subtests the pattern misses or all skip,
+// and it passes.
+func tally(proc int, run *testRun, subtestsNamed func(name string) bool) (runCounts, []string) {
 	var c runCounts
 	var shown []string
 	for _, name := range run.order {
@@ -452,9 +499,16 @@ func tally(proc int, run *testRun, subtests bool) (runCounts, []string) {
 			seen[t.name]++
 			which := fmt.Sprintf("process %d, %s, run %d: ", proc, t.name, seen[t.name])
 			switch {
-			case t.outcome == "pass" && subtests && !t.hasSubtest():
+			case t.outcome == "pass" && subtestsNamed != nil && subtestsNamed(t.name) && !t.testedBySubtest():
 				c.skipped++
-				shown = append(shown, which+"skipped: no subtest the pattern names ran")
+				if !t.hasSubtest() {
+					shown = append(shown, which+"skipped: no subtest the pattern names ran")
+					continue
+				}
+				shown = append(shown, which+"skipped: no subtest the pattern names passed")
+				for _, sub := range t.skippedSubtests() {
+					shown = append(shown, indentStep+sub.name+": "+sub.reason())
+				}
 				continue
 			case t.outcome == "pass":
 				c.passed++
@@ -484,6 +538,30 @@ func (t *goTest) hasSubtest() bool {
 	return slices.ContainsFunc(t.items, func(it testItem) bool { return it.sub != nil })
 }
 
+// testedBySubtest reports whether a subtest of the test passed and tested
+// something: it has no subtest of its own, or one of them did.
+func (t *goTest) testedBySubtest() bool {
+	return slices.ContainsFunc(t.items, func(it testItem) bool {
+		return it.sub != nil && it.sub.outcome == "pass" && (!it.sub.hasSubtest() || it.sub.testedBySubtest())
+	})
+}
+
+// skippedSubtests are the subtests of the test, at any depth, that skipped,
+// in the order they started.
+func (t *goTest) skippedSubtests() []*goTest {
+	var skipped []*goTest
+	for _, it := range t.items {
+		if it.sub == nil {
+			continue
+		}
+		if it.sub.outcome == "skip" {
+			skipped = append(skipped, it.sub)
+		}
+		skipped = append(skipped, it.sub.skippedSubtests()...)
+	}
+	return skipped
+}
+
 // A loadRun is what the evidence of a load run says of the run as a whole.
 type loadRun struct {
 	head               string // HEAD's full sha, with " with uncommitted changes" when the tree is not clean
@@ -493,8 +571,8 @@ type loadRun struct {
 	timeout            time.Duration
 	dir                string // where the processes' output is
 	start, end         time.Time
-	loadStart, loadEnd string // the load average at the start and at the end, as loadAverageText gives it
-	subtests           bool   // whether the pattern names subtests (tally)
+	loadStart, loadEnd string                 // the load average at the start and at the end, as loadAverageText gives it
+	subtestsNamed      func(name string) bool // the pattern's subtestsNamed, nil for none (tally)
 }
 
 // A loadProcess is a test process of a load run once it ended.
@@ -541,7 +619,7 @@ func (r loadRun) endLines(procs []loadProcess, expected int, stopped bool) (line
 				lines = append(lines, indentStep+l)
 			}
 		}
-		c, s := tally(i+1, p.run, r.subtests)
+		c, s := tally(i+1, p.run, r.subtestsNamed)
 		all.passed, all.failed, all.skipped = all.passed+c.passed, all.failed+c.failed, all.skipped+c.skipped
 		shown = append(shown, s...)
 		exited = exited && p.status == "exit status 0"

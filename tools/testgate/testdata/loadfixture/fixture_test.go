@@ -16,6 +16,12 @@ func TestFails(t *testing.T) { t.Fatal("fails as asked") }
 
 func TestSkips(t *testing.T) { t.Skip("skips as asked") }
 
+// TestSub has a subtest that passes and one that skips.
+func TestSub(t *testing.T) {
+	t.Run("passes", func(t *testing.T) {})
+	t.Run("skips", func(t *testing.T) { t.Skip("skips as asked") })
+}
+
 // TestExits ends its process in its first run.
 func TestExits(t *testing.T) { os.Exit(3) }
 

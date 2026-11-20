@@ -90,7 +90,7 @@ A load run repeats a test while every core of the machine is kept busy, for a cr
 go run ./tools/testgate load [-p N] [-tags TAGS] [-timeout D] [-o DIR] -count N -run REGEXP PKG
 ```
 
-**What it does.** It first lists the tests with `go test -list` (the part of REGEXP before its first slash outside brackets and parentheses, which names top-level tests, as `go test` splits it), before any load and within a limit as long as the time limit: a package that does not build, or a REGEXP that names no test, ends the command there. Then it starts one busy worker per core (`runtime.NumCPU()`; a worker is a goroutine of the command that never waits) and `-p` test processes at once, each `go test -json -count N -run REGEXP [-tags TAGS] -timeout <the time limit + 1m> PKG` in a process group of its own. The workers stop once the last test process has ended and what was left of its process group has been killed. The load is never a shell loop.
+**What it does.** It first lists the tests with `go test -list`, before any load and within a limit as long as the time limit. The pattern it lists with is made the way `go test` splits REGEXP: at each `|` and `/` outside brackets and parentheses, into alternatives and their levels. It joins the alternatives' top-level parts with `|`, or uses `.` when one of them is empty. So `-run 'TestA/x|TestB'` lists `TestA` and `TestB`. A package that does not build, or a REGEXP that names no test, ends the command there. Then it starts one busy worker per core (`runtime.NumCPU()`; a worker is a goroutine of the command that never waits) and `-p` test processes at once, each `go test -json -count N -run REGEXP [-tags TAGS] -timeout <the time limit + 1m> PKG` in a process group of its own. The workers stop once the last test process has ended and what was left of its process group has been killed. The load is never a shell loop.
 
 - `-count N` (needed): the runs of each test the REGEXP names in each process.
 - `-run REGEXP` (needed): the tests, as `go test -run` takes them.
@@ -101,7 +101,7 @@ go run ./tools/testgate load [-p N] [-tags TAGS] [-timeout D] [-o DIR] -count N 
 
 The flags come before PKG; one package and one count per command, one command after another for several.
 
-**No load is left behind.** After the command has exited, no busy worker it started is left, however it ended, and no test process it started but after SIGKILL:
+**No load is left behind.** After the command has exited, no busy worker it started is left, however it ended, and no process of its test processes' process groups but after SIGKILL:
 
 | How it ends | What the command does |
 |---|---|
@@ -111,6 +111,8 @@ The flags come before PKG; one package and one count per command, one command af
 | SIGKILL | no busy worker is left, since the workers are goroutines of the command; a test process may run on to its own limit, the time limit plus a minute |
 
 A stdout or stderr closed under it (SIGPIPE) does not end it: its writes there fail, and it ends as its tests do.
+
+The guarantee covers each `go test`'s process group. A process that a test starts in a session or process group of its own, such as a tmux server and its panes' programs, is left as after Ctrl-C of a plain `go test`: on SIGINT the test binary ends without running its cleanups, which would end such a process.
 
 **Its output.** Progress goes to stderr; the evidence, the same lines for every ticket, to stdout:
 
@@ -134,7 +136,7 @@ process 2, TestX, run 17: failed
 load: 449 passed, 1 failed, 0 skipped of 450 runs expected on <HEAD's full sha>
 ```
 
-A run is one run of a top-level test the REGEXP names; its subtests are part of it. When the REGEXP names subtests, a run that passed with no subtest tested nothing and counts as skipped (`go test` runs a test whose subtests the REGEXP misses, and it passes). The runs expected are the tests `go test -list` named times `-count` times `-p`. Each run that did not pass gets its lines: a failed run what `go test` prints of it without `-json`, a skipped run its reason, a run its process ended in (`never ended`) counts as failed, with what it printed. The load average is the machine's 1-minute figure (`/proc/loadavg` on Linux, `sysctl -n vm.loadavg` on macOS), or why there is none.
+A run is one run of a top-level test the REGEXP names; its subtests are part of it. A test that every alternative of the REGEXP naming it names subtests of (`TestX/sub`) passes a run only when one of those subtests passed and tested something (it has no subtest of its own, or one of them did). Otherwise the run tested nothing and counts as skipped, with the reason of each subtest that skipped: `go test` runs a test whose subtests the REGEXP misses or that all skip, and it passes. The runs expected are the tests `go test -list` named times `-count` times `-p`. Each run that did not pass gets its lines: a failed run what `go test` prints of it without `-json`, a skipped run its reason, a run its process ended in (`never ended`) counts as failed, with what it printed. The load average is the machine's 1-minute figure (`/proc/loadavg` on Linux, `sysctl -n vm.loadavg` on macOS), or why there is none.
 
 **Its verdict.** Exit 0 only when every expected run passed, and no other ran, in test processes that all exited 0. Exit 1 when a run failed, a run was skipped (a skipped run shows nothing under load), or a test process ended without all its runs or with another status. Exit 2, as every gate, on an error of its own, with no last line of counts: wrong arguments (with the usage line), a package that does not build, a REGEXP that names no test (`no tests to run` is not a pass), the time limit or an interruption (after the lines of each process, which name the files of their output).
 

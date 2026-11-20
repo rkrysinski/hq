@@ -10,30 +10,73 @@ import (
 	"time"
 )
 
-func TestTopLevelPatternIsTheRunPatternBeforeItsFirstSlash(t *testing.T) {
-	for run, want := range map[string]string{
-		"TestX":                  "TestX",
-		"^TestX$":                "^TestX$",
-		"TestX/sub":              "TestX",
-		"TestX/sub/deeper":       "TestX",
-		"Test[/]X/sub":           "Test[/]X",
-		"Test(a/b)X/sub":         "Test(a/b)X",
-		"Test((a)/b)/sub":        "Test((a)/b)",
-		`Test\/X/sub`:            `Test\/X`,
-		"Test[a]X/sub":           "Test[a]X",
-		"TestA|TestB":            "TestA|TestB",
-		"/sub":                   "",
-		"Test[^/]X/s":            "Test[^/]X",
-		"Test(x)[/]/s":           "Test(x)[/]",
-		"Test[(]/s":              "Test[(]",
-		"Test[)]x/s":             "Test[)]x",
-		"Test(a)b/s(c/d)":        "Test(a)b",
-		`Test\\/sub`:             `Test\\`,
-		"Test(\\)/x)/s":          "Test(\\)/x)",
-		"TestNoSlash[unclosed/x": "TestNoSlash[unclosed/x",
+// The cases of go test's own splitting (testing's TestSplitRegexp), and more.
+func TestRunAlternativesSplitTheRunPatternAsGoTestDoes(t *testing.T) {
+	for run, want := range map[string][][]string{
+		"":                {{""}},
+		"TestX":           {{"TestX"}},
+		"TestX/sub":       {{"TestX", "sub"}},
+		"TestX/sub/deep":  {{"TestX", "sub", "deep"}},
+		"/sub":            {{"", "sub"}},
+		"TestA|TestB":     {{"TestA"}, {"TestB"}},
+		"TestA/x|TestB":   {{"TestA", "x"}, {"TestB"}},
+		"TestA|TestB/sub": {{"TestA"}, {"TestB", "sub"}},
+		"A|":              {{"A"}, {""}},
+		"(a|b)/c":         {{"(a|b)", "c"}},
+		"Test(a/b)X/sub":  {{"Test(a/b)X", "sub"}},
+		"Test((a)/b)/sub": {{"Test((a)/b)", "sub"}},
+		"Test[/|]X/sub":   {{"Test[/|]X", "sub"}},
+		"Test[^/]X/s":     {{"Test[^/]X", "s"}},
+		"Test[(]/s":       {{"Test[(]", "s"}},
+		"Test[)]x/s":      {{"Test[)]x", "s"}},
+		"[[]/x":           {{"[[]/x"}},
+		"[[]]/x":          {{"[[]]", "x"}},
+		"a]/b|c":          {{"a]", "b"}, {"c"}},
+		`Test\/X/sub`:     {{`Test\/X`, "sub"}},
+		`Test\|X|Y`:       {{`Test\|X`}, {"Y"}},
+		`Test\\/sub`:      {{`Test\\`, "sub"}},
+		"Test(\\)/x)/s":   {{"Test(\\)/x)", "s"}},
+		"Test[unclosed/x": {{"Test[unclosed/x"}},
+		"Test(a)b/s(c/d)": {{"Test(a)b", "s(c/d)"}},
 	} {
-		if got := topLevelPattern(run); got != want {
+		if got := runAlternatives(run); !reflect.DeepEqual(got, want) {
 			t.Errorf("%q: got %q, want %q", run, got, want)
+		}
+	}
+}
+
+func TestListPatternNamesTheTopLevelTestsOfEveryAlternative(t *testing.T) {
+	for run, want := range map[string]string{
+		"^TestX$/sub":       "^TestX$",
+		"TestA/x|TestB":     "TestA|TestB",
+		"^(TestA|TestB)$/x": "^(TestA|TestB)$",
+		"/sub":              ".",
+		"TestA|/x":          ".",
+	} {
+		if got := listPattern(run); got != want {
+			t.Errorf("%q: got %q, want %q", run, got, want)
+		}
+	}
+}
+
+func TestSubtestsNamedOnlyWhenEveryAlternativeThatNamesTheTestNamesSubtests(t *testing.T) {
+	for _, c := range []struct {
+		run, name string
+		want      bool
+	}{
+		{"TestX", "TestX", false},
+		{"TestX/sub", "TestX", true},
+		{"TestA/x|TestB", "TestA", true},
+		{"TestA/x|TestB", "TestB", false},
+		{"TestA|TestA/x", "TestA", false},
+		{"TestA/x|TestA/y", "TestA", true},
+		{"TestA/x", "TestB", false},
+		{"Test/x", "TestFoo", true},
+		{"[/x", "TestX", false},
+		{"/x", "TestX", true},
+	} {
+		if got := subtestsNamed(c.run)(c.name); got != c.want {
+			t.Errorf("%q, %s: got %v, want %v", c.run, c.name, got, c.want)
 		}
 	}
 }
@@ -151,7 +194,7 @@ func readRun(t *testing.T, lines ...string) *testRun {
 // failed is no skipped run, and a run its process ended in counts as failed,
 // with what it printed.
 func TestTallyCountsTheRunsOfTopLevelTestsAndShowsEachThatDidNotPass(t *testing.T) {
-	c, shown := tally(2, readRun(t, loadFixtureRun...), false)
+	c, shown := tally(2, readRun(t, loadFixtureRun...), nil)
 	if want := (runCounts{passed: 2, failed: 2, skipped: 1}); c != want {
 		t.Errorf("got %+v, want %+v", c, want)
 	}
@@ -177,7 +220,7 @@ func TestTallyNumbersTheRunsOfEachTest(t *testing.T) {
 	lines := append(append(append([]string{`{"Action":"start","Package":"example.com/f"}`}, fail("one")...),
 		`{"Action":"run","Package":"example.com/f","Test":"TestPasses"}`,
 		`{"Action":"pass","Package":"example.com/f","Test":"TestPasses"}`), fail("two")...)
-	c, shown := tally(1, readRun(t, lines...), false)
+	c, shown := tally(1, readRun(t, lines...), nil)
 	if want := (runCounts{passed: 1, failed: 2}); c != want {
 		t.Errorf("got %+v, want %+v", c, want)
 	}
@@ -382,29 +425,49 @@ func loadHelper(args []string) int {
 	return runLoad(ctx, inv.opts.(loadOptions), inv.args[0], 1, os.Stdout, os.Stderr)
 }
 
-// With a pattern that names subtests, a run that passed with no subtest
-// tested nothing: it counts as skipped. Without one, it passed.
-func TestTallyCountsARunWithNoSubtestTheSubtestPatternNamesAsSkipped(t *testing.T) {
+// With a pattern that names subtests, a run passes only when one of them
+// passed and tested something: a run with no subtest, one whose subtests all
+// skipped and one whose subtest passed with its own subtests all skipped
+// tested nothing and count as skipped, each with its reason. Without such a
+// pattern they passed.
+func TestTallyCountsARunNoNamedSubtestTestedAsSkipped(t *testing.T) {
+	ev := func(action, test string) string {
+		return `{"Action":"` + action + `","Package":"example.com/f","Test":"` + test + `"}`
+	}
+	out := func(test, text string) string {
+		return `{"Action":"output","Package":"example.com/f","Test":"` + test + `","Output":"` + text + `\n"}`
+	}
 	run := readRun(t,
 		`{"Action":"start","Package":"example.com/f"}`,
-		`{"Action":"run","Package":"example.com/f","Test":"TestX"}`,
-		`{"Action":"pass","Package":"example.com/f","Test":"TestX"}`,
-		`{"Action":"run","Package":"example.com/f","Test":"TestX"}`,
-		`{"Action":"run","Package":"example.com/f","Test":"TestX/sub"}`,
-		`{"Action":"pass","Package":"example.com/f","Test":"TestX/sub"}`,
-		`{"Action":"pass","Package":"example.com/f","Test":"TestX"}`,
+		ev("run", "TestX"), ev("pass", "TestX"), // no subtest
+		ev("run", "TestX"), ev("run", "TestX/sub"), ev("pass", "TestX/sub"), ev("pass", "TestX"), // tested
+		ev("run", "TestX"), ev("run", "TestX/sub"), out("TestX/sub", "    x_test.go:9: no tmux here"), ev("skip", "TestX/sub"),
+		ev("run", "TestX/other"), ev("skip", "TestX/other"), ev("pass", "TestX"), // every subtest skipped
+		ev("run", "TestX"), ev("run", "TestX/sub"), ev("run", "TestX/sub/deep"), out("TestX/sub/deep", "    x_test.go:12: too deep"),
+		ev("skip", "TestX/sub/deep"), ev("pass", "TestX/sub"), ev("pass", "TestX"), // its subtest's subtests skipped
+		ev("run", "TestX"), ev("run", "TestX/sub"), ev("run", "TestX/sub/deep"), ev("pass", "TestX/sub/deep"),
+		ev("pass", "TestX/sub"), ev("pass", "TestX"), // tested at depth
+		ev("run", "TestY"), ev("pass", "TestY"), // its pattern names no subtest
 	)
-	c, shown := tally(1, run, true)
-	if want := (runCounts{passed: 1, skipped: 1}); c != want {
+	named := subtestsNamed("TestX/sub|TestY")
+	c, shown := tally(1, run, named)
+	if want := (runCounts{passed: 3, skipped: 3}); c != want {
 		t.Errorf("got %+v, want %+v", c, want)
 	}
-	equalStrings(t, shown, []string{"process 1, TestX, run 1: skipped: no subtest the pattern names ran"})
-	if c, shown := tally(1, run, false); c != (runCounts{passed: 2}) || len(shown) != 0 {
+	equalStrings(t, shown, []string{
+		"process 1, TestX, run 1: skipped: no subtest the pattern names ran",
+		"process 1, TestX, run 3: skipped: no subtest the pattern names passed",
+		"    TestX/sub: no tmux here",
+		"    TestX/other: no reason given",
+		"process 1, TestX, run 4: skipped: no subtest the pattern names passed",
+		"    TestX/sub/deep: too deep",
+	})
+	if c, shown := tally(1, run, nil); c != (runCounts{passed: 6}) || len(shown) != 0 {
 		t.Errorf("no subtest pattern: got %+v, %q", c, shown)
 	}
 	r := evidenceRun()
-	r.subtests = true
-	if _, ok := r.endLines([]loadProcess{{status: "exit status 0", run: run}}, 2, false); ok {
-		t.Error("the evidence passed a run that tested nothing")
+	r.subtestsNamed = named
+	if _, ok := r.endLines([]loadProcess{{status: "exit status 0", run: run}}, 6, false); ok {
+		t.Error("the evidence passed runs that tested nothing")
 	}
 }

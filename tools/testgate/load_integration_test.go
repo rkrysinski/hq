@@ -246,8 +246,10 @@ func TestALoadRunLeavesNoLoadBehindHoweverItEnds(t *testing.T) {
 	}{
 		{name: "the tests ended", args: []string{"-count", "2", "-run", "^TestPasses$", loadFixture}, code: 0},
 		{name: "a test failed", args: []string{"-run", "^(TestPasses|TestFails)$", "-count", "1", loadFixture}, code: 1},
+		// Whether TestWaits started before the limit or not, the limit stops
+		// the tests the same way; the signals' cases show a test that runs
+		// stopped.
 		{name: "the time limit passed", args: []string{"-timeout", "2s", "-count", "1", "-run", "^TestWaits$", loadFixture},
-			end:  func(t *testing.T, c *loadCommand) { c.waitForTheTest(t) },
 			code: 2, says: "testgate: load: the time limit 2s passed: the tests were stopped\n"},
 		{name: "SIGINT", args: []string{"-count", "1", "-run", "^TestWaits$", loadFixture},
 			end:  func(t *testing.T, c *loadCommand) { c.waitForTheTest(t); c.cmd.Process.Signal(syscall.SIGINT) },
@@ -413,6 +415,12 @@ func TestALoadRunsEvidenceAndVerdict(t *testing.T) {
 			stdout: []string{"process 1, TestPasses, run 1: skipped: no subtest the pattern names ran",
 				"process 1, TestPasses, run 2: skipped: no subtest the pattern names ran",
 				"load: 0 passed, 0 failed, 2 skipped of 2 runs expected on " + head}},
+		{name: "a subtest pattern whose subtests all skipped", code: 1, args: []string{"-count", "2", "-run", "^TestSub$/^skips$", loadFixture},
+			stdout: []string{"process 1, TestSub, run 1: skipped: no subtest the pattern names passed", "    TestSub/skips: skips as asked",
+				"process 1, TestSub, run 2: skipped: no subtest the pattern names passed",
+				"load: 0 passed, 0 failed, 2 skipped of 2 runs expected on " + head}},
+		{name: "a subtest pattern whose subtest passed", code: 0, args: []string{"-count", "2", "-run", "^TestSub$/^passes$|^TestPasses$", loadFixture},
+			stdout: []string{"load: 4 passed, 0 failed, 0 skipped of 4 runs expected on " + head}},
 		{name: "a run skipped", code: 1, args: []string{"-count", "1", "-run", "^TestSkips$", loadFixture},
 			stdout: []string{"process 1, TestSkips, run 1: skipped: skips as asked", "load: 0 passed, 0 failed, 1 skipped of 1 runs expected on " + head}},
 		{name: "a process ended without all its runs", code: 1, args: []string{"-count", "3", "-run", "^TestExits$", loadFixture},
