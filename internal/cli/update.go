@@ -301,11 +301,13 @@ func updateDuties(args []string) (check, notice bool) {
 	if len(args) == 0 {
 		return false, false
 	}
-	switch args[0] {
-	case "--version", "-V":
+	switch {
+	case versionCommand().flagSet().is(args[0], "--version", "-V"):
 		return true, false
-	case "--help", "-h", "help":
+	case args[0] == "help" || flagsOf("help").is(args[0], "--help", "-h"):
 		return true, true
+	}
+	switch args[0] {
 	case "dash", "mcp", "update":
 		return false, false
 	}

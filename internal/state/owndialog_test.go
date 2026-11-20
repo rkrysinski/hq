@@ -97,7 +97,7 @@ func TestOwnDialogIsNoScreenOfATurn(t *testing.T) {
 }
 
 // /model opened while a subagent runs in the background (Claude Code
-// 2.1.301, #70): the picker hides the agents' list below the footer.
+// 2.1.301, #70): the picker hides Claude's agents list below the footer.
 func TestOwnDialogSeesTheModelPickerOverBackgroundWork(t *testing.T) {
 	ask, ok := OwnDialog(readScreen(t, "screen-own-model-background.txt"))
 	if !ok || ask.Questions[0].Question != "Select model" || ask.Questions[0].Options[1].Label != "Opus 5.5 For complex work and everyday tasks" {
@@ -189,11 +189,11 @@ func TestOwnViewPickTakesOneOptionByItsNumber(t *testing.T) {
 // agentsScreens are the captures of #225 (Claude Code 2.1.326, setup M in
 // testdata/README.md): a session whose turn ended with two background
 // subagents running, at three pane sizes, with a footer of its own and
-// with the notice line above it. In the main view the agents list stands
-// below the footer with no cursor (list), the cursor on main (main), on
-// the first subagent's row (first) or on the last one's (last); Enter on
-// the last opens its view, with the cursor on its row (view-last), on the
-// other's (view-first) or on main (view-main).
+// with the notice line above it. In the main view Claude's agents list
+// stands below the footer with no cursor on it (list), the cursor on main
+// (main), on the first subagent's row of it (first) or on the last one's
+// (last); Enter on the last opens its view, with the cursor on its row
+// (view-last), on the other's (view-first) or on main (view-main).
 func agentsScreens(t *testing.T) map[string]string {
 	t.Helper()
 	screens := map[string]string{}
@@ -208,11 +208,11 @@ func agentsScreens(t *testing.T) map[string]string {
 	return screens
 }
 
-// The agents list Claude Code draws below its footer while subagents run,
-// with its cursor anywhere, and a subagent's view open in the pane, are no
-// dialog of Claude's own: the list's rows are no options, the status line
-// no question (#225).
-func TestViewOwnDialogIsNoAgentsListNorASubagentsView(t *testing.T) {
+// Claude's agents list, which Claude Code draws below its footer while
+// subagents run, with the cursor on it anywhere, and a subagent's view open
+// in the pane, are no dialog of Claude's own: the rows of Claude's agents
+// list are no options, the status line no question (#225).
+func TestViewOwnDialogIsNoClaudesAgentsListNorASubagentsView(t *testing.T) {
 	for name, s := range agentsScreens(t) {
 		for _, screen := range []string{s, WithoutHints(s)} {
 			if v, ok := ViewOwnDialog(screen); ok || v.Ask != nil {
@@ -224,9 +224,9 @@ func TestViewOwnDialogIsNoAgentsListNorASubagentsView(t *testing.T) {
 
 // /model opened while two subagents run in the background, in the main
 // view (Claude Code 2.1.326, #225): the picker stands in place of the box,
-// and of the agents list, which it hides in a pane of 30 lines and of 50
-// alike; Esc puts the box and the list back.
-func TestViewOwnDialogSeesTheModelPickerOverTheAgentsList(t *testing.T) {
+// and of Claude's agents list, which it hides in a pane of 30 lines and of
+// 50 alike; Esc puts the box and that list back.
+func TestViewOwnDialogSeesTheModelPickerOverClaudesAgentsList(t *testing.T) {
 	for _, name := range []string{"screen-own-model-agents.txt", "screen-own-model-agents-50.txt"} {
 		v, ok := ViewOwnDialog(readScreen(t, name))
 		if !ok || v.Ask.Questions[0].Question != "Select model" || v.Cursor != 4 ||

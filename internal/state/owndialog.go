@@ -43,9 +43,10 @@ type OwnView struct {
 	Scrolls bool
 }
 
-// ViewOwnDialog is OwnDialog with where the dialog's cursor is. The agents
-// list below the footer, its cursor included, and a subagent's view, whose
-// box stands in place of the agent's (findBox), are no dialog (#225).
+// ViewOwnDialog is OwnDialog with where the dialog's cursor is.
+// Claude's agents list below the footer, the cursor on it included, and a
+// subagent's view, whose box stands in place of the agent's (findBox), are
+// no dialog (#225).
 func ViewOwnDialog(screen string) (OwnView, bool) {
 	if b, ok := promptBox(screen); ok || b.subagent {
 		return OwnView{}, false

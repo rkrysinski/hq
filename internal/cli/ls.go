@@ -46,13 +46,12 @@ type lsRow struct {
 
 func runLs(env Env, d deps, args []string) error {
 	asJSON := false
+	f := flagsOf("ls")
 	for _, a := range args {
-		switch a {
-		case "--json":
-			asJSON = true
-		default:
+		if !f.is(a, "--json") {
 			return usageErr("unexpected argument '%s' (usage: hq ls [--json])", a)
 		}
+		asJSON = true
 	}
 	l, err := gatherAgents(d)
 	if err != nil {

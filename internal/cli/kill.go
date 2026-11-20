@@ -14,11 +14,12 @@ import (
 // removes their windows anyway.
 const endWait = 5 * time.Second
 
-// parseYes splits the -y flag from the other arguments.
-func parseYes(args []string) (rest []string, yes bool, err error) {
+// parseYes splits the -y flag from the other arguments, as the command of
+// f takes it.
+func parseYes(f flagSet, args []string) (rest []string, yes bool, err error) {
 	for _, a := range args {
 		switch {
-		case a == "-y" || a == "--yes":
+		case f.is(a, "-y", "--yes"):
 			yes = true
 		case strings.HasPrefix(a, "-"):
 			return nil, false, fmt.Errorf("unknown option %s", a)
@@ -57,7 +58,7 @@ func agents(d deps) ([]agent.Agent, error) {
 }
 
 func runKill(env Env, d deps, args []string) error {
-	rest, yes, err := parseYes(args)
+	rest, yes, err := parseYes(flagsOf("kill"), args)
 	if err != nil || len(rest) != 1 {
 		return usageErr("usage: hq kill NAME [-y]")
 	}
@@ -109,7 +110,7 @@ func lostAgent(d deps, name string) (agent.Agent, bool) {
 }
 
 func runStop(env Env, d deps, args []string) error {
-	rest, yes, err := parseYes(args)
+	rest, yes, err := parseYes(flagsOf("stop"), args)
 	if err != nil || len(rest) != 0 {
 		return usageErr("usage: hq stop [-y]")
 	}

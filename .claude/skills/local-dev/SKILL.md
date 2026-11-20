@@ -24,7 +24,7 @@ scripts/local-dev.sh --kill-server      # end this checkout's private tmux serve
 ## Windows/WSL without a Windows machine: `--stub`
 
 ```bash
-cd /tmp/hq-stub-*/repo                                    # after a first run; a neutral repository
+cd "$(scripts/local-dev.sh --stub-env)/repo"              # after a first run; a neutral repository
 scripts/local-dev.sh --stub wsl-exe new a . hello         # any hq command, against the stubs
 scripts/local-dev.sh --stub wsl-exe --before mcp install sbx   # the binary built from origin/dev, same path
 scripts/local-dev.sh --kill-server                        # ends the server and removes the stub environment
@@ -32,7 +32,7 @@ scripts/local-dev.sh --kill-server                        # ends the server and 
 
 - Modes: `native` (stub `sbx`, no Windows), `wsl-linux` (WSL detected through `WSL_DISTRO_NAME=Stub`, stub `sbx` as the Linux one, stub `wslpath`, `cmd.exe`, `powershell.exe`), `wsl-exe` (the same with the stub as `sbx.exe`), `none` (WSL with no sbx). A real `sbx` or `sbx.exe` on PATH is hidden in every mode.
 - The stubs are `internal/testutil`'s, the same `testutil.WSLStubs` uses; the Windows side is listed once in `internal/testutil/wsl-stubs`. Add a new stub there.
-- Everything lives in `/tmp/hq-stub-<id>`: the binary (`bin/hq`), a neutral `HOME` with the preferences, the stub sbx's state (`sbx/`, `SBX_STUB_DIR`), `C:\` at `win/mnt/c`, the fake claude, and a git repository `repo` to start agents in. Run QA from that repository so screenshots carry no user's path; PATH directories under your HOME are reached through links there too.
+- Everything lives in this checkout's stub environment, whose path `scripts/local-dev.sh --stub-env` prints alone on stdout (it builds and creates nothing); the `--stub` run that creates it also says `local-dev: stub environment <path> created` on stderr. Never guess it from a pattern: other checkouts' and tests' environments sit beside it. It holds the binary (`bin/hq`), a neutral `HOME` with the preferences, the stub sbx's state (`sbx/`, `SBX_STUB_DIR`), `C:\` at `win/mnt/c`, the fake claude, and a git repository `repo` to start agents in. Run QA from that repository so screenshots carry no user's path; PATH directories under your HOME are reached through links there too.
 - `--before` builds `LOCAL_DEV_BEFORE` (default `origin/dev`; fetch it first) to the same path as the checkout's build, so the before and after binaries are one program to what registered it (`hq mcp install` says "already set up"). Builds are renamed into place: no "Text file busy".
 - hq keeps its agents' records in the repository (`.git/hq/agents`), so agents in a repository outside the stub environment outlive `--kill-server` as lost agents (`hq restore`, `hq kill`); kill them first, or use the stub environment's `repo`, which goes with it.
 - The tmux server is still this checkout's. It remembers the mode that started it, and a run in another mode (or without `--stub`) is refused until `--kill-server`.
