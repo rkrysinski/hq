@@ -31,6 +31,9 @@ What was learned and why it matters. Next time: what to do differently.
 
 ## Entries
 
+### 2026-11-20 - An existing screen rule applied to a new state is a new screen rule
+For #217 the rule that ends a turn Claude owed (`TurnNotTaken`, the screen at rest for 2 s) was applied to an agent waiting for its first prompt, on the reviewer's suggestion and with no capture of that screen: a first prompt that was only late gave an empty `done`. It cost a reverted commit, a review pass, an operator decision and #220. Next time: a rule read off the screen, new or reused for another state, waits for a real capture of that state (`tools/capture/README.md`), whoever suggests it; without one, ask for the operator's decision (`Approval needed` in a release) and write no code.
+
 ### 2026-11-17 - A mutant you call equivalent: write the killing test first
 In release v0.14.0 three reasons of equivalence hid a change of behaviour: `send --wait` stalled one look later at exactly 5 s (merged, fixed forward in #214), a quiet look made one more `list-windows` call (overturned in #221's review), and a mutant "equivalent in effect" typed the message in after the timeout (overturned in #216). A fourth survivor was handed to the whole release's run, and the supervisor sent it back. "One look later" or "one call more" feels harmless while the reason is written. Next time: write the test that would kill the survivor before writing any reason, and leave no survivor to another run (`docs/hq/testing.md`, *What passes*).
 
