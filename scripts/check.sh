@@ -78,32 +78,35 @@ step_platform() { go run ./tools/testgate platform; }
 
 step_timebound() { go run ./tools/testgate timebound; }
 
-# gotest runs go test -json with the arguments given for the test step
-# $step. When the tests pass it writes the step's skip lines to $tmp/skips
-# and fails when testgate cannot list them; when they fail it prints their
-# output as go test prints it without -json, or as go test -json printed it
-# when testgate cannot read it.
+# gotest STEP ARGS... runs go test -json with ARGS for the test step STEP.
+# When the tests pass it writes the step's skip lines to $tmp/skips and fails
+# when testgate cannot list them; when they fail it prints their output as go
+# test prints it without -json, or as go test -json printed it when testgate
+# cannot read it.
 gotest() {
+	gotest_step=$1
+	shift
 	if go test -json "$@" >"$tmp/json" 2>&1; then
-		go run ./tools/testgate skips "$step" "$tmp/json" >"$tmp/skips"
-		return
+		go run ./tools/testgate skips "$gotest_step" "$tmp/json" >"$tmp/skips" && return
+		echo "the tests passed, but testgate could not list the tests they skipped"
+		return 1
 	fi
 	go run ./tools/testgate plain "$tmp/json" 2>/dev/null || cat "$tmp/json"
 	return 1
 }
 
-step_unit() { gotest ./...; }
+step_unit() { gotest unit ./...; }
 
 # -count=1: a cached package's profile describes the code of the run that
 # filled the cache, not this one's (#53).
 step_integration() {
-	gotest -count=1 -tags integration -coverpkg=./internal/... -coverprofile="$tmp/cover.out" ./...
+	gotest integration -count=1 -tags integration -coverpkg=./internal/... -coverprofile="$tmp/cover.out" ./...
 }
 
 step_coverage() { go run ./tools/testgate coverage "$tmp/cover.out"; }
 
 step_e2e() {
-	if [ -d e2e ]; then gotest -tags e2e ./e2e/...; else echo "no journeys yet"; fi
+	if [ -d e2e ]; then gotest e2e -tags e2e ./e2e/...; else echo "no journeys yet"; fi
 }
 
 n=0

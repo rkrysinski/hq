@@ -272,10 +272,14 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 			"check: ok   platform",
 			"check: ok   timebound",
 			"check: FAIL unit",
+			"the tests passed, but testgate could not list the tests they skipped",
 			"check: stopped at unit on " + sha,
 		})
 		if code != 1 {
 			t.Fatalf("exit %d", code)
+		}
+		if calls := r.calls(); !strings.Contains(calls, "go run ./tools/testgate skips unit ") {
+			t.Fatalf("testgate skips was not run:\n%s", calls)
 		}
 	})
 

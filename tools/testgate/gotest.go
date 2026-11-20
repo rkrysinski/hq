@@ -48,14 +48,10 @@ type testItem struct {
 	sub  *goTest
 }
 
-// A goPackage is a package of a run: its tests and what go test printed of
-// it apart from them.
+// A goPackage is a package of a run: its tests and how it ended.
 type goPackage struct {
 	tests   map[string]*goTest
-	own     strings.Builder // its output that is no test's
-	block   strings.Builder // what go test prints of it when it does not pass
-	outcome string          // pass, fail or skip (no test files); none for a package that never ended
-	done    bool            // ended, as far as plainOutput has read
+	outcome string // pass, fail or skip (no test files); none for a package that never ended
 }
 
 // A testRun is the go test -json output of one run.
@@ -119,7 +115,12 @@ func readTestRun(r io.Reader) (*testRun, error) {
 
 // ends reports whether an event's action ends its test or package.
 func ends(action string) bool {
-	return action == "pass" || action == "fail" || action == "skip"
+	return action == "fail" || passed(action)
+}
+
+// passed reports whether a test or package that ended so did not fail.
+func passed(outcome string) bool {
+	return outcome == "pass" || outcome == "skip"
 }
 
 func (run *testRun) pkg(name string) *goPackage {
@@ -210,15 +211,27 @@ func plainOutput(r io.Reader) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	// What plainOutput has read of each package: its output that is no
+	// test's, what go test prints of it when it does not pass, and whether
+	// it ended.
+	type reading struct {
+		own, block strings.Builder
+		done       bool
+	}
+	read := map[string]*reading{}
+	for _, name := range run.order {
+		read[name] = &reading{}
+	}
 	var b strings.Builder
 	printed := 0 // the packages of run.order printed so far
 	flush := func(all bool) {
 		for ; printed < len(run.order); printed++ {
-			p := run.packages[run.order[printed]]
+			name := run.order[printed]
+			p := read[name]
 			if !all && !p.done {
 				return
 			}
-			if p.outcome == "pass" || p.outcome == "skip" {
+			if passed(run.packages[name].outcome) {
 				if own := splitLines(p.own.String()); len(own) > 0 {
 					b.WriteString(own[len(own)-1] + "\n")
 				}
@@ -236,16 +249,15 @@ func plainOutput(r io.Reader) ([]string, error) {
 			b.WriteString(e.Output)
 		case e.Package == "" && e.Test == "":
 		case e.Test != "":
-			p := run.packages[e.Package]
-			if t := p.tests[e.Test]; t.parent == nil && i == t.last {
-				t.plain(&p.block)
+			if t := run.packages[e.Package].tests[e.Test]; t.parent == nil && i == t.last {
+				t.plain(&read[e.Package].block)
 			}
 		case e.Action == "output":
-			p := run.packages[e.Package]
+			p := read[e.Package]
 			p.own.WriteString(e.Output)
 			p.block.WriteString(e.Output)
 		case ends(e.Action):
-			run.packages[e.Package].done = true
+			read[e.Package].done = true
 			flush(false)
 		}
 	}
@@ -261,7 +273,7 @@ func plainOutput(r io.Reader) ([]string, error) {
 // with its subtests where they started; when it passed or was skipped,
 // only what it printed itself, which go test does not indent.
 func (t *goTest) plain(b *strings.Builder) {
-	failed := t.outcome != "pass" && t.outcome != "skip"
+	failed := !passed(t.outcome)
 	if failed {
 		for _, l := range splitLines(t.ownText()) {
 			if resultLine(l) {

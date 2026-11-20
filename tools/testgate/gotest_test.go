@@ -285,27 +285,27 @@ func TestPlainOutputOfARunThatPassedIsTheResultLines(t *testing.T) {
 }
 
 func TestTestOutputReadsTheFileTheCommandNames(t *testing.T) {
-	dir := t.TempDir()
-	write(t, dir, "out.json", strings.Join(skippingRun, "\n")+"\n")
-	file := dir + "/out.json"
 	for _, c := range []struct {
-		inv  invocation
+		args []string // before the file
 		want string
 	}{
-		{invocation{"skips", []string{"unit", file}}, "check: skip unit example.com/s/a TestSkips: first a log no tmux here: 4095 of 5000\n" +
+		{[]string{"skips", "unit"}, "check: skip unit example.com/s/a TestSkips: first a log no tmux here: 4095 of 5000\n" +
 			"check: skip unit example.com/s/a TestSkipsNow: no reason given\n" +
 			"check: skip unit example.com/s/a TestMultiLine: line one line two\n" +
 			"check: skip unit example.com/s/a TestParent/sub_case: sub reason\n"},
-		{invocation{"plain", []string{file}}, "ok  \texample.com/s/a\t0.001s\tcoverage: 80.0% of statements in ./...\n" +
+		{[]string{"plain"}, "ok  \texample.com/s/a\t0.001s\tcoverage: 80.0% of statements in ./...\n" +
 			"?   \texample.com/s/c\t[no test files]\n"},
 	} {
+		dir := t.TempDir()
+		write(t, dir, "out.json", strings.Join(skippingRun, "\n")+"\n")
+		inv := invocation{c.args[0], append(c.args[1:], dir+"/out.json")}
 		var b strings.Builder
-		if err := testOutput(c.inv, &b); err != nil || b.String() != c.want {
-			t.Errorf("%v: got %q, err %v; want %q", c.inv, b.String(), err, c.want)
+		if err := testOutput(inv, &b); err != nil || b.String() != c.want {
+			t.Errorf("%v: got %q, err %v; want %q", inv, b.String(), err, c.want)
 		}
 	}
 	var b strings.Builder
-	if err := testOutput(invocation{"plain", []string{dir + "/missing.json"}}, &b); err == nil || b.Len() != 0 {
+	if err := testOutput(invocation{"plain", []string{t.TempDir() + "/missing.json"}}, &b); err == nil || b.Len() != 0 {
 		t.Errorf("a file that is not there: printed %q, err %v; want an error", b.String(), err)
 	}
 }
