@@ -1,25 +1,27 @@
-go test -count=1 -tags integration -v -run TestALoadRun ./tools/testgate 2>&1 | grep -E '^ *--- |^ok|^FAIL'; echo done-276
-$ --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds (5.20s)
-    --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/the_tests_ended (0.14s)
-    --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/a_test_failed (0.15s)
+$ go test -count=1 -tags integration -v -run TestALoadRun ./tools/testgate 2>&1 | grep -E '^ *--- |^ok|^FAIL'; echo done-276b
+--- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds (5.19s)
+    --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/the_tests_ended (0.15s)
+    --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/a_test_failed (0.13s)
     --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/the_time_limit_passed (2.07s)
     --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/SIGINT (0.16s)
     --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/SIGTERM (0.16s)
     --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/SIGHUP (0.16s)
-    --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/stdout_and_stderr_closed (0.15s)
+    --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/stdout_and_stderr_closed (0.14s)
     --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/the_process_that_started_it_ended,_its_stdout_and_stderr_closed (1.04s)
-    --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/SIGKILL (0.15s)
+    --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/SIGKILL (0.16s)
     --- PASS: TestALoadRunLeavesNoLoadBehindHoweverItEnds/the_process_that_started_it_ended (1.04s)
---- PASS: TestALoadRunsEvidenceAndVerdict (0.89s)
-    --- PASS: TestALoadRunsEvidenceAndVerdict/every_run_passed,_in_each_process,_with_the_tags_given (0.15s)
-    --- PASS: TestALoadRunsEvidenceAndVerdict/a_run_failed (0.13s)
+--- PASS: TestALoadRunsEvidenceAndVerdict (1.10s)
+    --- PASS: TestALoadRunsEvidenceAndVerdict/every_run_passed,_in_each_process,_with_the_tags_given (0.14s)
+    --- PASS: TestALoadRunsEvidenceAndVerdict/a_run_failed (0.12s)
     --- PASS: TestALoadRunsEvidenceAndVerdict/a_subtest_pattern_that_names_no_subtest (0.13s)
-    --- PASS: TestALoadRunsEvidenceAndVerdict/a_run_skipped (0.15s)
-    --- PASS: TestALoadRunsEvidenceAndVerdict/a_process_ended_without_all_its_runs (0.15s)
+    --- PASS: TestALoadRunsEvidenceAndVerdict/a_subtest_pattern_whose_subtests_all_skipped (0.14s)
+    --- PASS: TestALoadRunsEvidenceAndVerdict/a_subtest_pattern_whose_subtest_passed (0.13s)
+    --- PASS: TestALoadRunsEvidenceAndVerdict/a_run_skipped (0.13s)
+    --- PASS: TestALoadRunsEvidenceAndVerdict/a_process_ended_without_all_its_runs (0.12s)
     --- PASS: TestALoadRunsEvidenceAndVerdict/a_pattern_that_names_no_test (0.07s)
-    --- PASS: TestALoadRunsEvidenceAndVerdict/the_tags_left_out (0.07s)
+    --- PASS: TestALoadRunsEvidenceAndVerdict/the_tags_left_out (0.08s)
     --- PASS: TestALoadRunsEvidenceAndVerdict/a_package_that_does_not_build (0.03s)
     --- PASS: TestALoadRunsEvidenceAndVerdict/wrong_arguments (0.00s)
-ok  	github.com/rkrysinski/hq/tools/testgate	6.096s
-done-276
+ok  	github.com/rkrysinski/hq/tools/testgate	6.286s
+done-276b
 $
