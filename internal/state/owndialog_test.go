@@ -130,6 +130,10 @@ func TestViewOwnDialogSaysWhereItsCursorIsAndWhetherItsListScrolls(t *testing.T)
 		{"screen-own-model.txt", "Select model", 0, true},
 		{"screen-own-model-2304.txt", "Select model", 1, true},
 		{"screen-own-model-background.txt", "Select model", 0, true},
+		// The picker as the first prompt (Claude Code 2.1.329, #220): its
+		// list scrolls, so hq answer refuses it (#253).
+		{"screen-own-first-model-2329.txt", "Select model", 4, true},
+		{"screen-own-first-model-2329-80.txt", "Select model", 2, true},
 	} {
 		v, ok := ViewOwnDialog(readScreen(t, tc.screen))
 		if !ok || v.Ask.Questions[0].Question != tc.question || v.Cursor != tc.cursor || v.Scrolls != tc.scrolls {
@@ -144,8 +148,10 @@ func TestViewOwnDialogSaysWhereItsCursorIsAndWhetherItsListScrolls(t *testing.T)
 	if a, b := mustView(t, effort), mustView(t, readScreen(t, "screen-own-effort-low-down.txt")); !reflect.DeepEqual(a.Ask, b.Ask) {
 		t.Errorf("cursor moved, another dialog: %+v %+v", a.Ask, b.Ask)
 	}
-	// Answered: the box is back, with what Claude did.
-	for _, name := range []string{"screen-effort-low-set.txt", "screen-switch-model-kept.txt"} {
+	// Answered: the box is back, with what Claude did. The slider /effort
+	// opens with Claude Code 2.1.329 marks no option with ❯: it is no
+	// dialog hq reads, or answers (#220).
+	for _, name := range []string{"screen-effort-low-set.txt", "screen-switch-model-kept.txt", "screen-first-effort-2329-open.txt", "screen-first-effort-2329-80-open.txt"} {
 		if v, ok := ViewOwnDialog(readScreen(t, name)); ok {
 			t.Errorf("%s: %+v", name, v)
 		}

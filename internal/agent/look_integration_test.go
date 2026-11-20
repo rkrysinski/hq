@@ -25,6 +25,8 @@ type filesStore struct {
 // Stands says every home window stands.
 func (s filesStore) Stands(string) bool { return true }
 
+func (s filesStore) Withdraw(string, string) error { return nil }
+
 func (s filesStore) Screens(panes []string) (map[string]string, error) {
 	out := map[string]string{}
 	for _, p := range panes {

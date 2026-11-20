@@ -81,7 +81,7 @@ Text the user leaves for an agent with `hq send`, delivered to it when it is rea
 _Avoid_: feedback, note, mail
 
 **Slash command**:
-A message whose first line starts with `/`; it runs only when hq types it in as the agent's prompt, and arrives as text when the agent's hooks deliver it.
+A message whose first line starts with `/`, or a first prompt given to `hq new` that starts with `/`; it runs only when hq types it in as the agent's prompt or passes it as that first prompt, and arrives as text when the agent's hooks deliver it. One of Claude Code's own may start no turn (`/model NAME`, `/effort`), and Claude Code then reports nothing for it.
 _Avoid_: command (that is one of hq's own), skill
 
 **Held message**:

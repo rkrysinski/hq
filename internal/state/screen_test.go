@@ -3,6 +3,7 @@ package state
 import (
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -599,6 +600,30 @@ func TestClaudesAgentsListLeavesTheBoxAndASubagentsViewShowsNoneOfTheAgents(t *t
 		}
 		if _, ended := EndedByUser(s); ended {
 			t.Errorf("%s: ended by the user", name)
+		}
+	}
+}
+
+// TookSlashCommand reads the one prompt shown sent, a slash command, with
+// its outcome right below it at the box at rest (Claude Code 2.1.329,
+// setup P, #220), also on a screen scrolled so far that the slash command
+// is its top line; not a slash command after other prompts, a prompt at
+// work or a turn's reply below the prompt, nor a session given no prompt.
+func TestTookSlashCommandReadsTheOnePromptSentAndItsOutcome(t *testing.T) {
+	for _, name := range tookSlashCommandScreens {
+		s := screen(t, name)
+		if !TookSlashCommand(s) {
+			t.Errorf("%s: not read", name)
+		}
+		lines := strings.Split(s, "\n")
+		top := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, prompt+" /") })
+		if scrolled := strings.Join(lines[top:], "\n"); !TookSlashCommand(scrolled) {
+			t.Errorf("%s scrolled to its slash command: not read", name)
+		}
+	}
+	for _, name := range []string{"effort-low-set", "switch-model-kept", "first-probe-done-2329", "first-probe-2329", "first-hook-taken-2329", "first-none-2329", "first-model-name-2329-start"} {
+		if TookSlashCommand(screen(t, name)) {
+			t.Errorf("%s: read", name)
 		}
 	}
 }

@@ -30,6 +30,20 @@ type memStore struct {
 	captureErr error // the capture fails
 	captures   []string
 	reports    map[string]journaltest.HookState
+	// withdrawn are the words taken back (Withdraw), each as "ROOT ID",
+	// followed by " before TookSlashCommand" when the journal did not hold
+	// that event yet.
+	withdrawn []string
+}
+
+func (s *memStore) Withdraw(root, id string) error {
+	j, _ := s.Read(id)
+	w := root + " " + id
+	if !slices.ContainsFunc(j.Events, func(e state.Event) bool { return e.Kind == state.KindTookSlashCommand }) {
+		w += " before " + state.KindTookSlashCommand
+	}
+	s.withdrawn = append(s.withdrawn, w)
+	return nil
 }
 
 func newStore(screens map[string]string) *memStore {
@@ -155,6 +169,8 @@ func (s *replayStore) Remove(string, string) error { return nil }
 func (s *replayStore) IDs() ([]string, error) { return nil, nil }
 
 func (s *replayStore) Through() (int64, error) { return int64(len(s.events)), nil }
+
+func (s *replayStore) Withdraw(string, string) error { return nil }
 
 func (s *replayStore) Screens(panes []string) (map[string]string, error) {
 	out := map[string]string{}
@@ -523,6 +539,37 @@ func TestTheLookHandsTheStateOverToTheQueuedPromptClaudeTookAfterAnEsc(t *testin
 	}
 	if a, s := look("fs-queued-taken-thinking", false); a.State != state.Working || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) == state.KindTookQueued {
 		t.Errorf("nothing queued: %+v", a)
+	}
+}
+
+// An agent launched with a first prompt that Claude took as a slash command of
+// its own, which starts no turn and is reported nowhere (#220): the look
+// appends that decision and the agent is done, and before it the look
+// takes back hq mcp's word that the agent's next prompt is the
+// supervisor's (design §3.5), so the user's next prompt is the user's. A
+// first prompt that is only late is neither.
+func TestTheLookTakesBackTheSupervisorsWordForAFirstPromptClaudeTookAsASlashCommand(t *testing.T) {
+	now := time.Unix(1000, 0)
+	look := func(screen string) (Agent, *memStore) {
+		t.Helper()
+		s := newStore(map[string]string{"%1": capture(t, screen)})
+		s.Put("a1", state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: now.Add(-time.Minute), Facts: state.Facts{Start: "new", Prompted: true}})
+		s.Leave("/w/app", "a1", "000000001.start.1", journaltest.Hook("main", map[string]any{"session_id": "s", "cwd": "/w/app", "hook_event_name": "SessionStart", "source": "startup"}), now.Add(-50*time.Second))
+		return Look([]tmux.Window{lookWindow("1")}, Sandboxes{}, now, s, nil)[0], s
+	}
+	a, s := look("first-model-name-2329-rest")
+	if a.State != state.Done || !a.Since.Equal(now) || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != state.KindTookSlashCommand {
+		t.Fatalf("took a slash command: %+v, journal %s", a, journaltest.Kinds(s.journalOf(t, "a1")))
+	}
+	if !slices.Equal(s.withdrawn, []string{"/w/app a1 before " + state.KindTookSlashCommand}) {
+		t.Fatalf("withdrawn: %q", s.withdrawn)
+	}
+	// The next look decides nothing again.
+	if a := Look([]tmux.Window{lookWindow("1")}, Sandboxes{}, now.Add(time.Second), s, nil)[0]; a.State != state.Done || len(s.withdrawn) != 1 {
+		t.Fatalf("the look after: %+v, withdrawn %q", a, s.withdrawn)
+	}
+	if a, s := look("first-hook-2329"); a.State != state.Starting || len(s.withdrawn) != 0 || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != "" {
+		t.Errorf("late: %+v, withdrawn %q", a, s.withdrawn)
 	}
 }
 

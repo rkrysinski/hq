@@ -1,0 +1,30 @@
+
+ ▐▛███▛█   Claude Code v2.1.329
+▝▜██████▀  Haiku 5.5 · Claude Ultra
+ ▝▝   ▝▝   /…/000000dc-0000-4000-8000-0000000000dc/scratchpad/probe-220
+
+
+❯ /effort
+  ⎿  Cancelled
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  You've used 78% of your weekly limit · resets 9pm (UTC) · /usage-credits to keep using Claude C…
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▐◕◡◕▌  Haiku 5.5 medium │ master ?6 no upstream │ $0.00                              ◆ Tools ▾
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
