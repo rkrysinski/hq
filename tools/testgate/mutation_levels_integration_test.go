@@ -353,3 +353,28 @@ func TestWait(t *testing.T) {
 	assertEmpty(t, "the temporary directory", tmp)
 	assertEmpty(t, "the shared build cache", cache)
 }
+
+// cancelAfterTool cancels the run as the tool's run ends.
+type cancelAfterTool struct{ cancel context.CancelFunc }
+
+func (w cancelAfterTool) Write(p []byte) (int, error) {
+	if strings.Contains(string(p), "mutation: done in ") {
+		w.cancel()
+	}
+	return len(p), nil
+}
+
+// Interrupted between the tool and the higher levels, the run ends as
+// interrupted and leaves nothing behind.
+func TestMutationInterruptedRightAfterTheToolLeavesNothingBehind(t *testing.T) {
+	r := newMutationRepo(t)
+	r.change()
+	tmp, cache := isolated(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if _, err := runMutation(ctx, r.dir, "main", io.Discard, cancelAfterTool{cancel}); !errors.Is(err, errInterrupted) {
+		t.Errorf("err %v, want %v", err, errInterrupted)
+	}
+	assertEmpty(t, "the temporary directory", tmp)
+	assertEmpty(t, "the shared build cache", cache)
+}

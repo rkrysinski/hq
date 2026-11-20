@@ -30,14 +30,14 @@ Above the full build block stands the mutation block (`docs/hq/testing.md`, *Mut
 `go run ./tools/testgate mutation origin/dev`
 
 ```text
+not run    internal/platform/notify_darwin.go:31
 alive      tools/testgate/push.go:94:14 conditionals boundary
 not covered tools/testgate/push.go:101:12 arithmetic base
-not run    internal/platform/notify_darwin.go:31
 mutation: 23 killed, 1 alive, 0 timed out, 1 not covered, 1 not run against origin/dev on 4f0c2a9e1b7d3c5a8e6f9b0d2c4a6e8f1b3d5c7a
 ```
 
-- `push.go:94:14`: equivalent: `len(sha) > 7` and `>= 7` both return `sha` unchanged for a sha of 7 characters.
 - `notify_darwin.go:31`: builds only on darwin.
+- `push.go:94:14`: equivalent: `len(sha) > 7` and `>= 7` both return `sha` unchanged for a sha of 7 characters.
 ~~~
 
 The full build block ends the section as the template's step 5 says, with every line the script printed, its `check: skip` lines included (`docs/hq/testing.md`, *Commands*): they say which tests the run on the head did not run.

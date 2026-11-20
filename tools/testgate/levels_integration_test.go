@@ -3,6 +3,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -281,6 +282,10 @@ func TestModulePathReadsTheTreesGoMod(t *testing.T) {
 	if _, err := modulePath(t.TempDir()); err == nil {
 		t.Error("a tree without go.mod names a module")
 	}
+	// The run's go, written into a directory that does not exist.
+	if _, err := newCoverSetup(dir, filepath.Join(t.TempDir(), "missing")); err == nil {
+		t.Error("newCoverSetup into a directory that does not exist: no error")
+	}
 }
 
 func TestEndTmuxServersEndsTheServersOfTheSocketsInTheDirectory(t *testing.T) {
@@ -302,6 +307,11 @@ func TestEndTmuxServersEndsTheServersOfTheSocketsInTheDirectory(t *testing.T) {
 		t.Fatalf("tmux: %v\n%s", err, out)
 	}
 	t.Cleanup(func() { exec.Command("tmux", "-S", socket, "kill-server").Run() })
+	// tmux may print an error and exit 0 without a server: one has to run
+	// before it is ended, or the test tests nothing.
+	if out, err := exec.Command("tmux", "-S", socket, "has-session").CombinedOutput(); err != nil {
+		t.Fatalf("no server runs on the socket before it is ended: %v\n%s", err, out)
+	}
 	write(t, dir, "tmux-1/notes", "not a socket\n")
 	endTmuxServers(dir)
 	if err := exec.Command("tmux", "-S", socket, "has-session").Run(); err == nil {
@@ -368,6 +378,14 @@ func TestMutationEndsBeforeTheToolOnATreeItCannotJudge(t *testing.T) {
 			assertEmpty(t, "the temporary directory", tmp)
 			assertEmpty(t, "the shared build cache", cache)
 		})
+	}
+	// The run's own steps, given a directory that does not exist.
+	missing := filepath.Join(t.TempDir(), "missing")
+	if _, _, err := runStaged(t.Context(), t.TempDir(), "HEAD", missing, nil, io.Discard); err == nil {
+		t.Error("runStaged in a directory that does not exist: no error")
+	}
+	if _, err := changedStatements(t.Context(), missing, "HEAD", nil, nil); err == nil || !strings.Contains(err.Error(), "git diff in the staging repository") {
+		t.Errorf("changedStatements in a tree that does not exist: err %v; want git diff's", err)
 	}
 }
 
