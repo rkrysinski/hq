@@ -568,8 +568,10 @@ func TestLsBetweenTheStepsOfAKillWritesNoJournalBack(t *testing.T) {
 
 // An agent whose journal is not there while its home window stands (a
 // lost state directory) still has its dead pane's death appended, begun
-// as its journal, and shows ended (#263); so it does when tmux cannot say
-// at that moment whether the window stands, as before.
+// as its journal, and shows ended (#263). When tmux cannot say at that
+// moment whether the window stands, the look writes nothing, as a kill
+// under way would leave it for good; the next look, tmux answering, writes
+// it.
 func TestLsAppendsADeadPanesDeathToAJournalNotThereWhileItsWindowStands(t *testing.T) {
 	for _, tmuxFails := range []bool{false, true} {
 		f := newWaitFakes()
@@ -579,6 +581,13 @@ func TestLsAppendsADeadPanesDeathToAJournalNotThereWhileItsWindowStands(t *testi
 			if id == "id-a" && tmuxFails {
 				f.tmux.windowsErr = errors.New("tmux gone")
 			}
+		}
+		if tmuxFails {
+			if code, _, errOut := f.run("ls"); code != 0 || f.tmux.windowsErr == nil {
+				t.Fatalf("tmux failing %v: exit %d %s", f.tmux.windowsErr != nil, code, errOut)
+			}
+			f.noJournalOf(t, "id-a")
+			f.onAppend, f.tmux.windowsErr = nil, nil
 		}
 		code, out, errOut := f.run("ls")
 		j, err := f.journal.Read(journalID("id-a"))

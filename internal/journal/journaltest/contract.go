@@ -39,9 +39,10 @@ func Hook(branch string, payload map[string]any) []byte {
 // turn end's reply kept once, hq's own events appended, evidence set aside
 // as a duplicate or as overtaken (#195), evidence for a journal that is
 // not there written only while the agent's home window stands (#263), one
-// first append of writers racing, a journal read on from a position, what the latest dialog asks
-// kept once, with a question dialog's report and the answers Claude got,
-// a removed journal gone, and ids hq did not issue refused.
+// first append of writers racing, a journal read on from a position, what
+// the latest dialog asks kept once, with a question dialog's report and
+// the answers Claude got, a removed journal gone, and ids hq did not issue
+// refused.
 func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 	t.Helper()
 	at := time.Date(2026, 11, 15, 9, 0, 0, 0, time.UTC)

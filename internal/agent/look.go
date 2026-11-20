@@ -17,7 +17,7 @@ import (
 type Journals interface {
 	journal.Store
 	// Stands says whether home window w still stands, tmux asked now; one
-	// tmux cannot tell of stands.
+	// tmux cannot tell of does not.
 	Stands(w string) bool
 }
 
