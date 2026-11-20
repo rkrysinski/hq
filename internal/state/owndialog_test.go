@@ -253,22 +253,33 @@ func TestViewOwnDialogSeesThatTheModelPickerOfMoreModelsScrolls(t *testing.T) {
 		"Sonnet 5.5 Most efficient for simpler tasks",
 		"Haiku 5.5 ✔ Fastest for quick answers",
 	}
+	opened := []string{models[2], models[3], models[4],
+		"Fable 5.1 Most capable for your hardest and longest-running tasks", "Haiku 4.5 Fastest for quick answers"}
+	text2326 := "Switch between Claude models. Your pick becomes the default for new sessions. For other or older models, use --model."
+	text2329 := "Your pick is the default for new sessions. For other models, use --model."
+	// The opened list with the ❯ moved from ▾ More models down to a model
+	// past it, as Down does: no capture shows it.
+	below := strings.Replace(strings.Replace(readScreen(t, "screen-own-model-2329-opened.txt"),
+		"  ❯ ▾   More models", "    ▾   More models", 1), "    6.  Fable 5.1", "  ❯ 6.  Fable 5.1", 1)
 	for _, tc := range []struct {
-		name    string
-		cursor  int      // -1: on no option; unchecked at 40 columns, whose wrapped lines are read as options
-		options []string // nil: not checked
+		name, screen, text string
+		wrapped            bool // at 40 columns: the options' wrapped lines are read as options (#321), not checked
+		cursor             int  // -1: on no option
+		options            []string
 	}{
-		{"screen-own-model-agents.txt", 4, models},
-		{"screen-own-model-agents-50.txt", 4, models},
-		{"screen-own-model-2329.txt", 4, models},
-		{"screen-own-model-2329-more.txt", -1, models},
-		{"screen-own-model-2329-opened.txt", -1, []string{models[2], models[3], models[4],
-			"Fable 5.1 Most capable for your hardest and longest-running tasks", "Haiku 4.5 Fastest for quick answers"}},
-		{"screen-own-model-2329-40.txt", 0, nil},
+		{name: "screen-own-model-agents.txt", text: text2326, cursor: 4, options: models},
+		{name: "screen-own-model-agents-50.txt", text: text2326, cursor: 4, options: models},
+		{name: "screen-own-model-2329.txt", text: text2329, cursor: 4, options: models},
+		{name: "screen-own-model-2329-more.txt", text: text2329, cursor: -1, options: models},
+		{name: "screen-own-model-2329-opened.txt", text: text2329, cursor: -1, options: opened},
+		{name: "the opened list, the cursor on a model below", screen: below, text: text2329, cursor: 3, options: opened},
+		{name: "screen-own-model-2329-40.txt", text: text2329, wrapped: true},
 	} {
-		v, ok := ViewOwnDialog(readScreen(t, tc.name))
-		if !ok || !v.Scrolls || v.Ask.Questions[0].Question != "Select model" ||
-			v.Ask.Description != "Your pick is the default for new sessions. For other models, use --model." && strings.Contains(tc.name, "2329") {
+		if tc.screen == "" {
+			tc.screen = readScreen(t, tc.name)
+		}
+		v, ok := ViewOwnDialog(tc.screen)
+		if !ok || !v.Scrolls || v.Ask.Questions[0].Question != "Select model" || v.Ask.Description != tc.text {
 			t.Errorf("%s: %v %+v", tc.name, ok, v)
 			continue
 		}
@@ -279,8 +290,7 @@ func TestViewOwnDialogSeesThatTheModelPickerOfMoreModelsScrolls(t *testing.T) {
 				t.Errorf("%s: option %q", tc.name, o.Label)
 			}
 		}
-		if tc.options != nil && !slices.Equal(labels, tc.options) ||
-			tc.name != "screen-own-model-2329-40.txt" && v.Cursor != tc.cursor {
+		if !tc.wrapped && (v.Cursor != tc.cursor || !slices.Equal(labels, tc.options)) {
 			t.Errorf("%s: cursor %d, options %q", tc.name, v.Cursor, labels)
 		}
 	}
