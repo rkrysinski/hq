@@ -64,6 +64,10 @@ _Avoid_: alert, blocked
 Subagents or workflows an agent started in the background that still run when its turn ends; the agent is `working` until the closing turn ends, unless the user ended the turn at the agent or an API error ended it, which leaves it `done`. Shell commands and watches (monitors) its subagents started in the background are background work while they run. Background shell commands and watches the agent itself started are not, and neither is the artifact watch Claude arms when the agent publishes an artifact.
 _Avoid_: pending tasks, children, jobs
 
+**Claude's agents list**:
+The list Claude Code draws below its footer while an agent's subagents run: `main`, then a line for each subagent. Claude Code's own cursor moves over it, and from it a subagent's view opens, whose box carries the subagent's description (the one it was started with) on its upper rule. Not hq's list: the cursor on it is neither the cursor nor the cursor row.
+_Avoid_: agents list, agent list, background list
+
 **Closing turn**:
 The turn Claude runs by itself when background work has finished; the one that ends with none running makes the agent `done`.
 _Avoid_: wake-up turn, follow-up, callback

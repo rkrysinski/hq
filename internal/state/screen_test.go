@@ -284,7 +284,7 @@ func TestThePromptBoxIsFoundAboveTheSubagentsClaudeListsBelowItsFooter(t *testin
 // the subagent finished (blank lines left out).
 func TestIdleIsClaudeAtItsPromptBoxWhateverTheBoxHolds(t *testing.T) {
 	// After a turn; with a draft or Claude's suggestion in the box; with
-	// subagents listed below the footer.
+	// Claude's agents list below the footer.
 	for _, name := range []string{"interrupted", "interrupted-prompt-restored", "rewound", "background-three", "interrupted-then-woken"} {
 		if !Idle(screen(t, name)) {
 			t.Errorf("%s: not idle", name)
@@ -575,13 +575,13 @@ func TestTheReadersHoldOnABoxWithAPastePlaceholder(t *testing.T) {
 	}
 }
 
-// In the main view, the agents list below the footer, with its cursor
-// anywhere, leaves Claude's prompt box found, at every pane size and with
+// In the main view, Claude's agents list below the footer, with the cursor
+// on it anywhere, leaves Claude's prompt box found, at every pane size and with
 // the notice line too: the agent's turn ended, it waits at its box
 // (#225). A subagent's view puts that subagent's box in its place, the
-// upper rule carrying the subagent's task: it tells nothing of the
+// upper rule carrying the subagent's description: it tells nothing of the
 // agent's own turn, so none of the readers of that turn finds a box there.
-func TestTheAgentsListLeavesTheBoxAndASubagentsViewShowsNoneOfTheAgents(t *testing.T) {
+func TestClaudesAgentsListLeavesTheBoxAndASubagentsViewShowsNoneOfTheAgents(t *testing.T) {
 	for name, s := range agentsScreens(t) {
 		view := strings.HasPrefix(name, "screen-agents-view-")
 		if _, ok := promptBox(s); ok == view {
