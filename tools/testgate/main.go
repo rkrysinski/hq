@@ -11,6 +11,8 @@
 //	go run ./tools/testgate platform [ROOT]  # platform-specific names only in internal/platform
 //	go run ./tools/testgate timebound [ROOT] # no test bounds real elapsed time under 1s
 //	go run ./tools/testgate mutation BASE [PATH...] # mutation tests of the lines changed against BASE, part by part
+//	go run ./tools/testgate skips STEP FILE  # the tests a passed test step of the full build skipped
+//	go run ./tools/testgate plain FILE       # a test step's output as go test prints it without -json
 //
 // A command line in none of these forms (no command, another command, an
 // argument missing or one too many) is refused before any gate runs: the
@@ -32,6 +34,12 @@
 // with a mutant and fail without it too included: no mutant is judged
 // (#234, mutationgo.go).
 //
+// skips and plain read a test step's go test -json output from FILE, which
+// scripts/check.sh writes (#270, gotest.go): skips prints a line
+// "check: skip STEP <package> <test>: <reason>" per test the step skipped,
+// plain prints the output as go test prints it without -json. Both exit 2
+// when FILE cannot be read.
+//
 // A test's level is its file's build constraint: none is unit, the
 // "integration" tag is integration, the "e2e" tag is end-to-end.
 //
@@ -47,7 +55,7 @@ import (
 	"syscall"
 )
 
-const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]"
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...] | skips STEP FILE | plain FILE"
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
@@ -160,6 +168,11 @@ func main() {
 		}
 		if failed {
 			os.Exit(1)
+		}
+	case "skips", "plain":
+		if err := testOutput(inv, os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, "testgate:", err)
+			os.Exit(2)
 		}
 	default: // a row of forms with no case here: fail, never pass unchecked
 		fmt.Fprintln(os.Stderr, "testgate:", inv.name, "is read but no gate runs it")

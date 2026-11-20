@@ -37,4 +37,4 @@ mutation: 23 killed, 1 alive, 0 timed out, 2 not covered against origin/dev on 4
 - `push.go:94:14`: equivalent: `len(sha) > 7` and `>= 7` both return `sha` unchanged for a sha of 7 characters.
 ~~~
 
-The full build block ends the section as the template's step 5 says.
+The full build block ends the section as the template's step 5 says, with every line the script printed, its `check: skip` lines included (`docs/hq/testing.md`, *Commands*): they say which tests the run on the head did not run.

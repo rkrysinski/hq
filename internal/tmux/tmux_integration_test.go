@@ -445,16 +445,17 @@ func TestValuesWithADollarNameReadBackAsStored(t *testing.T) {
 	}
 }
 
-// longInputPasses reports whether a pane's program gets all of a long input
-// tmux types, without hq. In a Docker sandbox (kernel 7.0) it gets 4095
-// bytes and the rest stays behind until more input comes, with every tmux
-// from 3.4 to 3.7c, while the runners' tmux delivers all of it (#41).
-// There, the answer depends on whether the program reads while tmux writes:
+// longInputArrived returns how many bytes of a long input that tmux types,
+// without hq, reach a pane's program within waitBound; judgeLongInput says
+// what the count means. In a Docker sandbox (kernel 7.0) the program gets
+// 4095 bytes and the rest stays behind until more input comes, with every
+// tmux from 3.4 to 3.7c, while the runners' tmux delivers all of it (#41).
+// There, the count depends on whether the program reads while tmux writes:
 // a program that keeps up may get all of it, and under load the probe then
 // passed where the paste that followed came short (#242). So the program
-// reads nothing until tmux has written all it can: the answer is the same
+// reads nothing until tmux has written all it can: the count is the same
 // in every run.
-func longInputPasses(t *testing.T) bool {
+func longInputArrived(t *testing.T) int {
 	t.Helper()
 	socket := testutil.TmuxSocket(t)
 	dir := t.TempDir()
@@ -466,8 +467,7 @@ func longInputPasses(t *testing.T) bool {
 	eventually(t, "the program", func() bool {
 		return strings.Contains(tm(t, socket, "capture-pane", "-p"), "ready")
 	})
-	const n = 5000
-	tm(t, socket, "send-keys", "-l", strings.Repeat("x", n))
+	tm(t, socket, "send-keys", "-l", strings.Repeat("x", longInputBytes))
 	// tmux writes the input to the pane before it takes its next command.
 	tm(t, socket, "display-message", "-p", "")
 	// The pipe opens for writing once the program has opened it to read,
@@ -485,14 +485,19 @@ func longInputPasses(t *testing.T) bool {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return waitFor(func() bool { b, _ := os.ReadFile(got); return len(b) == n })
+	var b []byte
+	waitFor(func() bool { b, _ = os.ReadFile(got); return len(b) == longInputBytes })
+	return len(b)
 }
 
 // hq send types a message into Claude's prompt box as a paste: bracketed,
 // since Claude asks for that, its lines kept, then Enter; no buffer stays.
 func TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter(t *testing.T) {
-	if !longInputPasses(t) {
-		t.Skip("this machine's tmux keeps all but 4095 bytes of a long input from the pane, without hq (#41)")
+	switch v, reason := judgeLongInput(longInputArrived(t), waitBound); v {
+	case skipTheTest:
+		t.Skip(reason)
+	case failTheTest:
+		t.Fatal(reason)
 	}
 	c := Client{Run: proc.Exec{}, Socket: testutil.TmuxSocket(t)}
 	dir := t.TempDir()
