@@ -265,24 +265,21 @@ func (d coverDir) make() { os.MkdirAll(d.counters(), 0o755) }
 // there, and what the programs wrote, turned into a profile by go tool
 // covdata with env. Then it hands the programs' files on (handOn).
 func (d coverDir) read(ctx context.Context, env []string, c ranBlocks) error {
-	profile, err := os.ReadFile(d.profile())
-	if err != nil {
-		return fmt.Errorf("the tests wrote no coverage profile: %w", err)
-	}
-	profiles := [][]byte{profile}
+	profiles := []string{d.profile()}
 	// make made the counters: none read is no program that wrote.
 	if entries, _ := os.ReadDir(d.counters()); len(entries) > 0 {
-		var stderr bytes.Buffer
-		cmd := command(ctx, string(d), env, "go", "tool", "covdata", "textfmt", "-i="+d.counters(), "-o=/dev/stdout")
-		cmd.Stderr = &stderr
-		programs, err := cmd.Output()
-		if err != nil {
-			return fmt.Errorf("go tool covdata: %v\n%s", err, stderr.Bytes())
+		programs := filepath.Join(string(d), "programs")
+		if out, err := command(ctx, string(d), env, "go", "tool", "covdata", "textfmt", "-i="+d.counters(), "-o="+programs).CombinedOutput(); err != nil {
+			return fmt.Errorf("go tool covdata: %v\n%s", err, out)
 		}
 		profiles = append(profiles, programs)
 	}
 	for _, p := range profiles {
-		if err := c.read(bytes.NewReader(p)); err != nil {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			return fmt.Errorf("the tests' coverage: %w", err)
+		}
+		if err := c.read(bytes.NewReader(data)); err != nil {
 			return err
 		}
 	}

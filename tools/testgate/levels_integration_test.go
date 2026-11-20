@@ -184,8 +184,8 @@ func TestHandOnCopiesThePrograms(t *testing.T) {
 func TestCoverDirReadsTheProfileTheTestsWrote(t *testing.T) {
 	d := coverDir(t.TempDir())
 	c := ranBlocks{}
-	if err := d.read(t.Context(), nil, c); err == nil || !strings.Contains(err.Error(), "wrote no coverage profile") {
-		t.Errorf("err %v; want one saying the tests wrote no profile", err)
+	if err := d.read(t.Context(), nil, c); err == nil || !strings.Contains(err.Error(), "the tests' coverage: ") || !strings.Contains(err.Error(), "profile") {
+		t.Errorf("err %v; want one saying the tests' profile is missing", err)
 	}
 	d.make()
 	write(t, string(d), "profile", "mode: set\nm/a.go:1.1,2.2 1 1\nm/a.go:3.1,4.2 1 0\n")
@@ -294,6 +294,10 @@ func TestEndTmuxServersEndsTheServersOfTheSocketsInTheDirectory(t *testing.T) {
 	}
 	t.Cleanup(func() { os.RemoveAll(dir) })
 	socket := filepath.Join(dir, "tmux-1", "s")
+	// tmux makes the directory of its default socket, not of one -S names.
+	if err := os.Mkdir(filepath.Dir(socket), 0o700); err != nil {
+		t.Fatal(err)
+	}
 	if out, err := exec.Command("tmux", "-u", "-S", socket, "new-session", "-d", "sleep 60").CombinedOutput(); err != nil {
 		t.Fatalf("tmux: %v\n%s", err, out)
 	}
