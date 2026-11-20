@@ -96,9 +96,12 @@ func coverGo(args []string) int {
 
 // coverArgs are go's arguments args with the flags of a build with coverage
 // of every package of module after build or run, unchanged for any other
-// command.
+// command and for a build with -overlay: go's coverage reads a package's
+// files without the overlay (go1.26), so the program would run other code
+// than the test built.
 func coverArgs(args []string, module string) []string {
-	if len(args) == 0 || args[0] != "build" && args[0] != "run" {
+	if len(args) == 0 || args[0] != "build" && args[0] != "run" ||
+		slices.ContainsFunc(args, func(a string) bool { return a == "-overlay" || strings.HasPrefix(a, "-overlay=") }) {
 		return args
 	}
 	return slices.Concat(args[:1], []string{"-cover", "-covermode=set", "-coverpkg=" + module + "/..."}, args[1:])

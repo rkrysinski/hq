@@ -15,6 +15,8 @@ func TestCoverArgsBuildWithCoverageOnlyForBuildAndRun(t *testing.T) {
 		{[]string{"build", "-o", "/t/hq", "./cmd/hq"}, slices.Concat([]string{"build"}, flags, []string{"-o", "/t/hq", "./cmd/hq"})},
 		{[]string{"run", "./tools/testgate", "skips"}, slices.Concat([]string{"run"}, flags, []string{"./tools/testgate", "skips"})},
 		{[]string{"test", "-count=1", "./..."}, []string{"test", "-count=1", "./..."}},
+		{[]string{"build", "-overlay", "/t/o.json", "-o", "/t/hq", "."}, []string{"build", "-overlay", "/t/o.json", "-o", "/t/hq", "."}},
+		{[]string{"build", "-overlay=/t/o.json", "."}, []string{"build", "-overlay=/t/o.json", "."}},
 		{[]string{"env", "GOCACHE"}, []string{"env", "GOCACHE"}},
 		{nil, nil},
 	} {
