@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -32,5 +33,13 @@ func TestTheBuiltGateRefusesACommandLineTheUsageLineDoesNotName(t *testing.T) {
 		if !errors.As(err, &exit) || exit.ExitCode() != 2 || stdout.Len() != 0 || stderr.String() != usage+"\n" {
 			t.Errorf("%q: err %v, stdout %q, stderr %q; want exit 2, no stdout, the usage line on stderr", args, err, stdout.String(), stderr.String())
 		}
+	}
+	// Started in a role of a mutation run, with its arguments missing.
+	var stderr bytes.Buffer
+	role := exec.Command(gate, roleCoverGo)
+	role.Stderr = &stderr
+	var exit *exec.ExitError
+	if err := role.Run(); !errors.As(err, &exit) || exit.ExitCode() != 2 || !strings.Contains(stderr.String(), "the run's go needs") {
+		t.Errorf("the run's go without its arguments: %v, %q; want exit 2 saying what it needs", err, stderr.String())
 	}
 }
