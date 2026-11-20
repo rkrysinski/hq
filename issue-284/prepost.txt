@@ -1,0 +1,9 @@
+$ scripts/claude-hooks/prepost  # input: gh issue comment 284 --body-file <scratchpad>/hook-body.md
+prepost: 11 patterns, 1 texts, 0 matching lines
+exit 0
+$ scripts/claude-hooks/prepost  # input: gh issue comment 284 --body-file (a file it cannot see)
+prepost: 11 patterns, 1 texts, 0 matching lines
+FAIL: $F: names its file with $..., $(...) or `...`, which the hook cannot see: write the path out
+refused: take the private detail out (write <org>, ~/work/app and the like, docs/hq/testing.md, Private details), or put a text the hook cannot see in a file it can; a text that has to go out anyway is posted by the operator outside Claude Code
+exit status 1
+exit 2

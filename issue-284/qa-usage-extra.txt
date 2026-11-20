@@ -1,0 +1,5 @@
+--- FAIL: TestTheUsageLineNamesTheFormsReadArgsReads (0.00s)
+    args_test.go:103: the usage line names map[coverage:[1 1] load:[0 0] mutation:[1 -1] platform:[0 1] prepost:[0 0] prepush:[1 1] private:[0 -1] pyramid:[0 1] timebound:[0 1]], readArgs reads map[coverage:[1 1] mutation:[1 -1] platform:[0 1] prepost:[0 0] prepush:[1 1] private:[0 -1] pyramid:[0 1] timebound:[0 1]]
+FAIL
+FAIL	github.com/rkrysinski/hq/tools/testgate	0.001s
+FAIL

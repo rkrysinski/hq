@@ -1,0 +1,36 @@
+$ before 
+  stderr: usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]
+  exit 2
+$ before timebound . extra
+  stdout: timebound: 1 test files checked, upper bounds under 1s on real elapsed time: 0
+  exit 0
+$ before pyramid . extra
+  stdout: unit 1, integration 0, e2e 0 (unit share 100%, minimum 75%)
+  exit 0
+$ before coverage c.out extra
+  stderr: testgate: open c.out: no such file or directory
+  exit 2
+$ before prepost extra
+  stderr: testgate: prepost: the hook's input is not a tool call's JSON: EOF - refused
+  exit 2
+$ before platform . extra
+  stdout: platform: 8 names checked, uses outside internal/platform: 0
+  exit 0
+$ after 
+  stderr: usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]
+  exit 2
+$ after timebound . extra
+  stderr: usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]
+  exit 2
+$ after pyramid . extra
+  stderr: usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]
+  exit 2
+$ after coverage c.out extra
+  stderr: usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]
+  exit 2
+$ after prepost extra
+  stderr: usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]
+  exit 2
+$ after platform . extra
+  stderr: usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]
+  exit 2

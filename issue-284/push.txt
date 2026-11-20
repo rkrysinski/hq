@@ -1,0 +1,9 @@
+private: 11 patterns, 2 commits, 0 matching lines
+remote: 
+remote: Create a pull request for 'issue-284-testgate-args' on GitHub by visiting:        
+remote:      https://github.com/rkrysinski/hq/pull/new/issue-284-testgate-args        
+remote: 
+To https://github.com/rkrysinski/hq.git
+ * [new branch]      issue-284-testgate-args -> issue-284-testgate-args
+branch 'issue-284-testgate-args' set up to track 'origin/issue-284-testgate-args'.
+exit 0

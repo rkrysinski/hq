@@ -1,0 +1,2 @@
+mutation: 15 killed, 0 alive, 0 timed out, 3 not covered against origin/release-v0.16.0 on ac38a6b3a9bb2834da456fa212e23b3fc03e5257
+exit 0
