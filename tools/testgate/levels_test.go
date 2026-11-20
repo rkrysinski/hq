@@ -109,6 +109,10 @@ func TestToolCoverageRunIsTheToolsFirstRun(t *testing.T) {
 	if !ok || profile != "/t/g/coverage" || !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, %q, %v\nwant %q, /t/g/coverage", got, profile, ok, want)
 	}
+	if got, profile, ok := toolCoverageRun([]string{"test", "-coverprofile", "/t/c", "./..."}, d, "/t/b"); !ok || profile != "/t/c" ||
+		!slices.Equal(got[3:], []string{"-coverprofile", "/t/c", "./..."}) {
+		t.Errorf("-coverprofile right after test: got %q, %q, %v", got, profile, ok)
+	}
 	for _, args := range [][]string{
 		{"test", "-timeout", "32s", "-failfast", "./..."},
 		{"test", "./...", "-coverprofile"},
@@ -147,5 +151,19 @@ func TestDescendantsAreEveryProcessBelowOne(t *testing.T) {
 	}
 	if got := descendants(ps, 102); len(got) != 0 {
 		t.Errorf("a process with none below it: got %v", got)
+	}
+}
+
+func TestRunRoleKnowsItsRolesByTheirArguments(t *testing.T) {
+	if code, ok := runRole([]string{"/t/gate", roleCoverGo}); !ok || code != 2 {
+		t.Errorf("the run's go without its arguments: %d, %v; want 2, a role", code, ok)
+	}
+	if code, ok := runRole([]string{"/t/gate", roleTestExec, "/t/c"}); !ok || code != 2 {
+		t.Errorf("the test exec without its arguments: %d, %v; want 2, a role", code, ok)
+	}
+	for _, args := range [][]string{{"/t/gate", "mutation", "origin/dev"}, {"/t/gate"}, nil} {
+		if _, ok := runRole(args); ok {
+			t.Errorf("%q: started in a role", args)
+		}
 	}
 }

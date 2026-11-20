@@ -176,6 +176,9 @@ func TestHandOnCopiesThePrograms(t *testing.T) {
 	if err := handOn(filepath.Join(from, "missing"), to); err == nil {
 		t.Error("a directory that does not exist is handed on without an error")
 	}
+	if err := handOn(from, filepath.Join(from, "covmeta.1")); err == nil {
+		t.Error("files handed on to a file are copied without an error")
+	}
 }
 
 func TestCoverDirReadsTheProfileTheTestsWrote(t *testing.T) {
@@ -184,9 +187,7 @@ func TestCoverDirReadsTheProfileTheTestsWrote(t *testing.T) {
 	if err := d.read(t.Context(), nil, c); err == nil || !strings.Contains(err.Error(), "wrote no coverage profile") {
 		t.Errorf("err %v; want one saying the tests wrote no profile", err)
 	}
-	if err := d.make(); err != nil {
-		t.Fatal(err)
-	}
+	d.make()
 	write(t, string(d), "profile", "mode: set\nm/a.go:1.1,2.2 1 1\nm/a.go:3.1,4.2 1 0\n")
 	t.Setenv(envCoverDir, "")
 	if err := d.read(t.Context(), nil, c); err != nil {
@@ -200,34 +201,46 @@ func TestCoverDirReadsTheProfileTheTestsWrote(t *testing.T) {
 	if err := d.read(t.Context(), nil, ranBlocks{}); err == nil {
 		t.Error("a profile it cannot read is read without an error")
 	}
+	// What a program wrote that go tool covdata cannot read.
+	write(t, string(d), "profile", "mode: set\n")
+	write(t, d.counters(), "covmeta.0123456789abcdef0123456789abcdef", "not coverage")
+	if err := d.read(t.Context(), os.Environ(), ranBlocks{}); err == nil || !strings.Contains(err.Error(), "go tool covdata") {
+		t.Errorf("err %v; want go tool covdata's", err)
+	}
 }
 
-func TestRunRoleRunsTheRoleItWasStartedIn(t *testing.T) {
-	if code, ok := runRole([]string{"/t/gate", roleCoverGo}); !ok || code != 2 {
-		t.Errorf("the run's go without its arguments: %d, %v; want 2, a role", code, ok)
-	}
-	if code, ok := runRole([]string{"/t/gate", roleTestExec, "/t/c"}); !ok || code != 2 {
-		t.Errorf("the test exec without its arguments: %d, %v; want 2, a role", code, ok)
-	}
+func TestRunRoleRunsTheGoOfAMutationRun(t *testing.T) {
 	realGo := script(t, t.TempDir(), "go", "exit 4\n")
 	t.Setenv(envRealGo, realGo)
 	t.Setenv(envCover, "")
 	if code, ok := runRole([]string{"/t/run/mutation-go/go", "version"}); !ok || code != 4 {
 		t.Errorf("the go of a mutation run: %d, %v; want the real go's 4, a role", code, ok)
 	}
-	for _, args := range [][]string{{"/t/gate", "mutation", "origin/dev"}, {"/t/gate"}, nil} {
-		if _, ok := runRole(args); ok {
-			t.Errorf("%q: started in a role", args)
-		}
+	// The tool's first run of the unit tests, through the go of a mutation
+	// run: with each test binary run through the test exec, its profile
+	// kept for the gate.
+	dir := t.TempDir()
+	d := coverDir(filepath.Join(dir, "cover"))
+	d.make()
+	profile, seen := filepath.Join(dir, "coverage"), filepath.Join(dir, "seen")
+	t.Setenv(envRealGo, script(t, dir, "go", `echo "$*" > `+shellQuote(seen)+"\necho 'mode: set' > "+shellQuote(profile)+"\n"))
+	t.Setenv(envCover, string(d))
+	t.Setenv(envCoverGo, "/t/cover-go")
+	if code, ok := runRole([]string{"/t/run/mutation-go/go", "test", "-cover", "-coverprofile", profile, "./..."}); !ok || code != 0 {
+		t.Errorf("the tool's first run: %d, %v; want 0, a role", code, ok)
+	}
+	if got := readLines(t, seen); len(got) != 1 || !strings.HasPrefix(got[0], "test -exec ") || !strings.Contains(got[0], roleTestExec) {
+		t.Errorf("the real go saw %q, want go test with -exec through the test exec", got)
+	}
+	if _, err := os.Stat(d.profile()); err != nil {
+		t.Errorf("the profile is not kept: %v", err)
 	}
 }
 
 func TestCoverageRunKeepsTheProfileOfARunThatPassed(t *testing.T) {
 	dir := t.TempDir()
 	d := coverDir(filepath.Join(dir, "cover"))
-	if err := d.make(); err != nil {
-		t.Fatal(err)
-	}
+	d.make()
 	profile, seen := filepath.Join(dir, "coverage"), filepath.Join(dir, "seen")
 	realGo := script(t, dir, "go", `echo "$*" > `+shellQuote(seen)+"\n"+
 		`echo "${`+envCover+`:-none} ${`+envCoverGo+`:-none}" >> `+shellQuote(seen)+"\n"+
@@ -267,5 +280,84 @@ func TestModulePathReadsTheTreesGoMod(t *testing.T) {
 	}
 	if _, err := modulePath(t.TempDir()); err == nil {
 		t.Error("a tree without go.mod names a module")
+	}
+}
+
+func TestEndTmuxServersEndsTheServersOfTheSocketsInTheDirectory(t *testing.T) {
+	if _, err := exec.LookPath("tmux"); err != nil {
+		t.Skip("no tmux")
+	}
+	// A short directory: a socket's path has a limit a TempDir can pass.
+	dir, err := os.MkdirTemp("/tmp", "m")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(dir) })
+	socket := filepath.Join(dir, "tmux-1", "s")
+	if out, err := exec.Command("tmux", "-u", "-S", socket, "new-session", "-d", "sleep 60").CombinedOutput(); err != nil {
+		t.Fatalf("tmux: %v\n%s", err, out)
+	}
+	t.Cleanup(func() { exec.Command("tmux", "-S", socket, "kill-server").Run() })
+	write(t, dir, "tmux-1/notes", "not a socket\n")
+	endTmuxServers(dir)
+	if err := exec.Command("tmux", "-S", socket, "has-session").Run(); err == nil {
+		t.Error("the server of the socket still runs")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "tmux-1", "notes")); err != nil {
+		t.Errorf("the file beside the socket: %v", err)
+	}
+}
+
+// A tree whose lines cannot be judged ends the run before the tool is
+// installed, with nothing left behind.
+func TestMutationEndsBeforeTheToolOnATreeItCannotJudge(t *testing.T) {
+	gitOnly := t.TempDir()
+	git, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("no git")
+	}
+	if err := os.Symlink(git, filepath.Join(gitOnly, "git")); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name, want string
+		change     func(t *testing.T, r *mutationRepo)
+	}{
+		{"no go in PATH", `"go"`, func(t *testing.T, r *mutationRepo) {
+			t.Setenv("PATH", gitOnly)
+		}},
+		{"no go.mod", "go.mod", func(t *testing.T, r *mutationRepo) {
+			if err := os.Remove(filepath.Join(r.dir, "go.mod")); err != nil {
+				t.Fatal(err)
+			}
+		}},
+		{"a changed file that does not parse, which no build takes", "the changed file cmd/tool/old.go", func(t *testing.T, r *mutationRepo) {
+			write(t, r.dir, "cmd/tool/old.go", "//go:build ignore\n\npackage main\n\nfunc old( {\n")
+		}},
+		{"a file it cannot read", "staging the tree", func(t *testing.T, r *mutationRepo) {
+			if os.Geteuid() == 0 {
+				t.Skip("root reads every file")
+			}
+			if err := os.Chmod(filepath.Join(r.dir, "lib/lib.go"), 0); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { os.Chmod(filepath.Join(r.dir, "lib/lib.go"), 0o644) })
+		}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r := newMutationRepo(t)
+			r.change()
+			tmp, cache := isolated(t)
+			c.change(t, r)
+			lines, failed, err := runMutationIn(t, r.dir, "main")
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("err %v; want one naming %s", err, c.want)
+			}
+			if failed || !reflect.DeepEqual(lines, []string{""}) {
+				t.Errorf("printed %q, failed %v; want nothing", lines, failed)
+			}
+			assertEmpty(t, "the temporary directory", tmp)
+			assertEmpty(t, "the shared build cache", cache)
+		})
 	}
 }

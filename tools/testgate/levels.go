@@ -217,9 +217,7 @@ func newCoverSetup(src, dir string) (coverSetup, error) {
 		return coverSetup{}, err
 	}
 	bin := filepath.Join(dir, "cover-go")
-	if err := os.Mkdir(bin, 0o755); err != nil {
-		return coverSetup{}, err
-	}
+	os.Mkdir(bin, 0o755) // an error shows as WriteFile's
 	if err := os.WriteFile(filepath.Join(bin, "go"), []byte(coverGoScript(self, realGo, src, module)), 0o755); err != nil {
 		return coverSetup{}, err
 	}
@@ -248,40 +246,34 @@ type coverDir string
 func (d coverDir) profile() string  { return filepath.Join(string(d), "profile") }
 func (d coverDir) counters() string { return filepath.Join(string(d), "counters") }
 
-func (d coverDir) make() error { return os.MkdirAll(d.counters(), 0o755) }
+// make makes d with its counters. An error shows when the tests write
+// there: go test fails on a profile it cannot write.
+func (d coverDir) make() { os.MkdirAll(d.counters(), 0o755) }
 
 // read adds what the tests covered to c: the profile, which has to be
 // there, and what the programs wrote, turned into a profile by go tool
 // covdata with env. Then it hands the programs' files on (handOn).
 func (d coverDir) read(ctx context.Context, env []string, c ranBlocks) error {
-	f, err := os.Open(d.profile())
+	profile, err := os.ReadFile(d.profile())
 	if err != nil {
 		return fmt.Errorf("the tests wrote no coverage profile: %w", err)
 	}
-	err = c.read(f)
-	f.Close()
-	if err != nil {
-		return err
+	profiles := [][]byte{profile}
+	// make made the counters: none read is no program that wrote.
+	if entries, _ := os.ReadDir(d.counters()); len(entries) > 0 {
+		var stderr bytes.Buffer
+		cmd := command(ctx, string(d), env, "go", "tool", "covdata", "textfmt", "-i="+d.counters(), "-o=/dev/stdout")
+		cmd.Stderr = &stderr
+		programs, err := cmd.Output()
+		if err != nil {
+			return fmt.Errorf("go tool covdata: %v\n%s", err, stderr.Bytes())
+		}
+		profiles = append(profiles, programs)
 	}
-	entries, err := os.ReadDir(d.counters())
-	if err != nil {
-		return err
-	}
-	if len(entries) == 0 {
-		return nil
-	}
-	programs := filepath.Join(string(d), "programs")
-	if out, err := command(ctx, string(d), env, "go", "tool", "covdata", "textfmt", "-i="+d.counters(), "-o="+programs).CombinedOutput(); err != nil {
-		return fmt.Errorf("go tool covdata: %v\n%s", err, out)
-	}
-	f, err = os.Open(programs)
-	if err != nil {
-		return err
-	}
-	err = c.read(f)
-	f.Close()
-	if err != nil {
-		return err
+	for _, p := range profiles {
+		if err := c.read(bytes.NewReader(p)); err != nil {
+			return err
+		}
 	}
 	return handOn(d.counters(), os.Getenv(envCoverDir))
 }
@@ -348,9 +340,7 @@ func levelEnv(environ []string, tmp string) []string {
 // it with an error that holds what the failed tests printed.
 func runLevel(ctx context.Context, l testLevel, src, tmp string, setup coverSetup, c ranBlocks) error {
 	d := coverDir(filepath.Join(tmp, "level"))
-	if err := d.make(); err != nil {
-		return err
-	}
+	d.make()
 	defer os.RemoveAll(string(d))
 	env := levelEnv(os.Environ(), tmp)
 	cmd := command(ctx, src, env, "go", levelArgs(l, setup, d)...)

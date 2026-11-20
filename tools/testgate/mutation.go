@@ -479,6 +479,18 @@ func runStaged(ctx context.Context, top, mergeBase, tmp string, toRun []part, pr
 	if err != nil {
 		return nil, nil, err
 	}
+	var judged func(string) bool // nil: every file
+	if len(toRun) > 0 {
+		judged = func(file string) bool {
+			return slices.ContainsFunc(toRun, func(p part) bool { return slices.Contains(p.files, file) })
+		}
+	}
+	// Before the tool, so a tree whose lines cannot be judged ends the run
+	// at once.
+	lines, err := changedStatements(ctx, src, mergeBase, env, judged)
+	if err != nil {
+		return nil, nil, err
+	}
 	unit := ranBlocks{}
 	ms, err := runGremlins(ctx, src, gitDir, mergeBase, tmp, toRun, setup, unit, progress)
 	if err != nil {
@@ -490,31 +502,29 @@ func runStaged(ctx context.Context, top, mergeBase, tmp string, toRun []part, pr
 	if out, err := command(ctx, src, env, "git", "update-ref", "HEAD", mergeBase).CombinedOutput(); err != nil {
 		return nil, nil, fmt.Errorf("git update-ref in the staging repository: %v\n%s", err, out)
 	}
-	var judged func(string) bool // nil: every file
-	if len(toRun) > 0 {
-		judged = func(file string) bool {
-			return slices.ContainsFunc(toRun, func(p part) bool { return slices.Contains(p.files, file) })
-		}
-	}
-	notRun, err := judgeLines(ctx, src, mergeBase, tmp, setup, unit, judged, progress)
+	notRun, err := judgeLines(ctx, src, tmp, setup, lines, unit, progress)
 	return ms, notRun, err
 }
 
-// judgeLines returns the changed lines, of the files that judged takes (all
-// when it is nil), that hold a statement no test runs: lines of Go code, not
-// tests, that the staged tree src changes against mergeBase. c holds what
-// the unit tests covered. While a changed line is not run it runs the next
-// level of the tests with coverage, the integration tests and then the
-// journeys, each once (runLevel), and says so in progress.
-func judgeLines(ctx context.Context, src, mergeBase, tmp string, setup coverSetup, c ranBlocks, judged func(string) bool, progress io.Writer) ([]lineRef, error) {
-	diff, err := command(ctx, src, mutationEnv(os.Environ(), tmp), "git", "-c", "core.quotePath=false",
+// changed are the lines of Go code, not tests, that a tree changes, and
+// the statements of their files: the lines judged for not run.
+type changed struct {
+	added      map[string][]int          // per file, the lines it adds (addedLines)
+	statements map[string]map[int]srcPos // per file, its statement lines (statementLines)
+}
+
+// changedStatements reads the changed lines of the staged tree src against
+// mergeBase, of the files that judged takes (all when it is nil), and the
+// statements of their files, with env.
+func changedStatements(ctx context.Context, src, mergeBase string, env []string, judged func(string) bool) (changed, error) {
+	diff, err := command(ctx, src, env, "git", "-c", "core.quotePath=false",
 		"diff", "--cached", "--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/", "-M", "-U0", mergeBase).Output()
 	if err != nil {
-		return nil, fmt.Errorf("git diff in the staging repository: %v", err)
+		return changed{}, fmt.Errorf("git diff in the staging repository: %v", err)
 	}
 	added, err := addedLines(string(diff))
 	if err != nil {
-		return nil, err
+		return changed{}, err
 	}
 	statements := map[string]map[int]srcPos{}
 	for file := range added {
@@ -524,13 +534,22 @@ func judgeLines(ctx context.Context, src, mergeBase, tmp string, setup coverSetu
 		}
 		data, err := os.ReadFile(filepath.Join(src, file))
 		if err != nil {
-			return nil, err
+			return changed{}, err
 		}
 		if statements[file], err = statementLines(file, data); err != nil {
-			return nil, err
+			return changed{}, fmt.Errorf("the changed file %s: %w", file, err)
 		}
 	}
-	notRun := func() []lineRef { return notRunLines(added, statements, setup.module, c) }
+	return changed{added, statements}, nil
+}
+
+// judgeLines returns the changed lines that hold a statement no test runs,
+// in the staged tree src. c holds what the unit tests covered. While a
+// changed line is not run it runs the next level of the tests with
+// coverage, the integration tests and then the journeys, each once
+// (runLevel), and says so in progress.
+func judgeLines(ctx context.Context, src, tmp string, setup coverSetup, lines changed, c ranBlocks, progress io.Writer) ([]lineRef, error) {
+	notRun := func() []lineRef { return notRunLines(lines.added, lines.statements, setup.module, c) }
 	for _, l := range []testLevel{levelIntegration, levelE2E} {
 		left := notRun()
 		if len(left) == 0 {
@@ -661,9 +680,7 @@ func runTool(ctx context.Context, src, dir, config, diffRef string, env []string
 		return nil, err
 	}
 	cover := coverDir(filepath.Join(dir, "cover"))
-	if err := cover.make(); err != nil {
-		return nil, err
-	}
+	cover.make()
 	toolEnv = append(toolEnv, envCover+"="+string(cover), envCoverGo+"="+setup.bin)
 	fmt.Fprintln(progress, "mutation: running the unit tests once, then once per mutant")
 	start := time.Now()

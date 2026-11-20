@@ -319,4 +319,8 @@ func TestRanBlocksRefusesALineItCannotRead(t *testing.T) {
 			t.Errorf("%q is read without an error", line)
 		}
 	}
+	c := ranBlocks{}
+	if err := c.read(strings.NewReader(":1.1,2.1 1 1\n")); err != nil || !c[coverBlock{"", srcPos{1, 1}, srcPos{2, 1}}] {
+		t.Errorf("a block with an empty file name: %v, %v", c, err)
+	}
 }

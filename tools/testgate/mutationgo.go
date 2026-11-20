@@ -106,7 +106,7 @@ func mutationGo(args []string) int {
 // the file of its -coverprofile; ok is false for any other command.
 func toolCoverageRun(args []string, d coverDir, bin string) (runArgs []string, profile string, ok bool) {
 	i := slices.Index(args, "-coverprofile")
-	if len(args) == 0 || args[0] != "test" || i < 0 || i+1 >= len(args) {
+	if len(args) == 0 || args[0] != "test" || i < 1 || i+1 >= len(args) {
 		return nil, "", false
 	}
 	self, err := os.Executable()
