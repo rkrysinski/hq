@@ -3,7 +3,7 @@
 // in the platform package only, and no test bounding real elapsed time under
 // one second (docs/hq/testing.md):
 //
-//	go run ./tools/testgate pyramid          # counts tests per level, checks the shape
+//	go run ./tools/testgate pyramid [ROOT]   # counts tests per level, checks the shape
 //	go run ./tools/testgate coverage FILE    # checks a coverage profile against the threshold
 //	go run ./tools/testgate private [PATH...] # no private details in tracked files (or PATHs)
 //	go run ./tools/testgate prepush REPO     # no private details in what a push sends (the pre-push hook)
@@ -11,6 +11,10 @@
 //	go run ./tools/testgate platform [ROOT]  # platform-specific names only in internal/platform
 //	go run ./tools/testgate timebound [ROOT] # no test bounds real elapsed time under 1s
 //	go run ./tools/testgate mutation BASE [PATH...] # mutation tests of the lines changed against BASE, part by part
+//
+// A command line in none of these forms (no command, another command, an
+// argument missing or one too many) is refused before any gate runs: the
+// usage line on stderr and exit 2 (#284, args.go).
 //
 // private, prepush and prepost read the pattern list from
 // $HQ_PRIVATE_PATTERNS or, without it, from the repository's
@@ -58,19 +62,16 @@ func main() {
 	if isMutationGo(os.Args[0], os.Getenv(envRealGo)) {
 		os.Exit(mutationGo(os.Args[1:]))
 	}
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, usage)
+	inv, err := readArgs(os.Args[1:])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
 	var problems []string
 	refused := "" // what a failed check adds after its problems
-	switch os.Args[1] {
+	switch inv.name {
 	case "pyramid":
-		root := "."
-		if len(os.Args) > 2 {
-			root = os.Args[2]
-		}
-		c, err := countTests(root)
+		c, err := countTests(inv.args[0])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -79,11 +80,7 @@ func main() {
 			c.unit, c.integration, c.e2e, 100*c.unitShare(), 100*MinUnitShare)
 		problems = c.problems(MinUnitShare)
 	case "coverage":
-		if len(os.Args) < 3 {
-			fmt.Fprintln(os.Stderr, usage)
-			os.Exit(2)
-		}
-		f, err := os.Open(os.Args[2])
+		f, err := os.Open(inv.args[0])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -104,7 +101,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
 		}
-		summary, p, err := checkPrivate(list, os.Args[2:])
+		summary, p, err := checkPrivate(list, inv.args)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -112,11 +109,7 @@ func main() {
 		fmt.Println(summary)
 		problems = p
 	case "prepush":
-		if len(os.Args) != 3 {
-			fmt.Fprintln(os.Stderr, usage)
-			os.Exit(2)
-		}
-		p, err := runPrepush(os.Args[2])
+		p, err := runPrepush(inv.args[0])
 		if err != nil {
 			// Not checked, so not pushed: exit 2 fails the hook too.
 			fmt.Fprintln(os.Stderr, "testgate:", err, "- push refused")
@@ -138,11 +131,7 @@ func main() {
 			refused = postRefused
 		}
 	case "platform":
-		root := "."
-		if len(os.Args) > 2 {
-			root = os.Args[2]
-		}
-		hits, err := checkPlatform(root)
+		hits, err := checkPlatform(inv.args[0])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -152,11 +141,7 @@ func main() {
 			problems = append(problems, h.String())
 		}
 	case "timebound":
-		root := "."
-		if len(os.Args) > 2 {
-			root = os.Args[2]
-		}
-		hits, checked, err := checkTimebound(root)
+		hits, checked, err := checkTimebound(inv.args[0])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -166,14 +151,8 @@ func main() {
 			problems = append(problems, h.String())
 		}
 	case "mutation":
-		base, paths, err := mutationArgs(os.Args[2:])
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "testgate:", err)
-			fmt.Fprintln(os.Stderr, usage)
-			os.Exit(2)
-		}
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		failed, err := runMutationParts(ctx, ".", base, paths, os.Stdout, os.Stderr)
+		failed, err := runMutationParts(ctx, ".", inv.args[0], inv.args[1:], os.Stdout, os.Stderr)
 		stop()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate: mutation:", err)
@@ -182,9 +161,6 @@ func main() {
 		if failed {
 			os.Exit(1)
 		}
-	default:
-		fmt.Fprintln(os.Stderr, usage)
-		os.Exit(2)
 	}
 	for _, p := range problems {
 		fmt.Println("FAIL:", p)
