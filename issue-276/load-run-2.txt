@@ -1,0 +1,34 @@
+$ cat /tmp/qa-276-load/run-2.sh; sh /tmp/qa-276-load/run-2.sh
+go run ./tools/testgate load -p 3 -count 1500 -o /tmp/qa-276-load/run-2 -run '^TestTheReducerGivesWhatEveryFixtureJournalHolds$' ./internal/state
+echo "exit $?"
+echo '--- the process list right after it (go test, the test binaries, testgate):'
+ps -A -o pid,pgid,stat,etime,args | awk '/go test -json|state[.]test|exe[/]testgate/ && !/awk/'
+echo "processes of the run left: $(ps -A -o args | awk '/go test -json|state[.]test|exe[/]testgate/ && !/awk/' | wc -l)"
+load: go test -list '^TestTheReducerGivesWhatEveryFixtureJournalHolds$' ./internal/state
+load: tests: TestTheReducerGivesWhatEveryFixtureJournalHolds
+load: 10 busy workers started
+commit 9eb61994f10b09d8f73a1dbb207e19889f5d3e0a
+cores 10, busy workers 10
+processes 3, each: go test -json -count 1500 -run '^TestTheReducerGivesWhatEveryFixtureJournalHolds$' -timeout 11m0s ./internal/state
+time limit 10m0s (the default)
+output in /tmp/qa-276-load/run-2
+started 2026-11-20T17:34:32Z, load average (1 min) 8.04
+load: process 1 started, process group 32062
+load: process 2 started, process group 32066
+load: process 3 started, process group 32071
+load: process 1 ended: exit status 0
+load: process 3 ended: exit status 0
+load: process 2 ended: exit status 0
+load: 10 busy workers stopped
+ended 2026-11-20T17:35:13Z, load average (1 min) 16.74
+process 1: exit status 0, output /tmp/qa-276-load/run-2/process-1.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/state	38.844s
+process 2: exit status 0, output /tmp/qa-276-load/run-2/process-2.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/state	40.483s
+process 3: exit status 0, output /tmp/qa-276-load/run-2/process-3.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/state	39.834s
+load: 4500 passed, 0 failed, 0 skipped of 4500 runs expected on 9eb61994f10b09d8f73a1dbb207e19889f5d3e0a
+exit 0
+--- the process list right after it (go test, the test binaries, testgate):
+processes of the run left: 0
+$

@@ -1,0 +1,31 @@
+$ go run ./tools/testgate load -p 3 -count 1500 -o /tmp/qa-276-load/run-1 -run '^TestTheReducerGivesWhatEveryFixtureJournalHolds$' ./internal/state; echo "exit $?"; echo '--- the process list right after it:'; ps -A -o pid,pgid,stat,etime,args | grep -E 'testgate|state[.]test|go test'; echo "processes of the run left: $(ps -A -o args | grep -cE 'testgate|state[.]test|go test')"
+load: go test -list '^TestTheReducerGivesWhatEveryFixtureJournalHolds$' ./internal/state
+load: tests: TestTheReducerGivesWhatEveryFixtureJournalHolds
+load: 10 busy workers started
+commit 9eb61994f10b09d8f73a1dbb207e19889f5d3e0a
+cores 10, busy workers 10
+processes 3, each: go test -json -count 1500 -run '^TestTheReducerGivesWhatEveryFixtureJournalHolds$' -timeout 11m0s ./internal/state
+time limit 10m0s (the default)
+output in /tmp/qa-276-load/run-1
+started 2026-11-20T17:33:26Z, load average (1 min) 1.01
+load: process 1 started, process group 4168455
+load: process 2 started, process group 4168460
+load: process 3 started, process group 4168466
+load: process 2 ended: exit status 0
+load: process 3 ended: exit status 0
+load: process 1 ended: exit status 0
+load: 10 busy workers stopped
+ended 2026-11-20T17:34:08Z, load average (1 min) 11.54
+process 1: exit status 0, output /tmp/qa-276-load/run-1/process-1.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/state	42.032s
+process 2: exit status 0, output /tmp/qa-276-load/run-1/process-2.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/state	39.232s
+process 3: exit status 0, output /tmp/qa-276-load/run-1/process-3.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/state	40.522s
+load: 4500 passed, 0 failed, 0 skipped of 4500 runs expected on 9eb61994f10b09d8f73a1dbb207e19889f5d3e0a
+exit 0
+--- the process list right after it:
+  11381   11380 S+         00:00 grep -E testgate|state[.]test|go test
+ 911206  911206 Ss         52:59 tmux -u -L qa-276-term new-session -d -s qa -x 150 -y 45 -c <worktree>/.claude/worktrees/issue-276-testgate-load env PS1='$ ' sh
+4167868 4167868 Ss         00:42 /bin/bash -c <the agent's tool call that typed this command into the QA terminal: its text holds the command's words> [edited]
+processes of the run left: 3
