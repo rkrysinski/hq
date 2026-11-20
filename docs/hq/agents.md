@@ -46,7 +46,7 @@ The list, which the owner gives, goes into the clone's `.git/info/hq-private-pat
 
 ## Posting to GitHub
 
-A Bash command that a Claude Code session runs in hq to post a pull request, an issue or a comment through `gh` is checked first by the hook `scripts/claude-hooks/prepost`, which `.claude/settings.json` sets: against the same list, it refuses the command on a private detail or on a text it cannot see (`docs/hq/testing.md`, *Private details*). Nothing needs enabling; it needs the list and Go, and holds in the sessions started after it came in.
+A Bash command that a Claude Code session runs in hq to post a pull request, an issue or a comment through `gh` is checked first by the hook `scripts/claude-hooks/prepost`, which `.claude/settings.json` sets: against the same list, it refuses the command on a private detail or on a text it cannot see (`docs/hq/testing.md`, *Private details*). Post a text from a file in two commands: write the file in one, then post it in the next, naming the file by its full path written out, as in `gh pr comment 12 --body-file /full/path/comment.md`. Nothing needs enabling; it needs the list and Go, and holds in the sessions started after it came in.
 
 ## Updating from the template
 
