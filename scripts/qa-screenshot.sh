@@ -46,8 +46,9 @@ trap 'rm -rf "$tmp"' EXIT
 # their colours (the image), then the lines with wrapped rows joined.
 tmux -u ${socket:+-L "$socket"} display-message -p -t "$1" '#{pane_height}' \; \
     capture-pane -e -p -N -t "$1" \; capture-pane -p -J -t "$1" >"$tmp/capture"
-awk -v rows="$tmp/rows" -v lines="$tmp/pane-lines" '
-    BEGIN { printf "" >rows; printf "" >lines }
+# The paths through the environment: awk -v would read a backslash in them.
+ROWS=$tmp/rows LINES=$tmp/pane-lines awk '
+    BEGIN { rows = ENVIRON["ROWS"]; lines = ENVIRON["LINES"]; printf "" >rows; printf "" >lines }
     NR == 1 { height = $0; next }
     NR <= height + 1 { print >rows; next }
     { print >lines }' "$tmp/capture"
