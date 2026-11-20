@@ -265,17 +265,20 @@ func (f Fold) LastReplyNumber() int64 {
 
 // LastReply is the latest turn end's reply in full, as hq read shows it,
 // with reply the journal's reply of that turn end, and when it was given:
-// TooLarge for a turn end too large to read (#64); "" and the zero time
-// before the first turn end.
+// TooLarge for a turn end too large to read (#64), FailedLast for a turn
+// an API error ended without a line; "" and the zero time before the
+// first turn end.
 func (f Fold) LastReply(reply Reply) (text string, at time.Time) {
 	switch e := f.stop; {
 	case e == nil:
 		return "", time.Time{}
 	case e.Kind == KindUnreadable && e.Facts.Size > maxFile:
 		return TooLarge(e.Facts.Size), e.Time
-	case EndsTurn(e.Kind) && reply.Number == e.Number:
-		return CleanText(reply.Text), e.Time
-	default:
+	case !EndsTurn(e.Kind):
 		return "", e.Time
+	case reply.Number == e.Number:
+		return orFailed(e, CleanText(reply.Text)), e.Time
+	default:
+		return orFailed(e, ""), e.Time
 	}
 }

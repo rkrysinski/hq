@@ -1,5 +1,5 @@
 {
-  "about": "Turns an API error ended, the host's delivery for #224 (Claude Code 2.1.326, an expired login): case A, the login expired while a tool ran, ends with StopFailure and no Stop: done, its last message Claude's error line; Claude's idle Notification a minute later reports nothing; a message left while the agent worked is not taken at that end and rides along with the next prompt, case B, which the same error ends at once.",
+  "about": "Turns an API error ended, the host's delivery for #224 (Claude Code 2.1.326, an expired login): case A, the login expired while a tool ran, ends with StopFailure and no Stop: done, its last message Claude's error line; Claude's idle Notification a minute later reports nothing; a message left while the agent worked is not taken at that end and rides along with the next prompt, case B, which the same error ends at once. Then a third prompt and an end by the same error without Claude's error line (a synthetic payload, testdata/README.md): done, its last message hq's own line naming the error's kind.",
   "steps": [
     {
       "hook": "start",
@@ -192,6 +192,63 @@
         "state": "done",
         "since": "2026-01-01T00:00:08Z",
         "last": "Login expired · Please run /login"
+      }
+    },
+    {
+      "hook": "prompt",
+      "payload": "api-error-prompt-again",
+      "events": [
+        {
+          "n": 8,
+          "source": "hook",
+          "kind": "UserPromptSubmit",
+          "time": "2026-01-01T00:00:09Z",
+          "file": "000000008.prompt.1",
+          "facts": {
+            "branch": "main",
+            "session": "11111111-2222-4333-8444-555555555555",
+            "cwd": "/w/app",
+            "turn": "aaaaaaaa-0000-4000-8000-000000000002",
+            "prompt": "Reply with the single word: hi",
+            "hook": "prompt"
+          }
+        }
+      ],
+      "look": {
+        "state": "working",
+        "since": "2026-01-01T00:00:09Z",
+        "last": "Login expired · Please run /login"
+      }
+    },
+    {
+      "hook": "fail",
+      "payload": "api-error-stop-failure-no-line",
+      "screen": "api-error-again",
+      "events": [
+        {
+          "n": 9,
+          "source": "hook",
+          "kind": "StopFailure",
+          "time": "2026-01-01T00:00:10Z",
+          "file": "000000009.fail.1",
+          "facts": {
+            "branch": "main",
+            "session": "11111111-2222-4333-8444-555555555555",
+            "cwd": "/w/app",
+            "turn": "aaaaaaaa-0000-4000-8000-000000000001",
+            "reason": "authentication_failed",
+            "hook": "fail"
+          }
+        }
+      ],
+      "reply": {
+        "n": 9,
+        "text": ""
+      },
+      "look": {
+        "state": "done",
+        "since": "2026-01-01T00:00:10Z",
+        "last": "[API error: authentication_failed]"
       }
     }
   ]
