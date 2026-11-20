@@ -1,0 +1,10 @@
+$ HQ_PRIVATE_PATTERNS=acme-corp scripts/qa-screenshot.sh -L qa-277-target t:c1 .local-dev/qa/1-target-after.pn
+g; echo "exit $?"; ls .local-dev/qa/1-target-after.png
+private: 1 patterns, 2 matching lines
+FAIL: image-rows:1 matches private pattern 1
+FAIL: pane-lines:1 matches private pattern 1
+qa-screenshot: .local-dev/qa/1-target-after.png not rendered: the pane shows a private detail: take it out of
+the pane (a neutral directory, a placeholder) and run again
+exit 1
+ls: cannot access '.local-dev/qa/1-target-after.png': No such file or directory
+$

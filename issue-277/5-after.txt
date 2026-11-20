@@ -1,0 +1,9 @@
+$ sh .local-dev/qa/qa-screenshot-before.sh -L qa-277-target t:c5 .local-dev/qa/5-target-before.png
+.local-dev/qa/5-target-before.png
+$ scripts/qa-screenshot.sh -L qa-277-target t:c5 .local-dev/qa/5-target-after.png; echo "exit $?"
+private: 11 patterns, 0 matching lines
+.local-dev/qa/5-target-after.png
+exit 0
+$ cmp .local-dev/qa/5-target-before.png .local-dev/qa/5-target-after.png && echo identical
+identical
+$

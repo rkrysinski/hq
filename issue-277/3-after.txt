@@ -1,0 +1,11 @@
+$ git clone -q -b issue-277-screenshot-private-check . .local-dev/qa/clone && ls .local-dev/qa/clone/.git/info
+exclude
+$ env -u HQ_PRIVATE_PATTERNS .local-dev/qa/clone/scripts/qa-screenshot.sh -L qa-277-target t:c5 .local-dev/qa/
+3-target-after.png; echo "exit $?"; ls .local-dev/qa/3-target-after.png
+private: HQ_PRIVATE_PATTERNS is not set and there is no .git/info/hq-private-patterns, nothing checked
+qa-screenshot: .local-dev/qa/3-target-after.png not rendered: no pattern list, so the pane cannot be checked f
+or private details: set HQ_PRIVATE_PATTERNS or put the list in "$(git rev-parse --git-common-dir)/info/hq-priv
+ate-patterns" (ask the owner for it)
+exit 1
+ls: cannot access '.local-dev/qa/3-target-after.png': No such file or directory
+$

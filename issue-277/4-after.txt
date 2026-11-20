@@ -1,0 +1,11 @@
+$ tmux -L qa-277-target new-window -d -t t: -n c4 -c "$PWD" "pwd; exec sleep 7200"
+$ scripts/qa-screenshot.sh -L qa-277-target t:c4 .local-dev/qa/4-target-after.png; echo "exit $?"; ls .local-d
+ev/qa/4-target-after.png
+private: 11 patterns, 2 matching lines
+FAIL: image-rows:1 matches private pattern 8
+FAIL: pane-lines:1 matches private pattern 8
+qa-screenshot: .local-dev/qa/4-target-after.png not rendered: the pane shows a private detail: take it out of
+the pane (a neutral directory, a placeholder) and run again
+exit 1
+ls: cannot access '.local-dev/qa/4-target-after.png': No such file or directory
+$
