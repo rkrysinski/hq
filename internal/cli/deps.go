@@ -381,16 +381,25 @@ func defaultDeps() deps {
 }
 
 // lookSources are where a look reads and appends (agent.Sources): the
-// journals' store, and tmux for the screens.
+// journals' store, and tmux for the windows and the screens.
 type lookSources struct {
 	journal.Store
+	windows func() ([]tmux.Window, error)
 	screens func(panes []string) (map[string]string, error)
 }
 
 func (s lookSources) Screens(panes []string) (map[string]string, error) { return s.screens(panes) }
 
+// Stands says whether home window w is among the windows tmux lists now;
+// when tmux cannot list them, it stands, as withoutKilled keeps every agent
+// then.
+func (s lookSources) Stands(w string) bool {
+	ws, err := s.windows()
+	return err != nil || slices.ContainsFunc(ws, func(x tmux.Window) bool { return x.ID == w })
+}
+
 // sources are the look's sources of these dependencies.
-func (d deps) sources() agent.Sources { return lookSources{d.journal, d.tmux.Screens} }
+func (d deps) sources() agent.Sources { return lookSources{d.journal, d.tmux.Windows, d.tmux.Screens} }
 
 // look is a look at the agents of the home windows ws (agent.Look), with
 // sbx's answer running.
@@ -421,7 +430,7 @@ func (d deps) withoutKilled(as []agent.Agent) []agent.Agent {
 // fromJournals are the agents of the home windows ws with their state
 // from their journals, no screen read (agent.FromJournals).
 func (d deps) fromJournals(ws []tmux.Window) []agent.Agent {
-	return agent.FromJournals(ws, d.journal, d.now(), d.folds)
+	return agent.FromJournals(ws, d.sources(), d.now(), d.folds)
 }
 
 // removeAgentFiles deletes what an agent leaves once it is gone: its hook's

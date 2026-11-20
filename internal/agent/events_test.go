@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -181,10 +182,10 @@ type racingStore struct {
 	ready *sync.WaitGroup
 }
 
-func (s racingStore) Append(id string, events ...state.Event) ([]state.Event, error) {
+func (s racingStore) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
 	s.ready.Done()
 	s.ready.Wait()
-	return s.memStore.Append(id, events...)
+	return s.memStore.AppendEvidence(id, stands, events...)
 }
 
 // Of eight looks racing to append the same evidence, in eight hq
@@ -232,12 +233,12 @@ type overtakingStore struct {
 	t *testing.T
 }
 
-func (s overtakingStore) Append(id string, events ...state.Event) ([]state.Event, error) {
+func (s overtakingStore) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
 	s.Leave("/w/app", "a1", "000000099.answer.1", journaltest.Hook("main", map[string]any{"hook_event_name": "PostToolUse", "tool_name": "Bash"}), time.Unix(999, 0))
 	if err := s.Ingest("/w/app", "a1"); err != nil {
 		s.t.Fatal(err)
 	}
-	return s.memStore.Append(id, events...)
+	return s.memStore.AppendEvidence(id, stands, events...)
 }
 
 // Evidence whose basis a later report of the hook overtook before it was
@@ -254,5 +255,101 @@ func TestEvidenceALaterReportOvertookIsSetAside(t *testing.T) {
 	}
 	if a.State != state.Working {
 		t.Fatalf("shows %+v", a)
+	}
+}
+
+// killingStore has hq kill remove agent a1 of evWindow at the look's first
+// append, after the look read its journal: its home window goes, then its
+// journal. It notes the kinds of the evidence appended.
+type killingStore struct {
+	*memStore
+	killed *bool
+	kinds  *[]string
+}
+
+func (s killingStore) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+	for _, e := range events {
+		*s.kinds = append(*s.kinds, e.Kind)
+	}
+	if !*s.killed {
+		*s.killed = true
+		s.gone[evWindow().ID] = true
+		if err := s.Remove("/w/app", id); err != nil {
+			return nil, err
+		}
+	}
+	return s.memStore.AppendEvidence(id, stands, events...)
+}
+
+// A look that falls between the steps of hq kill writes no journal of the
+// killed agent back (#263), whatever evidence it has to append: the pane's
+// death, sbx's answer, what the screen shows, a wake-up; nor does a look of
+// FromJournals; nor one that finds the journal and the window gone
+// already. Each notes the journal gone, which leaves the agent out (#239).
+func TestALookBetweenTheStepsOfAKillWritesNoJournalBack(t *testing.T) {
+	now := time.Unix(1000, 0)
+	dead := func() tmux.Window {
+		w := evWindow()
+		w.PaneDead, w.DeadAt = true, now.Add(-3*time.Second)
+		return w
+	}
+	alive := evWindow
+	done := journaltest.HookState{State: state.Done, Since: now.Add(-time.Minute), Last: "Done."}
+	for _, c := range []struct {
+		name, kind string
+		// before readies the store and says whether the kill is done before
+		// the look starts; look takes the look.
+		before func(t *testing.T, s *memStore) bool
+		look   func(s Sources) Agent
+	}{
+		{"the pane's death", state.KindPaneDied,
+			func(_ *testing.T, s *memStore) bool { s.report("a1", done); return false },
+			func(s Sources) Agent { return Look([]tmux.Window{dead()}, Sandboxes{}, now, s, nil)[0] }},
+		{"sbx's answer", state.KindNotRunning,
+			func(_ *testing.T, s *memStore) bool { s.report("a1", done); return false },
+			func(s Sources) Agent {
+				return Look([]tmux.Window{alive()}, Sandboxes{Running: map[string]bool{}, Asked: now.Add(-time.Second)}, now, s, nil)[0]
+			}},
+		{"what the screen shows", state.KindTurnEnded,
+			func(_ *testing.T, s *memStore) bool {
+				s.screens["%1"] = declinedScreen()
+				s.report("a1", journaltest.HookState{State: state.Working, Since: now.Add(-time.Minute)})
+				return false
+			},
+			func(s Sources) Agent { return Look([]tmux.Window{alive()}, Sandboxes{}, now, s, nil)[0] }},
+		{"a wake-up", state.KindWokeUp,
+			func(t *testing.T, s *memStore) bool {
+				hook := func(name string, at time.Time, p map[string]any) {
+					s.Leave("/w/app", "a1", name, journaltest.Hook("main", p), at)
+				}
+				hook("000000001.prompt.1", now.Add(-5*time.Minute), map[string]any{"hook_event_name": "UserPromptSubmit", "prompt_id": "t1", "prompt": "Run the slow tests in a subagent."})
+				hook("000000002.answer.1", now.Add(-5*time.Minute+time.Second), map[string]any{"hook_event_name": "PostToolUse", "prompt_id": "t1", "tool_name": "Agent", "tool_response": map[string]any{"status": "async_launched", "agentId": "sub1"}})
+				s.screens["%1"] = declinedScreen()
+				Look([]tmux.Window{alive()}, Sandboxes{}, now.Add(-4*time.Minute), s, nil)
+				s.screens["%1"] = capture(t, "fs-thinking")
+				hook("000000003.prompt.1", now.Add(-time.Minute), map[string]any{"hook_event_name": "UserPromptSubmit", "prompt_id": "t2", "prompt": "<task-notification>\n<task-id>sub1</task-id>\n<status>completed</status>\n</task-notification>"})
+				return false
+			},
+			func(s Sources) Agent { return Look([]tmux.Window{alive()}, Sandboxes{}, now, s, nil)[0] }},
+		{"the pane's death, from the journals", state.KindPaneDied,
+			func(_ *testing.T, s *memStore) bool { s.report("a1", done); return false },
+			func(s Sources) Agent { return FromJournals([]tmux.Window{dead()}, s, now, nil)[0] }},
+		{"the pane's death, the kill done before the look", state.KindPaneDied,
+			func(_ *testing.T, s *memStore) bool { s.gone[dead().ID] = true; return true },
+			func(s Sources) Agent { return Look([]tmux.Window{dead()}, Sandboxes{}, now, s, nil)[0] }},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			s := newStore(map[string]string{})
+			var kinds []string
+			killed := c.before(t, s)
+			a := c.look(killingStore{s, &killed, &kinds})
+			ids, err := s.IDs()
+			if err != nil || len(ids) != 0 || len(s.journalOf(t, "a1")) != 0 {
+				t.Fatalf("journals %v %v, a1's: %s", ids, err, journaltest.Kinds(s.journalOf(t, "a1")))
+			}
+			if !killed || !slices.Contains(kinds, c.kind) || !a.JournalGone() {
+				t.Fatalf("killed %v, appended %v, gone %v: %+v", killed, kinds, a.JournalGone(), a)
+			}
+		})
 	}
 }

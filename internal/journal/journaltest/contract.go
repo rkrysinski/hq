@@ -3,6 +3,7 @@ package journaltest
 import (
 	"cmp"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -36,8 +37,9 @@ func Hook(branch string, payload map[string]any) []byte {
 // event files ingested in the order of their names and removed, numbers
 // from one counter for every agent, rising in each journal, the latest
 // turn end's reply kept once, hq's own events appended, evidence set aside
-// as a duplicate or as overtaken (#195), one first append of writers
-// racing, a journal read on from a position, what the latest dialog asks
+// as a duplicate or as overtaken (#195), evidence for a journal that is
+// not there written only while the agent's home window stands (#263), one
+// first append of writers racing, a journal read on from a position, what the latest dialog asks
 // kept once, with a question dialog's report and the answers Claude got,
 // a removed journal gone, and ids hq did not issue refused.
 func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
@@ -236,6 +238,60 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 			j := read(t, h.Store, "a1")
 			expect(t, j.Events[len(j.Events)-1].Aside == "", "the pane's death after a relaunch: %+v", j.Events[len(j.Events)-1])
 		}
+	})
+
+	t.Run("evidence for a journal that is not there", func(t *testing.T) {
+		h := newHarness(t)
+		root := h.Root()
+		asked := 0
+		gone := func() bool { asked++; return false }
+		h.Leave(root, "a1", "000000001.1", prompt, at)
+		must(t, h.Store.Ingest(root, "a1"))
+		died := state.Event{Source: state.SourceTmux, Kind: state.KindPaneDied, Time: at, Basis: read(t, h.Store, "a1").Events[0].Number}
+		// To a journal that is there, evidence is appended as Append
+		// appends it, set aside alike, and the window is not asked about.
+		out, err := h.Store.AppendEvidence("a1", gone, died, died)
+		require(t, err == nil && asides(out) == "- duplicate" && asked == 0, "to a journal there: %v %+v, asked %d", err, out, asked)
+		expect(t, len(read(t, h.Store, "a1").Events) == 3, "appended: %+v", read(t, h.Store, "a1").Events)
+		// To one removed, or never begun, nothing is written while the
+		// agent's home window is gone.
+		must(t, h.Store.Remove(root, "a1"))
+		for _, id := range []string{"a1", "c3"} {
+			asked = 0
+			out, err := h.Store.AppendEvidence(id, gone, died)
+			expect(t, errors.Is(err, journal.ErrGone) && len(out) == 0 && asked == 1, "%s, its window gone: %v %+v, asked %d", id, err, out, asked)
+			expect(t, len(read(t, h.Store, id).Events) == 0, "%s written: %+v", id, read(t, h.Store, id).Events)
+		}
+		{
+			ids, err := h.Store.IDs()
+			expect(t, err == nil && len(ids) == 0, "journals after evidence of gone windows: %v %v", ids, err)
+		}
+		// While the window stands, the journal is begun with the evidence.
+		out, err = h.Store.AppendEvidence("c3", func() bool { return true }, died)
+		require(t, err == nil && len(out) == 1 && out[0].Number > 0, "its window standing: %v %+v", err, out)
+		expect(t, Kinds(read(t, h.Store, "c3").Events) == state.KindPaneDied, "begun: %+v", read(t, h.Store, "c3").Events)
+		// Nothing to append asks nothing.
+		asked = 0
+		none, err := h.Store.AppendEvidence("d4", gone)
+		expect(t, err == nil && len(none) == 0 && asked == 0, "nothing to append: %v %v, asked %d", none, err, asked)
+		// The window is asked about under the lock, with the append: a kill
+		// that kills the window just after it was asked removes the journal
+		// only after the append, and nothing of the agent is left.
+		removed := make(chan error)
+		_, err = h.Store.AppendEvidence("e5", func() bool {
+			go func() { removed <- h.Store.Remove(root, "e5") }()
+			return true
+		}, died)
+		must(t, err)
+		select {
+		case err := <-removed:
+			must(t, err)
+		case <-time.After(10 * time.Second):
+			t.Fatal("the removal did not end within 10 s")
+		}
+		expect(t, len(read(t, h.Store, "e5").Events) == 0, "left after the kill: %+v", read(t, h.Store, "e5").Events)
+		_, err = h.Store.AppendEvidence("../e5", func() bool { return true }, died)
+		expect(t, err != nil, "an id hq did not issue taken")
 	})
 
 	t.Run("eight writers racing for one first append", func(t *testing.T) {

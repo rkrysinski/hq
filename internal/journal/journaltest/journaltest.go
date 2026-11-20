@@ -112,11 +112,30 @@ func (m *Memory) Ingest(root, id string) error {
 // setting aside what the journal shows to be a duplicate or overtaken
 // (journal.Store).
 func (m *Memory) Append(id string, events ...state.Event) ([]state.Event, error) {
+	return m.append(id, nil, events)
+}
+
+// AppendEvidence appends evidence as Append does, to a journal that is
+// not there only when stands says the agent's home window still stands
+// (journal.Store).
+func (m *Memory) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+	return m.append(id, stands, events)
+}
+
+// append appends events to the journal of agent id under the mutex; with
+// stands, to a journal that is not there only when it says so.
+func (m *Memory) append(id string, stands func() bool, events []state.Event) ([]state.Event, error) {
 	if !state.IsID(id) {
 		return nil, errors.New("not an agent id")
 	}
+	if len(events) == 0 {
+		return nil, nil
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if _, there := m.journals[id]; !there && stands != nil && !stands() {
+		return nil, journal.ErrGone
+	}
 	out := journal.StandingOf(m.journals[id]).SetAside(events)
 	for i := range out {
 		m.counter++
