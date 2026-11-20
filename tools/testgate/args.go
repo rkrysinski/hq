@@ -5,7 +5,7 @@ import (
 	"slices"
 )
 
-// anyNumber is the most of a form that takes a list: no most.
+// anyNumber is the most arguments of a form whose last argument is a list.
 const anyNumber = -1
 
 // A form is a command of the usage line and how many arguments it takes.

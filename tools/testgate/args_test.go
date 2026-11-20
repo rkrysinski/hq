@@ -98,6 +98,9 @@ func TestTheUsageLineNamesTheFormsReadArgsReads(t *testing.T) {
 	read := map[string][2]int{}
 	for _, f := range forms {
 		read[f.name] = [2]int{f.least, f.most}
+		if f.most != anyNumber && f.most > f.least && f.dflt == "" {
+			t.Errorf("%s takes an optional argument with no default: its gate would read a value not there", f.name)
+		}
 	}
 	if named := usageForms(t); !reflect.DeepEqual(named, read) {
 		t.Errorf("the usage line names %v, readArgs reads %v", named, read)

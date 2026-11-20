@@ -161,6 +161,9 @@ func main() {
 		if failed {
 			os.Exit(1)
 		}
+	default: // a row of forms with no case here: fail, never pass unchecked
+		fmt.Fprintln(os.Stderr, "testgate:", inv.name, "is read but no gate runs it")
+		os.Exit(2)
 	}
 	for _, p := range problems {
 		fmt.Println("FAIL:", p)
