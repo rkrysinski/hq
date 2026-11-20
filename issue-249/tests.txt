@@ -1,17 +1,18 @@
-$ go test -count=1 -v -run "TestMCPAfterAnUpdate|TestMCPInstructionsNameTheRemedyOfTheClient|TestMCPLeftAsItWas|TestUpdateAcrossGenerationsNamesTheSandboxes|TestUpdateNamesNoSandbox|TestUpdateWithinTheGeneration|TestUpdateAcrossGenerationsWithNoAgent" ./internal/cli
---- PASS: TestMCPAfterAnUpdateToAnotherGenerationEveryCallFails (0.00s)
---- PASS: TestMCPAfterAnUpdateToAnotherGenerationEachClientNamesItsRemedy (0.01s)
---- PASS: TestMCPAfterAnUpdateOfTheSameGenerationEveryClientServes (0.00s)
---- PASS: TestMCPInstructionsNameTheRemedyOfTheClient (0.00s)
---- PASS: TestMCPAfterAnUpdateOfTheSameGenerationServesAsBefore (0.00s)
---- PASS: TestMCPLeftAsItWasAsksTheHqOnDiskNothing (0.00s)
+$ go test -count=1 -v -run "TestMCPAfterAnUpdate|TestMCPInstructionsNameTheRemedyOfTheClient|TestTheSandboxLineRestartsASetupsSandbox|TestMCPLeftAsItWas|TestUpdateAcrossGenerationsNamesTheSandboxes|TestUpdateNamesNoSandbox|TestUpdateWithinTheGeneration|TestUpdateAcrossGenerationsWithNoAgent" ./internal/cli
+--- PASS: TestMCPAfterAnUpdateToAnotherGenerationEveryCallFails (0.03s)
+--- PASS: TestMCPAfterAnUpdateToAnotherGenerationEachClientNamesItsRemedy (0.07s)
+--- PASS: TestTheSandboxLineRestartsASetupsSandbox (0.00s)
+--- PASS: TestMCPAfterAnUpdateOfTheSameGenerationEveryClientServes (0.04s)
+--- PASS: TestMCPInstructionsNameTheRemedyOfTheClient (0.03s)
+--- PASS: TestMCPAfterAnUpdateOfTheSameGenerationServesAsBefore (0.01s)
+--- PASS: TestMCPLeftAsItWasAsksTheHqOnDiskNothing (0.05s)
 --- PASS: TestUpdateWithinTheGenerationLeavesTheAgents (0.00s)
 --- PASS: TestUpdateAcrossGenerationsWithNoAgent (0.00s)
 --- PASS: TestUpdateAcrossGenerationsNamesTheSandboxesHqWasLoadedInto (0.00s)
 --- PASS: TestUpdateNamesNoSandboxWhenNoneNeedsARestart (0.00s)
-ok  	github.com/rkrysinski/hq/internal/cli	0.040s
+ok  	github.com/rkrysinski/hq/internal/cli	0.322s
 
 $ go test -count=1 -v -tags integration -run TestHqMCPStepsAsideOnlyForAnHqOfAnotherGeneration ./cmd/hq
---- PASS: TestHqMCPStepsAsideOnlyForAnHqOfAnotherGeneration (1.32s)
-ok  	github.com/rkrysinski/hq/cmd/hq	1.327s
-on 3c828e1911834ea7d031bdbed2e51b0e92f67c2b
+--- PASS: TestHqMCPStepsAsideOnlyForAnHqOfAnotherGeneration (1.70s)
+ok  	github.com/rkrysinski/hq/cmd/hq	1.703s
+on e52ba53d005d7f4132060cf2bad20f8e9cb3f6cb

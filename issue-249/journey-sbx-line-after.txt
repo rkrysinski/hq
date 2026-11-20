@@ -1,5 +1,5 @@
-$ journey.sh   # hq mcp sbx over stdio, on 3c828e1
-== hq mcp sbx (pid 3896531, generation 5) answers list:
+$ journey.sh   # hq mcp sbx over stdio, on e52ba53
+== hq mcp sbx (pid 2028837, generation 5) answers list:
 isError: false
 {
   "agents": [],
@@ -8,8 +8,8 @@ isError: false
 hq v0.99.0
 == list again:
 isError: true
-hq: hq was updated: on the host, run hq sandbox restart for this sandbox's repository
+hq: hq was updated: on the host, run hq sandbox restart REPO for this sandbox's repository, with --setup SETUP for a sandbox of a setup
 == new, which would start an agent:
 isError: true
-hq: hq was updated: on the host, run hq sandbox restart for this sandbox's repository
+hq: hq was updated: on the host, run hq sandbox restart REPO for this sandbox's repository, with --setup SETUP for a sandbox of a setup
 exit 0
