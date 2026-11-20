@@ -59,24 +59,27 @@ func TestListPatternNamesTheTopLevelTestsOfEveryAlternative(t *testing.T) {
 	}
 }
 
-func TestSubtestsNamedOnlyWhenEveryAlternativeThatNamesTheTestNamesSubtests(t *testing.T) {
+func TestSubtestLevelsAreTheFewestOfTheAlternativesThatNameTheTest(t *testing.T) {
 	for _, c := range []struct {
 		run, name string
-		want      bool
+		want      int
 	}{
-		{"TestX", "TestX", false},
-		{"TestX/sub", "TestX", true},
-		{"TestA/x|TestB", "TestA", true},
-		{"TestA/x|TestB", "TestB", false},
-		{"TestA|TestA/x", "TestA", false},
-		{"TestA/x|TestA/y", "TestA", true},
-		{"TestA/x", "TestB", false},
-		{"Test/x", "TestFoo", true},
-		{"[/x", "TestX", false},
-		{"/x", "TestX", true},
+		{"TestX", "TestX", 0},
+		{"TestX/sub", "TestX", 1},
+		{"TestX/sub/deep", "TestX", 2},
+		{"TestA/x|TestB", "TestA", 1},
+		{"TestA/x|TestB", "TestB", 0},
+		{"TestA|TestA/x", "TestA", 0},
+		{"TestA/x/y|TestA/z", "TestA", 1},
+		{"TestA/z|TestA/x/y", "TestA", 1},
+		{"TestA/x/y|TestA/z/w/v", "TestA", 2},
+		{"TestA/x", "TestB", 0},
+		{"Test/x", "TestFoo", 1},
+		{"[/x", "TestX", 0},
+		{"/x", "TestX", 1},
 	} {
-		if got := subtestsNamed(c.run)(c.name); got != c.want {
-			t.Errorf("%q, %s: got %v, want %v", c.run, c.name, got, c.want)
+		if got := subtestLevels(c.run)(c.name); got != c.want {
+			t.Errorf("%q, %s: got %d, want %d", c.run, c.name, got, c.want)
 		}
 	}
 }
@@ -449,7 +452,7 @@ func TestTallyCountsARunNoNamedSubtestTestedAsSkipped(t *testing.T) {
 		ev("pass", "TestX/sub"), ev("pass", "TestX"), // tested at depth
 		ev("run", "TestY"), ev("pass", "TestY"), // its pattern names no subtest
 	)
-	named := subtestsNamed("TestX/sub|TestY")
+	named := subtestLevels("TestX/sub|TestY")
 	c, shown := tally(1, run, named)
 	if want := (runCounts{passed: 3, skipped: 3}); c != want {
 		t.Errorf("got %+v, want %+v", c, want)
@@ -466,8 +469,32 @@ func TestTallyCountsARunNoNamedSubtestTestedAsSkipped(t *testing.T) {
 		t.Errorf("no subtest pattern: got %+v, %q", c, shown)
 	}
 	r := evidenceRun()
-	r.subtestsNamed = named
+	r.subtestLevels = named
 	if _, ok := r.endLines([]loadProcess{{status: "exit status 0", run: run}}, 6, false); ok {
 		t.Error("the evidence passed runs that tested nothing")
+	}
+}
+
+// With a pattern of three levels, a subtest at the second level that passed
+// with no subtest of its own tested nothing: the third level names nothing
+// it ran (go prints [no tests to run]). One at the third level that passed
+// did test something.
+func TestTallyCountsARunNotReachingTheLastLevelThePatternNamesAsSkipped(t *testing.T) {
+	ev := func(action, test string) string {
+		return `{"Action":"` + action + `","Package":"example.com/f","Test":"` + test + `"}`
+	}
+	run := readRun(t,
+		`{"Action":"start","Package":"example.com/f"}`,
+		ev("run", "TestZ"), ev("run", "TestZ/sub"), ev("pass", "TestZ/sub"), ev("pass", "TestZ"),
+		ev("run", "TestZ"), ev("run", "TestZ/sub"), ev("run", "TestZ/sub/deep"), ev("pass", "TestZ/sub/deep"),
+		ev("pass", "TestZ/sub"), ev("pass", "TestZ"),
+	)
+	c, shown := tally(1, run, subtestLevels("TestZ/sub/none|TestZ/sub/deep"))
+	if want := (runCounts{passed: 1, skipped: 1}); c != want {
+		t.Errorf("got %+v, want %+v", c, want)
+	}
+	equalStrings(t, shown, []string{"process 1, TestZ, run 1: skipped: no subtest the pattern names passed"})
+	if c, _ := tally(1, run, subtestLevels("TestZ/sub")); c != (runCounts{passed: 2}) {
+		t.Errorf("two levels: got %+v, want both runs passed", c)
 	}
 }
