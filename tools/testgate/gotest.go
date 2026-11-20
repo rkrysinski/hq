@@ -29,11 +29,14 @@ type testEvent struct {
 type testLine struct {
 	event *testEvent
 	text  string
+	test  *goTest // the run of the test the event is of, nil for none
 }
 
 // A goTest is a test or a subtest of a run, with what it printed and its
-// subtests in the order they came.
+// subtests in the order they came. Each run of a test that go test -count N
+// runs N times is a goTest of its own (#276).
 type goTest struct {
+	name    string
 	parent  *goTest
 	depth   int // its parents
 	items   []testItem
@@ -50,8 +53,9 @@ type testItem struct {
 
 // A goPackage is a package of a run: its tests and how it ended.
 type goPackage struct {
-	tests   map[string]*goTest
-	outcome string // pass, fail or skip (no test files); none for a package that never ended
+	tests   map[string]*goTest // the latest run of each test
+	runs    []*goTest          // every run of a top-level test, in the order they started
+	outcome string             // pass, fail or skip (no test files); none for a package that never ended
 }
 
 // A testRun is the go test -json output of one run.
@@ -101,7 +105,8 @@ func readTestRun(r io.Reader) (*testRun, error) {
 			}
 			continue
 		}
-		t := p.test(e.Test)
+		t := p.test(e.Test, e.Action == "run")
+		run.lines[i].test = t
 		t.last = i
 		switch {
 		case e.Action == "output":
@@ -133,13 +138,17 @@ func (run *testRun) pkg(name string) *goPackage {
 	return p
 }
 
-// test returns the test of the name, a new one the first time, under the
-// nearest of its parents the run has seen.
-func (p *goPackage) test(name string) *goTest {
-	if t := p.tests[name]; t != nil {
+// test returns the latest run of the test of the name, a new one the first
+// time and when the event starts the test again after that run ended, under
+// the latest run of the nearest of its parents the run has seen.
+func (p *goPackage) test(name string, starts bool) *goTest {
+	if t := p.tests[name]; t != nil && !(starts && t.outcome != "") {
 		return t
 	}
-	t := &goTest{}
+	t := &goTest{name: name}
+	if !strings.Contains(name, "/") {
+		p.runs = append(p.runs, t)
+	}
 	for i := strings.LastIndex(name, "/"); i != -1; i = strings.LastIndex(name[:i], "/") {
 		if parent := p.tests[name[:i]]; parent != nil {
 			t.parent, t.depth = parent, parent.depth+1
@@ -164,8 +173,7 @@ func skipLines(step string, r io.Reader) ([]string, error) {
 	var lines []string
 	for _, l := range run.lines {
 		if e := l.event; e != nil && e.Test != "" && e.Action == "skip" {
-			t := run.packages[e.Package].tests[e.Test]
-			lines = append(lines, fmt.Sprintf("check: skip %s %s %s: %s", step, e.Package, e.Test, t.reason()))
+			lines = append(lines, fmt.Sprintf("check: skip %s %s %s: %s", step, e.Package, e.Test, l.test.reason()))
 		}
 	}
 	return lines, nil
@@ -211,6 +219,11 @@ func plainOutput(r io.Reader) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	return run.plainLines(), nil
+}
+
+// plainLines are the lines of plainOutput of the run.
+func (run *testRun) plainLines() []string {
 	// What plainOutput has read of each package: its output that is no
 	// test's, what go test prints of it when it does not pass, and whether
 	// it ended.
@@ -249,7 +262,7 @@ func plainOutput(r io.Reader) ([]string, error) {
 			b.WriteString(e.Output)
 		case e.Package == "" && e.Test == "":
 		case e.Test != "":
-			if t := run.packages[e.Package].tests[e.Test]; t.parent == nil && i == t.last {
+			if t := l.test; t.parent == nil && i == t.last {
 				t.plain(&read[e.Package].block)
 			}
 		case e.Action == "output":
@@ -265,7 +278,7 @@ func plainOutput(r io.Reader) ([]string, error) {
 	if slices.ContainsFunc(run.order, func(name string) bool { return run.packages[name].outcome == "fail" }) {
 		b.WriteString("FAIL\n")
 	}
-	return splitLines(b.String()), nil
+	return splitLines(b.String())
 }
 
 // plain writes what go test prints of the test without -json: when it

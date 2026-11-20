@@ -371,15 +371,9 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 		return false, fmt.Errorf("%s and HEAD have no common commit", base)
 	}
 	mergeBase = strings.TrimSpace(mergeBase)
-	head, err := gitOutput(top, "rev-parse", "HEAD")
+	head, err := headCommit(top)
 	if err != nil {
 		return false, err
-	}
-	head = strings.TrimSpace(head)
-	if status, err := gitOutput(top, "status", "--porcelain"); err != nil {
-		return false, err
-	} else if status != "" {
-		head += " with uncommitted changes"
 	}
 	changed, err := changedPaths(top, mergeBase)
 	if err != nil {
