@@ -159,6 +159,9 @@ type lookStore struct {
 	screen string
 }
 
+// Stands says the agent's home window stands: the fixture's look is at it.
+func (s *lookStore) Stands(string) bool { return true }
+
 func (s *lookStore) Screens(panes []string) (map[string]string, error) {
 	out := map[string]string{}
 	if s.screen != "" {
