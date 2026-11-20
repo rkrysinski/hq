@@ -1,0 +1,40 @@
+$ J=/tmp/hq-stub-633776497/home/.local/state/hq/journals
+$ hq new a . 'say hi'
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started a in repo (sandbox claude-repo); enter it with: hq go a
+$ hq ls; ls -A $J
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   1m   Done: say hi
+3af5625dd323  3af5625dd323.read	 3af5625dd323.reply
+$ hq kill a -y; hq ls; ls -A $J; echo "files of a: $(ls -A $J | grep -c 3af5625dd323)"
+killed a; the sandbox stays
+files of a: 0
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

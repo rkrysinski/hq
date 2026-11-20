@@ -1,0 +1,5 @@
+$ go run ./tools/testgate mutation origin/release-v0.16.0
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 36s
+mutation: 24 killed, 0 alive, 0 timed out, 1 not covered against origin/release-v0.16.0 on 10f175ba237b07dca8789873c57c55adb01a62e7

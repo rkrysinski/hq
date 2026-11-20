@@ -1,0 +1,40 @@
+$ cd "$BEFORE"; git diff -U0 | grep -E "^[-+][[:space:]]"; go test -tags integration -count=1 -run "$R" ./internal/agent/ ./intern
+al/cli/ 2>&1 | grep -E "^(--- FAIL|ok|FAIL)"
+-	_, _ = store.AppendEvidence(a.ID, func() bool { return store.Stands(a.Window) }, e)
++	_, _ = store.Append(a.ID, e)
+--- FAIL: TestALookBetweenTheStepsOfAKillWritesNoJournalBack (0.00s)
+--- FAIL: TestALookBetweenTheStepsOfAKillLeavesNoFileOfTheAgentInTheRealJournals (0.01s)
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/agent	0.015s
+--- FAIL: TestLsBetweenTheStepsOfAKillWritesNoJournalBack (0.00s)
+--- FAIL: TestLsThatAppendsAfterAKillRemovedTheJournalItReadWritesNoJournalBack (0.00s)
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	0.057s
+FAIL
+$ cd "$AFTER"; git log --oneline -1; go test -tags integration -count=1 -run "$R" -v ./internal/agent/ ./internal/cli/ 2>&1 | grep
+ -E "^(--- |ok|FAIL)"
+10f175b (HEAD -> issue-263-look-writes-no-killed-journal) Check the number of the evidence that begins a journal exactly
+--- PASS: TestALookBetweenTheStepsOfAKillWritesNoJournalBack (0.00s)
+--- PASS: TestALookBetweenTheStepsOfAKillLeavesNoFileOfTheAgentInTheRealJournals (0.01s)
+ok  	github.com/rkrysinski/hq/internal/agent	0.016s
+--- PASS: TestLsBetweenTheStepsOfAKillWritesNoJournalBack (0.00s)
+--- PASS: TestLsThatAppendsAfterAKillRemovedTheJournalItReadWritesNoJournalBack (0.00s)
+ok  	github.com/rkrysinski/hq/internal/cli	0.013s
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

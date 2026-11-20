@@ -1,0 +1,11 @@
+$ scripts/check.sh
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: ok   timebound
+check: ok   unit
+check: ok   integration
+check: ok   coverage
+check: ok   e2e
+check: all 9 steps passed on 10f175ba237b07dca8789873c57c55adb01a62e7
