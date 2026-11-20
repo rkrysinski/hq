@@ -8,9 +8,11 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"maps"
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -88,20 +90,15 @@ func TestHelpFlagsPrintTheHelp(t *testing.T) {
 	}
 }
 
-// exitConstants are this package's Exit* constants with their values,
-// read from its source, not from a list.
-func exitConstants(t *testing.T) map[string]int64 {
+// sourceFiles are this package's files but its tests, parsed into fset.
+func sourceFiles(t *testing.T, fset *token.FileSet) []*ast.File {
 	t.Helper()
-	isExit := regexp.MustCompile(`^Exit[A-Z]`).MatchString
-	fset := token.NewFileSet()
-	files, err := filepath.Glob("*.go")
+	names, err := filepath.Glob("*.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The const blocks that hold an Exit* constant, checked on their own,
-	// so iota and constants of the same block still count.
-	consts := &ast.File{Name: ast.NewIdent("cli")}
-	for _, name := range files {
+	var files []*ast.File
+	for _, name := range names {
 		if strings.HasSuffix(name, "_test.go") {
 			continue
 		}
@@ -109,6 +106,21 @@ func exitConstants(t *testing.T) map[string]int64 {
 		if err != nil {
 			t.Fatal(err)
 		}
+		files = append(files, f)
+	}
+	return files
+}
+
+// exitConstants are this package's Exit* constants with their values,
+// read from its source, not from a list.
+func exitConstants(t *testing.T) map[string]int64 {
+	t.Helper()
+	isExit := regexp.MustCompile(`^Exit[A-Z]`).MatchString
+	fset := token.NewFileSet()
+	// The const blocks that hold an Exit* constant, checked on their own,
+	// so iota and constants of the same block still count.
+	consts := &ast.File{Name: ast.NewIdent("cli")}
+	for _, f := range sourceFiles(t, fset) {
 		for _, d := range f.Decls {
 			g, ok := d.(*ast.GenDecl)
 			if ok && g.Tok == token.CONST && slices.ContainsFunc(g.Specs, func(s ast.Spec) bool {
@@ -136,7 +148,13 @@ func TestHelpNamesEveryExitCode(t *testing.T) {
 	if len(codes) == 0 {
 		t.Fatal("found no Exit* constant")
 	}
-	for name, code := range codes {
+	byCode := map[int64]string{}
+	for _, name := range slices.Sorted(maps.Keys(codes)) {
+		code := codes[name]
+		if other, ok := byCode[code]; ok {
+			t.Errorf("%s and %s are both %d, so hq help cannot name each", other, name, code)
+		}
+		byCode[code] = name
 		if !slices.ContainsFunc(exitCodes, func(e exitCode) bool { return int64(e.code) == code }) {
 			t.Errorf("%s (%d) has no entry in exitCodes, so hq help does not name it", name, code)
 		}
@@ -153,7 +171,7 @@ func namesWord(text, word string) bool {
 	return regexp.MustCompile(`(^|[^\w-])` + regexp.QuoteMeta(word) + `($|[^\w-])`).MatchString(text)
 }
 
-func TestNamesMatchesWholeWordsOnly(t *testing.T) {
+func TestNamesWordMatchesWholeWordsOnly(t *testing.T) {
 	for _, tc := range []struct {
 		text, word string
 		want       bool
@@ -168,7 +186,7 @@ func TestNamesMatchesWholeWordsOnly(t *testing.T) {
 		{"hq newer", "hq new", false},
 	} {
 		if got := namesWord(tc.text, tc.word); got != tc.want {
-			t.Errorf("names(%q, %q) = %v, want %v", tc.text, tc.word, got, tc.want)
+			t.Errorf("namesWord(%q, %q) = %v, want %v", tc.text, tc.word, got, tc.want)
 		}
 	}
 }
@@ -232,5 +250,37 @@ func TestFlagSetIs(t *testing.T) {
 	}
 	if flagsOf("nope").names != nil {
 		t.Error("an unknown command declares flags")
+	}
+}
+
+// TestFlagsAreRecognisedOnlyThroughTheirDeclaration fails for a comparison
+// with a declared flag's spelling (a == "--json", case "--json":) anywhere
+// in the package but through flagSet.is, which checks the declaration.
+func TestFlagsAreRecognisedOnlyThroughTheirDeclaration(t *testing.T) {
+	declared := map[string]bool{}
+	for _, c := range append(commands(), versionCommand()) {
+		for _, flag := range c.flags {
+			declared[strconv.Quote(flag)] = true
+		}
+	}
+	fset := token.NewFileSet()
+	for _, f := range sourceFiles(t, fset) {
+		ast.Inspect(f, func(n ast.Node) bool {
+			var compared []ast.Expr
+			switch n := n.(type) {
+			case *ast.BinaryExpr:
+				if n.Op == token.EQL || n.Op == token.NEQ {
+					compared = []ast.Expr{n.X, n.Y}
+				}
+			case *ast.CaseClause:
+				compared = n.List
+			}
+			for _, e := range compared {
+				if lit, ok := e.(*ast.BasicLit); ok && declared[lit.Value] {
+					t.Errorf("%s: compares with %s, not through flagSet.is", fset.Position(lit.Pos()), lit.Value)
+				}
+			}
+			return true
+		})
 	}
 }

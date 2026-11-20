@@ -67,7 +67,7 @@ func parseRead(args []string, now time.Time) (readArgs, error) {
 			if err != nil {
 				return r, err
 			}
-			if flag == "--since" {
+			if f.is(flag, "--since") {
 				r.since, err = parseSince(value, now)
 				r.sinceArg = true
 			} else if r.offset, err = strconv.Atoi(value); err != nil || r.offset < 0 {

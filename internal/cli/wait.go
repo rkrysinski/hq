@@ -66,7 +66,7 @@ func parseWait(args []string, now time.Time) (waitArgs, error) {
 			if err != nil {
 				return w, err
 			}
-			if flag == "--since" {
+			if f.is(flag, "--since") {
 				w.since, err = parseSince(value, now)
 				w.sinceArg = true
 			} else {
