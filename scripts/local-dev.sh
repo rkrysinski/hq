@@ -24,9 +24,13 @@
 # at bin/hq, a neutral HOME at home (with the preferences), the stub sbx's
 # state at sbx, C:\ at win/mnt/c, the fake claude (tools/fakeclaude) the stub
 # sbx runs, and a git repository at repo to start agents in, so screenshots
-# show no user's path. The tmux server stays this checkout's; it remembers
-# the mode it was started in, and a run in another mode is refused until
-# --kill-server ends it.
+# show no user's path. A run that creates it says on stderr
+# "local-dev: stub environment PATH created"; one that finds it in place
+# says nothing of its own, so hq's output stays hq's. --stub-env prints its
+# path alone on stdout, whether it exists yet or not, and does nothing else
+# (#299). The tmux server stays this checkout's; it remembers the mode it
+# was started in, and a run in another mode is refused until --kill-server
+# ends it.
 #
 # --before builds the binary from LOCAL_DEV_BEFORE (origin/dev by default;
 # fetch it first) instead of this checkout, at the same path, so a "before"
@@ -40,6 +44,8 @@
 # directory, as a shell of that server is, stays in it.
 #
 # Usage: scripts/local-dev.sh [--stub MODE] [--before] [hq arguments...]
+#        scripts/local-dev.sh --stub-env      print the path of this checkout's
+#                                             stub environment
 #        scripts/local-dev.sh --kill-server   end this checkout's tmux server
 #                                             and remove its stub environment
 #                                             and temporary directory
@@ -107,6 +113,10 @@ while [ $# -gt 0 ]; do
         kill_server
         exit 0
         ;;
+    --stub-env)
+        echo "$STUB_ENV"
+        exit 0
+        ;;
     --stub)
         [ $# -ge 2 ] || die "--stub needs a mode: native, wsl-linux, wsl-exe or none"
         mode=$2
@@ -147,6 +157,10 @@ fi
 
 if [ -n "$mode" ]; then
     BIN=$STUB_ENV/bin/hq
+    if [ ! -d "$STUB_ENV" ]; then
+        mkdir -p "$STUB_ENV"
+        echo "local-dev: stub environment $STUB_ENV created" >&2
+    fi
 else
     BIN=$ROOT/.local-dev/hq
 fi

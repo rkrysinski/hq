@@ -248,6 +248,19 @@ func finish(dir, path string, names []string) error {
 // agent id (Store), each set aside when the journal holds the same
 // evidence or a later report (Aside).
 func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
+	return s.append(id, nil, events)
+}
+
+// AppendEvidence appends evidence as Append does, to a journal file that
+// is not there only when stands, asked under the lock, says the agent's
+// home window still stands (Store).
+func (s Files) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+	return s.append(id, stands, events)
+}
+
+// append appends events to the journal of agent id under the lock; with
+// stands, to a journal file that is not there only when it says so.
+func (s Files) append(id string, stands func() bool, events []state.Event) ([]state.Event, error) {
 	if !state.IsID(id) {
 		return nil, errors.New("not an agent id")
 	}
@@ -260,6 +273,11 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	}
 	defer unlock()
 	path := s.journalPath(id)
+	if stands != nil {
+		if _, err := os.Lstat(path); errors.Is(err, fs.ErrNotExist) && !stands() {
+			return nil, ErrGone
+		}
+	}
 	// An ingest a dead process cut off before its append was whole is
 	// undone first (ADR 0018), or this append would move the journal's size
 	// past the record's and the next recovery take the cut append for whole,

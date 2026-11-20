@@ -80,7 +80,24 @@ func runUpdate(env Env, d deps, args []string) error {
 		return envErr("could not replace %s: %v", exe, err)
 	}
 	fmt.Fprintf(env.Stdout, "updated hq %s -> %s\n", current, latest)
+	if loaded := d.loadPrefs().MCPLoaded; len(loaded) > 0 && !sameGeneration(gen, published) {
+		fmt.Fprintln(env.Stdout, restartToolsLine(loaded))
+	}
 	return nil
+}
+
+// restartToolsLine names the sandboxes hq was loaded into, whose hq mcp,
+// which sbx's gateway keeps running, fails every tool call after an update
+// to another generation until the sandbox restarts (#249).
+func restartToolsLine(sandboxes []string) string {
+	cmds := make([]string, len(sandboxes))
+	for i, name := range sandboxes {
+		cmds[i] = "hq sandbox restart " + name
+	}
+	if len(sandboxes) == 1 {
+		return fmt.Sprintf("hq's tools in the sandbox %s fail until it restarts: %s", sandboxes[0], cmds[0])
+	}
+	return fmt.Sprintf("hq's tools in the sandboxes %s fail until each restarts: %s", strings.Join(sandboxes, ", "), strings.Join(cmds, ", "))
 }
 
 // mayUpdateCommand is the hidden command install.sh asks the installed hq
@@ -117,6 +134,12 @@ func runGeneration(env Env, _ deps, args []string) error {
 	return nil
 }
 
+// sameGeneration reports whether a release of generation gen (published
+// false when it publishes none) is of this hq's generation (ADR 0020).
+func sameGeneration(gen int, published bool) bool {
+	return published && gen == version.Generation
+}
+
 // mayUpdate applies the update rule to release tag, of generation gen
 // (published false when it publishes none, which counts as another): an
 // update within this hq's generation goes through whatever agents exist;
@@ -124,7 +147,7 @@ func runGeneration(env Env, _ deps, args []string) error {
 // while hq cannot tell whether one does, with exit code 1 (spec §4.1, ADR
 // 0020). No option lets it through.
 func mayUpdate(d deps, tag string, gen int, published bool) error {
-	if published && gen == version.Generation {
+	if sameGeneration(gen, published) {
 		return nil
 	}
 	theirs := "it names none"
