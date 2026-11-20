@@ -1,0 +1,13 @@
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: ok   timebound
+check: ok   sees
+check: ok   unit
+check: ok   integration
+check: skip integration github.com/rkrysinski/hq/internal/tmux TestPasteTypesTextAsABracketedPasteAndSubmitPressesEnter: a pane's program got 4095 of 5000 bytes of a long input tmux typed, without hq, within 5s: the limit of tmux in a Docker sandbox (#41)
+check: ok   coverage
+check: ok   e2e
+check: all 10 steps passed on 9c147c5bd59c6f2e3c5530ca0780ea7f31f7e354
+exit 0 in 164 s

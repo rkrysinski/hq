@@ -1,0 +1,12 @@
+mutation: staging the tree in /tmp/hq-mutation-3590059660
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 1s
+mutation: 5 changed lines are not run so far, running the integration tests once with coverage
+mutation: 2 changed lines are not run so far, running the journeys once with coverage
+not covered lib/lib.go:7:33 arithmetic base
+not covered lib/lib.go:10:40 arithmetic base
+not run    lib/lib.go:14
+mutation: 0 killed, 0 alive, 0 timed out, 2 not covered, 1 not run against main on 338443f17ac761a0edd7009c94d3ca76471624a9
+exit 1
+$

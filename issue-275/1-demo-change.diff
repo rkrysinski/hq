@@ -1,0 +1,86 @@
+diff --git a/cmd/greet/main.go b/cmd/greet/main.go
+new file mode 100644
+index 0000000..0808277
+--- /dev/null
++++ b/cmd/greet/main.go
+@@ -0,0 +1,12 @@
++package main
++
++import "fmt"
++
++func main() {
++	fmt.Println(greeting())
++}
++
++// greeting runs only in the program, which an integration test builds and starts.
++func greeting() string {
++	return "hello"
++}
+diff --git a/e2e/shout_e2e_test.go b/e2e/shout_e2e_test.go
+new file mode 100644
+index 0000000..f3a8365
+--- /dev/null
++++ b/e2e/shout_e2e_test.go
+@@ -0,0 +1,15 @@
++//go:build e2e
++
++package e2e
++
++import (
++	"testing"
++
++	"example.com/demo/lib"
++)
++
++func TestShout(t *testing.T) {
++	if lib.Shout("hi") != "hi!" {
++		t.Fatal("Shout")
++	}
++}
+diff --git a/lib/lib.go b/lib/lib.go
+index 408616e..c80aec8 100644
+--- a/lib/lib.go
++++ b/lib/lib.go
+@@ -2,3 +2,14 @@ package lib
+ 
+ // Half halves x.
+ func Half(x int) int { return x / 2 }
++
++// Next is run only by an integration test.
++func Next(x int) int { return x + 1 }
++
++// Shout is run only by a journey.
++func Shout(s string) string { return s + "!" }
++
++// Never runs under no test.
++func Never() {
++	panic("never")
++}
+diff --git a/lib/next_integration_test.go b/lib/next_integration_test.go
+new file mode 100644
+index 0000000..ad4fa60
+--- /dev/null
++++ b/lib/next_integration_test.go
+@@ -0,0 +1,22 @@
++//go:build integration
++
++package lib
++
++import (
++	"os/exec"
++	"path/filepath"
++	"testing"
++)
++
++func TestNext(t *testing.T) {
++	if Next(1) != 2 {
++		t.Fatal("Next(1)")
++	}
++	bin := filepath.Join(t.TempDir(), "greet")
++	if out, err := exec.Command("go", "build", "-o", bin, "example.com/demo/cmd/greet").CombinedOutput(); err != nil {
++		t.Fatalf("go build: %v\n%s", err, out)
++	}
++	if out, err := exec.Command(bin).Output(); err != nil || string(out) != "hello\n" {
++		t.Fatalf("greet: %q, %v", out, err)
++	}
++}
