@@ -83,8 +83,8 @@ const parentPoll = time.Second
 // end it, and so does the end of the process that started testgate, which
 // go run does not pass a signal on from when it is killed; the cause says
 // which. A write to a closed stdout or stderr fails instead of killing the
-// run before it stops its test processes (SIGPIPE). stop releases the
-// signals.
+// run before it stops its test processes: SIGPIPE stays caught until the
+// program exits, also after stop, which releases the other signals.
 func loadContext() (ctx context.Context, stop func()) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	sigs := make(chan os.Signal, 1)
@@ -112,7 +112,6 @@ func loadContext() (ctx context.Context, stop func()) {
 	}()
 	return ctx, func() {
 		signal.Stop(sigs)
-		signal.Stop(pipes)
 		cancel(nil)
 	}
 }
