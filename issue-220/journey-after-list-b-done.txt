@@ -1,0 +1,32 @@
+  hq  2 agents · 2 done                                                                                            Fri 16:56 · dev
+
+  TAB     REPO        BRANCH        STATE ▾        AGE   LAST
+  b       repo        main          ● done         9s    -
+│ a       repo        main          ● done         1m    -                                               ⏎ open   c code   k kill  │
+
+
+
+
+
+─┬ ▸ a · main · claude-repo
+ │                                                                                                                                │
+ │claude in claude-repo: /model opus                                                                                              │
+ │fake claude: ready                                                                                                              │
+ │❯ /model opus                                                                                                                   │
+ │  ⎿  Set model to opus                                                                                                          │
+ │────────────────────────────────────────                                                                                        │
+ │❯                                                                                                                               │
+ │────────────────────────────────────────                                                                                        │
+ │  ⏵⏵ bypass permissions on (shift+tab to cycle)                                                                                 │
+ │                                                                                                                                │
+ │                                                                                                                                │
+ │                                                                                                                                │
+ │                                                                                                                                │
+ │                                                                                                                                │
+ │                                                                                                                                │
+ │                                                                                                                                │
+ │                                                                                                                                │
+ │                                                                                                                                │
+ │                                                                                                                                │
+─┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─
+ ↑↓ /name select  ⏎ open session below  n new  k kill  c code  p pr  s sort: attention  r refresh  q quit

@@ -1,14 +1,14 @@
 NAME  REPO  BRANCH  STATE  AGE  LAST
-a     repo  main    done   51s  -
+a     repo  main    done   38s  -
 name      a
-state     done 51s, since 2026-11-20 15:55:21.750
-rests on  4 5
+state     done 38s, since 2026-11-20 16:54:45.255
+rests on  2 3
 dialog    at none, never at one
 
 the state rests on, oldest first
-  N  TIME                     SOURCE  WHAT                                                                 STATE
-  4  2026-11-20 15:55:17.176  hook    session start (startup)                                              starting
-  5  2026-11-20 15:55:21.750  screen  Claude took the first prompt as a command of its own: no turn comes  done
+  N  TIME                     SOURCE  WHAT                                                                       STATE
+  2  2026-11-20 16:54:40.676  hook    session start (startup)                                                    starting
+  3  2026-11-20 16:54:45.255  screen  Claude took the first prompt as a slash command of its own: no turn comes  done
 repo$
 
 
