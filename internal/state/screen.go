@@ -2,6 +2,7 @@ package state
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -99,23 +100,23 @@ func TookSlashCommand(screen string) bool {
 	if !ok || b.spinning() {
 		return false
 	}
-	i := b.upper - 1
-	for ; i >= 0 && !strings.HasPrefix(b.lines[i], prompt); i-- {
-		if claudes(b.raw[i], b.lines[i]) {
-			return false
-		}
-	}
-	if i < 0 || !strings.HasPrefix(b.lines[i], prompt+" /") {
+	sent := func(l string) bool { return strings.HasPrefix(l, prompt) }
+	at := slices.IndexFunc(b.lines[:b.upper], sent)
+	if at < 0 || !strings.HasPrefix(b.lines[at], prompt+" /") {
 		return false
 	}
-	for j := i - 1; j >= 0; j-- {
-		if strings.HasPrefix(b.lines[j], prompt) {
+	below := at + 1
+	lines, raw := b.lines[below:b.upper], b.raw[below:b.upper]
+	if slices.ContainsFunc(lines, sent) {
+		return false
+	}
+	for i, l := range lines {
+		if claudes(raw[i], l) {
 			return false
 		}
 	}
-	for i++; i < b.upper && b.lines[i] == ""; i++ {
-	}
-	return i < b.upper && strings.HasPrefix(b.lines[i], outcome)
+	first := slices.IndexFunc(lines, func(l string) bool { return l != "" })
+	return first >= 0 && strings.HasPrefix(lines[first], outcome)
 }
 
 // outcome starts the line Claude Code draws right below a slash command of
