@@ -73,18 +73,19 @@ type sendArgs struct {
 // the text, as "--timeout=0 fails" is.
 func parseSend(args []string) (sendArgs, error) {
 	s := sendArgs{timeout: DefaultWaitTimeout}
+	f := flagsOf("send")
 	var rest []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		flag, value, inline := strings.Cut(a, "=")
 		switch {
-		case a == "--now":
+		case f.is(a, "--now"):
 			s.now = true
-		case a == "--json":
+		case f.is(a, "--json"):
 			s.asJSON = true
-		case a == "--wait":
+		case f.is(a, "--wait"):
 			s.wait = true
-		case flag == "--timeout" && !strings.ContainsAny(a, " \t\n"):
+		case f.is(flag, "--timeout") && !strings.ContainsAny(a, " \t\n"):
 			value, err := optionValue(args, &i, flag, value, inline, sendUsage)
 			if err != nil {
 				return s, err

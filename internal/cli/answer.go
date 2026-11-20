@@ -49,16 +49,17 @@ type answerRequest struct {
 // design §3.4, ADR 0013, ADR 0014).
 func runAnswer(env Env, d deps, args []string) error {
 	var r answerRequest
+	f := flagsOf("answer")
 	var rest []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		flag, value, inline := strings.Cut(a, "=")
 		switch {
-		case a == "--json":
+		case f.is(a, "--json"):
 			r.asJSON = true
-		case a == "--cancel":
+		case f.is(a, "--cancel"):
 			r.cancel = true
-		case flag == "--dialog":
+		case f.is(flag, "--dialog"):
 			if !inline {
 				if i+1 == len(args) {
 					return usageErr("--dialog needs the dialog's id, as hq read shows it (%s)", answerUsage)

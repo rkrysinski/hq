@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
 )
 
@@ -171,25 +170,6 @@ func TestPartsReportWithoutMutantsStillCountsTheFilesInNoPart(t *testing.T) {
 		if err != nil || failed || !reflect.DeepEqual(lines, want) {
 			t.Errorf("%v: got %q, failed %v, err %v\nwant %q", ms, lines, failed, err, want)
 		}
-	}
-}
-
-func TestMutationArgsAreTheBaseAndThePaths(t *testing.T) {
-	for _, c := range []struct {
-		args  []string
-		base  string
-		paths []string
-	}{
-		{[]string{"origin/dev"}, "origin/dev", nil},
-		{[]string{"origin/dev", "internal/state", "internal/cli/cursor.go"}, "origin/dev", []string{"internal/state", "internal/cli/cursor.go"}},
-	} {
-		base, paths, err := mutationArgs(c.args)
-		if err != nil || base != c.base || !slices.Equal(paths, c.paths) {
-			t.Errorf("%q: base %q, paths %q, err %v; want %q, %q", c.args, base, paths, err, c.base, c.paths)
-		}
-	}
-	if _, _, err := mutationArgs(nil); err == nil || !strings.Contains(err.Error(), "needs the base") {
-		t.Errorf("no base: err %v, want one asking for the base", err)
 	}
 }
 

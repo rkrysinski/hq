@@ -101,11 +101,12 @@ type explainArgs struct {
 
 func parseExplain(args []string) (explainArgs, error) {
 	var x explainArgs
+	f := flagsOf("explain")
 	for _, a := range args {
 		switch {
-		case a == "--all":
+		case f.is(a, "--all"):
 			x.all = true
-		case a == "--json":
+		case f.is(a, "--json"):
 			x.asJSON = true
 		case x.name == "" && !strings.HasPrefix(a, "-"):
 			x.name = a

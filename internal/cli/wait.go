@@ -50,22 +50,23 @@ const waitUsage = "hq wait [NAME...] [--since SINCE] [--timeout DURATION] [--jso
 
 func parseWait(args []string, now time.Time) (waitArgs, error) {
 	w := waitArgs{timeout: DefaultWaitTimeout}
+	f := flagsOf("wait")
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		flag, value, inline := strings.Cut(a, "=")
-		switch flag {
-		case "--json":
+		switch {
+		case f.is(flag, "--json"):
 			if inline {
 				return w, unknownOption(a, waitUsage)
 			}
 			w.asJSON = true
 			continue
-		case "--since", "--timeout":
+		case f.is(flag, "--since", "--timeout"):
 			value, err := optionValue(args, &i, flag, value, inline, waitUsage)
 			if err != nil {
 				return w, err
 			}
-			if flag == "--since" {
+			if f.is(flag, "--since") {
 				w.since, err = parseSince(value, now)
 				w.sinceArg = true
 			} else {
