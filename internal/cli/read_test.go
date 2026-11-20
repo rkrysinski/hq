@@ -546,6 +546,62 @@ reply
 	}
 }
 
+// A turn an API error ended without Claude's error line, after a Stop that
+// listed a shell of the agent's own: hq ls, hq read and the supervisor's
+// list and read show hq's own line naming the error's kind as the last
+// message and as the reply, and no own task (spec §5, done, Own tasks).
+// The StopFailure is synthetic, as its fixture (state's testdata/README.md).
+func TestATurnAnAPIErrorEndedWithoutALineShowsHqsOwnLine(t *testing.T) {
+	const line = "[API error: authentication_failed]"
+	f := readFakes()
+	f.states["id-42"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-2 * time.Minute), Last: "Waiting for the background task to report back.",
+		OwnTasks: []state.Task{{Type: "shell", Text: "sleep 120"}}}
+	if _, out, _ := f.run("read", "42"); !strings.Contains(out, "own task: shell  sleep 120") {
+		t.Fatalf("the Stop before:\n%s", out)
+	}
+	at := f.now.Add(-time.Minute)
+	f.journal.Leave("/w/app", journalID("id-42"), "000000100.prompt.1",
+		[]byte(`branch -`+"\n"+`{"hook_event_name":"UserPromptSubmit","session_id":"","cwd":"/w/app","prompt_id":"p2","prompt":"go on"}`), at.Add(-time.Second))
+	f.journal.Leave("/w/app", journalID("id-42"), "000000101.fail.1",
+		[]byte(`branch -`+"\n"+`{"hook_event_name":"StopFailure","session_id":"","cwd":"/w/app","prompt_id":"p2","error":"authentication_failed"}`), at)
+
+	_, out, _ := f.run("ls")
+	if out != "NAME  REPO  BRANCH  STATE  AGE  LAST\n42    app   -       done   1m   "+line+"\n" {
+		t.Fatalf("ls:\n%s", out)
+	}
+	_, ls, _ := f.run("ls", "--json")
+	var l struct {
+		Agents []struct {
+			Last     string       `json:"last"`
+			OwnTasks []state.Task `json:"own_tasks"`
+		} `json:"agents"`
+	}
+	if err := json.Unmarshal([]byte(ls), &l); err != nil || len(l.Agents) != 1 || l.Agents[0].Last != line || !strings.Contains(ls, `"own_tasks": []`) {
+		t.Fatalf("ls --json: %v\n%s", err, ls)
+	}
+	code, out, errOut := f.run("read", "42")
+	want := "name      42\nrepo      app  /w/app\nbranch    -\nworktree  /w/app\nsandbox   claude-x\nstate     done 1m\npending   0\n\nreply\n  " + line + "\n"
+	if code != 0 || out != want {
+		t.Fatalf("read: exit %d %q\ngot\n%s\nwant\n%s", code, errOut, out, want)
+	}
+	_, read, _ := f.run("read", "42", "--json")
+	var v struct {
+		Last     string       `json:"last"`
+		Reply    string       `json:"reply"`
+		OwnTasks []state.Task `json:"own_tasks"`
+	}
+	if err := json.Unmarshal([]byte(read), &v); err != nil || v.Last != line || v.Reply != line || v.OwnTasks == nil || len(v.OwnTasks) != 0 {
+		t.Fatalf("read --json: %v %+v\n%s", err, v, read)
+	}
+	cs := mcpSession(t, f)
+	if got, isErr := call(t, cs, "list", nil); isErr || got != ls {
+		t.Fatalf("the supervisor's list %v:\n%s\nwant\n%s", isErr, got, ls)
+	}
+	if got, isErr := call(t, cs, "read", map[string]any{"name": "42"}); isErr || got != read {
+		t.Fatalf("the supervisor's read %v:\n%s\nwant\n%s", isErr, got, read)
+	}
+}
+
 // A reply of several megabytes comes whole from the journal: hq read
 // --json gives its size, and its pages, the first, one inside and the
 // last, are those of the whole reply.

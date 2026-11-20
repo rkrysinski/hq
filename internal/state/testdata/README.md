@@ -297,6 +297,7 @@ Pane: `WxH` where a source states it; otherwise "at least" the widest line (disp
 | api-error-prompt-again.json | UserPromptSubmit | case B's prompt, to the session whose login had expired | real, as api-error-session-start.json | #224 |
 | api-error-stop-failure-again.json | StopFailure | case B's end, 0.04 s after its prompt, with no tool: the same `error` and `last_assistant_message` | real, as api-error-session-start.json | #224 |
 | api-error-idle-again.json | Notification | `idle_prompt` 60 s after case B's end | real, as api-error-session-start.json | #224 |
+| api-error-stop-failure-no-line.json | StopFailure | case B's end by the API error without an error line: `error` `authentication_failed`, no `last_assistant_message` (the field is optional) | **synthetic, not a capture**: api-error-stop-failure-again.json with `last_assistant_message` left out, since no real end without the line has been captured; a capture of one replaces it | #268 |
 
 ## Journals
 

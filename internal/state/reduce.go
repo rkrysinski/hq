@@ -508,10 +508,35 @@ func (f *Fold) marked(mark string) map[string]bool {
 // message is the reply of turn end e, one line, as reply keeps it for the
 // latest turn end; "" for another (or with no reply).
 func message(e *Event, reply *Reply) string {
-	if e == nil || reply == nil || !EndsTurn(e.Kind) || reply.Number != e.Number {
+	if e == nil || !EndsTurn(e.Kind) {
 		return ""
 	}
-	return Clean(reply.Text)
+	return replyOrFailedLast(e, reply, Clean)
+}
+
+// FailedLast is what hq shows of a turn an API error ended when Claude
+// Code sent no error line, as the last message and as the reply: the
+// error's kind as Claude Code reported it (reason), or none (spec §5,
+// done; design §3.4).
+func FailedLast(reason string) string {
+	if reason == "" {
+		return "[API error]"
+	}
+	return "[API error: " + reason + "]"
+}
+
+// replyOrFailedLast is turn end e's reply as clean gives it, when reply is
+// e's (else ""), or FailedLast when e is a turn an API error ended and that
+// is empty.
+func replyOrFailedLast(e *Event, reply *Reply, clean func(string) string) string {
+	text := ""
+	if reply != nil && reply.Number == e.Number {
+		text = clean(reply.Text)
+	}
+	if text == "" && e.Kind == KindTurnFailed {
+		return FailedLast(e.Facts.Reason)
+	}
+	return text
 }
 
 // reading is the state the hook's reports give; reply is the
