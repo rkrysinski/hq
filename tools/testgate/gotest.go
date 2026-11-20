@@ -140,7 +140,7 @@ func (p *goPackage) test(name string) *goTest {
 		return t
 	}
 	t := &goTest{}
-	for i := strings.LastIndex(name, "/"); i >= 0; i = strings.LastIndex(name[:i], "/") {
+	for i := strings.LastIndex(name, "/"); i != -1; i = strings.LastIndex(name[:i], "/") {
 		if parent := p.tests[name[:i]]; parent != nil {
 			t.parent, t.depth = parent, parent.depth+1
 			parent.items = append(parent.items, testItem{sub: t})

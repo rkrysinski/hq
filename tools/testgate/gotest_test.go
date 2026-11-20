@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -273,8 +274,12 @@ func TestPlainOutputKeepsOtherLinesAndARunThatDidNotEnd(t *testing.T) {
 	})
 }
 
+// A package that passed with no line of its own (its events cut short)
+// prints nothing.
 func TestPlainOutputOfARunThatPassedIsTheResultLines(t *testing.T) {
-	got, err := plainOutput(jsonLines(skippingRun...))
+	got, err := plainOutput(jsonLines(append(slices.Clone(skippingRun),
+		`{"Action":"start","Package":"example.com/s/quiet"}`,
+		`{"Action":"pass","Package":"example.com/s/quiet","Elapsed":0}`)...))
 	if err != nil {
 		t.Fatal(err)
 	}
