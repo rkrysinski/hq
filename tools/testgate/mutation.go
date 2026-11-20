@@ -341,15 +341,6 @@ func (p part) coversAny(sources []string) bool {
 	return slices.ContainsFunc(p.files, func(f string) bool { return slices.Contains(sources, f) })
 }
 
-// mutationArgs reads the mutation command's arguments: the base, then the
-// PATHs of the parts, if any.
-func mutationArgs(args []string) (base string, paths []string, err error) {
-	if len(args) == 0 {
-		return "", nil, errors.New("mutation needs the base the pull request goes into, for example: go run ./tools/testgate mutation origin/dev")
-	}
-	return args[0], args[1:], nil
-}
-
 // runMutation runs the mutants of the lines the tree of repo changes against
 // its merge base with base, writes the command's output to out and progress
 // to progress, and reports whether a mutant is alive or timed out. Every
