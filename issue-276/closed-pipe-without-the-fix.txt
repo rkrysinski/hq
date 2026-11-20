@@ -1,0 +1,27 @@
+The closed-pipe tests of 4ebf447 against load.go with its SIGPIPE handling taken out, then
+with SIGPIPE released by stop() as before c6160dc (under the full build's coverage flags),
+then against load.go as committed. Run from tools/testgate.
+
+== no SIGPIPE handling (signal.Notify(pipes, syscall.SIGPIPE) taken out)
+$ go test -count=1 -tags integration -run 'TestALoadRunLeavesNoLoad/(stdout|the_process_that_started_it_ended,)' .
+--- FAIL: TestALoadRunLeavesNoLoadBehindHoweverItEnds (60.03s)
+    --- FAIL: TestALoadRunLeavesNoLoadBehindHoweverItEnds/stdout_and_stderr_closed (0.01s)
+        load_integration_test.go:297: got signal: broken pipe, want exit 0 once its test passed
+    --- FAIL: TestALoadRunLeavesNoLoadBehindHoweverItEnds/the_process_that_started_it_ended,_its_stdout_and_stderr_closed (60.03s)
+        load_integration_test.go:333: TestWaits started under testgate load: not within 1m0s
+FAIL
+FAIL	github.com/rkrysinski/hq/tools/testgate	60.034s
+FAIL
+
+== SIGPIPE released by stop() (as before c6160dc), under coverage
+$ go test -count=1 -tags integration -coverpkg=./internal/... -run 'TestALoadRunLeavesNoLoad/stdout' .
+--- FAIL: TestALoadRunLeavesNoLoadBehindHoweverItEnds (1.18s)
+    --- FAIL: TestALoadRunLeavesNoLoadBehindHoweverItEnds/stdout_and_stderr_closed (0.15s)
+        load_integration_test.go:297: got signal: broken pipe, want exit 0 once its test passed
+FAIL
+
+== load.go as committed
+$ go test -count=1 -tags integration -coverpkg=./internal/... -run 'TestALoadRun' .
+ok  	github.com/rkrysinski/hq/tools/testgate	6.169s	coverage: [no statements]
+$ go test -count=1 -tags integration -run 'TestALoadRun' .
+ok  	github.com/rkrysinski/hq/tools/testgate	6.171s
