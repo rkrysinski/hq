@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -236,5 +237,51 @@ func TestViewOwnDialogSeesTheModelPickerOverClaudesAgentsList(t *testing.T) {
 	}
 	if _, ok := ViewOwnDialog(readScreen(t, "screen-agents-model-closed.txt")); ok {
 		t.Fatal("closed with Esc: still a dialog")
+	}
+}
+
+// The picker of /model since Claude Code 2.1.326 ends its list in a row
+// with no number that opens the rest of it, ▸ More models, and shows ▾ on
+// that row once it is open, with a line ↑ 2 more above the options and
+// ↓ 7 more below them (2.1.329, #253): the list scrolls, and none of those
+// lines is an option, wherever the cursor is, at 100 columns and at 40.
+func TestViewOwnDialogSeesThatTheModelPickerOfMoreModelsScrolls(t *testing.T) {
+	models := []string{
+		"Default (recommended) Opus 5.5 · Best for everyday, complex tasks",
+		"Opus 5.5 For complex work and everyday tasks",
+		"Fable 5.2 For your toughest challenges",
+		"Sonnet 5.5 Most efficient for simpler tasks",
+		"Haiku 5.5 ✔ Fastest for quick answers",
+	}
+	for _, tc := range []struct {
+		name    string
+		cursor  int      // -1: on no option; unchecked at 40 columns, whose wrapped lines are read as options
+		options []string // nil: not checked
+	}{
+		{"screen-own-model-agents.txt", 4, models},
+		{"screen-own-model-agents-50.txt", 4, models},
+		{"screen-own-model-2329.txt", 4, models},
+		{"screen-own-model-2329-more.txt", -1, models},
+		{"screen-own-model-2329-opened.txt", -1, []string{models[2], models[3], models[4],
+			"Fable 5.1 Most capable for your hardest and longest-running tasks", "Haiku 4.5 Fastest for quick answers"}},
+		{"screen-own-model-2329-40.txt", 0, nil},
+	} {
+		v, ok := ViewOwnDialog(readScreen(t, tc.name))
+		if !ok || !v.Scrolls || v.Ask.Questions[0].Question != "Select model" ||
+			v.Ask.Description != "Your pick is the default for new sessions. For other models, use --model." && strings.Contains(tc.name, "2329") {
+			t.Errorf("%s: %v %+v", tc.name, ok, v)
+			continue
+		}
+		var labels []string
+		for _, o := range v.Ask.Questions[0].Options {
+			labels = append(labels, o.Label)
+			if strings.Contains(o.Label, "More models") || strings.HasSuffix(o.Label, " more") {
+				t.Errorf("%s: option %q", tc.name, o.Label)
+			}
+		}
+		if tc.options != nil && !slices.Equal(labels, tc.options) ||
+			tc.name != "screen-own-model-2329-40.txt" && v.Cursor != tc.cursor {
+			t.Errorf("%s: cursor %d, options %q", tc.name, v.Cursor, labels)
+		}
 	}
 }
