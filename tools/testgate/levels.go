@@ -176,7 +176,12 @@ func modulePath(src string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	for _, l := range strings.Split(string(data), "\n") {
+	return moduleOf(string(data))
+}
+
+// moduleOf is the module's path that the go.mod gomod names.
+func moduleOf(gomod string) (string, error) {
+	for _, l := range strings.Split(gomod, "\n") {
 		l, _, _ = strings.Cut(l, "//")
 		if rest, ok := strings.CutPrefix(strings.TrimSpace(l), "module"); ok && rest != "" && (rest[0] == ' ' || rest[0] == '\t') {
 			return strings.Trim(strings.TrimSpace(rest), `"`), nil
@@ -299,8 +304,8 @@ func handOn(from, to string) error {
 }
 
 // A testLevel is a step of the full build's tests (scripts/check.sh) that
-// a run runs with coverage: its go test arguments, and the directory of src
-// it runs in, which the tree may not have.
+// a run runs with coverage, in src: its go test arguments, and a directory
+// of src that holds its tests, without which the tree has none.
 type testLevel struct {
 	name string   // as the progress names it
 	args []string // after go test's own
@@ -346,6 +351,9 @@ func runLevel(ctx context.Context, l testLevel, src, tmp string, setup coverSetu
 	defer os.RemoveAll(string(d))
 	env := levelEnv(os.Environ(), tmp)
 	cmd := command(ctx, src, env, "go", levelArgs(l, setup, d)...)
+	// A test may start a command of its own process group (a gate a test
+	// of the gate starts does): ending go test's group leaves it running.
+	cmd.Cancel = func() error { return killTree(cmd.Process.Pid) }
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out
 	err := cmd.Run()
@@ -394,4 +402,44 @@ func endTmuxServers(tmp string) {
 		kill.Stdout, kill.Stderr = io.Discard, io.Discard
 		kill.Run()
 	}
+}
+
+// killTree ends with SIGKILL the process pid, its process group and every
+// process below it, each with its own process group, found before any is
+// ended: ps lists them, as no portable call does.
+func killTree(pid int) error {
+	out, err := exec.Command("ps", "-A", "-o", "pid=", "-o", "ppid=").Output()
+	pids := []int{pid}
+	if err == nil {
+		pids = append(pids, descendants(string(out), pid)...)
+	}
+	for _, p := range pids {
+		syscall.Kill(-p, syscall.SIGKILL)
+		syscall.Kill(p, syscall.SIGKILL)
+	}
+	return nil
+}
+
+// descendants are the processes below pid in ps's list of pid and ppid
+// pairs, one pair a line, in the order it finds them.
+func descendants(ps string, pid int) []int {
+	children := map[int][]int{}
+	for _, l := range strings.Split(ps, "\n") {
+		var p, parent int
+		if _, err := fmt.Sscan(l, &p, &parent); err == nil {
+			children[parent] = append(children[parent], p)
+		}
+	}
+	var below []int
+	for next := []int{pid}; len(next) > 0; {
+		p := next[0]
+		next = next[1:]
+		for _, c := range children[p] {
+			if !slices.Contains(below, c) && c != pid {
+				below = append(below, c)
+				next = append(next, c)
+			}
+		}
+	}
+	return below
 }

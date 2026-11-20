@@ -396,7 +396,7 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 		}
 	}
 
-	report := func(ms []mutant, notRun []lineRef, noPart []string) (bool, error) {
+	finish := func(ms []mutant, notRun []lineRef, noPart []string) (bool, error) {
 		var lines []string
 		var failed bool
 		var err error
@@ -416,7 +416,7 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 	var noPart []string
 	if len(paths) == 0 {
 		if !hasMutableGo(changed) {
-			return report(nil, nil, nil)
+			return finish(nil, nil, nil)
 		}
 	} else {
 		files, err := repoFiles(top)
@@ -441,7 +441,7 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 			}
 		}
 		if len(toRun) == 0 {
-			return report(nil, nil, noPart)
+			return finish(nil, nil, noPart)
 		}
 	}
 
@@ -457,7 +457,7 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 	if err != nil {
 		return false, err
 	}
-	return report(ms, notRun, noPart)
+	return finish(ms, notRun, noPart)
 }
 
 // runStaged stages the tree of top in tmp and runs there what the change
@@ -484,6 +484,12 @@ func runStaged(ctx context.Context, top, mergeBase, tmp string, toRun []part, pr
 	if err != nil {
 		return nil, nil, err
 	}
+	// The parts left the staging repository's HEAD at the last part's
+	// commit: the levels' tests see it at the merge base, as in a run
+	// without PATH.
+	if out, err := command(ctx, src, env, "git", "update-ref", "HEAD", mergeBase).CombinedOutput(); err != nil {
+		return nil, nil, fmt.Errorf("git update-ref in the staging repository: %v\n%s", err, out)
+	}
 	var judged func(string) bool // nil: every file
 	if len(toRun) > 0 {
 		judged = func(file string) bool {
@@ -502,7 +508,7 @@ func runStaged(ctx context.Context, top, mergeBase, tmp string, toRun []part, pr
 // journeys, each once (runLevel), and says so in progress.
 func judgeLines(ctx context.Context, src, mergeBase, tmp string, setup coverSetup, c ranBlocks, judged func(string) bool, progress io.Writer) ([]lineRef, error) {
 	diff, err := command(ctx, src, mutationEnv(os.Environ(), tmp), "git", "-c", "core.quotePath=false",
-		"diff", "--cached", "--no-color", "--no-ext-diff", "-M", "-U0", mergeBase).Output()
+		"diff", "--cached", "--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/", "-M", "-U0", mergeBase).Output()
 	if err != nil {
 		return nil, fmt.Errorf("git diff in the staging repository: %v", err)
 	}
@@ -708,13 +714,7 @@ func mutationGoEnv(env []string, src, dir string) (toolEnv []string, machine str
 	if err := os.Symlink(self, filepath.Join(bin, "go")); err != nil {
 		return nil, "", err
 	}
-	path := bin
-	for _, kv := range env {
-		if p, ok := strings.CutPrefix(kv, "PATH="); ok {
-			path = bin + string(os.PathListSeparator) + p
-		}
-	}
-	return append(slices.Clip(env), "PATH="+path, envRealGo+"="+realGo, envSource+"="+src, envMachine+"="+machine),
+	return append(withPath(env, bin), envRealGo+"="+realGo, envSource+"="+src, envMachine+"="+machine),
 		machine, nil
 }
 

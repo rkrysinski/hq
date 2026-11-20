@@ -49,14 +49,18 @@ func judgedFile(file string) bool {
 }
 
 // addedLines reads the output of git diff with no context lines (-U0) and
-// returns, for each file it judges (judgedFile), the lines the new side
-// adds, in order. A deleted file adds none.
+// the prefixes a/ and b/, and returns, for each file it judges
+// (judgedFile), the lines the new side adds, in order. A deleted file adds
+// none. A file's +++ line is read only in its header, before its first
+// hunk: an added line whose text starts with "++ " looks the same.
 func addedLines(diff string) (map[string][]int, error) {
 	added := map[string][]int{}
-	file := ""
+	file, header := "", false
 	for _, l := range strings.Split(diff, "\n") {
 		switch {
-		case strings.HasPrefix(l, "+++ "):
+		case strings.HasPrefix(l, "diff --git "):
+			file, header = "", true
+		case header && strings.HasPrefix(l, "+++ "):
 			name := strings.TrimPrefix(l, "+++ ")
 			if strings.HasPrefix(name, `"`) {
 				unquoted, err := strconv.Unquote(name)
@@ -65,42 +69,21 @@ func addedLines(diff string) (map[string][]int, error) {
 				}
 				name = unquoted
 			}
-			file = ""
 			if rel, ok := strings.CutPrefix(name, "b/"); ok && judgedFile(rel) {
 				file = rel
 			}
-		case strings.HasPrefix(l, "@@ ") && file != "":
-			first, count, err := newSide(l)
-			if err != nil {
-				return nil, err
+		case strings.HasPrefix(l, "@@ "):
+			header = false
+			if file == "" {
+				continue
 			}
+			_, first, count := hunkHeader(l)
 			for n := first; n < first+count; n++ {
 				added[file] = append(added[file], n)
 			}
 		}
 	}
 	return added, nil
-}
-
-// newSide reads the new side of a hunk header, @@ -a,b +c,d @@: its first
-// line c and its number of lines d, 1 when the header leaves it out.
-func newSide(header string) (first, count int, err error) {
-	fields := strings.Fields(header)
-	if len(fields) < 3 || !strings.HasPrefix(fields[2], "+") {
-		return 0, 0, fmt.Errorf("git diff: a hunk header it cannot read: %s", header)
-	}
-	start, length, hasLength := strings.Cut(strings.TrimPrefix(fields[2], "+"), ",")
-	first, err = strconv.Atoi(start)
-	if err != nil {
-		return 0, 0, fmt.Errorf("git diff: a hunk header it cannot read: %s", header)
-	}
-	count = 1
-	if hasLength {
-		if count, err = strconv.Atoi(length); err != nil {
-			return 0, 0, fmt.Errorf("git diff: a hunk header it cannot read: %s", header)
-		}
-	}
-	return first, count, nil
 }
 
 // statementLines returns, for each line of the Go source src that holds a
@@ -171,7 +154,8 @@ func statementLines(filename string, src []byte) (map[int]srcPos, error) {
 }
 
 // coverBlock is a block of a coverage profile: a file by its import path,
-// where the block starts and ends, and whether a run counted it.
+// and where the block starts and ends. Whether a run counted it is its
+// value in ranBlocks.
 type coverBlock struct {
 	file       string
 	start, end srcPos
@@ -250,17 +234,17 @@ func (c ranBlocks) ran(file string, p srcPos) bool {
 // file and line order. module is the module's path, which a profile puts
 // before a file's directory.
 func notRunLines(added map[string][]int, statements map[string]map[int]srcPos, module string, c ranBlocks) []lineRef {
-	var none []lineRef
+	var notRun []lineRef
 	for file, lines := range added {
 		for _, l := range lines {
 			p, ok := statements[file][l]
 			if ok && !c.ran(module+"/"+file, p) {
-				none = append(none, lineRef{file, l})
+				notRun = append(notRun, lineRef{file, l})
 			}
 		}
 	}
-	slices.SortFunc(none, func(a, b lineRef) int {
+	slices.SortFunc(notRun, func(a, b lineRef) int {
 		return cmp.Or(strings.Compare(a.file, b.file), cmp.Compare(a.line, b.line))
 	})
-	return slices.Compact(none)
+	return slices.Compact(notRun)
 }

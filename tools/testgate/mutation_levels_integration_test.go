@@ -19,7 +19,7 @@ import (
 
 // The runs below judge the changed lines that no unit test runs with the
 // higher levels of the small repository's tests (#275): five tests, six
-// runs of the tool. Each level's tests note in the file $TESTGATE_MARKS
+// runs of the gate, seven of the tool (the run in parts runs it twice). Each level's tests note in the file $TESTGATE_MARKS
 // that they ran, which the gate's environment passes on to them.
 
 const envMarks = "TESTGATE_MARKS"
@@ -153,6 +153,14 @@ func TestMutationFailsOnAChangedLineNoTestRunsAlsoInParts(t *testing.T) {
 	// Two lines with no mutant on them, in two packages: no test runs them.
 	write(t, r.dir, "lib/never.go", "package lib\n\nimport \"fmt\"\n\n// Never runs under no test.\nfunc Never() {\n\tfmt.Println(\"never\")\n}\n")
 	write(t, r.dir, "cmd/tool/never.go", "package main\n\n// never runs under no test.\nfunc never() {\n\tkeep()\n}\n")
+	// A git configuration whose diffs name files without a/ and b/, or
+	// with i/ and w/: the gate reads its diff with its own prefixes.
+	config := t.TempDir()
+	write(t, config, "git/config", "[diff]\n\tnoprefix = true\n\tmnemonicPrefix = true\n")
+	t.Setenv("XDG_CONFIG_HOME", config)
+	if got := r.git(r.dir, "config", "--get", "diff.noprefix"); got != "true" {
+		t.Fatalf("git does not read the configuration: diff.noprefix is %q", got)
+	}
 	file := marks(t)
 	tmp, cache := isolated(t)
 	lines, failed, err := runMutationIn(t, r.dir, "main")

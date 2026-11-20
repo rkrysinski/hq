@@ -84,19 +84,23 @@ diff --git a/docs/notes.md b/docs/notes.md
 	}
 }
 
-func TestAddedLinesRefusesWhatItCannotRead(t *testing.T) {
-	for _, diff := range []string{
-		"+++ b/a.go\n@@ -1 @@\n",
-		"+++ b/a.go\n@@ -1 1 @@\n",
-		"+++ b/a.go\n@@ -1 +x @@\n",
-		"+++ b/a.go\n@@ -1 +1,y @@\n",
-		"+++ \"b/a\\q.go\"\n@@ -1 +1 @@\n",
-	} {
-		if _, err := addedLines(diff); err == nil {
-			t.Errorf("%q is read without an error", diff)
-		}
+func TestAddedLinesTakesALineThatLooksLikeAHeaderInAHunkForALine(t *testing.T) {
+	diff := "diff --git a/a.go b/a.go\n--- a/a.go\n+++ b/a.go\n@@ -3,0 +4,2 @@\n+var s = `\n+++ x\n@@ -9 +11 @@\n+`\n" +
+		"diff --git a/b.go b/b.go\n--- a/b.go\n+++ b/b.go\n@@ -1 +1 @@\n+package b\n"
+	got, err := addedLines(diff)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if got, err := addedLines("+++ b/README.md\n@@ -1 nonsense\n"); err != nil || len(got) != 0 {
+	if want := map[string][]int{"a.go": {4, 5, 11}, "b.go": {1}}; !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestAddedLinesRefusesAQuotedNameItCannotRead(t *testing.T) {
+	if _, err := addedLines("diff --git a/x b/x\n+++ \"b/a\\q.go\"\n@@ -1 +1 @@\n"); err == nil {
+		t.Error("a quoted name it cannot read is read without an error")
+	}
+	if got, err := addedLines("diff --git a/R b/R\n+++ b/README.md\n@@ -1 +1,2 @@\n"); err != nil || len(got) != 0 {
 		t.Errorf("a hunk of a file it does not judge: got %v, %v; want it skipped", got, err)
 	}
 }
