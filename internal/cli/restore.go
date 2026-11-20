@@ -203,7 +203,7 @@ func planRestore(d deps, all []sbx.Sandbox, lost []agent.Agent) []restorePlan {
 		}
 		// What its journal gives: the conversation to continue, and where.
 		read := []agent.Agent{a}
-		agent.ReadStates(read, d.journal, d.now(), d.folds)
+		agent.ReadStates(read, d.sources(), d.now(), d.folds)
 		r := read[0]
 		j, err := d.journal.Read(a.ID)
 		switch {

@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -540,4 +541,86 @@ func TestLsBetweenTheStepsOfAKillLeavesTheAgentOut(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &ls); !killed || code != 0 || err != nil || len(ls.Agents) != 1 || ls.Agents[0].Name != "b" {
 		t.Fatalf("killed %v, exit %d:\n%s", killed, code, out)
 	}
+}
+
+// The look of hq ls that reads a's journal after hq kill removed it, its
+// pane dead, writes no journal of a back (#263): nothing would ever remove
+// one that holds no launch.
+func TestLsBetweenTheStepsOfAKillWritesNoJournalBack(t *testing.T) {
+	f := newWaitFakes()
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Done: hi"}
+	f.tmux.windows[1].PaneDead, f.tmux.windows[1].DeadAt = true, f.now.Add(-time.Second)
+	killed := false
+	f.onRead = func(id string) {
+		if id != "id-a" || killed {
+			return
+		}
+		killed = true
+		if code, _, errOut := f.run("kill", "a", "-y"); code != 0 {
+			t.Errorf("kill: %s", errOut)
+		}
+	}
+	if code, _, errOut := f.run("ls"); !killed || code != 0 {
+		t.Fatalf("killed %v, exit %d: %s", killed, code, errOut)
+	}
+	f.noJournalOf(t, "id-a")
+}
+
+// An agent whose journal is not there while its home window stands (a
+// lost state directory) still has its dead pane's death appended, begun
+// as its journal, and shows ended (#263). When tmux cannot say at that
+// moment whether the window stands, the look writes nothing, as a kill
+// under way would leave it for good; the next look, tmux answering, writes
+// it.
+func TestLsAppendsADeadPanesDeathToAJournalNotThereWhileItsWindowStands(t *testing.T) {
+	for _, tmuxFails := range []bool{false, true} {
+		f := newWaitFakes()
+		delete(f.states, "id-a")
+		f.tmux.windows[1].PaneDead, f.tmux.windows[1].DeadAt = true, f.now.Add(-time.Second)
+		f.onAppend = func(id string, _ []state.Event) {
+			if id == "id-a" && tmuxFails {
+				f.tmux.windowsErr = errors.New("tmux gone")
+			}
+		}
+		if tmuxFails {
+			if code, _, errOut := f.run("ls"); code != 0 || f.tmux.windowsErr == nil {
+				t.Fatalf("tmux failing %v: exit %d %s", f.tmux.windowsErr != nil, code, errOut)
+			}
+			f.noJournalOf(t, "id-a")
+			f.onAppend, f.tmux.windowsErr = nil, nil
+		}
+		code, out, errOut := f.run("ls")
+		j, err := f.journal.Read(journalID("id-a"))
+		i := slices.IndexFunc(strings.Split(out, "\n"), func(l string) bool { return strings.HasPrefix(l, "a ") })
+		if code != 0 || i < 0 || !strings.Contains(strings.Split(out, "\n")[i], state.Ended+" ") || err != nil || journaltest.Kinds(j.Events) != state.KindPaneDied {
+			t.Fatalf("tmux fails %v: exit %d %s\n%s\njournal %s %v", tmuxFails, code, errOut, out, journaltest.Kinds(j.Events), err)
+		}
+	}
+}
+
+// Nor does the look that read a's journal whole before hq kill removed it,
+// and appends the death of its pane after (#263); it leaves a out of what
+// it shows, as the look that finds the journal gone does (#239).
+func TestLsThatAppendsAfterAKillRemovedTheJournalItReadWritesNoJournalBack(t *testing.T) {
+	f := newWaitFakes()
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "Done: hi"}
+	f.tmux.windows[1].PaneDead, f.tmux.windows[1].DeadAt = true, f.now.Add(-time.Second)
+	killed := false
+	f.onAppend = func(id string, events []state.Event) {
+		if id != "id-a" || killed || len(events) != 1 || events[0].Kind != state.KindPaneDied {
+			return
+		}
+		killed = true
+		if code, _, errOut := f.run("kill", "a", "-y"); code != 0 {
+			t.Errorf("kill: %s", errOut)
+		}
+	}
+	code, out, _ := f.run("ls", "--json")
+	var ls struct {
+		Agents []lsRow `json:"agents"`
+	}
+	if err := json.Unmarshal([]byte(out), &ls); !killed || code != 0 || err != nil || len(ls.Agents) != 1 || ls.Agents[0].Name != "b" {
+		t.Fatalf("killed %v, exit %d:\n%s", killed, code, out)
+	}
+	f.noJournalOf(t, "id-a")
 }

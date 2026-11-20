@@ -21,10 +21,11 @@ import (
 )
 
 // memStore is a Store over the journals' fake (journaltest.Memory), with
-// the screens it shows, by pane, and the reports each agent's hook made
-// last (report).
+// the screens it shows, by pane, the reports each agent's hook made last
+// (report), and the home windows gone (every other stands).
 type memStore struct {
 	*journaltest.Memory
+	gone       map[string]bool
 	screens    map[string]string
 	captureErr error // the capture fails
 	captures   []string
@@ -32,8 +33,10 @@ type memStore struct {
 }
 
 func newStore(screens map[string]string) *memStore {
-	return &memStore{Memory: journaltest.NewMemory(), screens: screens, reports: map[string]journaltest.HookState{}}
+	return &memStore{Memory: journaltest.NewMemory(), gone: map[string]bool{}, screens: screens, reports: map[string]journaltest.HookState{}}
 }
+
+func (s *memStore) Stands(w string) bool { return !s.gone[w] }
 
 func (s *memStore) Screens(panes []string) (map[string]string, error) {
 	s.captures = append(s.captures, strings.Join(panes, " "))
@@ -125,6 +128,14 @@ func (s *replayStore) Append(_ string, es ...state.Event) ([]state.Event, error)
 	s.events = append(s.events, out...)
 	return out, nil
 }
+
+// AppendEvidence appends as Append does: a replayed journal is there.
+func (s *replayStore) AppendEvidence(id string, _ func() bool, es ...state.Event) ([]state.Event, error) {
+	return s.Append(id, es...)
+}
+
+// Stands says every home window stands.
+func (s *replayStore) Stands(string) bool { return true }
 
 func (s *replayStore) Read(id string) (journal.Journal, error) { return s.ReadFrom(id, 0) }
 
@@ -386,6 +397,10 @@ func (failingStore) ReadFrom(string, int64) (journal.Journal, error) {
 }
 
 func (failingStore) Append(string, ...state.Event) ([]state.Event, error) { return nil, errJournal }
+
+func (failingStore) AppendEvidence(string, func() bool, ...state.Event) ([]state.Event, error) {
+	return nil, errJournal
+}
 
 // An agent whose journal cannot be read is what its window says: starting,
 // or ended when its pane is dead; no screen of it is captured.
