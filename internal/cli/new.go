@@ -28,7 +28,7 @@ const newUsage = "hq new NAME [DIR] [PROMPT] [--setup NAME]"
 // existing directory, otherwise it is the PROMPT; DIR defaults to cwd;
 // --setup NAME, anywhere, is the setup, the default without it.
 func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, error) {
-	args, setup, _, err := parseSetup(args, "usage: "+newUsage)
+	args, setup, _, err := parseSetup(flagsOf("new"), args, "usage: "+newUsage)
 	if err != nil {
 		return newArgs{}, err
 	}
@@ -64,14 +64,14 @@ func parseNew(args []string, isDir func(string) bool, cwd string) (newArgs, erro
 // parseSetup takes --setup NAME (or --setup=NAME), anywhere, out of args:
 // setup is NAME, given whether the flag was there; without it the setup is
 // the default. The flag without a name is refused, usage in brackets after
-// the reason.
-func parseSetup(args []string, usage string) (rest []string, setup string, given bool, err error) {
+// the reason. The command of f takes it.
+func parseSetup(f flagSet, args []string, usage string) (rest []string, setup string, given bool, err error) {
 	setup = prefs.DefaultSetup
 	for i := 0; i < len(args); i++ {
 		a := args[i]
-		v, isSetup := strings.CutPrefix(a, "--setup=")
-		if a == "--setup" {
-			isSetup, v = true, ""
+		flag, v, inline := strings.Cut(a, "=")
+		isSetup := f.is(flag, "--setup")
+		if isSetup && !inline {
 			if i+1 < len(args) {
 				i++
 				v = args[i]
