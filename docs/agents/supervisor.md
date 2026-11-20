@@ -23,6 +23,7 @@ Nothing: the spend an agent reports, its subagents' included, is 0 USD.
 - The project accepts that every agent in that sandbox sees hq's tools while hq is loaded there.
 - The release tester runs in that sandbox too and reaches no real sandbox: its steps use the stub `sbx` (`docs/agents/release-qa.md`).
 - A ticket pull request gets the `Pull request tests` run, the full build on macOS and Ubuntu (`docs/hq/testing.md`, *CI*): the supervisor holds its merge until that run is green on the pull request's head, unless the change touches only the paths the workflow's header lists as skipped, which get no run.
+- A `Pull request tests` job that goes red on one test only, where an open issue names that test and the pull request does not touch the test or the code it tests, is run once more on the same head; the failed run is named in the pull request's `## QA` and on the test's issue. A test no issue names is first filed (`bug`, `needs-triage`, outside the release's milestone), then the same. A second red run of the same job on the same head, or a failure in what the pull request touches, stops the merge and is looked at. Each such rerun goes into the log of the release issue; no approval is asked for it (#281).
 - The user pushes the tag.
 - A release deploys nothing: people install it with the README's one-liner or `hq update` (`docs/hq/releasing.md`).
 
