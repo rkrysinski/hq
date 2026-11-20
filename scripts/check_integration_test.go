@@ -187,11 +187,12 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 			"check: ok   pyramid",
 			"check: ok   platform",
 			"check: ok   timebound",
+			"check: ok   sees",
 			"check: ok   unit",
 			"check: ok   integration",
 			"check: ok   coverage",
 			"check: ok   e2e",
-			"check: all 9 steps passed on " + sha,
+			"check: all 10 steps passed on " + sha,
 		})
 		if code != 0 {
 			t.Fatalf("exit %d", code)
@@ -206,6 +207,7 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 			"go run ./tools/testgate pyramid",
 			"go run ./tools/testgate platform",
 			"go run ./tools/testgate timebound",
+			"go run ./tools/testgate sees",
 			"go test -json ./...",
 			"go test -json -count=1 -tags integration -coverpkg=./internal/... -coverprofile=",
 			"go run ./tools/testgate coverage ",
@@ -237,11 +239,12 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 			"check: ok   pyramid",
 			"check: ok   platform",
 			"check: ok   timebound",
+			"check: ok   sees",
 			"check: ok   unit",
 		}
 		want = append(append(want, skips("unit")...), "check: ok   integration")
 		want = append(append(want, skips("integration")...), "check: ok   coverage", "check: ok   e2e")
-		want = append(append(want, skips("e2e")...), "check: all 9 steps passed on "+sha)
+		want = append(append(want, skips("e2e")...), "check: all 10 steps passed on "+sha)
 		equalLines(t, lines, want)
 		if code != 0 {
 			t.Fatalf("exit %d", code)
@@ -255,8 +258,8 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 	t.Run("a test step that skipped only in one step names its tests after that step alone", func(t *testing.T) {
 		r := newCheckRepo(t, testgate)
 		lines, code := r.run("STUB_SKIP=-coverprofile")
-		if code != 0 || len(lines) != 12 || lines[6] != "check: ok   integration" ||
-			lines[7] != "check: skip integration example.com/p TestSkipped: no tmux here" || lines[9] != "check: ok   coverage" {
+		if code != 0 || len(lines) != 13 || lines[7] != "check: ok   integration" ||
+			lines[8] != "check: skip integration example.com/p TestSkipped: no tmux here" || lines[10] != "check: ok   coverage" {
 			t.Fatalf("exit %d, output:\n%s", code, strings.Join(lines, "\n"))
 		}
 	})
@@ -271,6 +274,7 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 			"check: ok   pyramid",
 			"check: ok   platform",
 			"check: ok   timebound",
+			"check: ok   sees",
 			"check: FAIL unit",
 			"the tests passed, but testgate could not list the tests they skipped",
 			"check: stopped at unit on " + sha,
@@ -293,6 +297,7 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 			"check: ok   pyramid",
 			"check: ok   platform",
 			"check: ok   timebound",
+			"check: ok   sees",
 			"check: ok   unit",
 			"check: FAIL integration",
 			"--- FAIL: TestBroken (0.00s)",
@@ -321,6 +326,7 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 			"check: ok   pyramid",
 			"check: ok   platform",
 			"check: ok   timebound",
+			"check: ok   sees",
 			"check: FAIL unit",
 		}
 		want = append(want, strings.Split(strings.TrimSuffix(passedEvents+failedEvents, "\n"), "\n")...)
@@ -373,13 +379,36 @@ func TestCheckPrintsTheFullBuildContract(t *testing.T) {
 		}
 	})
 
+	t.Run("a use of Sees outside its helper stops the run after the time bound gate", func(t *testing.T) {
+		r := newCheckRepo(t, testgate)
+		lines, code := r.run("STUB_FAIL=testgate sees")
+		sha := r.git("rev-parse", "HEAD")
+		equalLines(t, lines, []string{
+			"check: ok   vet",
+			"check: ok   format",
+			"check: ok   pyramid",
+			"check: ok   platform",
+			"check: ok   timebound",
+			"check: FAIL sees",
+			"figure sees",
+			"boom",
+			"check: stopped at sees on " + sha,
+		})
+		if code != 1 {
+			t.Fatalf("exit %d", code)
+		}
+		if calls := r.calls(); strings.Contains(calls, "go test") {
+			t.Fatalf("a later step ran:\n%s", calls)
+		}
+	})
+
 	t.Run("a dirty tree is named in the passing and in the failing last line", func(t *testing.T) {
 		r := newCheckRepo(t, testgate)
 		writeFile(t, filepath.Join(r.dir, "new.txt"), "x\n", 0o644)
 		sha := r.git("rev-parse", "HEAD")
 
 		lines, code := r.run()
-		if last := lines[len(lines)-1]; code != 0 || last != "check: all 9 steps passed on "+sha+" with uncommitted changes" {
+		if last := lines[len(lines)-1]; code != 0 || last != "check: all 10 steps passed on "+sha+" with uncommitted changes" {
 			t.Fatalf("exit %d, last line %q", code, last)
 		}
 

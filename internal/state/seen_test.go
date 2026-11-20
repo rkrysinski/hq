@@ -1,9 +1,11 @@
 package state
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -14,6 +16,79 @@ import (
 // hook's event basis, with facts.
 func seenEvent(n int64, source, kind string, basis int64, f Facts) Event {
 	return Event{Number: n, Source: source, Kind: kind, Time: atSecond(n), Basis: basis, Facts: f}
+}
+
+// seesWhenItMayTell is what a look at now sees of screen for the fold f,
+// met as the look meets it: it fails the test when the screen may not tell
+// at now (ScreenMayTell), a moment at which the look passes no capture to
+// Sees. It is the one way a test gets what a look sees (#232):
+// go run ./tools/testgate sees fails a test that calls Sees itself (#285).
+func seesWhenItMayTell(t testing.TB, f Fold, screen string, now time.Time) (events []Event, resting bool) {
+	t.Helper()
+	if !f.ScreenMayTell(now) {
+		t.Fatalf("its screen may not tell at %s: the look passes no capture to Sees there", now.Format(time.RFC3339Nano))
+	}
+	return f.Sees(screen, now)
+}
+
+// fatalTB is a test that records the message it is failed with and stops
+// the goroutine it runs in, as Fatalf stops a test.
+type fatalTB struct {
+	testing.TB
+	failed string
+}
+
+func (f *fatalTB) Helper() {}
+
+func (f *fatalTB) Fatalf(format string, args ...any) {
+	f.failed = fmt.Sprintf(format, args...)
+	runtime.Goexit()
+}
+
+// seesIn runs seesWhenItMayTell in a test of its own, and returns what it
+// returned and the message the test was failed with, "" for none.
+func seesIn(f Fold, screen string, now time.Time) (events []Event, resting bool, failed string) {
+	tb := &fatalTB{}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		events, resting = seesWhenItMayTell(tb, f, screen, now)
+	}()
+	<-done
+	return events, resting, tb.failed
+}
+
+// The helper fails a test that passes a capture at a moment at which the
+// screen may not tell, and otherwise returns what Sees returns (#285).
+func TestSeesWhenItMayTellFailsAtAMomentTheScreenMayNotTell(t *testing.T) {
+	// A turn Claude owes for background work: its screen at rest is seen,
+	// and one more look RestDelay later decides.
+	owed := func() Fold {
+		return Fold{}.With(
+			userPrompt(1, "t1"),
+			endOfTurn(2, "t1", false, subagentRunning("a1"), subagentRunning("a2")),
+			hookEvent(3, "prompt", "UserPromptSubmit", Facts{Turn: "w1", Wake: true, Woke: "a1"}),
+			endOfTurn(4, "w1", false),
+		)
+	}
+	for _, tc := range []struct {
+		name string
+		f    Fold
+		now  time.Time
+	}{
+		{"no session", Fold{}, atSecond(9)},
+		{"before the overrule delay", owed(), atSecond(4).Add(OverruleDelay - time.Millisecond)},
+	} {
+		events, resting, failed := seesIn(tc.f, screen(t, "start-ready"), tc.now)
+		if want := "its screen may not tell at " + tc.now.Format(time.RFC3339Nano) + ": the look passes no capture to Sees there"; failed != want || events != nil || resting {
+			t.Errorf("%s: failed %q, returned %+v %v", tc.name, failed, events, resting)
+		}
+	}
+	now := atSecond(4).Add(OverruleDelay)
+	events, resting, failed := seesIn(owed(), screen(t, "start-ready"), now)
+	if failed != "" || len(events) != 1 || events[0].Kind != KindAtRest || !events[0].Time.Equal(now) || !resting {
+		t.Fatalf("owed, at rest: failed %q, returned %+v %v", failed, events, resting)
+	}
 }
 
 // withoutAge is r as it stands whatever time is passed in.
@@ -431,7 +506,7 @@ func TestAFirstPromptThatNeverComesLeavesTheAgentStartingWithNoCompletedTurn(t *
 		t.Fatal("its screen may tell only once the overrule delay has run")
 	}
 	for _, at := range []time.Duration{0, RestDelay, time.Hour} {
-		if seen, resting := f.Sees(ready, early.Add(at)); len(seen) != 0 || resting {
+		if seen, resting := seesWhenItMayTell(t, f, ready, early.Add(at)); len(seen) != 0 || resting {
 			t.Fatalf("at rest %v later: %+v %v", at, seen, resting)
 		}
 	}
@@ -440,7 +515,7 @@ func TestAFirstPromptThatNeverComesLeavesTheAgentStartingWithNoCompletedTurn(t *
 		t.Fatalf("a day later: %s turn ended %d changed %d entered %d", r.State, r.TurnEnded, r.Changed.Number, r.Entered.Number)
 	}
 	// A dialog of Claude's own in the prompt's way is seen there.
-	seen, _ := f.Sees(screen(t, "own-auto-mode"), early)
+	seen, _ := seesWhenItMayTell(t, f, screen(t, "own-auto-mode"), early)
 	if len(seen) != 1 || seen[0].Kind != KindOwnDialog {
 		t.Fatalf("a dialog of Claude's own: %+v", seen)
 	}
@@ -480,10 +555,7 @@ func TestAFirstPromptClaudeTookAsACommandOfItsOwnMakesTheAgentDone(t *testing.T)
 		journal := firstPromptJournal()
 		f := Fold{}.With(journal...)
 		at := atSecond(2).Add(OverruleDelay)
-		if !f.ScreenMayTell(at) {
-			t.Fatalf("%s: its screen may not tell", name)
-		}
-		seen, resting := f.Sees(screen(t, name), at)
+		seen, resting := seesWhenItMayTell(t, f, screen(t, name), at)
 		if len(seen) != 1 || seen[0].Kind != KindTookCommand || seen[0].Source != SourceScreen || !seen[0].Time.Equal(at) || resting {
 			t.Errorf("%s: %+v %v", name, seen, resting)
 			continue
@@ -516,10 +588,7 @@ func TestAFirstPromptThatIsOnlyLateLeavesTheAgentStarting(t *testing.T) {
 		f := Fold{}.With(journal...)
 		at := atSecond(2).Add(OverruleDelay)
 		for _, later := range []time.Duration{0, RestDelay, time.Hour, 24 * time.Hour} {
-			if !f.ScreenMayTell(at.Add(later)) {
-				t.Fatalf("%s, %v later: its screen may not tell", name, later)
-			}
-			if seen, resting := f.Sees(screen(t, name), at.Add(later)); len(seen) != 0 || resting {
+			if seen, resting := seesWhenItMayTell(t, f, screen(t, name), at.Add(later)); len(seen) != 0 || resting {
 				t.Errorf("%s, %v later: %+v %v", name, later, seen, resting)
 			}
 		}
@@ -541,7 +610,7 @@ func TestTheModelPickerAsTheFirstPromptNeedsInputThenTheAgentIsDone(t *testing.T
 		journal := firstPromptJournal()
 		f := Fold{}.With(journal...)
 		at := atSecond(3)
-		opened, _ := f.Sees(screen(t, "own-first-model-2329"+size), at)
+		opened, _ := seesWhenItMayTell(t, f, screen(t, "own-first-model-2329"+size), at)
 		if len(opened) != 1 || opened[0].Kind != KindOwnDialog || opened[0].Facts.Text != "Select model" {
 			t.Fatalf("%s opened: %+v", size, opened)
 		}
@@ -551,7 +620,7 @@ func TestTheModelPickerAsTheFirstPromptNeedsInputThenTheAgentIsDone(t *testing.T
 			t.Fatalf("%s opened: %s %+v", size, r.State, r.Dialog)
 		}
 		f = Fold{}.With(journal...)
-		closed, _ := f.Sees(screen(t, "first-model-kept-2329"+size), atSecond(4))
+		closed, _ := seesWhenItMayTell(t, f, screen(t, "first-model-kept-2329"+size), atSecond(4))
 		if len(closed) != 2 || closed[0].Kind != KindOwnDialogGone || closed[1].Kind != KindTookCommand {
 			t.Fatalf("%s closed: %+v", size, closed)
 		}
@@ -591,7 +660,7 @@ func TestOnlyACommandOfClaudesOwnAsTheFirstPromptShowsTheSign(t *testing.T) {
 		}
 		idle++
 		for _, later := range []time.Duration{0, RestDelay, time.Hour} {
-			if seen, resting := f.Sees(s, atSecond(3).Add(later)); len(seen) != 0 || resting {
+			if seen, resting := seesWhenItMayTell(t, f, s, atSecond(3).Add(later)); len(seen) != 0 || resting {
 				t.Errorf("%s, %v later: %+v %v", base, later, seen, resting)
 			}
 		}
@@ -615,7 +684,7 @@ func TestAnAgentDoneByTookCommandIsAsAnyDoneAgent(t *testing.T) {
 	journal := append(firstPromptJournal(), seenEvent(3, SourceScreen, KindTookCommand, 2, Facts{}))
 	f := Fold{}.With(journal...)
 	for _, name := range tookCommandScreens {
-		if seen, _ := f.Sees(screen(t, name), atSecond(4)); len(seen) != 0 {
+		if seen, _ := seesWhenItMayTell(t, f, screen(t, name), atSecond(4)); len(seen) != 0 {
 			t.Errorf("%s again: %+v", name, seen)
 		}
 	}
@@ -631,7 +700,7 @@ func TestAnAgentDoneByTookCommandIsAsAnyDoneAgent(t *testing.T) {
 	if r := Reduce(turn, Reply{}, atSecond(9)); r.State != Done || r.TurnEnded != 5 {
 		t.Errorf("its turn's end: %s turn ended %d", r.State, r.TurnEnded)
 	}
-	seen, _ := f.Sees(screen(t, "own-first-model-2329"), atSecond(4))
+	seen, _ := seesWhenItMayTell(t, f, screen(t, "own-first-model-2329"), atSecond(4))
 	if len(seen) != 1 || seen[0].Kind != KindOwnDialog {
 		t.Fatalf("a dialog next: %+v", seen)
 	}
@@ -658,7 +727,7 @@ func TestAnAgentDoneByTookCommandIsAsAnyDoneAgent(t *testing.T) {
 // view open there: no dialog of Claude's own, so nothing for hq wait to
 // return (#225). The same holds for an agent done or with a question,
 // whose screen is looked at for such a dialog too. Each screen is met as the
-// look meets it: only at a moment its screen may tell (ScreenMayTell).
+// look meets it: only at a moment its screen may tell (seesWhenItMayTell).
 func TestALookAtClaudesAgentsListOrASubagentsViewLeavesTheAgentAsItWas(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -677,10 +746,7 @@ func TestALookAtClaudesAgentsListOrASubagentsViewLeavesTheAgentAsItWas(t *testin
 		looked := slices.Clone(tc.journal)
 		for name, screen := range agentsScreens(t) {
 			for _, at := range []time.Duration{0, RestDelay, time.Hour} {
-				if !f.ScreenMayTell(atSecond(3).Add(at)) {
-					t.Fatalf("%s, %v later: its screen may not tell", tc.name, at)
-				}
-				seen, resting := f.Sees(screen, atSecond(3).Add(at))
+				seen, resting := seesWhenItMayTell(t, f, screen, atSecond(3).Add(at))
 				if len(seen) != 0 || resting {
 					t.Errorf("%s, %s %v later: %+v %v", tc.name, name, at, seen, resting)
 				}
@@ -693,18 +759,12 @@ func TestALookAtClaudesAgentsListOrASubagentsViewLeavesTheAgentAsItWas(t *testin
 	}
 	// The picker of /model opened over the list is a dialog all the same.
 	f := Fold{}.With(userPrompt(1, "t1"), endOfTurn(2, "t1", false, subagentRunning("a1"), subagentRunning("a2")))
-	if !f.ScreenMayTell(atSecond(3)) {
-		t.Fatal("the picker: its screen may not tell")
-	}
-	seen, _ := f.Sees(readScreen(t, "screen-own-model-agents.txt"), atSecond(3))
+	seen, _ := seesWhenItMayTell(t, f, readScreen(t, "screen-own-model-agents.txt"), atSecond(3))
 	if len(seen) != 1 || seen[0].Kind != KindOwnDialog || seen[0].Facts.Text != "Select model" {
 		t.Fatalf("the picker: %+v", seen)
 	}
 	opened := Fold{}.With(userPrompt(1, "t1"), endOfTurn(2, "t1", false, subagentRunning("a1"), subagentRunning("a2")), seenEvent(3, SourceScreen, KindOwnDialog, 2, seen[0].Facts))
-	if !opened.ScreenMayTell(atSecond(4)) {
-		t.Fatal("the picker closed: its screen may not tell")
-	}
-	if gone, _ := opened.Sees(readScreen(t, "screen-agents-model-closed.txt"), atSecond(4)); len(gone) != 1 || gone[0].Kind != KindOwnDialogGone {
+	if gone, _ := seesWhenItMayTell(t, opened, readScreen(t, "screen-agents-model-closed.txt"), atSecond(4)); len(gone) != 1 || gone[0].Kind != KindOwnDialogGone {
 		t.Fatalf("the picker closed: %+v", gone)
 	}
 }
