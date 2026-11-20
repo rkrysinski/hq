@@ -1,0 +1,55 @@
+$ hq ls --json
+{
+  "agents": [
+    {
+      "name": "a",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-850520706/repo",
+      "branch": "main",
+      "state": "done",
+      "state_seq": 6,
+      "completion_seq": 6,
+      "since": "2026-11-20T17:30:14.822657919Z",
+      "age_seconds": 691,
+      "last": "[API error: authentication_failed]",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c6"
+}
+$ hq read a --json
+{
+  "name": "a",
+  "repo": "repo",
+  "repo_path": "/tmp/hq-stub-850520706/repo",
+  "branch": "main",
+  "state": "done",
+  "state_seq": 6,
+  "completion_seq": 6,
+  "since": "2026-11-20T17:30:14.822657919Z",
+  "age_seconds": 692,
+  "last": "[API error: authentication_failed]",
+  "sandbox": "claude-repo",
+  "setup": "default",
+  "pending": 0,
+  "own_tasks": [],
+  "asks": null,
+  "worktree": "/tmp/hq-stub-850520706/repo",
+  "reply": "[API error: authentication_failed]",
+  "reply_size": 34,
+  "next_offset": null,
+  "next_since": "c6"
+}
+$ hq explain a
+name      a
+state     done 11m, since 2026-11-20 17:30:14.822
+rests on  6
+dialog    at none, never at one
+
+the state rests on, oldest first
+  N  TIME                     SOURCE  WHAT                                              STATE
+  6  2026-11-20 17:30:14.822  hook    turn end by an API error (authentication_failed)  done

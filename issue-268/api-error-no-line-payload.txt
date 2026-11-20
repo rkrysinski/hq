@@ -1,0 +1,2 @@
+# the synthetic StopFailure fed to the hook's fail case (internal/state/testdata/api-error-stop-failure-no-line.json, session, cwd and prompt id of the stub agent):
+{"session_id": "fa4ec1a0-0000-4000-8000-0000003c2be6", "transcript_path": "/home/agent/.claude/projects/-w-app/11111111-2222-4333-8444-555555555555.jsonl", "cwd": "/tmp/hq-stub-850520706/repo", "prompt_id": "qa-268-turn", "effort": {"level": "medium"}, "hook_event_name": "StopFailure", "error": "authentication_failed"}
