@@ -6,7 +6,7 @@ Running the checks and cleaning up an issue's worktree in hq: `docs/hq/issue-tra
 
 ## Conventions
 
-- **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
+- **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc with a quoted delimiter (`<<'EOF'`) for multi-line bodies: an unquoted one runs each backtick and `$(` of the body as a command, and `.claude/hooks/bash-guard.sh` refuses it.
 - **Read an issue**: `gh issue view <n> --json title,body,comments` (add `labels,state` to the fields when you need them). Always pass `--json` when viewing an issue or a pull request: the plain forms fail on the older `gh` (2.46) found in sandboxes.
 - **Edit an issue's description**: write the new body to a file, then `gh api --method PATCH repos/{owner}/{repo}/issues/<n> -F body=@<file>` (`-f body="..."` for one line).
 - **List issues**: `gh issue list --state open --json number,title,body,labels --jq '[.[] | {number, title, body, labels: [.labels[].name]}]'` with appropriate `--label` and `--state` filters.
@@ -100,7 +100,7 @@ A release built with the release skills (`/release-prepare`, `/release-implement
 
 **Ticket pull requests** follow `.github/PULL_REQUEST_TEMPLATE.md`, its `## Rollback` section included: one line per step of `## Before deployment` and `## After deployment` naming the step's compensation, or `None: one-way door` for a step that cannot be undone (`scripts/check-pr.sh` requires it whenever a deploy section is present, in a release or not). The merger squash-merges a ticket pull request into the release branch with the default commit message once the integration review has no open *block* finding, the branch is up to date with the release branch, the `Pull request` check is green on that head and the full build in its `## QA` section names that head (`docs/agents/testing.md`, *Merging*; the release branch gets no `Tests` run).
 
-**Bookkeeping commits** on the release branch (the version bump, review fixes, a revert, a hotfix merge resolution) carry `Closes #<release issue>` on a line of their own, the way every commit carries a `Closes` line. The version bump is `scripts/bump-version.sh X.Y.Z`, the last commit before the tag.
+**Bookkeeping commits** on the release branch (the version bump, review fixes, a revert, a hotfix merge resolution) carry `Closes #<release issue>` on a line of their own, the way every commit carries a `Closes` line. The description of a pull request of review fixes may close the release issue as well: `scripts/release.sh` gives the release issue no line, and lists that pull request under Internal when it closes no other issue (`docs/releasing.md`). The version bump is `scripts/bump-version.sh X.Y.Z`, the last commit before the tag.
 
 **Who merges what.** The merger role merges ticket pull requests into the release branch; only the operator merges the master pull request into `dev` and pushes the tag. A *block* finding of the integration review goes back to the ticket's implementer, never to the operator.
 

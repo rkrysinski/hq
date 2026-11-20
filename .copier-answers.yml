@@ -1,6 +1,6 @@
 # Written by Copier; do not edit it by hand. `copier update` reads it to know
 # which version of the template this project comes from and how it was answered.
-_commit: v2.5.0
+_commit: v2.7.0
 _src_path: git+template:upstream
 description: One console for many Claude Code agents running in Docker Sandboxes and
     tmux

@@ -17,6 +17,9 @@
 # Issue labels decide the section: `enhancement` -> New features, `bug` -> Fixes,
 # `internal` -> Internal (alongside pull requests that closed no issue), the rest
 # -> Other. A spec (`prd`) is left out of the notes; milestone and comment stay.
+# A closing keyword naming the release issue (`release`) counts for nothing: the
+# issue gets no line, milestone or comment, and a pull request closing only it is
+# one that closed no issue.
 #
 # Exits 0 on success, 1 on a failure that needs a human, 2 on usage errors.
 #
@@ -51,7 +54,7 @@ TEXT_MILESTONE='Release'
 TEXT_RELEASED_IN='Released in'
 
 usage() {
-    sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
 }
 
