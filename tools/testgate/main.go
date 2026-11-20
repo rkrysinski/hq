@@ -166,7 +166,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
 		}
-		fmt.Printf("sees: %d test files checked, uses of Sees outside %s: %d\n", checked, seesHelperFunc, len(hits))
+		fmt.Printf("sees: %d test files checked, uses of Sees outside %s and problems of the helper: %d\n", checked, seesHelperFunc, len(hits))
 		for _, h := range hits {
 			problems = append(problems, h.String())
 		}

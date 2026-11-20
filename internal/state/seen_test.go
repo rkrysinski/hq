@@ -58,30 +58,31 @@ func seesIn(f Fold, screen string, now time.Time) (events []Event, resting bool,
 // The helper fails a test that passes a capture at a moment at which the
 // screen may not tell, and otherwise returns what Sees returns (#285).
 func TestSeesWhenItMayTellFailsAtAMomentTheScreenMayNotTell(t *testing.T) {
-	ready := screen(t, "start-ready")
 	// A turn Claude owes for background work: its screen at rest is seen,
 	// and one more look RestDelay later decides.
-	owed := Fold{}.With(
-		userPrompt(1, "t1"),
-		endOfTurn(2, "t1", false, subagentRunning("a1"), subagentRunning("a2")),
-		hookEvent(3, "prompt", "UserPromptSubmit", Facts{Turn: "w1", Wake: true, Woke: "a1"}),
-		endOfTurn(4, "w1", false),
-	)
+	owed := func() Fold {
+		return Fold{}.With(
+			userPrompt(1, "t1"),
+			endOfTurn(2, "t1", false, subagentRunning("a1"), subagentRunning("a2")),
+			hookEvent(3, "prompt", "UserPromptSubmit", Facts{Turn: "w1", Wake: true, Woke: "a1"}),
+			endOfTurn(4, "w1", false),
+		)
+	}
 	for _, tc := range []struct {
 		name string
 		f    Fold
 		now  time.Time
 	}{
 		{"no session", Fold{}, atSecond(9)},
-		{"before the overrule delay", owed, atSecond(4).Add(OverruleDelay - time.Millisecond)},
+		{"before the overrule delay", owed(), atSecond(4).Add(OverruleDelay - time.Millisecond)},
 	} {
-		events, resting, failed := seesIn(tc.f, ready, tc.now)
+		events, resting, failed := seesIn(tc.f, screen(t, "start-ready"), tc.now)
 		if want := "its screen may not tell at " + tc.now.Format(time.RFC3339Nano) + ": the look passes no capture to Sees there"; failed != want || events != nil || resting {
 			t.Errorf("%s: failed %q, returned %+v %v", tc.name, failed, events, resting)
 		}
 	}
 	now := atSecond(4).Add(OverruleDelay)
-	events, resting, failed := seesIn(owed, ready, now)
+	events, resting, failed := seesIn(owed(), screen(t, "start-ready"), now)
 	if failed != "" || len(events) != 1 || events[0].Kind != KindAtRest || !events[0].Time.Equal(now) || !resting {
 		t.Fatalf("owed, at rest: failed %q, returned %+v %v", failed, events, resting)
 	}

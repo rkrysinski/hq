@@ -22,8 +22,8 @@ const (
 	seesHelperFunc = "seesWhenItMayTell"
 )
 
-// seesHit is a use of a method named Sees outside the helper, or, with line
-// 0 or why set, the helper missing or not asking ScreenMayTell.
+// seesHit is a use of a method named Sees outside the helper, or, with why
+// set, the helper missing (line 0) or not calling ScreenMayTell.
 type seesHit struct {
 	file string
 	line int
@@ -32,8 +32,11 @@ type seesHit struct {
 
 func (h seesHit) String() string {
 	if h.why != "" {
-		return fmt.Sprintf("%s:%d %s: the gate exempts it as the one place a test calls Sees, so it must be there and first require ScreenMayTell",
-			h.file, h.line, h.why)
+		at := h.file
+		if h.line != 0 {
+			at = fmt.Sprintf("%s:%d", h.file, h.line)
+		}
+		return at + " " + h.why + ": the gate exempts it as the one place a test calls Sees, so it must be there and call ScreenMayTell"
 	}
 	return fmt.Sprintf("%s:%d uses Sees outside %s: get what a look sees through %s (%s), which first requires ScreenMayTell at that moment",
 		h.file, h.line, seesHelperFunc, seesHelperFunc, seesHelperFile)
@@ -41,8 +44,8 @@ func (h seesHit) String() string {
 
 // seesHelper is what scanSees found of the helper in its file.
 type seesHelper struct {
-	found, asks bool
-	line        int
+	found, callsScreenMayTell bool
+	line                      int
 }
 
 // scanSees reports every use of a method named Sees in the Go source file
@@ -69,7 +72,7 @@ func scanSees(rel string, src []byte) ([]seesHit, seesHelper, error) {
 	var helper seesHelper
 	for _, decl := range file.Decls {
 		if fn, ok := decl.(*ast.FuncDecl); ok && rel == seesHelperFile && fn.Recv == nil && fn.Name.Name == seesHelperFunc {
-			helper = seesHelper{found: true, line: fset.Position(fn.Pos()).Line, asks: asksScreenMayTell(fn)}
+			helper = seesHelper{found: true, line: fset.Position(fn.Pos()).Line, callsScreenMayTell: asksScreenMayTell(fn)}
 			continue
 		}
 		ast.Inspect(decl, func(node ast.Node) bool {
@@ -128,14 +131,14 @@ func checkSees(root string) ([]seesHit, int, error) {
 			return err
 		}
 		rel, _ := filepath.Rel(root, p)
-		h, found, err := scanSees(filepath.ToSlash(rel), src)
+		h, inFile, err := scanSees(filepath.ToSlash(rel), src)
 		if err != nil {
 			return err
 		}
 		checked++
 		hits = append(hits, h...)
-		if found.found {
-			helper = found
+		if inFile.found {
+			helper = inFile
 		}
 		return nil
 	})
@@ -145,7 +148,7 @@ func checkSees(root string) ([]seesHit, int, error) {
 	switch {
 	case !helper.found:
 		hits = append(hits, seesHit{file: seesHelperFile, why: "has no function " + seesHelperFunc})
-	case !helper.asks:
+	case !helper.callsScreenMayTell:
 		hits = append(hits, seesHit{file: seesHelperFile, line: helper.line, why: seesHelperFunc + " does not call ScreenMayTell"})
 	}
 	return hits, checked, nil

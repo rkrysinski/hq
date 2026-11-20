@@ -86,7 +86,7 @@ func TestSeesExemptsTheHelperInItsFileOnly(t *testing.T) {
 	if want := []seesHit{{file: seesHelperFile, line: 13}}; !reflect.DeepEqual(hits, want) {
 		t.Errorf("hits %v, want %v", hits, want)
 	}
-	if want := (seesHelper{found: true, asks: true, line: 5}); helper != want {
+	if want := (seesHelper{found: true, callsScreenMayTell: true, line: 5}); helper != want {
 		t.Errorf("helper %+v, want %+v", helper, want)
 	}
 	// The same function in another file is no helper.
@@ -109,7 +109,7 @@ func TestSeesExemptsTheHelperInItsFileOnly(t *testing.T) {
 	}
 	// Taking ScreenMayTell as a value is no asking.
 	value := strings.Replace(helperSrc, "!f.ScreenMayTell(now)", "f.ScreenMayTell == nil", 1)
-	if _, helper, _ := scanSees(seesHelperFile, []byte(value)); helper.asks {
+	if _, helper, _ := scanSees(seesHelperFile, []byte(value)); helper.callsScreenMayTell {
 		t.Errorf("a value: helper %+v", helper)
 	}
 }
@@ -181,7 +181,11 @@ func TestSeesHitSaysWhatToDoInstead(t *testing.T) {
 		t.Errorf("a use: %q", use)
 	}
 	missing := seesHit{file: seesHelperFile, why: "has no function seesWhenItMayTell"}.String()
-	if want := "internal/state/seen_test.go:0 has no function seesWhenItMayTell: the gate exempts it as the one place a test calls Sees, so it must be there and first require ScreenMayTell"; missing != want {
+	if want := "internal/state/seen_test.go has no function seesWhenItMayTell: the gate exempts it as the one place a test calls Sees, so it must be there and call ScreenMayTell"; missing != want {
 		t.Errorf("the helper missing: %q", missing)
+	}
+	silent := seesHit{file: seesHelperFile, line: 5, why: "seesWhenItMayTell does not call ScreenMayTell"}.String()
+	if want := "internal/state/seen_test.go:5 seesWhenItMayTell does not call ScreenMayTell: the gate exempts it as the one place a test calls Sees, so it must be there and call ScreenMayTell"; silent != want {
+		t.Errorf("the helper not asking: %q", silent)
 	}
 }

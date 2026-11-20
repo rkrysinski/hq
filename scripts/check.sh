@@ -24,9 +24,9 @@
 # elapsed time under 1s), sees (tools/testgate: no test calls Sees but
 # through the helper that first requires ScreenMayTell), unit, integration
 # (with coverage of internal/), coverage (tools/testgate's threshold), e2e.
-# A passed step's output is not
-# printed; the figures of pyramid and coverage, and the skip lines, go to the
-# GitHub job summary when GITHUB_STEP_SUMMARY is set. The test steps (unit,
+# A passed step's output is not printed; the figures of pyramid and coverage,
+# and the skip lines, go to the GitHub job summary when GITHUB_STEP_SUMMARY is
+# set. The test steps (unit,
 # integration, e2e) run go test -json: of a passed one, testgate skips names
 # each test it skipped, a subtest under its full name, with the test's reason
 # on one line (#270), and a run that skipped nothing prints no such line; a
