@@ -1,0 +1,50 @@
+# The SIGTERM-halfway load run of #276 (the operator's decision on #309).
+# GATE=load by default; the dry run sets GATE=prepost, which blocks on stdin and loads nothing.
+gate=${GATE:-load}
+if [ "$gate" = load ]; then
+	go run ./tools/testgate load -p 3 -count 1500 -o /tmp/qa-276-load/run-3 -run '^TestTheReducerGivesWhatEveryFixtureJournalHolds$' ./internal/state &
+	want="load -p 3 -count 1500 -o /tmp/qa-276-load/run-3 -run ^TestTheReducerGivesWhatEveryFixtureJournalHolds$ ./internal/state"
+else
+	[ -p /tmp/qa-276-load/dry.fifo ] || mkfifo /tmp/qa-276-load/dry.fifo
+	go run ./tools/testgate prepost <>/tmp/qa-276-load/dry.fifo &
+	want="prepost"
+fi
+gorun=$!
+echo "--- go run started, pid $gorun"
+
+# Halfway: once the three go test processes are up (bounded: 120 s), 20 s more.
+if [ "$gate" = load ]; then
+	i=0
+	until [ "$(ps -A -o args= | awk '/^go test -json -count 1500 -run [^ ]*TestTheReducerGivesWhatEveryFixtureJournalHolds/ && !/awk/' | wc -l)" -ge 3 ] || [ $i -ge 240 ]; do sleep 0.5; i=$((i + 1)); done
+	echo "--- the three go test processes are up; SIGTERM in 20 s"
+	sleep 20
+fi
+
+# The testgate process: the child of this go run whose binary's path ends in
+# /testgate (go run runs it from the build cache: .../go-build/<hh>/<hash>-d/testgate),
+# bounded: 120 s for go run to build and start it.
+i=0
+pid=
+until [ -n "$pid" ] || [ $i -ge 240 ]; do
+	pid=$(ps -A -o pid=,ppid=,args= | awk -v parent="$gorun" '$2 == parent && $3 ~ /\/testgate$/ {print $1}')
+	[ -n "$pid" ] || sleep 0.5
+	i=$((i + 1))
+done
+cmdline=
+[ -n "$pid" ] && cmdline=$(ps -o args= -p "$pid")
+echo "--- the process to signal: pid ${pid:-none}, its command line: ${cmdline:-none}"
+case "$cmdline" in
+*/testgate" $want")
+	echo "--- checked: it is this run's testgate; SIGTERM to $pid at $(date -u +%T)Z"
+	kill -TERM "$pid"
+	;;
+*)
+	echo "--- not this run's testgate: no signal to it; SIGTERM to go run instead, whose end testgate notices within a second"
+	kill -TERM "$gorun"
+	;;
+esac
+wait "$gorun"
+echo "exit $? (go run's; testgate's own exit code is in the line go run prints)"
+echo '--- the process list right after it (its go test processes, their test binaries, testgate):'
+ps -A -o pid,pgid,stat,etime,args | awk '/go test -json -count 1500 |-test[.]count=1500|[/]testgate (load|prepost)/ && !/awk/'
+echo "processes of the run left: $(ps -A -o args | awk '/go test -json -count 1500 |-test[.]count=1500|[/]testgate (load|prepost)/ && !/awk/' | wc -l)"

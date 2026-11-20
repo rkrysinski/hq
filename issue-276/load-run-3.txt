@@ -1,0 +1,47 @@
+$ sh /tmp/qa-276-load/run-3.sh
+--- go run started, pid 901261
+load: go test -list '^TestTheReducerGivesWhatEveryFixtureJournalHolds$' ./internal/state
+load: tests: TestTheReducerGivesWhatEveryFixtureJournalHolds
+load: 10 busy workers started
+commit 9eb61994f10b09d8f73a1dbb207e19889f5d3e0a
+cores 10, busy workers 10
+processes 3, each: go test -json -count 1500 -run '^TestTheReducerGivesWhatEveryFixtureJournalHolds$' -timeout 11m0s ./internal/state
+time limit 10m0s (the default)
+output in /tmp/qa-276-load/run-3
+started 2026-11-20T17:47:36Z, load average (1 min) 0.27
+load: process 1 started, process group 901368
+load: process 2 started, process group 901372
+load: process 3 started, process group 901373
+--- the three go test processes are up; SIGTERM in 20 s
+--- the process to signal: pid 901299, its command line: /home/agent/.cache/go-build/4d/4dee2e6a0243f0e04d6d11ca1ce0a860b1691a3ad96fb2c4f14dd199c66d7f6b-d/testg
+ate load -p 3 -count 1500 -o /tmp/qa-276-load/run-3 -run ^TestTheReducerGivesWhatEveryFixtureJournalHolds$ ./internal/state
+--- checked: it is this run's testgate; SIGTERM to 901299 at 17:47:57Z
+load: process 2 ended: exit status 1
+load: process 3 ended: exit status 1
+load: process 1 ended: exit status 1
+load: 10 busy workers stopped
+ended 2026-11-20T17:47:57Z, load average (1 min) 5.62
+process 1: exit status 1, output /tmp/qa-276-load/run-3/process-1.out, last lines:
+    signal: interrupt
+    FAIL	github.com/rkrysinski/hq/internal/state	20.170s
+    FAIL
+process 2: exit status 1, output /tmp/qa-276-load/run-3/process-2.out, last lines:
+    signal: interrupt
+    FAIL	github.com/rkrysinski/hq/internal/state	20.192s
+    FAIL
+process 3: exit status 1, output /tmp/qa-276-load/run-3/process-3.out, last lines:
+    signal: interrupt
+    FAIL	github.com/rkrysinski/hq/internal/state	20.209s
+    FAIL
+process 1, TestTheReducerGivesWhatEveryFixtureJournalHolds, run 721: never ended
+    signal: interrupt
+process 2, TestTheReducerGivesWhatEveryFixtureJournalHolds, run 708: never ended
+    signal: interrupt
+process 3, TestTheReducerGivesWhatEveryFixtureJournalHolds, run 721: never ended
+    signal: interrupt
+testgate: load: interrupted by SIGTERM: the tests were stopped
+exit status 2
+exit 1 (go run's; testgate's own exit code is in the line go run prints)
+--- the process list right after it (its go test processes, their test binaries, testgate):
+processes of the run left: 0
+$
