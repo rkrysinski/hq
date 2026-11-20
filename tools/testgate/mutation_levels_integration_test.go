@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -131,6 +132,17 @@ func TestMutationRunsTheHigherLevelsForTheLinesNoUnitTestRuns(t *testing.T) {
 	}
 	if failed {
 		t.Error("a mutant not covered fails the run")
+	}
+	// The three cases, each on its own.
+	for _, c := range []struct{ name, line string }{
+		{"a line only an integration test runs", "not run    lib/levels.go:4"},
+		{"a line only a journey runs", "not run    lib/levels.go:7"},
+		{"a line that runs only in a program a test builds and starts", "not run    cmd/prog/main.go:11"},
+		{"main of that program", "not run    cmd/prog/main.go:6"},
+	} {
+		if slices.Contains(lines, c.line) {
+			t.Errorf("%s is not run: %q", c.name, c.line)
+		}
 	}
 	if got := marked(t, file); !reflect.DeepEqual(got, []string{"integration", "e2e"}) {
 		t.Errorf("the levels ran %q, want the integration tests and then the journeys, once each", got)
