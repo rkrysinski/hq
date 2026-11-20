@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -405,18 +406,16 @@ func listPattern(run string) string {
 func subtestLevels(run string) func(name string) int {
 	alternatives := runAlternatives(run)
 	return func(name string) int {
-		levels := 0
+		levels := math.MaxInt // none of the alternatives named the test yet
 		for _, a := range alternatives {
 			top, err := regexp.Compile(a[0])
 			if err != nil || !top.MatchString(name) {
 				continue
 			}
-			if len(a) == 1 {
-				return 0
-			}
-			if levels == 0 || len(a)-1 < levels {
-				levels = len(a) - 1
-			}
+			levels = min(levels, len(a)-1)
+		}
+		if levels == math.MaxInt {
+			return 0
 		}
 		return levels
 	}
