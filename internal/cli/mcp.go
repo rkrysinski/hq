@@ -31,18 +31,24 @@ type mcpClient struct {
 	// client gives a tool call, so that a wait returns "nothing yet"
 	// instead of failing.
 	maxWait time.Duration
+	// updated is what every tool call answers once the hq on disk is of
+	// another generation, and remedy what the supervisor tells the user
+	// to do about it, each naming what that client's user has (#249).
+	updated, remedy string
 }
 
 var (
 	// Claude Desktop gives a local MCP server's tool call 60 s and does not
 	// extend it for progress notifications.
-	claudeDesktop = mcpClient{name: "claude-desktop", title: "Claude Desktop", maxWait: DefaultWaitTimeout}
+	claudeDesktop = mcpClient{name: "claude-desktop", title: "Claude Desktop", maxWait: DefaultWaitTimeout, updated: hqUpdated, remedy: restartInClient}
 	// Claude Code gives a tool call the timeout of the server's entry,
 	// which hq mcp install sets a minute above maxWait.
-	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour}
+	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour, updated: hqUpdated, remedy: restartInClient}
 	// A Claude Code inside a sandbox reaches hq through sbx's MCP gateway,
-	// which gives a tool call 60 s, as Claude Desktop does (#141).
-	sbxGateway = mcpClient{name: "sbx", title: "sbx", maxWait: DefaultWaitTimeout}
+	// which gives a tool call 60 s, as Claude Desktop does (#141). The
+	// gateway starts hq on the host, where restarting the Claude Code in
+	// the sandbox does not replace it, and hq sandbox restart does (#249).
+	sbxGateway = mcpClient{name: "sbx", title: "sbx", maxWait: DefaultWaitTimeout, updated: hqUpdatedInSandbox, remedy: restartTheSandbox}
 	mcpClients = []mcpClient{claudeDesktop, claudeCode, sbxGateway}
 )
 
@@ -469,7 +475,7 @@ func unloadHq(env Env, d deps, sbs []sbx.Sandbox) error {
 }
 
 // mcpInstructions teach a supervisor how to work with hq's agents, every
-// client alike; a client's instructions add what its updatedLine means.
+// client alike; a client's instructions add what its updated line means.
 // The tools' descriptions repeat what each needs.
 var mcpInstructions = `hq runs Claude Code agents, each working on one task in its repository, for the user. You supervise them: start them, follow them and give them feedback.
 
@@ -483,24 +489,16 @@ var mcpInstructions = `hq runs Claude Code agents, each working on one task in i
 - An agent in the state outdated was started by another hq than the one serving you, so hq cannot read its state: read, send, answer and a wait that names it fail, and a wait on every agent leaves it out. Do not wait on it: tell the user which agent it is; they can open it (go) to finish or save its work by hand, and it has to be killed and started again.
 - kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.`
 
-// updatedLine is what every tool call answers once the hq on disk is of
-// another generation, naming the remedy c's user has (#249).
-func (c mcpClient) updatedLine() string {
-	if c == sbxGateway {
-		return hqUpdatedInSandbox
-	}
-	return hqUpdated
-}
+// The remedies the instructions name for a client's updated line.
+const (
+	restartInClient   = "Tell the user that hq was updated and has to be restarted in this client; the tools work again after that."
+	restartTheSandbox = "This server runs on the host, started by sbx's MCP gateway, so restarting the Claude Code you run in does not replace it: tell the user to run hq sandbox restart for this sandbox's repository on the host, which starts this sandbox's hq anew; the tools work again after that."
+)
 
-// instructions are mcpInstructions with what c's updatedLine means and
+// instructions are mcpInstructions with what c's updated line means and
 // what the supervisor does about it.
 func (c mcpClient) instructions() string {
-	if c == sbxGateway {
-		return mcpInstructions + `
-- A tool call that fails with ` + "`" + hqUpdatedInSandbox + "`" + ` means hq on the host was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. This server runs on the host, started by sbx's MCP gateway, so restarting the Claude Code you run in does not replace it: tell the user to run hq sandbox restart for this sandbox's repository on the host, which starts this sandbox's hq anew; the tools work again after that.`
-	}
-	return mcpInstructions + `
-- A tool call that fails with ` + "`" + hqUpdated + "`" + ` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. Tell the user that hq was updated and has to be restarted in this client; the tools work again after that.`
+	return mcpInstructions + "\n- A tool call that fails with `" + c.updated + "` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. " + c.remedy
 }
 
 // Tool inputs.
@@ -560,7 +558,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	// What its tools give agents is the supervisor's, not the user's.
 	d.supervisor = true
 	s := mcp.NewServer(&mcp.Implementation{Name: "hq", Title: "hq", Version: version.Version}, &mcp.ServerOptions{Instructions: client.instructions()})
-	s.AddReceivingMiddleware(stepAside(watchOnDisk(d), client.updatedLine()))
+	s.AddReceivingMiddleware(stepAside(watchOnDisk(d), client.updated))
 	no, yes := false, true
 
 	mcp.AddTool(s, &mcp.Tool{

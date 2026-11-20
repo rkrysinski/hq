@@ -1467,16 +1467,14 @@ func TestMCPAfterAnUpdateOfTheSameGenerationEveryClientServes(t *testing.T) {
 // clients' say what they said before (#249).
 func TestMCPInstructionsNameTheRemedyOfTheClient(t *testing.T) {
 	desktop := "\n- A tool call that fails with `hq was updated: restart hq in this client` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. Tell the user that hq was updated and has to be restarted in this client; the tools work again after that."
-	sandbox := "\n- A tool call that fails with `hq was updated: on the host, run hq sandbox restart for this sandbox's repository` means hq on the host was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. This server runs on the host, started by sbx's MCP gateway, so restarting the Claude Code you run in does not replace it: tell the user to run hq sandbox restart for this sandbox's repository on the host, which starts this sandbox's hq anew; the tools work again after that."
+	sandbox := "\n- A tool call that fails with `hq was updated: on the host, run hq sandbox restart for this sandbox's repository` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. This server runs on the host, started by sbx's MCP gateway, so restarting the Claude Code you run in does not replace it: tell the user to run hq sandbox restart for this sandbox's repository on the host, which starts this sandbox's hq anew; the tools work again after that."
 	for client, want := range map[mcpClient]string{claudeDesktop: desktop, claudeCode: desktop, sbxGateway: sandbox} {
 		f := goFakes()
 		f.tty = false
 		got := connect(t, newMCPServer(f.deps(), client)).InitializeResult().Instructions
-		if !strings.HasSuffix(got, want) || strings.Count(got, "`hq was updated") != 1 {
+		// The rest is every client's, as before.
+		if got != mcpInstructions+want || !strings.HasPrefix(got, "hq runs Claude Code agents") {
 			t.Errorf("%s: instructions end %q", client.name, got[max(0, len(got)-len(want)-40):])
-		}
-		if !strings.HasPrefix(got, "hq runs Claude Code agents") {
-			t.Errorf("%s: instructions start %q", client.name, got[:40])
 		}
 	}
 }
