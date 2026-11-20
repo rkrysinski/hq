@@ -157,7 +157,6 @@ fi
 
 if [ -n "$mode" ]; then
     BIN=$STUB_ENV/bin/hq
-    # Said on stderr and only when created, so hq's output stays hq's.
     if [ ! -d "$STUB_ENV" ]; then
         mkdir -p "$STUB_ENV"
         echo "local-dev: stub environment $STUB_ENV created" >&2

@@ -51,15 +51,20 @@ func (d *localDev) realDir() string {
 	return dir
 }
 
-// run runs local-dev.sh with args and returns its output and whether it
-// succeeded.
-func (d *localDev) run(args ...string) (string, bool) {
-	d.t.Helper()
+// command is local-dev.sh with args, in this test's environment.
+func (d *localDev) command(args ...string) *exec.Cmd {
 	_, file, _, _ := runtime.Caller(0)
 	cmd := exec.Command(filepath.Join(filepath.Dir(file), "local-dev.sh"), args...)
 	cmd.Env = d.env
 	cmd.Dir = os.TempDir()
-	out, err := cmd.CombinedOutput()
+	return cmd
+}
+
+// run runs local-dev.sh with args and returns its output and whether it
+// succeeded.
+func (d *localDev) run(args ...string) (string, bool) {
+	d.t.Helper()
+	out, err := d.command(args...).CombinedOutput()
 	return string(out), err == nil
 }
 
@@ -67,10 +72,7 @@ func (d *localDev) run(args ...string) (string, bool) {
 // stderr apart, and whether it succeeded.
 func (d *localDev) runApart(args ...string) (string, string, bool) {
 	d.t.Helper()
-	_, file, _, _ := runtime.Caller(0)
-	cmd := exec.Command(filepath.Join(filepath.Dir(file), "local-dev.sh"), args...)
-	cmd.Env = d.env
-	cmd.Dir = os.TempDir()
+	cmd := d.command(args...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	err := cmd.Run()
@@ -245,45 +247,55 @@ func TestARunKeepsItsTemporaryFilesInADirectoryOfTheCheckoutsOwnUntilKillServer(
 	}
 }
 
+// exists tells whether path exists.
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
 // --stub-env prints the path of the checkout's stub environment and nothing
-// else, creates nothing, and names the directory a --stub run then creates
+// else, changes nothing, and names the directory a --stub run then creates
 // and --kill-server removes (#299).
 func TestStubEnvPrintsThePathAloneAndCreatesNothing(t *testing.T) {
 	d := newLocalDev(t)
 	devTmp := filepath.Join(os.TempDir(), "hq-dev-"+d.id)
-	want := "/tmp/hq-stub-" + d.id + "\n"
-	stubEnv := func() {
+	// What --stub-env may not change: the stub environment, the checkout's
+	// temporary directory and its tmux server.
+	state := func() [3]bool {
+		server := exec.Command("tmux", "-L", "hq-dev-"+d.id, "has-session").Run() == nil
+		return [3]bool{exists(d.dir()), exists(devTmp), server}
+	}
+	printsThePathAndChangesNothing := func() {
 		t.Helper()
+		before := state()
 		stdout, stderr, ok := d.runApart("--stub-env")
-		if !ok || stdout != want || stderr != "" {
-			t.Fatalf("ok %v, stdout %q, stderr %q, want stdout %q", ok, stdout, stderr, want)
+		if !ok || stdout != d.dir()+"\n" || stderr != "" {
+			t.Fatalf("ok %v, stdout %q, stderr %q, want stdout %q", ok, stdout, stderr, d.dir()+"\n")
+		}
+		if after := state(); after != before {
+			t.Fatalf("stub environment, temporary directory, tmux server: %v before --stub-env, %v after", before, after)
 		}
 	}
-	stubEnv()
-	for _, p := range []string{d.dir(), devTmp} {
-		if _, err := os.Stat(p); !os.IsNotExist(err) {
-			t.Fatalf("%s after --stub-env: %v", p, err)
-		}
-	}
-	if exec.Command("tmux", "-L", "hq-dev-"+d.id, "has-session").Run() == nil {
-		t.Fatal("a tmux server after --stub-env")
+	printsThePathAndChangesNothing()
+	if s := state(); s != [3]bool{} {
+		t.Fatalf("stub environment, temporary directory, tmux server before any run: %v", s)
 	}
 	d.must("--stub", "native", "--version")
-	stubEnv()
-	if info, err := os.Stat(strings.TrimSuffix(want, "\n")); err != nil || !info.IsDir() {
-		t.Fatalf("--stub created no %s: %v", want, err)
+	if !exists(d.dir()) {
+		t.Fatalf("--stub created no %s", d.dir())
 	}
-	if out := d.must("--kill-server"); !strings.Contains(out, "stub environment "+strings.TrimSuffix(want, "\n")+" removed") {
-		t.Fatalf("--kill-server: %s", out)
+	printsThePathAndChangesNothing()
+	if out := d.must("--kill-server"); !strings.Contains(out, "stub environment "+d.dir()+" removed") || exists(d.dir()) {
+		t.Fatalf("--kill-server left %s: %s", d.dir(), out)
 	}
-	stubEnv()
+	printsThePathAndChangesNothing()
 }
 
 // A --stub run that creates the stub environment says so on stderr, and
-// only then; hq's output on stdout stays hq's alone (#299).
+// only then; its stdout is hq's alone (#299).
 func TestStubSaysOnStderrWhenItCreatesTheStubEnvironment(t *testing.T) {
 	d := newLocalDev(t)
-	line := "local-dev: stub environment /tmp/hq-stub-" + d.id + " created\n"
+	line := "local-dev: stub environment " + d.dir() + " created\n"
 	run := func() (string, string) {
 		t.Helper()
 		stdout, stderr, ok := d.runApart("--stub", "native", "--version")
@@ -296,8 +308,9 @@ func TestStubSaysOnStderrWhenItCreatesTheStubEnvironment(t *testing.T) {
 	if !strings.Contains(stderr, line) {
 		t.Fatalf("first run's stderr %q has no %q", stderr, line)
 	}
-	if !strings.HasPrefix(first, "hq ") || strings.Contains(first, "local-dev") {
-		t.Fatalf("first run's stdout %q", first)
+	hqs, err := exec.Command(filepath.Join(d.dir(), "bin", "hq"), "--version").Output()
+	if err != nil || first != string(hqs) {
+		t.Fatalf("first run's stdout %q, hq's own %q (%v)", first, hqs, err)
 	}
 	second, stderr := run()
 	if strings.Contains(stderr, "stub environment") || second != first {
