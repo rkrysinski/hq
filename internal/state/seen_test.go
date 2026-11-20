@@ -449,13 +449,13 @@ func TestAFirstPromptThatNeverComesLeavesTheAgentStartingWithNoCompletedTurn(t *
 }
 
 // An agent whose turn ended while its background subagents run is working
-// (spec, Background work), and a look at its pane appends nothing for the
-// agents list with its cursor anywhere or for a subagent's view open
-// there: no dialog of Claude's own, so nothing for hq wait to return
-// (#225). The same holds for an agent done or with a question, whose
-// screen is looked at for such a dialog too. Each screen is met as the
+// (spec, Background work), and a look at its pane appends nothing for
+// Claude's agents list with the cursor on it anywhere or for a subagent's
+// view open there: no dialog of Claude's own, so nothing for hq wait to
+// return (#225). The same holds for an agent done or with a question,
+// whose screen is looked at for such a dialog too. Each screen is met as the
 // look meets it: only at a moment its screen may tell (ScreenMayTell).
-func TestALookAtTheAgentsListOrASubagentsViewLeavesTheAgentAsItWas(t *testing.T) {
+func TestALookAtClaudesAgentsListOrASubagentsViewLeavesTheAgentAsItWas(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		journal []Event
