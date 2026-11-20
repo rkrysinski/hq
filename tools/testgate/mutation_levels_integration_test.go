@@ -136,10 +136,10 @@ func TestMutationRunsTheHigherLevelsForTheLinesNoUnitTestRuns(t *testing.T) {
 		t.Errorf("the levels ran %q, want the integration tests and then the journeys, once each", got)
 	}
 	for _, say := range []string{
-		"mutation: 4 changed lines are not run so far, running the integration tests once with coverage",
-		"mutation: 1 changed line is not run so far, running the journeys once with coverage",
+		"mutation: 4 changed lines are not run so far, running the integration tests once with coverage\nmutation: the integration tests done in ",
+		"mutation: 1 changed line is not run so far, running the journeys once with coverage\nmutation: the journeys done in ",
 	} {
-		if !strings.Contains(progress.String(), say+"\n") {
+		if !strings.Contains(progress.String(), say) {
 			t.Errorf("the progress does not say %q:\n%s", say, progress.String())
 		}
 	}

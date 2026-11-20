@@ -560,9 +560,11 @@ func judgeLines(ctx context.Context, src, tmp string, setup coverSetup, lines ch
 			continue
 		}
 		fmt.Fprintf(progress, "mutation: %s, running %s once with coverage\n", linesNotRun(len(left)), l.name)
+		start := time.Now()
 		if err := runLevel(ctx, l, src, tmp, setup, c); err != nil {
 			return nil, err
 		}
+		fmt.Fprintf(progress, "mutation: %s done in %s\n", l.name, time.Since(start).Round(time.Second))
 	}
 	return notRun(), nil
 }
