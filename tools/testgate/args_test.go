@@ -53,6 +53,14 @@ func TestReadArgsAcceptsTheFormsOfTheUsageLineAndRefusesTheRest(t *testing.T) {
 		{args: []string{"mutation", "origin/dev", "internal/state", "internal/cli/cursor.go"},
 			want: invocation{"mutation", []string{"origin/dev", "internal/state", "internal/cli/cursor.go"}}},
 		{args: []string{"mutation"}, refused: mutationRefused},
+
+		{args: []string{"skips", "unit", "out.json"}, want: invocation{"skips", []string{"unit", "out.json"}}},
+		{args: []string{"skips", "unit"}, refused: usage},
+		{args: []string{"skips", "unit", "out.json", "extra"}, refused: usage},
+
+		{args: []string{"plain", "out.json"}, want: invocation{"plain", []string{"out.json"}}},
+		{args: []string{"plain"}, refused: usage},
+		{args: []string{"plain", "out.json", "extra"}, refused: usage},
 	} {
 		got, err := readArgs(c.args)
 		switch {

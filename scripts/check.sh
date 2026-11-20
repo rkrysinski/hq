@@ -7,6 +7,9 @@
 # Its output is a contract the team's release skills read, the same one the
 # project template's full build prints:
 #   check: ok   <step>                       one line per passed step
+#   check: skip <step> <package> <test>: <reason>
+#                                            after a passed test step's ok
+#                                            line, one per test it skipped
 #   check: FAIL <step>                       at the first failing step, then
 #   <that step's output>                     its output, then
 #   check: stopped at <step> on <commit>     and exit 1; no later step runs
@@ -18,8 +21,14 @@
 # platform (tools/testgate), timebound (tools/testgate: no test bounds real
 # elapsed time under 1s), unit, integration (with coverage of internal/),
 # coverage (tools/testgate's threshold), e2e. A passed step's output is not
-# printed; the figures of pyramid and coverage go to the GitHub job summary
-# when GITHUB_STEP_SUMMARY is set. See docs/hq/testing.md.
+# printed; the figures of pyramid and coverage, and the skip lines, go to the
+# GitHub job summary when GITHUB_STEP_SUMMARY is set. The test steps (unit,
+# integration, e2e) run go test -json: of a passed one, testgate skips names
+# each test it skipped, a subtest under its full name, with the test's reason
+# on one line (#270), and a run that skipped nothing prints no such line; a
+# skipped test does not fail the build, and testgate failing to list them
+# fails the step. Of a failed one, testgate plain prints the output as go
+# test prints it without -json. See docs/hq/testing.md.
 
 set -u
 
@@ -69,22 +78,37 @@ step_platform() { go run ./tools/testgate platform; }
 
 step_timebound() { go run ./tools/testgate timebound; }
 
-step_unit() { go test ./...; }
+# gotest runs go test -json with the arguments given for the test step
+# $step. When the tests pass it writes the step's skip lines to $tmp/skips
+# and fails when testgate cannot list them; when they fail it prints their
+# output as go test prints it without -json, or as go test -json printed it
+# when testgate cannot read it.
+gotest() {
+	if go test -json "$@" >"$tmp/json" 2>&1; then
+		go run ./tools/testgate skips "$step" "$tmp/json" >"$tmp/skips"
+		return
+	fi
+	go run ./tools/testgate plain "$tmp/json" 2>/dev/null || cat "$tmp/json"
+	return 1
+}
+
+step_unit() { gotest ./...; }
 
 # -count=1: a cached package's profile describes the code of the run that
 # filled the cache, not this one's (#53).
 step_integration() {
-	go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile="$tmp/cover.out" ./...
+	gotest -count=1 -tags integration -coverpkg=./internal/... -coverprofile="$tmp/cover.out" ./...
 }
 
 step_coverage() { go run ./tools/testgate coverage "$tmp/cover.out"; }
 
 step_e2e() {
-	if [ -d e2e ]; then go test -tags e2e ./e2e/...; else echo "no journeys yet"; fi
+	if [ -d e2e ]; then gotest -tags e2e ./e2e/...; else echo "no journeys yet"; fi
 }
 
 n=0
 for step in vet format pyramid platform timebound unit integration coverage e2e; do
+	: >"$tmp/skips"
 	if ! "step_$step" >"$tmp/out" 2>&1; then
 		echo "check: FAIL $step"
 		cat "$tmp/out"
@@ -92,11 +116,18 @@ for step in vet format pyramid platform timebound unit integration coverage e2e;
 		exit 1
 	fi
 	echo "check: ok   $step"
+	cat "$tmp/skips"
 	n=$((n + 1))
-	# The two gates' figures, which the thresholds follow (testing.md).
-	case $step in pyramid | coverage)
-		if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then cat "$tmp/out" >>"$GITHUB_STEP_SUMMARY"; fi
-		;;
-	esac
+	[ -n "${GITHUB_STEP_SUMMARY:-}" ] || continue
+	# The two gates' figures, which the thresholds follow (testing.md), and
+	# the tests a step skipped, as they are, in a block of their own.
+	case $step in pyramid | coverage) cat "$tmp/out" >>"$GITHUB_STEP_SUMMARY" ;; esac
+	if [ -s "$tmp/skips" ]; then
+		{
+			echo '```text'
+			cat "$tmp/skips"
+			echo '```'
+		} >>"$GITHUB_STEP_SUMMARY"
+	fi
 done
 echo "check: all $n steps passed on $commit"

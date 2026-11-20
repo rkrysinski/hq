@@ -29,6 +29,8 @@ var forms = []form{
 	{name: "timebound", most: 1, dflt: "."},
 	{name: "mutation", least: 1, most: anyNumber,
 		missing: "mutation needs the base the pull request goes into, for example: go run ./tools/testgate mutation origin/dev"},
+	{name: "skips", least: 2, most: 2},
+	{name: "plain", least: 1, most: 1},
 }
 
 // An invocation is what a command line asks for: the command and its values,
