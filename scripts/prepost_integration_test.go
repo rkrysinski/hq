@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -171,4 +173,126 @@ func TestTheProjectSettingsRunTheHookOnEveryBashCommand(t *testing.T) {
 		}
 	}
 	t.Fatalf("no PreToolUse hook on Bash runs scripts/claude-hooks/prepost:\n%s", body)
+}
+
+// The test above reads .claude/settings.json, so a pull request that
+// changes only that file gets the Pull request tests run: no pattern of a
+// skip list (paths-ignore) of that workflow matches the file (#301).
+func TestAPullRequestThatChangesOnlyTheProjectSettingsGetsATestRun(t *testing.T) {
+	const workflow, file = ".github/workflows/pull-request-tests.yml", ".claude/settings.json"
+	body, err := os.ReadFile("../" + workflow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var covering []string
+	for _, p := range skipPatterns(t, string(body)) {
+		if matchesPathFilter(t, p, file) {
+			covering = append(covering, p)
+		}
+	}
+	if len(covering) > 0 {
+		t.Fatalf("the skip list of %s covers %s with %q: a pull request that changes only that file gets no run, though TestTheProjectSettingsRunTheHookOnEveryBashCommand reads it", workflow, file, covering)
+	}
+}
+
+// skipPatterns returns the patterns of every paths-ignore list of a
+// workflow. hq has no YAML library, so it reads each list as a block
+// sequence of one pattern per line, and fails on a list written otherwise
+// rather than find no pattern in it.
+func skipPatterns(t *testing.T, workflow string) []string {
+	t.Helper()
+	var patterns []string
+	list := -1 // the indentation of the paths-ignore key whose entries follow, or -1
+	for n, line := range strings.Split(workflow, "\n") {
+		text := strings.TrimSpace(line)
+		if text == "" || strings.HasPrefix(text, "#") {
+			continue
+		}
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		if entry, ok := strings.CutPrefix(text, "- "); ok && list >= 0 && indent >= list {
+			patterns = append(patterns, yamlScalar(t, n+1, strings.TrimSpace(entry)))
+			continue
+		}
+		list = -1
+		if key, value, _ := strings.Cut(text, ":"); key == "paths-ignore" {
+			if value = strings.TrimSpace(value); value != "" && !strings.HasPrefix(value, "#") {
+				t.Fatalf("line %d: paths-ignore: %s: write the list one pattern per line", n+1, value)
+			}
+			list = indent
+		}
+	}
+	return patterns
+}
+
+// yamlScalar is the value of a YAML scalar written on line n: a single- or
+// double-quoted one without its quotes, a plain one up to its comment.
+func yamlScalar(t *testing.T, n int, s string) string {
+	t.Helper()
+	switch {
+	case strings.HasPrefix(s, "'"):
+		var v strings.Builder
+		for i := 1; i < len(s); i++ {
+			if s[i] != '\'' {
+				v.WriteByte(s[i])
+			} else if i+1 < len(s) && s[i+1] == '\'' {
+				v.WriteByte('\'')
+				i++
+			} else {
+				return v.String()
+			}
+		}
+	case strings.HasPrefix(s, `"`):
+		if q, err := strconv.QuotedPrefix(s); err == nil {
+			if v, err := strconv.Unquote(q); err == nil {
+				return v
+			}
+		}
+	default:
+		v, _, _ := strings.Cut(s, " #")
+		return strings.TrimSpace(v)
+	}
+	t.Fatalf("line %d: cannot read the pattern %s", n, s)
+	return ""
+}
+
+// matchesPathFilter reports whether a pattern of a workflow's paths filter
+// matches the whole of path, by GitHub's filter pattern syntax: * is any
+// characters but /, ** any characters, and **/ any directories or none; ?
+// and + make the character before them optional or repeatable; [...] is one
+// character of a class; \ takes the next character as it is. A leading dot
+// is a character like any other, the stricter reading for a skip list.
+func matchesPathFilter(t *testing.T, pattern, path string) bool {
+	t.Helper()
+	var re strings.Builder
+	for i := 0; i < len(pattern); i++ {
+		switch rest := pattern[i:]; {
+		case strings.HasPrefix(rest, "**/"):
+			re.WriteString("(.*/)?")
+			i += 2
+		case strings.HasPrefix(rest, "**"):
+			re.WriteString(".*")
+			i++
+		case rest[0] == '*':
+			re.WriteString("[^/]*")
+		case rest[0] == '?', rest[0] == '+':
+			re.WriteByte(rest[0])
+		case rest[0] == '[':
+			end := strings.IndexByte(rest, ']')
+			if end < 0 {
+				t.Fatalf("the pattern %q has [ without ]", pattern)
+			}
+			re.WriteString(rest[:end+1])
+			i += end
+		case rest[0] == '\\' && len(rest) > 1:
+			re.WriteString(regexp.QuoteMeta(rest[1:2]))
+			i++
+		default:
+			re.WriteString(regexp.QuoteMeta(rest[:1]))
+		}
+	}
+	matched, err := regexp.MatchString("^(?:"+re.String()+")$", path)
+	if err != nil {
+		t.Fatalf("the pattern %q: %v", pattern, err)
+	}
+	return matched
 }
