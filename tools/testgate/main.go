@@ -28,14 +28,22 @@
 // command that posts a text (#231). prepost reads the PreToolUse hook's
 // input on stdin (prepost.go).
 //
-// mutation prints one line per mutant left alive or timed out and a last
-// line with the counts, and exits 1 when there is such a mutant (#204,
-// mutation.go). Each PATH, a package's directory or a Go file, is a part:
-// the parts run one after another, each with a build cache of its own, and
-// the changed production files no part covers get a line each (#233).
-// Like every gate it exits 2 on an error of its own, unit tests that failed
-// with a mutant and fail without it too included: no mutant is judged
-// (#234, mutationgo.go).
+// mutation prints one line per mutant left alive, timed out or not covered
+// by a unit test, one line per changed line that holds a statement no test
+// at any level runs (not run), and a last line with the counts, and exits
+// 1 when a mutant is alive or timed out or a line is not run (#204, #275,
+// mutation.go). Which lines run it learns from coverage: of the unit tests
+// in the tool's first run, then, while a changed line is not run, of the
+// integration tests and of the journeys, each run once, in the tests'
+// processes and in the programs of the module they build and start, which
+// the gate's own binary, run as go test's -exec and as a go first in the
+// tests' PATH, builds with coverage (levels.go, notrun.go). Each PATH, a
+// package's directory or a Go file, is a part: the parts run one after
+// another, each with a build cache of its own, and the changed production
+// files no part covers get a line each (#233). Like every gate it exits 2
+// on an error of its own, unit tests that failed with a mutant and fail
+// without it too included, and a test of a higher level that fails: no
+// mutant and no line is judged (#234, mutationgo.go).
 //
 // skips and plain read a test step's go test -json output from FILE, which
 // scripts/check.sh writes (#270, gotest.go): skips prints a line
@@ -79,8 +87,8 @@ const (
 )
 
 func main() {
-	if isMutationGo(os.Args[0], os.Getenv(envRealGo)) {
-		os.Exit(mutationGo(os.Args[1:]))
+	if code, ok := runRole(os.Args); ok {
+		os.Exit(code)
 	}
 	inv, err := readArgs(os.Args[1:])
 	if err != nil {

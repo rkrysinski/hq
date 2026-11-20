@@ -121,10 +121,13 @@ func TestMutationJudgesTheChangedLinesWithTheWholeUnitSuite(t *testing.T) {
 	want := []string{
 		// package main: a real test run, so alive, not falsely killed
 		"alive      cmd/tool/main.go:6:33 conditionals boundary",
-		// killed: big's negation, and Double, whose only test is in package user;
-		// not covered: unused, a changed line that follows unchanged ones in
-		// its hunk; nothing of Half, which only main changed
-		"mutation: 2 killed, 1 alive, 0 timed out, 1 not covered against main on " + head + " with uncommitted changes",
+		// unused, a changed line that follows unchanged ones in its hunk: no
+		// test at any level runs it, and no unit test covers its mutant
+		"not run    cmd/tool/main.go:11",
+		"not covered cmd/tool/main.go:11:35 arithmetic base",
+		// killed: big's negation, and Double, whose only test is in package
+		// user; nothing of Half, which only main changed
+		"mutation: 2 killed, 1 alive, 0 timed out, 1 not covered, 1 not run against main on " + head + " with uncommitted changes",
 	}
 	if !reflect.DeepEqual(lines, want) {
 		t.Errorf("got\n%s\nwant\n%s", strings.Join(lines, "\n"), strings.Join(want, "\n"))
@@ -189,7 +192,7 @@ func TestMutationWithNothingToMutate(t *testing.T) {
 	write(t, r.dir, "lib/more_test.go", "package lib\n\nimport \"testing\"\n\nfunc TestMore(t *testing.T) {}\n")
 	sha := r.commit("scripts/run.sh", "#!/bin/sh\n", "No Go code")
 	lines, failed, err := runMutationIn(t, r.dir, "main")
-	want := []string{"mutation: no mutants in the lines changed against main on " + sha}
+	want := []string{"mutation: no mutants in the lines changed, 0 not run against main on " + sha}
 	if err != nil || failed || !reflect.DeepEqual(lines, want) {
 		t.Errorf("documents and tests: got %q, failed %v, err %v; want %q", lines, failed, err, want)
 	}

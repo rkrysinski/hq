@@ -59,6 +59,11 @@ func isMutationGo(arg0, realGo string) bool {
 func mutationGo(args []string) int {
 	start := time.Now()
 	realGo := os.Getenv(envRealGo)
+	if dir := os.Getenv(envCover); dir != "" && !isMutantRun(args) {
+		if runArgs, profile, ok := toolCoverageRun(args, coverDir(dir), os.Getenv(envCoverGo)); ok {
+			return coverageRun(realGo, runArgs, profile, coverDir(dir))
+		}
+	}
 	cmd := exec.Command(realGo, args...)
 	cmd.Stdin = os.Stdin
 	if !isMutantRun(args) {
@@ -90,6 +95,47 @@ func mutationGo(args []string) int {
 		}
 		tellMachineFailed(os.Getenv(envMachine), fmt.Sprintf("go %s: %v\n%s", strings.Join(again, " "), err, got))
 		break
+	}
+	return code
+}
+
+// toolCoverageRun reads args, the tool's arguments of a go command, as its
+// first run of the unit tests, the only one with -coverprofile, and returns
+// them with each test binary run through this binary with GOCOVERDIR set to
+// d's counters and the run's go, in bin, first in PATH (testExecFlag), and
+// the file of its -coverprofile; ok is false for any other command.
+func toolCoverageRun(args []string, d coverDir, bin string) (runArgs []string, profile string, ok bool) {
+	i := slices.Index(args, "-coverprofile")
+	if len(args) == 0 || args[0] != "test" || i < 0 || i+1 >= len(args) {
+		return nil, "", false
+	}
+	self, err := os.Executable()
+	if err != nil {
+		return nil, "", false
+	}
+	return slices.Concat(args[:1], []string{"-exec", testExecFlag(self, d.counters(), bin)}, args[1:]), args[i+1], true
+}
+
+// coverageRun runs the tool's first run of the unit tests, runArgs, and
+// returns its exit code; when it passes, its profile is copied to d
+// (coverDir), where the gate reads it once the tool is done.
+func coverageRun(realGo string, runArgs []string, profile string, d coverDir) int {
+	cmd := exec.Command(realGo, runArgs...)
+	var env []string
+	for _, kv := range os.Environ() {
+		name, _, _ := strings.Cut(kv, "=")
+		if name != envCover && name != envCoverGo {
+			env = append(env, kv)
+		}
+	}
+	cmd.Env = env
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	code := exitCode(cmd.Run())
+	if code == 0 {
+		if err := copyEntry(profile, d.profile()); err != nil {
+			fmt.Fprintln(os.Stderr, "go:", err)
+			return 2
+		}
 	}
 	return code
 }

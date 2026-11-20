@@ -71,7 +71,8 @@ const (
 	verdictAlive      = "alive"
 	verdictTimedOut   = "timed out"
 	verdictNotCovered = "not covered"
-	verdictOutside    = "" // a line the change does not touch
+	verdictNotRun     = "not run" // a changed line no test runs, not a mutant
+	verdictOutside    = ""        // a line the change does not touch
 )
 
 // verdict maps a status of the tool to the command's own word. A mutant the
@@ -117,30 +118,31 @@ func parseGremlinsReport(r io.Reader) ([]mutant, error) {
 	return ms, nil
 }
 
-// mutationReport is the command's output for the mutants of a run: one line
-// per alive and per timed-out mutant, in file and line order, and the last
-// line with the counts, the base and the head. failed is true when a mutant
-// is alive or timed out. head is HEAD's full sha, with " with uncommitted
+// mutationReport is the command's output for a run: one line per alive,
+// timed-out and not-covered mutant and per changed line no test runs
+// (notRun), in file and line order, and the last line with the counts, the
+// base and the head. failed is true when a mutant is alive or timed out, or
+// a line is not run. head is HEAD's full sha, with " with uncommitted
 // changes" when the tree is not clean, as the full build's last line has it.
-func mutationReport(ms []mutant, base, head string) (lines []string, failed bool, err error) {
-	return report(ms, base, head, nil, false)
+func mutationReport(ms []mutant, notRun []lineRef, base, head string) (lines []string, failed bool, err error) {
+	return report(ms, notRun, base, head, nil, false)
 }
 
-// partsReport is the command's output for the mutants of a run in parts:
-// mutationReport's, with one line for each changed production file in no
-// part, noPart, after the mutants', and their number in the last line,
-// also when it is 0. Files in no part never fail the run.
-func partsReport(ms []mutant, noPart []string, base, head string) (lines []string, failed bool, err error) {
-	return report(ms, base, head, noPart, true)
+// partsReport is the command's output for a run in parts: mutationReport's,
+// with one line for each changed production file in no part, noPart, after
+// the others, and their number in the last line, also when it is 0. Files
+// in no part never fail the run.
+func partsReport(ms []mutant, notRun []lineRef, noPart []string, base, head string) (lines []string, failed bool, err error) {
+	return report(ms, notRun, base, head, noPart, true)
 }
 
-func report(ms []mutant, base, head string, noPart []string, parts bool) (lines []string, failed bool, err error) {
-	type survivor struct {
+func report(ms []mutant, notRun []lineRef, base, head string, noPart []string, parts bool) (lines []string, failed bool, err error) {
+	type shown struct {
 		verdict string
-		mutant
+		mutant  // a not-run line has no column, kind nor status
 	}
 	counts := map[string]int{}
-	var shown []survivor
+	var all []shown
 	for _, m := range ms {
 		v, err := verdict(m.status)
 		if err != nil {
@@ -150,32 +152,41 @@ func report(ms []mutant, base, head string, noPart []string, parts bool) (lines 
 			continue
 		}
 		counts[v]++
-		if v == verdictAlive || v == verdictTimedOut {
-			shown = append(shown, survivor{v, m})
+		if v != verdictKilled {
+			all = append(all, shown{v, m})
 		}
 	}
-	slices.SortFunc(shown, func(a, b survivor) int {
+	for _, l := range notRun {
+		all = append(all, shown{verdictNotRun, mutant{file: l.file, line: l.line}})
+	}
+	slices.SortFunc(all, func(a, b shown) int {
 		return cmp.Or(strings.Compare(a.file, b.file), cmp.Compare(a.line, b.line), cmp.Compare(a.col, b.col), strings.Compare(a.kind, b.kind))
 	})
-	for _, s := range shown {
+	for _, s := range all {
+		if s.verdict == verdictNotRun {
+			lines = append(lines, fmt.Sprintf("%-10s %s:%d", s.verdict, s.file, s.line))
+			continue
+		}
 		lines = append(lines, fmt.Sprintf("%-10s %s:%d:%d %s", s.verdict, s.file, s.line, s.col, kindName(s.kind)))
 	}
-	noPartCount := ""
+	tail := fmt.Sprintf(", %d not run", len(notRun))
 	if parts {
 		for _, f := range noPart {
 			lines = append(lines, fmt.Sprintf("%-10s %s", "no part", f))
 		}
-		noPartCount = fmt.Sprintf(", %d changed files in no part", len(noPart))
 		if len(noPart) == 1 {
-			noPartCount = ", 1 changed file in no part"
+			tail += ", 1 changed file in no part"
+		} else {
+			tail += fmt.Sprintf(", %d changed files in no part", len(noPart))
 		}
 	}
+	failed = counts[verdictAlive]+counts[verdictTimedOut]+len(notRun) > 0
 	if len(counts) == 0 {
-		return append(lines, fmt.Sprintf("mutation: no mutants in the lines changed%s against %s on %s", noPartCount, base, head)), false, nil
+		return append(lines, fmt.Sprintf("mutation: no mutants in the lines changed%s against %s on %s", tail, base, head)), failed, nil
 	}
 	lines = append(lines, fmt.Sprintf("mutation: %d killed, %d alive, %d timed out, %d not covered%s against %s on %s",
-		counts[verdictKilled], counts[verdictAlive], counts[verdictTimedOut], counts[verdictNotCovered], noPartCount, base, head))
-	return lines, len(shown) > 0, nil
+		counts[verdictKilled], counts[verdictAlive], counts[verdictTimedOut], counts[verdictNotCovered], tail, base, head))
+	return lines, failed, nil
 }
 
 // kindName is how a line names the tool's kind of mutation:
@@ -207,7 +218,7 @@ func mutationEnv(environ []string, tmp string) []string {
 		switch {
 		case strings.HasPrefix(name, "GIT_"), strings.HasPrefix(name, "GREMLINS_"), strings.HasPrefix(name, "HQ_MUTATION_"):
 			continue
-		case name == "GOCACHE", name == "GOFLAGS", name == "GOBIN", name == "TMPDIR", name == "GOTMPDIR", name == "NO_COLOR":
+		case name == "GOCACHE", name == "GOFLAGS", name == "GOBIN", name == "TMPDIR", name == "GOTMPDIR", name == "NO_COLOR", name == "GOCOVERDIR":
 			continue
 		}
 		env = append(env, kv)
@@ -385,13 +396,27 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 		}
 	}
 
+	report := func(ms []mutant, notRun []lineRef, noPart []string) (bool, error) {
+		var lines []string
+		var failed bool
+		var err error
+		if len(paths) == 0 {
+			lines, failed, err = mutationReport(ms, notRun, base, head)
+		} else {
+			lines, failed, err = partsReport(ms, notRun, noPart, base, head)
+		}
+		if err != nil {
+			return false, err
+		}
+		printLines(lines)
+		return failed, nil
+	}
+
 	var toRun []part
 	var noPart []string
 	if len(paths) == 0 {
 		if !hasMutableGo(changed) {
-			lines, _, err := mutationReport(nil, base, head)
-			printLines(lines)
-			return false, err
+			return report(nil, nil, nil)
 		}
 	} else {
 		files, err := repoFiles(top)
@@ -416,9 +441,7 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 			}
 		}
 		if len(toRun) == 0 {
-			lines, _, err := partsReport(nil, noPart, base, head)
-			printLines(lines)
-			return false, err
+			return report(nil, nil, noPart)
 		}
 	}
 
@@ -427,24 +450,104 @@ func runMutationParts(ctx context.Context, repo, base string, paths []string, ou
 		return false, err
 	}
 	defer os.RemoveAll(tmp)
-	ms, err := runGremlins(ctx, top, mergeBase, tmp, toRun, progress)
+	ms, notRun, err := runStaged(ctx, top, mergeBase, tmp, toRun, progress)
 	if ctx.Err() != nil {
 		return false, errInterrupted
 	}
 	if err != nil {
 		return false, err
 	}
-	var lines []string
-	if len(paths) == 0 {
-		lines, failed, err = mutationReport(ms, base, head)
-	} else {
-		lines, failed, err = partsReport(ms, noPart, base, head)
+	return report(ms, notRun, noPart)
+}
+
+// runStaged stages the tree of top in tmp and runs there what the change
+// against mergeBase needs: the tool, over the whole tree or over the parts
+// toRun, then the tests that tell which of the changed lines run
+// (judgeLines), of every file or, in parts, of the parts' files. It returns
+// the mutants and the changed lines no test runs.
+func runStaged(ctx context.Context, top, mergeBase, tmp string, toRun []part, progress io.Writer) ([]mutant, []lineRef, error) {
+	env := mutationEnv(os.Environ(), tmp)
+	if err := os.Mkdir(filepath.Join(tmp, "tmp"), 0o755); err != nil {
+		return nil, nil, err
 	}
+	src, gitDir := filepath.Join(tmp, "src"), filepath.Join(tmp, "git")
+	fmt.Fprintf(progress, "mutation: staging the tree in %s\n", tmp)
+	if err := stageTree(ctx, top, mergeBase, src, gitDir, env); err != nil {
+		return nil, nil, fmt.Errorf("staging the tree: %w", err)
+	}
+	setup, err := newCoverSetup(src, tmp)
 	if err != nil {
-		return false, err
+		return nil, nil, err
 	}
-	printLines(lines)
-	return failed, nil
+	unit := ranBlocks{}
+	ms, err := runGremlins(ctx, src, gitDir, mergeBase, tmp, toRun, setup, unit, progress)
+	if err != nil {
+		return nil, nil, err
+	}
+	var judged func(string) bool // nil: every file
+	if len(toRun) > 0 {
+		judged = func(file string) bool {
+			return slices.ContainsFunc(toRun, func(p part) bool { return slices.Contains(p.files, file) })
+		}
+	}
+	notRun, err := judgeLines(ctx, src, mergeBase, tmp, setup, unit, judged, progress)
+	return ms, notRun, err
+}
+
+// judgeLines returns the changed lines, of the files that judged takes (all
+// when it is nil), that hold a statement no test runs: lines of Go code, not
+// tests, that the staged tree src changes against mergeBase. c holds what
+// the unit tests covered. While a changed line is not run it runs the next
+// level of the tests with coverage, the integration tests and then the
+// journeys, each once (runLevel), and says so in progress.
+func judgeLines(ctx context.Context, src, mergeBase, tmp string, setup coverSetup, c ranBlocks, judged func(string) bool, progress io.Writer) ([]lineRef, error) {
+	diff, err := command(ctx, src, mutationEnv(os.Environ(), tmp), "git", "-c", "core.quotePath=false",
+		"diff", "--cached", "--no-color", "--no-ext-diff", "-M", "-U0", mergeBase).Output()
+	if err != nil {
+		return nil, fmt.Errorf("git diff in the staging repository: %v", err)
+	}
+	added, err := addedLines(string(diff))
+	if err != nil {
+		return nil, err
+	}
+	statements := map[string]map[int]srcPos{}
+	for file := range added {
+		if judged != nil && !judged(file) {
+			delete(added, file)
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(src, file))
+		if err != nil {
+			return nil, err
+		}
+		if statements[file], err = statementLines(file, data); err != nil {
+			return nil, err
+		}
+	}
+	notRun := func() []lineRef { return notRunLines(added, statements, setup.module, c) }
+	for _, l := range []testLevel{levelIntegration, levelE2E} {
+		left := notRun()
+		if len(left) == 0 {
+			break
+		}
+		if _, err := os.Stat(filepath.Join(src, l.dir)); err != nil {
+			fmt.Fprintf(progress, "mutation: %s, and the tree has no %s for %s\n", linesNotRun(len(left)), l.dir, l.name)
+			continue
+		}
+		fmt.Fprintf(progress, "mutation: %s, running %s once with coverage\n", linesNotRun(len(left)), l.name)
+		if err := runLevel(ctx, l, src, tmp, setup, c); err != nil {
+			return nil, err
+		}
+	}
+	return notRun(), nil
+}
+
+// linesNotRun says how many changed lines the tests run so far do not run.
+func linesNotRun(n int) string {
+	if n == 1 {
+		return "1 changed line is not run so far"
+	}
+	return fmt.Sprintf("%d changed lines are not run so far", n)
 }
 
 // changedPaths lists the paths the working tree of top changes against the
@@ -481,22 +584,15 @@ func repoFiles(top string) ([]string, error) {
 	return files, nil
 }
 
-// runGremlins stages the tree of top in tmp, installs the tool there and
-// runs it against mergeBase, and returns the mutants of its report. With
-// parts it runs the tool once for each part, in their order, each run in a
-// directory of its own under tmp, which holds its build cache and
-// temporary files and is removed before the next part starts; a part sees
-// only its own files changed (partCommit).
-func runGremlins(ctx context.Context, top, mergeBase, tmp string, parts []part, progress io.Writer) ([]mutant, error) {
+// runGremlins installs the tool in tmp and runs it in the staged tree src
+// (whose git directory is gitDir) against mergeBase, and returns the mutants
+// of its report; what its first run of the unit tests covered goes into
+// unit. With parts it runs the tool once for each part, in their order,
+// each run in a directory of its own under tmp, which holds its build cache
+// and temporary files and is removed before the next part starts; a part
+// sees only its own files changed (partCommit).
+func runGremlins(ctx context.Context, src, gitDir, mergeBase, tmp string, parts []part, setup coverSetup, unit ranBlocks, progress io.Writer) ([]mutant, error) {
 	env := mutationEnv(os.Environ(), tmp)
-	if err := os.Mkdir(filepath.Join(tmp, "tmp"), 0o755); err != nil {
-		return nil, err
-	}
-	src, gitDir := filepath.Join(tmp, "src"), filepath.Join(tmp, "git")
-	fmt.Fprintf(progress, "mutation: staging the tree in %s\n", tmp)
-	if err := stageTree(ctx, top, mergeBase, src, gitDir, env); err != nil {
-		return nil, fmt.Errorf("staging the tree: %w", err)
-	}
 	fmt.Fprintf(progress, "mutation: installing go-gremlins %s\n", gremlinsVersion)
 	if out, err := command(ctx, tmp, env, "go", "install", gremlinsPackage+"@"+gremlinsVersion).CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("installing go-gremlins %s: %v\n%s", gremlinsVersion, err, out)
@@ -506,7 +602,7 @@ func runGremlins(ctx context.Context, top, mergeBase, tmp string, parts []part, 
 		return nil, err
 	}
 	if len(parts) == 0 {
-		return runTool(ctx, src, tmp, config, mergeBase, env, progress)
+		return runTool(ctx, src, tmp, config, mergeBase, env, setup, unit, progress)
 	}
 	// The install's cache is no part's: the disk a run needs is that of
 	// its largest part.
@@ -535,7 +631,7 @@ func runGremlins(ctx context.Context, top, mergeBase, tmp string, parts []part, 
 		if err != nil {
 			return nil, fmt.Errorf("the part %s: %w", p.path, err)
 		}
-		got, err := runTool(ctx, src, dir, config, ref, partEnv, progress)
+		got, err := runTool(ctx, src, dir, config, ref, partEnv, setup, unit, progress)
 		if err != nil {
 			return nil, fmt.Errorf("the part %s: %w", p.path, err)
 		}
@@ -548,14 +644,21 @@ func runGremlins(ctx context.Context, top, mergeBase, tmp string, parts []part, 
 }
 
 // runTool runs the installed tool in src against the commit diffRef, with
-// its report in dir, and returns the mutants of the report.
-func runTool(ctx context.Context, src, dir, config, diffRef string, env []string, progress io.Writer) ([]mutant, error) {
+// its report in dir, and returns the mutants of the report. What the tool's
+// first run of the unit tests covered, in the tests' processes and in the
+// programs they start, goes into unit (coverDir, through the run's go).
+func runTool(ctx context.Context, src, dir, config, diffRef string, env []string, setup coverSetup, unit ranBlocks, progress io.Writer) ([]mutant, error) {
 	report := filepath.Join(dir, "report.json")
 	gremlins := filepath.Join(filepath.Dir(src), "bin", "gremlins")
 	toolEnv, machine, err := mutationGoEnv(env, src, dir)
 	if err != nil {
 		return nil, err
 	}
+	cover := coverDir(filepath.Join(dir, "cover"))
+	if err := cover.make(); err != nil {
+		return nil, err
+	}
+	toolEnv = append(toolEnv, envCover+"="+string(cover), envCoverGo+"="+setup.bin)
 	fmt.Fprintln(progress, "mutation: running the unit tests once, then once per mutant")
 	start := time.Now()
 	out, err := command(ctx, src, toolEnv, gremlins, gremlinsArgs(config, report, diffRef)...).CombinedOutput()
@@ -565,6 +668,9 @@ func runTool(ctx context.Context, src, dir, config, diffRef string, env []string
 	fmt.Fprintf(progress, "mutation: done in %s\n", time.Since(start).Round(time.Second))
 	if err := machineFailed(machine); err != nil {
 		return nil, err
+	}
+	if err := cover.read(ctx, env, unit); err != nil {
+		return nil, fmt.Errorf("the unit tests' coverage in the tool's first run: %w", err)
 	}
 	f, err := os.Open(report)
 	if errors.Is(err, fs.ErrNotExist) && strings.Contains(string(out), "No results to report") {
