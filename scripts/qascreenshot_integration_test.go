@@ -37,7 +37,7 @@ func newScreenshotPane(t *testing.T, width int, text string) *screenshotPane {
 		"-x", fmt.Sprint(width), "-y", "6", "-s", "qa", "cat '"+file+"'; printf END; exec sleep 600").CombinedOutput(); err != nil {
 		t.Fatalf("tmux new-session: %v\n%s", err, out)
 	}
-	t.Cleanup(func() { _ = exec.Command("tmux", "-L", p.socket, "kill-server").Run() })
+	t.Cleanup(func() { _ = exec.Command("tmux", "-u", "-L", p.socket, "kill-server").Run() })
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		out, _ := exec.Command("tmux", "-u", "-L", p.socket, "capture-pane", "-p", "-t", "qa:").Output()
@@ -51,17 +51,25 @@ func newScreenshotPane(t *testing.T, width int, text string) *screenshotPane {
 	}
 }
 
+// shot is what a run of scripts/qa-screenshot.sh gave.
+type shot struct {
+	code   int
+	output string
+	image  string // what it wrote to OUT.png, "" when nothing
+}
+
 // shoot runs scripts/qa-screenshot.sh on the pane with env added to the
 // environment (and no pattern list of the machine's own in the variable),
 // and a go in front of the real one that writes the text it would render to
-// OUT.png instead of running the renderer. It returns the exit code, the
-// output and what was written to OUT.png ("" when nothing was).
-func (p *screenshotPane) shoot(env ...string) (int, string, string) {
+// OUT.png instead of running the renderer, and that fails every build when
+// STUB_GO_BUILD_FAILS is set.
+func (p *screenshotPane) shoot(env ...string) shot {
 	t := p.t
 	t.Helper()
 	realGo, _ := exec.LookPath("go")
 	stubs := t.TempDir()
 	write(t, filepath.Join(stubs, "go"), `#!/bin/sh
+[ "$1" = build ] && [ -n "${STUB_GO_BUILD_FAILS:-}" ] && { echo "stub go: the build failed" >&2; exit 1; }
 case "$2" in
 github.com/charmbracelet/freeze@*)
     while [ $# -gt 0 ]; do
@@ -92,14 +100,14 @@ exec '`+realGo+`' "$@"
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		t.Fatal(err)
 	}
-	return code, string(output), string(image)
+	return shot{code, string(output), string(image)}
 }
 
 func TestQAScreenshotRendersAPaneThatPassesThePrivateCheck(t *testing.T) {
 	p := newScreenshotPane(t, 40, "hello world\n")
-	code, out, image := p.shoot("HQ_PRIVATE_PATTERNS=acme")
-	if code != 0 || !strings.Contains(out, "private: 1 patterns, 0 matching lines") || !strings.Contains(image, "hello world") {
-		t.Fatalf("exit %d, rendered %q\n%s", code, image, out)
+	s := p.shoot("HQ_PRIVATE_PATTERNS=acme")
+	if s.code != 0 || !strings.Contains(s.output, "private: 1 patterns, 0 matching lines") || !strings.Contains(s.image, "hello world") {
+		t.Fatalf("exit %d, rendered %q\n%s", s.code, s.image, s.output)
 	}
 }
 
@@ -107,6 +115,7 @@ func TestQAScreenshotRendersNothingFromAPaneItCannotClear(t *testing.T) {
 	for _, c := range []struct {
 		name, list, text string
 		width            int
+		env              []string // added to the environment
 		want             []string // in the output
 		notWant          string   // in the output, ignoring case
 	}{
@@ -154,20 +163,29 @@ func TestQAScreenshotRendersNothingFromAPaneItCannotClear(t *testing.T) {
 				"the pane could not be checked for private details",
 			},
 		},
+		{
+			name: "a gate that does not build", list: "acme", width: 40,
+			text: "fine\n", env: []string{"STUB_GO_BUILD_FAILS=1"},
+			want: []string{
+				"stub go: the build failed",
+				"the gate that checks the pane for private details does not build",
+			},
+			notWant: "the pane shows",
+		},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			p := newScreenshotPane(t, c.width, c.text)
-			code, out, image := p.shoot("HQ_PRIVATE_PATTERNS=" + c.list)
-			if code != 1 || image != "" {
-				t.Fatalf("exit %d, rendered %q\n%s", code, image, out)
+			s := p.shoot(append([]string{"HQ_PRIVATE_PATTERNS=" + c.list}, c.env...)...)
+			if s.code != 1 || s.image != "" {
+				t.Fatalf("exit %d, rendered %q\n%s", s.code, s.image, s.output)
 			}
 			for _, w := range c.want {
-				if !strings.Contains(out, w) {
-					t.Errorf("output lacks %q:\n%s", w, out)
+				if !strings.Contains(s.output, w) {
+					t.Errorf("output lacks %q:\n%s", w, s.output)
 				}
 			}
-			if c.notWant != "" && strings.Contains(strings.ToLower(out), c.notWant) {
-				t.Errorf("output repeats %q:\n%s", c.notWant, out)
+			if c.notWant != "" && strings.Contains(strings.ToLower(s.output), c.notWant) {
+				t.Errorf("output holds %q:\n%s", c.notWant, s.output)
 			}
 		})
 	}
