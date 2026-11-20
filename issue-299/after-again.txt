@@ -1,0 +1,30 @@
+$ scripts/local-dev.sh --stub native --version 2>/dev/null
+hq dev
+$ scripts/local-dev.sh --kill-server >/dev/null
+$ scripts/local-dev.sh --stub native --version
+local-dev: stub environment /tmp/hq-stub-866591410 created
+hq dev
+$ scripts/local-dev.sh --kill-server
+tmux server hq-dev-866591410 ended
+stub environment /tmp/hq-stub-866591410 removed
+temporary directory /tmp/hq-dev-866591410 removed
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

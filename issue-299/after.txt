@@ -1,0 +1,30 @@
+$ scripts/local-dev.sh --stub-env
+/tmp/hq-stub-866591410
+$ scripts/local-dev.sh --stub native --version
+local-dev: stub environment /tmp/hq-stub-866591410 created
+hq dev
+$ scripts/local-dev.sh --stub native --version
+hq dev
+$ scripts/local-dev.sh --stub native --version 2>/dev/null
+hq dev
+$ cd "$(scripts/local-dev.sh --stub-env)/repo" && pwd && git log --oneline
+/tmp/hq-stub-866591410/repo
+94e65da (HEAD -> main) init
+$ cd - >/dev/null
+$ scripts/local-dev.sh --kill-server
+tmux server hq-dev-866591410 ended
+stub environment /tmp/hq-stub-866591410 removed
+temporary directory /tmp/hq-dev-866591410 removed
+$ scripts/local-dev.sh --stub-env
+/tmp/hq-stub-866591410
+$
+
+
+
+
+
+
+
+
+
+

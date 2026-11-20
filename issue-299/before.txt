@@ -1,0 +1,30 @@
+$ scripts/local-dev.before.sh --stub-env
+hq: unknown command '--stub-env' (see hq help)
+$ scripts/local-dev.before.sh --stub native --version
+hq dev
+$ ls -d /tmp/hq-stub-* | wc -l
+4
+$ scripts/local-dev.before.sh --kill-server
+tmux server hq-dev-866591410 ended
+stub environment /tmp/hq-stub-866591410 removed
+temporary directory /tmp/hq-dev-866591410 removed
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
