@@ -525,6 +525,70 @@ func TestATurnAnAPIErrorEndedIsDoneWithClaudesErrorLine(t *testing.T) {
 	}
 }
 
+// A turn an API error ended without Claude's error line (the field absent,
+// empty or blank) shows a line of hq's own that names the error's kind as
+// the last message and as the reply in full, never the reply of the turn
+// before it nor an empty message, and keeps it while the agent then works.
+// The payload without the line is synthetic (testdata/README.md): no real
+// end without it has been captured.
+func TestATurnAnAPIErrorEndedWithoutALineShowsHqsOwnLine(t *testing.T) {
+	const earlier = "Here is the summary."
+	start := time.Date(2026, 11, 17, 14, 47, 0, 0, time.UTC)
+	absent, absentReply := ParseEvent("000000004.fail.1", eventFile(t, "api-error-stop-failure-no-line"), start.Add(3*time.Minute))
+	if absent.Facts.Reason != "authentication_failed" || absentReply == nil || absentReply.Text != "" {
+		t.Fatalf("the payload without a line: %+v %+v", absent, absentReply)
+	}
+	failed := func(reason string) Event {
+		return hookEvent(4, CaseFail, KindTurnFailed, Facts{Turn: "t2", Reason: reason})
+	}
+	absent.Number = 4
+	for _, tc := range []struct {
+		name  string
+		end   Event
+		reply Reply
+		want  string
+	}{
+		{"no line", absent, Reply{Number: 4}, "[API error: authentication_failed]"},
+		{"an empty line", failed("authentication_failed"), Reply{Number: 4, Text: ""}, "[API error: authentication_failed]"},
+		{"a blank line", failed("authentication_failed"), Reply{Number: 4, Text: " \n\t "}, "[API error: authentication_failed]"},
+		{"the earlier reply kept", failed("authentication_failed"), Reply{Number: 2, Text: earlier}, "[API error: authentication_failed]"},
+		{"no kind either", failed(""), Reply{Number: 4}, "[API error]"},
+	} {
+		journal := []Event{userPrompt(1, "t1"), endOfTurn(2, "t1", false), userPrompt(3, "t2"), tc.end}
+		if r := Reduce(journal[:2], Reply{Number: 2, Text: earlier}, atSecond(9)); r.Last != earlier {
+			t.Fatalf("%s: the earlier turn end: %q", tc.name, r.Last)
+		}
+		r := Reduce(journal, tc.reply, atSecond(9))
+		if r.State != Done || r.Last != tc.want || r.LastStop != tc.want || r.TurnEnded != 4 {
+			t.Errorf("%s: %s %q (stop %q), turn ended at %d", tc.name, r.State, r.Last, r.LastStop, r.TurnEnded)
+		}
+		if text, at := (Fold{}).With(journal...).LastReply(tc.reply); text != tc.want || !at.Equal(tc.end.Time) {
+			t.Errorf("%s: last reply %q at %v", tc.name, text, at)
+		}
+		working := append(slices.Clone(journal), userPrompt(5, "t3"))
+		if r := Reduce(working, tc.reply, atSecond(9)); r.State != Working || r.Last != tc.want {
+			t.Errorf("%s: at work after it: %s %q", tc.name, r.State, r.Last)
+		}
+	}
+}
+
+// After a turn an API error ended no own task is listed, whatever still
+// runs: Claude Code lists no tasks at such an end (spec §5, Own tasks).
+func TestATurnAnAPIErrorEndedListsNoOwnTasks(t *testing.T) {
+	shell := EventTask{ID: "b1", Type: ShellTask, Status: "running"}
+	journal := []Event{
+		userPrompt(1, "t1"), endOfTurn(2, "t1", false, shell), userPrompt(3, "t2"),
+		hookEvent(4, CaseFail, KindTurnFailed, Facts{Turn: "t2", Reason: "authentication_failed"}),
+	}
+	if r := Reduce(journal[:2], Reply{Number: 2, Tasks: []TaskTexts{{ID: "b1", Command: "sleep 120"}}}, atSecond(9)); len(r.OwnTasks) != 1 {
+		t.Fatalf("the Stop before: %+v", r.OwnTasks)
+	}
+	r := Reduce(journal, Reply{Number: 4, Text: "Login expired · Please run /login"}, atSecond(9))
+	if r.State != Done || len(r.OwnTasks) != 0 {
+		t.Errorf("%s, own tasks %+v", r.State, r.OwnTasks)
+	}
+}
+
 // A turn an API error ended is done whatever still runs, as a turn the user
 // ended (spec §5, Background work): background subagents the turn started,
 // a turn end that background work kept working, or a subagent's open
