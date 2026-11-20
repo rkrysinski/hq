@@ -15,6 +15,7 @@
 //	go run ./tools/testgate mutation BASE [PATH...] # mutation tests of the lines changed against BASE, part by part
 //	go run ./tools/testgate skips STEP FILE  # the tests a passed test step of the full build skipped
 //	go run ./tools/testgate plain FILE       # a test step's output as go test prints it without -json
+//	go run ./tools/testgate load [-p N] [-tags TAGS] [-timeout D] [-o DIR] -count N -run REGEXP PKG # tests run N times with every core busy
 //
 // A command line in none of these forms (no command, another command, an
 // argument missing or one too many) is refused before any gate runs: the
@@ -42,6 +43,13 @@
 // plain prints the output as go test prints it without -json. Both exit 2
 // when FILE cannot be read.
 //
+// load is not a gate: it makes a load run, the tests the REGEXP names run
+// N times in each of -p processes of go test while one busy worker per core
+// keeps the machine busy, prints the same evidence for every ticket and
+// leaves no load behind however it ends. It exits 0 when every expected run
+// passed, 1 when a run failed or was skipped or a process ended without all
+// its runs, and 2 on an error of its own (#276, load.go).
+//
 // A test's level is its file's build constraint: none is unit, the
 // "integration" tag is integration, the "e2e" tag is end-to-end.
 //
@@ -54,10 +62,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 )
 
-const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | sees [ROOT] | mutation BASE [PATH...] | skips STEP FILE | plain FILE"
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | sees [ROOT] | mutation BASE [PATH...] | skips STEP FILE | plain FILE | load [-p N] [-tags TAGS] [-timeout D] [-o DIR] -count N -run REGEXP PKG"
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
@@ -181,6 +190,8 @@ func main() {
 		if failed {
 			os.Exit(1)
 		}
+	case "load":
+		os.Exit(loadMain(inv.opts.(loadOptions), inv.args[0], runtime.NumCPU(), os.Stdout, os.Stderr))
 	case "skips", "plain":
 		if err := testOutput(inv, os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)

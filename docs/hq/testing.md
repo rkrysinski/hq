@@ -38,6 +38,7 @@ go run ./tools/testgate sees                           # no test calls Sees outs
 go test -count=1 -tags integration -coverpkg=./internal/... -coverprofile=cover.out ./... \
   && go run ./tools/testgate coverage cover.out        # coverage threshold
 go run ./tools/testgate mutation BASE [PATH...]        # mutation tests of the lines changed against BASE, part by part with PATHs (not in the full build)
+go run ./tools/testgate load [-p N] [-tags TAGS] [-timeout D] [-o DIR] -count N -run REGEXP PKG  # a load run: N runs with every core busy (not in the full build, see Load runs)
 ```
 
 ## Mutation tests
@@ -80,6 +81,62 @@ When no part holds a mutant, the last line is `mutation: no mutants in the lines
 **Cost.** The tool runs the unit tests once with coverage, then once per mutant, in parallel on every core; a mutant's run rebuilds the packages it touches and runs the unit tests the test cache cannot answer. On 10 cores the changes of pull request #148 (292 added lines of Go, 66 mutants) took 35 s in all, those of #151 (7 mutants) 20 s. A mutant times out when its run takes ten times as long as that first run, which builds the whole module from an empty cache. A killed mutant's run also runs what failed once more without the mutant, inside the mutant's time limit: one `go test -count=1` per package that failed, one after another, each linking that package's test binary; the first in a run or a part also builds the module once more without coverage, in the run's cache, and when the output names no package the whole unit suite runs. On pull request #213's change (54 kills, nearly all in one package) that took a few seconds in all; a mutant in a package that many packages use costs more. On that change (94 mutants, 62 of them run) load did not change the verdict: runs with every core kept busy by a busy loop each took 1.2 times as long as runs on an idle machine and printed the same lines and counts (#234). In parts, every part that has something to run makes that first run again with an empty cache of its own: a run in parts takes longer than one run over the same change, and needs at once only the disk of its largest part.
 
 **Known limits of the tool.** A mutant that does not compile is counted as killed (the tool's issue 321); for these five kinds it is rare. A machine that fails a mutant's run and passes again by the time what failed runs once more, a moment later, is not seen, nor is one whose run again is not over two seconds before the mutant's time limit: that mutant counts as killed. A unit test that passes only after another test of its package has run fails in the run again too, which runs it by name (`-run`) without that other test, and so can end a healthy run with exit 2. A mutant whose run comes near the time limit, ten times the first run (one in a package that most tests depend on, while every worker runs the whole suite), can still turn `timed out` under heavier load than #234 measured, or under pressure on the disk or the memory: the coefficient was not changed. The tool cannot tell an equivalent mutant from a weak test: that judgement is the reason in `## QA`, and in a supervised release the integration reviewer tries the killing test for each such reason (`docs/agents/integration-review.md`, *Reasons of equivalence*).
+
+## Load runs
+
+A load run repeats a test while every core of the machine is kept busy, for a criterion counted in runs under load ("450 runs with every core busy"). Such a criterion is made with `go run ./tools/testgate load` and with no script of one's own: it prints the same evidence for every ticket and leaves no load behind however it ends (#276). Run it once, on the head that merges, after the review and the mutation gate (`docs/agents/lessons.md`, 2026-11-20); its whole output goes into `## QA`. It is not a step of the full build and CI does not run it. One load run at a time on a machine, and none beside another checkout's full build, is the caller's to see to: the command has no lock, and other agents' full builds fail under load.
+
+```bash
+go run ./tools/testgate load [-p N] [-tags TAGS] [-timeout D] [-o DIR] -count N -run REGEXP PKG
+```
+
+**What it does.** It first lists the tests with `go test -list` (the part of REGEXP before its first slash, which names top-level tests), before any load: a package that does not build, or a REGEXP that names no test, ends the command there. Then it starts one busy worker per core (`runtime.NumCPU()`; a worker is a goroutine of the command that never waits) and `-p` test processes at once, each `go test -json -count N -run REGEXP [-tags TAGS] -timeout <the time limit + 1m> PKG` in a process group of its own. The workers stop once the last test process and what is left of its process group have ended. The load is never a shell loop.
+
+- `-count N` (needed): the runs of each test the REGEXP names in each process.
+- `-run REGEXP` (needed): the tests, as `go test -run` takes them.
+- `-p N`: the test processes started at once, 1 when not given; `-p 3 -count 150` is 450 runs of each test.
+- `-tags TAGS`: the build tags of `go test`, none when not given.
+- `-timeout D`: the time limit of the whole run, 10m when not given; the evidence prints it. Past it the tests are stopped.
+- `-o DIR`: the directory for each process's whole output (`process-<i>.out`, the `go test -json` stream and what `go test` printed beside it); without it, a new directory `testgate-load-*` in `TMPDIR`, whose path the evidence prints.
+
+The flags come before PKG; one package and one count per command, one command after another for several.
+
+**No load is left behind.** After the command has exited, no busy worker and no test process it started is left, however it ended:
+
+| How it ends | What the command does |
+|---|---|
+| The tests ended, passed or failed | stops the workers once every test process ended, after a SIGKILL to what is left of each process group |
+| The time limit, SIGINT, SIGTERM, SIGHUP | sends each process group SIGINT (`go test` removes its temporary files), SIGKILL 5 s later to what is left, then stops the workers and exits 2 |
+| The process that started it ends without passing a signal on (`go run` killed) | notices it within a second (its parent process changed) and ends as on SIGTERM |
+| SIGKILL | no busy worker is left, since the workers are goroutines of the command; a test process may run on to its own limit, the time limit plus a minute |
+
+**Its output.** Progress goes to stderr; the evidence, the same lines for every ticket, to stdout:
+
+```text
+commit <HEAD's full sha>[ with uncommitted changes]
+cores 10, busy workers 10
+processes 3, each: go test -json -count 150 -run '^TestX$' -timeout 11m0s ./internal/x
+time limit 10m0s (the default)
+output in /tmp/testgate-load-123
+started 2026-11-20T16:00:00Z, load average (1 min) 0.52
+ended 2026-11-20T16:00:41Z, load average (1 min) 12.40
+process 1: exit status 0, output /tmp/testgate-load-123/process-1.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/x	39.211s
+process 2: exit status 1, output /tmp/testgate-load-123/process-2.out, last lines:
+    ...
+process 3: exit status 0, output /tmp/testgate-load-123/process-3.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/x	40.020s
+process 2, TestX, run 17: failed
+    --- FAIL: TestX (0.21s)
+        x_test.go:42: what the test printed
+load: 449 passed, 1 failed, 0 skipped of 450 runs expected on <HEAD's full sha>
+```
+
+A run is one run of a top-level test the REGEXP names; its subtests are part of it. The runs expected are the tests `go test -list` named times `-count` times `-p`. Each run that did not pass gets its lines: a failed run what `go test` prints of it without `-json`, a skipped run its reason, a run its process ended in (`never ended`) counts as failed, with what it printed. The load average is the machine's 1-minute figure (`/proc/loadavg` on Linux, `sysctl -n vm.loadavg` on macOS), or why there is none.
+
+**Its verdict.** Exit 0 only when every expected run passed, and no other ran, in test processes that all exited 0. Exit 1 when a run failed, a run was skipped (a skipped run shows nothing under load), or a test process ended without all its runs or with another status. Exit 2, as every gate, on an error of its own, with no last line of counts: wrong arguments (with the usage line), a package that does not build, a REGEXP that names no test (`no tests to run` is not a pass), the time limit or an interruption (after the lines of each process, which name the files of their output).
+
+**Its own tests** keep at most one core busy, for a few seconds at most: they run the command as this package's test binary with one busy worker (`loadHelper` in `tools/testgate/load_test.go`) against the fixture package `tools/testgate/testdata/loadfixture`, and bound every wait.
 
 ## CI
 
