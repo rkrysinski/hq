@@ -13,6 +13,10 @@ Read by the release skills (`/release-prepare`, `/release-implement`, `/release-
 
 The rows for implementation and the release tester are left out: the skills' defaults apply. Spend is not capped because hq's agents run on a subscription and hq calls no paid API.
 
+### Counted against the cap
+
+Nothing: the spend an agent reports, its subagents' included, is 0 USD.
+
 ## Environment
 
 - The supervisor runs as an hq agent `sup-X.Y.Z` (the release's version) in the repository's sandbox, with hq loaded there (`hq mcp load REPO`).
