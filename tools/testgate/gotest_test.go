@@ -303,14 +303,73 @@ func TestTestOutputReadsTheFileTheCommandNames(t *testing.T) {
 	} {
 		dir := t.TempDir()
 		write(t, dir, "out.json", strings.Join(skippingRun, "\n")+"\n")
-		inv := invocation{c.args[0], append(c.args[1:], dir+"/out.json")}
+		inv := invocation{c.args[0], append(c.args[1:], dir+"/out.json"), nil}
 		var b strings.Builder
 		if err := testOutput(inv, &b); err != nil || b.String() != c.want {
 			t.Errorf("%v: got %q, err %v; want %q", inv, b.String(), err, c.want)
 		}
 	}
 	var b strings.Builder
-	if err := testOutput(invocation{"plain", []string{t.TempDir() + "/missing.json"}}, &b); err == nil || b.Len() != 0 {
+	if err := testOutput(invocation{"plain", []string{t.TempDir() + "/missing.json"}, nil}, &b); err == nil || b.Len() != 0 {
 		t.Errorf("a file that is not there: printed %q, err %v; want an error", b.String(), err)
 	}
+}
+
+// countedRun is the go test -json output of go test -count 2: the same test
+// runs twice, skipping the first time and failing the second, with a
+// subtest each time.
+var countedRun = []string{
+	`{"Action":"start","Package":"example.com/n/a"}`,
+	`{"Action":"run","Package":"example.com/n/a","Test":"TestTwice"}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice","Output":"=== RUN   TestTwice\n"}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice","Output":"    a_test.go:5: first run skips\n"}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice","Output":"--- SKIP: TestTwice (0.00s)\n"}`,
+	`{"Action":"skip","Package":"example.com/n/a","Test":"TestTwice","Elapsed":0}`,
+	`{"Action":"run","Package":"example.com/n/a","Test":"TestTwice"}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice","Output":"=== RUN   TestTwice\n"}`,
+	`{"Action":"run","Package":"example.com/n/a","Test":"TestTwice/sub"}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice/sub","Output":"=== RUN   TestTwice/sub\n"}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice/sub","Output":"    a_test.go:9: second run fails\n"}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice/sub","Output":"--- FAIL: TestTwice/sub (0.00s)\n"}`,
+	`{"Action":"fail","Package":"example.com/n/a","Test":"TestTwice/sub","Elapsed":0}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice","Output":"--- FAIL: TestTwice (0.00s)\n"}`,
+	`{"Action":"fail","Package":"example.com/n/a","Test":"TestTwice","Elapsed":0}`,
+	`{"Action":"run","Package":"example.com/n/a","Test":"TestTwice"}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice","Output":"=== RUN   TestTwice\n"}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice","Output":"    a_test.go:5: third run skips too\n"}`,
+	`{"Action":"output","Package":"example.com/n/a","Test":"TestTwice","Output":"--- SKIP: TestTwice (0.00s)\n"}`,
+	`{"Action":"skip","Package":"example.com/n/a","Test":"TestTwice","Elapsed":0}`,
+	`{"Action":"output","Package":"example.com/n/a","Output":"FAIL\n"}`,
+	`{"Action":"output","Package":"example.com/n/a","Output":"FAIL\texample.com/n/a\t0.002s\n"}`,
+	`{"Action":"fail","Package":"example.com/n/a","Elapsed":0.002}`,
+}
+
+// Each run of go test -count N is a test of its own (#276): a skip line
+// gives that run's reason, not what every run of the name printed.
+func TestSkipLinesGiveEachRunOfACountedTestItsOwnReason(t *testing.T) {
+	got, err := skipLines("load", jsonLines(countedRun...))
+	if err != nil {
+		t.Fatal(err)
+	}
+	equalStrings(t, got, []string{
+		"check: skip load example.com/n/a TestTwice: first run skips",
+		"check: skip load example.com/n/a TestTwice: third run skips too",
+	})
+}
+
+// A run that failed among runs of the same name that skipped shows as a
+// failure, with its subtest, once: a later run that skipped does not hide it.
+func TestPlainOutputShowsTheRunOfACountedTestThatFailed(t *testing.T) {
+	got, err := plainOutput(jsonLines(countedRun...))
+	if err != nil {
+		t.Fatal(err)
+	}
+	equalStrings(t, got, []string{
+		"--- FAIL: TestTwice (0.00s)",
+		"    --- FAIL: TestTwice/sub (0.00s)",
+		"        a_test.go:9: second run fails",
+		"FAIL",
+		"FAIL\texample.com/n/a\t0.002s",
+		"FAIL",
+	})
 }

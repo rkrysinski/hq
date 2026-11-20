@@ -9,10 +9,14 @@ import (
 
 // TestMain lets this package's test binary be the go of a mutation run, as
 // the gate's binary is (mutationGo): the integration tests that run the tool
-// link the test binary as that go.
+// link the test binary as that go. With $TESTGATE_LOAD_HELPER set it is
+// testgate load with one busy worker (loadHelper).
 func TestMain(m *testing.M) {
 	if isMutationGo(os.Args[0], os.Getenv(envRealGo)) {
 		os.Exit(mutationGo(os.Args[1:]))
+	}
+	if os.Getenv(envLoadHelper) != "" {
+		os.Exit(loadHelper(os.Args[1:]))
 	}
 	os.Exit(m.Run())
 }
