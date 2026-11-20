@@ -1,0 +1,8 @@
+sees: 146 test files checked, uses of Sees outside seesWhenItMayTell and problems of the helper: 6
+FAIL: internal/state/seen_test.go:431 uses Sees outside seesWhenItMayTell: get what a look sees through seesWhenItMayTell (internal/state/seen_test.go), which first requires ScreenMayTell at that moment
+FAIL: internal/state/seen_test.go:440 uses Sees outside seesWhenItMayTell: get what a look sees through seesWhenItMayTell (internal/state/seen_test.go), which first requires ScreenMayTell at that moment
+FAIL: internal/state/seen_test.go:479 uses Sees outside seesWhenItMayTell: get what a look sees through seesWhenItMayTell (internal/state/seen_test.go), which first requires ScreenMayTell at that moment
+FAIL: internal/state/seen_test.go:495 uses Sees outside seesWhenItMayTell: get what a look sees through seesWhenItMayTell (internal/state/seen_test.go), which first requires ScreenMayTell at that moment
+FAIL: internal/state/seen_test.go:503 uses Sees outside seesWhenItMayTell: get what a look sees through seesWhenItMayTell (internal/state/seen_test.go), which first requires ScreenMayTell at that moment
+FAIL: internal/state/seen_test.go has no function seesWhenItMayTell: the gate exempts it as the one place a test calls Sees, so it must be there and call ScreenMayTell
+exit 1

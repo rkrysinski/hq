@@ -1,0 +1,7 @@
+sees: 146 test files checked, uses of Sees outside seesWhenItMayTell and problems of the helper: 5
+FAIL: internal/state/seen_test.go:444 uses Sees outside seesWhenItMayTell: get what a look sees through seesWhenItMayTell (internal/state/seen_test.go), which first requires ScreenMayTell at that moment
+FAIL: internal/state/seen_test.go:453 uses Sees outside seesWhenItMayTell: get what a look sees through seesWhenItMayTell (internal/state/seen_test.go), which first requires ScreenMayTell at that moment
+FAIL: internal/state/seen_test.go:492 uses Sees outside seesWhenItMayTell: get what a look sees through seesWhenItMayTell (internal/state/seen_test.go), which first requires ScreenMayTell at that moment
+FAIL: internal/state/seen_test.go:508 uses Sees outside seesWhenItMayTell: get what a look sees through seesWhenItMayTell (internal/state/seen_test.go), which first requires ScreenMayTell at that moment
+FAIL: internal/state/seen_test.go:516 uses Sees outside seesWhenItMayTell: get what a look sees through seesWhenItMayTell (internal/state/seen_test.go), which first requires ScreenMayTell at that moment
+exit 1

@@ -1,0 +1,6 @@
+mutation: staging the tree in /tmp/hq-mutation-3022830807
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 30s
+mutation: 22 killed, 0 alive, 0 timed out, 1 not covered against origin/release-v0.16.0 on aab0d21c4c3e7818166a44045fae4968cea6873f
+exit 0
