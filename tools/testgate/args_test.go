@@ -48,6 +48,9 @@ func TestReadArgsAcceptsTheFormsOfTheUsageLineAndRefusesTheRest(t *testing.T) {
 		{args: []string{"timebound"}, want: invocation{"timebound", []string{"."}}},
 		{args: []string{"timebound", "sub"}, want: invocation{"timebound", []string{"sub"}}},
 		{args: []string{"timebound", "sub", "extra"}, refused: usage},
+		{args: []string{"sees"}, want: invocation{"sees", []string{"."}}},
+		{args: []string{"sees", "sub"}, want: invocation{"sees", []string{"sub"}}},
+		{args: []string{"sees", "sub", "extra"}, refused: usage},
 
 		{args: []string{"mutation", "origin/dev"}, want: invocation{"mutation", []string{"origin/dev"}}},
 		{args: []string{"mutation", "origin/dev", "internal/state", "internal/cli/cursor.go"},

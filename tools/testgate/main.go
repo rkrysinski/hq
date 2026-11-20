@@ -1,7 +1,8 @@
 // Command testgate holds hq's CI gates: the shape of the test suite, its
 // coverage, no private details in the public text, platform-specific code
-// in the platform package only, and no test bounding real elapsed time under
-// one second (docs/hq/testing.md):
+// in the platform package only, no test bounding real elapsed time under
+// one second, and no test calling Sees but through the helper that first
+// requires ScreenMayTell (docs/hq/testing.md):
 //
 //	go run ./tools/testgate pyramid [ROOT]   # counts tests per level, checks the shape
 //	go run ./tools/testgate coverage FILE    # checks a coverage profile against the threshold
@@ -10,6 +11,7 @@
 //	go run ./tools/testgate prepost          # no private details in what a gh command posts (Claude Code's hook)
 //	go run ./tools/testgate platform [ROOT]  # platform-specific names only in internal/platform
 //	go run ./tools/testgate timebound [ROOT] # no test bounds real elapsed time under 1s
+//	go run ./tools/testgate sees [ROOT]      # no test calls Sees outside seesWhenItMayTell
 //	go run ./tools/testgate mutation BASE [PATH...] # mutation tests of the lines changed against BASE, part by part
 //	go run ./tools/testgate skips STEP FILE  # the tests a passed test step of the full build skipped
 //	go run ./tools/testgate plain FILE       # a test step's output as go test prints it without -json
@@ -55,7 +57,7 @@ import (
 	"syscall"
 )
 
-const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...] | skips STEP FILE | plain FILE"
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | sees [ROOT] | mutation BASE [PATH...] | skips STEP FILE | plain FILE"
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
@@ -155,6 +157,16 @@ func main() {
 			os.Exit(2)
 		}
 		fmt.Printf("timebound: %d test files checked, upper bounds under %s on real elapsed time: %d\n", checked, timeboundLimit, len(hits))
+		for _, h := range hits {
+			problems = append(problems, h.String())
+		}
+	case "sees":
+		hits, checked, err := checkSees(inv.args[0])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "testgate:", err)
+			os.Exit(2)
+		}
+		fmt.Printf("sees: %d test files checked, uses of Sees outside %s and problems of the helper: %d\n", checked, seesHelperFunc, len(hits))
 		for _, h := range hits {
 			problems = append(problems, h.String())
 		}

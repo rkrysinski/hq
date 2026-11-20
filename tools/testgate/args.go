@@ -27,6 +27,7 @@ var forms = []form{
 	{name: "prepost"},
 	{name: "platform", most: 1, dflt: "."},
 	{name: "timebound", most: 1, dflt: "."},
+	{name: "sees", most: 1, dflt: "."},
 	{name: "mutation", least: 1, most: anyNumber,
 		missing: "mutation needs the base the pull request goes into, for example: go run ./tools/testgate mutation origin/dev"},
 	{name: "skips", least: 2, most: 2},

@@ -21,10 +21,12 @@
 #
 # The steps: vet (for every build tag), format, pyramid (tools/testgate),
 # platform (tools/testgate), timebound (tools/testgate: no test bounds real
-# elapsed time under 1s), unit, integration (with coverage of internal/),
-# coverage (tools/testgate's threshold), e2e. A passed step's output is not
-# printed; the figures of pyramid and coverage, and the skip lines, go to the
-# GitHub job summary when GITHUB_STEP_SUMMARY is set. The test steps (unit,
+# elapsed time under 1s), sees (tools/testgate: no test calls Sees but
+# through the helper that first requires ScreenMayTell), unit, integration
+# (with coverage of internal/), coverage (tools/testgate's threshold), e2e.
+# A passed step's output is not printed; the figures of pyramid and coverage,
+# and the skip lines, go to the GitHub job summary when GITHUB_STEP_SUMMARY is
+# set. The test steps (unit,
 # integration, e2e) run go test -json: of a passed one, testgate skips names
 # each test it skipped, a subtest under its full name, with the test's reason
 # on one line (#270), and a run that skipped nothing prints no such line; a
@@ -80,6 +82,8 @@ step_platform() { go run ./tools/testgate platform; }
 
 step_timebound() { go run ./tools/testgate timebound; }
 
+step_sees() { go run ./tools/testgate sees; }
+
 # gotest STEP ARGS... runs go test -json with ARGS for the test step STEP.
 # When the tests pass it writes the step's skip lines to $tmp/skips and fails
 # when testgate cannot list them; when they fail it prints their output as go
@@ -112,7 +116,7 @@ step_e2e() {
 }
 
 n=0
-for step in vet format pyramid platform timebound unit integration coverage e2e; do
+for step in vet format pyramid platform timebound sees unit integration coverage e2e; do
 	: >"$tmp/skips"
 	if ! "step_$step" >"$tmp/out" 2>&1; then
 		echo "check: FAIL $step"
