@@ -7,15 +7,17 @@
 # Its output is a contract the team's release skills read, the same one the
 # project template's full build prints:
 #   check: ok   <step>                       one line per passed step
-#   check: skip <step> <package> <test>: <reason>
-#                                            after a passed test step's ok
-#                                            line, one per test it skipped
 #   check: FAIL <step>                       at the first failing step, then
 #   <that step's output>                     its output, then
 #   check: stopped at <step> on <commit>     and exit 1; no later step runs
 #   check: all <N> steps passed on <commit>  the last line when all passed, exit 0
 # <commit> is the full sha of HEAD, followed by " with uncommitted changes"
 # when the working tree is not clean (untracked files count, ignored ones not).
+# hq adds a line the template's full build does not print (#270), between
+# those lines, never as the last:
+#   check: skip <step> <package> <test>: <reason>
+#                                            after a passed test step's ok
+#                                            line, one per test it skipped
 #
 # The steps: vet (for every build tag), format, pyramid (tools/testgate),
 # platform (tools/testgate), timebound (tools/testgate: no test bounds real
