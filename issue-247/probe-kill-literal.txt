@@ -1,0 +1,18 @@
+$ git diff
+--- a/internal/cli/kill.go
++++ b/internal/cli/kill.go
+@@ -21,6 +21,8 @@ func parseYes(f flagSet, args []string) (rest []string, yes bool, err error) {
+ 		switch {
+ 		case f.is(a, "-y", "--yes"):
+ 			yes = true
++		case a == "--json":
++			yes = true
+ 		case strings.HasPrefix(a, "-"):
+ 			return nil, false, fmt.Errorf("unknown option %s", a)
+ 		default:
+$ go test ./internal/cli -run "Kill|TestFlagsAreRecognised"
+--- FAIL: TestFlagsAreRecognisedOnlyThroughTheirDeclaration (0.01s)
+    cli_test.go:280: kill.go:24:13: compares with "--json", not through flagSet.is
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	0.016s
+FAIL

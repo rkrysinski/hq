@@ -1,0 +1,28 @@
+$ git diff
+--- a/internal/cli/kill.go
++++ b/internal/cli/kill.go
+@@ -21,6 +21,7 @@ func parseYes(f flagSet, args []string) (rest []string, yes bool, err error) {
+ 		switch {
+ 		case f.is(a, "-y", "--yes"):
+ 			yes = true
++		case f.is(a, "--json"):
+ 		case strings.HasPrefix(a, "-"):
+ 			return nil, false, fmt.Errorf("unknown option %s", a)
+ 		default:
+$ go test ./internal/cli -run Kill
+--- FAIL: TestKillAndStopRemoveTheJournal (0.00s)
+panic: hq kill recognises --json, which commands() does not declare for it [recovered, repanicked]
+testing.tRunner.func1.2({0x57d3a0, 0x1e445703ced0})
+testing.tRunner.func1()
+panic({0x57d3a0?, 0x1e445703ced0?})
+github.com/rkrysinski/hq/internal/cli.flagSet.is({{0x668aa6, 0x4}, {0x1e4457038600, 0x2, 0x2}}, {0x6ba7e0, 0x1}, {0x1e4456e10db8, 0x1, 0x668aa6?})
+github.com/rkrysinski/hq/internal/cli.parseYes({{0x668aa6, 0x4}, {0x1e4457038600, 0x2, 0x2}}, {0x1e44570257e0?, 0x0?, 0x0?})
+github.com/rkrysinski/hq/internal/cli.runKill({{_, _}, {_, _}, {_, _}}, {{0x6d3300, 0x1e4456fd1888}, {0x6ce188, 0x1e4456f3f0e0}, ...}, ...)
+github.com/rkrysinski/hq/internal/cli.run({{_, _}, {_, _}, {_, _}}, {{0x6d3300, 0x1e4456fd1888}, {0x6ce188, 0x1e4456f3f0e0}, ...}, ...)
+github.com/rkrysinski/hq/internal/cli.mainWith({_, _, _}, {{_, _}, {_, _}, {_, _}}, {{0x6d3300, ...}, ...})
+github.com/rkrysinski/hq/internal/cli.(*fakes).run(0x1e4456f7d708, {0x1e44570257d0, 0x3, 0x3})
+github.com/rkrysinski/hq/internal/cli.TestKillAndStopRemoveTheJournal(0x1e4457046d88)
+testing.tRunner(0x1e4457046d88, 0x6b5f88)
+created by testing.(*T).Run in goroutine 1
+FAIL	github.com/rkrysinski/hq/internal/cli	0.005s
+FAIL

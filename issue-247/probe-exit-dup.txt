@@ -1,0 +1,17 @@
+$ git diff
+--- a/internal/cli/errors.go
++++ b/internal/cli/errors.go
+@@ -14,6 +14,7 @@ const (
+ 	ExitNotFound    = 2 // agent, repository or sandbox not found
+ 	ExitEnvironment = 3 // tmux, sbx or another prerequisite unavailable
+ 	ExitStalled     = 4 // hq send --wait: the agent did not take the message (#170)
++	ExitProbe       = 4
+ )
+ 
+ // exitCode is an exit code with the words hq help gives it.
+$ go test ./internal/cli -run TestHelpNamesEveryExitCode
+--- FAIL: TestHelpNamesEveryExitCode (0.01s)
+    cli_test.go:155: ExitProbe and ExitStalled are both 4, so hq help cannot name each
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	0.007s
+FAIL

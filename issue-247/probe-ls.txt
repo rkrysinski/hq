@@ -1,0 +1,18 @@
+$ git diff
+--- a/internal/cli/cli.go
++++ b/internal/cli/cli.go
+@@ -35,7 +35,7 @@ func commands() []command {
+ 	return []command{
+ 		{"dash", "", nil, "open the dashboard (also: hq alone)", runDash},
+ 		{"new", "NAME [DIR] [PROMPT]", []string{"--setup"}, "start an agent for the repository in DIR, with an optional first prompt", runNew},
+-		{"ls", "[--json]", []string{"--json"}, "list agents", runLs},
++		{"ls", "", []string{"--json"}, "list agents", runLs},
+ 		{"read", "NAME [--offset N --since SINCE] [--json]", []string{"--offset", "--since", "--json"}, "show that agent in full: its last reply (a long one in pages) and what it asks", runRead},
+ 		{"explain", "NAME [--all] [--json]", []string{"--all", "--json"}, "show the events that agent's state rests on, with no text of its conversation", runExplain},
+ 		{"wait", "[NAME...] [--json]", []string{"--since", "--timeout", "--json"}, "wait until an agent is done, asks, needs input or ends", runWait},
+$ go test ./internal/cli -run TestHelpNamesEveryDeclaredFlag
+--- FAIL: TestHelpNamesEveryDeclaredFlag (0.00s)
+    cli_test.go:184: hq ls takes --json, but hq help names it neither in its usage line nor in a sentence that names hq ls
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	0.005s
+FAIL

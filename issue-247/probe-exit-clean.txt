@@ -1,0 +1,5 @@
+$ go test ./internal/cli -run TestHelpNamesEveryExitCode -v
+=== RUN   TestHelpNamesEveryExitCode
+--- PASS: TestHelpNamesEveryExitCode (0.01s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/cli	0.013s

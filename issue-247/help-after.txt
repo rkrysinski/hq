@@ -1,0 +1,33 @@
+hq - one console for many Claude Code agents
+
+Usage:
+  hq dash                          open the dashboard (also: hq alone)
+  hq new NAME [DIR] [PROMPT]       start an agent for the repository in DIR, with an optional first prompt
+  hq ls [--json]                   list agents
+  hq read NAME [--offset N --since SINCE] [--json] show that agent in full: its last reply (a long one in pages) and what it asks
+  hq explain NAME [--all] [--json] show the events that agent's state rests on, with no text of its conversation
+  hq wait [NAME...] [--json]       wait until an agent is done, asks, needs input or ends
+  hq go NAME                       enter that agent's session
+  hq code NAME                     open VS Code on that agent's worktree
+  hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json] leave a message for that agent, delivered when it is ready; --wait returns when the turn that took it ends
+  hq answer NAME --dialog ID ANSWER...|--cancel [--json] answer that agent's question dialog, or cancel it; or pick an option of a dialog of Claude's own
+  hq kill NAME [-y]                end that agent's Claude session; the sandbox stays
+  hq stop [-y]                     end all agents; sandboxes stay
+  hq killed [NAME]                 show the agents hq killed: when, and who asked for it
+  hq sandbox rm|restart REPO|SANDBOX [-y] remove or restart a repository's sandbox
+  hq restore [REPO]                relaunch the agents tmux lost (a host restart), continuing their conversations
+  hq mcp [install] [claude-desktop|claude-code|sbx] | load|unload REPO serve these commands as tools to Claude Desktop, Claude Code or sbx; install adds hq to it; load gives a sandbox's agents hq's tools
+  hq update                        replace hq with the latest release
+  hq help                          show this help (also: hq --help or hq -h)
+  hq --version                     print the version (also: hq -V)
+
+NAME: letters, digits, '-', '_' and '.', at least one letter or digit, at most 32 characters; taken until that agent is killed.
+hq new also takes --setup NAME (or --setup=NAME): the agent runs in the repository's sandbox of that setup, from "sandboxes" in preferences.json (default: "sandbox").
+hq sandbox also takes --setup NAME (the repository's sandbox of that setup, instead of its default) or --all-setups (every sandbox of the repository).
+hq mcp load and unload take REPO and those flags (--setup NAME, --all-setups) as hq sandbox does; hq sandbox restart loads hq again into a sandbox it was loaded into, and takes it away after an unload (sbx has no unload).
+hq kill, hq stop and hq sandbox take --yes as well as -y, which skips their confirmation.
+hq wait also takes --since SINCE and --timeout DURATION (default 50s; 0 waits with no limit).
+hq send --wait takes --timeout DURATION too, as hq wait does, counted from the start of the call.
+SINCE: the next_since hq printed last, passed back as given, which misses no change and repeats none; or a moment (2026-09-28T10:25:01Z) or a duration back from now (10m), both approximate.
+hq answer takes one ANSWER per question, in the dialog's order: an option's number, numbers joined with commas where several may be picked, or text; a dialog of Claude's own (as /effort opens) takes one option's number; ID is the dialog's, as hq read shows it.
+Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment, 4 stalled (hq send --wait).
