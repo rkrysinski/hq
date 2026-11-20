@@ -1422,7 +1422,7 @@ func TestMCPAfterAnUpdateToAnotherGenerationEachClientNamesItsRemedy(t *testing.
 	for client, want := range map[mcpClient]string{
 		claudeDesktop: "hq: hq was updated: restart hq in this client\n",
 		claudeCode:    "hq: hq was updated: restart hq in this client\n",
-		sbxGateway:    "hq: hq was updated: on the host, run hq sandbox restart for this sandbox's repository\n",
+		sbxGateway:    "hq: hq was updated: on the host, run hq sandbox restart REPO for this sandbox's repository, with --setup SETUP for a sandbox of a setup\n",
 	} {
 		f := goFakes()
 		f.sbx.sandboxes = sandboxesFor("/w/lib")
@@ -1442,6 +1442,29 @@ func TestMCPAfterAnUpdateToAnotherGenerationEachClientNamesItsRemedy(t *testing.
 		if len(f.tmux.windows) != windows || len(f.inbox) != 0 || f.tmux.docked != "" || len(f.announced) != 0 || len(f.kills) != 0 {
 			t.Fatalf("%s: windows %+v inbox %v docked %q announced %v kills %v", client.name, f.tmux.windows, f.inbox, f.tmux.docked, f.announced, f.kills)
 		}
+	}
+}
+
+// The remedy the sandbox's line names restarts the sandbox it serves, also
+// one of a setup: the repository alone is its default sandbox, so for a
+// setup's sandbox the line names --setup, which restarts that one only.
+func TestTheSandboxLineRestartsASetupsSandbox(t *testing.T) {
+	for _, words := range []string{"run hq sandbox restart REPO for this sandbox's repository", "with --setup SETUP for a sandbox of a setup"} {
+		if !strings.Contains(hqUpdatedInSandbox, words) || !strings.Contains(restartTheSandbox, "--setup SETUP when this sandbox is of a setup (named hq-SETUP-DIR)") {
+			t.Fatalf("no %q in %q, or no --setup in %q", words, hqUpdatedInSandbox, restartTheSandbox)
+		}
+	}
+	f := localSandboxFakes()
+	if code, out, errOut := f.run("sandbox", "restart", "app", "--setup", "local", "-y"); code != 0 || out != "restarted the sandbox hq-local-app; relaunched d\n" {
+		t.Fatalf("app --setup local: exit %d %q %q", code, out, errOut)
+	}
+	if got := strings.Join(f.sbx.calls, "; "); strings.Contains(got, "claude-x") || !strings.Contains(got, "hq-local-app") {
+		t.Fatalf("sbx %q", got)
+	}
+	// The repository alone is its default sandbox, not the setup's.
+	f = localSandboxFakes()
+	if code, out, errOut := f.run("sandbox", "restart", "app", "-y"); code != 0 || strings.Contains(out, "hq-local-app") {
+		t.Fatalf("app: exit %d %q %q", code, out, errOut)
 	}
 }
 
@@ -1467,7 +1490,7 @@ func TestMCPAfterAnUpdateOfTheSameGenerationEveryClientServes(t *testing.T) {
 // clients' say what they said before (#249).
 func TestMCPInstructionsNameTheRemedyOfTheClient(t *testing.T) {
 	desktop := "\n- A tool call that fails with `hq was updated: restart hq in this client` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. Tell the user that hq was updated and has to be restarted in this client; the tools work again after that."
-	sandbox := "\n- A tool call that fails with `hq was updated: on the host, run hq sandbox restart for this sandbox's repository` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. This server runs on the host, started by sbx's MCP gateway, so restarting the Claude Code you run in does not replace it: tell the user to run hq sandbox restart for this sandbox's repository on the host, which starts this sandbox's hq anew; the tools work again after that."
+	sandbox := "\n- A tool call that fails with `hq was updated: on the host, run hq sandbox restart REPO for this sandbox's repository, with --setup SETUP for a sandbox of a setup` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. This server runs on the host, started by sbx's MCP gateway, so restarting the Claude Code you run in does not replace it: tell the user to run hq sandbox restart REPO on the host for this sandbox's repository, adding --setup SETUP when this sandbox is of a setup (named hq-SETUP-DIR), which starts this sandbox's hq anew; the tools work again after that."
 	for client, want := range map[mcpClient]string{claudeDesktop: desktop, claudeCode: desktop, sbxGateway: sandbox} {
 		f := goFakes()
 		f.tty = false

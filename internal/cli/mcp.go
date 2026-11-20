@@ -492,7 +492,7 @@ var mcpInstructions = `hq runs Claude Code agents, each working on one task in i
 // The remedies the instructions name for a client's updated line.
 const (
 	restartInClient   = "Tell the user that hq was updated and has to be restarted in this client; the tools work again after that."
-	restartTheSandbox = "This server runs on the host, started by sbx's MCP gateway, so restarting the Claude Code you run in does not replace it: tell the user to run hq sandbox restart for this sandbox's repository on the host, which starts this sandbox's hq anew; the tools work again after that."
+	restartTheSandbox = "This server runs on the host, started by sbx's MCP gateway, so restarting the Claude Code you run in does not replace it: tell the user to run hq sandbox restart REPO on the host for this sandbox's repository, adding --setup SETUP when this sandbox is of a setup (named hq-SETUP-DIR), which starts this sandbox's hq anew; the tools work again after that."
 )
 
 // instructions are mcpInstructions with what c's updated line means and

@@ -21,8 +21,12 @@ const hqUpdated = "hq was updated: restart hq in this client"
 
 // hqUpdatedInSandbox is that line for hq mcp sbx: sbx's MCP gateway
 // started it on the host for a sandbox, where restarting Claude Code does
-// not replace it, and hq sandbox restart does (#249).
-const hqUpdatedInSandbox = "hq was updated: on the host, run hq sandbox restart for this sandbox's repository"
+// not replace it, and hq sandbox restart does (#249). The gateway tells
+// the server nothing of the sandbox it serves (it sets no environment, and
+// the client is the gateway), so the line cannot name it: it names the
+// repository, and --setup for a sandbox of a setup, whose REPO alone would
+// be the repository's default sandbox (spec §4.1).
+const hqUpdatedInSandbox = "hq was updated: on the host, run hq sandbox restart REPO for this sandbox's repository, with --setup SETUP for a sandbox of a setup"
 
 // generationTimeout bounds asking the hq on disk its generation.
 const generationTimeout = 5 * time.Second

@@ -177,7 +177,7 @@ func TestHqMCPStepsAsideOnlyForAnHqOfAnotherGeneration(t *testing.T) {
 		line string
 	}{
 		{s, "hq: hq was updated: restart hq in this client\n"},
-		{&sandbox, "hq: hq was updated: on the host, run hq sandbox restart for this sandbox's repository\n"},
+		{&sandbox, "hq: hq was updated: on the host, run hq sandbox restart REPO for this sandbox's repository, with --setup SETUP for a sandbox of a setup\n"},
 	} {
 		for _, c := range []struct {
 			tool string
