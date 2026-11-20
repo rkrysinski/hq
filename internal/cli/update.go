@@ -80,7 +80,24 @@ func runUpdate(env Env, d deps, args []string) error {
 		return envErr("could not replace %s: %v", exe, err)
 	}
 	fmt.Fprintf(env.Stdout, "updated hq %s -> %s\n", current, latest)
+	if loaded := d.loadPrefs().MCPLoaded; len(loaded) > 0 && !(published && gen == version.Generation) {
+		fmt.Fprintln(env.Stdout, restartToolsLine(loaded))
+	}
 	return nil
+}
+
+// restartToolsLine names the sandboxes hq was loaded into, whose hq mcp,
+// which sbx's gateway keeps running, fails every tool call after an update
+// to another generation until the sandbox restarts (#249).
+func restartToolsLine(sandboxes []string) string {
+	cmds := make([]string, len(sandboxes))
+	for i, name := range sandboxes {
+		cmds[i] = "hq sandbox restart " + name
+	}
+	if len(sandboxes) == 1 {
+		return fmt.Sprintf("hq's tools in the sandbox %s fail until it restarts: %s", sandboxes[0], cmds[0])
+	}
+	return fmt.Sprintf("hq's tools in the sandboxes %s fail until each restarts: %s", strings.Join(sandboxes, ", "), strings.Join(cmds, ", "))
 }
 
 // mayUpdateCommand is the hidden command install.sh asks the installed hq

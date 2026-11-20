@@ -19,6 +19,11 @@ import (
 // disk is of another generation (spec, Phase 2; design §3.12).
 const hqUpdated = "hq was updated: restart hq in this client"
 
+// hqUpdatedInSandbox is that line for hq mcp sbx: sbx's MCP gateway
+// started it on the host for a sandbox, where restarting Claude Code does
+// not replace it, and hq sandbox restart does (#249).
+const hqUpdatedInSandbox = "hq was updated: on the host, run hq sandbox restart for this sandbox's repository"
+
 // generationTimeout bounds asking the hq on disk its generation.
 const generationTimeout = 5 * time.Second
 
