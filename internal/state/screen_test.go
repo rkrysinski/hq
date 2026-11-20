@@ -249,10 +249,11 @@ func TestWithoutHintsKeepsWhatTheUserTyped(t *testing.T) {
 	}
 }
 
-// While subagents run, Claude Code 2.1.291 lists them below its footer:
-// main, then a line for each. screen-styled-background is one subagent
-// running, captured with its styles (the box shows a faint suggestion);
-// screen-background-three is three, captured without.
+// While subagents run, Claude Code 2.1.291 draws Claude's agents list
+// below its footer: main, then a line for each subagent.
+// screen-styled-background is one subagent running, captured with its
+// styles (the box shows a faint suggestion); screen-background-three is
+// three, captured without.
 func TestThePromptBoxIsFoundAboveTheSubagentsClaudeListsBelowItsFooter(t *testing.T) {
 	one := WithoutHints(screen(t, "styled-background"))
 	if ok, restored := AtRest(one, ""); !ok || restored {

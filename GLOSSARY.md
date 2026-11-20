@@ -66,7 +66,7 @@ _Avoid_: pending tasks, children, jobs
 
 **Claude's agents list**:
 The list Claude Code draws below its footer while an agent's subagents run: `main`, then a line for each subagent, over which Claude Code's own cursor moves and from which a subagent's view opens. Not hq's list: Claude Code's cursor on it is neither the cursor nor the cursor row.
-_Avoid_: agents list, agent list, background list
+_Avoid_: agents list, agent list (that is hq's own, spec §3), background list
 
 **Closing turn**:
 The turn Claude runs by itself when background work has finished; the one that ends with none running makes the agent `done`.
