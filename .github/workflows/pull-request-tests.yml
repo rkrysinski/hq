@@ -7,11 +7,13 @@
 #
 # Skipped when every changed file is one nothing in the build, the tests,
 # tools/testgate or e2e reads (#108): Markdown anywhere and docs/ (no
-# //go:embed, no code reads them), .claude/ (no Go files; go vet, go test and
-# the pyramid gate skip it, and the tests' git repositories are temporary
-# ones) and .gitignore (CI builds a fresh checkout). Any other file in the
-# change runs the whole workflow. Remove a path from this list the day code
-# reads it.
+# //go:embed, no code reads them) and .gitignore (CI builds a fresh
+# checkout). Any other file in the change runs the whole workflow. Remove a
+# path from this list the day code reads it.
+# .claude/ is not skipped but for its Markdown: a test of the full build,
+# TestTheProjectSettingsRunTheHookOnEveryBashCommand in scripts/, reads
+# .claude/settings.json, and a test beside it fails when a pattern of this
+# list matches that file (#301).
 # A skipped workflow reports no check at all: should dev ever require this
 # check, docs-only pull requests would wait on it forever, and the filter
 # must then move into a job that always runs and skips its steps.
@@ -23,7 +25,6 @@ on:
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
-      - '.claude/**'
       - '.gitignore'
 
 permissions:
