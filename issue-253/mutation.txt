@@ -1,0 +1,8 @@
+mutation: staging the tree in /tmp/hq-mutation-3368935959
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 30s
+alive      internal/state/owndialog.go:96:20 conditionals boundary
+mutation: 7 killed, 1 alive, 0 timed out, 0 not covered against origin/release-v0.16.0 on f1f24e68ce8fd7ac096f1a14d9c42722464419fa
+exit status 1
+exit 1
