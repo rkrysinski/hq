@@ -381,14 +381,19 @@ func defaultDeps() deps {
 }
 
 // lookSources are where a look reads and appends (agent.Sources): the
-// journals' store, and tmux for the windows and the screens.
+// journals' store, tmux for the windows and the screens, and hq mcp's
+// word to an agent's hook that its next prompt is the supervisor's
+// (ID.next).
 type lookSources struct {
 	journal.Store
-	windows func() ([]tmux.Window, error)
-	screens func(panes []string) (map[string]string, error)
+	windows  func() ([]tmux.Window, error)
+	screens  func(panes []string) (map[string]string, error)
+	withdraw func(root, id string) error
 }
 
 func (s lookSources) Screens(panes []string) (map[string]string, error) { return s.screens(panes) }
+
+func (s lookSources) Withdraw(root, id string) error { return s.withdraw(root, id) }
 
 // Stands says whether home window w is among the windows tmux lists now.
 // When tmux cannot list them it does not: the look then writes no journal
@@ -400,7 +405,9 @@ func (s lookSources) Stands(w string) bool {
 }
 
 // sources are the look's sources of these dependencies.
-func (d deps) sources() agent.Sources { return lookSources{d.journal, d.tmux.Windows, d.tmux.Screens} }
+func (d deps) sources() agent.Sources {
+	return lookSources{d.journal, d.tmux.Windows, d.tmux.Screens, d.withdraw}
+}
 
 // look is a look at the agents of the home windows ws (agent.Look), with
 // sbx's answer running.

@@ -37,9 +37,10 @@ type seen struct {
 	// it was seen at, as the look appended it to the journal: a turn the
 	// user ended (by its line, rewound, or a turn Claude owed that did not
 	// come), a screen at rest, Claude at work after a dialog its hooks
-	// reported, a dialog of Claude's own (nil once gone), and Claude's
-	// wake-up after a turn the user ended.
-	turnEnd, atRest, atWork, own, woke *evidence
+	// reported, a dialog of Claude's own (nil once gone), Claude's
+	// wake-up after a turn the user ended, and the first prompt taken as a
+	// slash command of Claude's own that starts no turn.
+	turnEnd, atRest, atWork, own, woke, tookSlash *evidence
 }
 
 // diedBefore reports whether a pane death tmux dates at from (zero when
@@ -98,6 +99,10 @@ func (f *Fold) see(e Event) bool {
 		// first seen; another, or one opened again, counts anew.
 		if !s.own.at(key) || s.own.Facts.Screen != e.Facts.Screen {
 			s.own = mark
+		}
+	case EvidenceTookSlashCommand:
+		if !s.tookSlash.at(key) {
+			s.tookSlash = mark
 		}
 	case EvidenceTookQueued:
 		f.handOver(e)
@@ -206,10 +211,20 @@ func (f *Fold) look(reply *Reply) looked {
 		f.overrule(&r, h)
 	}
 	if session && f.awaitsFirstPrompt(r.Reduced, h) {
-		// Its new session waits for the first prompt hq gave it, which is
-		// no turn done: starting from its launch until it reports it.
-		r.State, r.Since, r.Entered = Starting, s.launched.Time, s.launched
-		r.restOn(s.launched.Number)
+		if t := s.tookSlash; t.at(h.report.Number) {
+			// Claude took that prompt as a slash command of its own that starts
+			// no turn, which it reports nowhere (#220): it waits at its
+			// prompt, done since the screen showed it, and no turn ended.
+			r.Since, r.Entered = t.Time, RefOf(t.Event)
+			r.restOn(t.Number)
+		} else {
+			// Its new session waits for the first prompt hq gave it, which
+			// is no turn done: starting from its launch until it reports
+			// it, or until its screen shows Claude took it as a slash command of
+			// its own (TookSlashCommand).
+			r.State, r.Since, r.Entered = Starting, s.launched.Time, s.launched
+			r.restOn(s.launched.Number)
+		}
 	}
 	if r.State != NeedsInput {
 		r.Dialog = DialogVerdict{}
@@ -223,10 +238,13 @@ func (f *Fold) look(reply *Reply) looked {
 }
 
 // awaitsFirstPrompt says r, from the hook's report h, is the done of a new
-// session's start of an agent launched with a first prompt, which the
-// screen did not overrule: a dialog of Claude's own still needs input. A
-// first prompt Claude never reports keeps it starting until its next
-// report (#191).
+// session's start of an agent launched with a first prompt, which the screen
+// did not overrule: a dialog of Claude's own still needs input. A first
+// prompt Claude never reports keeps it starting until its next report
+// (#191), or until its screen shows the prompt taken as a slash command of
+// Claude's own that starts no turn (#220); one whose screen shows no such
+// sign, as a prompt Claude drops at its start, until its next report or hq
+// kill.
 func (f *Fold) awaitsFirstPrompt(r, h Reduced) bool {
 	return r.State == Done && r.Entered == h.Entered && f.firstPromptDue()
 }

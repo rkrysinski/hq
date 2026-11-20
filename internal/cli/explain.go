@@ -265,16 +265,17 @@ func asideWhy(aside string) string {
 
 // screenWhat says what each kind of event of the screen was.
 var screenWhat = map[string]string{
-	state.KindTurnEnded:     "a turn the user ended (Esc)",
-	state.KindAtRest:        "the screen first seen at rest",
-	state.KindToolCut:       "the screen first seen at rest at a tool the user cut short",
-	state.KindRewound:       "the turn was rewound: its screen stayed at rest",
-	state.KindTurnNotTaken:  "the turn Claude owed does not come: its screen stayed at rest",
-	state.KindOwnDialog:     "a dialog of Claude's own",
-	state.KindOwnDialogGone: "the dialog of Claude's own is gone",
-	state.KindAtWork:        "Claude at work",
-	state.KindTookQueued:    "Claude took the prompt it queued",
-	state.KindWokeUp:        "Claude woke up after a turn the user ended",
+	state.KindTurnEnded:        "a turn the user ended (Esc)",
+	state.KindAtRest:           "the screen first seen at rest",
+	state.KindToolCut:          "the screen first seen at rest at a tool the user cut short",
+	state.KindRewound:          "the turn was rewound: its screen stayed at rest",
+	state.KindTurnNotTaken:     "the turn Claude owed does not come: its screen stayed at rest",
+	state.KindOwnDialog:        "a dialog of Claude's own",
+	state.KindOwnDialogGone:    "the dialog of Claude's own is gone",
+	state.KindAtWork:           "Claude at work",
+	state.KindTookQueued:       "Claude took the prompt it queued",
+	state.KindWokeUp:           "Claude woke up after a turn the user ended",
+	state.KindTookSlashCommand: "Claude took the first prompt as a slash command of its own: no turn comes",
 }
 
 // hookWhat says what event e of the hook was.
