@@ -1415,6 +1415,93 @@ func TestMCPAfterAnUpdateToAnotherGenerationEveryCallFails(t *testing.T) {
 	}
 }
 
+// Each client gets the line that names the remedy it has: a Claude Code
+// inside a sandbox cannot restart the hq sbx's gateway started for it on
+// the host, so its line names hq sandbox restart there (#249).
+func TestMCPAfterAnUpdateToAnotherGenerationEachClientNamesItsRemedy(t *testing.T) {
+	for client, want := range map[mcpClient]string{
+		claudeDesktop: "hq: hq was updated: restart hq in this client\n",
+		claudeCode:    "hq: hq was updated: restart hq in this client\n",
+		sbxGateway:    "hq: hq was updated: on the host, run hq sandbox restart REPO for this sandbox's repository, with --setup SETUP for a sandbox of a setup\n",
+	} {
+		f := goFakes()
+		f.sbx.sandboxes = sandboxesFor("/w/lib")
+		f.tty = false
+		cs := connect(t, newMCPServer(f.deps(), client))
+		if out, isErr := call(t, cs, "list", nil); isErr {
+			t.Fatalf("%s: list before the update: %q", client.name, out)
+		}
+		f.disk.ino++
+		f.diskGeneration = version.Generation + 1
+		windows := len(f.tmux.windows)
+		for _, c := range stepAsideCalls {
+			if out, isErr := call(t, cs, c.tool, c.args); !isErr || out != want {
+				t.Errorf("%s: %s: %v %q", client.name, c.tool, isErr, out)
+			}
+		}
+		if len(f.tmux.windows) != windows || len(f.inbox) != 0 || f.tmux.docked != "" || len(f.announced) != 0 || len(f.kills) != 0 {
+			t.Fatalf("%s: windows %+v inbox %v docked %q announced %v kills %v", client.name, f.tmux.windows, f.inbox, f.tmux.docked, f.announced, f.kills)
+		}
+	}
+}
+
+// The remedy the sandbox's line names restarts the sandbox it serves, also
+// one of a setup: the repository alone is its default sandbox, so for a
+// setup's sandbox the line names --setup, which restarts that one only.
+func TestTheSandboxLineRestartsASetupsSandbox(t *testing.T) {
+	for _, words := range []string{"run hq sandbox restart REPO for this sandbox's repository", "with --setup SETUP for a sandbox of a setup"} {
+		if !strings.Contains(hqUpdatedInSandbox, words) || !strings.Contains(restartTheSandbox, "--setup SETUP when this sandbox is of a setup (named hq-SETUP-DIR)") {
+			t.Fatalf("no %q in %q, or no --setup in %q", words, hqUpdatedInSandbox, restartTheSandbox)
+		}
+	}
+	f := localSandboxFakes()
+	if code, out, errOut := f.run("sandbox", "restart", "app", "--setup", "local", "-y"); code != 0 || out != "restarted the sandbox hq-local-app; relaunched d\n" {
+		t.Fatalf("app --setup local: exit %d %q %q", code, out, errOut)
+	}
+	if got := strings.Join(f.sbx.calls, "; "); strings.Contains(got, "claude-x") || !strings.Contains(got, "hq-local-app") {
+		t.Fatalf("sbx %q", got)
+	}
+	// The repository alone is its default sandbox, not the setup's.
+	f = localSandboxFakes()
+	if code, out, errOut := f.run("sandbox", "restart", "app", "-y"); code != 0 || strings.Contains(out, "hq-local-app") {
+		t.Fatalf("app: exit %d %q %q", code, out, errOut)
+	}
+}
+
+// With the hq on disk replaced by one of its own generation, every client's
+// tools go on working.
+func TestMCPAfterAnUpdateOfTheSameGenerationEveryClientServes(t *testing.T) {
+	for _, client := range mcpClients {
+		f := goFakes()
+		f.sbx.sandboxes = sandboxesFor("/w/lib")
+		f.tty = false
+		cs := connect(t, newMCPServer(f.deps(), client))
+		f.disk.ino++
+		if out, isErr := call(t, cs, "list", nil); isErr || strings.Contains(out, "hq was updated") {
+			t.Fatalf("%s: list: %v %q", client.name, isErr, out)
+		}
+		if out, isErr := call(t, cs, "new", map[string]any{"name": "42", "dir": "/w/lib", "prompt": "work on issue #42"}); isErr || !strings.HasPrefix(out, "started 42") {
+			t.Fatalf("%s: new: %v %q", client.name, isErr, out)
+		}
+	}
+}
+
+// The instructions of hq mcp sbx say what its line means there; the other
+// clients' say what they said before (#249).
+func TestMCPInstructionsNameTheRemedyOfTheClient(t *testing.T) {
+	desktop := "\n- A tool call that fails with `hq was updated: restart hq in this client` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. Tell the user that hq was updated and has to be restarted in this client; the tools work again after that."
+	sandbox := "\n- A tool call that fails with `hq was updated: on the host, run hq sandbox restart REPO for this sandbox's repository, with --setup SETUP for a sandbox of a setup` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. This server runs on the host, started by sbx's MCP gateway, so restarting the Claude Code you run in does not replace it: tell the user to run hq sandbox restart REPO on the host for this sandbox's repository, adding --setup SETUP when this sandbox is of a setup (named hq-SETUP-DIR), which starts this sandbox's hq anew; the tools work again after that."
+	for client, want := range map[mcpClient]string{claudeDesktop: desktop, claudeCode: desktop, sbxGateway: sandbox} {
+		f := goFakes()
+		f.tty = false
+		got := connect(t, newMCPServer(f.deps(), client)).InitializeResult().Instructions
+		// The rest is every client's, as before.
+		if got != mcpInstructions+want || !strings.HasPrefix(got, "hq runs Claude Code agents") {
+			t.Errorf("%s: instructions end %q", client.name, got[max(0, len(got)-len(want)-40):])
+		}
+	}
+}
+
 func TestMCPAfterAnUpdateOfTheSameGenerationServesAsBefore(t *testing.T) {
 	f := goFakes()
 	f.sbx.sandboxes = sandboxesFor("/w/lib")

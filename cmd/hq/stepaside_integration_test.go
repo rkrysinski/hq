@@ -145,34 +145,52 @@ func TestTheListStepsAsideOnlyForAnHqOfAnotherGeneration(t *testing.T) {
 	}
 }
 
-// hq mcp left running across updates: an update to another generation
-// fails every tool call, starting nothing; one of hq's own generation
-// leaves the tools as they were.
+// hq mcp left running across updates, for Claude Desktop and, as sbx's
+// gateway starts it for a sandbox, hq mcp sbx: an update to another
+// generation fails every tool call with the line naming the client's
+// remedy, starting nothing; one of hq's own generation leaves the tools as
+// they were (#249).
 func TestHqMCPStepsAsideOnlyForAnHqOfAnotherGeneration(t *testing.T) {
 	same := buildRelease(t, "v0.98.0", version.Generation)
 	other := buildRelease(t, "v0.99.0", version.Generation+1)
 	s := newSupervisor(t)
+	sandbox := *s
+	cmd := exec.Command(s.bin, "mcp", "sbx")
+	cmd.Env = s.env
+	sandbox.connect(cmd)
 	repo := testutil.GitRepo(t, "app")
 	s.ok("list", nil)
+	sandbox.ok("list", nil)
 
 	updateTo(t, s.bin, same)
 	if out := s.ok("new", map[string]any{"name": "a", "dir": repo, "prompt": "say hi"}); !strings.Contains(out, "started a in app") {
 		t.Fatalf("new after an update of the same generation: %q", out)
 	}
 	s.ok("list", nil)
+	if out := sandbox.ok("list", nil); !strings.Contains(out, `"name": "a"`) {
+		t.Fatalf("hq mcp sbx: list after an update of the same generation: %q", out)
+	}
 
 	updateTo(t, s.bin, other)
-	for _, c := range []struct {
-		tool string
-		args map[string]any
+	for _, client := range []struct {
+		s    *supervisor
+		line string
 	}{
-		{"list", nil},
-		{"read", map[string]any{"name": "a"}},
-		{"new", map[string]any{"name": "b", "dir": repo, "prompt": "say hi"}},
-		{"kill", map[string]any{"name": "a", "confirmed": true}},
+		{s, "hq: hq was updated: restart hq in this client\n"},
+		{&sandbox, "hq: hq was updated: on the host, run hq sandbox restart REPO for this sandbox's repository, with --setup SETUP for a sandbox of a setup\n"},
 	} {
-		if out, isErr := s.call(c.tool, c.args); !isErr || out != "hq: hq was updated: restart hq in this client\n" {
-			t.Errorf("%s: %v %q", c.tool, isErr, out)
+		for _, c := range []struct {
+			tool string
+			args map[string]any
+		}{
+			{"list", nil},
+			{"read", map[string]any{"name": "a"}},
+			{"new", map[string]any{"name": "b", "dir": repo, "prompt": "say hi"}},
+			{"kill", map[string]any{"name": "a", "confirmed": true}},
+		} {
+			if out, isErr := client.s.call(c.tool, c.args); !isErr || out != client.line {
+				t.Errorf("%s: %v %q", c.tool, isErr, out)
+			}
 		}
 	}
 	// b was not started, and a not killed.
