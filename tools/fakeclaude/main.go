@@ -96,6 +96,10 @@
 //     on. Below the dialog, or at once when it does not ask, it says what
 //     it did ("Set effort level to medium", "Kept effort level as high")
 //     (#120);
+//   - a prompt "/model NAME", the first prompt or a line typed, is no
+//     prompt either: as Claude Code 2.1.329 does (#220), it starts no turn
+//     and fires no hook, and draws the command sent, what it did right
+//     below it ("⎿  Set model to NAME") and the empty box;
 //   - "/exit", SIGTERM or SIGHUP fire SessionEnd and exit;
 //   - any other prompt that starts with "/" is a slash command, as Claude
 //     Code takes one: it runs as a turn like any prompt, and the fake
@@ -295,7 +299,9 @@ func main() {
 		if d, err := time.ParseDuration(os.Getenv("FAKE_CLAUDE_FIRST_PROMPT_DELAY")); err == nil {
 			time.Sleep(d)
 		}
-		c.turn(prompt)
+		if !setModel(prompt) {
+			c.turn(prompt)
+		}
 	}
 	for in := range c.lines {
 		line := strings.TrimSpace(in.text)
@@ -323,6 +329,9 @@ func main() {
 				// A slash command, no prompt: its dialog takes the box's
 				// place until it is answered; no hook fires.
 				c.setEffort(words[1])
+				continue
+			}
+			if command && setModel(line) {
 				continue
 			}
 			if words := strings.Fields(line); words[0] == "wake" {
@@ -409,6 +418,21 @@ func (c *claude) setEffort(level string) {
 		fmt.Println("  ⎿  Kept effort level as " + c.effort)
 	}
 	promptBox("")
+}
+
+// setModel takes prompt when it is "/model NAME", a command of Claude
+// Code's own that starts no turn and fires no hook (2.1.329, #220), and
+// draws it as that version does: the command sent, what it did right below
+// it, the empty box. It reports whether prompt was that command.
+func setModel(prompt string) bool {
+	words := strings.Fields(prompt)
+	if len(words) != 2 || words[0] != "/model" {
+		return false
+	}
+	fmt.Println("❯ " + strings.Join(words, " "))
+	fmt.Println("  ⎿  Set model to " + words[1])
+	promptBox("")
+	return true
 }
 
 // stty sets the modes of the fake's terminal.

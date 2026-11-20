@@ -1,8 +1,11 @@
 package state
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -445,6 +448,207 @@ func TestAFirstPromptThatNeverComesLeavesTheAgentStartingWithNoCompletedTurn(t *
 	// reports without the prompt reported before it is done.
 	if r := Reduce(append(slices.Clone(journal), endOfTurn(3, "t1", false)), Reply{}, atSecond(9)); r.State != Done || r.Entered.Number != 3 {
 		t.Fatalf("its next report: %s entered %d", r.State, r.Entered.Number)
+	}
+}
+
+// firstPromptJournal is the journal of an agent launched with a first
+// prompt whose new session has started and reported nothing since.
+func firstPromptJournal() []Event {
+	return []Event{
+		seenEvent(1, SourceHQ, KindLaunched, 0, Facts{Start: "new", Prompted: true}),
+		hookEvent(2, CaseStart, KindSessionStart, Facts{Start: newSource, Session: "s1"}),
+	}
+}
+
+// tookCommandScreens are the screens of Claude Code 2.1.329 that took the
+// first prompt it was started with as a command of its own and started no
+// turn for it (setup P, #220): /model NAME, and /effort and the picker of
+// /model closed with Esc, right after and at rest.
+var tookCommandScreens = []string{
+	"first-model-name-2329", "first-model-name-2329-rest", "first-model-name-2329-80", "first-model-name-2329-80-rest",
+	"first-effort-2329-closed", "first-effort-2329-80-closed",
+	"first-model-kept-2329", "first-model-kept-2329-80",
+}
+
+// Claude Code 2.1.329 reports nothing for a command of its own that starts
+// no turn given as the first prompt (setup P: no event followed its
+// session's start). Once the screen shows that command sent with its
+// outcome below it, at the prompt box, the agent is done since the look
+// saw it: no completed turn, no last message (#220).
+func TestAFirstPromptClaudeTookAsACommandOfItsOwnMakesTheAgentDone(t *testing.T) {
+	for _, name := range tookCommandScreens {
+		journal := firstPromptJournal()
+		f := Fold{}.With(journal...)
+		at := atSecond(2).Add(OverruleDelay)
+		if !f.ScreenMayTell(at) {
+			t.Fatalf("%s: its screen may not tell", name)
+		}
+		seen, resting := f.Sees(screen(t, name), at)
+		if len(seen) != 1 || seen[0].Kind != KindTookCommand || seen[0].Source != SourceScreen || !seen[0].Time.Equal(at) || resting {
+			t.Errorf("%s: %+v %v", name, seen, resting)
+			continue
+		}
+		seen[0].Number, seen[0].Basis = 3, 2
+		r := Reduce(append(journal, seen[0]), Reply{}, atSecond(9))
+		if r.State != Done || r.TurnEnded != 0 || r.Last != "" || r.Entered.Number != 3 || r.Changed.Number != 3 || !r.Since.Equal(at) || !slices.Contains(r.RestsOn, 3) {
+			t.Errorf("%s: %s turn ended %d last %q entered %d changed %d since %v rests on %v", name, r.State, r.TurnEnded, r.Last, r.Entered.Number, r.Changed.Number, r.Since, r.RestsOn)
+		}
+	}
+}
+
+// A first prompt that is only late never makes the agent done (#220): with
+// Claude Code 2.1.329 the prompt is drawn sent at once with the spinner
+// below it while a SessionStart hook of 4 s runs, then the spinner alone
+// once Claude reported taking it (setup P, (a)); a command of Claude's own
+// shows only its header right after the start ((b), (c)); a session given
+// no prompt shows its box with a placeholder ((d)); the slider of /effort
+// is no dialog hq reads. Each leaves the agent starting, at rest or not,
+// 2 s, an hour and a day later, and its prompt reported then makes it
+// working.
+func TestAFirstPromptThatIsOnlyLateLeavesTheAgentStarting(t *testing.T) {
+	for _, name := range []string{
+		"first-hook-2329", "first-hook-2329-80", "first-hook-taken-2329", "first-hook-taken-2329-80",
+		"first-model-name-2329-start", "first-model-name-2329-80-start",
+		"first-effort-2329-open", "first-effort-2329-80-open",
+		"first-none-2329", "first-none-2329-80",
+	} {
+		journal := firstPromptJournal()
+		f := Fold{}.With(journal...)
+		at := atSecond(2).Add(OverruleDelay)
+		for _, later := range []time.Duration{0, RestDelay, time.Hour, 24 * time.Hour} {
+			if !f.ScreenMayTell(at.Add(later)) {
+				t.Fatalf("%s, %v later: its screen may not tell", name, later)
+			}
+			if seen, resting := f.Sees(screen(t, name), at.Add(later)); len(seen) != 0 || resting {
+				t.Errorf("%s, %v later: %+v %v", name, later, seen, resting)
+			}
+		}
+		if r := Reduce(journal, Reply{}, at.Add(24*time.Hour)); r.State != Starting || r.Entered.Number != 1 || r.TurnEnded != 0 {
+			t.Errorf("%s, a day later: %s entered %d turn ended %d", name, r.State, r.Entered.Number, r.TurnEnded)
+		}
+		if r := Reduce(append(journal, userPrompt(3, "t1")), Reply{}, atSecond(9)); r.State != Working || r.Entered.Number != 3 {
+			t.Errorf("%s, its prompt reported: %s entered %d", name, r.State, r.Entered.Number)
+		}
+	}
+}
+
+// The picker of /model as the first prompt (Claude Code 2.1.329, setup P)
+// is a dialog of Claude's own in that prompt's way: needs input while it
+// is open, then, closed with Esc and no turn started, the agent is done by
+// TookCommand, in the same look that sees the dialog gone (#220).
+func TestTheModelPickerAsTheFirstPromptNeedsInputThenTheAgentIsDone(t *testing.T) {
+	for _, size := range []string{"", "-80"} {
+		journal := firstPromptJournal()
+		f := Fold{}.With(journal...)
+		at := atSecond(3)
+		opened, _ := f.Sees(screen(t, "own-first-model-2329"+size), at)
+		if len(opened) != 1 || opened[0].Kind != KindOwnDialog || opened[0].Facts.Text != "Select model" {
+			t.Fatalf("%s opened: %+v", size, opened)
+		}
+		opened[0].Number, opened[0].Basis = 3, 2
+		journal = append(journal, opened[0])
+		if r := Reduce(journal, Reply{}, atSecond(9)); r.State != NeedsInput || !r.Dialog.Open || r.Dialog.Whose != DialogOwn {
+			t.Fatalf("%s opened: %s %+v", size, r.State, r.Dialog)
+		}
+		f = Fold{}.With(journal...)
+		closed, _ := f.Sees(screen(t, "first-model-kept-2329"+size), atSecond(4))
+		if len(closed) != 2 || closed[0].Kind != KindOwnDialogGone || closed[1].Kind != KindTookCommand {
+			t.Fatalf("%s closed: %+v", size, closed)
+		}
+		for i := range closed {
+			closed[i].Number, closed[i].Basis = int64(4+i), 2
+		}
+		journal = append(journal, closed...)
+		if r := Reduce(journal, Reply{}, atSecond(9)); r.State != Done || r.Dialog.Open || r.TurnEnded != 0 || r.Entered.Number != 5 || r.Last != "" {
+			t.Fatalf("%s closed: %s dialog %+v turn ended %d entered %d last %q", size, r.State, r.Dialog, r.TurnEnded, r.Entered.Number, r.Last)
+		}
+	}
+}
+
+// Of every screen in testdata only those of a command of Claude's own taken
+// as the first prompt show the sign TookCommand reads (setup P, #220): a
+// command after a turn shows other prompts sent above it. Every other
+// screen at the prompt box at rest, a session given no prompt (d) among
+// them, changes nothing for an agent waiting for its first prompt, at
+// once, RestDelay or an hour later.
+func TestOnlyACommandOfClaudesOwnAsTheFirstPromptShowsTheSign(t *testing.T) {
+	names, _ := filepath.Glob(filepath.Join("testdata", "screen-*.txt"))
+	if len(names) < 20 {
+		t.Fatalf("only %d screens", len(names))
+	}
+	var signs []string
+	idle := 0
+	f := Fold{}.With(firstPromptJournal()...)
+	for _, name := range names {
+		b, _ := os.ReadFile(name)
+		s, base := string(b), strings.TrimSuffix(strings.TrimPrefix(filepath.Base(name), "screen-"), ".txt")
+		if TookCommand(s) {
+			signs = append(signs, base)
+			continue
+		}
+		if !Idle(s) {
+			continue
+		}
+		idle++
+		for _, later := range []time.Duration{0, RestDelay, time.Hour} {
+			if seen, resting := f.Sees(s, atSecond(3).Add(later)); len(seen) != 0 || resting {
+				t.Errorf("%s, %v later: %+v %v", base, later, seen, resting)
+			}
+		}
+	}
+	want := slices.Sorted(slices.Values(tookCommandScreens))
+	if slices.Sort(signs); !slices.Equal(signs, want) {
+		t.Errorf("the sign on %v, want %v", signs, want)
+	}
+	if idle < 20 {
+		t.Errorf("only %d screens at rest", idle)
+	}
+}
+
+// Once the agent is done by TookCommand, the screens that told it change
+// nothing more, and it is as any done agent: a prompt reported next makes
+// it working and ends as a completed turn, a dialog of Claude's own opened
+// next needs input (#220). The decision stands only for the session's
+// start it was seen at: a new session's start awaits its first prompt
+// anew only after a launch with one.
+func TestAnAgentDoneByTookCommandIsAsAnyDoneAgent(t *testing.T) {
+	journal := append(firstPromptJournal(), seenEvent(3, SourceScreen, KindTookCommand, 2, Facts{}))
+	f := Fold{}.With(journal...)
+	for _, name := range tookCommandScreens {
+		if seen, _ := f.Sees(screen(t, name), atSecond(4)); len(seen) != 0 {
+			t.Errorf("%s again: %+v", name, seen)
+		}
+	}
+	// The same decision appended twice, by two hq processes, is one.
+	if r := Reduce(append(slices.Clone(journal), seenEvent(4, SourceScreen, KindTookCommand, 2, Facts{})), Reply{}, atSecond(9)); r.Entered.Number != 3 || r.Changed.Number != 3 {
+		t.Errorf("twice: entered %d changed %d", r.Entered.Number, r.Changed.Number)
+	}
+	turn := append(slices.Clone(journal), userPrompt(4, "t1"))
+	if r := Reduce(turn, Reply{}, atSecond(9)); r.State != Working || r.Entered.Number != 4 {
+		t.Errorf("a prompt next: %s entered %d", r.State, r.Entered.Number)
+	}
+	turn = append(turn, endOfTurn(5, "t1", false))
+	if r := Reduce(turn, Reply{}, atSecond(9)); r.State != Done || r.TurnEnded != 5 {
+		t.Errorf("its turn's end: %s turn ended %d", r.State, r.TurnEnded)
+	}
+	seen, _ := f.Sees(screen(t, "own-first-model-2329"), atSecond(4))
+	if len(seen) != 1 || seen[0].Kind != KindOwnDialog {
+		t.Fatalf("a dialog next: %+v", seen)
+	}
+	seen[0].Number, seen[0].Basis = 4, 2
+	if r := Reduce(append(slices.Clone(journal), seen[0]), Reply{}, atSecond(9)); r.State != NeedsInput {
+		t.Errorf("a dialog next: %s", r.State)
+	}
+	// The session started over (/clear) is done at its start, the decision
+	// of the session before it standing for nothing.
+	over := append(slices.Clone(journal), hookEvent(4, CaseStart, KindSessionStart, Facts{Start: "clear", Session: "s2"}))
+	if r := Reduce(over, Reply{}, atSecond(9)); r.State != Done || r.Entered.Number != 4 {
+		t.Errorf("started over: %s entered %d", r.State, r.Entered.Number)
+	}
+	// A relaunch with a first prompt waits for it anew.
+	again := append(slices.Clone(journal), seenEvent(4, SourceHQ, KindLaunched, 0, Facts{Start: "new", Prompted: true}), hookEvent(5, CaseStart, KindSessionStart, Facts{Start: newSource, Session: "s2"}))
+	if r := Reduce(again, Reply{}, atSecond(9)); r.State != Starting || r.Entered.Number != 4 {
+		t.Errorf("launched again: %s entered %d", r.State, r.Entered.Number)
 	}
 }
 

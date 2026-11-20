@@ -157,7 +157,8 @@ func runSend(env Env, d deps, args []string) error {
 	// the first prompt it was launched with (#191): wait for it to leave
 	// starting, then deliver as its state says; a message still waiting
 	// then goes along with that first prompt, through its hooks, and waits
-	// while that prompt is never reported.
+	// while that prompt is never reported, unless Claude took it as a
+	// command of its own that starts no turn, which makes it done (#220).
 	for deadline := d.now().Add(limit(startWait)); a.State == state.Starting && d.now().Before(deadline); {
 		d.sleep(pollEvery)
 		if a, err = findAgent(d, s.name); err != nil {

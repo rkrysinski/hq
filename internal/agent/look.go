@@ -22,11 +22,16 @@ type Journals interface {
 }
 
 // Sources are where a look reads and appends (design §3.4): the journals'
-// store, and tmux for the windows and the screens.
+// store, tmux for the windows and the screens, and the word hq mcp leaves
+// an agent's hook.
 type Sources interface {
 	Journals
 	// Screens returns what the panes show, by pane id, in one call.
 	Screens(panes []string) (map[string]string, error)
+	// Withdraw takes back hq mcp's word that the next prompt of agent id
+	// of the repository at root is the supervisor's (state.Withdraw,
+	// design §3.5).
+	Withdraw(root, id string) error
 }
 
 // Folds are the agents' journals as one hq process keeps them folded
@@ -261,6 +266,14 @@ func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Sources, f
 			events, resting := f.fold.Sees(screen, now)
 			a.resting = resting
 			for _, e := range events {
+				if e.Kind == state.KindTookCommand {
+					// The first prompt hq mcp may have announced as the
+					// supervisor's was taken with no prompt reported, so
+					// its word still waits: taken back before the agent is
+					// seen done, so no prompt sent to it then falls to it
+					// (#220).
+					_ = store.Withdraw(a.RepoPath, a.ID)
+				}
 				f.witness(store, *a, e, now)
 				if e.Kind == state.KindTookQueued {
 					// The prompt Claude took is no wake-up.

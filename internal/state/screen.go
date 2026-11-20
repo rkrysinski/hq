@@ -81,6 +81,46 @@ func TookQueued(screen, queued string) bool {
 	return i >= 0 && isUserEnd(b.lines[i])
 }
 
+// TookCommand reports whether the screen shows Claude at its prompt box
+// after it took a command of its own that starts no turn, as /model NAME,
+// or /effort and the picker of /model closed (Claude Code 2.1.329, setup
+// P, #220): the one prompt shown sent, as the first prompt of a session
+// is, is a slash command, its outcome
+// right below it on a ⎿ line ("⎿ Set model to Opus 5.5…", "⎿ Cancelled",
+// "⎿ Kept model as Haiku 5.5"), nothing of Claude's below that, no
+// spinner, and a footer that does not offer Esc to interrupt. A prompt
+// Claude has taken for a turn has its spinner below it, also while a
+// SessionStart hook still runs ahead of the turn, and its reply in a card
+// or under a bullet, never a ⎿ line right below it; a prompt not taken
+// yet is not shown sent at all. What the box holds says nothing here.
+func TookCommand(screen string) bool {
+	b, ok := promptBox(screen)
+	if !ok || b.spinning() {
+		return false
+	}
+	i := b.upper - 1
+	for ; i >= 0 && !strings.HasPrefix(b.lines[i], prompt); i-- {
+		if claudes(b.raw[i], b.lines[i]) {
+			return false
+		}
+	}
+	if i < 0 || !strings.HasPrefix(b.lines[i], prompt+" /") {
+		return false
+	}
+	for j := i - 1; j >= 0; j-- {
+		if strings.HasPrefix(b.lines[j], prompt) {
+			return false
+		}
+	}
+	for i++; i < b.upper && b.lines[i] == ""; i++ {
+	}
+	return i < b.upper && strings.HasPrefix(b.lines[i], outcome)
+}
+
+// outcome starts the line Claude Code draws right below a command of its
+// own with what the command did (2.1.329).
+const outcome = "⎿ "
+
 // queuedHint is what Claude Code 2.1.302 writes under a prompt it has
 // queued, drawn as a ❯ line above the box.
 const queuedHint = "ctrl+x ctrl+s to send now"

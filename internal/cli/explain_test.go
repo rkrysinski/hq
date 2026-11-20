@@ -242,6 +242,7 @@ func TestEventWhatTellsEveryKind(t *testing.T) {
 		{of(state.SourceScreen, state.KindAtWork, state.Facts{}), "Claude at work"},
 		{of(state.SourceScreen, state.KindTookQueued, state.Facts{}), "Claude took the prompt it queued"},
 		{of(state.SourceScreen, state.KindWokeUp, state.Facts{}), "Claude woke up after a turn the user ended"},
+		{of(state.SourceScreen, state.KindTookCommand, state.Facts{}), "Claude took the first prompt as a command of its own: no turn comes"},
 		{of(state.SourceScreen, "Other", state.Facts{}), "Other"},
 		{of(state.SourceTmux, state.KindPaneDied, state.Facts{}), "the pane died"},
 		{of(state.SourceTmux, "Other", state.Facts{}), "Other"},

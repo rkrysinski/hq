@@ -275,6 +275,7 @@ var screenWhat = map[string]string{
 	state.KindAtWork:        "Claude at work",
 	state.KindTookQueued:    "Claude took the prompt it queued",
 	state.KindWokeUp:        "Claude woke up after a turn the user ended",
+	state.KindTookCommand:   "Claude took the first prompt as a command of its own: no turn comes",
 }
 
 // hookWhat says what event e of the hook was.

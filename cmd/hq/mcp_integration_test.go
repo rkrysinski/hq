@@ -55,13 +55,14 @@ type supervisor struct {
 
 // row is an agent as the list, read and wait tools give it.
 type row struct {
-	Name    string          `json:"name"`
-	State   string          `json:"state"`
-	Last    string          `json:"last"`
-	Pending int             `json:"pending"`
-	Reply   string          `json:"reply"`
-	Asks    json.RawMessage `json:"asks"`
-	Dialog  string          `json:"dialog"`
+	Name          string          `json:"name"`
+	State         string          `json:"state"`
+	Last          string          `json:"last"`
+	Pending       int             `json:"pending"`
+	Reply         string          `json:"reply"`
+	Asks          json.RawMessage `json:"asks"`
+	Dialog        string          `json:"dialog"`
+	CompletionSeq *int64          `json:"completion_seq"`
 }
 
 type waited struct {
@@ -360,6 +361,86 @@ func (s *supervisor) shell(args ...string) string {
 		s.t.Fatalf("hq %v: %v\n%s", args, err, out)
 	}
 	return string(out)
+}
+
+// Agents the supervisor starts with a first prompt on the fake Claude,
+// each prompt taken 3 s after its session's start (#220). /model NAME is a
+// command of Claude Code's own that starts no turn and that it reports
+// nowhere (2.1.329): the agent is done once its screen shows it, with no
+// completed turn, and wait from before the start returns it once. The
+// supervisor's word on that first prompt is taken back, so a prompt the
+// user types next, or a message they left with hq send --wait while the
+// agent was starting, is theirs and notifies at its turn's end; send
+// --wait returns. A plain first prompt, only late, keeps its agent
+// starting: wait returns it only at its turn's end.
+func TestAFirstPromptClaudeTookAsACommandOfItsOwnEndsTheStart(t *testing.T) {
+	record := filepath.Join(t.TempDir(), "notified")
+	t.Setenv("FAKE_CLAUDE_NOTIFIED", record)
+	t.Setenv("FAKE_CLAUDE_FIRST_PROMPT_DELAY", "3s")
+	s := newSupervisor(t)
+	var ls waited
+	if out := s.ok("list", nil); json.Unmarshal([]byte(out), &ls) != nil || ls.NextSince == "" {
+		t.Fatalf("list: %s", out)
+	}
+	s.ok("new", map[string]any{"name": "a", "dir": testutil.GitRepo(t, "app"), "prompt": "/model opus"})
+	s.ok("new", map[string]any{"name": "b", "dir": testutil.GitRepo(t, "lib"), "prompt": "hello"})
+	s.ok("new", map[string]any{"name": "c", "dir": testutil.GitRepo(t, "web"), "prompt": "/model opus"})
+	if r := s.read("a"); r.State != "starting" {
+		t.Fatalf("a right after its start: %+v", r)
+	}
+	// The user leaves c a message while it is starting.
+	sent := make(chan string, 1)
+	go func() {
+		cmd := exec.Command(s.bin, "send", "--wait", "--timeout", "40s", "c", "note while starting")
+		cmd.Env = s.env
+		out, err := cmd.CombinedOutput()
+		sent <- fmt.Sprintf("%v %s", err, out)
+	}()
+
+	returned := map[string][]row{}
+	since := ls.NextSince
+	for i := 0; i < 12 && (len(returned["a"]) == 0 || len(returned["b"]) == 0); i++ {
+		var w waited
+		if out := s.ok("wait", map[string]any{"since": since, "names": []string{"a", "b"}, "timeout": 5}); json.Unmarshal([]byte(out), &w) != nil {
+			t.Fatalf("wait: %s", out)
+		}
+		since = w.NextSince
+		for _, r := range w.Agents {
+			returned[r.Name] = append(returned[r.Name], r)
+		}
+	}
+	if a := returned["a"]; len(a) != 1 || a[0].State != "done" || a[0].CompletionSeq != nil || a[0].Last != "" {
+		t.Fatalf("a returned %+v", a)
+	}
+	if b := returned["b"]; len(b) != 1 || b[0].State != "done" || b[0].Last != "Done: hello" || b[0].CompletionSeq == nil {
+		t.Fatalf("b returned %+v", b)
+	}
+	if out := s.ok("wait", map[string]any{"since": since, "names": []string{"a", "b"}, "timeout": 1}); !strings.Contains(out, `"agents": []`) {
+		t.Fatalf("a and b again: %s", out)
+	}
+	select {
+	case out := <-sent:
+		if !strings.HasPrefix(out, "<nil> delivered: typed into c as its next prompt") || !strings.Contains(out, "Done: note while starting") {
+			t.Fatalf("send --wait to c: %s", out)
+		}
+	case <-time.After(45 * time.Second):
+		t.Fatal("send --wait to c did not return")
+	}
+
+	// The user prompts a: theirs, so it notifies.
+	s.typeIn("a", "thanks")
+	if r, _ := s.until(since, "a", "done"); r.Last != "Done: thanks" || r.CompletionSeq == nil {
+		t.Fatalf("a after the user's prompt: %+v", r)
+	}
+	b, _ := os.ReadFile(record)
+	var notified []string
+	for _, l := range strings.Split(strings.TrimSpace(string(b)), "\n") {
+		name, _, _ := strings.Cut(l, " ")
+		notified = append(notified, name)
+	}
+	if slices.Sort(notified); !slices.Equal(notified, []string{"a", "c"}) {
+		t.Fatalf("notified %q", b)
+	}
 }
 
 // The desktop notifications of issue #46's acceptance, on the fake Claude,

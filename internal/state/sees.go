@@ -198,10 +198,14 @@ func (f Fold) seesDialog(screen string, key int64, now time.Time) []Event {
 	own := f.seen.own
 	v, ok := ViewOwnDialog(screen)
 	if !ok {
+		var events []Event
 		if own.at(key) {
-			return []Event{screenEvent(KindOwnDialogGone, now)}
+			events = append(events, screenEvent(KindOwnDialogGone, now))
 		}
-		return nil
+		if f.firstPromptDue() && !f.seen.took.at(key) && TookCommand(screen) {
+			events = append(events, screenEvent(KindTookCommand, now))
+		}
+		return events
 	}
 	fp := OwnFingerprint(v.Ask)
 	if own.at(key) && own.Facts.Screen == fp {

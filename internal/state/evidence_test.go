@@ -10,7 +10,8 @@ func TestEveryKindOfEvidenceHasItsGroup(t *testing.T) {
 		KindAtRest: EvidenceAtRest, KindToolCut: EvidenceAtRest,
 		KindOwnDialog: EvidenceOwnDialog, KindOwnDialogGone: EvidenceOwnDialog,
 		KindAtWork: EvidenceAtWork, KindTookQueued: EvidenceTookQueued, KindWokeUp: EvidenceWokeUp,
-		KindPaneDied: EvidencePaneDied, KindNotRunning: EvidenceNotRunning,
+		KindTookCommand: EvidenceTookCommand,
+		KindPaneDied:    EvidencePaneDied, KindNotRunning: EvidenceNotRunning,
 		KindLaunched: "", KindRelaunched: "", KindTakenDown: "", KindAnswer: "", KindWithdrawn: "", KindDelivery: "",
 		KindPrompt: "", KindTurnEnd: "", KindPermission: "", KindSessionStart: "", KindSessionEnd: "", KindUnreadable: "",
 	} {
