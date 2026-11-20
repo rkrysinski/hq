@@ -30,7 +30,7 @@ for the reader:
 | (none)        | Other                 | Anything not yet classified                                  |
 
 Give every issue one of these when it is triaged; an unlabelled issue still appears in the notes,
-just under the catch-all heading (except a `prd` issue, which gets no line: see below).
+just under the catch-all heading (except a `prd` issue and the release issue, which get no line: see below).
 
 ## Other labels
 
@@ -38,7 +38,7 @@ just under the catch-all heading (except a `prd` issue, which gets no line: see 
 | ----- | ------- |
 | `prd` | A product requirements document; its implementation issues are sub-issues (`docs/agents/issue-tracker.md`). Left out of the release notes, even with a type label; it still gets the release's milestone and comment |
 | `claimed` | An agent session has claimed the ticket (`/wayfinder`) |
-| `release` | The release issue of a supervised release (`docs/agents/issue-tracker.md`, *Working a release*) |
+| `release` | The release issue of a supervised release (`docs/agents/issue-tracker.md`, *Working a release*). Left out of the release notes: a closing keyword naming it counts for nothing, so a pull request that closes only it is listed under Internal (`docs/releasing.md`) |
 | `watch` | A metric to keep an eye on, not work |
 | `wayfinder:map`, `wayfinder:research`, `wayfinder:prototype`, `wayfinder:grilling`, `wayfinder:task` | The wayfinding map and its tickets |
 

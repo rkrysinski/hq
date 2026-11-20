@@ -44,6 +44,10 @@ A pull request gets no `Tests` run in CI: run the full build after implementing 
 
 Use `$local-dev` when starting this app locally or verifying implementation. Agents run the app with `scripts/local-dev.sh`, which isolates each checkout (safe for parallel git worktrees) on a free port unless `APP_PORT` is set; always use the URL and browser session it prints. When work touches UI, sign-in, a user-facing flow, downloads or exports, or acceptance criteria, verify the running app in a real browser before calling the work done: Playwright, launching its own browser context per run so parallel checkouts stay isolated. The project part of the script (how the app installs and starts) is `scripts/local-dev.project.sh`.
 
+### Shell commands
+
+`.claude/settings.json` runs the hook `.claude/hooks/bash-guard.sh` before every Bash command. It refuses two shapes that keep a core of a shared machine busy, and its message names the safe form. A here-document with an unquoted delimiter runs each backtick and `$(` of its body before the command starts: write `<<'EOF'`, and pass a value the body needs through the environment. A loop whose body is only `:` or `true` runs without a pause: pause between tries and bound the wait, as in `timeout 120 sh -c 'until …; do sleep 1; done'`.
+
 ### Releases
 
 Versions are git tags `vX.Y.Z` cut with `scripts/cut-release.sh`, which writes the version to `VERSION` first; the release notes, the version's milestone and the "released in" comments are written by `scripts/release.sh` from the merged pull requests and their issues' labels. Never set a milestone by hand, except in a supervised release (`docs/agents/issue-tracker.md`, *Working a release*). See `docs/releasing.md`.
@@ -54,4 +58,4 @@ Non-obvious lessons that should change how the next piece of work is done live i
 
 ### Template
 
-This repository was created from the team's project template with Copier (`.copier-answers.yml` records the template version). `copier update` brings in later versions of the template; change the process tooling (`scripts/`, `docs/agents/`, `.github/`) in the template, not here, or the next update will conflict with it.
+This repository was created from the team's project template with Copier (`.copier-answers.yml` records the template version). `copier update` brings in later versions of the template; change the process tooling (`scripts/`, `docs/agents/`, `.github/`, `.claude/`) in the template, not here, or the next update will conflict with it.

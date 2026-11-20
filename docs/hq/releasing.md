@@ -26,7 +26,7 @@ Every release of hq is in English (the owner's decision of 2026-11-14, #186): th
 
 | Template (Polish) | hq (English) | Where |
 |---|---|---|
-| `Nowe funkcje`, `Poprawki`, `Pozostałe`, `Wewnętrzne` | `New features`, `Fixes`, `Other`, `Internal` | `scripts/release.sh` (headings), `docs/releasing.md`, `docs/agents/triage-labels.md`, the note of `scripts/check-pr.sh`, the revert in `docs/agents/issue-tracker.md` |
+| `Nowe funkcje`, `Poprawki`, `Pozostałe`, `Wewnętrzne` | `New features`, `Fixes`, `Other`, `Internal` | `scripts/release.sh` (headings), `docs/releasing.md`, `docs/agents/triage-labels.md`, the note of `scripts/check-pr.sh`, the revert and *Bookkeeping commits* in `docs/agents/issue-tracker.md` |
 | `Wdrożenie` | `Deployment` | `scripts/release.sh`, `docs/releasing.md`, `docs/workflow.md` |
 | anchors `nowe-funkcje`, `poprawki`, `pozostale`, `wewnetrzne`, `wdrozenie`, `przed-wdrozeniem`, `polecenie`, `po-wdrozeniu` | `new-features`, `fixes`, `other`, `internal`, `deployment`, `before-deployment`, `command`, `after-deployment` | `scripts/release.sh` |
 | `Do zrobienia, zanim wdrożysz tę wersję:`, `Do zrobienia na produkcji po wdrożeniu:`, `Instrukcja` | `To do before you deploy this version:`, `To do after deploying this version:`, `Instructions` | `scripts/release.sh` |

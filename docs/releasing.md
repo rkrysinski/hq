@@ -52,7 +52,9 @@ previous tag, via `scripts/lib/release-notes.sh` — the same code
 never describe different things. A release holds at least one merged pull
 request; with none in the range the script stops. The first release takes
 everything from the first commit on. A spec (label `prd`) gets no line in the
-tag message, as in the notes; its tickets do.
+tag message, as in the notes; its tickets do. Nor does the release issue (label
+`release`): a pull request that closes only the release issue gets a line of its
+own, as one that closed no issue.
 
 <details>
 <summary>What it does, if you ever need to do it by hand</summary>
@@ -120,6 +122,14 @@ out, with the issues it closes: it is merged into `dev` after its tag, so its me
 commit would otherwise land in the next release; the ticket pull requests merged
 into the release branch are listed as usual. Any other branch whose name starts
 with `release-` is an ordinary branch.
+
+The release issue of a supervised release (label `release`) is the release's log,
+not a change, so a closing keyword naming it counts for nothing here. The review
+fixes merged into the release branch close it in their commits
+(`docs/agents/issue-tracker.md`, *Bookkeeping commits*), and their description may
+say `Closes #<release issue>` too: such a pull request, closing no other issue, is
+listed under *Internal* as one that closed no issue, and the release issue gets
+no line, milestone or comment through it.
 
 **Deployment prerequisites come from the pull requests.** A pull request whose
 change needs work outside the code states it in its own description, in one or

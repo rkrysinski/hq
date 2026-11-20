@@ -52,7 +52,10 @@ release_notes_collect() {
     #                  request: number, title, body, mergeCommit
     #   prs.tsv        "<number>\t<title>" for the ones in range, ascending
     #   issue-numbers  the issues those pull requests close, ascending, unique
+    #   closes.tsv     "<pull request>\t<issue>" for each issue one of them closes
     #   internal.tsv   "<number>\t<title>" for pull requests closing no issue
+    #                  (release_notes_issue_labels adds those closing only a
+    #                  release issue)
     _rn_repo=$1
     _rn_from=$2
     _rn_to=$3
@@ -99,7 +102,7 @@ release_notes_collect() {
     [ -s "$_rn_dir/prs.tsv" ] \
         || { _release_notes_fail "no merged pull requests found in $_rn_range"; return 1; }
 
-    : > "$_rn_dir/issue-numbers"
+    : > "$_rn_dir/closes.tsv"
     : > "$_rn_dir/internal.tsv"
     while IFS="$(printf '\t')" read -r _rn_pr _rn_title; do
         _rn_body=$(jq -r --argjson n "$_rn_pr" '.[] | select(.number == $n) | .body // ""' "$_rn_dir/prs.json")
@@ -112,13 +115,13 @@ release_notes_collect() {
             | grep -oiE '(^|[^[:alnum:]_])(clos(e|es|ed)?|fix(e[sd])?|fixes|resolv(e|es|ed)?)[[:space:]]+#[0-9]+' \
             | grep -oE '[0-9]+' | sort -un) || _rn_closes=""
         if [ -n "$_rn_closes" ]; then
-            echo "$_rn_closes" >> "$_rn_dir/issue-numbers"
+            printf '%s\n' "$_rn_closes" | sed "s/^/$_rn_pr$(printf '\t')/" >> "$_rn_dir/closes.tsv"
         else
             printf '%s\t%s\n' "$_rn_pr" "$_rn_title" >> "$_rn_dir/internal.tsv"
         fi
     done < "$_rn_dir/prs.tsv"
 
-    sort -un "$_rn_dir/issue-numbers" -o "$_rn_dir/issue-numbers"
+    cut -f2 "$_rn_dir/closes.tsv" | sort -un > "$_rn_dir/issue-numbers"
 }
 
 release_notes_strip_comments() {
@@ -193,11 +196,14 @@ release_notes_strip_code() {
 release_notes_issue_labels() {
     # Reads <workdir>/issue-numbers and writes <workdir>/issues.tsv as
     # "<number>\t<title>\t<labels-csv>", skipping numbers that turn out to be
-    # pull requests rather than issues.
+    # pull requests rather than issues, and release issues, whose closing
+    # keywords count for nothing: a pull request that closes only release
+    # issues joins <workdir>/internal.tsv (_release_notes_add_release_issue_pulls).
     _rn_repo=$1
     _rn_dir=$2
 
     : > "$_rn_dir/issues.tsv"
+    : > "$_rn_dir/release-issues"
     while read -r _rn_issue; do
         [ -n "$_rn_issue" ] || continue
         # </dev/null: gh would otherwise read this loop's stdin and eat the list.
@@ -206,12 +212,49 @@ release_notes_issue_labels() {
             echo "$RELEASE_NOTES_PROG: warning: #$_rn_issue is referenced as closed but is not an issue in $_rn_repo - skipping" >&2
             continue
         fi
+        _rn_labels=$(jq -r '[.labels[].name] | join(",")' "$_rn_dir/issue.json") \
+            || { _release_notes_fail "could not read the labels of #$_rn_issue"; return 1; }
+        if _release_notes_is_release_issue "$_rn_labels"; then
+            echo "$_rn_issue" >> "$_rn_dir/release-issues"
+            continue
+        fi
         printf '%s\t%s\t%s\n' \
             "$_rn_issue" \
             "$(jq -r '.title' "$_rn_dir/issue.json")" \
-            "$(jq -r '[.labels[].name] | join(",")' "$_rn_dir/issue.json")" \
+            "$_rn_labels" \
             >> "$_rn_dir/issues.tsv"
     done < "$_rn_dir/issue-numbers"
+
+    _release_notes_add_release_issue_pulls "$_rn_dir"
+}
+
+_release_notes_is_release_issue() {
+    # Succeeds when <labels-csv> (as in issues.tsv) carries `release`: the
+    # release issue of a supervised release, the release's log, not a change.
+    # The review fixes merged into the release branch close it as their commits
+    # do (docs/agents/issue-tracker.md, *Bookkeeping commits*), so a closing
+    # keyword naming it lists nothing, in the notes and in the tag message.
+    case ",$1," in
+        *,release,*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+_release_notes_add_release_issue_pulls() {
+    # Adds to <workdir>/internal.tsv, as pull requests that closed no issue,
+    # those of prs.tsv whose closing keywords (closes.tsv) name only release
+    # issues (release-issues), and keeps the file in pull request order.
+    [ -s "$1/release-issues" ] || return 0
+    while IFS="$(printf '\t')" read -r _rn_pr _rn_title; do
+        [ -n "$_rn_pr" ] || continue
+        awk -F '\t' -v pr="$_rn_pr" '$1 == pr { print $2 }' "$1/closes.tsv" > "$1/pr-closes"
+        # Closing nothing, it is in internal.tsv already; closing an issue
+        # that is not a release issue, it stands for that issue.
+        [ -s "$1/pr-closes" ] || continue
+        grep -vxF -f "$1/release-issues" "$1/pr-closes" > /dev/null && continue
+        printf '%s\t%s\n' "$_rn_pr" "$_rn_title" >> "$1/internal.tsv"
+    done < "$1/prs.tsv"
+    sort -n -o "$1/internal.tsv" "$1/internal.tsv"
 }
 
 release_notes_section() {
