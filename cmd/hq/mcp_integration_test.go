@@ -365,15 +365,16 @@ func (s *supervisor) shell(args ...string) string {
 
 // Agents the supervisor starts with a first prompt on the fake Claude,
 // each prompt taken 3 s after its session's start (#220). /model NAME is a
-// command of Claude Code's own that starts no turn and that it reports
-// nowhere (2.1.329): the agent is done once its screen shows it, with no
-// completed turn, and wait from before the start returns it once. The
-// supervisor's word on that first prompt is taken back, so a prompt the
-// user types next, or a message they left with hq send --wait while the
-// agent was starting, is theirs and notifies at its turn's end; send
-// --wait returns. A plain first prompt, only late, keeps its agent
-// starting: wait returns it only at its turn's end.
-func TestAFirstPromptClaudeTookAsACommandOfItsOwnEndsTheStart(t *testing.T) {
+// slash command of Claude Code's own that starts no turn and that it
+// reports nowhere (2.1.329): the agent is done once its screen shows it,
+// with no completed turn, and wait from before the start, of hq mcp or of
+// a shell, returns it once. The supervisor's word on that first prompt is
+// taken back, so a prompt the user types next, or a message they left
+// with hq send --wait while the agent was starting, is theirs and
+// notifies at its turn's end; send --wait returns. A plain first prompt,
+// only late, keeps its agent starting: wait returns it only at its turn's
+// end.
+func TestAFirstPromptClaudeTookAsASlashCommandOfItsOwnEndsTheStart(t *testing.T) {
 	record := filepath.Join(t.TempDir(), "notified")
 	t.Setenv("FAKE_CLAUDE_NOTIFIED", record)
 	t.Setenv("FAKE_CLAUDE_FIRST_PROMPT_DELAY", "3s")
@@ -383,6 +384,7 @@ func TestAFirstPromptClaudeTookAsACommandOfItsOwnEndsTheStart(t *testing.T) {
 		t.Fatalf("list: %s", out)
 	}
 	s.ok("new", map[string]any{"name": "a", "dir": testutil.GitRepo(t, "app"), "prompt": "/model opus"})
+	launched := time.Now()
 	s.ok("new", map[string]any{"name": "b", "dir": testutil.GitRepo(t, "lib"), "prompt": "hello"})
 	s.ok("new", map[string]any{"name": "c", "dir": testutil.GitRepo(t, "web"), "prompt": "/model opus"})
 	if r := s.read("a"); r.State != "starting" {
@@ -396,6 +398,21 @@ func TestAFirstPromptClaudeTookAsACommandOfItsOwnEndsTheStart(t *testing.T) {
 		out, err := cmd.CombinedOutput()
 		sent <- fmt.Sprintf("%v %s", err, out)
 	}()
+	// b is starting throughout the 3 s before its prompt is taken, then at
+	// work on it or done with it.
+	for deadline := time.Now().Add(20 * time.Second); ; time.Sleep(100 * time.Millisecond) {
+		r := s.read("b")
+		if r.State == "starting" {
+			if time.Now().After(deadline) {
+				t.Fatalf("b still starting after 20 s: %+v", r)
+			}
+			continue
+		}
+		if r.State != "working" && (r.State != "done" || r.Last != "Done: hello") || time.Since(launched) < 2500*time.Millisecond {
+			t.Fatalf("b after %v: %+v", time.Since(launched), r)
+		}
+		break
+	}
 
 	returned := map[string][]row{}
 	since := ls.NextSince
@@ -417,6 +434,11 @@ func TestAFirstPromptClaudeTookAsACommandOfItsOwnEndsTheStart(t *testing.T) {
 	}
 	if out := s.ok("wait", map[string]any{"since": since, "names": []string{"a", "b"}, "timeout": 1}); !strings.Contains(out, `"agents": []`) {
 		t.Fatalf("a and b again: %s", out)
+	}
+	// hq wait --since from before the launch, from a shell, returns a once.
+	var w waited
+	if out := s.shell("wait", "a", "--since", ls.NextSince, "--timeout", "5s", "--json"); json.Unmarshal([]byte(out), &w) != nil || len(w.Agents) != 1 || w.Agents[0].State != "done" || w.Agents[0].CompletionSeq != nil {
+		t.Fatalf("hq wait a --since: %s", out)
 	}
 	select {
 	case out := <-sent:

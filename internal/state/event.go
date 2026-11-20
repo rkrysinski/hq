@@ -51,7 +51,7 @@ const (
 // Claude at work after a dialog its hooks reported; Claude at work on a
 // prompt it took from its queue; Claude's wake-up after a turn the user
 // ended, first seen, dated from its report (From); the first prompt hq
-// launched the agent with taken as a command of Claude Code's own that
+// launched the agent with taken as a slash command of Claude Code's own that
 // starts no turn, which no hook reports (#220). From tmux, the pane's
 // death, dated by tmux (From, zero when tmux does not say). From sbx, the
 // sandbox not running, with the moment sbx was asked (Asked). From hq: the
@@ -62,17 +62,17 @@ const (
 // (KindWithdrawn, Withdrawn the kind taken back). The kinds of hq's own
 // events are unique across their sources.
 const (
-	KindTurnEnded     = "TurnEnded"
-	KindAtRest        = "AtRest"
-	KindToolCut       = "ToolCut"
-	KindRewound       = "Rewound"
-	KindTurnNotTaken  = "TurnNotTaken"
-	KindOwnDialog     = "OwnDialog"
-	KindOwnDialogGone = "OwnDialogGone"
-	KindAtWork        = "AtWork"
-	KindTookQueued    = "TookQueued"
-	KindWokeUp        = "WokeUp"
-	KindTookCommand   = "TookCommand"
+	KindTurnEnded        = "TurnEnded"
+	KindAtRest           = "AtRest"
+	KindToolCut          = "ToolCut"
+	KindRewound          = "Rewound"
+	KindTurnNotTaken     = "TurnNotTaken"
+	KindOwnDialog        = "OwnDialog"
+	KindOwnDialogGone    = "OwnDialogGone"
+	KindAtWork           = "AtWork"
+	KindTookQueued       = "TookQueued"
+	KindWokeUp           = "WokeUp"
+	KindTookSlashCommand = "TookSlashCommand"
 
 	KindPaneDied = "PaneDied"
 

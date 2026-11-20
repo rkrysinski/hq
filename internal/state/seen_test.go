@@ -535,28 +535,28 @@ func firstPromptJournal() []Event {
 	}
 }
 
-// tookCommandScreens are the screens of Claude Code 2.1.329 that took the
-// first prompt it was started with as a command of its own and started no
+// tookSlashCommandScreens are the screens of Claude Code 2.1.329 that took the
+// first prompt it was started with as a slash command of its own and started no
 // turn for it (setup P, #220): /model NAME, and /effort and the picker of
 // /model closed with Esc, right after and at rest.
-var tookCommandScreens = []string{
+var tookSlashCommandScreens = []string{
 	"first-model-name-2329", "first-model-name-2329-rest", "first-model-name-2329-80", "first-model-name-2329-80-rest",
 	"first-effort-2329-closed", "first-effort-2329-80-closed",
 	"first-model-kept-2329", "first-model-kept-2329-80",
 }
 
-// Claude Code 2.1.329 reports nothing for a command of its own that starts
+// Claude Code 2.1.329 reports nothing for a slash command of its own that starts
 // no turn given as the first prompt (setup P: no event followed its
 // session's start). Once the screen shows that command sent with its
 // outcome below it, at the prompt box, the agent is done since the look
 // saw it: no completed turn, no last message (#220).
-func TestAFirstPromptClaudeTookAsACommandOfItsOwnMakesTheAgentDone(t *testing.T) {
-	for _, name := range tookCommandScreens {
+func TestAFirstPromptClaudeTookAsASlashCommandOfItsOwnMakesTheAgentDone(t *testing.T) {
+	for _, name := range tookSlashCommandScreens {
 		journal := firstPromptJournal()
 		f := Fold{}.With(journal...)
 		at := atSecond(2).Add(OverruleDelay)
 		seen, resting := seesWhenItMayTell(t, f, screen(t, name), at)
-		if len(seen) != 1 || seen[0].Kind != KindTookCommand || seen[0].Source != SourceScreen || !seen[0].Time.Equal(at) || resting {
+		if len(seen) != 1 || seen[0].Kind != KindTookSlashCommand || seen[0].Source != SourceScreen || !seen[0].Time.Equal(at) || resting {
 			t.Errorf("%s: %+v %v", name, seen, resting)
 			continue
 		}
@@ -571,15 +571,17 @@ func TestAFirstPromptClaudeTookAsACommandOfItsOwnMakesTheAgentDone(t *testing.T)
 // A first prompt that is only late never makes the agent done (#220): with
 // Claude Code 2.1.329 the prompt is drawn sent at once with the spinner
 // below it while a SessionStart hook of 4 s runs, then the spinner alone
-// once Claude reported taking it (setup P, (a)); a command of Claude's own
-// shows only its header right after the start ((b), (c)); a session given
-// no prompt shows its box with a placeholder ((d)); the slider of /effort
-// is no dialog hq reads. Each leaves the agent starting, at rest or not,
+// once Claude reported taking it (setup P, (a)), and so is /probe, a slash
+// command of the repository's own that starts a turn; a slash command of
+// Claude's own shows only its header right after the start ((b), (c)); a
+// session given no prompt shows its box with a placeholder ((d)); the
+// slider of /effort is no dialog hq reads. Each leaves the agent starting, at rest or not,
 // 2 s, an hour and a day later, and its prompt reported then makes it
 // working.
 func TestAFirstPromptThatIsOnlyLateLeavesTheAgentStarting(t *testing.T) {
 	for _, name := range []string{
 		"first-hook-2329", "first-hook-2329-80", "first-hook-taken-2329", "first-hook-taken-2329-80",
+		"first-probe-2329", "first-probe-taken-2329",
 		"first-model-name-2329-start", "first-model-name-2329-80-start",
 		"first-effort-2329-open", "first-effort-2329-80-open",
 		"first-none-2329", "first-none-2329-80",
@@ -604,7 +606,7 @@ func TestAFirstPromptThatIsOnlyLateLeavesTheAgentStarting(t *testing.T) {
 // The picker of /model as the first prompt (Claude Code 2.1.329, setup P)
 // is a dialog of Claude's own in that prompt's way: needs input while it
 // is open, then, closed with Esc and no turn started, the agent is done by
-// TookCommand, in the same look that sees the dialog gone (#220).
+// TookSlashCommand, in the same look that sees the dialog gone (#220).
 func TestTheModelPickerAsTheFirstPromptNeedsInputThenTheAgentIsDone(t *testing.T) {
 	for _, size := range []string{"", "-80"} {
 		journal := firstPromptJournal()
@@ -621,7 +623,7 @@ func TestTheModelPickerAsTheFirstPromptNeedsInputThenTheAgentIsDone(t *testing.T
 		}
 		f = Fold{}.With(journal...)
 		closed, _ := seesWhenItMayTell(t, f, screen(t, "first-model-kept-2329"+size), atSecond(4))
-		if len(closed) != 2 || closed[0].Kind != KindOwnDialogGone || closed[1].Kind != KindTookCommand {
+		if len(closed) != 2 || closed[0].Kind != KindOwnDialogGone || closed[1].Kind != KindTookSlashCommand {
 			t.Fatalf("%s closed: %+v", size, closed)
 		}
 		for i := range closed {
@@ -634,13 +636,13 @@ func TestTheModelPickerAsTheFirstPromptNeedsInputThenTheAgentIsDone(t *testing.T
 	}
 }
 
-// Of every screen in testdata only those of a command of Claude's own taken
-// as the first prompt show the sign TookCommand reads (setup P, #220): a
+// Of every screen in testdata only those of a slash command of Claude's own taken
+// as the first prompt show the sign TookSlashCommand reads (setup P, #220): a
 // command after a turn shows other prompts sent above it. Every other
 // screen at the prompt box at rest, a session given no prompt (d) among
 // them, changes nothing for an agent waiting for its first prompt, at
 // once, RestDelay or an hour later.
-func TestOnlyACommandOfClaudesOwnAsTheFirstPromptShowsTheSign(t *testing.T) {
+func TestOnlyASlashCommandOfClaudesOwnAsTheFirstPromptShowsTheSign(t *testing.T) {
 	names, _ := filepath.Glob(filepath.Join("testdata", "screen-*.txt"))
 	if len(names) < 20 {
 		t.Fatalf("only %d screens", len(names))
@@ -651,7 +653,7 @@ func TestOnlyACommandOfClaudesOwnAsTheFirstPromptShowsTheSign(t *testing.T) {
 	for _, name := range names {
 		b, _ := os.ReadFile(name)
 		s, base := string(b), strings.TrimSuffix(strings.TrimPrefix(filepath.Base(name), "screen-"), ".txt")
-		if TookCommand(s) {
+		if TookSlashCommand(s) {
 			signs = append(signs, base)
 			continue
 		}
@@ -665,7 +667,7 @@ func TestOnlyACommandOfClaudesOwnAsTheFirstPromptShowsTheSign(t *testing.T) {
 			}
 		}
 	}
-	want := slices.Sorted(slices.Values(tookCommandScreens))
+	want := slices.Sorted(slices.Values(tookSlashCommandScreens))
 	if slices.Sort(signs); !slices.Equal(signs, want) {
 		t.Errorf("the sign on %v, want %v", signs, want)
 	}
@@ -674,22 +676,33 @@ func TestOnlyACommandOfClaudesOwnAsTheFirstPromptShowsTheSign(t *testing.T) {
 	}
 }
 
-// Once the agent is done by TookCommand, the screens that told it change
+// Once the agent is done by TookSlashCommand, the screens that told it change
 // nothing more, and it is as any done agent: a prompt reported next makes
 // it working and ends as a completed turn, a dialog of Claude's own opened
 // next needs input (#220). The decision stands only for the session's
 // start it was seen at: a new session's start awaits its first prompt
 // anew only after a launch with one.
-func TestAnAgentDoneByTookCommandIsAsAnyDoneAgent(t *testing.T) {
-	journal := append(firstPromptJournal(), seenEvent(3, SourceScreen, KindTookCommand, 2, Facts{}))
+func TestAnAgentDoneByTookSlashCommandIsAsAnyDoneAgent(t *testing.T) {
+	// tookSlash is what the look sees of a screen of a slash command taken,
+	// as event n.
+	tookSlash := func(n int64) Event {
+		t.Helper()
+		seen, _ := seesWhenItMayTell(t, Fold{}.With(firstPromptJournal()...), screen(t, "first-model-name-2329"), atSecond(3))
+		if len(seen) != 1 || seen[0].Kind != KindTookSlashCommand {
+			t.Fatalf("the slash command taken: %+v", seen)
+		}
+		seen[0].Number, seen[0].Basis = n, 2
+		return seen[0]
+	}
+	journal := append(firstPromptJournal(), tookSlash(3))
 	f := Fold{}.With(journal...)
-	for _, name := range tookCommandScreens {
+	for _, name := range tookSlashCommandScreens {
 		if seen, _ := seesWhenItMayTell(t, f, screen(t, name), atSecond(4)); len(seen) != 0 {
 			t.Errorf("%s again: %+v", name, seen)
 		}
 	}
 	// The same decision appended twice, by two hq processes, is one.
-	if r := Reduce(append(slices.Clone(journal), seenEvent(4, SourceScreen, KindTookCommand, 2, Facts{})), Reply{}, atSecond(9)); r.Entered.Number != 3 || r.Changed.Number != 3 {
+	if r := Reduce(append(slices.Clone(journal), tookSlash(4)), Reply{}, atSecond(9)); r.Entered.Number != 3 || r.Changed.Number != 3 {
 		t.Errorf("twice: entered %d changed %d", r.Entered.Number, r.Changed.Number)
 	}
 	turn := append(slices.Clone(journal), userPrompt(4, "t1"))

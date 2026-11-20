@@ -134,7 +134,7 @@ func (f Fold) Sees(screen string, now time.Time) (events []Event, resting bool) 
 		st = Done
 	}
 	if st == Done || st == Question || st == Working && h.Background && !h.Owed {
-		return f.seesDialog(screen, key, now), false
+		return append(f.seesDialog(screen, key, now), f.seesSlashCommand(screen, key, now)...), false
 	}
 	hooks := h.State == NeedsInput && h.Dialog.Whose == DialogHooks
 	answered := hooks && s.atWork.at(key)
@@ -198,14 +198,10 @@ func (f Fold) seesDialog(screen string, key int64, now time.Time) []Event {
 	own := f.seen.own
 	v, ok := ViewOwnDialog(screen)
 	if !ok {
-		var events []Event
 		if own.at(key) {
-			events = append(events, screenEvent(KindOwnDialogGone, now))
+			return []Event{screenEvent(KindOwnDialogGone, now)}
 		}
-		if f.firstPromptDue() && !f.seen.took.at(key) && TookCommand(screen) {
-			events = append(events, screenEvent(KindTookCommand, now))
-		}
-		return events
+		return nil
 	}
 	fp := OwnFingerprint(v.Ask)
 	if own.at(key) && own.Facts.Screen == fp {
@@ -214,6 +210,19 @@ func (f Fold) seesDialog(screen string, key int64, now time.Time) []Event {
 	e := screenEvent(KindOwnDialog, now)
 	e.Facts.Screen, e.Facts.Text = fp, v.Ask.Questions[0].Question
 	return []Event{e}
+}
+
+// seesSlashCommand is what a look at now appends of the screen of an agent
+// waiting for the first prompt hq launched it with, its report key: that
+// Claude took that prompt as a slash command of its own that starts no
+// turn, which it reports nowhere (TookSlashCommand, #220), unless the
+// journal holds it seen for this report. A screen that still shows a
+// dialog of Claude's own does not show it.
+func (f Fold) seesSlashCommand(screen string, key int64, now time.Time) []Event {
+	if !f.firstPromptDue() || f.seen.tookSlash.at(key) || !TookSlashCommand(screen) {
+		return nil
+	}
+	return []Event{screenEvent(KindTookSlashCommand, now)}
 }
 
 // WakeUp is Claude's wake-up after a turn the user ended, for a look to

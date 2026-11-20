@@ -8,18 +8,18 @@ package state
 // kinds of a group are the forms that one thing takes: a turn the user
 // ended is a line Claude printed, a rewind or a turn Claude owed that does
 // not come; a screen at rest is the bare prompt box or a tool cut short.
-// The first prompt taken as a command of Claude's own (KindTookCommand) is
+// The first prompt taken as a slash command of Claude's own (KindTookSlashCommand) is
 // no turn end: it ends no turn, and completes none.
 const (
-	EvidenceTurnEnd     = "turn end"
-	EvidenceAtRest      = "at rest"
-	EvidenceOwnDialog   = "own dialog"
-	EvidenceAtWork      = "at work"
-	EvidenceTookQueued  = "took queued"
-	EvidenceWokeUp      = "woke up"
-	EvidenceTookCommand = "took command"
-	EvidencePaneDied    = "pane died"
-	EvidenceNotRunning  = "not running"
+	EvidenceTurnEnd          = "turn end"
+	EvidenceAtRest           = "at rest"
+	EvidenceOwnDialog        = "own dialog"
+	EvidenceAtWork           = "at work"
+	EvidenceTookQueued       = "took queued"
+	EvidenceWokeUp           = "woke up"
+	EvidenceTookSlashCommand = "took slash command"
+	EvidencePaneDied         = "pane died"
+	EvidenceNotRunning       = "not running"
 )
 
 // evidenceGroups is the group of every kind of evidence.
@@ -27,12 +27,12 @@ var evidenceGroups = map[string]string{
 	KindTurnEnded: EvidenceTurnEnd, KindRewound: EvidenceTurnEnd, KindTurnNotTaken: EvidenceTurnEnd,
 	KindAtRest: EvidenceAtRest, KindToolCut: EvidenceAtRest,
 	KindOwnDialog: EvidenceOwnDialog, KindOwnDialogGone: EvidenceOwnDialog,
-	KindAtWork:      EvidenceAtWork,
-	KindTookQueued:  EvidenceTookQueued,
-	KindWokeUp:      EvidenceWokeUp,
-	KindTookCommand: EvidenceTookCommand,
-	KindPaneDied:    EvidencePaneDied,
-	KindNotRunning:  EvidenceNotRunning,
+	KindAtWork:           EvidenceAtWork,
+	KindTookQueued:       EvidenceTookQueued,
+	KindWokeUp:           EvidenceWokeUp,
+	KindTookSlashCommand: EvidenceTookSlashCommand,
+	KindPaneDied:         EvidencePaneDied,
+	KindNotRunning:       EvidenceNotRunning,
 }
 
 // EvidenceOf is the group of evidence of an event of kind kind, "" for a

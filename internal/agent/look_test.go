@@ -31,15 +31,16 @@ type memStore struct {
 	captures   []string
 	reports    map[string]journaltest.HookState
 	// withdrawn are the words taken back (Withdraw), each as "ROOT ID",
-	// and "before" the kinds of the screen its journal did not hold yet.
+	// followed by " before TookSlashCommand" when the journal did not hold
+	// that event yet.
 	withdrawn []string
 }
 
 func (s *memStore) Withdraw(root, id string) error {
 	j, _ := s.Read(id)
 	w := root + " " + id
-	if !slices.ContainsFunc(j.Events, func(e state.Event) bool { return e.Kind == state.KindTookCommand }) {
-		w += " before " + state.KindTookCommand
+	if !slices.ContainsFunc(j.Events, func(e state.Event) bool { return e.Kind == state.KindTookSlashCommand }) {
+		w += " before " + state.KindTookSlashCommand
 	}
 	s.withdrawn = append(s.withdrawn, w)
 	return nil
@@ -541,13 +542,13 @@ func TestTheLookHandsTheStateOverToTheQueuedPromptClaudeTookAfterAnEsc(t *testin
 	}
 }
 
-// An agent launched with a first prompt that Claude took as a command of
+// An agent launched with a first prompt that Claude took as a slash command of
 // its own, which starts no turn and is reported nowhere (#220): the look
 // appends that decision and the agent is done, and before it the look
 // takes back hq mcp's word that the agent's next prompt is the
 // supervisor's (design §3.5), so the user's next prompt is the user's. A
 // first prompt that is only late is neither.
-func TestTheLookTakesBackTheSupervisorsWordForAFirstPromptClaudeTookAsACommand(t *testing.T) {
+func TestTheLookTakesBackTheSupervisorsWordForAFirstPromptClaudeTookAsASlashCommand(t *testing.T) {
 	now := time.Unix(1000, 0)
 	look := func(screen string) (Agent, *memStore) {
 		t.Helper()
@@ -557,10 +558,10 @@ func TestTheLookTakesBackTheSupervisorsWordForAFirstPromptClaudeTookAsACommand(t
 		return Look([]tmux.Window{lookWindow("1")}, Sandboxes{}, now, s, nil)[0], s
 	}
 	a, s := look("first-model-name-2329-rest")
-	if a.State != state.Done || !a.Since.Equal(now) || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != state.KindTookCommand {
+	if a.State != state.Done || !a.Since.Equal(now) || ofSourceKinds(s.journalOf(t, "a1"), state.SourceScreen) != state.KindTookSlashCommand {
 		t.Fatalf("took a command: %+v, journal %s", a, journaltest.Kinds(s.journalOf(t, "a1")))
 	}
-	if !slices.Equal(s.withdrawn, []string{"/w/app a1 before " + state.KindTookCommand}) {
+	if !slices.Equal(s.withdrawn, []string{"/w/app a1 before " + state.KindTookSlashCommand}) {
 		t.Fatalf("withdrawn: %q", s.withdrawn)
 	}
 	// The next look decides nothing again.

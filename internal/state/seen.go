@@ -39,8 +39,8 @@ type seen struct {
 	// come), a screen at rest, Claude at work after a dialog its hooks
 	// reported, a dialog of Claude's own (nil once gone), Claude's
 	// wake-up after a turn the user ended, and the first prompt taken as a
-	// command of Claude's own that starts no turn.
-	turnEnd, atRest, atWork, own, woke, took *evidence
+	// slash command of Claude's own that starts no turn.
+	turnEnd, atRest, atWork, own, woke, tookSlash *evidence
 }
 
 // diedBefore reports whether a pane death tmux dates at from (zero when
@@ -100,9 +100,9 @@ func (f *Fold) see(e Event) bool {
 		if !s.own.at(key) || s.own.Facts.Screen != e.Facts.Screen {
 			s.own = mark
 		}
-	case EvidenceTookCommand:
-		if !s.took.at(key) {
-			s.took = mark
+	case EvidenceTookSlashCommand:
+		if !s.tookSlash.at(key) {
+			s.tookSlash = mark
 		}
 	case EvidenceTookQueued:
 		f.handOver(e)
@@ -211,8 +211,8 @@ func (f *Fold) look(reply *Reply) looked {
 		f.overrule(&r, h)
 	}
 	if session && f.awaitsFirstPrompt(r.Reduced, h) {
-		if t := s.took; t.at(h.report.Number) {
-			// Claude took that prompt as a command of its own that starts
+		if t := s.tookSlash; t.at(h.report.Number) {
+			// Claude took that prompt as a slash command of its own that starts
 			// no turn, which it reports nowhere (#220): it waits at its
 			// prompt, done since the screen showed it, and no turn ended.
 			r.Since, r.Entered = t.Time, RefOf(t.Event)
@@ -220,8 +220,8 @@ func (f *Fold) look(reply *Reply) looked {
 		} else {
 			// Its new session waits for the first prompt hq gave it, which
 			// is no turn done: starting from its launch until it reports
-			// it, or until its screen shows Claude took it as a command of
-			// its own (TookCommand).
+			// it, or until its screen shows Claude took it as a slash command of
+			// its own (TookSlashCommand).
 			r.State, r.Since, r.Entered = Starting, s.launched.Time, s.launched
 			r.restOn(s.launched.Number)
 		}

@@ -381,8 +381,9 @@ func defaultDeps() deps {
 }
 
 // lookSources are where a look reads and appends (agent.Sources): the
-// journals' store, tmux for the windows and the screens, and the word hq
-// mcp leaves an agent's hook.
+// journals' store, tmux for the windows and the screens, and hq mcp's
+// word to an agent's hook that its next prompt is the supervisor's
+// (ID.next).
 type lookSources struct {
 	journal.Store
 	windows  func() ([]tmux.Window, error)
