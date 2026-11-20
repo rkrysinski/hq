@@ -167,3 +167,17 @@ func TestRunRoleKnowsItsRolesByTheirArguments(t *testing.T) {
 		}
 	}
 }
+
+func TestRoleArgsSplitWhatARoleIsGivenFromWhatItPassesOn(t *testing.T) {
+	given, rest, ok := roleArgs([]string{"/usr/bin/go", "/t/src", "example.com/m"}, 3)
+	if !ok || !slices.Equal(given, []string{"/usr/bin/go", "/t/src", "example.com/m"}) || len(rest) != 0 {
+		t.Errorf("exactly three: got %q, %q, %v", given, rest, ok)
+	}
+	given, rest, ok = roleArgs([]string{"/t/c", "/t/bin", "/t/x.test", "-test.v"}, 3)
+	if !ok || !slices.Equal(given, []string{"/t/c", "/t/bin", "/t/x.test"}) || !slices.Equal(rest, []string{"-test.v"}) {
+		t.Errorf("four: got %q, %q, %v", given, rest, ok)
+	}
+	if _, _, ok := roleArgs([]string{"/t/c", "/t/bin"}, 3); ok {
+		t.Error("two of three are taken for enough")
+	}
+}

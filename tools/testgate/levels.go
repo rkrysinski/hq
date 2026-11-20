@@ -81,17 +81,27 @@ func runRole(args []string) (code int, ok bool) {
 // every package of the module to a go build or go run started in the staged
 // tree src, so the program it builds writes coverage.
 func coverGo(args []string) int {
-	if len(args) < 3 {
+	given, goArgs, ok := roleArgs(args, 3)
+	if !ok {
 		fmt.Fprintln(os.Stderr, "go: the run's go needs the real go, the staged tree and the module")
 		return 2
 	}
-	realGo, src, module, goArgs := args[0], args[1], args[2], args[3:]
+	realGo, src, module := given[0], given[1], given[2]
 	if dir, err := os.Getwd(); err == nil && within(src, dir) {
 		goArgs = coverArgs(goArgs, module)
 	}
 	cmd := exec.Command(realGo, goArgs...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return exitCode(cmd.Run())
+}
+
+// roleArgs splits a role's arguments into the n it is given first and the
+// rest it passes on; ok is false when one of the n is missing.
+func roleArgs(args []string, n int) (given, rest []string, ok bool) {
+	if len(args) < n {
+		return nil, nil, false
+	}
+	return args[:n], args[n:], true
 }
 
 // coverArgs are go's arguments args with the flags of a build with coverage
@@ -124,12 +134,13 @@ func within(top, dir string) bool {
 // args[0] and the directory of the run's go, args[1], first in PATH, passes
 // on the signals that would end it, and returns its exit code.
 func testExec(args []string) int {
-	if len(args) < 3 {
+	given, testArgs, ok := roleArgs(args, 3)
+	if !ok {
 		fmt.Fprintln(os.Stderr, "testgate: the test exec needs a directory, the run's go and a test binary")
 		return 2
 	}
-	cmd := exec.Command(args[2], args[3:]...)
-	cmd.Env = append(withPath(os.Environ(), args[1]), "GOCOVERDIR="+args[0], envCoverDir+"="+args[0])
+	cmd := exec.Command(given[2], testArgs...)
+	cmd.Env = append(withPath(os.Environ(), given[1]), "GOCOVERDIR="+given[0], envCoverDir+"="+given[0])
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	signals := make(chan os.Signal, 4)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP)

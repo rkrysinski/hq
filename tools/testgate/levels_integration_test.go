@@ -334,6 +334,11 @@ func TestMutationEndsBeforeTheToolOnATreeItCannotJudge(t *testing.T) {
 		{"a changed file that does not parse, which no build takes", "the changed file cmd/tool/old.go", func(t *testing.T, r *mutationRepo) {
 			write(t, r.dir, "cmd/tool/old.go", "//go:build ignore\n\npackage main\n\nfunc old( {\n")
 		}},
+		{"a changed Go file that is a symlink to nothing", "lib/gone.go", func(t *testing.T, r *mutationRepo) {
+			if err := os.Symlink("nowhere.go", filepath.Join(r.dir, "lib/gone.go")); err != nil {
+				t.Fatal(err)
+			}
+		}},
 		{"a file it cannot read", "staging the tree", func(t *testing.T, r *mutationRepo) {
 			if os.Geteuid() == 0 {
 				t.Skip("root reads every file")
@@ -360,4 +365,24 @@ func TestMutationEndsBeforeTheToolOnATreeItCannotJudge(t *testing.T) {
 			assertEmpty(t, "the shared build cache", cache)
 		})
 	}
+}
+
+// A program a unit test starts writes coverage go tool covdata cannot
+// read: the run ends with an error, and nothing is judged.
+func TestMutationEndsWhenWhatAProgramWroteCannotBeRead(t *testing.T) {
+	r := newMutationRepo(t)
+	r.change()
+	write(t, r.dir, "bad/bad_test.go", "package bad\n\nimport (\n\t\"os\"\n\t\"path/filepath\"\n\t\"testing\"\n)\n\n"+
+		"func TestWrite(t *testing.T) {\n\tif d := os.Getenv(\"GOCOVERDIR\"); d != \"\" {\n"+
+		"\t\tos.WriteFile(filepath.Join(d, \"covmeta.0123456789abcdef0123456789abcdef\"), []byte(\"not coverage\"), 0o644)\n\t}\n}\n")
+	tmp, cache := isolated(t)
+	lines, failed, err := runMutationIn(t, r.dir, "main")
+	if err == nil || !strings.Contains(err.Error(), "the unit tests' coverage in the tool's first run: go tool covdata") {
+		t.Errorf("err %v; want one saying go tool covdata could not read the unit tests' coverage", err)
+	}
+	if failed || !reflect.DeepEqual(lines, []string{""}) {
+		t.Errorf("printed %q, failed %v; want nothing", lines, failed)
+	}
+	assertEmpty(t, "the temporary directory", tmp)
+	assertEmpty(t, "the shared build cache", cache)
 }
