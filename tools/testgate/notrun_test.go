@@ -307,6 +307,21 @@ func TestRanTakesTheInnermostBlockAndCountsItsEnds(t *testing.T) {
 	}
 }
 
+// Of two blocks that start at the same place, the one that ends first
+// tells, whichever the map gives first: each new map may give them in
+// either order.
+func TestRanTakesTheBlockThatEndsFirstOfTwoThatStartTogether(t *testing.T) {
+	for range 100 {
+		c := ranBlocks{
+			{"m/a.go", srcPos{3, 5}, srcPos{5, 2}}: false,
+			{"m/a.go", srcPos{3, 5}, srcPos{4, 2}}: true,
+		}
+		if !c.ran("m/a.go", srcPos{3, 5}) {
+			t.Fatal("the block that ends later told")
+		}
+	}
+}
+
 func TestRanBlocksRefusesALineItCannotRead(t *testing.T) {
 	for _, line := range []string{
 		"m/a.go:1.1,2.1 1",
