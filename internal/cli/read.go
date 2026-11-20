@@ -55,13 +55,14 @@ type readArgs struct {
 
 func parseRead(args []string, now time.Time) (readArgs, error) {
 	var r readArgs
+	f := flagsOf("read")
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		flag, value, inline := strings.Cut(a, "=")
 		switch {
-		case a == "--json":
+		case f.is(a, "--json"):
 			r.asJSON = true
-		case flag == "--offset" || flag == "--since":
+		case f.is(flag, "--offset", "--since"):
 			value, err := optionValue(args, &i, flag, value, inline, readUsage)
 			if err != nil {
 				return r, err

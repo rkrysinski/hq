@@ -330,7 +330,7 @@ func installSbx(env Env, d deps, exe string, vars []string) error {
 // the flags, as hq sandbox takes them.
 func parseMCPLoad(verb string, args []string) (sandboxArgs, error) {
 	usage := fmt.Sprintf(mcpLoadUsage, verb)
-	a, rest, err := parseSetups(args, usage)
+	a, rest, err := parseSetups(flagsOf("mcp"), args, usage)
 	if err != nil {
 		return a, err
 	}
