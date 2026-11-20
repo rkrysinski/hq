@@ -10,10 +10,21 @@ import (
 	"github.com/rkrysinski/hq/internal/tmux"
 )
 
-// Sources are where a look reads and appends (design §3.4): the journals'
-// store, and tmux for the screens.
-type Sources interface {
+// Journals are the journals' store as a look appends to it (design §3.4),
+// with tmux's word on whether an agent's home window still stands, which
+// it asks before it writes a journal that is not there
+// (journal.Store.AppendEvidence).
+type Journals interface {
 	journal.Store
+	// Stands says whether home window w still stands, tmux asked now; one
+	// tmux cannot tell of does not.
+	Stands(w string) bool
+}
+
+// Sources are where a look reads and appends (design §3.4): the journals'
+// store, and tmux for the windows and the screens.
+type Sources interface {
+	Journals
 	// Screens returns what the panes show, by pane id, in one call.
 	Screens(panes []string) (map[string]string, error)
 }
@@ -97,12 +108,14 @@ func (f *folded) update(store journal.Store, id string) error {
 	return nil
 }
 
-// witness appends e, evidence the look saw at now, to agent id's journal,
+// witness appends e, evidence the look saw at now, to agent a's journal,
 // based on the last event of its hook there, unless the journal holds it
 // already; the store sets it aside when another process appended it first,
 // or a later report overtook it. A journal that cannot be written gets no
-// event.
-func (f *folded) witness(store journal.Store, id string, e state.Event, now time.Time) {
+// event, and neither does one that is not there once a's home window is
+// gone: hq kill removed it, and a journal written back would hold no
+// launch, which nothing removes (#263).
+func (f *folded) witness(store Journals, a Agent, e state.Event, now time.Time) {
 	e.Basis = f.standing.Basis
 	if e.Time.IsZero() {
 		e.Time = now
@@ -111,21 +124,22 @@ func (f *folded) witness(store journal.Store, id string, e state.Event, now time
 		return
 	}
 	// The fold, its evidence included, follows the append at the next
-	// update, which the look takes before it witnesses the same kind again.
-	_, _ = store.Append(id, e)
+	// update, which the look takes before it witnesses the same kind again;
+	// that update notes a journal removed meanwhile gone.
+	_, _ = store.AppendEvidence(a.ID, func() bool { return store.Stands(a.Window) }, e)
 }
 
 // witnessDeath appends the death of a's pane, as tmux dates it, at now
 // (witness); a death tmux dates before the agent's latest launch or
 // relaunch is its previous session's, seen by a look that listed the
 // windows before the relaunch respawned the pane, and is not appended.
-func (f *folded) witnessDeath(store journal.Store, a Agent, now time.Time) {
+func (f *folded) witnessDeath(store Journals, a Agent, now time.Time) {
 	if f.fold.DiedBeforeLaunch(a.deadAt) {
 		return
 	}
 	e := state.Event{Source: state.SourceTmux, Kind: state.KindPaneDied}
 	e.Facts.From = a.deadAt
-	f.witness(store, a.ID, e, now)
+	f.witness(store, a, e, now)
 }
 
 // read gives agent a its state from its journal, the event files its hook
@@ -150,7 +164,7 @@ func (a *Agent) read(store journal.Store, f *folded) bool {
 // is appended, and no screen is read (design §3.4). hq go, hq code and the
 // dashboard's dock take it; the commands that show or act on an agent's
 // state take a Look.
-func FromJournals(ws []tmux.Window, store journal.Store, now time.Time, folds *Folds) []Agent {
+func FromJournals(ws []tmux.Window, store Journals, now time.Time, folds *Folds) []Agent {
 	as := FromWindows(ws)
 	ReadStates(as, store, now, folds)
 	return as
@@ -161,7 +175,7 @@ func FromJournals(ws []tmux.Window, store journal.Store, now time.Time, folds *F
 // (FromWindows) is appended first, as tmux dates it, so the ended state
 // rests on an event as any other does (story 43 of #165). A lost agent has
 // no pane to have died: its journal alone gives its state.
-func ReadStates(as []Agent, store journal.Store, now time.Time, folds *Folds) {
+func ReadStates(as []Agent, store Journals, now time.Time, folds *Folds) {
 	defer folds.lock()()
 	for i := range as {
 		a := &as[i]
@@ -199,7 +213,8 @@ func ReadStates(as []Agent, store journal.Store, now time.Time, folds *Folds) {
 // It never fails: a capture that fails appends nothing of the screens,
 // and what the journal holds still stands; a journal that cannot be read
 // leaves the agent as its window says, and one that cannot be written gets
-// no event. One look may not be enough: an agent Resting needs one more,
+// no event, nor does one that is not there once the agent's home window is
+// gone (witness). One look may not be enough: an agent Resting needs one more,
 // RestDelay later, which is the caller's to take.
 func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Sources, folds *Folds) []Agent {
 	defer folds.lock()()
@@ -222,7 +237,7 @@ func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Sources, f
 		if sandboxes.notRunning(*a) && f.fold.Stopped(sandboxes.Asked) {
 			e := state.Event{Source: state.SourceSbx, Kind: state.KindNotRunning}
 			e.Facts.Asked = sandboxes.Asked
-			f.witness(store, a.ID, e, now)
+			f.witness(store, *a, e, now)
 		}
 		_ = f.update(store, a.ID)
 	}
@@ -246,7 +261,7 @@ func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Sources, f
 			events, resting := f.fold.Sees(screen, now)
 			a.resting = resting
 			for _, e := range events {
-				f.witness(store, a.ID, e, now)
+				f.witness(store, *a, e, now)
 				if e.Kind == state.KindTookQueued {
 					// The prompt Claude took is no wake-up.
 					wakes[i] = nil
@@ -254,7 +269,7 @@ func Look(ws []tmux.Window, sandboxes Sandboxes, now time.Time, store Sources, f
 			}
 		}
 		if wakes[i] != nil {
-			f.witness(store, a.ID, *wakes[i], now)
+			f.witness(store, *a, *wakes[i], now)
 		}
 		_ = f.update(store, a.ID)
 		a.apply(f, now, screen, captured)

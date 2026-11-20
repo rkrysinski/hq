@@ -155,7 +155,7 @@ func plural(n int, word string) string {
 // list does.
 func endAgents(d deps, as []agent.Agent) error {
 	sandboxes := runningSandboxes(d)
-	agent.ReadStates(as, d.journal, d.now(), d.folds)
+	agent.ReadStates(as, d.sources(), d.now(), d.folds)
 	var orphans []agent.Agent // signalled sessions without a live pane
 	for _, a := range as {
 		if sandboxes.Ends(a) {

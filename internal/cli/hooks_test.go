@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -49,6 +50,13 @@ func (j hookedJournal) Append(id string, events ...state.Event) ([]state.Event, 
 	return j.Memory.Append(journalID(id), events...)
 }
 
+func (j hookedJournal) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+	if j.f.onAppend != nil {
+		j.f.onAppend(id, events)
+	}
+	return j.Memory.AppendEvidence(journalID(id), stands, events...)
+}
+
 func (j hookedJournal) Through() (int64, error) {
 	if j.f.onThrough != nil {
 		j.f.onThrough()
@@ -85,6 +93,16 @@ func (j hookedJournal) IDs() ([]string, error) {
 func (j hookedJournal) Remove(root, id string) error {
 	delete(j.f.left, id)
 	return j.Memory.Remove(root, journalID(id))
+}
+
+// noJournalOf fails the test unless the store holds no journal of agent id.
+func (f *fakes) noJournalOf(t *testing.T, id string) {
+	t.Helper()
+	ids, err := f.journal.IDs()
+	j, rerr := f.journal.Read(journalID(id))
+	if err != nil || rerr != nil || slices.Contains(ids, journalID(id)) || len(j.Events) != 0 {
+		t.Fatalf("a journal of %s: %v, %s (%v %v)", id, ids, journaltest.Kinds(j.Events), err, rerr)
+	}
 }
 
 // cursorBefore is the cursor just below the first event of kind in agent
