@@ -256,6 +256,14 @@ type coverDir string
 
 func (d coverDir) profile() string  { return filepath.Join(string(d), "profile") }
 func (d coverDir) counters() string { return filepath.Join(string(d), "counters") }
+func (d coverDir) programs() string { return filepath.Join(string(d), "programs") }
+
+// covdataArgs are go's arguments that turn what the programs wrote into a
+// profile in a file of d: go tool covdata cannot write to /dev/stdout on
+// macOS when it is a pipe.
+func (d coverDir) covdataArgs() []string {
+	return []string{"tool", "covdata", "textfmt", "-i=" + d.counters(), "-o=" + d.programs()}
+}
 
 // make makes d with its counters. An error shows when the tests write
 // there: go test fails on a profile it cannot write.
@@ -268,11 +276,10 @@ func (d coverDir) read(ctx context.Context, env []string, c ranBlocks) error {
 	profiles := []string{d.profile()}
 	// make made the counters: none read is no program that wrote.
 	if entries, _ := os.ReadDir(d.counters()); len(entries) > 0 {
-		programs := filepath.Join(string(d), "programs")
-		if out, err := command(ctx, string(d), env, "go", "tool", "covdata", "textfmt", "-i="+d.counters(), "-o="+programs).CombinedOutput(); err != nil {
+		if out, err := command(ctx, string(d), env, "go", d.covdataArgs()...).CombinedOutput(); err != nil {
 			return fmt.Errorf("go tool covdata: %v\n%s", err, out)
 		}
-		profiles = append(profiles, programs)
+		profiles = append(profiles, d.programs())
 	}
 	for _, p := range profiles {
 		data, err := os.ReadFile(p)

@@ -181,3 +181,11 @@ func TestRoleArgsSplitWhatARoleIsGivenFromWhatItPassesOn(t *testing.T) {
 		t.Error("two of three are taken for enough")
 	}
 }
+
+func TestCovdataWritesTheProgramsProfileToAFileOfTheRun(t *testing.T) {
+	got := coverDir("/t/run/level").covdataArgs()
+	want := []string{"tool", "covdata", "textfmt", "-i=/t/run/level/counters", "-o=/t/run/level/programs"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
