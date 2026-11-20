@@ -211,9 +211,9 @@ func TestALoadRunLeavesNoLoadBehindHoweverItEnds(t *testing.T) {
 	}{
 		{name: "the tests ended", args: []string{"-count", "2", "-run", "^TestPasses$", loadFixture}, code: 0},
 		{name: "a test failed", args: []string{"-run", "^(TestPasses|TestFails)$", "-count", "1", loadFixture}, code: 1},
-		{name: "the time limit passed", args: []string{"-timeout", "3s", "-count", "1", "-run", "^TestWaits$", loadFixture},
+		{name: "the time limit passed", args: []string{"-timeout", "2s", "-count", "1", "-run", "^TestWaits$", loadFixture},
 			end:  func(t *testing.T, c *loadCommand) { c.waitForTheTest(t) },
-			code: 2, says: "testgate: load: the time limit 3s passed: the tests were stopped\n"},
+			code: 2, says: "testgate: load: the time limit 2s passed: the tests were stopped\n"},
 		{name: "SIGINT", args: []string{"-count", "1", "-run", "^TestWaits$", loadFixture},
 			end:  func(t *testing.T, c *loadCommand) { c.waitForTheTest(t); c.cmd.Process.Signal(syscall.SIGINT) },
 			code: 2, says: "testgate: load: interrupted by SIGINT: the tests were stopped\n"},

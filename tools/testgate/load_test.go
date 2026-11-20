@@ -82,6 +82,9 @@ func TestLoadAverageIsReadFromLinuxAndMacOSAlike(t *testing.T) {
 	if v, err := sysctlLoadavg("{ 1.25 1.10 1.05 }\n"); err != nil || v != 1.25 {
 		t.Errorf("sysctl: got %v, %v", v, err)
 	}
+	if v, err := sysctlLoadavg("{ 0.75 }"); err != nil || v != 0.75 {
+		t.Errorf("sysctl with one figure: got %v, %v", v, err)
+	}
 	for _, bad := range []string{"", "x 1 2", "{ }", "{ x }"} {
 		if _, err := procLoadavg(bad); err == nil {
 			t.Errorf("/proc/loadavg %q: no error", bad)

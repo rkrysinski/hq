@@ -353,11 +353,13 @@ func withTags(args []string, tags string) []string {
 // what comes before its first slash outside brackets and parentheses, as go
 // test splits it (testing's splitRegexp).
 func topLevelPattern(run string) string {
-	class, parens := false, 0
-	for i := 0; i < len(run); i++ {
-		switch c := run[i]; {
+	escaped, class, parens := false, false, 0
+	for i, c := range []byte(run) {
+		switch {
+		case escaped:
+			escaped = false
 		case c == '\\':
-			i++
+			escaped = true
 		case class:
 			class = c != ']'
 		case c == '[':
