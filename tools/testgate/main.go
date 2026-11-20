@@ -45,8 +45,9 @@
 //
 // load is not a gate: it makes a load run, the tests the REGEXP names run
 // N times in each of -p processes of go test while one busy worker per core
-// keeps the machine busy, prints the same evidence for every ticket and
-// leaves no load behind however it ends. It exits 0 when every expected run
+// keeps the machine busy, and prints the same evidence for every ticket.
+// However it ends it leaves no busy worker behind, nor a test process but
+// after SIGKILL, when one may run on to its own time limit. It exits 0 when every expected run
 // passed, 1 when a run failed or was skipped or a process ended without all
 // its runs, and 2 on an error of its own (#276, load.go).
 //
@@ -191,7 +192,10 @@ func main() {
 			os.Exit(1)
 		}
 	case "load":
-		os.Exit(loadMain(inv.opts.(loadOptions), inv.args[0], runtime.NumCPU(), os.Stdout, os.Stderr))
+		ctx, stop := loadContext()
+		code := runLoad(ctx, inv.opts.(loadOptions), inv.args[0], runtime.NumCPU(), os.Stdout, os.Stderr)
+		stop()
+		os.Exit(code)
 	case "skips", "plain":
 		if err := testOutput(inv, os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)

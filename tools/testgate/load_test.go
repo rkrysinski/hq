@@ -148,7 +148,7 @@ func readRun(t *testing.T, lines ...string) *testRun {
 // failed is no skipped run, and a run its process ended in counts as failed,
 // with what it printed.
 func TestTallyCountsTheRunsOfTopLevelTestsAndShowsEachThatDidNotPass(t *testing.T) {
-	c, shown := tally(2, readRun(t, loadFixtureRun...))
+	c, shown := tally(2, readRun(t, loadFixtureRun...), false)
 	if want := (runCounts{passed: 2, failed: 2, skipped: 1}); c != want {
 		t.Errorf("got %+v, want %+v", c, want)
 	}
@@ -174,7 +174,7 @@ func TestTallyNumbersTheRunsOfEachTest(t *testing.T) {
 	lines := append(append(append([]string{`{"Action":"start","Package":"example.com/f"}`}, fail("one")...),
 		`{"Action":"run","Package":"example.com/f","Test":"TestPasses"}`,
 		`{"Action":"pass","Package":"example.com/f","Test":"TestPasses"}`), fail("two")...)
-	c, shown := tally(1, readRun(t, lines...))
+	c, shown := tally(1, readRun(t, lines...), false)
 	if want := (runCounts{passed: 1, failed: 2}); c != want {
 		t.Errorf("got %+v, want %+v", c, want)
 	}
@@ -374,5 +374,34 @@ func loadHelper(args []string) int {
 		fmt.Fprintln(os.Stderr, "the load helper runs load only")
 		return 2
 	}
-	return loadMain(inv.opts.(loadOptions), inv.args[0], 1, os.Stdout, os.Stderr)
+	ctx, stop := loadContext()
+	defer stop()
+	return runLoad(ctx, inv.opts.(loadOptions), inv.args[0], 1, os.Stdout, os.Stderr)
+}
+
+// With a pattern that names subtests, a run that passed with no subtest
+// tested nothing: it counts as skipped. Without one, it passed.
+func TestTallyCountsARunWithNoSubtestTheSubtestPatternNamesAsSkipped(t *testing.T) {
+	run := readRun(t,
+		`{"Action":"start","Package":"example.com/f"}`,
+		`{"Action":"run","Package":"example.com/f","Test":"TestX"}`,
+		`{"Action":"pass","Package":"example.com/f","Test":"TestX"}`,
+		`{"Action":"run","Package":"example.com/f","Test":"TestX"}`,
+		`{"Action":"run","Package":"example.com/f","Test":"TestX/sub"}`,
+		`{"Action":"pass","Package":"example.com/f","Test":"TestX/sub"}`,
+		`{"Action":"pass","Package":"example.com/f","Test":"TestX"}`,
+	)
+	c, shown := tally(1, run, true)
+	if want := (runCounts{passed: 1, skipped: 1}); c != want {
+		t.Errorf("got %+v, want %+v", c, want)
+	}
+	equalStrings(t, shown, []string{"process 1, TestX, run 1: skipped: no subtest the pattern names ran"})
+	if c, shown := tally(1, run, false); c != (runCounts{passed: 2}) || len(shown) != 0 {
+		t.Errorf("no subtest pattern: got %+v, %q", c, shown)
+	}
+	r := evidenceRun()
+	r.subtests = true
+	if _, ok := r.endLines([]loadProcess{{status: "exit status 0", run: run}}, 2, false); ok {
+		t.Error("the evidence passed a run that tested nothing")
+	}
 }

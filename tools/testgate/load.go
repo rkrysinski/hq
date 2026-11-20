@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -67,8 +68,8 @@ func loadFlags() options {
 // process left behind by a run killed with SIGKILL ends at its own.
 const testTimeoutMargin = time.Minute
 
-// lastLines is how many of a process's last lines the evidence shows.
-const lastLines = 5
+// lastLineCount is how many of a process's last lines the evidence shows.
+const lastLineCount = 5
 
 // stopGrace is how long a test process stopped with SIGINT has to end, with
 // go test removing its temporary files, before its process group is killed.
@@ -78,16 +79,18 @@ const stopGrace = 5 * time.Second
 // it is still there.
 const parentPoll = time.Second
 
-// loadMain runs load as the command line asked, with that many busy workers
-// (one per core; the tests set 1), and returns its exit code. SIGINT,
-// SIGTERM and SIGHUP stop the run, and so does the end of the process that
-// started it, which go run does not pass a signal on from when it is killed.
-func loadMain(o loadOptions, pkg string, workers int, stdout, stderr io.Writer) int {
+// loadContext is the context main hands runLoad: SIGINT, SIGTERM and SIGHUP
+// end it, and so does the end of the process that started testgate, which
+// go run does not pass a signal on from when it is killed; the cause says
+// which. A write to a closed stdout or stderr fails instead of killing the
+// run before it stops its test processes (SIGPIPE). stop releases the
+// signals.
+func loadContext() (ctx context.Context, stop func()) {
 	ctx, cancel := context.WithCancelCause(context.Background())
-	defer cancel(nil)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
-	defer signal.Stop(sigs)
+	pipes := make(chan os.Signal, 1) // never read: a SIGPIPE that does not fit is dropped
+	signal.Notify(pipes, syscall.SIGPIPE)
 	parent := os.Getppid()
 	go func() {
 		tick := time.NewTicker(parentPoll)
@@ -107,15 +110,22 @@ func loadMain(o loadOptions, pkg string, workers int, stdout, stderr io.Writer) 
 			}
 		}
 	}()
-	return runLoad(ctx, o, pkg, workers, stdout, stderr)
+	return ctx, func() {
+		signal.Stop(sigs)
+		signal.Stop(pipes)
+		cancel(nil)
+	}
 }
 
-// runLoad makes a load run in the working directory: it lists the tests
-// before any load, starts the busy workers, runs the test processes, stops
-// the workers once the last test process and its process group have ended,
-// prints the evidence on stdout and its progress on stderr, and returns its
-// exit code: 0 when every expected run passed, 1 when not, 2 on an error of
-// its own, the end of ctx and the time limit included.
+// runLoad makes a load run in the working directory, with that many busy
+// workers (one per core; the tests set 1): it lists the tests before any
+// load, starts the busy workers, runs the test processes, stops the workers
+// once the last test process ended and what was left of its process group
+// was killed, prints the evidence on stdout and its progress on stderr, and
+// returns its exit code: 0 when every expected run passed, 1 when not, 2 on
+// an error of its own, the end of ctx and the time limit included. The time
+// limit counts from the start of the tests; the listing before them has a
+// limit of the same length.
 func runLoad(ctx context.Context, o loadOptions, pkg string, workers int, stdout, stderr io.Writer) int {
 	fail := func(format string, a ...any) int {
 		fmt.Fprintf(stderr, "testgate: load: "+format+"\n", a...)
@@ -125,27 +135,10 @@ func runLoad(ctx context.Context, o loadOptions, pkg string, workers int, stdout
 	if err != nil {
 		return fail("%v", err)
 	}
-	ctx, cancel := context.WithTimeoutCause(ctx, o.timeout, fmt.Errorf("the time limit %s passed", o.timeout))
-	defer cancel()
-
-	var listed bytes.Buffer
-	list := testCommand(ctx, listArgs(o, pkg))
-	list.Stdout, list.Stderr = &listed, &listed
-	fmt.Fprintf(stderr, "load: %s\n", shellLine(list.Args))
-	err = list.Run()
-	killGroup(list)
-	switch {
-	case ctx.Err() != nil:
-		return fail("%v: no test ran", context.Cause(ctx))
-	case err != nil:
-		return fail("%s failed (%v):\n%s", shellLine(list.Args), err, strings.TrimRight(listed.String(), "\n"))
+	names, err := listTests(ctx, o, pkg, stderr)
+	if err != nil {
+		return fail("%v", err)
 	}
-	names := listedTests(listed.String())
-	if len(names) == 0 {
-		return fail("-run %s names no test of %s", shellLine([]string{o.run}), pkg)
-	}
-	fmt.Fprintf(stderr, "load: tests: %s\n", strings.Join(names, " "))
-
 	dir := o.dir
 	if dir == "" {
 		dir, err = os.MkdirTemp("", "testgate-load-")
@@ -156,63 +149,63 @@ func runLoad(ctx context.Context, o loadOptions, pkg string, workers int, stdout
 		return fail("%v", err)
 	}
 	r := loadRun{head: head, cores: runtime.NumCPU(), workers: workers, command: append([]string{"go"}, goTestArgs(o, pkg)...),
-		procs: o.procs, timeout: o.timeout, dir: dir}
+		procs: o.procs, timeout: o.timeout, dir: dir, subtests: topLevelPattern(o.run) != o.run}
 
+	ctx, cancel := context.WithTimeoutCause(ctx, o.timeout, fmt.Errorf("the time limit %s passed", o.timeout))
+	defer cancel()
 	stopWorkers := startWorkers(workers)
 	fmt.Fprintf(stderr, "load: %d busy workers started\n", workers)
 	r.start, r.loadStart = time.Now(), loadAverageText(loadAverage())
 	for _, l := range r.headLines() {
 		fmt.Fprintln(stdout, l)
 	}
-	procs := make([]loadProcess, o.procs)
+	processes := make([]loadProcess, o.procs)
 	var wg sync.WaitGroup
-	for i := range procs {
-		procs[i].file = filepath.Join(dir, fmt.Sprintf("process-%d.out", i+1))
-		f, err := os.Create(procs[i].file)
+	abort := func(err error) int { // a process that could not start: stop those that did
+		cancel()
+		wg.Wait()
+		stopWorkers()
+		return fail("%v", err)
+	}
+	for i := range processes {
+		processes[i].file = filepath.Join(dir, fmt.Sprintf("process-%d.out", i+1))
+		f, err := os.Create(processes[i].file)
 		if err != nil {
-			cancel()
-			wg.Wait()
-			stopWorkers()
-			return fail("%v", err)
+			return abort(err)
 		}
 		cmd := testCommand(ctx, goTestArgs(o, pkg))
 		cmd.Stdout, cmd.Stderr = f, f
 		if err := cmd.Start(); err != nil {
 			f.Close()
-			cancel()
-			wg.Wait()
-			stopWorkers()
-			return fail("%v", err)
+			return abort(err)
 		}
 		fmt.Fprintf(stderr, "load: process %d started, process group %d\n", i+1, cmd.Process.Pid)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			cmd.Wait()
 			killGroup(cmd)
 			f.Close()
-			procs[i].status = cmd.ProcessState.String()
-			fmt.Fprintf(stderr, "load: process %d ended: %s\n", i+1, procs[i].status)
-		}()
+			processes[i].status = cmd.ProcessState.String()
+			fmt.Fprintf(stderr, "load: process %d ended: %s\n", i+1, processes[i].status)
+		})
 	}
 	wg.Wait()
 	stopWorkers()
 	fmt.Fprintf(stderr, "load: %d busy workers stopped\n", workers)
 	r.end, r.loadEnd = time.Now(), loadAverageText(loadAverage())
 
-	for i := range procs {
-		f, err := os.Open(procs[i].file)
+	for i := range processes {
+		f, err := os.Open(processes[i].file)
 		if err != nil {
 			return fail("%v", err)
 		}
-		procs[i].run, err = readTestRun(f)
+		processes[i].run, err = readTestRun(f)
 		f.Close()
 		if err != nil {
-			return fail("%s: %v", procs[i].file, err)
+			return fail("%s: %v", processes[i].file, err)
 		}
 	}
 	stopped := context.Cause(ctx)
-	lines, ok := r.endLines(procs, len(names)*o.count*o.procs, stopped != nil)
+	lines, ok := r.endLines(processes, len(names)*o.count*o.procs, stopped != nil)
 	for _, l := range lines {
 		fmt.Fprintln(stdout, l)
 	}
@@ -225,9 +218,36 @@ func runLoad(ctx context.Context, o loadOptions, pkg string, workers int, stdout
 	return 1
 }
 
+// listTests lists the top-level tests the run runs, before any load and
+// within its time limit: it fails when the package does not build or no test
+// is named.
+func listTests(ctx context.Context, o loadOptions, pkg string, stderr io.Writer) ([]string, error) {
+	ctx, cancel := context.WithTimeoutCause(ctx, o.timeout, fmt.Errorf("listing the tests took longer than the time limit %s", o.timeout))
+	defer cancel()
+	var listed bytes.Buffer
+	list := testCommand(ctx, listArgs(o, pkg))
+	list.Stdout, list.Stderr = &listed, &listed
+	fmt.Fprintf(stderr, "load: %s\n", shellLine(list.Args))
+	err := list.Run()
+	killGroup(list)
+	switch {
+	case ctx.Err() != nil:
+		return nil, fmt.Errorf("%w: no test ran", context.Cause(ctx))
+	case err != nil:
+		return nil, fmt.Errorf("%s failed (%v):\n%s", shellLine(list.Args), err, strings.TrimRight(listed.String(), "\n"))
+	}
+	names := listedTests(listed.String())
+	if len(names) == 0 {
+		return nil, fmt.Errorf("-run %s names no test of %s", shellLine([]string{o.run}), pkg)
+	}
+	fmt.Fprintf(stderr, "load: tests: %s\n", strings.Join(names, " "))
+	return names, nil
+}
+
 // testCommand is a go test of a load run, in a process group of its own:
 // the end of ctx sends the group SIGINT, on which go test removes its
-// temporary files, and the group's leader is killed stopGrace later.
+// temporary files, and the group's leader is killed when it has not ended
+// stopGrace later; killGroup kills the rest once it ended.
 func testCommand(ctx context.Context, args []string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -311,21 +331,22 @@ func commitText(sha, status string) string {
 
 // goTestArgs are the arguments of go test in each process of a load run.
 func goTestArgs(o loadOptions, pkg string) []string {
-	args := []string{"test", "-json", "-count", strconv.Itoa(o.count), "-run", o.run}
-	if o.tags != "" {
-		args = append(args, "-tags", o.tags)
-	}
+	args := withTags([]string{"test", "-json", "-count", strconv.Itoa(o.count), "-run", o.run}, o.tags)
 	return append(args, "-timeout", (o.timeout + testTimeoutMargin).String(), pkg)
 }
 
 // listArgs are the arguments of the go test that lists the top-level tests
 // a load run runs, before any load: it fails when the package does not build.
 func listArgs(o loadOptions, pkg string) []string {
-	args := []string{"test", "-list", topLevelPattern(o.run)}
-	if o.tags != "" {
-		args = append(args, "-tags", o.tags)
+	return append(withTags([]string{"test", "-list", topLevelPattern(o.run)}, o.tags), pkg)
+}
+
+// withTags adds the build tags to go test's arguments, when there are any.
+func withTags(args []string, tags string) []string {
+	if tags == "" {
+		return args
 	}
-	return append(args, pkg)
+	return append(args, "-tags", tags)
 }
 
 // topLevelPattern is the part of a -run pattern that names top-level tests:
@@ -417,8 +438,11 @@ type runCounts struct{ passed, failed, skipped int }
 
 // tally counts the runs of the top-level tests of a process's run, and gives
 // for each run that did not pass a line saying which, with its reason for a
-// skip, and for a failure what go test prints of it without -json.
-func tally(proc int, run *testRun) (runCounts, []string) {
+// skip, and for a failure what go test prints of it without -json. When the
+// run's pattern names subtests, a run that passed with no subtest tested
+// nothing and counts as skipped: go test runs a test whose subtests the
+// pattern misses, and it passes.
+func tally(proc int, run *testRun, subtests bool) (runCounts, []string) {
 	var c runCounts
 	var shown []string
 	for _, name := range run.order {
@@ -426,15 +450,19 @@ func tally(proc int, run *testRun) (runCounts, []string) {
 		for _, t := range run.packages[name].runs {
 			seen[t.name]++
 			which := fmt.Sprintf("process %d, %s, run %d: ", proc, t.name, seen[t.name])
-			switch t.outcome {
-			case "pass":
+			switch {
+			case t.outcome == "pass" && subtests && !t.hasSubtest():
+				c.skipped++
+				shown = append(shown, which+"skipped: no subtest the pattern names ran")
+				continue
+			case t.outcome == "pass":
 				c.passed++
 				continue
-			case "skip":
+			case t.outcome == "skip":
 				c.skipped++
 				shown = append(shown, which+"skipped: "+t.reason())
 				continue
-			case "fail":
+			case t.outcome == "fail":
 				shown = append(shown, which+"failed")
 			default:
 				shown = append(shown, which+"never ended")
@@ -450,6 +478,11 @@ func tally(proc int, run *testRun) (runCounts, []string) {
 	return c, shown
 }
 
+// hasSubtest reports whether a subtest of the test ran.
+func (t *goTest) hasSubtest() bool {
+	return slices.ContainsFunc(t.items, func(it testItem) bool { return it.sub != nil })
+}
+
 // A loadRun is what the evidence of a load run says of the run as a whole.
 type loadRun struct {
 	head               string // HEAD's full sha, with " with uncommitted changes" when the tree is not clean
@@ -460,6 +493,7 @@ type loadRun struct {
 	dir                string // where the processes' output is
 	start, end         time.Time
 	loadStart, loadEnd string // the load average at the start and at the end, as loadAverageText gives it
+	subtests           bool   // whether the pattern names subtests (tally)
 }
 
 // A loadProcess is a test process of a load run once it ended.
@@ -502,11 +536,11 @@ func (r loadRun) endLines(procs []loadProcess, expected int, stopped bool) (line
 			lines = append(lines, fmt.Sprintf("process %d: %s, output %s, no output", i+1, p.status, p.file))
 		} else {
 			lines = append(lines, fmt.Sprintf("process %d: %s, output %s, last lines:", i+1, p.status, p.file))
-			for _, l := range out[max(0, len(out)-lastLines):] {
+			for _, l := range out[max(0, len(out)-lastLineCount):] {
 				lines = append(lines, indentStep+l)
 			}
 		}
-		c, s := tally(i+1, p.run)
+		c, s := tally(i+1, p.run, r.subtests)
 		all.passed, all.failed, all.skipped = all.passed+c.passed, all.failed+c.failed, all.skipped+c.skipped
 		shown = append(shown, s...)
 		exited = exited && p.status == "exit status 0"

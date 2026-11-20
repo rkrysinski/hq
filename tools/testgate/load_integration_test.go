@@ -75,7 +75,7 @@ func startLoadCommand(t *testing.T, viaShell bool, args ...string) *loadCommand 
 	go func() { c.waitErr = c.cmd.Wait(); close(c.done) }()
 	t.Cleanup(func() {
 		c.cmd.Process.Kill()
-		<-c.done
+		c.ended(t)
 		for _, g := range c.groups(t) { // the test processes a SIGKILL leaves behind
 			syscall.Kill(-g, syscall.SIGKILL)
 		}
@@ -101,15 +101,21 @@ func readFile(path string) string {
 	return string(b)
 }
 
-// exit waits, bounded, for the command to end and returns its exit code,
-// with what it printed.
-func (c *loadCommand) exit(t *testing.T) int {
+// ended waits, bounded, for the process the test started to end.
+func (c *loadCommand) ended(t *testing.T) {
 	t.Helper()
 	select {
 	case <-c.done:
 	case <-time.After(loadEndBound):
-		t.Fatalf("testgate load did not end within %s; stderr:\n%s", loadEndBound, readFile(c.stderr))
+		t.Fatalf("the process started for testgate load did not end within %s; stderr:\n%s", loadEndBound, readFile(c.stderr))
 	}
+}
+
+// exit waits, bounded, for the command to end and returns its exit code,
+// with what it printed.
+func (c *loadCommand) exit(t *testing.T) int {
+	t.Helper()
+	c.ended(t)
 	c.stdoutText, c.errLines = readFile(c.stdout), readFile(c.stderr)
 	var exit *exec.ExitError
 	if errors.As(c.waitErr, &exit) {
@@ -153,6 +159,19 @@ func running(t *testing.T, g int) []string {
 		}
 	}
 	return left
+}
+
+// runs reports whether the process pid runs (not ended and waiting to be
+// reaped by whoever took it over).
+func runs(t *testing.T, pid int) bool {
+	t.Helper()
+	out, err := exec.Command("ps", "-o", "stat=", "-p", strconv.Itoa(pid)).Output()
+	var exit *exec.ExitError
+	if err != nil && !errors.As(err, &exit) { // ps exits 1 when there is no such process
+		t.Fatalf("ps: %v", err)
+	}
+	stat := strings.TrimSpace(string(out))
+	return stat != "" && !strings.HasPrefix(stat, "Z")
 }
 
 // noTestProcessLeft waits, bounded, until no process of the command's test
@@ -223,6 +242,42 @@ func TestALoadRunLeavesNoLoadBehindHoweverItEnds(t *testing.T) {
 		})
 	}
 
+	// A write to a closed stdout or stderr does not end the command before
+	// it stops its tests: it ends as its tests do.
+	t.Run("stdout and stderr closed", func(t *testing.T) {
+		self, err := os.Executable()
+		if err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command(self, "load", "-count", "1", "-run", "^TestPasses$", loadFixture)
+		cmd.Env = append(os.Environ(), "TMPDIR="+t.TempDir(), envLoadHelper+"=1", envRealGo+"=")
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := cmd.Start(); err != nil {
+			t.Fatal(err)
+		}
+		stdout.Close()
+		stderr.Close()
+		done := make(chan error, 1)
+		go func() { done <- cmd.Wait() }()
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatalf("got %v, want exit 0 once its test passed", err)
+			}
+		case <-time.After(loadStartBound):
+			cmd.Process.Kill()
+			<-done
+			t.Fatalf("testgate load did not end within %s", loadStartBound)
+		}
+	})
+
 	t.Run("SIGKILL", func(t *testing.T) {
 		cmd := startLoadCommand(t, false, "-count", "1", "-run", "^TestWaits$", loadFixture)
 		cmd.waitForTheTest(t)
@@ -245,9 +300,9 @@ func TestALoadRunLeavesNoLoadBehindHoweverItEnds(t *testing.T) {
 			t.Fatal(err)
 		}
 		sh.cmd.Process.Kill() // sh passes no signal on
-		<-sh.done
+		sh.ended(t)
 		waitFor(t, loadEndBound, "testgate load ended after the process that started it", func() bool {
-			return syscall.Kill(pid, 0) != nil
+			return !runs(t, pid)
 		})
 		errs := readFile(sh.stderr)
 		if !strings.Contains(errs, "testgate: load: the process that started testgate ended: the tests were stopped\n") ||
@@ -286,6 +341,10 @@ func TestALoadRunsEvidenceAndVerdict(t *testing.T) {
 		{name: "a run failed", code: 1, args: []string{"-count", "2", "-run", "^TestFails$", loadFixture},
 			stdout: []string{"process 1, TestFails, run 1: failed", "        fixture_test.go:15: fails as asked",
 				"process 1, TestFails, run 2: failed", "load: 0 passed, 2 failed, 0 skipped of 2 runs expected on " + head}},
+		{name: "a subtest pattern that names no subtest", code: 1, args: []string{"-count", "2", "-run", "^TestPasses$/^none$", loadFixture},
+			stdout: []string{"process 1, TestPasses, run 1: skipped: no subtest the pattern names ran",
+				"process 1, TestPasses, run 2: skipped: no subtest the pattern names ran",
+				"load: 0 passed, 0 failed, 2 skipped of 2 runs expected on " + head}},
 		{name: "a run skipped", code: 1, args: []string{"-count", "1", "-run", "^TestSkips$", loadFixture},
 			stdout: []string{"process 1, TestSkips, run 1: skipped: skips as asked", "load: 0 passed, 0 failed, 1 skipped of 1 runs expected on " + head}},
 		{name: "a process ended without all its runs", code: 1, args: []string{"-count", "3", "-run", "^TestExits$", loadFixture},
