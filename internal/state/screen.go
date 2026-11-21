@@ -2,6 +2,7 @@ package state
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -80,6 +81,47 @@ func TookQueued(screen, queued string) bool {
 	}
 	return i >= 0 && isUserEnd(b.lines[i])
 }
+
+// TookSlashCommand reports whether the screen shows Claude at its prompt
+// box after it took a slash command of its own that starts no turn, as
+// /model NAME, or /effort and the picker of /model closed (Claude Code
+// 2.1.329, setup P, #220): the one prompt shown sent, as the first prompt
+// of a session is, is a slash command, with its outcome right below it on
+// a ⎿ line ("⎿ Set model to Opus 5.5…", "⎿ Cancelled", "⎿ Kept model as
+// Haiku 5.5"), nothing of Claude's below that, no spinner, and a footer
+// that does not offer Esc to interrupt. A prompt Claude has taken for a
+// turn, a slash command that starts one included (/probe in setup P), has
+// its spinner below it, also while a SessionStart or UserPromptSubmit hook
+// still runs ahead of the turn, then its reply in a card or under a
+// bullet, never a ⎿ line right below it; a prompt not taken yet is not
+// shown sent at all. What the box holds says nothing here.
+func TookSlashCommand(screen string) bool {
+	b, ok := promptBox(screen)
+	if !ok || b.spinning() {
+		return false
+	}
+	sent := func(l string) bool { return strings.HasPrefix(l, prompt) }
+	at := slices.IndexFunc(b.lines[:b.upper], sent)
+	if at < 0 || !strings.HasPrefix(b.lines[at], prompt+" /") {
+		return false
+	}
+	below := at + 1
+	lines, raw := b.lines[below:b.upper], b.raw[below:b.upper]
+	if slices.ContainsFunc(lines, sent) {
+		return false
+	}
+	for i, l := range lines {
+		if claudes(raw[i], l) {
+			return false
+		}
+	}
+	first := slices.IndexFunc(lines, func(l string) bool { return l != "" })
+	return first >= 0 && strings.HasPrefix(lines[first], outcome)
+}
+
+// outcome starts the line Claude Code draws right below a slash command of
+// its own with what the slash command did (2.1.329).
+const outcome = "⎿ "
 
 // queuedHint is what Claude Code 2.1.302 writes under a prompt it has
 // queued, drawn as a ❯ line above the box.
@@ -296,7 +338,7 @@ func AtWork(screen string) bool {
 // promptBox finds Claude's prompt box at the bottom of a screen with a
 // footer that does not offer Esc to interrupt: a rule, the input line
 // starting with ❯ (and its continuation lines), a rule, then only the
-// footer, and below it the list of agents while subagents run.
+// footer, and below it Claude's agents list while subagents run.
 func promptBox(screen string) (box, bool) {
 	b, ok, esc := findBox(screen)
 	return b, ok && !esc
@@ -304,12 +346,12 @@ func promptBox(screen string) (box, bool) {
 
 // findBox finds Claude's prompt box at the bottom of a screen as promptBox
 // does, whatever its footer, and reports whether the footer below its lower
-// rule offers Esc to interrupt (esc). A subagent's view, opened from the
-// agents list (Claude Code 2.1.326, #225), puts that subagent's transcript
-// and box in the pane, the box's upper rule carrying the subagent's task
-// (subagentRule): that box is not the agent's and tells nothing of its
-// turn, so it is not found (ok is false), but b says it is there
-// (b.subagent).
+// rule offers Esc to interrupt (esc). A subagent's view, opened from
+// Claude's agents list (Claude Code 2.1.326, #225), puts that subagent's
+// transcript and box in the pane, the box's upper rule carrying the
+// subagent's description (subagentRule): that box is not the agent's and
+// tells nothing of its turn, so it is not found (ok is false), but b says
+// it is there (b.subagent).
 func findBox(screen string) (b box, ok, esc bool) {
 	// Claude puts a no-break space after its bullets; its indents vary.
 	raw := strings.Split(strings.ReplaceAll(screen, "\u00a0", " "), "\n")
@@ -317,7 +359,7 @@ func findBox(screen string) (b box, ok, esc bool) {
 	for i := range raw {
 		lines[i] = strings.Join(strings.Fields(raw[i]), " ")
 	}
-	// Below the footer Claude lists the agents while subagents run.
+	// Claude's agents list stands below the footer while subagents run.
 	bottom := len(lines) - 1
 	for bottom >= 0 && (lines[bottom] == "" || listed(lines[bottom])) {
 		bottom--
@@ -355,8 +397,8 @@ func findBox(screen string) (b box, ok, esc bool) {
 }
 
 // subagentRule is the upper rule of a subagent's box in its view (Claude Code
-// 2.1.326, #225), spaces collapsed: a rule with the subagent's task at its
-// right, as "──── Run 540-second sleep loop B ─".
+// 2.1.326, #225), spaces collapsed: a rule with the subagent's description
+// at its right, as "──── Run 540-second sleep loop B ─".
 var subagentRule = regexp.MustCompile(`^─+ .+ ─$`)
 
 // prompt starts Claude's input line and every prompt the user sent.
@@ -368,11 +410,12 @@ const prompt = "❯"
 // "◆ Tools ▾" on a line of its own once the status line is full.
 const maxFooter = 4
 
-// listed reports whether a trimmed line is one of the list Claude Code
-// 2.1.291 draws below its footer while subagents run: "● main", then a
-// line for each subagent, as "◯ general-purpose Run the tests 7s · ↓ 26.5k
-// tokens"; the one the user looks at has the filled dot. In 2.1.326 a ↓
-// from the box puts a cursor on the list, "❯ ● main" (#225).
+// listed reports whether a trimmed line is a row of Claude's agents list,
+// which Claude Code 2.1.291 draws below its footer while subagents run:
+// "● main", then a line for each subagent, as "◯ general-purpose Run the
+// tests 7s · ↓ 26.5k tokens"; the one the user looks at has the filled
+// dot. In 2.1.326 a ↓ from the box puts Claude Code's cursor on
+// Claude's agents list, "❯ ● main" (#225).
 func listed(line string) bool {
 	line = strings.TrimPrefix(line, prompt+" ")
 	return strings.HasPrefix(line, "◯ ") || strings.HasPrefix(line, "● ")

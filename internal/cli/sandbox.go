@@ -30,17 +30,17 @@ func (s sandboxArgs) flagged() bool { return s.setupGiven || s.all }
 
 // parseSetups reads the flags that choose among a repository's
 // sandboxes, --setup NAME and --all-setups, as hq sandbox and hq mcp load
-// take them, and returns the other arguments.
-func parseSetups(args []string, usage string) (sandboxArgs, []string, error) {
+// take them, and returns the other arguments. The command of f takes them.
+func parseSetups(f flagSet, args []string, usage string) (sandboxArgs, []string, error) {
 	var s sandboxArgs
-	args, setup, given, err := parseSetup(args, usage)
+	args, setup, given, err := parseSetup(f, args, usage)
 	if err != nil {
 		return s, nil, err
 	}
 	s.setup, s.setupGiven = setup, given
 	var rest []string
 	for _, a := range args {
-		if a == "--all-setups" {
+		if f.is(a, "--all-setups") {
 			s.all = true
 		} else {
 			rest = append(rest, a)
@@ -53,11 +53,12 @@ func parseSetups(args []string, usage string) (sandboxArgs, []string, error) {
 }
 
 func parseSandbox(args []string) (sandboxArgs, error) {
-	s, rest, err := parseSetups(args, sandboxUsage)
+	f := flagsOf("sandbox")
+	s, rest, err := parseSetups(f, args, sandboxUsage)
 	if err != nil {
 		return s, err
 	}
-	plain, yes, err := parseYes(rest)
+	plain, yes, err := parseYes(f, rest)
 	if err != nil || len(plain) != 2 || (plain[0] != "rm" && plain[0] != "restart") {
 		return s, usageErr(sandboxUsage)
 	}
@@ -347,7 +348,7 @@ func sandboxRestart(env Env, d deps, sbs []sbx.Sandbox, mine, lost []agent.Agent
 	// report, read before the agents go. One that never reported starts fresh.
 	plans := planRestore(d, sbs, lost)
 	resume := map[string]string{}
-	agent.ReadStates(mine, d.journal, d.now(), d.folds)
+	agent.ReadStates(mine, d.sources(), d.now(), d.folds)
 	for _, a := range mine {
 		if s := a.Session(); sessionID.MatchString(s) {
 			resume[a.ID] = s

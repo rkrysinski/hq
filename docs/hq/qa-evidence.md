@@ -22,7 +22,7 @@ The repository is public, and so is the evidence: before the commit, run `go run
 
 Below the check table, quote `go run ./tools/testgate pyramid` from before and after the change (`docs/hq/testing.md`). A pull request into `dev` also has a row for its CI run (every job green, with a link to the run); a red run blocks the merge. A PR that changes only files the test workflows skip (the header of `.github/workflows/pull-request-tests.yml` lists them) has no run, and the row says so.
 
-Above the full build block stands the mutation block (`docs/hq/testing.md`, *Mutation tests*), under a heading of its own: the command with its base (and its PATHs for a run in parts), then its lines as it printed them, every alive or timed-out line followed by its one-line reason, and its last line. A run in parts whose last line counts changed files in no part needs another block under the same heading that covers them (`docs/hq/testing.md`, *Mutation tests*, *In parts*). The last line names the same commit as the full build's, without ` with uncommitted changes`; after review fixes or a rebase both blocks are replaced with the new runs'. The master pull request of a release and a revert have none.
+Above the full build block stands the mutation block (`docs/hq/testing.md`, *Mutation tests*), under a heading of its own: the command with its base (and its PATHs for a run in parts), then its lines as it printed them, every alive, timed-out or not-run line followed by its one-line reason (a `not covered` line needs none), and its last line. A run in parts whose last line counts changed files in no part needs another block under the same heading that covers them (`docs/hq/testing.md`, *Mutation tests*, *In parts*). The last line names the same commit as the full build's, without ` with uncommitted changes`; after review fixes or a rebase both blocks are replaced with the new runs'. The master pull request of a release and a revert have none.
 
 ~~~markdown
 ### Mutation tests
@@ -30,11 +30,14 @@ Above the full build block stands the mutation block (`docs/hq/testing.md`, *Mut
 `go run ./tools/testgate mutation origin/dev`
 
 ```text
+not run    internal/platform/notify_darwin.go:31
 alive      tools/testgate/push.go:94:14 conditionals boundary
-mutation: 23 killed, 1 alive, 0 timed out, 2 not covered against origin/dev on 4f0c2a9e1b7d3c5a8e6f9b0d2c4a6e8f1b3d5c7a
+not covered tools/testgate/push.go:101:12 arithmetic base
+mutation: 23 killed, 1 alive, 0 timed out, 1 not covered, 1 not run against origin/dev on 4f0c2a9e1b7d3c5a8e6f9b0d2c4a6e8f1b3d5c7a
 ```
 
+- `notify_darwin.go:31`: builds only on darwin.
 - `push.go:94:14`: equivalent: `len(sha) > 7` and `>= 7` both return `sha` unchanged for a sha of 7 characters.
 ~~~
 
-The full build block ends the section as the template's step 5 says.
+The full build block ends the section as the template's step 5 says, with every line the script printed, its `check: skip` lines included (`docs/hq/testing.md`, *Commands*): they say which tests the run on the head did not run.

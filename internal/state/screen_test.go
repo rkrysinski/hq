@@ -3,6 +3,7 @@ package state
 import (
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -249,10 +250,11 @@ func TestWithoutHintsKeepsWhatTheUserTyped(t *testing.T) {
 	}
 }
 
-// While subagents run, Claude Code 2.1.291 lists them below its footer:
-// main, then a line for each. screen-styled-background is one subagent
-// running, captured with its styles (the box shows a faint suggestion);
-// screen-background-three is three, captured without.
+// While subagents run, Claude Code 2.1.291 draws Claude's agents list
+// below its footer: main, then a line for each subagent.
+// screen-styled-background is one subagent running, captured with its
+// styles (the box shows a faint suggestion); screen-background-three is
+// three, captured without.
 func TestThePromptBoxIsFoundAboveTheSubagentsClaudeListsBelowItsFooter(t *testing.T) {
 	one := WithoutHints(screen(t, "styled-background"))
 	if ok, restored := AtRest(one, ""); !ok || restored {
@@ -284,7 +286,7 @@ func TestThePromptBoxIsFoundAboveTheSubagentsClaudeListsBelowItsFooter(t *testin
 // the subagent finished (blank lines left out).
 func TestIdleIsClaudeAtItsPromptBoxWhateverTheBoxHolds(t *testing.T) {
 	// After a turn; with a draft or Claude's suggestion in the box; with
-	// subagents listed below the footer.
+	// Claude's agents list below the footer.
 	for _, name := range []string{"interrupted", "interrupted-prompt-restored", "rewound", "background-three", "interrupted-then-woken"} {
 		if !Idle(screen(t, name)) {
 			t.Errorf("%s: not idle", name)
@@ -575,13 +577,13 @@ func TestTheReadersHoldOnABoxWithAPastePlaceholder(t *testing.T) {
 	}
 }
 
-// In the main view, the agents list below the footer, with its cursor
-// anywhere, leaves Claude's prompt box found, at every pane size and with
+// In the main view, Claude's agents list below the footer, with the cursor
+// on it anywhere, leaves Claude's prompt box found, at every pane size and with
 // the notice line too: the agent's turn ended, it waits at its box
 // (#225). A subagent's view puts that subagent's box in its place, the
-// upper rule carrying the subagent's task: it tells nothing of the
+// upper rule carrying the subagent's description: it tells nothing of the
 // agent's own turn, so none of the readers of that turn finds a box there.
-func TestTheAgentsListLeavesTheBoxAndASubagentsViewShowsNoneOfTheAgents(t *testing.T) {
+func TestClaudesAgentsListLeavesTheBoxAndASubagentsViewShowsNoneOfTheAgents(t *testing.T) {
 	for name, s := range agentsScreens(t) {
 		view := strings.HasPrefix(name, "screen-agents-view-")
 		if _, ok := promptBox(s); ok == view {
@@ -598,6 +600,30 @@ func TestTheAgentsListLeavesTheBoxAndASubagentsViewShowsNoneOfTheAgents(t *testi
 		}
 		if _, ended := EndedByUser(s); ended {
 			t.Errorf("%s: ended by the user", name)
+		}
+	}
+}
+
+// TookSlashCommand reads the one prompt shown sent, a slash command, with
+// its outcome right below it at the box at rest (Claude Code 2.1.329,
+// setup P, #220), also on a screen scrolled so far that the slash command
+// is its top line; not a slash command after other prompts, a prompt at
+// work or a turn's reply below the prompt, nor a session given no prompt.
+func TestTookSlashCommandReadsTheOnePromptSentAndItsOutcome(t *testing.T) {
+	for _, name := range tookSlashCommandScreens {
+		s := screen(t, name)
+		if !TookSlashCommand(s) {
+			t.Errorf("%s: not read", name)
+		}
+		lines := strings.Split(s, "\n")
+		top := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, prompt+" /") })
+		if scrolled := strings.Join(lines[top:], "\n"); !TookSlashCommand(scrolled) {
+			t.Errorf("%s scrolled to its slash command: not read", name)
+		}
+	}
+	for _, name := range []string{"effort-low-set", "switch-model-kept", "first-probe-done-2329", "first-probe-2329", "first-hook-taken-2329", "first-none-2329", "first-model-name-2329-start"} {
+		if TookSlashCommand(screen(t, name)) {
+			t.Errorf("%s: read", name)
 		}
 	}
 }

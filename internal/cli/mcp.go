@@ -31,18 +31,24 @@ type mcpClient struct {
 	// client gives a tool call, so that a wait returns "nothing yet"
 	// instead of failing.
 	maxWait time.Duration
+	// updated is what every tool call answers once the hq on disk is of
+	// another generation, and remedy what the supervisor tells the user
+	// to do about it, each naming what that client's user has (#249).
+	updated, remedy string
 }
 
 var (
 	// Claude Desktop gives a local MCP server's tool call 60 s and does not
 	// extend it for progress notifications.
-	claudeDesktop = mcpClient{name: "claude-desktop", title: "Claude Desktop", maxWait: DefaultWaitTimeout}
+	claudeDesktop = mcpClient{name: "claude-desktop", title: "Claude Desktop", maxWait: DefaultWaitTimeout, updated: hqUpdated, remedy: restartInClient}
 	// Claude Code gives a tool call the timeout of the server's entry,
 	// which hq mcp install sets a minute above maxWait.
-	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour}
+	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour, updated: hqUpdated, remedy: restartInClient}
 	// A Claude Code inside a sandbox reaches hq through sbx's MCP gateway,
-	// which gives a tool call 60 s, as Claude Desktop does (#141).
-	sbxGateway = mcpClient{name: "sbx", title: "sbx", maxWait: DefaultWaitTimeout}
+	// which gives a tool call 60 s, as Claude Desktop does (#141). The
+	// gateway starts hq on the host, where restarting the Claude Code in
+	// the sandbox does not replace it, and hq sandbox restart does (#249).
+	sbxGateway = mcpClient{name: "sbx", title: "sbx", maxWait: DefaultWaitTimeout, updated: hqUpdatedInSandbox, remedy: restartTheSandbox}
 	mcpClients = []mcpClient{claudeDesktop, claudeCode, sbxGateway}
 )
 
@@ -330,7 +336,7 @@ func installSbx(env Env, d deps, exe string, vars []string) error {
 // the flags, as hq sandbox takes them.
 func parseMCPLoad(verb string, args []string) (sandboxArgs, error) {
 	usage := fmt.Sprintf(mcpLoadUsage, verb)
-	a, rest, err := parseSetups(args, usage)
+	a, rest, err := parseSetups(flagsOf("mcp"), args, usage)
 	if err != nil {
 		return a, err
 	}
@@ -468,8 +474,9 @@ func unloadHq(env Env, d deps, sbs []sbx.Sandbox) error {
 	return nil
 }
 
-// mcpInstructions teach a supervisor how to work with hq's agents; the
-// tools' descriptions repeat what each needs.
+// mcpInstructions teach a supervisor how to work with hq's agents, every
+// client alike; a client's instructions add what its updated line means.
+// The tools' descriptions repeat what each needs.
 var mcpInstructions = `hq runs Claude Code agents, each working on one task in its repository, for the user. You supervise them: start them, follow them and give them feedback.
 
 - Status comes from hq, never from asking an agent: list for every agent, read for one in full (its whole last reply, what it asks, messages waiting for it).
@@ -480,8 +487,19 @@ var mcpInstructions = `hq runs Claude Code agents, each working on one task in i
 - An agent done or in question with own_tasks: a shell command or watch of its own still runs, which it started and left running at its turn end. Claude takes another turn when one ends, so wait for it again if you need that result; a dev server may never end. The list is that turn end's and may be stale until its next turn end.
 - An agent that needs input has a dialog open (a permission, questions with options, an MCP server's form, or a dialog of Claude Code's own such as Change effort level? after /effort; read gives them, with the dialog's id). Never answer a permission or any other dialog, with send or otherwise: tell the user which agent waits and what it asks; they answer it in hq (go shows them the agent). A question dialog (asks with questions) and a dialog of Claude Code's own are the exception: answer them with answer, only on the user's word. Once a dialog of Claude Code's own has closed, wait returns the agent once more, done or question with the completion_seq it had: no new reply. The picker of /model is not one hq answers: send /model with the model's name instead, whose Switch model? is; send it while the agent waits at its prompt, since a slash command that reaches an agent at work arrives as text and does not run (send's delivery says so). Tell the user which agent asks what, and pass on what they pick, or your pick when they told you to choose for them; never on your own initiative. hq notifies them of the dialog itself, also on a turn you started.
 - An agent in the state outdated was started by another hq than the one serving you, so hq cannot read its state: read, send, answer and a wait that names it fail, and a wait on every agent leaves it out. Do not wait on it: tell the user which agent it is; they can open it (go) to finish or save its work by hand, and it has to be killed and started again.
-- kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.
-- A tool call that fails with ` + "`" + hqUpdated + "`" + ` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. Tell the user that hq was updated and has to be restarted in this client; the tools work again after that.`
+- kill ends an agent's session for good: only when the user wants it. Ask the user first, naming the agent, unless they have just told you to end it; then call kill with confirmed set to true.`
+
+// The remedies the instructions name for a client's updated line.
+const (
+	restartInClient   = "Tell the user that hq was updated and has to be restarted in this client; the tools work again after that."
+	restartTheSandbox = "This server runs on the host, started by sbx's MCP gateway, so restarting the Claude Code you run in does not replace it: tell the user to run hq sandbox restart REPO on the host for this sandbox's repository, adding --setup SETUP when this sandbox is of a setup (named hq-SETUP-DIR), which starts this sandbox's hq anew; the tools work again after that."
+)
+
+// instructions are mcpInstructions with what c's updated line means and
+// what the supervisor does about it.
+func (c mcpClient) instructions() string {
+	return mcpInstructions + "\n- A tool call that fails with `" + c.updated + "` means hq was updated to another generation while this server ran: from then on every call fails the same way and changes nothing, so do not call again. " + c.remedy
+}
 
 // Tool inputs.
 type (
@@ -539,8 +557,8 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	d.getwd = d.home
 	// What its tools give agents is the supervisor's, not the user's.
 	d.supervisor = true
-	s := mcp.NewServer(&mcp.Implementation{Name: "hq", Title: "hq", Version: version.Version}, &mcp.ServerOptions{Instructions: mcpInstructions})
-	s.AddReceivingMiddleware(stepAside(watchOnDisk(d)))
+	s := mcp.NewServer(&mcp.Implementation{Name: "hq", Title: "hq", Version: version.Version}, &mcp.ServerOptions{Instructions: client.instructions()})
+	s.AddReceivingMiddleware(stepAside(watchOnDisk(d), client.updated))
 	no, yes := false, true
 
 	mcp.AddTool(s, &mcp.Tool{
@@ -696,15 +714,16 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	return s
 }
 
-// stepAside fails every tool call once the hq on disk is of another
-// generation than this hq mcp (design §3.12): an agent it started would
-// carry a hook the installed hq cannot read. Each call looks at the file
-// first; the rest of the protocol goes on, so the client can still say why.
-func stepAside(disk *onDisk) mcp.Middleware {
+// stepAside fails every tool call with line once the hq on disk is of
+// another generation than this hq mcp (design §3.12): an agent it started
+// would carry a hook the installed hq cannot read. Each call looks at the
+// file first; the rest of the protocol goes on, so the client can still
+// say why.
+func stepAside(disk *onDisk, line string) mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 			if method == "tools/call" && disk.otherGeneration() {
-				r, _, _ := toolResult("", usageErr(hqUpdated))
+				r, _, _ := toolResult("", usageErr("%s", line))
 				return r, nil
 			}
 			return next(ctx, method, req)

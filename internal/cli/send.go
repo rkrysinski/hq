@@ -73,18 +73,19 @@ type sendArgs struct {
 // the text, as "--timeout=0 fails" is.
 func parseSend(args []string) (sendArgs, error) {
 	s := sendArgs{timeout: DefaultWaitTimeout}
+	f := flagsOf("send")
 	var rest []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		flag, value, inline := strings.Cut(a, "=")
 		switch {
-		case a == "--now":
+		case f.is(a, "--now"):
 			s.now = true
-		case a == "--json":
+		case f.is(a, "--json"):
 			s.asJSON = true
-		case a == "--wait":
+		case f.is(a, "--wait"):
 			s.wait = true
-		case flag == "--timeout" && !strings.ContainsAny(a, " \t\n"):
+		case f.is(flag, "--timeout") && !strings.ContainsAny(a, " \t\n"):
 			value, err := optionValue(args, &i, flag, value, inline, sendUsage)
 			if err != nil {
 				return s, err
@@ -156,7 +157,8 @@ func runSend(env Env, d deps, args []string) error {
 	// the first prompt it was launched with (#191): wait for it to leave
 	// starting, then deliver as its state says; a message still waiting
 	// then goes along with that first prompt, through its hooks, and waits
-	// while that prompt is never reported.
+	// while that prompt is never reported, unless Claude took it as a
+	// slash command of its own that starts no turn, which makes it done (#220).
 	for deadline := d.now().Add(limit(startWait)); a.State == state.Starting && d.now().Before(deadline); {
 		d.sleep(pollEvery)
 		if a, err = findAgent(d, s.name); err != nil {

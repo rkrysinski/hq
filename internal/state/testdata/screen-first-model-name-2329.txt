@@ -1,0 +1,30 @@
+
+ ▐▛███▛█   Claude Code v2.1.329
+▝▜██████▀  Opus 5.5 with high effort · Claude Ultra
+ ▝▝   ▝▝   /…/000000dc-0000-4000-8000-0000000000dc/scratchpad/probe-220
+
+
+❯ /model claude-opus-5-5
+  ⎿  Set model to Opus 5.5 and saved as your default for new sessions
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  You've used 78% of your weekly limit · resets 9pm (UTC) · /usage-credits to keep using Claude C…
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▐◑◡◑▌  Opus 5.5 high │ master ?4 no upstream │ $0.00                                 ◆ Tools ▾
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents

@@ -1,16 +1,25 @@
 // Command testgate holds hq's CI gates: the shape of the test suite, its
 // coverage, no private details in the public text, platform-specific code
-// in the platform package only, and no test bounding real elapsed time under
-// one second (docs/hq/testing.md):
+// in the platform package only, no test bounding real elapsed time under
+// one second, and no test calling Sees but through the helper that first
+// requires ScreenMayTell (docs/hq/testing.md):
 //
-//	go run ./tools/testgate pyramid          # counts tests per level, checks the shape
+//	go run ./tools/testgate pyramid [ROOT]   # counts tests per level, checks the shape
 //	go run ./tools/testgate coverage FILE    # checks a coverage profile against the threshold
 //	go run ./tools/testgate private [PATH...] # no private details in tracked files (or PATHs)
 //	go run ./tools/testgate prepush REPO     # no private details in what a push sends (the pre-push hook)
 //	go run ./tools/testgate prepost          # no private details in what a gh command posts (Claude Code's hook)
 //	go run ./tools/testgate platform [ROOT]  # platform-specific names only in internal/platform
 //	go run ./tools/testgate timebound [ROOT] # no test bounds real elapsed time under 1s
+//	go run ./tools/testgate sees [ROOT]      # no test calls Sees outside seesWhenItMayTell
 //	go run ./tools/testgate mutation BASE [PATH...] # mutation tests of the lines changed against BASE, part by part
+//	go run ./tools/testgate skips STEP FILE  # the tests a passed test step of the full build skipped
+//	go run ./tools/testgate plain FILE       # a test step's output as go test prints it without -json
+//	go run ./tools/testgate load [-p N] [-tags TAGS] [-timeout D] [-o DIR] -count N -run REGEXP PKG # tests run N times with every core busy
+//
+// A command line in none of these forms (no command, another command, an
+// argument missing or one too many) is refused before any gate runs: the
+// usage line on stderr and exit 2 (#284, args.go).
 //
 // private, prepush and prepost read the pattern list from
 // $HQ_PRIVATE_PATTERNS or, without it, from the repository's
@@ -19,14 +28,36 @@
 // command that posts a text (#231). prepost reads the PreToolUse hook's
 // input on stdin (prepost.go).
 //
-// mutation prints one line per mutant left alive or timed out and a last
-// line with the counts, and exits 1 when there is such a mutant (#204,
-// mutation.go). Each PATH, a package's directory or a Go file, is a part:
-// the parts run one after another, each with a build cache of its own, and
-// the changed production files no part covers get a line each (#233).
-// Like every gate it exits 2 on an error of its own, unit tests that failed
-// with a mutant and fail without it too included: no mutant is judged
-// (#234, mutationgo.go).
+// mutation prints one line per mutant left alive, timed out or not covered
+// by a unit test, one line per changed line that holds a statement no test
+// at any level runs (not run), and a last line with the counts, and exits
+// 1 when a mutant is alive or timed out or a line is not run (#204, #275,
+// mutation.go). Which lines run it learns from coverage: of the unit tests
+// in the tool's first run, then, while a changed line is not run, of the
+// integration tests and of the journeys, each run once, in the tests'
+// processes and in the programs of the module they build and start, which
+// the gate's own binary, run as go test's -exec and as a go first in the
+// tests' PATH, builds with coverage (levels.go, notrun.go). Each PATH, a
+// package's directory or a Go file, is a part: the parts run one after
+// another, each with a build cache of its own, and the changed production
+// files no part covers get a line each (#233). Like every gate it exits 2
+// on an error of its own, unit tests that failed with a mutant and fail
+// without it too included, and a test of a higher level that fails: no
+// mutant and no line is judged (#234, mutationgo.go).
+//
+// skips and plain read a test step's go test -json output from FILE, which
+// scripts/check.sh writes (#270, gotest.go): skips prints a line
+// "check: skip STEP <package> <test>: <reason>" per test the step skipped,
+// plain prints the output as go test prints it without -json. Both exit 2
+// when FILE cannot be read.
+//
+// load is not a gate: it makes a load run, the tests the REGEXP names run
+// N times in each of -p processes of go test while one busy worker per core
+// keeps the machine busy, and prints the same evidence for every ticket.
+// However it ends it leaves no busy worker behind, nor a test process but
+// after SIGKILL, when one may run on to its own time limit. It exits 0 when every expected run
+// passed, 1 when a run failed or was skipped or a process ended without all
+// its runs, and 2 on an error of its own (#276, load.go).
 //
 // A test's level is its file's build constraint: none is unit, the
 // "integration" tag is integration, the "e2e" tag is end-to-end.
@@ -40,10 +71,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 )
 
-const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | mutation BASE [PATH...]"
+const usage = "usage: testgate pyramid [ROOT] | coverage FILE | private [PATH...] | prepush REPO | prepost | platform [ROOT] | timebound [ROOT] | sees [ROOT] | mutation BASE [PATH...] | skips STEP FILE | plain FILE | load [-p N] [-tags TAGS] [-timeout D] [-o DIR] -count N -run REGEXP PKG"
 
 const (
 	// MinUnitShare is the lowest allowed unit share of unit + integration tests.
@@ -55,22 +87,19 @@ const (
 )
 
 func main() {
-	if isMutationGo(os.Args[0], os.Getenv(envRealGo)) {
-		os.Exit(mutationGo(os.Args[1:]))
+	if code, ok := runRole(os.Args); ok {
+		os.Exit(code)
 	}
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, usage)
+	inv, err := readArgs(os.Args[1:])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
 	var problems []string
 	refused := "" // what a failed check adds after its problems
-	switch os.Args[1] {
+	switch inv.name {
 	case "pyramid":
-		root := "."
-		if len(os.Args) > 2 {
-			root = os.Args[2]
-		}
-		c, err := countTests(root)
+		c, err := countTests(inv.args[0])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -79,11 +108,7 @@ func main() {
 			c.unit, c.integration, c.e2e, 100*c.unitShare(), 100*MinUnitShare)
 		problems = c.problems(MinUnitShare)
 	case "coverage":
-		if len(os.Args) < 3 {
-			fmt.Fprintln(os.Stderr, usage)
-			os.Exit(2)
-		}
-		f, err := os.Open(os.Args[2])
+		f, err := os.Open(inv.args[0])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -104,7 +129,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
 		}
-		summary, p, err := checkPrivate(list, os.Args[2:])
+		summary, p, err := checkPrivate(list, inv.args)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -112,11 +137,7 @@ func main() {
 		fmt.Println(summary)
 		problems = p
 	case "prepush":
-		if len(os.Args) != 3 {
-			fmt.Fprintln(os.Stderr, usage)
-			os.Exit(2)
-		}
-		p, err := runPrepush(os.Args[2])
+		p, err := runPrepush(inv.args[0])
 		if err != nil {
 			// Not checked, so not pushed: exit 2 fails the hook too.
 			fmt.Fprintln(os.Stderr, "testgate:", err, "- push refused")
@@ -138,11 +159,7 @@ func main() {
 			refused = postRefused
 		}
 	case "platform":
-		root := "."
-		if len(os.Args) > 2 {
-			root = os.Args[2]
-		}
-		hits, err := checkPlatform(root)
+		hits, err := checkPlatform(inv.args[0])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -152,11 +169,7 @@ func main() {
 			problems = append(problems, h.String())
 		}
 	case "timebound":
-		root := "."
-		if len(os.Args) > 2 {
-			root = os.Args[2]
-		}
-		hits, checked, err := checkTimebound(root)
+		hits, checked, err := checkTimebound(inv.args[0])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
 			os.Exit(2)
@@ -165,15 +178,19 @@ func main() {
 		for _, h := range hits {
 			problems = append(problems, h.String())
 		}
-	case "mutation":
-		base, paths, err := mutationArgs(os.Args[2:])
+	case "sees":
+		hits, checked, err := checkSees(inv.args[0])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate:", err)
-			fmt.Fprintln(os.Stderr, usage)
 			os.Exit(2)
 		}
+		fmt.Printf("sees: %d test files checked, uses of Sees outside %s and problems of the helper: %d\n", checked, seesHelperFunc, len(hits))
+		for _, h := range hits {
+			problems = append(problems, h.String())
+		}
+	case "mutation":
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		failed, err := runMutationParts(ctx, ".", base, paths, os.Stdout, os.Stderr)
+		failed, err := runMutationParts(ctx, ".", inv.args[0], inv.args[1:], os.Stdout, os.Stderr)
 		stop()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "testgate: mutation:", err)
@@ -182,8 +199,18 @@ func main() {
 		if failed {
 			os.Exit(1)
 		}
-	default:
-		fmt.Fprintln(os.Stderr, usage)
+	case "load":
+		ctx, stop := loadContext()
+		code := runLoad(ctx, inv.opts.(loadOptions), inv.args[0], runtime.NumCPU(), os.Stdout, os.Stderr)
+		stop()
+		os.Exit(code)
+	case "skips", "plain":
+		if err := testOutput(inv, os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, "testgate:", err)
+			os.Exit(2)
+		}
+	default: // a row of forms with no case here: fail, never pass unchecked
+		fmt.Fprintln(os.Stderr, "testgate:", inv.name, "is read but no gate runs it")
 		os.Exit(2)
 	}
 	for _, p := range problems {

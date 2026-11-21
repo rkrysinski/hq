@@ -45,7 +45,7 @@ func TestParseGremlinsReport(t *testing.T) {
 	}
 }
 
-func TestMutationReportNamesEverySurvivorInOrder(t *testing.T) {
+func TestMutationReportNamesEveryMutantButTheKilledInOrder(t *testing.T) {
 	ms := []mutant{
 		{"b.go", 3, 1, "ARITHMETIC_BASE", "TIMED OUT"},
 		{"a.go", 9, 2, "CONDITIONALS_NEGATION", "LIVED"},
@@ -57,7 +57,7 @@ func TestMutationReportNamesEverySurvivorInOrder(t *testing.T) {
 		{"c.go", 1, 1, "ARITHMETIC_BASE", "NOT COVERED"},
 		{"d.go", 1, 1, "ARITHMETIC_BASE", "SKIPPED"},
 	}
-	lines, failed, err := mutationReport(ms, "origin/dev", head)
+	lines, failed, err := mutationReport(ms, nil, "origin/dev", head)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,8 @@ func TestMutationReportNamesEverySurvivorInOrder(t *testing.T) {
 		"alive      a.go:9:2 conditionals boundary",
 		"alive      a.go:9:2 conditionals negation",
 		"timed out  b.go:3:1 arithmetic base",
-		"mutation: 2 killed, 4 alive, 1 timed out, 1 not covered against origin/dev on " + head,
+		"not covered c.go:1:1 arithmetic base",
+		"mutation: 2 killed, 4 alive, 1 timed out, 1 not covered, 0 not run against origin/dev on " + head,
 	}
 	if !reflect.DeepEqual(lines, want) {
 		t.Errorf("got\n%s\nwant\n%s", strings.Join(lines, "\n"), strings.Join(want, "\n"))
@@ -78,7 +79,7 @@ func TestMutationReportNamesEverySurvivorInOrder(t *testing.T) {
 }
 
 func TestMutationReportFailsOnATimeoutAlone(t *testing.T) {
-	_, failed, err := mutationReport([]mutant{{"a.go", 1, 1, "ARITHMETIC_BASE", "TIMED OUT"}}, "origin/dev", head)
+	_, failed, err := mutationReport([]mutant{{"a.go", 1, 1, "ARITHMETIC_BASE", "TIMED OUT"}}, nil, "origin/dev", head)
 	if err != nil || !failed {
 		t.Errorf("failed %v, err %v; want a failed run", failed, err)
 	}
@@ -90,28 +91,49 @@ func TestMutationReportPassesWithKilledAndNotCovered(t *testing.T) {
 		{"a.go", 2, 1, "ARITHMETIC_BASE", "NOT COVERED"},
 		{"a.go", 3, 1, "ARITHMETIC_BASE", "SKIPPED"},
 	}
-	lines, failed, err := mutationReport(ms, "release-v1.2.0", head+" with uncommitted changes")
+	lines, failed, err := mutationReport(ms, nil, "release-v1.2.0", head+" with uncommitted changes")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"mutation: 1 killed, 0 alive, 0 timed out, 1 not covered against release-v1.2.0 on " + head + " with uncommitted changes"}
+	want := []string{
+		"not covered a.go:2:1 arithmetic base",
+		"mutation: 1 killed, 0 alive, 0 timed out, 1 not covered, 0 not run against release-v1.2.0 on " + head + " with uncommitted changes",
+	}
 	if !reflect.DeepEqual(lines, want) || failed {
 		t.Errorf("got %q, failed %v; want %q, passed", lines, failed, want)
 	}
 }
 
 func TestMutationReportWithoutMutantsInTheChangedLines(t *testing.T) {
-	want := []string{"mutation: no mutants in the lines changed against origin/dev on " + head}
+	want := []string{"mutation: no mutants in the lines changed, 0 not run against origin/dev on " + head}
 	for _, ms := range [][]mutant{nil, {{"a.go", 3, 1, "ARITHMETIC_BASE", "SKIPPED"}}} {
-		lines, failed, err := mutationReport(ms, "origin/dev", head)
+		lines, failed, err := mutationReport(ms, nil, "origin/dev", head)
 		if err != nil || failed || !reflect.DeepEqual(lines, want) {
 			t.Errorf("%v: got %q, failed %v, err %v; want %q", ms, lines, failed, err, want)
 		}
 	}
 }
 
+func TestMutationReportFailsOnALineNotRunAlone(t *testing.T) {
+	for _, c := range []struct {
+		ms   []mutant
+		want []string
+	}{
+		{nil, []string{"not run    a.go:7", "mutation: no mutants in the lines changed, 1 not run against origin/dev on " + head}},
+		{[]mutant{{"a.go", 7, 3, "ARITHMETIC_BASE", "KILLED"}, {"a.go", 2, 1, "ARITHMETIC_BASE", "NOT COVERED"}}, []string{
+			"not covered a.go:2:1 arithmetic base",
+			"not run    a.go:7",
+			"mutation: 1 killed, 0 alive, 0 timed out, 1 not covered, 1 not run against origin/dev on " + head}},
+	} {
+		lines, failed, err := mutationReport(c.ms, []lineRef{{"a.go", 7}}, "origin/dev", head)
+		if err != nil || !failed || !reflect.DeepEqual(lines, c.want) {
+			t.Errorf("got %q, failed %v, err %v\nwant %q, failed", lines, failed, err, c.want)
+		}
+	}
+}
+
 func TestMutationReportRefusesAnUnknownStatus(t *testing.T) {
-	_, _, err := mutationReport([]mutant{{"a.go", 1, 1, "ARITHMETIC_BASE", "RUNNABLE"}}, "origin/dev", head)
+	_, _, err := mutationReport([]mutant{{"a.go", 1, 1, "ARITHMETIC_BASE", "RUNNABLE"}}, nil, "origin/dev", head)
 	if err == nil || !strings.Contains(err.Error(), `"RUNNABLE"`) {
 		t.Errorf("err %v; want one naming the status", err)
 	}
@@ -141,6 +163,7 @@ func TestMutationEnvKeepsEverythingOfTheRunInItsDirectory(t *testing.T) {
 		"GOCACHE=/home/u/.cache/go-build", "GOFLAGS=-tags=integration", "GOBIN=/home/u/bin",
 		"TMPDIR=/var/tmp", "GOTMPDIR=/var/tmp/go", "NO_COLOR=",
 		"GIT_DIR=/w/app/.git", "GIT_INDEX_FILE=/w/app/.git/index", "GREMLINS_UNLEASH_WORKERS=1",
+		"GOCOVERDIR=/home/u/cov", "HQ_MUTATION_COVERDIR=/t/outer/counters",
 	}, "/t/run")
 	want := []string{
 		"PATH=/usr/bin", "HOME=/home/u", "GOPROXY=https://proxy.example",

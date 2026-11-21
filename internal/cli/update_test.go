@@ -364,6 +364,57 @@ func TestUpdateAcrossGenerationsWithNoAgent(t *testing.T) {
 	}
 }
 
+// After an update across generations, hq's tools in the sandboxes hq was
+// loaded into fail until each restarts: hq update names them and the
+// remedy. A release that publishes no generation counts as another (#249).
+func TestUpdateAcrossGenerationsNamesTheSandboxesHqWasLoadedInto(t *testing.T) {
+	for _, gen := range []string{other, ""} {
+		withVersion(t, "v0.1.0")
+		f := newLsFakes()
+		installed(t, f, "old")
+		f.prefs.MCPLoaded = []string{"claude-lib", "claude-x"}
+		f.publishOf("v0.2.0", "new", gen)
+		want := "updated hq v0.1.0 -> v0.2.0\n" +
+			"hq's tools in the sandboxes claude-lib, claude-x fail until each restarts: hq sandbox restart claude-lib, hq sandbox restart claude-x\n"
+		if code, out, errOut := f.run("update"); code != 0 || out != want || errOut != "" {
+			t.Fatalf("generation %q: exit %d %q %q", gen, code, out, errOut)
+		}
+		replaced(t, f, "new")
+	}
+	withVersion(t, "v0.1.0")
+	f := newLsFakes()
+	installed(t, f, "old")
+	f.prefs.MCPLoaded = []string{"claude-x"}
+	f.publishOf("v0.2.0", "new", other)
+	want := "updated hq v0.1.0 -> v0.2.0\nhq's tools in the sandbox claude-x fail until it restarts: hq sandbox restart claude-x\n"
+	if code, out, errOut := f.run("update"); code != 0 || out != want {
+		t.Fatalf("one sandbox: exit %d %q %q", code, out, errOut)
+	}
+}
+
+// Within the generation the tools in those sandboxes go on working, and
+// with no sandbox on the list nothing needs a restart: hq update says what
+// it said before.
+func TestUpdateNamesNoSandboxWhenNoneNeedsARestart(t *testing.T) {
+	for name, c := range map[string]struct {
+		gen    string
+		loaded []string
+	}{
+		"within the generation":                 {strconv.Itoa(version.Generation), []string{"claude-lib", "claude-x"}},
+		"across generations, no sandbox loaded": {other, nil},
+	} {
+		withVersion(t, "v0.1.0")
+		f := newLsFakes()
+		installed(t, f, "old")
+		f.prefs.MCPLoaded = c.loaded
+		f.publishOf("v0.2.0", "new", c.gen)
+		if code, out, errOut := f.run("update"); code != 0 || out != "updated hq v0.1.0 -> v0.2.0\n" || errOut != "" {
+			t.Fatalf("%s: exit %d %q %q", name, code, out, errOut)
+		}
+		replaced(t, f, "new")
+	}
+}
+
 // An update across generations is refused while any agent hq knows exists,
 // running, ended or lost: nothing is replaced, the exit code is 1, and the
 // line names the release, the reason, the remedy and each agent with its

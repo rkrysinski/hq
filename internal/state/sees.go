@@ -134,7 +134,7 @@ func (f Fold) Sees(screen string, now time.Time) (events []Event, resting bool) 
 		st = Done
 	}
 	if st == Done || st == Question || st == Working && h.Background && !h.Owed {
-		return f.seesDialog(screen, key, now), false
+		return append(f.seesDialog(screen, key, now), f.seesSlashCommand(screen, key, now)...), false
 	}
 	hooks := h.State == NeedsInput && h.Dialog.Whose == DialogHooks
 	answered := hooks && s.atWork.at(key)
@@ -212,6 +212,19 @@ func (f Fold) seesDialog(screen string, key int64, now time.Time) []Event {
 	return []Event{e}
 }
 
+// seesSlashCommand is what a look at now appends of the screen of an agent
+// waiting for the first prompt hq launched it with, its report key: that
+// Claude took that prompt as a slash command of its own that starts no
+// turn, which it reports nowhere (TookSlashCommand, #220), unless the
+// journal holds it seen for this report. A screen that still shows a
+// dialog of Claude's own does not show it.
+func (f Fold) seesSlashCommand(screen string, key int64, now time.Time) []Event {
+	if !f.firstPromptDue() || f.seen.tookSlash.at(key) || !TookSlashCommand(screen) {
+		return nil
+	}
+	return []Event{screenEvent(KindTookSlashCommand, now)}
+}
+
 // WakeUp is Claude's wake-up after a turn the user ended, for a look to
 // append when its journal does not hold it: the agent's hooks know nothing
 // of that end, so their report still counts from the prompt of the turn
@@ -252,17 +265,18 @@ func (f Fold) LastReplyNumber() int64 {
 
 // LastReply is the latest turn end's reply in full, as hq read shows it,
 // with reply the journal's reply of that turn end, and when it was given:
-// TooLarge for a turn end too large to read (#64); "" and the zero time
-// before the first turn end.
+// TooLarge for a turn end too large to read (#64), FailedLast for a turn
+// an API error ended without a line; "" and the zero time before the
+// first turn end.
 func (f Fold) LastReply(reply Reply) (text string, at time.Time) {
 	switch e := f.stop; {
 	case e == nil:
 		return "", time.Time{}
 	case e.Kind == KindUnreadable && e.Facts.Size > maxFile:
 		return TooLarge(e.Facts.Size), e.Time
-	case EndsTurn(e.Kind) && reply.Number == e.Number:
-		return CleanText(reply.Text), e.Time
-	default:
+	case !EndsTurn(e.Kind):
 		return "", e.Time
+	default:
+		return replyOrFailedLast(e, &reply, CleanText), e.Time
 	}
 }

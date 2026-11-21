@@ -381,16 +381,33 @@ func defaultDeps() deps {
 }
 
 // lookSources are where a look reads and appends (agent.Sources): the
-// journals' store, and tmux for the screens.
+// journals' store, tmux for the windows and the screens, and hq mcp's
+// word to an agent's hook that its next prompt is the supervisor's
+// (ID.next).
 type lookSources struct {
 	journal.Store
-	screens func(panes []string) (map[string]string, error)
+	windows  func() ([]tmux.Window, error)
+	screens  func(panes []string) (map[string]string, error)
+	withdraw func(root, id string) error
 }
 
 func (s lookSources) Screens(panes []string) (map[string]string, error) { return s.screens(panes) }
 
+func (s lookSources) Withdraw(root, id string) error { return s.withdraw(root, id) }
+
+// Stands says whether home window w is among the windows tmux lists now.
+// When tmux cannot list them it does not: the look then writes no journal
+// that is not there, which a kill under way would leave for good, and the
+// next look writes it once tmux answers.
+func (s lookSources) Stands(w string) bool {
+	ws, err := s.windows()
+	return err == nil && slices.ContainsFunc(ws, func(x tmux.Window) bool { return x.ID == w })
+}
+
 // sources are the look's sources of these dependencies.
-func (d deps) sources() agent.Sources { return lookSources{d.journal, d.tmux.Screens} }
+func (d deps) sources() agent.Sources {
+	return lookSources{d.journal, d.tmux.Windows, d.tmux.Screens, d.withdraw}
+}
 
 // look is a look at the agents of the home windows ws (agent.Look), with
 // sbx's answer running.
@@ -421,7 +438,7 @@ func (d deps) withoutKilled(as []agent.Agent) []agent.Agent {
 // fromJournals are the agents of the home windows ws with their state
 // from their journals, no screen read (agent.FromJournals).
 func (d deps) fromJournals(ws []tmux.Window) []agent.Agent {
-	return agent.FromJournals(ws, d.journal, d.now(), d.folds)
+	return agent.FromJournals(ws, d.sources(), d.now(), d.folds)
 }
 
 // removeAgentFiles deletes what an agent leaves once it is gone: its hook's

@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
 )
 
@@ -125,7 +124,7 @@ func TestTheChangedSourcesInNoPartAreListedInPathOrder(t *testing.T) {
 	}
 }
 
-func TestPartsReportListsTheFilesInNoPartAfterTheSurvivors(t *testing.T) {
+func TestPartsReportListsTheFilesInNoPartAfterTheOtherLines(t *testing.T) {
 	ms := []mutant{
 		{"b/b.go", 3, 1, "ARITHMETIC_BASE", "TIMED OUT"}, // of the second part
 		{"a/a.go", 9, 2, "CONDITIONALS_BOUNDARY", "LIVED"},
@@ -133,13 +132,17 @@ func TestPartsReportListsTheFilesInNoPartAfterTheSurvivors(t *testing.T) {
 		{"b/b.go", 1, 1, "ARITHMETIC_BASE", "NOT COVERED"},
 		{"z/z.go", 1, 1, "ARITHMETIC_BASE", "SKIPPED"},
 	}
-	lines, failed, err := partsReport(ms, []string{"c/c.go", "d/d.go"}, "origin/dev", head)
+	notRun := []lineRef{{"b/b.go", 1}, {"a/a.go", 4}}
+	lines, failed, err := partsReport(ms, notRun, []string{"c/c.go", "d/d.go"}, "origin/dev", head)
 	want := []string{
+		"not run    a/a.go:4",
 		"alive      a/a.go:9:2 conditionals boundary",
+		"not run    b/b.go:1",
+		"not covered b/b.go:1:1 arithmetic base",
 		"timed out  b/b.go:3:1 arithmetic base",
 		"no part    c/c.go",
 		"no part    d/d.go",
-		"mutation: 1 killed, 1 alive, 1 timed out, 1 not covered, 2 changed files in no part against origin/dev on " + head,
+		"mutation: 1 killed, 1 alive, 1 timed out, 1 not covered, 2 not run, 2 changed files in no part against origin/dev on " + head,
 	}
 	if err != nil || !failed || !reflect.DeepEqual(lines, want) {
 		t.Errorf("got %q, failed %v, err %v\nwant %q", lines, failed, err, want)
@@ -152,11 +155,11 @@ func TestPartsReportCountsTheFilesInNoPartAlsoWhenThereAreNone(t *testing.T) {
 		noPart []string
 		want   []string
 	}{
-		{nil, []string{"mutation: 1 killed, 0 alive, 0 timed out, 0 not covered, 0 changed files in no part against origin/dev on " + head}},
+		{nil, []string{"mutation: 1 killed, 0 alive, 0 timed out, 0 not covered, 0 not run, 0 changed files in no part against origin/dev on " + head}},
 		{[]string{"c/c.go"}, []string{"no part    c/c.go",
-			"mutation: 1 killed, 0 alive, 0 timed out, 0 not covered, 1 changed file in no part against origin/dev on " + head}},
+			"mutation: 1 killed, 0 alive, 0 timed out, 0 not covered, 0 not run, 1 changed file in no part against origin/dev on " + head}},
 	} {
-		lines, failed, err := partsReport(ms, c.noPart, "origin/dev", head)
+		lines, failed, err := partsReport(ms, nil, c.noPart, "origin/dev", head)
 		if err != nil || failed || !reflect.DeepEqual(lines, c.want) {
 			t.Errorf("got %q, failed %v, err %v\nwant %q", lines, failed, err, c.want)
 		}
@@ -165,31 +168,12 @@ func TestPartsReportCountsTheFilesInNoPartAlsoWhenThereAreNone(t *testing.T) {
 
 func TestPartsReportWithoutMutantsStillCountsTheFilesInNoPart(t *testing.T) {
 	for _, ms := range [][]mutant{nil, {{"a/a.go", 3, 1, "ARITHMETIC_BASE", "SKIPPED"}}} {
-		lines, failed, err := partsReport(ms, []string{"c/c.go", "d/d.go"}, "origin/dev", head)
+		lines, failed, err := partsReport(ms, nil, []string{"c/c.go", "d/d.go"}, "origin/dev", head)
 		want := []string{"no part    c/c.go", "no part    d/d.go",
-			"mutation: no mutants in the lines changed, 2 changed files in no part against origin/dev on " + head}
+			"mutation: no mutants in the lines changed, 0 not run, 2 changed files in no part against origin/dev on " + head}
 		if err != nil || failed || !reflect.DeepEqual(lines, want) {
 			t.Errorf("%v: got %q, failed %v, err %v\nwant %q", ms, lines, failed, err, want)
 		}
-	}
-}
-
-func TestMutationArgsAreTheBaseAndThePaths(t *testing.T) {
-	for _, c := range []struct {
-		args  []string
-		base  string
-		paths []string
-	}{
-		{[]string{"origin/dev"}, "origin/dev", nil},
-		{[]string{"origin/dev", "internal/state", "internal/cli/cursor.go"}, "origin/dev", []string{"internal/state", "internal/cli/cursor.go"}},
-	} {
-		base, paths, err := mutationArgs(c.args)
-		if err != nil || base != c.base || !slices.Equal(paths, c.paths) {
-			t.Errorf("%q: base %q, paths %q, err %v; want %q, %q", c.args, base, paths, err, c.base, c.paths)
-		}
-	}
-	if _, _, err := mutationArgs(nil); err == nil || !strings.Contains(err.Error(), "needs the base") {
-		t.Errorf("no base: err %v, want one asking for the base", err)
 	}
 }
 

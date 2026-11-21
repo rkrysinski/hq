@@ -64,6 +64,10 @@ _Avoid_: alert, blocked
 Subagents or workflows an agent started in the background that still run when its turn ends; the agent is `working` until the closing turn ends, unless the user ended the turn at the agent or an API error ended it, which leaves it `done`. Shell commands and watches (monitors) its subagents started in the background are background work while they run. Background shell commands and watches the agent itself started are not, and neither is the artifact watch Claude arms when the agent publishes an artifact.
 _Avoid_: pending tasks, children, jobs
 
+**Claude's agents list**:
+The list Claude Code draws below its footer while an agent's subagents run: `main`, then a line for each subagent, over which Claude Code's own cursor moves and from which a subagent's view opens. Not hq's list: Claude Code's cursor on it is neither the cursor nor the cursor row.
+_Avoid_: agents list, agent list (that is hq's own, spec §3), background list
+
 **Closing turn**:
 The turn Claude runs by itself when background work has finished; the one that ends with none running makes the agent `done`.
 _Avoid_: wake-up turn, follow-up, callback
@@ -77,7 +81,7 @@ Text the user leaves for an agent with `hq send`, delivered to it when it is rea
 _Avoid_: feedback, note, mail
 
 **Slash command**:
-A message whose first line starts with `/`; it runs only when hq types it in as the agent's prompt, and arrives as text when the agent's hooks deliver it.
+A message whose first line starts with `/`, or a first prompt given to `hq new` that starts with `/`; it runs only when hq types it in as the agent's prompt or passes it as that first prompt, and arrives as text when the agent's hooks deliver it. One of Claude Code's own may start no turn (`/model NAME`, `/effort`), and Claude Code then reports nothing for it.
 _Avoid_: command (that is one of hq's own), skill
 
 **Held message**:

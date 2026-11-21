@@ -64,7 +64,9 @@ func TestMutationInPartsJudgesAsTheRunOverTheWholeTree(t *testing.T) {
 	// TestMutationJudgesTheChangedLinesWithTheWholeUnitSuite's lines
 	want := []string{
 		"alive      cmd/tool/main.go:6:33 conditionals boundary",
-		"mutation: 2 killed, 1 alive, 0 timed out, 1 not covered, 0 changed files in no part against main on " +
+		"not run    cmd/tool/main.go:11",
+		"not covered cmd/tool/main.go:11:35 arithmetic base",
+		"mutation: 2 killed, 1 alive, 0 timed out, 1 not covered, 1 not run, 0 changed files in no part against main on " +
 			head + " with uncommitted changes",
 	}
 	if !reflect.DeepEqual(lines, want) {
@@ -97,10 +99,11 @@ func TestMutationInOnePackageRunsOnlyItsMutants(t *testing.T) {
 	}
 	head := r.git(r.dir, "rev-parse", "HEAD")
 	want := []string{
-		// the alive mutant of cmd/tool is not run, and none of the renamed
-		// file's lines, which the run over the whole tree does not change
+		// the alive mutant of cmd/tool is not run, nor is its line no test
+		// runs judged, and none of the renamed file's lines, which the run
+		// over the whole tree does not change
 		"no part    cmd/tool/main.go",
-		"mutation: 1 killed, 0 alive, 0 timed out, 0 not covered, 1 changed file in no part against main on " +
+		"mutation: 1 killed, 0 alive, 0 timed out, 0 not covered, 0 not run, 1 changed file in no part against main on " +
 			head + " with uncommitted changes",
 	}
 	if !reflect.DeepEqual(lines, want) {
@@ -130,7 +133,7 @@ func TestMutationInAFilePartRunsOnlyThatFile(t *testing.T) {
 		// main.go of the same package, with its alive mutant, and lib are in no part
 		"no part    cmd/tool/main.go",
 		"no part    lib/lib.go",
-		"mutation: 1 killed, 1 alive, 0 timed out, 0 not covered, 2 changed files in no part against main on " +
+		"mutation: 1 killed, 1 alive, 0 timed out, 0 not covered, 0 not run, 2 changed files in no part against main on " +
 			head + " with uncommitted changes",
 	}
 	if !reflect.DeepEqual(lines, want) {
@@ -157,7 +160,7 @@ func TestMutationInPartsRunsNoToolWithoutAPartToRun(t *testing.T) {
 	lines, failed, err := runPartsIn(t, r.dir, "main", io.Discard, "user", "lib/lib_test.go")
 	head := r.git(r.dir, "rev-parse", "HEAD")
 	want := []string{"no part    cmd/tool/main.go", "no part    lib/lib.go",
-		"mutation: no mutants in the lines changed, 2 changed files in no part against main on " + head + " with uncommitted changes"}
+		"mutation: no mutants in the lines changed, 0 not run, 2 changed files in no part against main on " + head + " with uncommitted changes"}
 	if err != nil || failed || !reflect.DeepEqual(lines, want) {
 		t.Errorf("got %q, failed %v, err %v\nwant %q", lines, failed, err, want)
 	}

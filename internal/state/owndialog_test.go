@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -97,7 +98,7 @@ func TestOwnDialogIsNoScreenOfATurn(t *testing.T) {
 }
 
 // /model opened while a subagent runs in the background (Claude Code
-// 2.1.301, #70): the picker hides the agents' list below the footer.
+// 2.1.301, #70): the picker hides Claude's agents list below the footer.
 func TestOwnDialogSeesTheModelPickerOverBackgroundWork(t *testing.T) {
 	ask, ok := OwnDialog(readScreen(t, "screen-own-model-background.txt"))
 	if !ok || ask.Questions[0].Question != "Select model" || ask.Questions[0].Options[1].Label != "Opus 5.5 For complex work and everyday tasks" {
@@ -129,6 +130,10 @@ func TestViewOwnDialogSaysWhereItsCursorIsAndWhetherItsListScrolls(t *testing.T)
 		{"screen-own-model.txt", "Select model", 0, true},
 		{"screen-own-model-2304.txt", "Select model", 1, true},
 		{"screen-own-model-background.txt", "Select model", 0, true},
+		// The picker as the first prompt (Claude Code 2.1.329, #220): its
+		// list scrolls, so hq answer refuses it (#253).
+		{"screen-own-first-model-2329.txt", "Select model", 4, true},
+		{"screen-own-first-model-2329-80.txt", "Select model", 2, true},
 	} {
 		v, ok := ViewOwnDialog(readScreen(t, tc.screen))
 		if !ok || v.Ask.Questions[0].Question != tc.question || v.Cursor != tc.cursor || v.Scrolls != tc.scrolls {
@@ -143,8 +148,10 @@ func TestViewOwnDialogSaysWhereItsCursorIsAndWhetherItsListScrolls(t *testing.T)
 	if a, b := mustView(t, effort), mustView(t, readScreen(t, "screen-own-effort-low-down.txt")); !reflect.DeepEqual(a.Ask, b.Ask) {
 		t.Errorf("cursor moved, another dialog: %+v %+v", a.Ask, b.Ask)
 	}
-	// Answered: the box is back, with what Claude did.
-	for _, name := range []string{"screen-effort-low-set.txt", "screen-switch-model-kept.txt"} {
+	// Answered: the box is back, with what Claude did. The slider /effort
+	// opens with Claude Code 2.1.329 marks no option with ❯: it is no
+	// dialog hq reads, or answers (#220).
+	for _, name := range []string{"screen-effort-low-set.txt", "screen-switch-model-kept.txt", "screen-first-effort-2329-open.txt", "screen-first-effort-2329-80-open.txt"} {
 		if v, ok := ViewOwnDialog(readScreen(t, name)); ok {
 			t.Errorf("%s: %+v", name, v)
 		}
@@ -189,11 +196,11 @@ func TestOwnViewPickTakesOneOptionByItsNumber(t *testing.T) {
 // agentsScreens are the captures of #225 (Claude Code 2.1.326, setup M in
 // testdata/README.md): a session whose turn ended with two background
 // subagents running, at three pane sizes, with a footer of its own and
-// with the notice line above it. In the main view the agents list stands
-// below the footer with no cursor (list), the cursor on main (main), on
-// the first subagent's row (first) or on the last one's (last); Enter on
-// the last opens its view, with the cursor on its row (view-last), on the
-// other's (view-first) or on main (view-main).
+// with the notice line above it. In the main view Claude's agents list
+// stands below the footer with no cursor on it (list), the cursor on main
+// (main), on the first subagent's row of it (first) or on the last one's
+// (last); Enter on the last opens its view, with the cursor on its row
+// (view-last), on the other's (view-first) or on main (view-main).
 func agentsScreens(t *testing.T) map[string]string {
 	t.Helper()
 	screens := map[string]string{}
@@ -208,11 +215,11 @@ func agentsScreens(t *testing.T) map[string]string {
 	return screens
 }
 
-// The agents list Claude Code draws below its footer while subagents run,
-// with its cursor anywhere, and a subagent's view open in the pane, are no
-// dialog of Claude's own: the list's rows are no options, the status line
-// no question (#225).
-func TestViewOwnDialogIsNoAgentsListNorASubagentsView(t *testing.T) {
+// Claude's agents list, which Claude Code draws below its footer while
+// subagents run, with the cursor on it anywhere, and a subagent's view open
+// in the pane, are no dialog of Claude's own: the rows of Claude's agents
+// list are no options, the status line no question (#225).
+func TestViewOwnDialogIsNoClaudesAgentsListNorASubagentsView(t *testing.T) {
 	for name, s := range agentsScreens(t) {
 		for _, screen := range []string{s, WithoutHints(s)} {
 			if v, ok := ViewOwnDialog(screen); ok || v.Ask != nil {
@@ -224,9 +231,9 @@ func TestViewOwnDialogIsNoAgentsListNorASubagentsView(t *testing.T) {
 
 // /model opened while two subagents run in the background, in the main
 // view (Claude Code 2.1.326, #225): the picker stands in place of the box,
-// and of the agents list, which it hides in a pane of 30 lines and of 50
-// alike; Esc puts the box and the list back.
-func TestViewOwnDialogSeesTheModelPickerOverTheAgentsList(t *testing.T) {
+// and of Claude's agents list, which it hides in a pane of 30 lines and of
+// 50 alike; Esc puts the box and that list back.
+func TestViewOwnDialogSeesTheModelPickerOverClaudesAgentsList(t *testing.T) {
 	for _, name := range []string{"screen-own-model-agents.txt", "screen-own-model-agents-50.txt"} {
 		v, ok := ViewOwnDialog(readScreen(t, name))
 		if !ok || v.Ask.Questions[0].Question != "Select model" || v.Cursor != 4 ||
@@ -236,5 +243,61 @@ func TestViewOwnDialogSeesTheModelPickerOverTheAgentsList(t *testing.T) {
 	}
 	if _, ok := ViewOwnDialog(readScreen(t, "screen-agents-model-closed.txt")); ok {
 		t.Fatal("closed with Esc: still a dialog")
+	}
+}
+
+// The picker of /model since Claude Code 2.1.326 ends its list in a row
+// with no number that opens the rest of it, ▸ More models, and shows ▾ on
+// that row once it is open, with a line ↑ 2 more above the options and
+// ↓ 7 more below them (2.1.329, #253): the list scrolls, and none of those
+// lines is an option, wherever the cursor is, at 100 columns and at 40.
+func TestViewOwnDialogSeesThatTheModelPickerOfMoreModelsScrolls(t *testing.T) {
+	models := []string{
+		"Default (recommended) Opus 5.5 · Best for everyday, complex tasks",
+		"Opus 5.5 For complex work and everyday tasks",
+		"Fable 5.2 For your toughest challenges",
+		"Sonnet 5.5 Most efficient for simpler tasks",
+		"Haiku 5.5 ✔ Fastest for quick answers",
+	}
+	opened := []string{models[2], models[3], models[4],
+		"Fable 5.1 Most capable for your hardest and longest-running tasks", "Haiku 4.5 Fastest for quick answers"}
+	text2326 := "Switch between Claude models. Your pick becomes the default for new sessions. For other or older models, use --model."
+	text2329 := "Your pick is the default for new sessions. For other models, use --model."
+	// The opened list with the ❯ moved from ▾ More models down to a model
+	// past it, as Down does: no capture shows it.
+	below := strings.Replace(strings.Replace(readScreen(t, "screen-own-model-2329-opened.txt"),
+		"  ❯ ▾   More models", "    ▾   More models", 1), "    6.  Fable 5.1", "  ❯ 6.  Fable 5.1", 1)
+	for _, tc := range []struct {
+		name, screen, text string
+		wrapped            bool // at 40 columns: the options' wrapped lines are read as options (#321), not checked
+		cursor             int  // -1: on no option
+		options            []string
+	}{
+		{name: "screen-own-model-agents.txt", text: text2326, cursor: 4, options: models},
+		{name: "screen-own-model-agents-50.txt", text: text2326, cursor: 4, options: models},
+		{name: "screen-own-model-2329.txt", text: text2329, cursor: 4, options: models},
+		{name: "screen-own-model-2329-more.txt", text: text2329, cursor: -1, options: models},
+		{name: "screen-own-model-2329-opened.txt", text: text2329, cursor: -1, options: opened},
+		{name: "the opened list, the cursor on a model below", screen: below, text: text2329, cursor: 3, options: opened},
+		{name: "screen-own-model-2329-40.txt", text: text2329, wrapped: true},
+	} {
+		if tc.screen == "" {
+			tc.screen = readScreen(t, tc.name)
+		}
+		v, ok := ViewOwnDialog(tc.screen)
+		if !ok || !v.Scrolls || v.Ask.Questions[0].Question != "Select model" || v.Ask.Description != tc.text {
+			t.Errorf("%s: %v %+v", tc.name, ok, v)
+			continue
+		}
+		var labels []string
+		for _, o := range v.Ask.Questions[0].Options {
+			labels = append(labels, o.Label)
+			if strings.Contains(o.Label, "More models") || strings.HasSuffix(o.Label, " more") {
+				t.Errorf("%s: option %q", tc.name, o.Label)
+			}
+		}
+		if !tc.wrapped && (v.Cursor != tc.cursor || !slices.Equal(labels, tc.options)) {
+			t.Errorf("%s: cursor %d, options %q", tc.name, v.Cursor, labels)
+		}
 	}
 }
