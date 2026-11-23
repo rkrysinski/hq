@@ -283,7 +283,7 @@ func listSource(d deps, pane string) dash.Source {
 			if err != nil {
 				return nil, err
 			}
-			as := d.look(ws, running)
+			as := d.looker().Agents(ws, running)
 			keepTitles(d, ws, as)
 			return as, nil
 		},
@@ -298,16 +298,9 @@ func listSource(d deps, pane string) dash.Source {
 		PullRequests: d.pullRequests,
 		Browse:       d.browse,
 		Deliver:      func(as []agent.Agent) { deliverWaiting(d, as) },
-		Running: func() (agent.Sandboxes, error) {
-			asked := d.now() // before the question, as runningSandboxes
-			sbs, err := d.pollSandboxes()
-			if err != nil {
-				return agent.Sandboxes{}, err
-			}
-			return agent.SandboxesOf(sbs, asked), nil
-		},
-		Now:     d.now,
-		Version: version.Version,
+		Running:      d.looker().AskSbx,
+		Now:          d.now,
+		Version:      version.Version,
 		NewerRelease: func() string {
 			// The list runs the update check itself, in the
 			// background of its own process.

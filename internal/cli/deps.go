@@ -440,32 +440,6 @@ func refusalErr(err error) error {
 	return usageErr("%s", err)
 }
 
-// look is a look at the agents of the home windows ws (agent.Look), with
-// sbx's answer running, as the list and hq wait take it.
-func (d deps) look(ws []tmux.Window, running agent.Sandboxes) []agent.Agent {
-	return d.withoutKilled(agent.Look(ws, running, d.now(), d.sources(), d.folds))
-}
-
-// withoutKilled are the agents of a look but those whose journal it found
-// gone (agent.Agent.JournalGone) and whose home windows are gone by now:
-// hq kill kills an agent's window before it removes its journal, so
-// windows listed after a look that found the journal of an agent it was
-// removing gone show its window gone, and the agent is left out as the
-// next look leaves it out (#239). tmux is asked again only when the look
-// found a journal gone; when it cannot say, every agent stays.
-func (d deps) withoutKilled(as []agent.Agent) []agent.Agent {
-	if !slices.ContainsFunc(as, agent.Agent.JournalGone) {
-		return as
-	}
-	ws, err := d.tmux.Windows()
-	if err != nil {
-		return as
-	}
-	return slices.DeleteFunc(as, func(a agent.Agent) bool {
-		return a.JournalGone() && !slices.ContainsFunc(ws, func(w tmux.Window) bool { return w.ID == a.Window })
-	})
-}
-
 // fromJournals are the agents of the home windows ws with their state
 // from their journals, no screen read (agent.FromJournals).
 func (d deps) fromJournals(ws []tmux.Window) []agent.Agent {

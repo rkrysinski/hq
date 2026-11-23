@@ -11,10 +11,13 @@ import (
 
 // A Looker takes the looks of the commands that take one and return (hq
 // ls, hq read, hq explain, hq send, hq answer, hq update, the chords and
-// docking as the dashboard is entered; design §3.8): the whole protocol of
-// a look, in the variant of the command, so that no command puts it
-// together itself. Its dependencies are those the command tests already
-// fake: tmux, the journals' store, sbx's answer and the clock.
+// docking as the dashboard is entered; design §3.8), in the variant of the
+// command, and the look loop of hq wait and hq send --wait (Loop): the
+// whole protocol of a look, so that no command puts it together itself.
+// The list takes from it the look loop's rhythm, its asking of sbx and its
+// look at the windows it listed (Agents). Its dependencies are those the
+// command tests already fake: tmux, the journals' store, sbx's answer and
+// the clock.
 type Looker struct {
 	// Windows lists the home windows, tmux asked now.
 	Windows func() ([]tmux.Window, error)
@@ -118,6 +121,16 @@ type Seen struct {
 	variant Variant
 }
 
+// The look loop's rhythm (GLOSSARY.md, design §5.1): Loop's, and the
+// list's, which reads them so the two cannot differ.
+const (
+	// LoopEvery is how often the look loop looks.
+	LoopEvery = 250 * time.Millisecond
+	// SbxEvery is how often it asks sbx which sandboxes run; the answer
+	// comes in the background, so a slow sbx never holds up a look.
+	SbxEvery = time.Second
+)
+
 // Look takes a look in variant v (GLOSSARY.md, design §3.4): it asks sbx
 // as v says, noting the moment before the question, so a report newer than
 // the answer does not end the agent (#48); reads the journals' counter
@@ -141,34 +154,127 @@ func (k Looker) once(v Variant) (Seen, error) {
 	if err != nil {
 		return Seen{}, err
 	}
+	return k.see(v, running, listed)
+}
+
+// see is a look with sbx's answer given: running, from the sandboxes sbx
+// listed. It reads the journals' counter before it lists the windows, for
+// the look's cursor (Seen.Cursor).
+func (k Looker) see(v Variant, running Sandboxes, listed []sbx.Sandbox) (Seen, error) {
 	counter, err := k.Sources.Through()
 	counted := err == nil
 	ws, err := k.Windows()
 	if err != nil {
 		return Seen{}, &TmuxError{err}
 	}
-	as := k.withoutKilled(Look(ws, running, k.Now(), k.Sources, k.Folds))
-	return Seen{Agents: as, Windows: ws, Listed: listed, counter: counter, counted: counted, looker: k, variant: v}, nil
+	return Seen{Agents: k.Agents(ws, running), Windows: ws, Listed: listed, counter: counter, counted: counted, looker: k, variant: v}, nil
 }
 
-// askSbx asks sbx which sandboxes run, as mode says, noting the moment
-// before the question: what an agent reports from then on is newer than
-// the answer (#48). It gives the answer, the sandboxes sbx listed, and
-// the error that fails the look.
+// Agents are the agents of the home windows ws, with sbx's answer
+// running (Look), those killed while it looked left out (withoutKilled):
+// the look of the list, which lists the windows and asks sbx itself.
+func (k Looker) Agents(ws []tmux.Window, running Sandboxes) []Agent {
+	return k.withoutKilled(Look(ws, running, k.Now(), k.Sources, k.Folds))
+}
+
+// askSbx asks sbx which sandboxes run, as mode says (ask). It gives the
+// answer, the sandboxes sbx listed, and the error that fails the look.
 func (k Looker) askSbx(mode sbxMode) (Sandboxes, []sbx.Sandbox, error) {
 	if mode == sbxNotAsked {
 		return Sandboxes{}, nil, nil
 	}
-	asked := k.Now()
-	all, err := k.Sandboxes()
+	running, all, err := k.ask()
 	if err == nil {
-		return SandboxesOf(all, asked), all, nil
+		return running, all, nil
 	}
 	var old *sbx.TooOldError
 	if mode == sbxRequired || mode == sbxAsked && errors.As(err, &old) {
 		return Sandboxes{}, nil, &SbxError{err}
 	}
 	return Sandboxes{}, nil, nil
+}
+
+// AskSbx asks sbx which sandboxes run, noting the moment before the
+// question (ask): the list's own asking in the background takes its
+// answers from here. The answer says nothing when sbx fails, does not
+// answer in time or is too old, and the error says why.
+func (k Looker) AskSbx() (Sandboxes, error) {
+	running, _, err := k.ask()
+	return running, err
+}
+
+// ask asks sbx which sandboxes run, noting the moment before the
+// question: what an agent reports from then on is newer than the answer
+// (#48). It gives the answer and the sandboxes sbx listed, or sbx's error
+// and an answer that says nothing.
+func (k Looker) ask() (Sandboxes, []sbx.Sandbox, error) {
+	asked := k.Now()
+	all, err := k.Sandboxes()
+	if err != nil {
+		return Sandboxes{}, nil, err
+	}
+	return SandboxesOf(all, asked), all, nil
+}
+
+// Loop is the look loop of hq wait and hq send --wait (GLOSSARY.md, design
+// §5.1): a look every LoopEvery, as the list looks, until step says it is
+// done. sbx is asked before the first look, which waits for its answer,
+// and after it in the background at most every SbxEvery, each look taking
+// its latest answer. step is given each look, in the variant of Acting but
+// for how sbx was asked, and whether it is the first; a step that needs the
+// look's cursor takes it (Seen.Cursor) first, before it acts on the look.
+// A look that fails ends the loop with its error (TmuxError), and
+// so does step. It leaves nothing running but an answer of sbx it waits
+// for, which ends with sbx's time limit and then goes unread.
+func (k Looker) Loop(step func(s Seen, first bool) (done bool, err error)) error {
+	answers := &inBackground{ask: func() Sandboxes {
+		running, _ := k.AskSbx()
+		return running
+	}}
+	for first := true; ; first = false {
+		s, err := k.see(Acting, answers.running(k.Now(), first), nil)
+		if err != nil {
+			return err
+		}
+		if done, err := step(s, first); done || err != nil {
+			return err
+		}
+		k.Sleep(LoopEvery)
+	}
+}
+
+// inBackground asks sbx which sandboxes run at most every SbxEvery, in the
+// background, and gives the latest answer (which says nothing when sbx
+// could not say, and changes no agent then).
+type inBackground struct {
+	ask     func() Sandboxes
+	answers chan Sandboxes
+	asked   time.Time
+	busy    bool
+	latest  Sandboxes
+}
+
+// running is sbx's latest answer at now; wait asks and waits for the answer.
+func (b *inBackground) running(now time.Time, wait bool) Sandboxes {
+	if wait {
+		b.latest, b.asked = b.ask(), now
+		return b.latest
+	}
+	if b.busy {
+		select {
+		case b.latest = <-b.answers:
+			b.busy = false
+		default:
+		}
+	}
+	if !b.busy && now.Sub(b.asked) >= SbxEvery {
+		if b.answers == nil {
+			b.answers = make(chan Sandboxes, 1)
+		}
+		b.busy, b.asked = true, now
+		go func() { b.answers <- b.ask() }()
+	}
+	return b.latest
 }
 
 // withoutKilled are the agents of a look but those whose journal it found

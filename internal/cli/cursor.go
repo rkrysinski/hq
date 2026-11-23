@@ -61,10 +61,11 @@ func (s since) changedAfter(a agent.Agent, seq int64) bool {
 	return a.Entered().After(s.moment)
 }
 
-// ahead reports whether s is a cursor hq did not give: above the counter,
-// as after a lost state directory (#166, decision 11). A counter that could
-// not be read refuses nothing.
-func (s since) ahead(l looked) bool { return s.aheadOf(l.counter, l.counted) }
+// ahead reports whether s is a cursor hq did not give: above the counter
+// before the look listed the windows (agent.Seen.Counter), as after a lost
+// state directory (#166, decision 11). A counter that could not be read
+// refuses nothing.
+func (s since) ahead(seen agent.Seen) bool { return s.aheadOf(seen.Counter()) }
 
 // aheadOf is ahead for a look whose counter, before it listed the windows,
 // held counter, counted whether it could be read.
@@ -77,32 +78,9 @@ func aheadErr(s since) error {
 	return usageErr("--since '%s' is ahead of every change hq has numbered on this host (was its state directory lost?): take a new one from hq ls --json", cursorText(s.cursor))
 }
 
-// looked is a look's agents, with what its cursor is built from: the home
-// windows it looked at, and what the counter held before they were listed.
+// looked is a look's agents (agent.Seen.Agents), as lookNow gives them.
 type looked struct {
-	agents  []agent.Agent
-	windows []tmux.Window
-	counter int64
-	counted bool // the counter could be read
-}
-
-// cursor is the number the look's cursor stands for (ADR 0019): the lowest
-// counter among its last reads of the agents' journals, so it saw every
-// change of theirs numbered up to it, whatever other processes numbered
-// meanwhile. It is the counter before the look listed the windows when
-// that is all it can vouch for: no journal was read, one could not be, or
-// an agent's window appeared while it looked (listed again, for that),
-// whose changes it did not see but which are all numbered after that.
-func (l looked) cursor(d deps) int64 {
-	n, ok := agent.SeenThrough(l.agents)
-	if !ok || n <= l.counter {
-		return l.counter
-	}
-	ws, err := d.tmux.Windows()
-	if err != nil || agentAppeared(l.windows, ws) {
-		return l.counter
-	}
-	return n
+	agents []agent.Agent
 }
 
 // agentAppeared reports whether after holds the home window of an agent that

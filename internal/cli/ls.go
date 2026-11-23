@@ -2,14 +2,12 @@ package cli
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"text/tabwriter"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
-	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 )
 
@@ -172,41 +170,12 @@ func lookNow(d deps) (looked, error) {
 	return looked{agents: seen.Agents}, lookErr(err)
 }
 
-// lookWith is the look of hq wait and hq send --wait, with sbx's answer
-// given: which sandboxes run, and when hq asked. It reads the counter
-// before it lists the windows, for the look's cursor (looked.cursor).
-func lookWith(d deps, running agent.Sandboxes) (looked, error) {
-	counter, err := d.journal.Through()
-	counted := err == nil
-	ws, err := d.tmux.Windows()
-	if err != nil {
-		return looked{}, tmuxErr(err)
-	}
-	return looked{agents: d.look(ws, running), windows: ws, counter: counter, counted: counted}, nil
-}
-
-// runningSandboxes asks sbx which sandboxes run, noting when it asked; the
-// answer says nothing when sbx fails, does not answer in time or is too old.
+// runningSandboxes asks sbx which sandboxes run, for hq kill
+// (agent.Looker.AskSbx); the answer says nothing when sbx fails, does not
+// answer in time or is too old.
 func runningSandboxes(d deps) agent.Sandboxes {
-	running, _ := askSandboxes(d)
+	running, _ := d.looker().AskSbx()
 	return running
-}
-
-// askSandboxes is runningSandboxes, failing only for an sbx too old for hq
-// (sbx.TooOldError): an answer, not a failure to give one.
-func askSandboxes(d deps) (agent.Sandboxes, error) {
-	// The moment before the question: what an agent reports from here on
-	// is newer than the answer (#48).
-	asked := d.now()
-	sbs, err := d.pollSandboxes()
-	if err != nil {
-		var old *sbx.TooOldError
-		if errors.As(err, &old) {
-			return agent.Sandboxes{}, err
-		}
-		return agent.Sandboxes{}, nil
-	}
-	return agent.SandboxesOf(sbs, asked), nil
 }
 
 // lastWidth is how much of the last message hq ls shows; --json has it all.

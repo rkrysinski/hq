@@ -179,10 +179,11 @@ var ChordHints = []Hint{{"alt+j/k", "dock next/previous"}, {"alt+a", "dock first
 // Hint is one key and what it does, as the footer shows it.
 type Hint struct{ Key, Label string }
 
-// Timing of the refresh loop (design §5.1).
+// Timing of the list's look loop (design §5.1); its looks and its asking
+// of sbx keep the rhythm of agent.LoopEvery and agent.SbxEvery.
 const (
-	tickEvery   = 250 * time.Millisecond
-	sbxEvery    = 4 // ticks
+	tickEvery   = agent.LoopEvery
+	sbxEvery    = int(agent.SbxEvery / agent.LoopEvery) // ticks
 	updateEvery = time.Hour
 	prEvery     = time.Minute
 	// errFor is how long a row action's error shows, unless a key clears it
