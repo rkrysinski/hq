@@ -114,32 +114,6 @@ func TestAGoneAgentIsEndedWithNoNumbers(t *testing.T) {
 	}
 }
 
-// The look saw every change numbered up to the lowest counter of its
-// reads: an agent read early may have changed since, numbered below the
-// counter of an agent read later. An outdated agent is not read and does
-// not count; an agent whose journal could not be read, or no agent read at
-// all, leaves the look nothing to vouch for.
-func TestTheLookSawEveryChangeUpToTheLowestCounterOfItsReads(t *testing.T) {
-	read := func(through int64) Agent { return Agent{State: state.Done, through: through} }
-	outdated := Agent{State: state.Outdated}
-	for _, tc := range []struct {
-		as   []Agent
-		n    int64
-		ok   bool
-		name string
-	}{
-		{[]Agent{read(7), read(5), read(9)}, 5, true, "the lowest"},
-		{[]Agent{outdated, read(4)}, 4, true, "an outdated one aside"},
-		{[]Agent{read(4), {State: state.Ended}}, 0, false, "one unread"},
-		{[]Agent{outdated}, 0, false, "none read"},
-		{nil, 0, false, "no agent"},
-	} {
-		if n, ok := SeenThrough(tc.as); n != tc.n || ok != tc.ok {
-			t.Errorf("%s: %d %v", tc.name, n, ok)
-		}
-	}
-}
-
 // An agent hq has just launched is starting from its launch, the event its
 // state rests on, before any report: its state number is the launch's
 // (#166, the operator's decision 3A gives none only to an agent with no

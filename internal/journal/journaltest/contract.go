@@ -246,12 +246,13 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		root := h.Root()
 		asked := 0
 		gone := func() bool { asked++; return false }
+		standing := func() bool { return true }
 		h.Leave(root, "a1", "000000001.1", prompt, at)
 		must(t, h.Store.Ingest(root, "a1"))
 		died := state.Event{Source: state.SourceTmux, Kind: state.KindPaneDied, Time: at, Basis: read(t, h.Store, "a1").Events[0].Number}
 		// To a journal that is there, evidence is appended as Append
 		// appends it, set aside alike, and the window is not asked about.
-		out, err := h.Store.AppendEvidence("a1", gone, died, died)
+		out, err := h.Store.AppendWhileWindowStands("a1", gone, died, died)
 		require(t, err == nil && asides(out) == "- duplicate" && asked == 0, "to a journal there: %v %+v, asked %d", err, out, asked)
 		expect(t, len(read(t, h.Store, "a1").Events) == 3, "appended: %+v", read(t, h.Store, "a1").Events)
 		// To one removed, or never begun, nothing is written while the
@@ -259,7 +260,7 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		must(t, h.Store.Remove(root, "a1"))
 		for _, id := range []string{"a1", "c3"} {
 			asked = 0
-			out, err := h.Store.AppendEvidence(id, gone, died)
+			out, err := h.Store.AppendWhileWindowStands(id, gone, died)
 			expect(t, errors.Is(err, journal.ErrGone) && len(out) == 0 && asked == 1, "%s, its window gone: %v %+v, asked %d", id, err, out, asked)
 			expect(t, len(read(t, h.Store, id).Events) == 0, "%s written: %+v", id, read(t, h.Store, id).Events)
 		}
@@ -268,7 +269,7 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 			expect(t, err == nil && len(ids) == 0, "journals after evidence of gone windows: %v %v", ids, err)
 		}
 		// While the window stands, the journal is begun with the evidence.
-		out, err = h.Store.AppendEvidence("c3", func() bool { return true }, died)
+		out, err = h.Store.AppendWhileWindowStands("c3", standing, died)
 		require(t, err == nil && len(out) == 1, "its window standing: %v %+v", err, out)
 		{
 			j := read(t, h.Store, "c3")
@@ -276,13 +277,13 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		}
 		// Nothing to append asks nothing.
 		asked = 0
-		none, err := h.Store.AppendEvidence("d4", gone)
+		none, err := h.Store.AppendWhileWindowStands("d4", gone)
 		expect(t, err == nil && len(none) == 0 && asked == 0, "nothing to append: %v %v, asked %d", none, err, asked)
 		// The window is asked about under the lock, with the append: a kill
 		// that kills the window just after it was asked removes the journal
 		// only after the append, and nothing of the agent is left.
 		removed := make(chan error)
-		_, err = h.Store.AppendEvidence("e5", func() bool {
+		_, err = h.Store.AppendWhileWindowStands("e5", func() bool {
 			go func() { removed <- h.Store.Remove(root, "e5") }()
 			return true
 		}, died)
@@ -294,8 +295,43 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 			t.Fatal("the removal did not end within 10 s")
 		}
 		expect(t, len(read(t, h.Store, "e5").Events) == 0, "left after the kill: %+v", read(t, h.Store, "e5").Events)
-		_, err = h.Store.AppendEvidence("../e5", func() bool { return true }, died)
+		_, err = h.Store.AppendWhileWindowStands("../e5", standing, died)
 		expect(t, err != nil, "an id hq did not issue taken")
+	})
+
+	t.Run("hq's own events for a journal that is not there", func(t *testing.T) {
+		h := newHarness(t)
+		root := h.Root()
+		asked := 0
+		gone := func() bool { asked++; return false }
+		standing := func() bool { asked++; return true }
+		delivery := state.Event{Source: state.SourceHQ, Kind: state.KindDelivery, Time: at, Facts: state.Facts{Messages: []string{"m1"}}}
+		withdrawn := state.Event{Source: state.SourceHQ, Kind: state.KindWithdrawn, Time: at, Facts: state.Facts{Withdrawn: state.KindDelivery, Messages: []string{"m1"}}}
+		// An agent killed meanwhile: nothing of hq's own begins its
+		// journal again (#318).
+		_, err := h.Store.Append("a1", state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: at})
+		must(t, err)
+		must(t, h.Store.Remove(root, "a1"))
+		for _, e := range []state.Event{delivery, withdrawn} {
+			asked = 0
+			out, err := h.Store.AppendWhileWindowStands("a1", gone, e)
+			expect(t, errors.Is(err, journal.ErrGone) && len(out) == 0 && asked == 1, "%s, the window gone: %v %+v, asked %d", e.Kind, err, out, asked)
+		}
+		{
+			ids, err := h.Store.IDs()
+			expect(t, err == nil && len(ids) == 0, "journals after hq's events for a gone window: %v %v", ids, err)
+		}
+		// While the window stands, they begin it; and to a journal that
+		// is there they are appended as Append appends them, never set
+		// aside, the window not asked about.
+		asked = 0
+		out, err := h.Store.AppendWhileWindowStands("a1", standing, delivery)
+		require(t, err == nil && len(out) == 1 && asked == 1, "the window standing: %v %+v, asked %d", err, out, asked)
+		asked = 0
+		out, err = h.Store.AppendWhileWindowStands("a1", gone, withdrawn, delivery)
+		require(t, err == nil && asides(out) == "- -" && asked == 0, "to a journal there: %v %+v, asked %d", err, out, asked)
+		j := read(t, h.Store, "a1")
+		expect(t, Kinds(j.Events) == state.KindDelivery+" "+state.KindWithdrawn+" "+state.KindDelivery, "begun: %s", Kinds(j.Events))
 	})
 
 	t.Run("eight writers racing for one first append", func(t *testing.T) {

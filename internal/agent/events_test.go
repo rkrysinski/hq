@@ -182,10 +182,10 @@ type racingStore struct {
 	ready *sync.WaitGroup
 }
 
-func (s racingStore) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+func (s racingStore) AppendWhileWindowStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
 	s.ready.Done()
 	s.ready.Wait()
-	return s.memStore.AppendEvidence(id, stands, events...)
+	return s.memStore.AppendWhileWindowStands(id, stands, events...)
 }
 
 // Of eight looks racing to append the same evidence, in eight hq
@@ -233,12 +233,12 @@ type overtakingStore struct {
 	t *testing.T
 }
 
-func (s overtakingStore) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+func (s overtakingStore) AppendWhileWindowStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
 	s.Leave("/w/app", "a1", "000000099.answer.1", journaltest.Hook("main", map[string]any{"hook_event_name": "PostToolUse", "tool_name": "Bash"}), time.Unix(999, 0))
 	if err := s.Ingest("/w/app", "a1"); err != nil {
 		s.t.Fatal(err)
 	}
-	return s.memStore.AppendEvidence(id, stands, events...)
+	return s.memStore.AppendWhileWindowStands(id, stands, events...)
 }
 
 // Evidence whose basis a later report of the hook overtook before it was
@@ -267,7 +267,7 @@ type killingStore struct {
 	kinds  *[]string
 }
 
-func (s killingStore) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+func (s killingStore) AppendWhileWindowStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
 	for _, e := range events {
 		*s.kinds = append(*s.kinds, e.Kind)
 	}
@@ -278,7 +278,7 @@ func (s killingStore) AppendEvidence(id string, stands func() bool, events ...st
 			return nil, err
 		}
 	}
-	return s.memStore.AppendEvidence(id, stands, events...)
+	return s.memStore.AppendWhileWindowStands(id, stands, events...)
 }
 
 // A look that falls between the steps of hq kill writes no journal of the

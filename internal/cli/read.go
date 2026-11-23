@@ -98,19 +98,16 @@ func runRead(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	l, err := gatherAgents(d)
+	seen, err := gatherAgents(d)
 	if err != nil {
 		return err
 	}
-	if r.since.ahead(l) {
+	if r.since.ahead(seen.Counter()) {
 		return aheadErr(r.since)
 	}
-	a, ok := agent.Find(l.agents, r.name)
-	if !ok {
-		return notFoundErr("no agent '%s' (see hq ls)", r.name)
-	}
-	if a.Outdated() {
-		return outdatedErr(a)
+	a, err := seen.Usable(r.name)
+	if err != nil {
+		return refusalErr(err)
 	}
 	det := a.Detail()
 	if r.offset > 0 && replyChanged(det, r.since) {
@@ -121,11 +118,7 @@ func runRead(env Env, d deps, args []string) error {
 		return err
 	}
 	v.answerable = answerable(a, det.Ask) == nil
-	through := a.Through()
-	if through == 0 {
-		through = l.counter
-	}
-	v.NextSince = cursorText(through)
+	v.NextSince = cursorText(seen.CursorOf(a))
 	if r.asJSON {
 		return writeJSON(env.Stdout, v)
 	}

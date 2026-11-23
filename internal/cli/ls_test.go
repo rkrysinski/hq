@@ -147,9 +147,13 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 	if r["state_seq"] != 1.0 || r["completion_seq"] != 1.0 {
 		t.Fatalf("numbers %v %v", r["state_seq"], r["completion_seq"])
 	}
-	if r["name"] != "a" || r["repo"] != "app" || r["state"] != "question" || r["age_seconds"] != 90.0 || r["branch"] != "" || r["last"] != long ||
+	if r["name"] != "a" || r["repo"] != "app" || r["state"] != "question" || r["age_seconds"] != 90.0 || r["branch"] != "" || r["last"] != long[:119]+"…" ||
 		r["since"] != "2026-09-27T11:58:30Z" || r["pending"] != 2.0 {
 		t.Fatalf("row %v", r)
+	}
+	// last is cut to 120 characters (#291); what it asks stays whole.
+	if asks, _ := r["asks"].(map[string]any); asks["message"] != long {
+		t.Fatalf("asks %v", r["asks"])
 	}
 }
 
@@ -232,24 +236,6 @@ func TestLsCutsTheLastMessageToOneColumn(t *testing.T) {
 	_, out, _ := f.run("ls")
 	if !strings.Contains(out, strings.Repeat("x", 59)+"…\n") || strings.Contains(out, strings.Repeat("x", 60)) {
 		t.Fatalf("%q", out)
-	}
-}
-
-func TestLsDoesNotEndAnAgentThatReportedAfterSbxWasAsked(t *testing.T) {
-	// hq asked sbx while a's sandbox was still starting, and a's session
-	// reported before hq read the agents (#48): the answer is older than
-	// the report. old's last report is older than the answer.
-	f := newFakes()
-	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "stopped"}}
-	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Second), false), agentWindow("@2", "old", "/w/app", f.now.Add(-time.Hour), false)}
-	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(time.Millisecond), Last: "Done: hello"}
-	f.states["id-old"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened"}
-	_, out, _ := f.run("ls")
-	want := "NAME  REPO  BRANCH  STATE  AGE  LAST\n" +
-		"a     app   -       done   0s   Done: hello\n" +
-		"old   app   -       ended  0s   PR #58 opened\n"
-	if out != want {
-		t.Fatalf("got\n%s\nwant\n%s", out, want)
 	}
 }
 
@@ -378,50 +364,6 @@ func TestLsSaysSessionEndedForAnAgentThatEndedWithoutAMessage(t *testing.T) {
 	}
 }
 
-func TestLsShowsARewoundTurnDoneOnceItsScreenStaysAtRest(t *testing.T) {
-	f := newLsFakes()
-	rule := strings.Repeat("─", 30)
-	sent := "Write a poem about the sea."
-	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/app", f.now.Add(-time.Minute), false)}
-	f.tmux.windows[0].Pane, f.tmux.windows[1].Pane = "%1", "%2"
-	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply", Prompt: sent}
-	f.states["id-b"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply", Prompt: sent}
-	// a was rewound: the prompt is back in its box. b streams its reply in
-	// a narrow pane: at rest by the look of one screen, but it moves on.
-	streamed := 0
-	f.tmux.screens = map[string]string{
-		"%1": "✻ Baked for 2s · done\n" + rule + "\n❯ " + sent + "\n" + rule + "\n  ⏵⏵ bypass permissions on\n",
-	}
-	f.tmux.onScreens = func() {
-		streamed++
-		f.tmux.screens["%2"] = "● The sea" + strings.Repeat("\nline", streamed) + "\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n"
-	}
-	f.tmux.onScreens()
-	_, out, _ := f.run("ls")
-	// hq ls looked again after agent.RestDelay; a is done since it first
-	// saw its screen at rest.
-	want := "NAME  REPO  BRANCH  STATE    AGE  LAST\n" +
-		"a     app   -       done     2s   Interrupted\n" +
-		"b     app   -       working  32s  earlier reply\n"
-	if out != want {
-		t.Fatalf("got\n%s\nwant\n%s", out, want)
-	}
-	if a, b := f.eventsOf("id-a", state.SourceScreen), f.eventsOf("id-b", state.SourceScreen); a != state.KindAtRest+" "+state.KindRewound || strings.Contains(b, state.KindRewound) {
-		t.Fatalf("seen on a's screen %q, on b's %q", a, b)
-	}
-	// It holds, from the same moment, whatever the screen shows next,
-	// until the next report.
-	f.now = f.now.Add(5 * time.Second)
-	f.tmux.screens["%1"] = "anything"
-	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done     7s   Interrupted") {
-		t.Fatalf("later:\n%s", out)
-	}
-	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Second), Last: "earlier reply", Prompt: "next"}
-	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       working  1s   earlier reply") {
-		t.Fatalf("next report:\n%s", out)
-	}
-}
-
 func TestLsShowsWhatAnotherHqStoredFirst(t *testing.T) {
 	f := newLsFakes()
 	rule := strings.Repeat("─", 30)
@@ -501,18 +443,6 @@ func TestLsShowsAnAgentsOwnTasksBeforeItsLastMessage(t *testing.T) {
 	}
 	if !strings.Contains(out, `"own_tasks": []`) || l.Agents[2].OwnTasks == nil {
 		t.Fatalf("c has none: an empty list, not null:\n%s", out)
-	}
-}
-
-// An sbx too old for hq is an answer, not a failure to give one: hq ls says
-// so and exits 3, where an sbx that fails leaves the states it has (#172).
-func TestLsSaysAnSbxIsTooOld(t *testing.T) {
-	f := newFakes()
-	f.sbx.err = &sbx.TooOldError{Version: "0.47.0"}
-	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false)}
-	code, out, errOut := f.run("ls")
-	if code != ExitEnvironment || out != "" || errOut != "hq: sbx 0.47.0 is too old, 0.48.0 or newer needed; update Docker Sandboxes\n" {
-		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
 }
 

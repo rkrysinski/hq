@@ -46,7 +46,7 @@ func TestHelpListsEveryCommand(t *testing.T) {
 	if code != ExitOK {
 		t.Fatalf("exit %d", code)
 	}
-	for _, want := range []string{"hq dash", "hq new NAME [DIR] [PROMPT]", "hq new also takes --setup NAME", "hq sandbox also takes --setup NAME", "hq mcp [install] [claude-desktop|claude-code|sbx] | load|unload REPO", "hq mcp load and unload take REPO and those flags", "hq ls [--json]", "hq go NAME", "hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]", "hq send --wait takes --timeout DURATION too, as hq wait does, counted from the start of the call.", "Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment, 4 stalled (hq send --wait).", "--wait returns when the turn that took it ends", "hq answer NAME --dialog ID ANSWER...|--cancel [--json]", "hq kill NAME [-y]", "hq stop [-y]", "hq sandbox rm|restart REPO|SANDBOX", "hq update", "hq help", "hq --version", "hq -V", "hq --help", "hq -h", "--yes", "--setup=NAME", "(--setup NAME, --all-setups)", "NAME: letters, digits, '-', '_' and '.', at least one letter or digit, at most 32 characters"} {
+	for _, want := range []string{"hq dash", "hq new NAME [DIR] [PROMPT]", "hq new also takes --setup NAME", "hq sandbox also takes --setup NAME", "hq mcp [install] [claude-desktop|claude-code|sbx] | load|unload REPO", "hq mcp load and unload take REPO and those flags", "hq ls [NAME...] [--json]", "hq go NAME", "hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]", "hq send --wait takes --timeout DURATION too, as hq wait does, counted from the start of the call.", "hq ls --json, hq wait --json and hq send --wait --json cut each agent's last to 120 characters; hq read NAME --json gives it whole.", "Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment, 4 stalled (hq send --wait).", "--wait returns when the turn that took it ends", "hq answer NAME --dialog ID ANSWER...|--cancel [--json]", "hq kill NAME [-y]", "hq stop [-y]", "hq sandbox rm|restart REPO|SANDBOX", "hq update", "hq help", "hq --version", "hq -V", "hq --help", "hq -h", "--yes", "--setup=NAME", "(--setup NAME, --all-setups)", "NAME: letters, digits, '-', '_' and '.', at least one letter or digit, at most 32 characters"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("help lacks %q", want)
 		}
@@ -253,18 +253,21 @@ func TestFlagSetIs(t *testing.T) {
 	}
 }
 
-// TestFlagsAreRecognisedOnlyThroughTheirDeclaration fails for a comparison
-// with a declared flag's spelling (a == "--json", case "--json":) anywhere
-// in the package but through flagSet.is, which checks the declaration.
-func TestFlagsAreRecognisedOnlyThroughTheirDeclaration(t *testing.T) {
-	declared := map[string]bool{}
-	for _, c := range append(commands(), versionCommand()) {
-		for _, flag := range c.flags {
-			declared[strconv.Quote(flag)] = true
-		}
-	}
-	fset := token.NewFileSet()
-	for _, f := range sourceFiles(t, fset) {
+// rawFlagExceptions are the comparisons with a string that starts with -
+// that stand outside flagSet.is, by file and literal, each with its
+// reason.
+var rawFlagExceptions = map[string]string{
+	`session.go "--settings"`: "hq __session reads Claude's arguments: --settings is an option of Claude's, not of hq's",
+}
+
+// rawFlagComparisons are the places in files where a string literal that
+// starts with - is compared with == or != or is itself an expression of a
+// case, not through flagSet.is, which checks the command's declaration,
+// each as "FILE:LINE: LITERAL"; but those of exceptions.
+func rawFlagComparisons(fset *token.FileSet, files []*ast.File, exceptions map[string]string) []string {
+	var found []string
+	for _, f := range files {
+		file := filepath.Base(fset.Position(f.Pos()).Filename)
 		ast.Inspect(f, func(n ast.Node) bool {
 			var compared []ast.Expr
 			switch n := n.(type) {
@@ -276,11 +279,143 @@ func TestFlagsAreRecognisedOnlyThroughTheirDeclaration(t *testing.T) {
 				compared = n.List
 			}
 			for _, e := range compared {
-				if lit, ok := e.(*ast.BasicLit); ok && declared[lit.Value] {
-					t.Errorf("%s: compares with %s, not through flagSet.is", fset.Position(lit.Pos()), lit.Value)
+				lit, ok := e.(*ast.BasicLit)
+				if !ok || lit.Kind != token.STRING {
+					continue
+				}
+				if v, err := strconv.Unquote(lit.Value); err != nil || !strings.HasPrefix(v, "-") {
+					continue
+				}
+				if _, exempt := exceptions[file+" "+lit.Value]; !exempt {
+					found = append(found, fmt.Sprintf("%s:%d: %s", file, fset.Position(lit.Pos()).Line, lit.Value))
 				}
 			}
 			return true
 		})
+	}
+	return found
+}
+
+// A flag is recognised only through flagSet.is, which checks that the
+// command declares it, so hq help names every flag a command takes: a
+// comparison with any string that starts with - anywhere in the package
+// fails, declared by a command or not, but those of rawFlagExceptions,
+// each of which still stands.
+func TestFlagsAreRecognisedOnlyThroughTheirDeclaration(t *testing.T) {
+	fset := token.NewFileSet()
+	files := sourceFiles(t, fset)
+	for _, at := range rawFlagComparisons(fset, files, rawFlagExceptions) {
+		t.Errorf("%s: compared, not through flagSet.is", at)
+	}
+	all := strings.Join(rawFlagComparisons(fset, files, nil), "\n")
+	for exception := range rawFlagExceptions {
+		file, lit, _ := strings.Cut(exception, " ")
+		if !regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(file) + `:\d+: ` + regexp.QuoteMeta(lit) + `$`).MatchString(all) {
+			t.Errorf("exception %s: no such comparison any more", exception)
+		}
+	}
+}
+
+// The check of flags reports a flag compared raw, declared nowhere, in an
+// if and in a case, and not one recognised through flagSet.is, a string
+// that does not start with -, nor an exception in its own file.
+func TestTheCheckOfFlagsReportsAnUndeclaredFlagComparedRaw(t *testing.T) {
+	const src = `package cli
+
+func run(f flagSet, a string) {
+	if a == "--force" || f.is(a, "--json") || a != "force" {
+	}
+	switch a {
+	case "-q", "x":
+	case "--settings":
+	}
+	switch {
+	case strings.HasPrefix(a, "-"):
+	}
+}
+`
+	fset := token.NewFileSet()
+	parse := func(name string) *ast.File {
+		f, err := parser.ParseFile(fset, name, src, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return f
+	}
+	exceptions := map[string]string{`other.go "--settings"`: "a reason"}
+	got := rawFlagComparisons(fset, []*ast.File{parse("run.go"), parse("other.go")}, exceptions)
+	want := []string{`run.go:4: "--force"`, `run.go:7: "-q"`, `run.go:8: "--settings"`, `other.go:4: "--force"`, `other.go:7: "-q"`}
+	if !slices.Equal(got, want) {
+		t.Errorf("reported %q, want %q", got, want)
+	}
+}
+
+// composeRefusal are the functions of this package that compose the
+// refusal of a name no agent has themselves, by file and name, each with
+// its reason: the commands that read the agents from their journals with
+// no look (spec #336, O1). Every other command takes the refusal from the
+// look (agent.Seen.Named).
+var composeRefusal = map[string]string{
+	"go.go runGo":             "hq go reads the agents from their journals, with no look",
+	"code.go openCode":        "hq code reads the agents from their journals, with no look",
+	"kill.go runKill":         "hq kill reads the agents from their journals, with no look",
+	"dialog.go runKillDialog": "the dashboard's Kill window reads the agents from their journals, with no look",
+	"dash.go dockAs":          "docking the row pointed at reads the agents from their journals, with no look",
+}
+
+// composedRefusals are the places in files where the text of the refusal
+// of a name no agent has ("no agent '") stands outside the functions of
+// composeRefusal, each as "FILE:LINE in FUNCTION" (no function for one
+// outside every function).
+func composedRefusals(fset *token.FileSet, files []*ast.File) []string {
+	var found []string
+	for _, f := range files {
+		file := filepath.Base(fset.Position(f.Pos()).Filename)
+		for _, decl := range f.Decls {
+			fn := ""
+			if d, ok := decl.(*ast.FuncDecl); ok {
+				fn = d.Name.Name
+			}
+			ast.Inspect(decl, func(n ast.Node) bool {
+				lit, ok := n.(*ast.BasicLit)
+				if !ok || lit.Kind != token.STRING || !strings.Contains(lit.Value, "no agent '") {
+					return true
+				}
+				if _, exempt := composeRefusal[file+" "+fn]; !exempt {
+					found = append(found, fmt.Sprintf("%s:%d in %s", file, fset.Position(lit.Pos()).Line, fn))
+				}
+				return true
+			})
+		}
+	}
+	return found
+}
+
+// No command but those that take no look composes the refusal of a name
+// no agent has: every other one takes it from the look (agent.Seen.Named),
+// so the rule has one place and a command that composes it again, such as
+// hq ls NAME..., fails the build (#336, story 18). The check sees a refusal
+// composed in a command the look serves, and one outside every function.
+func TestOnlyTheCommandsWithNoLookComposeTheRefusalOfAMissingName(t *testing.T) {
+	fset := token.NewFileSet()
+	if found := composedRefusals(fset, sourceFiles(t, fset)); len(found) != 0 {
+		t.Errorf("the refusal of a missing name composed at %v: take it from the look (agent.Seen.Named), or add the function to composeRefusal with its reason", found)
+	}
+	var files []*ast.File
+	for name, src := range map[string]string{
+		"ls.go":   "package cli\n\nfunc runLs(name string) error {\n\treturn notFoundErr(\"no agent '%s' (see hq ls)\", name)\n}\n",
+		"send.go": "package cli\n\nconst refusal = `no agent '`\n",
+		"go.go":   "package cli\n\nfunc runGo(name string) error {\n\treturn notFoundErr(\"no agent '%s' (see hq ls)\", name)\n}\n",
+	} {
+		f, err := parser.ParseFile(fset, name, src, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files = append(files, f)
+	}
+	found := composedRefusals(fset, files)
+	slices.Sort(found)
+	if want := []string{"ls.go:4 in runLs", "send.go:3 in "}; !slices.Equal(found, want) {
+		t.Fatalf("found %q, want %q", found, want)
 	}
 }

@@ -13,12 +13,12 @@ import (
 // Journals are the journals' store as a look appends to it (design §3.4),
 // with tmux's word on whether an agent's home window still stands, which
 // it asks before it writes a journal that is not there
-// (journal.Store.AppendEvidence).
+// (journal.Store.AppendWhileWindowStands).
 type Journals interface {
 	journal.Store
-	// Stands says whether home window w still stands, tmux asked now; one
-	// tmux cannot tell of does not.
-	Stands(w string) bool
+	// WindowStands says whether home window w still stands, tmux asked
+	// now; one tmux cannot tell of does not.
+	WindowStands(w string) bool
 }
 
 // Sources are where a look reads and appends (design §3.4): the journals'
@@ -131,7 +131,7 @@ func (f *folded) witness(store Journals, a Agent, e state.Event, now time.Time) 
 	// The fold, its evidence included, follows the append at the next
 	// update, which the look takes before it witnesses the same kind again;
 	// that update notes a journal removed meanwhile gone.
-	_, _ = store.AppendEvidence(a.ID, func() bool { return store.Stands(a.Window) }, e)
+	_, _ = store.AppendWhileWindowStands(a.ID, func() bool { return store.WindowStands(a.Window) }, e)
 }
 
 // witnessDeath appends the death of a's pane, as tmux dates it, at now

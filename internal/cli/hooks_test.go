@@ -50,11 +50,11 @@ func (j hookedJournal) Append(id string, events ...state.Event) ([]state.Event, 
 	return j.Memory.Append(journalID(id), events...)
 }
 
-func (j hookedJournal) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+func (j hookedJournal) AppendWhileWindowStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
 	if j.f.onAppend != nil {
 		j.f.onAppend(id, events)
 	}
-	return j.Memory.AppendEvidence(journalID(id), stands, events...)
+	return j.Memory.AppendWhileWindowStands(journalID(id), stands, events...)
 }
 
 func (j hookedJournal) Through() (int64, error) {

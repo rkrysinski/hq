@@ -50,7 +50,7 @@ func newStore(screens map[string]string) *memStore {
 	return &memStore{Memory: journaltest.NewMemory(), gone: map[string]bool{}, screens: screens, reports: map[string]journaltest.HookState{}}
 }
 
-func (s *memStore) Stands(w string) bool { return !s.gone[w] }
+func (s *memStore) WindowStands(w string) bool { return !s.gone[w] }
 
 func (s *memStore) Screens(panes []string) (map[string]string, error) {
 	s.captures = append(s.captures, strings.Join(panes, " "))
@@ -143,13 +143,14 @@ func (s *replayStore) Append(_ string, es ...state.Event) ([]state.Event, error)
 	return out, nil
 }
 
-// AppendEvidence appends as Append does: a replayed journal is there.
-func (s *replayStore) AppendEvidence(id string, _ func() bool, es ...state.Event) ([]state.Event, error) {
+// AppendWhileWindowStands appends as Append does: a replayed journal is
+// there.
+func (s *replayStore) AppendWhileWindowStands(id string, _ func() bool, es ...state.Event) ([]state.Event, error) {
 	return s.Append(id, es...)
 }
 
-// Stands says every home window stands.
-func (s *replayStore) Stands(string) bool { return true }
+// WindowStands says every home window stands.
+func (s *replayStore) WindowStands(string) bool { return true }
 
 func (s *replayStore) Read(id string) (journal.Journal, error) { return s.ReadFrom(id, 0) }
 
@@ -414,7 +415,7 @@ func (failingStore) ReadFrom(string, int64) (journal.Journal, error) {
 
 func (failingStore) Append(string, ...state.Event) ([]state.Event, error) { return nil, errJournal }
 
-func (failingStore) AppendEvidence(string, func() bool, ...state.Event) ([]state.Event, error) {
+func (failingStore) AppendWhileWindowStands(string, func() bool, ...state.Event) ([]state.Event, error) {
 	return nil, errJournal
 }
 
@@ -647,10 +648,10 @@ func TestLooksAtOnceShowTheSameStateAndAge(t *testing.T) {
 	}
 }
 
-// The look's Folds keep the list's tick with journals of 50,000 events for
-// 15 agents: once folded, a look reads and folds only the events new since
-// the last (design §5.1). What it reads is counted, not timed: a busy
-// runner slows a look that reads no more (#191).
+// The look's Folds keep the pace of the list's look loop with journals of
+// 50,000 events for 15 agents: once folded, a look reads and folds only
+// the events new since the last (design §5.1). What it reads is counted,
+// not timed: a busy runner slows a look that reads no more (#191).
 func TestALookAtFifteenLongJournalsFoldsOnlyWhatIsNew(t *testing.T) {
 	if testing.Short() {
 		t.Skip("scale")

@@ -129,19 +129,16 @@ func runSend(env Env, d deps, args []string) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	a, err := findAgent(d, s.name)
+	a, err := actingAgent(d, s.name, agent.Seen.Usable)
 	if err != nil {
 		return err
 	}
-	switch {
-	case a.Outdated():
-		return outdatedErr(a)
-	case a.State == state.Ended:
+	if a.State == state.Ended {
 		return usageErr("%s has ended and cannot receive messages; relaunch it with %s, or kill it and start it again", a.Name, restartCommand(a))
 	}
 	// The cursor before the message is left: the reply it brings is a
 	// change numbered above it, for hq wait --since.
-	sent := counterBefore(d, a)
+	sent := d.looker().CounterBefore(a)
 	msg, err := d.postMessage(a.RepoPath, a.ID, state.Message{Text: s.text, Supervisor: d.supervisor}, s.now)
 	if err != nil {
 		return envErr("cannot leave the message for %s: %v", a.Name, err)
@@ -161,7 +158,7 @@ func runSend(env Env, d deps, args []string) error {
 	// slash command of its own that starts no turn, which makes it done (#220).
 	for deadline := d.now().Add(limit(startWait)); a.State == state.Starting && d.now().Before(deadline); {
 		d.sleep(pollEvery)
-		if a, err = findAgent(d, s.name); err != nil {
+		if a, err = actingAgent(d, s.name, agent.Seen.Named); err != nil {
 			return err
 		}
 	}
@@ -196,16 +193,19 @@ type sendOutput struct {
 	NextSince string `json:"next_since"`
 }
 
-// findAgent looks at the agents as hq ls does, turns the user ended
-// included, and returns the one named name.
-func findAgent(d deps, name string) (agent.Agent, error) {
-	l, err := lookNow(d)
+// actingAgent is the agent named name in a look as hq send and hq answer
+// take it (agent.Acting), turns the user ended included, as pick gives it
+// from the look (agent.Seen.Named, or agent.Seen.Usable, which refuses an
+// outdated agent too), or pick's refusal: the look's failure and the
+// refusal as the command's errors (lookErr, refusalErr).
+func actingAgent(d deps, name string, pick func(agent.Seen, string) (agent.Agent, error)) (agent.Agent, error) {
+	seen, err := d.looker().Look(agent.Acting)
 	if err != nil {
-		return agent.Agent{}, err
+		return agent.Agent{}, lookErr(err)
 	}
-	a, ok := agent.Find(l.agents, name)
-	if !ok {
-		return agent.Agent{}, notFoundErr("no agent '%s' (see hq ls)", name)
+	a, err := pick(seen, name)
+	if err != nil {
+		return a, refusalErr(err)
 	}
 	return a, nil
 }
@@ -360,7 +360,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration, msg string, command boo
 	// so the prompt Claude reports comes after it; it names only the
 	// messages of this prompt, which the held ones are not (#195).
 	names := messageNames(msgs)
-	appendEvent(d, a.ID, state.KindDelivery, state.Facts{Messages: names})
+	appendEvent(d, a, state.KindDelivery, state.Facts{Messages: names})
 	texts := make([]string, len(msgs))
 	supervised := true
 	for i, m := range msgs {
@@ -383,7 +383,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration, msg string, command boo
 		for _, m := range all {
 			_, _ = d.postMessage(a.RepoPath, a.ID, m, false)
 		}
-		appendWithdrawn(d, a.ID, state.KindDelivery, names)
+		appendWithdrawn(d, a, state.KindDelivery, names)
 		return "", tmuxErr(err)
 	}
 	// The others wait for the agent's next prompts, where the hooks do not

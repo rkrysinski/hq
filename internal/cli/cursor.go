@@ -1,13 +1,11 @@
 package cli
 
 import (
-	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
-	"github.com/rkrysinski/hq/internal/tmux"
 )
 
 // A cursor is what next_since holds (ADR 0019): an opaque string standing
@@ -62,71 +60,17 @@ func (s since) changedAfter(a agent.Agent, seq int64) bool {
 	return a.Entered().After(s.moment)
 }
 
-// ahead reports whether s is a cursor hq did not give: above the counter,
-// as after a lost state directory (#166, decision 11). A counter that could
+// ahead reports whether s is a cursor hq did not give: above c, the
+// counter before the look listed the windows (agent.Seen.Counter), as
+// after a lost state directory (#166, decision 11). A counter that could
 // not be read refuses nothing.
-func (s since) ahead(l looked) bool {
-	return s.isCursor && l.counted && s.cursor > l.counter
+func (s since) ahead(c agent.Counter) bool {
+	return s.isCursor && c.Read && s.cursor > c.N
 }
 
 // aheadErr is the refusal of a cursor hq did not give.
 func aheadErr(s since) error {
 	return usageErr("--since '%s' is ahead of every change hq has numbered on this host (was its state directory lost?): take a new one from hq ls --json", cursorText(s.cursor))
-}
-
-// looked is a look's agents, with what its cursor is built from: the home
-// windows it looked at, and what the counter held before they were listed.
-type looked struct {
-	agents  []agent.Agent
-	windows []tmux.Window
-	counter int64
-	counted bool // the counter could be read
-}
-
-// cursor is the number the look's cursor stands for (ADR 0019): the lowest
-// counter among its last reads of the agents' journals, so it saw every
-// change of theirs numbered up to it, whatever other processes numbered
-// meanwhile. It is the counter before the look listed the windows when
-// that is all it can vouch for: no journal was read, one could not be, or
-// an agent's window appeared while it looked (listed again, for that),
-// whose changes it did not see but which are all numbered after that.
-func (l looked) cursor(d deps) int64 {
-	n, ok := agent.SeenThrough(l.agents)
-	if !ok || n <= l.counter {
-		return l.counter
-	}
-	ws, err := d.tmux.Windows()
-	if err != nil || agentAppeared(l.windows, ws) {
-		return l.counter
-	}
-	return n
-}
-
-// agentAppeared reports whether after holds the home window of an agent that
-// before does not.
-func agentAppeared(before, after []tmux.Window) bool {
-	for _, w := range after {
-		id := w.Options["id"]
-		if id != "" && !slices.ContainsFunc(before, func(b tmux.Window) bool { return b.Options["id"] == id }) {
-			return true
-		}
-	}
-	return false
-}
-
-// cursorBefore is the cursor for a change an hq command is about to cause
-// in agent a (a message, an answer): what the counter holds now, so what
-// the agent does with it is numbered above it; the counter of a's read
-// when the counter cannot be read now.
-func cursorBefore(d deps, a agent.Agent) string { return cursorText(counterBefore(d, a)) }
-
-// counterBefore is the number cursorBefore's cursor stands for.
-func counterBefore(d deps, a agent.Agent) int64 {
-	n, err := d.journal.Through()
-	if err != nil {
-		n = a.Through()
-	}
-	return n
 }
 
 // seqs are an agent's two numbers as JSON gives them: null for none.

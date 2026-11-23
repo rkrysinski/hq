@@ -30,11 +30,11 @@ func runChord(_ Env, d deps, args []string) error {
 }
 
 func chord(d deps, action string) error {
-	ws, err := d.tmux.Windows()
+	seen, err := d.looker().Look(agent.Docking)
 	if err != nil {
-		return tmuxErr(err)
+		return lookErr(err)
 	}
-	as := d.look(ws, agent.Sandboxes{})
+	as := seen.Agents
 	var docked agent.Agent
 	for _, a := range as {
 		if a.Docked {

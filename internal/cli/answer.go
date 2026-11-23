@@ -119,12 +119,9 @@ func answer(env Env, d deps, r answerRequest) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	a, err := findAgent(d, r.name)
+	a, err := actingAgent(d, r.name, agent.Seen.Usable)
 	if err != nil {
 		return err
-	}
-	if a.Outdated() {
-		return outdatedErr(a)
 	}
 	det := a.Detail()
 	if err := answerable(a, det.Ask); err != nil {
@@ -157,21 +154,21 @@ func answer(env Env, d deps, r answerRequest) error {
 	}
 	// The cursor before the answer is left: what the agent does with it is
 	// a change numbered above it, for hq wait --since.
-	left := cursorBefore(d, a)
+	left := cursorText(d.looker().CounterBefore(a))
 	// The answer is in the agent's journal before the hook can give it, so
 	// what Claude reports of it comes after it (#195).
-	appendEvent(d, a.ID, state.KindAnswer, state.Facts{Whose: state.DialogHooks})
+	appendEvent(d, a, state.KindAnswer, state.Facts{Whose: state.DialogHooks})
 	if err := d.leaveAnswer(a.RepoPath, a.ID, q, decision); err != nil {
-		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
+		appendWithdrawn(d, a, state.KindAnswer, nil)
 		if errors.Is(err, state.ErrAnswerWaiting) {
 			return usageErr("%s not answered: another answer to its dialog is on its way", a.Name)
 		}
 		return envErr("cannot leave the answer for %s: %v", a.Name, err)
 	}
 	if !awaitTaken(d, a, q) {
-		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
+		appendWithdrawn(d, a, state.KindAnswer, nil)
 		// Answered at the agent meanwhile, its hook gone with the dialog?
-		if now, err := findAgent(d, a.Name); err == nil && now.Dialog().ID() != open.ID() {
+		if now, err := actingAgent(d, a.Name, agent.Seen.Named); err == nil && now.Dialog().ID() != open.ID() {
 			return usageErr("%s left the dialog before hq's answer reached it; nothing was answered from hq: it is %s", a.Name, now.State)
 		}
 		return usageErr("%s's dialog cannot be answered from hq: its hook no longer holds it; it is %s, answer it at the agent (hq go %s)", a.Name, a.State, a.Name)
@@ -309,7 +306,7 @@ func awaitTaken(d deps, a agent.Agent, q state.Questions) bool {
 // otherwise, or the agent moved on before hq looked).
 func awaitClosed(d deps, a agent.Agent, open agent.Dialog) (agent.Agent, map[string]string, error) {
 	for deadline := d.now().Add(closeWait); ; d.sleep(answerPoll) {
-		now, err := findAgent(d, a.Name)
+		now, err := actingAgent(d, a.Name, agent.Seen.Named)
 		if err != nil {
 			return now, nil, err
 		}
@@ -377,7 +374,7 @@ func answerOwn(env Env, d deps, a agent.Agent, r answerRequest) error {
 		return err
 	case v.Ask == nil:
 		// Answered at the agent meanwhile: the box is back.
-		now, err := findAgent(d, a.Name)
+		now, err := actingAgent(d, a.Name, agent.Seen.Named)
 		if err != nil {
 			return err
 		}
@@ -393,13 +390,13 @@ func answerOwn(env Env, d deps, a agent.Agent, r answerRequest) error {
 	}
 	// The cursor before the first key: what the agent does after the
 	// dialog is a change numbered above it, for hq wait --since.
-	left := cursorBefore(d, a)
+	left := cursorText(d.looker().CounterBefore(a))
 	if err := moveTo(d, a, open, v, pick); err != nil {
 		return err
 	}
-	appendEvent(d, a.ID, state.KindAnswer, state.Facts{Whose: state.DialogOwn})
+	appendEvent(d, a, state.KindAnswer, state.Facts{Whose: state.DialogOwn})
 	if err := d.tmux.Press(a.Pane, "Enter"); err != nil {
-		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
+		appendWithdrawn(d, a, state.KindAnswer, nil)
 		return tmuxErr(err)
 	}
 	now, err := awaitLeft(d, a, open, pick)
@@ -480,7 +477,7 @@ func moveTo(d deps, a agent.Agent, open agent.Dialog, v state.OwnView, pick int)
 // before it, or at the dialog's next step; and returns the agent then.
 func awaitLeft(d deps, a agent.Agent, open agent.Dialog, pick int) (agent.Agent, error) {
 	for deadline := d.now().Add(closeWait); ; d.sleep(answerPoll) {
-		now, err := findAgent(d, a.Name)
+		now, err := actingAgent(d, a.Name, agent.Seen.Named)
 		if err != nil || now.Dialog().ID() != open.ID() {
 			return now, err
 		}

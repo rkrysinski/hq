@@ -31,23 +31,23 @@ func OwnDialog(screen string) (ask *Ask, ok bool) {
 	return v.Ask, ok
 }
 
-// OwnView is a dialog of Claude's own as one screen shows it (OwnDialog):
-// what it asks, the option its cursor is on, by its index in the options,
-// and whether its list scrolls to options the screen does not show, as
-// the picker of /model does (a ↓ or ↑ before an option, "… +3 models"
-// below them, a row ▸ More models after them, #253). Cursor is -1 on a
-// row of the list that is no option. hq answer moves the cursor to an
-// option and presses Enter (#120).
+// OwnView is a dialog of Claude's own as one screen shows it (OwnDialog): what
+// it asks, the option Claude Code's cursor is on, by its index in the options,
+// and whether its list scrolls to options the screen does not show, as the
+// picker of /model does (a ↓ or ↑ before an option, "… +3 models" below them,
+// a row ▸ More models after them, #253). Cursor is -1 on a row of the list
+// that is no option. hq answer moves Claude Code's cursor to an option and
+// presses Enter (#120).
 type OwnView struct {
 	Ask     *Ask
 	Cursor  int
 	Scrolls bool
 }
 
-// ViewOwnDialog is OwnDialog with where the dialog's cursor is.
-// Claude's agents list below the footer, the cursor on it included, and a
-// subagent's view, whose box stands in place of the agent's (findBox), are
-// no dialog (#225).
+// ViewOwnDialog is OwnDialog with where Claude Code's cursor is in the dialog.
+// Claude's agents list below the footer, Claude Code's cursor on it included,
+// and a subagent's view, whose box stands in place of the agent's (findBox),
+// are no dialog (#225).
 func ViewOwnDialog(screen string) (OwnView, bool) {
 	if b, ok := promptBox(screen); ok || b.subagent {
 		return OwnView{}, false
@@ -56,8 +56,8 @@ func ViewOwnDialog(screen string) (OwnView, bool) {
 	for i := range lines {
 		lines[i] = strings.Join(strings.Fields(lines[i]), " ")
 	}
-	// The option the cursor is on: the last line marked, not an input line
-	// (which has a rule right above it).
+	// The option Claude Code's cursor is on: the last line marked, not an
+	// input line (which has a rule right above it).
 	at := -1
 	for i := len(lines) - 1; i > 0; i-- {
 		if strings.HasPrefix(lines[i], prompt+" ") && !isRule(lines[i-1]) {
@@ -112,7 +112,7 @@ func ViewOwnDialog(screen string) (OwnView, bool) {
 		}
 		v.Scrolls = v.Scrolls || scrollMark.MatchString(l)
 		// "… +3 models", "▸ More models", "↓ 7 more": more options the
-		// list scrolls to, no option; the cursor on one is on no option.
+		// list scrolls to, no option; Claude Code's cursor on one is on no option.
 		if strings.HasPrefix(l, "…") || moreMark.MatchString(l) {
 			v.Scrolls = true
 			if i == at-first {

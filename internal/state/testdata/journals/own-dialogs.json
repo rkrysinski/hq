@@ -1,5 +1,5 @@
 {
-  "about": "Dialogs of Claude's own, which no hook reports, read off the screen of an agent at its prompt: at the start of a session, after a turn, a question or a turn the user ended, and over background work Claude owes it no turn for; needs input since the dialog was first seen, its title the last message, the same dialog wherever its cursor is; gone, the agent is back as its hooks say; never read over a dialog of its hooks'.",
+  "about": "Dialogs of Claude's own, which no hook reports, read off the screen of an agent at its prompt: at the start of a session, after a turn, a question or a turn the user ended, and over background work Claude owes it no turn for; needs input since the dialog was first seen, its title the last message, the same dialog wherever Claude Code's cursor is; gone, the agent is back as its hooks say; never read over a dialog of its hooks'.",
   "steps": [
     {
       "hq": "launch",

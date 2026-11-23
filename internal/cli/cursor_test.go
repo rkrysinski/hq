@@ -2,7 +2,6 @@ package cli
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -11,7 +10,6 @@ import (
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
-	"github.com/rkrysinski/hq/internal/tmux"
 )
 
 // cursorNumber is the number a cursor hq printed stands for.
@@ -159,60 +157,6 @@ func TestWaitReturnsAnEndedAgentWhoseJournalCannotBeReadAsAKilledOne(t *testing.
 	}
 }
 
-// A look vouches only for what it could see: an agent whose window
-// appeared while it looked had changes it did not read.
-func TestAnAgentAppearedWhenItsWindowDid(t *testing.T) {
-	a := tmux.Window{Options: map[string]string{"id": "a1"}}
-	b := tmux.Window{Options: map[string]string{"id": "b2"}}
-	dash := tmux.Window{Options: map[string]string{}}
-	for _, tc := range []struct {
-		before, after []tmux.Window
-		want          bool
-	}{
-		{[]tmux.Window{a}, []tmux.Window{a}, false},
-		{[]tmux.Window{a, b}, []tmux.Window{a}, false},
-		{[]tmux.Window{a}, []tmux.Window{dash, a}, false},
-		{[]tmux.Window{a}, []tmux.Window{a, b}, true},
-		{nil, []tmux.Window{b}, true},
-	} {
-		if got := agentAppeared(tc.before, tc.after); got != tc.want {
-			t.Errorf("%v -> %v: %v", tc.before, tc.after, got)
-		}
-	}
-}
-
-// While a look reads b's journal, another process numbers a turn of a's
-// that the look, having read a already, does not see. The look's cursor
-// stands for no more than it saw (the lowest counter of its reads, not the
-// highest number), so the next hq wait returns that turn (ADR 0019).
-func TestALooksCursorLeavesWhatAnotherProcessNumberedMeanwhileToTheNextWait(t *testing.T) {
-	f := newWaitFakes()
-	turns := 0
-	f.onRead = func(id string) {
-		if id != "id-b" {
-			return
-		}
-		turns++
-		a := journalID("id-a")
-		f.journal.Report("/w/app", a, journaltest.HookState{State: state.Working, Since: f.now, Prompt: "go on"}, state.Detail{})
-		f.journal.Report("/w/app", a, journaltest.HookState{State: state.Done, Since: f.now, Last: fmt.Sprintf("turn %d", turns)}, state.Detail{})
-		_ = f.journal.Ingest("/w/app", a)
-	}
-	var ls waitOutput
-	if err := json.Unmarshal([]byte(mustRun(t, f, "ls", "--json")), &ls); err != nil {
-		t.Fatal(err)
-	}
-	f.onRead = nil
-	last := f.cursorOf(t, "id-a")
-	if cursorNumber(t, ls.NextSince) >= last {
-		t.Fatalf("the list's cursor %s stands for a's turn %d, which it did not see: %+v", ls.NextSince, last, ls.Agents)
-	}
-	w := waitJSON(t, mustRun(t, f, "wait", "--since", ls.NextSince, "--json"))
-	if len(w.Agents) != 1 || w.Agents[0].Name != "a" || *w.Agents[0].StateSeq != last || w.Agents[0].Last != fmt.Sprintf("turn %d", turns) {
-		t.Fatalf("wait: %+v (a's last turn %d)", w.Agents, last)
-	}
-}
-
 // Without --since a call starts from its first look: an agent that look
 // shows in such a state is not returned, though the look itself appended
 // the event that put it there, numbered above the counter of its read of
@@ -235,110 +179,5 @@ func TestWaitWithoutSinceNeverReturnsWhatItsFirstLookShowed(t *testing.T) {
 	// Nor by a call from its cursor: it is no change after it.
 	if again := waitJSON(t, mustRun(t, f, "wait", "--since", w.NextSince, "--timeout", "2s", "--json")); len(again.Agents) != 0 {
 		t.Fatalf("again: %+v", again.Agents)
-	}
-}
-
-// hq send's cursor is the counter as it leaves the message, not that of
-// the look before it: a change another process numbers in between is
-// before the message, and a wait from the cursor does not take it for the
-// agent's answer.
-func TestSendsCursorIsTheCounterAsItLeavesTheMessage(t *testing.T) {
-	f := sendFakes(state.Done)
-	b := journalID("id-b")
-	f.onThrough = func() {
-		_, _ = f.journal.Append(b, state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: f.now})
-	}
-	var sent sendOutput
-	if err := json.Unmarshal([]byte(mustRun(t, f, "send", "a", "No", "--json")), &sent); err != nil {
-		t.Fatal(err)
-	}
-	if want := f.cursorBefore(t, "id-a", state.KindDelivery); sent.NextSince != want {
-		t.Fatalf("next_since %s, want %s, the counter just before the delivery", sent.NextSince, want)
-	}
-}
-
-// A look whose journals hold nothing past the counter it began with (the
-// look before appended all it saw) vouches for that counter at once: it
-// lists the windows once, not again to see whether an agent appeared.
-func TestAQuietLookListsTheWindowsOnce(t *testing.T) {
-	f := sendFakes(state.Done)
-	mustRun(t, f, "ls", "--json") // its look appends what it saw
-	f.tmux.windowsRead = 0
-	mustRun(t, f, "ls", "--json")
-	if f.tmux.windowsRead != 1 {
-		t.Fatalf("windows listed %d times", f.tmux.windowsRead)
-	}
-}
-
-// dialogOnB has two agents done at their prompts, b's screen showing a
-// dialog of Claude's own, which a look appends for b after it has read a:
-// the look shows b at a change numbered above its cursor (the lowest
-// counter of its reads). With alternate, b's dialog changes at every look,
-// so every look appends anew. looks counts the looks (each reads the
-// counter once, before it lists the windows).
-func dialogOnB(t *testing.T, alternate bool, looks *int) *fakes {
-	f := newWaitFakes()
-	f.tmux.windows[1].Pane, f.tmux.windows[2].Pane = "%1", "%2"
-	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
-	f.states["id-b"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Hour), Last: "hi"}
-	rule := strings.Repeat("─", 40)
-	dialog := func(n int) string {
-		return "● hi\n" + strings.Repeat("▔", 40) + fmt.Sprintf("\n   Change effort level %d?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n", n)
-	}
-	f.tmux.screens = map[string]string{"%1": "● hi\n" + rule + "\n❯ \n" + rule + "\n  footer\n", "%2": dialog(0)}
-	f.onThrough = func() {
-		if *looks++; *looks > 2*coverLooks {
-			t.Fatalf("still looking at look %d", *looks)
-		}
-		if alternate {
-			f.tmux.screens["%2"] = dialog(*looks)
-		}
-	}
-	return f
-}
-
-// hq ls --json shows no row its cursor does not stand for: a look that
-// shows b at a change numbered above its cursor is followed by another,
-// whose cursor covers it, so a wait from the list's next_since does not
-// return the row the list already showed (#166).
-func TestTheListsCursorStandsForEveryRowItShows(t *testing.T) {
-	looks := 0
-	f := dialogOnB(t, false, &looks)
-	var ls waitOutput
-	if err := json.Unmarshal([]byte(mustRun(t, f, "ls", "--json")), &ls); err != nil {
-		t.Fatal(err)
-	}
-	f.onThrough = nil
-	if looks != 2 {
-		t.Fatalf("%d looks, want a second one", looks)
-	}
-	for _, r := range ls.Agents {
-		if r.StateSeq == nil || *r.StateSeq > cursorNumber(t, ls.NextSince) {
-			t.Fatalf("row %s at %v, the cursor %s", r.Name, r.StateSeq, ls.NextSince)
-		}
-	}
-	if w := waitJSON(t, mustRun(t, f, "wait", "--since", ls.NextSince, "--timeout", "1s", "--json")); len(w.Agents) != 0 {
-		t.Fatalf("wait returned what the list showed: %+v", w.Agents)
-	}
-	// The plain table has no cursor, and looks once.
-	looks = 0
-	f = dialogOnB(t, false, &looks)
-	mustRun(t, f, "ls")
-	if looks != 1 {
-		t.Fatalf("the table took %d looks", looks)
-	}
-}
-
-// Agents that change at every look still get a list: hq ls --json looks
-// coverLooks times at most, then prints the last look.
-func TestTheListLooksAgainOnlyAFewTimes(t *testing.T) {
-	looks := 0
-	f := dialogOnB(t, true, &looks)
-	var ls waitOutput
-	if err := json.Unmarshal([]byte(mustRun(t, f, "ls", "--json")), &ls); err != nil {
-		t.Fatal(err)
-	}
-	if looks != coverLooks || len(ls.Agents) != 2 {
-		t.Fatalf("%d looks, want %d; rows %+v", looks, coverLooks, ls.Agents)
 	}
 }
