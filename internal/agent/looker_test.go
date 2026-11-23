@@ -385,6 +385,9 @@ func TestEachKindOfLookTakesAnSbxThatCannotAnswerAsItsVariantSays(t *testing.T) 
 			t.Errorf("%s: %s, %v; want a1 not ended and no error", what, names(as), err)
 		}
 	}
+	if s := answering(nil).look(t, Shown); named(t, s.Agents, "a1").State != state.Ended {
+		t.Fatalf("sbx answering: a1 %s, want ended by the sandbox stopped", named(t, s.Agents, "a1").State)
+	}
 	for _, tc := range []struct {
 		name  string
 		v     Variant
