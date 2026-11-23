@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 )
@@ -69,6 +70,11 @@ func TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack(t *testing.T) {
 			f.tmux.pasteErr = errors.New("no pane %4")
 			return f, []string{"send", "a", "hi"}
 		}},
+		{"hq answer, Enter failing at a dialog of Claude's own after the kill", state.KindWithdrawn, func(t *testing.T) (*fakes, []string) {
+			f, _, id := ownDialogFakes(t)
+			f.tmux.enterErr = errors.New("no pane %4")
+			return f, []string{"answer", "a", "--dialog", id, "2"}
+		}},
 		{"hq sandbox restart, the respawn failing after the kill", state.KindWithdrawn, func(*testing.T) (*fakes, []string) {
 			f := sandboxFakes()
 			f.tmux.respawnErr = errors.New("no pane %4")
@@ -84,6 +90,30 @@ func TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack(t *testing.T) {
 			}
 			f.noJournalOf(t, "id-a")
 		})
+	}
+}
+
+// An event of hq's own for an agent whose journal cannot be read is not
+// appended, a launch neither: a journal hq cannot read fails nothing hq
+// does, and an append on no basis would date the event wrongly.
+func TestHqsOwnEventsAreNotAppendedToAJournalThatCannotBeRead(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.unreadable = map[string]bool{"id-a": true}
+	var appended []string
+	f.onAppend = func(id string, events []state.Event) { appended = append(appended, id+" "+journaltest.Kinds(events)) }
+	d := f.deps()
+	appendEvent(d, agent.Agent{ID: "id-a", Window: "@4"}, state.KindDelivery, state.Facts{})
+	appendWithdrawn(d, agent.Agent{ID: "id-a", Window: "@4"}, state.KindDelivery, nil)
+	appendLaunched(d, "id-a", state.Facts{})
+	if len(appended) != 0 {
+		t.Fatalf("appended %v", appended)
+	}
+	// The same calls with the journal readable append each.
+	delete(f.unreadable, "id-a")
+	appendEvent(d, agent.Agent{ID: "id-a", Window: "@4"}, state.KindDelivery, state.Facts{})
+	appendLaunched(d, "id-a", state.Facts{})
+	if got := strings.Join(appended, "|"); got != "id-a delivery|id-a "+state.KindLaunched {
+		t.Fatalf("readable: appended %q", got)
 	}
 }
 
