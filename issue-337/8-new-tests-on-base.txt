@@ -1,0 +1,12 @@
+$ git log --oneline -1   # the base, with look_variants_test.go and look_rules_test.go copied in
+476a6ce Merge pull request #317 from rkrysinski/release-v0.16.0
+$ go test -count=1 -v -run '^(TestExplainTypesInNoMessageLeftWaiting|TestTheChordsAndDockingOnEntryAskSbxNothing|TestSendLooksEvery250msWhileItsAgentStartsEachLookAskingSbx|TestAnswerLooksEvery100msUntilItsAgentLeavesTheDialogEachLookAskingSbx|TestTheLooksCursorIsItsLowestReadUnlessAnAgentMayHaveAppeared|TestLsJSONFailsWhenALookAgainFails|TestAChordAndExplainFailWhenTmuxCannotListTheWindows|TestSendsCursorWithoutTheCounterIsItsReadOfTheAgent)$' ./internal/cli | grep -E '^(--- |ok|FAIL)'
+--- PASS: TestTheLooksCursorIsItsLowestReadUnlessAnAgentMayHaveAppeared (0.00s)
+--- PASS: TestLsJSONFailsWhenALookAgainFails (0.00s)
+--- PASS: TestAChordAndExplainFailWhenTmuxCannotListTheWindows (0.00s)
+--- PASS: TestSendsCursorWithoutTheCounterIsItsReadOfTheAgent (0.00s)
+--- PASS: TestExplainTypesInNoMessageLeftWaiting (0.00s)
+--- PASS: TestTheChordsAndDockingOnEntryAskSbxNothing (0.00s)
+--- PASS: TestSendLooksEvery250msWhileItsAgentStartsEachLookAskingSbx (0.00s)
+--- PASS: TestAnswerLooksEvery100msUntilItsAgentLeavesTheDialogEachLookAskingSbx (0.00s)
+ok  	github.com/rkrysinski/hq/internal/cli	0.003s
