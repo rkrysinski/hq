@@ -536,9 +536,9 @@ func firstPromptJournal() []Event {
 }
 
 // tookSlashCommandScreens are the screens of Claude Code 2.1.329 that took the
-// first prompt it was started with as a slash command of its own and started no
-// turn for it (setup P, #220): /model NAME, and /effort and the picker of
-// /model closed with Esc, right after and at rest.
+// first prompt it was started with as a slash command of its own and started
+// no turn for it (capture setup P, #220): /model NAME, and /effort and the
+// picker of /model closed with Esc, right after and at rest.
 var tookSlashCommandScreens = []string{
 	"first-model-name-2329", "first-model-name-2329-rest", "first-model-name-2329-80", "first-model-name-2329-80-rest",
 	"first-effort-2329-closed", "first-effort-2329-80-closed",
@@ -546,8 +546,8 @@ var tookSlashCommandScreens = []string{
 }
 
 // Claude Code 2.1.329 reports nothing for a slash command of its own that
-// starts no turn given as the first prompt (setup P: no event followed its
-// session's start). Once the screen shows that slash command sent with its
+// starts no turn given as the first prompt (capture setup P: no event followed
+// its session's start). Once the screen shows that slash command sent with its
 // outcome below it, at the prompt box, the agent is done since the look saw
 // it: no completed turn, no last message (#220).
 func TestAFirstPromptClaudeTookAsASlashCommandOfItsOwnMakesTheAgentDone(t *testing.T) {
@@ -569,15 +569,14 @@ func TestAFirstPromptClaudeTookAsASlashCommandOfItsOwnMakesTheAgentDone(t *testi
 }
 
 // A first prompt that is only late never makes the agent done (#220): with
-// Claude Code 2.1.329 the prompt is drawn sent at once with the spinner
-// below it while a SessionStart hook of 4 s runs, then the spinner alone
-// once Claude reported taking it (setup P, (a)), and so is /probe, a slash
-// command of the repository's own that starts a turn; a slash command of
-// Claude's own shows only its header right after the start ((b), (c)); a
-// session given no prompt shows its box with a placeholder ((d)); the slider
-// of /effort is no dialog hq reads. Each leaves the agent starting, at rest
-// or not, 2 s, an hour and a day later, and its prompt reported then makes
-// it working.
+// Claude Code 2.1.329 the prompt is drawn sent at once with the spinner below
+// it while a SessionStart hook of 4 s runs, then the spinner alone once Claude
+// reported taking it (capture setup P, (a)), and so is /probe, a slash command
+// of the repository's own that starts a turn; a slash command of Claude's own
+// shows only its header right after the start ((b), (c)); a session given no
+// prompt shows its box with a placeholder ((d)); the slider of /effort is no
+// dialog hq reads. Each leaves the agent starting, at rest or not, 2 s, an
+// hour and a day later, and its prompt reported then makes it working.
 func TestAFirstPromptThatIsOnlyLateLeavesTheAgentStarting(t *testing.T) {
 	for _, name := range []string{
 		"first-hook-2329", "first-hook-2329-80", "first-hook-taken-2329", "first-hook-taken-2329-80",
@@ -603,10 +602,11 @@ func TestAFirstPromptThatIsOnlyLateLeavesTheAgentStarting(t *testing.T) {
 	}
 }
 
-// The picker of /model as the first prompt (Claude Code 2.1.329, setup P)
-// is a dialog of Claude's own in that prompt's way: needs input while it
-// is open, then, closed with Esc and no turn started, the agent is done by
-// TookSlashCommand, in the same look that sees the dialog gone (#220).
+// The picker of /model as the first prompt (Claude Code 2.1.329,
+// capture setup P) is a dialog of Claude's own in that prompt's way: needs
+// input while it is open, then, closed with Esc and no turn started, the agent
+// is done by TookSlashCommand, in the same look that sees the dialog gone
+// (#220).
 func TestTheModelPickerAsTheFirstPromptNeedsInputThenTheAgentIsDone(t *testing.T) {
 	for _, size := range []string{"", "-80"} {
 		journal := firstPromptJournal()
@@ -637,11 +637,11 @@ func TestTheModelPickerAsTheFirstPromptNeedsInputThenTheAgentIsDone(t *testing.T
 }
 
 // Of every screen in testdata only those of a slash command of Claude's own
-// taken as the first prompt show the sign TookSlashCommand reads (setup P,
-// #220): a slash command after a turn shows other prompts sent above it.
-// Every other screen at the prompt box at rest, a session given no prompt
-// (d) among them, changes nothing for an agent waiting for its first prompt,
-// at once, RestDelay or an hour later.
+// taken as the first prompt show the sign TookSlashCommand reads
+// (capture setup P, #220): a slash command after a turn shows other prompts
+// sent above it. Every other screen at the prompt box at rest, a session given
+// no prompt (d) among them, changes nothing for an agent waiting for its first
+// prompt, at once, RestDelay or an hour later.
 func TestOnlyASlashCommandOfClaudesOwnAsTheFirstPromptShowsTheSign(t *testing.T) {
 	names, _ := filepath.Glob(filepath.Join("testdata", "screen-*.txt"))
 	if len(names) < 20 {
@@ -735,12 +735,12 @@ func TestAnAgentDoneByTookSlashCommandIsAsAnyDoneAgent(t *testing.T) {
 }
 
 // An agent whose turn ended while its background subagents run is working
-// (spec, Background work), and a look at its pane appends nothing for
-// Claude's agents list with the cursor on it anywhere or for a subagent's
-// view open there: no dialog of Claude's own, so nothing for hq wait to
-// return (#225). The same holds for an agent done or with a question,
-// whose screen is looked at for such a dialog too. Each screen is met as the
-// look meets it: only at a moment its screen may tell (seesWhenItMayTell).
+// (spec, Background work), and a look at its pane appends nothing for Claude's
+// agents list with Claude Code's cursor on it anywhere or for a subagent's
+// view open there: no dialog of Claude's own, so nothing for hq wait to return
+// (#225). The same holds for an agent done or with a question, whose screen is
+// looked at for such a dialog too. Each screen is met as the look meets it:
+// only at a moment its screen may tell (seesWhenItMayTell).
 func TestALookAtClaudesAgentsListOrASubagentsViewLeavesTheAgentAsItWas(t *testing.T) {
 	for _, tc := range []struct {
 		name    string

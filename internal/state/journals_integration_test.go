@@ -159,8 +159,9 @@ type lookStore struct {
 	screen string
 }
 
-// Stands says the agent's home window stands: the fixture's look is at it.
-func (s *lookStore) Stands(string) bool { return true }
+// WindowStands says the agent's home window stands: the fixture's look is at
+// it.
+func (s *lookStore) WindowStands(string) bool { return true }
 
 func (s *lookStore) Withdraw(string, string) error { return nil }
 

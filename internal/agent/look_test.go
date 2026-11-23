@@ -50,7 +50,7 @@ func newStore(screens map[string]string) *memStore {
 	return &memStore{Memory: journaltest.NewMemory(), gone: map[string]bool{}, screens: screens, reports: map[string]journaltest.HookState{}}
 }
 
-func (s *memStore) Stands(w string) bool { return !s.gone[w] }
+func (s *memStore) WindowStands(w string) bool { return !s.gone[w] }
 
 func (s *memStore) Screens(panes []string) (map[string]string, error) {
 	s.captures = append(s.captures, strings.Join(panes, " "))
@@ -148,8 +148,8 @@ func (s *replayStore) AppendEvidence(id string, _ func() bool, es ...state.Event
 	return s.Append(id, es...)
 }
 
-// Stands says every home window stands.
-func (s *replayStore) Stands(string) bool { return true }
+// WindowStands says every home window stands.
+func (s *replayStore) WindowStands(string) bool { return true }
 
 func (s *replayStore) Read(id string) (journal.Journal, error) { return s.ReadFrom(id, 0) }
 

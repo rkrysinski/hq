@@ -128,3 +128,29 @@ func TestSendWaitSaysWhenTheAgentDoesNotTakeTheMessage(t *testing.T) {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
 }
+
+// /model NAME typed at an agent after a turn, a command of Claude Code's
+// own that starts no turn: hq send --wait says so once the bound has
+// passed, and the agent stays done with the completion it had.
+func TestSendWaitOfModelTypedAfterATurnSaysItStartedNoTurn(t *testing.T) {
+	testutil.FakeClaude(t)
+	h := newRealHQ(t)
+	h.cwd = testutil.GitRepo(t, "app")
+	if code, _, errOut := h.run("new", "a", "hello"); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	h.waitReport("a", "done", "Done: hello")
+	h.waitAtRest("a")
+	before := h.ls()[0]
+
+	start := time.Now()
+	code, out, errOut := h.run("send", "--wait", "a", "/model opus")
+	if code != 0 || !strings.Contains(out, "\nno turn: the slash command left a's prompt box and started no turn\n") || time.Since(start) < stallBound {
+		t.Fatalf("exit %d %q %q", code, out, errOut)
+	}
+	h.waitPane("a", "⎿  Set model to opus")
+	after := h.ls()[0]
+	if after.State != "done" || after.Last != "Done: hello" || after.CompletionSeq == nil || *after.CompletionSeq != *before.CompletionSeq || after.Pending != 0 {
+		t.Errorf("after /model: %+v, before %+v", after, before)
+	}
+}

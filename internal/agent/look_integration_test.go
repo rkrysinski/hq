@@ -22,8 +22,8 @@ type filesStore struct {
 	screen string
 }
 
-// Stands says every home window stands.
-func (s filesStore) Stands(string) bool { return true }
+// WindowStands says every home window stands.
+func (s filesStore) WindowStands(string) bool { return true }
 
 func (s filesStore) Withdraw(string, string) error { return nil }
 
@@ -120,7 +120,7 @@ func (s killingFiles) kill(id string) error {
 	return s.Remove(s.root, id)
 }
 
-func (s killingFiles) Stands(string) bool { return !*s.killed }
+func (s killingFiles) WindowStands(string) bool { return !*s.killed }
 
 func (s killingFiles) ReadFrom(id string, from int64) (journal.Journal, error) {
 	if !s.atAppend {

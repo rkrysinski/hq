@@ -157,5 +157,9 @@ Whether an agent is at a dialog, whose (the one its hooks reported, Claude's own
 _Avoid_: dialog state, open dialog flag, needs-input check
 
 **Setup**:
-A named configuration a sandbox is created with: an image, MCP servers, and a model with where it is served from. `default` is the `sandbox` object of the preferences file and what an agent gets without one; the others are under `sandboxes`. A repository has one sandbox per setup it is used with, and an agent runs in the sandbox of the setup it was started on.
+A named configuration a sandbox is created with: an image, MCP servers, and a model with where it is served from. `default` is the `sandbox` object of the preferences file and what an agent gets without one; the others are under `sandboxes`. A repository has one sandbox per setup it is used with, and an agent runs in the sandbox of the setup it was started on. Not a capture setup.
 _Avoid_: profile, model setting, flavour, sandbox type
+
+**Capture setup**:
+The configuration a real capture of Claude Code's screen was made in: its version, its settings, the pane, and how the session was driven. Each is named by a letter in `internal/state/testdata/README.md` (capture setup P), and every capture there names the one it was made in. Not a setup, which is a sandbox's.
+_Avoid_: setup (alone), environment, capture config
