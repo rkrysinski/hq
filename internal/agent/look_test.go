@@ -647,10 +647,10 @@ func TestLooksAtOnceShowTheSameStateAndAge(t *testing.T) {
 	}
 }
 
-// The look's Folds keep the list's tick with journals of 50,000 events for
-// 15 agents: once folded, a look reads and folds only the events new since
-// the last (design §5.1). What it reads is counted, not timed: a busy
-// runner slows a look that reads no more (#191).
+// The look's Folds keep the pace of the list's look loop with journals of
+// 50,000 events for 15 agents: once folded, a look reads and folds only
+// the events new since the last (design §5.1). What it reads is counted,
+// not timed: a busy runner slows a look that reads no more (#191).
 func TestALookAtFifteenLongJournalsFoldsOnlyWhatIsNew(t *testing.T) {
 	if testing.Short() {
 		t.Skip("scale")

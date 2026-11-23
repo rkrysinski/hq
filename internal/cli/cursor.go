@@ -60,16 +60,12 @@ func (s since) changedAfter(a agent.Agent, seq int64) bool {
 	return a.Entered().After(s.moment)
 }
 
-// ahead reports whether s is a cursor hq did not give: above the counter
-// before the look listed the windows (agent.Seen.Counter), as after a lost
-// state directory (#166, decision 11). A counter that could not be read
-// refuses nothing.
-func (s since) ahead(seen agent.Seen) bool { return s.aheadOf(seen.Counter()) }
-
-// aheadOf is ahead for a look whose counter, before it listed the windows,
-// held counter, counted whether it could be read.
-func (s since) aheadOf(counter int64, counted bool) bool {
-	return s.isCursor && counted && s.cursor > counter
+// ahead reports whether s is a cursor hq did not give: above c, the
+// counter before the look listed the windows (agent.Seen.Counter), as
+// after a lost state directory (#166, decision 11). A counter that could
+// not be read refuses nothing.
+func (s since) ahead(c agent.Counter) bool {
+	return s.isCursor && c.Read && s.cursor > c.N
 }
 
 // aheadErr is the refusal of a cursor hq did not give.

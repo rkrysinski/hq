@@ -102,7 +102,7 @@ func runRead(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	if r.since.aheadOf(seen.Counter()) {
+	if r.since.ahead(seen.Counter()) {
 		return aheadErr(r.since)
 	}
 	a, err := seen.Usable(r.name)

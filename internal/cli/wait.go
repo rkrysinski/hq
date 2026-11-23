@@ -108,12 +108,13 @@ func runWait(env Env, d deps, args []string) error {
 	}
 	var seen map[string]agent.Agent // the agents waited on at the last look, by id
 	var found []agent.Agent         // what the first look with a hit returned
-	err = d.looker().Loop(func(s agent.Seen, first bool) (bool, error) {
-		next := s.Cursor() // taken before what waits is typed in
+	k := d.looker()
+	err = k.Loop(func(s agent.Seen, first bool) (bool, error) {
+		next := k.Cursor(s) // taken before what waits is typed in
 		as := s.Agents
 		deliverWaiting(d, as)
 		if first {
-			if w.since.ahead(s) {
+			if w.since.ahead(s.Counter()) {
 				return true, aheadErr(w.since)
 			}
 			for _, n := range w.names {

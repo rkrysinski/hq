@@ -9,6 +9,7 @@ import (
 	"math"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -88,6 +89,21 @@ func OutdatedLast(gen int) string { return StartedBy(gen) + ": kill it and start
 // OutdatedErr is the line every command but those that open or kill an
 // agent refuses an outdated agent with: its name and its last message.
 func (a Agent) OutdatedErr() string { return a.Name + " was " + OutdatedLast(a.Generation) }
+
+// OutdatedError refuses an outdated agent (Agent.Outdated): every command
+// but those that open or kill it.
+type OutdatedError struct{ Agent Agent }
+
+func (e *OutdatedError) Error() string { return e.Agent.OutdatedErr() }
+
+// Refusal is the refusal of an outdated agent (OutdatedError), nil for
+// any other.
+func (a Agent) Refusal() error {
+	if a.Outdated() {
+		return &OutdatedError{Agent: a}
+	}
+	return nil
+}
 
 // ofGeneration gives a its generation gen: of another than this hq's, it
 // is outdated, and nothing of its own is read: its state, its age and its
@@ -333,21 +349,19 @@ func (a Agent) Through() int64 { return a.through }
 // SeenThrough is the lowest counter among the look's reads of the agents'
 // journals (Through), outdated agents aside: the look saw every change of
 // theirs numbered up to it, whatever other processes numbered meanwhile
-// (ADR 0019). ok is false when it vouches for nothing: no journal was
-// read, or one could not be.
-func SeenThrough(as []Agent) (n int64, ok bool) {
+// (ADR 0019). It is 0, which vouches for nothing, when no journal was read
+// or one could not be.
+func SeenThrough(as []Agent) int64 {
+	var reads []int64
 	for _, a := range as {
-		if a.Outdated() {
-			continue
-		}
-		if a.through == 0 {
-			return 0, false
-		}
-		if !ok || a.through < n {
-			n, ok = a.through, true
+		if !a.Outdated() {
+			reads = append(reads, a.through)
 		}
 	}
-	return n, ok
+	if len(reads) == 0 {
+		return 0
+	}
+	return slices.Min(reads)
 }
 
 // Gone is the agent, waited on at the last look, now gone from tmux

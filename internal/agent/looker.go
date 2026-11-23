@@ -32,13 +32,16 @@ type Looker struct {
 }
 
 // A Variant is how a command's look differs from another's: whether it
-// asks sbx and what it makes of an answer sbx does not give, and whether a
-// working agent's screen at rest gets the second look RestDelay later.
-// The commands take one of the variants below, each what the command did
-// before the Looker (sbx: design §3.6, *The oldest sbx*).
+// asks sbx and what it makes of an answer sbx does not give, whether a
+// working agent's screen at rest gets the second look RestDelay later, and
+// whether it reads the journals' counter before it lists the windows (for
+// its cursor, Looker.Cursor, and Seen.Counter). The commands take one of
+// the variants below, each what the command did before the Looker (sbx:
+// design §3.6, *The oldest sbx*).
 type Variant struct {
-	sbx   sbxMode
-	again bool
+	sbx    sbxMode
+	again  bool
+	counts bool
 }
 
 // sbxMode is whether a look asks sbx, and what it makes of an answer sbx
@@ -62,18 +65,21 @@ var (
 	// Shown is the look of hq ls and hq read: sbx asked, and the second
 	// look at a screen at rest, so a single command shows a turn's end
 	// at once, as the list does.
-	Shown = Variant{sbx: sbxAsked, again: true}
+	Shown = Variant{sbx: sbxAsked, again: true, counts: true}
 	// Explained is the look of hq explain, which explains the journal on
 	// the host: sbx tolerated, and the second look.
-	Explained = Variant{sbx: sbxTolerated, again: true}
+	Explained = Variant{sbx: sbxTolerated, again: true, counts: true}
 	// Acting is the look of hq send and hq answer at the agent they act
-	// on, and each look of their waits: sbx asked, one look.
-	Acting = Variant{sbx: sbxAsked}
+	// on, and each look of their waits and of the look loop: sbx asked,
+	// one look.
+	Acting = Variant{sbx: sbxAsked, counts: true}
 	// Updating is the look of hq update across generations, which has to
-	// know every agent, lost ones included: sbx required, one look.
+	// know every agent, lost ones included: sbx required, one look, and
+	// no counter read, so it never waits on the counter's lock.
 	Updating = Variant{sbx: sbxRequired}
 	// Docking is the look of the chords and of docking as the dashboard
-	// is entered: sbx not asked, one look.
+	// is entered: sbx not asked, one look, and no counter read, so a key
+	// pressed never waits on the counter's lock.
 	Docking = Variant{sbx: sbxNotAsked}
 )
 
@@ -98,11 +104,13 @@ type NotFoundError struct{ Name string }
 
 func (e *NotFoundError) Error() string { return "no agent '" + e.Name + "' (see hq ls)" }
 
-// OutdatedError refuses an outdated agent (Agent.Outdated): every command
-// but those that open or kill it.
-type OutdatedError struct{ Agent Agent }
-
-func (e *OutdatedError) Error() string { return e.Agent.OutdatedErr() }
+// A Counter is what the journals' counter held before a look listed the
+// windows (Seen.Counter): N, when Read says the look read it. A look in a
+// variant that reads no counter, or one that could not read it, read none.
+type Counter struct {
+	N    int64
+	Read bool
+}
 
 // Seen is what one look saw, in the variant it was taken in.
 type Seen struct {
@@ -114,10 +122,8 @@ type Seen struct {
 	Windows []tmux.Window
 	Listed  []sbx.Sandbox
 	// counter is what the journals' counter held before the windows were
-	// listed, counted whether it could be read.
-	counter int64
-	counted bool
-	looker  Looker
+	// listed.
+	counter Counter
 	variant Variant
 }
 
@@ -133,12 +139,13 @@ const (
 
 // Look takes a look in variant v (GLOSSARY.md, design §3.4): it asks sbx
 // as v says, noting the moment before the question, so a report newer than
-// the answer does not end the agent (#48); reads the journals' counter
-// before it lists the windows, for the look's cursor (Seen.Cursor); looks
-// at the agents of those windows, leaving out an agent killed while it
-// looked (#239); and, in a variant that takes it, looks again RestDelay
-// later at a working agent's screen at rest (design §3.4). It writes in no
-// pane: what a command does with the agents is the command's.
+// the answer does not end the agent (#48); in a variant that reads it,
+// reads the journals' counter before it lists the windows, for the look's
+// cursor (Looker.Cursor); looks at the agents of those windows, leaving
+// out an agent killed while it looked (#239); and, in a variant that takes
+// it, looks again RestDelay later at a working agent's screen at rest
+// (design §3.4). It writes in no pane: what a command does with the agents
+// is the command's.
 func (k Looker) Look(v Variant) (Seen, error) {
 	s, err := k.once(v)
 	if err != nil || !v.again || !slices.ContainsFunc(s.Agents, Agent.Resting) {
@@ -158,16 +165,19 @@ func (k Looker) once(v Variant) (Seen, error) {
 }
 
 // see is a look with sbx's answer given: running, from the sandboxes sbx
-// listed. It reads the journals' counter before it lists the windows, for
-// the look's cursor (Seen.Cursor).
+// listed. In a variant that reads it, it reads the journals' counter
+// before it lists the windows, for the look's cursor (Looker.Cursor).
 func (k Looker) see(v Variant, running Sandboxes, listed []sbx.Sandbox) (Seen, error) {
-	counter, err := k.Sources.Through()
-	counted := err == nil
+	var c Counter
+	if v.counts {
+		n, err := k.Sources.Through()
+		c = Counter{N: n, Read: err == nil}
+	}
 	ws, err := k.Windows()
 	if err != nil {
 		return Seen{}, &TmuxError{err}
 	}
-	return Seen{Agents: k.Agents(ws, running), Windows: ws, Listed: listed, counter: counter, counted: counted, looker: k, variant: v}, nil
+	return Seen{Agents: k.Agents(ws, running), Windows: ws, Listed: listed, counter: c, variant: v}, nil
 }
 
 // Agents are the agents of the home windows ws, with sbx's answer
@@ -222,12 +232,12 @@ func (k Looker) ask() (Sandboxes, []sbx.Sandbox, error) {
 // and after it in the background at most every SbxEvery, each look taking
 // its latest answer. step is given each look, in the variant of Acting but
 // for how sbx was asked, and whether it is the first; a step that needs the
-// look's cursor takes it (Seen.Cursor) first, before it acts on the look.
+// look's cursor takes it (Looker.Cursor) first, before it acts on the look.
 // A look that fails ends the loop with its error (TmuxError), and
 // so does step. It leaves nothing running but an answer of sbx it waits
 // for, which ends with sbx's time limit and then goes unread.
 func (k Looker) Loop(step func(s Seen, first bool) (done bool, err error)) error {
-	answers := &inBackground{ask: func() Sandboxes {
+	answers := &sbxInBackground{ask: func() Sandboxes {
 		running, _ := k.AskSbx()
 		return running
 	}}
@@ -243,10 +253,10 @@ func (k Looker) Loop(step func(s Seen, first bool) (done bool, err error)) error
 	}
 }
 
-// inBackground asks sbx which sandboxes run at most every SbxEvery, in the
-// background, and gives the latest answer (which says nothing when sbx
+// sbxInBackground asks sbx which sandboxes run at most every SbxEvery, in
+// the background, and gives the latest answer (which says nothing when sbx
 // could not say, and changes no agent then).
-type inBackground struct {
+type sbxInBackground struct {
 	ask     func() Sandboxes
 	answers chan Sandboxes
 	asked   time.Time
@@ -255,7 +265,7 @@ type inBackground struct {
 }
 
 // running is sbx's latest answer at now; wait asks and waits for the answer.
-func (b *inBackground) running(now time.Time, wait bool) Sandboxes {
+func (b *sbxInBackground) running(now time.Time, wait bool) Sandboxes {
 	if wait {
 		b.latest, b.asked = b.ask(), now
 		return b.latest
@@ -298,33 +308,35 @@ func (k Looker) withoutKilled(as []Agent) []Agent {
 }
 
 // Counter is what the journals' counter held before the look listed the
-// windows, and whether it could be read.
-func (s Seen) Counter() (int64, bool) { return s.counter, s.counted }
+// windows.
+func (s Seen) Counter() Counter { return s.counter }
 
-// Cursor is the number the look's cursor stands for (ADR 0019): the lowest
-// counter among its last reads of the agents' journals, so it saw every
-// change of theirs numbered up to it, whatever other processes numbered
-// meanwhile. It is the counter before the look listed the windows when
-// that is all it can vouch for: no journal was read, one could not be, or
-// an agent's window appeared while it looked (listed again, for that),
-// whose changes it did not see but which are all numbered after that.
-func (s Seen) Cursor() int64 {
-	n, ok := SeenThrough(s.Agents)
-	if !ok || n <= s.counter {
-		return s.counter
+// Cursor is the number the cursor of look s stands for (ADR 0019): the
+// lowest counter among its last reads of the agents' journals, so it saw
+// every change of theirs numbered up to it, whatever other processes
+// numbered meanwhile, once tmux, asked again, lists no agent's window that
+// s did not. It is the counter before s listed the windows when that is
+// all it can vouch for: its reads are not past it (with tmux not asked),
+// as when no journal was read or one could not be, or an agent's window
+// appeared while it looked, whose changes it did not see but which are all
+// numbered after that.
+func (k Looker) Cursor(s Seen) int64 {
+	n := SeenThrough(s.Agents)
+	if n <= s.counter.N {
+		return s.counter.N
 	}
-	ws, err := s.looker.Windows()
-	if err != nil || Appeared(s.Windows, ws) {
-		return s.counter
+	ws, err := k.Windows()
+	if err != nil || appeared(s.Windows, ws) {
+		return s.counter.N
 	}
 	return n
 }
 
-// CoverLooks bounds the looks of Covered: agents that keep changing still
+// CoverLooks bounds the looks of Cover: agents that keep changing still
 // get a list.
 const CoverLooks = 3
 
-// Covered is the look, or a later one in the same variant, whose cursor
+// Cover gives look s, or a later one in the same variant, whose cursor
 // stands for every agent it shows, with that cursor (hq ls --json): a look
 // may show an agent at a change numbered above its cursor (evidence it
 // appended for that agent after it read another), which a wait from that
@@ -332,14 +344,14 @@ const CoverLooks = 3
 // again, with no second look, up to CoverLooks looks in all, and gives
 // the last. A command delivers what waits before it covers, so the looks
 // again show what the delivery changed.
-func (s Seen) Covered() (Seen, int64, error) {
-	cursor := s.Cursor()
+func (k Looker) Cover(s Seen) (Seen, int64, error) {
+	cursor := k.Cursor(s)
 	for n := 1; n < CoverLooks && above(s.Agents, cursor); n++ {
 		var err error
-		if s, err = s.looker.once(s.variant); err != nil {
+		if s, err = k.once(s.variant); err != nil {
 			return Seen{}, 0, err
 		}
-		cursor = s.Cursor()
+		cursor = k.Cursor(s)
 	}
 	return s, cursor, nil
 }
@@ -353,9 +365,9 @@ func above(as []Agent, cursor int64) bool {
 	})
 }
 
-// Appeared reports whether after holds the home window of an agent that
+// appeared reports whether after holds the home window of an agent that
 // before does not.
-func Appeared(before, after []tmux.Window) bool {
+func appeared(before, after []tmux.Window) bool {
 	for _, w := range after {
 		id := w.Options["id"]
 		if id != "" && !slices.ContainsFunc(before, func(b tmux.Window) bool { return b.Options["id"] == id }) {
@@ -373,7 +385,7 @@ func (s Seen) CursorOf(a Agent) int64 {
 	if n := a.Through(); n != 0 {
 		return n
 	}
-	return s.counter
+	return s.counter.N
 }
 
 // Named is the agent of the look named name, or the refusal that no agent
@@ -394,15 +406,6 @@ func (s Seen) Usable(name string) (Agent, error) {
 		return a, err
 	}
 	return a, a.Refusal()
-}
-
-// Refusal is the refusal of an outdated agent (OutdatedError), nil for
-// any other.
-func (a Agent) Refusal() error {
-	if a.Outdated() {
-		return &OutdatedError{Agent: a}
-	}
-	return nil
 }
 
 // CounterBefore is the counter for a change an hq command is about to

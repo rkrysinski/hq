@@ -195,26 +195,27 @@ type sendOutput struct {
 
 // findAgent is the agent named name in a look at the agents as hq send
 // and hq answer take it (agent.Acting), turns the user ended included, or
-// the refusal that none is.
+// the refusal that none is (agent.Seen.Named).
 func findAgent(d deps, name string) (agent.Agent, error) {
+	return actingAgent(d, name, agent.Seen.Named)
+}
+
+// usableAgent is findAgent refusing an outdated agent too
+// (agent.Seen.Usable).
+func usableAgent(d deps, name string) (agent.Agent, error) {
+	return actingAgent(d, name, agent.Seen.Usable)
+}
+
+// actingAgent is the agent named name in a look as hq send and hq answer
+// take it (agent.Acting), as pick gives it from the look, or pick's
+// refusal.
+func actingAgent(d deps, name string, pick func(agent.Seen, string) (agent.Agent, error)) (agent.Agent, error) {
 	seen, err := d.looker().Look(agent.Acting)
 	if err != nil {
 		return agent.Agent{}, lookErr(err)
 	}
-	a, err := seen.Named(name)
+	a, err := pick(seen, name)
 	if err != nil {
-		return a, refusalErr(err)
-	}
-	return a, nil
-}
-
-// usableAgent is findAgent refusing an outdated agent too.
-func usableAgent(d deps, name string) (agent.Agent, error) {
-	a, err := findAgent(d, name)
-	if err != nil {
-		return a, err
-	}
-	if err := a.Refusal(); err != nil {
 		return a, refusalErr(err)
 	}
 	return a, nil

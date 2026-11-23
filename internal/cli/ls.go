@@ -56,7 +56,7 @@ func runLs(env Env, d deps, args []string) error {
 	}
 	var cursor int64
 	if asJSON {
-		if seen, cursor, err = seen.Covered(); err != nil {
+		if seen, cursor, err = d.looker().Cover(seen); err != nil {
 			return lookErr(err)
 		}
 	}

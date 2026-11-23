@@ -182,10 +182,10 @@ type Hint struct{ Key, Label string }
 // Timing of the list's look loop (design §5.1); its looks and its asking
 // of sbx keep the rhythm of agent.LoopEvery and agent.SbxEvery.
 const (
-	tickEvery   = agent.LoopEvery
-	sbxEvery    = int(agent.SbxEvery / agent.LoopEvery) // ticks
-	updateEvery = time.Hour
-	prEvery     = time.Minute
+	lookEvery     = agent.LoopEvery
+	sbxEveryLooks = int(agent.SbxEvery / agent.LoopEvery)
+	updateEvery   = time.Hour
+	prEvery       = time.Minute
 	// errFor is how long a row action's error shows, unless a key clears it
 	// first; then the scroll hint is back.
 	errFor = 5 * time.Second
@@ -202,8 +202,9 @@ const (
 	// least one poll failed or timed out.
 	sbxStale = 8 * time.Second
 	// generationEvery is how often the list looks at the hq on disk: an
-	// update to another generation is taken over within 5 s (design §3.11).
-	generationEvery = 8 // ticks
+	// update to another generation is taken over within 5 s (design §3.11),
+	// in looks of the list.
+	generationEvery = 8
 )
 
 // Rows is how many agents the list shows: 6, or 3 in a terminal below 24
@@ -221,7 +222,7 @@ func Rows(terminalHeight int) int {
 func Height(terminalHeight int) int { return Rows(terminalHeight) + 4 }
 
 type (
-	tickMsg   struct{}
+	lookMsg   struct{}
 	agentsMsg struct {
 		agents []agent.Agent
 		err    error
@@ -307,7 +308,7 @@ type Model struct {
 	live  map[string]time.Time
 
 	width, height int
-	ticks         int
+	looks         int       // the looks of its look loop so far
 	polling       bool      // an sbx poll is under way
 	delivering    bool      // a round of Source.Deliver is under way
 	polled        time.Time // when sbx last answered
@@ -492,7 +493,7 @@ func (m *Model) show(i int) {
 
 func (m Model) Init() tea.Cmd {
 	m.src.Footer(m.hints())
-	return tea.Batch(m.collect(), m.poll(), m.checkUpdate(), tick(), prTick())
+	return tea.Batch(m.collect(), m.poll(), m.checkUpdate(), nextLook(), prTick())
 }
 
 func prTick() tea.Cmd { return tea.Tick(prEvery, func(time.Time) tea.Msg { return prTickMsg{} }) }
@@ -541,7 +542,8 @@ func (m Model) pr(a agent.Agent) (gh.PR, bool) {
 	return p, ok && a.Branch != ""
 }
 
-func tick() tea.Cmd { return tea.Tick(tickEvery, func(time.Time) tea.Msg { return tickMsg{} }) }
+// nextLook is the next look of the list's look loop, lookEvery from now.
+func nextLook() tea.Cmd { return tea.Tick(lookEvery, func(time.Time) tea.Msg { return lookMsg{} }) }
 
 func (m *Model) collect() tea.Cmd {
 	running := m.running
@@ -625,13 +627,13 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		m.src.Layout()
 		m.src.Footer(m.hints())
 		m.show(m.cursorRow)
-	case tickMsg:
-		m.ticks++
-		cmds := []tea.Cmd{m.collect(), tick()}
-		if m.ticks%sbxEvery == 0 {
+	case lookMsg:
+		m.looks++
+		cmds := []tea.Cmd{m.collect(), nextLook()}
+		if m.looks%sbxEveryLooks == 0 {
 			cmds = append(cmds, m.poll())
 		}
-		if m.ticks%generationEvery == 0 {
+		if m.looks%generationEvery == 0 {
 			cmds = append(cmds, m.checkGeneration())
 		}
 		return m, tea.Batch(cmds...)

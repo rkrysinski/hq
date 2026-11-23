@@ -53,7 +53,8 @@ func TestExplainTypesInNoMessageLeftWaiting(t *testing.T) {
 }
 
 // The chords and docking as the dashboard is entered take a look that asks
-// sbx nothing: they read what the agents' journals and screens show.
+// sbx nothing: they read what the agents' journals and screens show. hq ls
+// on the same fakes asks it, so the sbx that counts was in place.
 func TestTheChordsAndDockingOnEntryAskSbxNothing(t *testing.T) {
 	for _, args := range [][]string{{"__chord", "next"}, {"__chord", "previous"}, {"__chord", "attention"}, {}, {"dash"}} {
 		f := chordFakes()
@@ -64,6 +65,9 @@ func TestTheChordsAndDockingOnEntryAskSbxNothing(t *testing.T) {
 		}
 		if len(asked) != 0 {
 			t.Fatalf("%v: asked sbx %d times", args, len(asked))
+		}
+		if code, errOut, asked := f.runAskingSbx("ls"); code != ExitOK || len(asked) == 0 {
+			t.Fatalf("%v: hq ls after it: exit %d %q, asked sbx %d times: the sbx that counts took no hold", args, code, errOut, len(asked))
 		}
 	}
 }

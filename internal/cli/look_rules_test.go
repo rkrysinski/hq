@@ -22,7 +22,7 @@ import (
 // showing a dialog of Claude's own that changes at every look, which the
 // look appends for b after it has read a: every look shows b at a change
 // numbered above its cursor, so hq ls --json looks again
-// (agent.Seen.Covered). looks counts the looks (each reads the counter
+// (agent.Looker.Cover). looks counts the looks (each reads the counter
 // once, before it lists the windows).
 func changingDialogOnB(t *testing.T, looks *int) *fakes {
 	f := newWaitFakes()

@@ -190,8 +190,9 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 		clock  stallClock
 		end    sendEnd
 	)
-	err := d.looker().Loop(func(s agent.Seen, _ bool) (bool, error) {
-		next := s.Cursor() // taken before what waits is typed in, as hq wait takes it
+	k := d.looker()
+	err := k.Loop(func(s agent.Seen, _ bool) (bool, error) {
+		next := k.Cursor(s) // taken before what waits is typed in, as hq wait takes it
 		i := slices.IndexFunc(s.Agents, func(b agent.Agent) bool { return b.ID == w.agent.ID })
 		others := slices.Clone(s.Agents)
 		if i >= 0 {

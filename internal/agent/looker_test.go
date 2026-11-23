@@ -24,15 +24,17 @@ import (
 // lookerStore is the journals' store of a Looker's tests (memStore), with
 // what its reads of agent id's journal give (through, by id, the counter of
 // the latest), a hook run as a look reads one (onRead, e.g. another process
-// numbering a change meanwhile), journals that cannot be read and a counter
-// that cannot be read on its own.
+// numbering a change meanwhile), journals that cannot be read, a counter
+// that cannot be read on its own, and how many times the counter was read
+// on its own.
 type lookerStore struct {
 	*memStore
-	mu         sync.Mutex
-	through    map[string]int64
-	onRead     func(id string)
-	unreadable map[string]bool
-	noCounter  bool
+	mu          sync.Mutex
+	through     map[string]int64
+	onRead      func(id string)
+	unreadable  map[string]bool
+	noCounter   bool
+	counterRead int
 }
 
 func (s *lookerStore) ReadFrom(id string, from int64) (journal.Journal, error) {
@@ -50,6 +52,9 @@ func (s *lookerStore) ReadFrom(id string, from int64) (journal.Journal, error) {
 }
 
 func (s *lookerStore) Through() (int64, error) {
+	s.mu.Lock()
+	s.counterRead++
+	s.mu.Unlock()
 	if s.noCounter {
 		return 0, errors.New("the state directory is locked")
 	}
@@ -247,7 +252,10 @@ func TestALookLeavesOutAnAgentKilledWhileItLooked(t *testing.T) {
 
 // A look reads the journals' counter before it lists the windows
 // (Seen.Counter): a change another process numbers while tmux lists them
-// is after it. A counter that cannot be read is not counted.
+// is after it. A counter that cannot be read is not read. The looks of
+// hq update and of the chords and docking (Updating, Docking) read no
+// counter, as those commands read none before the Looker; the others read
+// it once a look.
 func TestALookReadsTheCounterBeforeItListsTheWindows(t *testing.T) {
 	f := newLookerFakes()
 	f.done("1")
@@ -260,13 +268,34 @@ func TestALookReadsTheCounterBeforeItListsTheWindows(t *testing.T) {
 		return windows()
 	}
 	s, err := k.Look(Shown)
-	if n, counted := s.Counter(); err != nil || n != before || !counted || f.counter(t) != before+1 {
-		t.Fatalf("counter %d %v, want %d, the counter before the windows (%d now): %v", n, counted, before, f.counter(t), err)
+	if c := s.Counter(); err != nil || c.N != before || !c.Read || f.counter(t) != before+1 {
+		t.Fatalf("counter %+v, want %d, the counter before the windows (%d now): %v", c, before, f.counter(t), err)
 	}
 
 	f.store.noCounter = true
-	if _, counted := f.look(t, Shown).Counter(); counted {
-		t.Fatal("a counter that cannot be read counted")
+	if c := f.look(t, Shown).Counter(); c.Read {
+		t.Fatalf("a counter that cannot be read read: %+v", c)
+	}
+
+	for _, tc := range []struct {
+		name  string
+		v     Variant
+		reads bool
+	}{
+		{"Shown", Shown, true},
+		{"Explained", Explained, true},
+		{"Acting", Acting, true},
+		{"Updating", Updating, false},
+		{"Docking", Docking, false},
+	} {
+		f := newLookerFakes()
+		f.done("1")
+		f.look(t, tc.v)
+		f.store.counterRead = 0
+		c := f.look(t, tc.v).Counter()
+		if read := f.store.counterRead == 1 && c.Read && c.N == f.counter(t); read != tc.reads || !read && (f.store.counterRead != 0 || c != Counter{}) {
+			t.Errorf("%s: the counter read %d times, the look's %+v (the counter %d), want it read: %v", tc.name, f.store.counterRead, c, f.counter(t), tc.reads)
+		}
 	}
 }
 
@@ -363,13 +392,13 @@ func ownDialog(n int) string {
 	return "● hi\n" + strings.Repeat("▔", 40) + "\n   Change effort level " + strconv.Itoa(n) + "?\n\n   ❯ 1. Yes, switch to max\n     2. No, go back\n"
 }
 
-// The look's cursor (Seen.Cursor, ADR 0019) stands for no change the look
+// The look's cursor (Looker.Cursor, ADR 0019) stands for no change the look
 // did not see: the lowest counter of its reads of the agents' journals,
 // once the windows listed again show that no agent appeared meanwhile; the
 // counter before it listed the windows when its reads are not past it
 // (with no listing again), when an agent appeared or tmux cannot list them
 // again, and when a journal could not be read. An outdated agent, whose
-// journal is not read, does not count. Covered looks again, up to
+// journal is not read, does not count. Cover looks again, up to
 // CoverLooks looks in all, until the cursor stands for every agent the
 // look shows (hq ls --json, #166), and fails as a look again fails.
 func TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows(t *testing.T) {
@@ -397,18 +426,18 @@ func TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows(t *testing.T
 	f.look(t, Shown)
 	f.listed = 0
 	s := f.look(t, Shown)
-	if n, _ := s.Counter(); s.Cursor() != n || f.listed != 1 {
-		t.Fatalf("quiet: cursor %d, counter %d, windows listed %d times", s.Cursor(), n, f.listed)
+	if n, cursor := s.Counter().N, f.looker().Cursor(s); cursor != n || f.listed != 1 {
+		t.Fatalf("quiet: cursor %d, counter %d, windows listed %d times", cursor, n, f.listed)
 	}
 
 	f, s = racing(func(*lookerFakes) {})
 	lowest, highest := f.store.readThrough("a1"), f.store.readThrough("a2")
-	if n, _ := s.Counter(); s.Cursor() != lowest || lowest <= n || lowest >= highest || f.listed != 1 {
-		t.Fatalf("read past the counter: cursor %d, want %d, the lowest read (highest %d, counter %d); windows listed again %d times", s.Cursor(), lowest, highest, n, f.listed)
+	if n, cursor := s.Counter().N, f.looker().Cursor(s); cursor != lowest || lowest <= n || lowest >= highest || f.listed != 1 {
+		t.Fatalf("read past the counter: cursor %d, want %d, the lowest read (highest %d, counter %d); windows listed again %d times", cursor, lowest, highest, n, f.listed)
 	}
 	f, s = racing(func(f *lookerFakes) { f.outdated("3") })
-	if s.Cursor() != f.store.readThrough("a1") {
-		t.Fatalf("an outdated agent aside: cursor %d, want %d", s.Cursor(), f.store.readThrough("a1"))
+	if cursor := f.looker().Cursor(s); cursor != f.store.readThrough("a1") {
+		t.Fatalf("an outdated agent aside: cursor %d, want %d", cursor, f.store.readThrough("a1"))
 	}
 	for name, meanwhile := range map[string]func(f *lookerFakes){
 		"an agent appeared":           func(f *lookerFakes) { f.windows = append(f.windows, lookWindow("4")) },
@@ -416,13 +445,13 @@ func TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows(t *testing.T
 	} {
 		f, s := racing(func(*lookerFakes) {})
 		meanwhile(f)
-		if n, _ := s.Counter(); s.Cursor() != n {
-			t.Errorf("%s: cursor %d, want %d, the counter before the windows", name, s.Cursor(), n)
+		if n, cursor := s.Counter().N, f.looker().Cursor(s); cursor != n {
+			t.Errorf("%s: cursor %d, want %d, the counter before the windows", name, cursor, n)
 		}
 	}
 	f, s = racing(func(f *lookerFakes) { f.done("3"); f.store.unreadable["a3"] = true })
-	if n, _ := s.Counter(); s.Cursor() != n {
-		t.Fatalf("a journal unread: cursor %d, want %d", s.Cursor(), n)
+	if n, cursor := s.Counter().N, f.looker().Cursor(s); cursor != n || f.listed != 0 {
+		t.Fatalf("a journal unread: cursor %d, want %d; windows listed again %d times", cursor, n, f.listed)
 	}
 
 	// b's screen shows a dialog of Claude's own, which a look appends for b
@@ -445,9 +474,9 @@ func TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows(t *testing.T
 		return f
 	}
 	f = dialogOnA2(false)
-	covered, cursor, err := f.look(t, Shown).Covered()
-	if err != nil || len(f.asked) != 2 || cursor != covered.Cursor() {
-		t.Fatalf("covering: %d looks, cursor %d (the last look's %d): %v", len(f.asked), cursor, covered.Cursor(), err)
+	covered, cursor, err := f.looker().Cover(f.look(t, Shown))
+	if last := f.looker().Cursor(covered); err != nil || len(f.asked) != 2 || cursor != last {
+		t.Fatalf("covering: %d looks, cursor %d (the last look's %d): %v", len(f.asked), cursor, last, err)
 	}
 	for _, a := range covered.Agents {
 		if seq, ok := a.StateSeq(); !ok || seq > cursor {
@@ -455,14 +484,14 @@ func TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows(t *testing.T
 		}
 	}
 	f = dialogOnA2(true)
-	if covered, _, err := f.look(t, Shown).Covered(); err != nil || len(f.asked) != CoverLooks || len(covered.Agents) != 2 {
+	if covered, _, err := f.looker().Cover(f.look(t, Shown)); err != nil || len(f.asked) != CoverLooks || len(covered.Agents) != 2 {
 		t.Fatalf("changing at every look: %d looks, want %d; %s: %v", len(f.asked), CoverLooks, names(covered.Agents), err)
 	}
 	f = dialogOnA2(false)
 	s = f.look(t, Shown)
 	f.windowsErr = errors.New("tmux gone")
 	var tmuxErr *TmuxError
-	if _, _, err := s.Covered(); !errors.As(err, &tmuxErr) {
+	if _, _, err := f.looker().Cover(s); !errors.As(err, &tmuxErr) {
 		t.Fatalf("a look again failing: %v", err)
 	}
 }
@@ -483,7 +512,7 @@ func TestAnAgentsCursorIsTheCounterOfTheLooksReadOfItsJournal(t *testing.T) {
 		}
 	}
 	s := f.look(t, Shown)
-	n, _ := s.Counter()
+	n := s.Counter().N
 	for name, want := range map[string]int64{"a1": f.store.readThrough("a1"), "a2": f.store.readThrough("a2"), "a3": n} {
 		if got := s.CursorOf(named(t, s.Agents, name)); got != want {
 			t.Errorf("%s: cursor %d, want %d", name, got, want)
@@ -635,17 +664,20 @@ func TestTheLookLoopLooksEvery250msAndAsksSbxInTheBackgroundOnceASecond(t *testi
 		t.Fatalf("a2 ended at look %d, want after 1s and before 2s: %+v", ended, steps)
 	}
 
-	looks := 0
-	stop := errors.New("the step fails")
-	// Each step ends a loop that went on past it all the same.
-	if err := f.looker().Loop(func(Seen, bool) (bool, error) { looks++; return looks > 3, stop }); err != stop || looks != 1 {
-		t.Fatalf("a step failing: %v after %d looks", err, looks)
+	// A step that fails ends the loop at that look, though it is not
+	// done; a look that fails ends it before any step. Each step below is
+	// done at its third look, so that a loop that went on ends all the same.
+	failing := errors.New("the step fails")
+	ran := 0
+	if err := f.looker().Loop(func(Seen, bool) (bool, error) { ran++; return ran == 3, failing }); err != failing || ran != 1 {
+		t.Fatalf("a step failing: %v after %d steps, want it after 1", err, ran)
 	}
 	f.mu.Lock()
 	f.windowsErr = errors.New("tmux gone")
 	f.mu.Unlock()
 	var tmuxErr *TmuxError
-	if err := f.looker().Loop(func(Seen, bool) (bool, error) { looks++; return looks > 3, nil }); !errors.As(err, &tmuxErr) || looks != 1 {
-		t.Fatalf("a look failing: %v after %d looks", err, looks)
+	ran = 0
+	if err := f.looker().Loop(func(Seen, bool) (bool, error) { ran++; return ran == 3, nil }); !errors.As(err, &tmuxErr) || ran != 0 {
+		t.Fatalf("a look failing: %v after %d steps, want it before any", err, ran)
 	}
 }
