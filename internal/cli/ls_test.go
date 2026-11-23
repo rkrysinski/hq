@@ -147,9 +147,13 @@ func TestLsJSONHasTheSameFields(t *testing.T) {
 	if r["state_seq"] != 1.0 || r["completion_seq"] != 1.0 {
 		t.Fatalf("numbers %v %v", r["state_seq"], r["completion_seq"])
 	}
-	if r["name"] != "a" || r["repo"] != "app" || r["state"] != "question" || r["age_seconds"] != 90.0 || r["branch"] != "" || r["last"] != long ||
+	if r["name"] != "a" || r["repo"] != "app" || r["state"] != "question" || r["age_seconds"] != 90.0 || r["branch"] != "" || r["last"] != long[:119]+"…" ||
 		r["since"] != "2026-09-27T11:58:30Z" || r["pending"] != 2.0 {
 		t.Fatalf("row %v", r)
+	}
+	// last is cut to 120 characters (#291); what it asks stays whole.
+	if asks, _ := r["asks"].(map[string]any); asks["message"] != long {
+		t.Fatalf("asks %v", r["asks"])
 	}
 }
 
