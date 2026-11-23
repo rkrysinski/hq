@@ -391,6 +391,8 @@ type lookSources struct {
 	withdraw func(root, id string) error
 }
 
+func (s lookSources) Windows() ([]tmux.Window, error) { return s.windows() }
+
 func (s lookSources) Screens(panes []string) (map[string]string, error) { return s.screens(panes) }
 
 func (s lookSources) Withdraw(root, id string) error { return s.withdraw(root, id) }
@@ -405,14 +407,14 @@ func (s lookSources) WindowStands(w string) bool {
 }
 
 // sources are the look's sources of these dependencies.
-func (d deps) sources() agent.Sources {
+func (d deps) sources() agent.LookerSources {
 	return lookSources{d.journal, d.tmux.Windows, d.tmux.Screens, d.withdraw}
 }
 
 // looker takes the look of a command that takes one and returns
 // (agent.Looker), from these dependencies.
 func (d deps) looker() agent.Looker {
-	return agent.Looker{Windows: d.tmux.Windows, Sources: d.sources(), Sandboxes: d.pollSandboxes, Now: d.now, Sleep: d.sleep, Folds: d.folds}
+	return agent.Looker{Sources: d.sources(), Sandboxes: d.pollSandboxes, Now: d.now, Sleep: d.sleep, Folds: d.folds}
 }
 
 // lookErr is the error of a look that failed (agent.Looker.Look) as a

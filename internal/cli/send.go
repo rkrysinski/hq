@@ -129,7 +129,7 @@ func runSend(env Env, d deps, args []string) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	a, err := usableAgent(d, s.name)
+	a, err := actingAgent(d, s.name, agent.Seen.Usable)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func runSend(env Env, d deps, args []string) error {
 	// slash command of its own that starts no turn, which makes it done (#220).
 	for deadline := d.now().Add(limit(startWait)); a.State == state.Starting && d.now().Before(deadline); {
 		d.sleep(pollEvery)
-		if a, err = findAgent(d, s.name); err != nil {
+		if a, err = actingAgent(d, s.name, agent.Seen.Named); err != nil {
 			return err
 		}
 	}
@@ -193,22 +193,11 @@ type sendOutput struct {
 	NextSince string `json:"next_since"`
 }
 
-// findAgent is the agent named name in a look at the agents as hq send
-// and hq answer take it (agent.Acting), turns the user ended included, or
-// the refusal that none is (agent.Seen.Named).
-func findAgent(d deps, name string) (agent.Agent, error) {
-	return actingAgent(d, name, agent.Seen.Named)
-}
-
-// usableAgent is findAgent refusing an outdated agent too
-// (agent.Seen.Usable).
-func usableAgent(d deps, name string) (agent.Agent, error) {
-	return actingAgent(d, name, agent.Seen.Usable)
-}
-
 // actingAgent is the agent named name in a look as hq send and hq answer
-// take it (agent.Acting), as pick gives it from the look, or pick's
-// refusal.
+// take it (agent.Acting), turns the user ended included, as pick gives it
+// from the look (agent.Seen.Named, or agent.Seen.Usable, which refuses an
+// outdated agent too), or pick's refusal: the look's failure and the
+// refusal as the command's errors (lookErr, refusalErr).
 func actingAgent(d deps, name string, pick func(agent.Seen, string) (agent.Agent, error)) (agent.Agent, error) {
 	seen, err := d.looker().Look(agent.Acting)
 	if err != nil {

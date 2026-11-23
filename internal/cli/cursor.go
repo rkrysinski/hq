@@ -73,10 +73,6 @@ func aheadErr(s since) error {
 	return usageErr("--since '%s' is ahead of every change hq has numbered on this host (was its state directory lost?): take a new one from hq ls --json", cursorText(s.cursor))
 }
 
-// cursorBefore is the cursor for a change an hq command is about to cause
-// in agent a (a message, an answer; agent.Looker.CounterBefore).
-func cursorBefore(d deps, a agent.Agent) string { return cursorText(d.looker().CounterBefore(a)) }
-
 // seqs are an agent's two numbers as JSON gives them: null for none.
 func seqs(a agent.Agent) (stateSeq, completionSeq *int64) {
 	if n, ok := a.StateSeq(); ok {
