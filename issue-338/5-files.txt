@@ -1,0 +1,18 @@
+$ git diff --name-status spec-336-one-look-module HEAD
+M	docs/design/hq.md
+M	internal/agent/looker.go
+M	internal/cli/cursor.go
+M	internal/cli/dash.go
+M	internal/cli/deps.go
+A	internal/cli/look_loop_test.go
+M	internal/cli/ls.go
+M	internal/cli/sendwait.go
+M	internal/cli/wait.go
+M	internal/dash/dash.go
+
+$ git diff --name-status --diff-filter=MDR spec-336-one-look-module HEAD -- '*_test.go' docs/adr   # test files or ADRs changed
+(none)
+
+$ git log --oneline spec-336-one-look-module..HEAD
+6dd1bd9 Check hq wait's asking of sbx in the background and a look that fails
+8435a56 Take the look loop and the rhythm's figures from the look module

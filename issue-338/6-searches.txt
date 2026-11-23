@@ -1,0 +1,58 @@
+# F = internal/cli/ls.go internal/cli/read.go internal/cli/explain.go internal/cli/send.go internal/cli/sendwait.go internal/cli/answer.go internal/cli/update.go internal/cli/chord.go internal/cli/dash.go internal/cli/wait.go internal/cli/cursor.go internal/cli/deps.go
+
+$ git grep -n -E 'agent\.Look\(|\.Agents\(ws|d\.look\(|lookWith\(|withoutKilled\(|asked := |SandboxesOf\(|pollSandboxes\(\)|no agent ' -- $F
+internal/cli/dash.go:176:		return fmt.Errorf("no agent '%s'", name)
+internal/cli/dash.go:286:			as := d.looker().Agents(ws, running)
+
+$ git grep -n -E '\.Through\(\)' -- internal/cli ':!*_test.go'
+internal/cli/wait.go:141:				if n, err := d.journal.Through(); err == nil {
+
+$ git grep -n -E '250 ?\* ?time\.Millisecond|LoopEvery|SbxEvery|\btickEvery\b|\bsbxEvery\b|\bwaitEvery\b' -- '*.go' ':!*_test.go'
+internal/agent/looker.go:127:	// LoopEvery is how often the look loop looks.
+internal/agent/looker.go:128:	LoopEvery = 250 * time.Millisecond
+internal/agent/looker.go:129:	// SbxEvery is how often it asks sbx which sandboxes run; the answer
+internal/agent/looker.go:131:	SbxEvery = time.Second
+internal/agent/looker.go:220:// §5.1): a look every LoopEvery, as the list looks, until step says it is
+internal/agent/looker.go:222:// and after it in the background at most every SbxEvery, each look taking
+internal/agent/looker.go:242:		k.Sleep(LoopEvery)
+internal/agent/looker.go:246:// inBackground asks sbx which sandboxes run at most every SbxEvery, in the
+internal/agent/looker.go:270:	if !b.busy && now.Sub(b.asked) >= SbxEvery {
+internal/cli/read.go:142:const momentSlack = 250 * time.Millisecond
+internal/cli/send.go:18:const pollEvery = 250 * time.Millisecond
+internal/cli/wait.go:21:// waitEvery is how often hq wait looks (agent.LoopEvery).
+internal/cli/wait.go:22:const waitEvery = agent.LoopEvery
+internal/dash/dash.go:183:// of sbx keep the rhythm of agent.LoopEvery and agent.SbxEvery.
+internal/dash/dash.go:185:	tickEvery   = agent.LoopEvery
+internal/dash/dash.go:186:	sbxEvery    = int(agent.SbxEvery / agent.LoopEvery) // ticks
+internal/dash/dash.go:544:func tick() tea.Cmd { return tea.Tick(tickEvery, func(time.Time) tea.Msg { return tickMsg{} }) }
+internal/dash/dash.go:631:		if m.ticks%sbxEvery == 0 {
+
+$ git grep -n -E 'deliverWaiting|Paste|Type\(|Submit|Press|postMessage|takeMessages|SetTitle' -- internal/agent/looker.go
+(no output)
+
+$ diff <(git grep -n -w Stands spec-336-one-look-module -- '*.go' | cut -d: -f2-) <(git grep -n -w Stands -- '*.go') && echo same
+same
+
+$ git grep -n -w Stands -- '*.go'
+internal/agent/look.go:19:	// Stands says whether home window w still stands, tmux asked now; one
+internal/agent/look.go:21:	Stands(w string) bool
+internal/agent/look.go:134:	_, _ = store.AppendEvidence(a.ID, func() bool { return store.Stands(a.Window) }, e)
+internal/agent/look_integration_test.go:25:// Stands says every home window stands.
+internal/agent/look_integration_test.go:26:func (s filesStore) Stands(string) bool { return true }
+internal/agent/look_integration_test.go:123:func (s killingFiles) Stands(string) bool { return !*s.killed }
+internal/agent/look_test.go:53:func (s *memStore) Stands(w string) bool { return !s.gone[w] }
+internal/agent/look_test.go:151:// Stands says every home window stands.
+internal/agent/look_test.go:152:func (s *replayStore) Stands(string) bool { return true }
+internal/cli/deps.go:398:// Stands says whether home window w is among the windows tmux lists now.
+internal/cli/deps.go:402:func (s lookSources) Stands(w string) bool {
+internal/state/journals_integration_test.go:162:// Stands says the agent's home window stands: the fixture's look is at it.
+internal/state/journals_integration_test.go:163:func (s *lookStore) Stands(string) bool { return true }
+
+$ git diff --name-status spec-336-one-look-module HEAD -- docs/adr
+(no output)
+
+$ git diff -U0 spec-336-one-look-module HEAD -- '*.go' | grep '^+' | grep -v '^+++' | grep -i -E 'watch|poll|refresh|tick'
++	d.pollSandboxes = func() ([]sbx.Sandbox, error) {
++	tickEvery   = agent.LoopEvery
++	sbxEvery    = int(agent.SbxEvery / agent.LoopEvery) // ticks
+

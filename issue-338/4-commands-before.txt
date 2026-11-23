@@ -1,0 +1,54 @@
+$ hq wait --timeout 2s
+nothing yet
+next: hq wait --since c8
+exit 0
+$ hq wait nobody
+hq: no agent 'nobody' (see hq ls)
+exit 2
+$ hq wait a nobody --timeout 1s
+hq: no agent 'nobody' (see hq ls)
+exit 2
+$ hq wait --since c999999
+hq: --since 'c999999' is ahead of every change hq has numbered on this host (was its state directory lost?): take a new one from hq ls --json
+exit 1
+$ hq wait --timeout 1s --json
+{
+  "agents": [],
+  "next_since": "c8"
+}
+exit 0
+$ hq send a "say again" --wait --json
+{
+  "delivery": "delivered: typed into a as its next prompt",
+  "outcome": "turn_ended",
+  "agents": [
+    {
+      "name": "a",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-1290936581/repo",
+      "branch": "main",
+      "state": "done",
+      "state_seq": 11,
+      "completion_seq": 11,
+      "since": "2026-11-23T07:49:20.688500606Z",
+      "age_seconds": 0,
+      "last": "Done: say again",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c11"
+}
+exit 0
+$ hq wait --since c8 --timeout 5s
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   1s   Done: say again
+next: hq wait --since c11
+exit 0
+$ hq wait --since c11 --timeout 2s
+nothing yet
+next: hq wait --since c11
+exit 0

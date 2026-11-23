@@ -1,0 +1,32 @@
+# Each line: when the stub sbx was called and with what (SBX_STUB_LOG).
+
+## hq wait --timeout 4s, before (a5cf222): ran 08:48:42.20 .. 08:48:47.04
+08:48:42.960592 ls --json
+08:48:43.985860 ls --json
+08:48:45.007595 ls --json
+08:48:46.024661 ls --json
+08:48:47.043574 ls --json
+
+## hq wait --timeout 4s, after (this branch): ran 08:48:55.11 .. 08:48:59.57
+08:48:55.483702 ls --json
+08:48:56.508799 ls --json
+08:48:57.529289 ls --json
+08:48:58.551491 ls --json
+08:48:59.570995 ls --json
+
+## the commands of 4-commands-*.txt (8 calls: 7 of hq wait, 3 of them refused, and a send --wait), sbx calls in all
+before: 14, after: 14
+
+## the list, 5 s after its screenshot, before: 08:53:04 .. 08:53:09
+08:53:04.534148 ls --json
+08:53:05.536744 ls --json
+08:53:06.540678 ls --json
+08:53:07.543662 ls --json
+08:53:08.548052 ls --json
+
+## the list, 5 s after its screenshot, after: 08:55:40 .. 08:55:45
+08:55:40.114188 ls --json
+08:55:41.119538 ls --json
+08:55:42.120786 ls --json
+08:55:43.125334 ls --json
+08:55:44.128009 ls --json

@@ -1,0 +1,4 @@
+a5cf222 Check the look's cursor, its failures and the counter before a message
+--- PASS: TestWaitAsksSbxBeforeItsFirstLookThenInTheBackgroundOnceASecond (0.01s)
+--- PASS: TestWaitFailsWhenTmuxCannotListTheWindows (0.00s)
+ok  	github.com/rkrysinski/hq/internal/cli	0.011s
