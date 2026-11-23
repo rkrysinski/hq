@@ -62,11 +62,11 @@ func runDash(env Env, d deps, args []string) error {
 // (§6.3). The list's cursor follows the agent docked. A failure leaves the
 // placeholder.
 func dockOnEntry(d deps) {
-	ws, err := d.tmux.Windows()
+	seen, err := d.looker().Look(agent.Docking)
 	if err != nil {
 		return
 	}
-	as := d.look(ws, agent.Sandboxes{})
+	as := seen.Agents
 	cursor, _ := d.tmux.SessionValue("cursor")
 	p := d.loadPrefs()
 	name, ok := dash.EntryDock(as, p.Sort, cursor)

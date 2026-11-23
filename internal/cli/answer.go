@@ -119,12 +119,9 @@ func answer(env Env, d deps, r answerRequest) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	a, err := findAgent(d, r.name)
+	a, err := usableAgent(d, r.name)
 	if err != nil {
 		return err
-	}
-	if a.Outdated() {
-		return outdatedErr(a)
 	}
 	det := a.Detail()
 	if err := answerable(a, det.Ask); err != nil {

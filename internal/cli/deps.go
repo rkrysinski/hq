@@ -409,8 +409,39 @@ func (d deps) sources() agent.Sources {
 	return lookSources{d.journal, d.tmux.Windows, d.tmux.Screens, d.withdraw}
 }
 
+// looker takes the look of a command that takes one and returns
+// (agent.Looker), from these dependencies.
+func (d deps) looker() agent.Looker {
+	return agent.Looker{Windows: d.tmux.Windows, Sources: d.sources(), Sandboxes: d.pollSandboxes, Now: d.now, Sleep: d.sleep, Folds: d.folds}
+}
+
+// lookErr is the error of a look that failed (agent.Looker.Look) as a
+// command's: sbx's or tmux's, as an environment error.
+func lookErr(err error) error {
+	var s *agent.SbxError
+	if errors.As(err, &s) {
+		return sbxErr(s.Err)
+	}
+	var t *agent.TmuxError
+	if errors.As(err, &t) {
+		return tmuxErr(t.Err)
+	}
+	return err
+}
+
+// refusalErr is the look's refusal of an agent by name as a command's:
+// none of that name (exit 2), or an outdated one (agent.NotFoundError,
+// agent.OutdatedError).
+func refusalErr(err error) error {
+	var none *agent.NotFoundError
+	if errors.As(err, &none) {
+		return notFoundErr("%s", err)
+	}
+	return usageErr("%s", err)
+}
+
 // look is a look at the agents of the home windows ws (agent.Look), with
-// sbx's answer running.
+// sbx's answer running, as the list and hq wait take it.
 func (d deps) look(ws []tmux.Window, running agent.Sandboxes) []agent.Agent {
 	return d.withoutKilled(agent.Look(ws, running, d.now(), d.sources(), d.folds))
 }

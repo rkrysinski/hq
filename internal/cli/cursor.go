@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -65,8 +64,12 @@ func (s since) changedAfter(a agent.Agent, seq int64) bool {
 // ahead reports whether s is a cursor hq did not give: above the counter,
 // as after a lost state directory (#166, decision 11). A counter that could
 // not be read refuses nothing.
-func (s since) ahead(l looked) bool {
-	return s.isCursor && l.counted && s.cursor > l.counter
+func (s since) ahead(l looked) bool { return s.aheadOf(l.counter, l.counted) }
+
+// aheadOf is ahead for a look whose counter, before it listed the windows,
+// held counter, counted whether it could be read.
+func (s since) aheadOf(counter int64, counted bool) bool {
+	return s.isCursor && counted && s.cursor > counter
 }
 
 // aheadErr is the refusal of a cursor hq did not give.
@@ -103,31 +106,12 @@ func (l looked) cursor(d deps) int64 {
 }
 
 // agentAppeared reports whether after holds the home window of an agent that
-// before does not.
-func agentAppeared(before, after []tmux.Window) bool {
-	for _, w := range after {
-		id := w.Options["id"]
-		if id != "" && !slices.ContainsFunc(before, func(b tmux.Window) bool { return b.Options["id"] == id }) {
-			return true
-		}
-	}
-	return false
-}
+// before does not (agent.Appeared).
+func agentAppeared(before, after []tmux.Window) bool { return agent.Appeared(before, after) }
 
 // cursorBefore is the cursor for a change an hq command is about to cause
-// in agent a (a message, an answer): what the counter holds now, so what
-// the agent does with it is numbered above it; the counter of a's read
-// when the counter cannot be read now.
-func cursorBefore(d deps, a agent.Agent) string { return cursorText(counterBefore(d, a)) }
-
-// counterBefore is the number cursorBefore's cursor stands for.
-func counterBefore(d deps, a agent.Agent) int64 {
-	n, err := d.journal.Through()
-	if err != nil {
-		n = a.Through()
-	}
-	return n
-}
+// in agent a (a message, an answer; agent.Looker.CounterBefore).
+func cursorBefore(d deps, a agent.Agent) string { return cursorText(d.looker().CounterBefore(a)) }
 
 // seqs are an agent's two numbers as JSON gives them: null for none.
 func seqs(a agent.Agent) (stateSeq, completionSeq *int64) {

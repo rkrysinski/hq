@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"slices"
 	"text/tabwriter"
 	"time"
 
@@ -53,17 +52,17 @@ func runLs(env Env, d deps, args []string) error {
 		}
 		asJSON = true
 	}
-	l, err := gatherAgents(d)
+	seen, err := gatherAgents(d)
 	if err != nil {
 		return err
 	}
-	cursor := l.cursor(d)
+	var cursor int64
 	if asJSON {
-		if l, cursor, err = covered(d, l, cursor); err != nil {
-			return err
+		if seen, cursor, err = seen.Covered(); err != nil {
+			return lookErr(err)
 		}
 	}
-	as := l.agents
+	as := seen.Agents
 	agent.SortAttention(as)
 	rows := lsRows(d, as)
 	if asJSON {
@@ -72,35 +71,8 @@ func runLs(env Env, d deps, args []string) error {
 	return writeTable(env.Stdout, rows)
 }
 
-// coverLooks bounds the looks of hq ls --json (covered): agents that keep
-// changing still get a list.
-const coverLooks = 3
-
-// covered is look l, whose cursor is cursor, or a later look of hq ls's,
-// whose cursor stands for every row it shows: a look may show an agent at a
-// change numbered above its cursor (evidence it appended for that agent
-// after it read another), which a wait from that cursor would return
-// again, though the list showed it (#166). It looks again, up to
-// coverLooks looks in all, and gives the last.
-func covered(d deps, l looked, cursor int64) (looked, int64, error) {
-	for n := 1; n < coverLooks && above(l.agents, cursor); n++ {
-		var err error
-		if l, err = lookNow(d); err != nil {
-			return looked{}, 0, err
-		}
-		cursor = l.cursor(d)
-	}
-	return l, cursor, nil
-}
-
-// above reports whether an agent of as stands at a change numbered above
-// cursor.
-func above(as []agent.Agent, cursor int64) bool {
-	return slices.ContainsFunc(as, func(a agent.Agent) bool {
-		seq, ok := a.StateSeq()
-		return ok && seq > cursor
-	})
-}
+// coverLooks bounds the looks of hq ls --json (agent.CoverLooks).
+const coverLooks = agent.CoverLooks
 
 // lsRows are the agents as hq ls shows them now, in the order given, with
 // how many messages wait for each.
@@ -178,53 +150,31 @@ func asks(a agent.Agent, det state.Detail) *state.Ask {
 	return nil
 }
 
-// gatherAgents gathers the agents as hq ls shows them, once tmux is known to be
-// fit. A working agent's screen at rest may be a turn the user rewound,
-// which it is once it stays so a while (design §3.4): it looks again then,
-// so a single look tells the turn's end at once, like the list. Messages
-// left waiting for agents at their prompt are typed in (deliverWaiting).
-func gatherAgents(d deps) (looked, error) {
-	l, err := lookDecided(d, lookNow)
-	if err != nil {
-		return looked{}, err
-	}
-	deliverWaiting(d, l.agents)
-	return l, nil
-}
-
-// lookDecided takes a look at the agents with look once tmux is known to
-// be fit, and one more RestDelay later when a working agent's screen is at
-// rest, which that look decides (gatherAgents).
-func lookDecided(d deps, look func(deps) (looked, error)) (looked, error) {
+// gatherAgents gathers the agents as hq ls shows them, once tmux is known
+// to be fit: their look (agent.Shown), with messages left waiting for
+// agents at their prompt typed in (deliverWaiting).
+func gatherAgents(d deps) (agent.Seen, error) {
 	if err := checkTmux(d.tmux); err != nil {
-		return looked{}, err
+		return agent.Seen{}, err
 	}
-	l, err := look(d)
+	seen, err := d.looker().Look(agent.Shown)
 	if err != nil {
-		return looked{}, err
+		return agent.Seen{}, lookErr(err)
 	}
-	if resting(l.agents) {
-		d.sleep(agent.RestDelay)
-		return look(d)
-	}
-	return l, nil
+	deliverWaiting(d, seen.Agents)
+	return seen, nil
 }
 
-// lookNow is a look at the agents, their state from tmux, their journals,
-// sbx and their screens (design §5.1, agent.Look). When sbx fails or does
-// not answer in time, the states come from tmux and the hooks alone; an sbx
-// too old for hq fails it (#172).
+// lookNow is a look at the agents in the variant of hq send and hq answer
+// (agent.Acting), for the tests that take one this way.
 func lookNow(d deps) (looked, error) {
-	running, err := askSandboxes(d)
-	if err != nil {
-		return looked{}, sbxErr(err)
-	}
-	return lookWith(d, running)
+	seen, err := d.looker().Look(agent.Acting)
+	return looked{agents: seen.Agents}, lookErr(err)
 }
 
-// lookWith is lookNow with sbx's answer given: which sandboxes run, and
-// when hq asked. It reads the counter before it lists the windows, for
-// the look's cursor (looked.cursor).
+// lookWith is the look of hq wait and hq send --wait, with sbx's answer
+// given: which sandboxes run, and when hq asked. It reads the counter
+// before it lists the windows, for the look's cursor (looked.cursor).
 func lookWith(d deps, running agent.Sandboxes) (looked, error) {
 	counter, err := d.journal.Through()
 	counted := err == nil
@@ -257,17 +207,6 @@ func askSandboxes(d deps) (agent.Sandboxes, error) {
 		return agent.Sandboxes{}, nil
 	}
 	return agent.SandboxesOf(sbs, asked), nil
-}
-
-// resting reports whether a working agent's screen is at rest in a way one
-// more look decides (agent.Resting), not yet for long enough.
-func resting(as []agent.Agent) bool {
-	for _, a := range as {
-		if a.Resting() {
-			return true
-		}
-	}
-	return false
 }
 
 // lastWidth is how much of the last message hq ls shows; --json has it all.

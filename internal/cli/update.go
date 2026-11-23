@@ -174,21 +174,16 @@ func mayUpdate(d deps, tag string, gen int, published bool) error {
 // not answer in time or is too old, hq cannot know the lost agents, and
 // that is the error.
 func agentsInTheWay(d deps) ([]string, *Error) {
-	asked := d.now()
-	all, err := d.pollSandboxes()
+	seen, err := d.looker().Look(agent.Updating)
 	if err != nil {
-		return nil, asError(sbxErr(err))
-	}
-	ws, err := d.tmux.Windows()
-	if err != nil {
-		return nil, asError(tmuxErr(err))
+		return nil, asError(lookErr(err))
 	}
 	var in []string
-	for _, a := range d.look(ws, agent.SandboxesOf(all, asked)) {
+	for _, a := range seen.Agents {
 		in = append(in, a.Name+" ("+a.State+")")
 	}
-	roots := knownRepositories(d, all)
-	for _, a := range lostAgents(d, ws, roots) {
+	roots := knownRepositories(d, seen.Listed)
+	for _, a := range lostAgents(d, seen.Windows, roots) {
 		in = append(in, a.Name+" (lost)")
 	}
 	for _, r := range elsewhere(d, roots) {
