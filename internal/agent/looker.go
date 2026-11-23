@@ -19,16 +19,23 @@ import (
 // command tests already fake: tmux, the journals' store, sbx's answer and
 // the clock.
 type Looker struct {
-	// Windows lists the home windows, tmux asked now.
-	Windows func() ([]tmux.Window, error)
-	// Sources are where the look reads and appends.
-	Sources Sources
+	// Sources are where the look reads and appends, and the home windows
+	// it looks at.
+	Sources LookerSources
 	// Sandboxes asks sbx which sandboxes there are, within a time limit.
 	Sandboxes func() ([]sbx.Sandbox, error)
 	Now       func() time.Time
 	Sleep     func(time.Duration)
 	// Folds keeps the journals folded for this process (Look).
 	Folds *Folds
+}
+
+// LookerSources are where a Looker's look reads and appends (Sources),
+// with the home windows it looks at.
+type LookerSources interface {
+	Sources
+	// Windows lists the home windows, tmux asked now.
+	Windows() ([]tmux.Window, error)
 }
 
 // A Variant is how a command's look differs from another's: whether it
@@ -173,7 +180,7 @@ func (k Looker) see(v Variant, running Sandboxes, listed []sbx.Sandbox) (Seen, e
 		n, err := k.Sources.Through()
 		c = Counter{N: n, Read: err == nil}
 	}
-	ws, err := k.Windows()
+	ws, err := k.Sources.Windows()
 	if err != nil {
 		return Seen{}, &TmuxError{err}
 	}
@@ -298,7 +305,7 @@ func (k Looker) withoutKilled(as []Agent) []Agent {
 	if !slices.ContainsFunc(as, Agent.JournalGone) {
 		return as
 	}
-	ws, err := k.Windows()
+	ws, err := k.Sources.Windows()
 	if err != nil {
 		return as
 	}
@@ -325,7 +332,7 @@ func (k Looker) Cursor(s Seen) int64 {
 	if n <= s.counter.N {
 		return s.counter.N
 	}
-	ws, err := k.Windows()
+	ws, err := k.Sources.Windows()
 	if err != nil || appeared(s.Windows, ws) {
 		return s.counter.N
 	}

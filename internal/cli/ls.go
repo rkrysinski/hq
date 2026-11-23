@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"slices"
-	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -56,13 +54,13 @@ func runLs(env Env, d deps, args []string) error {
 	var names []string
 	f := flagsOf("ls")
 	for _, a := range args {
-		switch {
-		case f.is(a, "--json"):
+		if f.is(a, "--json") {
 			asJSON = true
-		case strings.HasPrefix(a, "-"):
-			return unknownOption(a, lsUsage)
-		case !slices.Contains(names, a):
-			names = append(names, a)
+			continue
+		}
+		var err error
+		if names, err = addName(names, a, lsUsage); err != nil {
+			return err
 		}
 	}
 	seen, err := gatherAgents(d)

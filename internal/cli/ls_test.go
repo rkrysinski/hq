@@ -446,18 +446,6 @@ func TestLsShowsAnAgentsOwnTasksBeforeItsLastMessage(t *testing.T) {
 	}
 }
 
-// An sbx too old for hq is an answer, not a failure to give one: hq ls says
-// so and exits 3, where an sbx that fails leaves the states it has (#172).
-func TestLsSaysAnSbxIsTooOld(t *testing.T) {
-	f := newFakes()
-	f.sbx.err = &sbx.TooOldError{Version: "0.47.0"}
-	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false)}
-	code, out, errOut := f.run("ls")
-	if code != ExitEnvironment || out != "" || errOut != "hq: sbx 0.47.0 is too old, 0.48.0 or newer needed; update Docker Sandboxes\n" {
-		t.Fatalf("exit %d %q %q", code, out, errOut)
-	}
-}
-
 // hq kill waits for an agent's session to end, then kills its home window
 // and removes its journal: a look of hq ls can list the window, its pane
 // dead, and find no journal after (#239). It leaves the agent out, as the

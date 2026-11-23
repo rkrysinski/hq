@@ -67,14 +67,26 @@ func parseWait(args []string, now time.Time) (waitArgs, error) {
 			}
 			continue
 		}
-		if strings.HasPrefix(a, "-") {
-			return w, unknownOption(a, waitUsage)
-		}
-		if !slices.Contains(w.names, a) {
-			w.names = append(w.names, a)
+		var err error
+		if w.names, err = addName(w.names, a, waitUsage); err != nil {
+			return w, err
 		}
 	}
 	return w, nil
+}
+
+// addName adds a, an argument that is none of the command's options, to
+// the agents' names it takes (hq wait, hq ls): an argument that looks like
+// an option is an unknown one, refused with the command's usage, and a
+// name given twice counts once.
+func addName(names []string, a, usage string) ([]string, error) {
+	if strings.HasPrefix(a, "-") {
+		return names, unknownOption(a, usage)
+	}
+	if !slices.Contains(names, a) {
+		names = append(names, a)
+	}
+	return names, nil
 }
 
 // parseTimeout reads --timeout: a duration (30s, 5m) or whole seconds; 0

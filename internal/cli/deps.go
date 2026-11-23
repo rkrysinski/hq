@@ -380,16 +380,18 @@ func defaultDeps() deps {
 	}
 }
 
-// lookSources are where a look reads and appends (agent.Sources): the
-// journals' store, tmux for the windows and the screens, and hq mcp's
-// word to an agent's hook that its next prompt is the supervisor's
-// (ID.next).
+// lookSources are where a look reads and appends, and the home windows it
+// looks at (agent.LookerSources): the journals' store, tmux for the
+// windows and the screens, and hq mcp's word to an agent's hook that its
+// next prompt is the supervisor's (ID.next).
 type lookSources struct {
 	journal.Store
 	windows  func() ([]tmux.Window, error)
 	screens  func(panes []string) (map[string]string, error)
 	withdraw func(root, id string) error
 }
+
+func (s lookSources) Windows() ([]tmux.Window, error) { return s.windows() }
 
 func (s lookSources) Screens(panes []string) (map[string]string, error) { return s.screens(panes) }
 
@@ -405,14 +407,14 @@ func (s lookSources) WindowStands(w string) bool {
 }
 
 // sources are the look's sources of these dependencies.
-func (d deps) sources() agent.Sources {
+func (d deps) sources() agent.LookerSources {
 	return lookSources{d.journal, d.tmux.Windows, d.tmux.Screens, d.withdraw}
 }
 
 // looker takes the look of a command that takes one and returns
 // (agent.Looker), from these dependencies.
 func (d deps) looker() agent.Looker {
-	return agent.Looker{Windows: d.tmux.Windows, Sources: d.sources(), Sandboxes: d.pollSandboxes, Now: d.now, Sleep: d.sleep, Folds: d.folds}
+	return agent.Looker{Sources: d.sources(), Sandboxes: d.pollSandboxes, Now: d.now, Sleep: d.sleep, Folds: d.folds}
 }
 
 // lookErr is the error of a look that failed (agent.Looker.Look) as a

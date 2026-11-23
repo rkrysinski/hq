@@ -71,8 +71,9 @@ func (s *lookerStore) readThrough(id string) int64 {
 // lookerFakes are a Looker's dependencies as its tests fake them: the home
 // windows tmux lists, the journals' store with the screens tmux captures,
 // sbx's answer and a clock that Sleep alone moves on. onAsk runs as sbx is
-// asked, before it answers, and onSleep as Sleep starts, before it moves
-// the clock on.
+// asked, before it answers, onSleep as Sleep starts, before it moves the
+// clock on, and onList as tmux is asked for the windows, before it lists
+// them.
 type lookerFakes struct {
 	mu         sync.Mutex
 	store      *lookerStore
@@ -80,12 +81,14 @@ type lookerFakes struct {
 	windowsErr error
 	listed     int // times tmux listed the windows
 	sandboxes  []sbx.Sandbox
+	sbxErr     error           // sbx's answer instead of sandboxes
 	asked      []time.Duration // when sbx was asked, from start
 	answered   int             // questions sbx answered
 	onAsk      func()
 	start, now time.Time
 	slept      []time.Duration
 	onSleep    func()
+	onList     func()
 	folds      *Folds
 }
 
@@ -102,13 +105,7 @@ func newLookerFakes() *lookerFakes {
 // looker is the Looker of these fakes.
 func (f *lookerFakes) looker() Looker {
 	return Looker{
-		Windows: func() ([]tmux.Window, error) {
-			f.mu.Lock()
-			defer f.mu.Unlock()
-			f.listed++
-			return slices.Clone(f.windows), f.windowsErr
-		},
-		Sources: f.store,
+		Sources: lookerSources{f.store, f},
 		Sandboxes: func() ([]sbx.Sandbox, error) {
 			f.mu.Lock()
 			f.asked = append(f.asked, f.now.Sub(f.start))
@@ -120,6 +117,9 @@ func (f *lookerFakes) looker() Looker {
 			f.mu.Lock()
 			defer f.mu.Unlock()
 			f.answered++
+			if f.sbxErr != nil {
+				return nil, f.sbxErr
+			}
 			return slices.Clone(f.sandboxes), nil
 		},
 		Now: func() time.Time {
@@ -141,6 +141,26 @@ func (f *lookerFakes) looker() Looker {
 		},
 		Folds: f.folds,
 	}
+}
+
+// lookerSources are a Looker's sources as its tests fake them: the
+// journals' store with the home windows tmux lists.
+type lookerSources struct {
+	*lookerStore
+	f *lookerFakes
+}
+
+func (s lookerSources) Windows() ([]tmux.Window, error) {
+	s.f.mu.Lock()
+	onList := s.f.onList
+	s.f.mu.Unlock()
+	if onList != nil {
+		onList()
+	}
+	s.f.mu.Lock()
+	defer s.f.mu.Unlock()
+	s.f.listed++
+	return slices.Clone(s.f.windows), s.f.windowsErr
 }
 
 // agent adds the home window of agent an of /w/app, in the sandbox
@@ -261,13 +281,9 @@ func TestALookReadsTheCounterBeforeItListsTheWindows(t *testing.T) {
 	f.done("1")
 	f.look(t, Shown)
 	before := f.counter(t)
-	k := f.looker()
-	windows := k.Windows
-	k.Windows = func() ([]tmux.Window, error) {
-		f.numberMeanwhile()
-		return windows()
-	}
-	s, err := k.Look(Shown)
+	f.onList = f.numberMeanwhile
+	s, err := f.looker().Look(Shown)
+	f.onList = nil
 	if c := s.Counter(); err != nil || c.N != before || !c.Read || f.counter(t) != before+1 {
 		t.Fatalf("counter %+v, want %d, the counter before the windows (%d now): %v", c, before, f.counter(t), err)
 	}
@@ -340,6 +356,72 @@ func TestALookNotesTheMomentItAsksSbxBeforeItAsks(t *testing.T) {
 	f = answering()
 	if running, err := f.looker().AskSbx(); err != nil || !running.Asked.Equal(f.start) {
 		t.Fatalf("AskSbx: asked at %v, want %v: %v", running.Asked, f.start, err)
+	}
+}
+
+// Each kind of look takes an sbx too old for hq, one that fails and one
+// that does not answer in time as its variant says (design §3.6, *The
+// oldest sbx*): the looks of hq ls, hq read, hq send and hq answer (Shown,
+// Acting) fail on one too old and take the others as no answer; hq
+// explain's (Explained) takes all three as no answer; hq update's
+// (Updating) fails on each; the chords' and docking's (Docking) do not ask
+// sbx; the look loop (Looker.Loop) takes each as no answer. A look that
+// fails gives sbx's own error (SbxError); no answer ends nobody, where an
+// answer listing the sandbox stopped would end the agent.
+func TestEachKindOfLookTakesAnSbxThatCannotAnswerAsItsVariantSays(t *testing.T) {
+	tooOld := &sbx.TooOldError{Version: "0.47.0"}
+	failing := errors.New("sbx: exit status 1")
+	slow := errors.New("sbx: no answer within 5s")
+	answering := func(sbxErr error) *lookerFakes {
+		f := newLookerFakes()
+		f.sandboxes = []sbx.Sandbox{{Name: "claude-app", Status: "stopped"}}
+		f.done("1")
+		f.sbxErr = sbxErr
+		return f
+	}
+	noAnswer := func(t *testing.T, what string, as []Agent, err error) {
+		t.Helper()
+		if err != nil || names(as) != "a1" || named(t, as, "a1").State == state.Ended {
+			t.Errorf("%s: %s, %v; want a1 not ended and no error", what, names(as), err)
+		}
+	}
+	if s := answering(nil).look(t, Shown); named(t, s.Agents, "a1").State != state.Ended {
+		t.Fatalf("sbx answering: a1 %s, want ended by the sandbox stopped", named(t, s.Agents, "a1").State)
+	}
+	for _, tc := range []struct {
+		name  string
+		v     Variant
+		fails []error
+		asks  bool
+	}{
+		{"Shown", Shown, []error{tooOld}, true},
+		{"Acting", Acting, []error{tooOld}, true},
+		{"Explained", Explained, nil, true},
+		{"Updating", Updating, []error{tooOld, failing, slow}, true},
+		{"Docking", Docking, nil, false},
+	} {
+		for _, sbxErr := range []error{tooOld, failing, slow} {
+			what := tc.name + ", " + sbxErr.Error()
+			f := answering(sbxErr)
+			s, err := f.looker().Look(tc.v)
+			if asked := len(f.asked) > 0; asked != tc.asks {
+				t.Errorf("%s: sbx asked: %v, want %v", what, asked, tc.asks)
+			}
+			if !slices.Contains(tc.fails, sbxErr) {
+				noAnswer(t, what, s.Agents, err)
+				continue
+			}
+			var e *SbxError
+			if !errors.As(err, &e) || !errors.Is(err, sbxErr) || s.Agents != nil {
+				t.Errorf("%s: %s, %v; want the look failed with sbx's error", what, names(s.Agents), err)
+			}
+		}
+	}
+	for _, sbxErr := range []error{tooOld, failing, slow} {
+		f := answering(sbxErr)
+		var first []Agent
+		err := f.looker().Loop(func(s Seen, _ bool) (bool, error) { first = s.Agents; return true, nil })
+		noAnswer(t, "Loop, "+sbxErr.Error(), first, err)
 	}
 }
 
