@@ -420,11 +420,11 @@ func (d deps) looker() agent.Looker {
 func lookErr(err error) error {
 	var s *agent.SbxError
 	if errors.As(err, &s) {
-		return sbxErr(s.Err)
+		return sbxErr(s)
 	}
 	var t *agent.TmuxError
 	if errors.As(err, &t) {
-		return tmuxErr(t.Err)
+		return tmuxErr(t)
 	}
 	return err
 }
