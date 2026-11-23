@@ -22,7 +22,7 @@ func appendEvent(d deps, a agent.Agent, kind string, facts state.Facts) {
 	if !ok {
 		return
 	}
-	_, _ = d.journal.AppendEvidence(a.ID, func() bool { return d.sources().WindowStands(a.Window) }, e)
+	_, _ = d.journal.AppendWhileHomeStands(a.ID, func() bool { return d.sources().WindowStands(a.Window) }, e)
 }
 
 // appendLaunched appends agent id's launch, with facts, as appendEvent

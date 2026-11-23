@@ -251,10 +251,11 @@ func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	return s.append(id, nil, events)
 }
 
-// AppendEvidence appends evidence as Append does, to a journal file that
-// is not there only when stands, asked under the lock, says the agent's
-// home window still stands (Store).
-func (s Files) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+// AppendWhileHomeStands appends evidence a look saw, or an event of hq's
+// own other than the launch, as Append does, but to a journal file that is
+// not there only when stands, asked under the lock, says the agent's home
+// window still stands; else it writes nothing and returns ErrGone (Store).
+func (s Files) AppendWhileHomeStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
 	return s.append(id, stands, events)
 }
 

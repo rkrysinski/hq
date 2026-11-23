@@ -30,15 +30,15 @@ type Store interface {
 	// overtaken by a later report, is marked so (Aside) and set aside, so
 	// of processes appending the same evidence at once the first wins.
 	Append(id string, events ...state.Event) ([]state.Event, error)
-	// AppendEvidence appends evidence a look saw, or an event of hq's own
-	// other than the launch (#318), to the journal of agent id as Append
-	// does, but to a journal that is not there (never begun, or removed)
-	// only when stands, asked under the lock, says the agent's home window
-	// still stands; else it writes nothing and returns ErrGone. hq kill
-	// kills the window before it removes the journal, so a look or a
-	// command that falls between the steps of a kill writes no journal
+	// AppendWhileHomeStands appends evidence a look saw, or an event of
+	// hq's own other than the launch (#318), to the journal of agent id as
+	// Append does, but to a journal that is not there (never begun, or
+	// removed) only when stands, asked under the lock, says the agent's
+	// home window still stands; else it writes nothing and returns ErrGone.
+	// hq kill kills the window before it removes the journal, so a look or
+	// a command that falls between the steps of a kill writes no journal
 	// back.
-	AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error)
+	AppendWhileHomeStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error)
 	// Read is the journal of agent id, read under the lock.
 	Read(id string) (Journal, error)
 	// ReadFrom is the journal of agent id from position from of a Journal
@@ -60,8 +60,8 @@ type Store interface {
 }
 
 // ErrGone says evidence, or an event of hq's own, was not appended
-// (Store.AppendEvidence): the agent's journal is not there and its home
-// window is gone.
+// (Store.AppendWhileHomeStands): the agent's journal is not there and its
+// home window is gone.
 var ErrGone = errors.New("the agent's journal and home window are gone")
 
 // Home is where the agent of the journal events was last launched (its
