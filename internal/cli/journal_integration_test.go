@@ -17,6 +17,7 @@ import (
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/testutil"
+	"github.com/rkrysinski/hq/internal/tmux"
 )
 
 // agentID is the id of the agent named name, from its home window.
@@ -286,31 +287,35 @@ func TestTheHooksWorkingFilesAndTheHomeWindowsHoldNothingHqReads(t *testing.T) {
 func TestHqsOwnEventsLeaveNoFileOfAnAgentRemovedWithItsWindow(t *testing.T) {
 	for _, tc := range []struct {
 		kind   string
-		append func(d deps, id, w string)
+		append func(d deps, a agent.Agent)
 	}{
-		{state.KindDelivery, func(d deps, id, w string) {
-			appendEvent(d, id, w, state.KindDelivery, state.Facts{Messages: []string{"m1"}})
+		{state.KindDelivery, func(d deps, a agent.Agent) {
+			appendEvent(d, a, state.KindDelivery, state.Facts{Messages: []string{"m1"}})
 		}},
-		{state.KindAnswer, func(d deps, id, w string) {
-			appendEvent(d, id, w, state.KindAnswer, state.Facts{Whose: state.DialogHooks})
+		{state.KindAnswer, func(d deps, a agent.Agent) {
+			appendEvent(d, a, state.KindAnswer, state.Facts{Whose: state.DialogHooks})
 		}},
-		{state.KindTakenDown, func(d deps, id, w string) { appendEvent(d, id, w, state.KindTakenDown, state.Facts{}) }},
-		{state.KindRelaunched, func(d deps, id, w string) { appendEvent(d, id, w, state.KindRelaunched, state.Facts{}) }},
-		{state.KindWithdrawn, func(d deps, id, w string) { appendWithdrawn(d, id, w, state.KindDelivery, []string{"m1"}) }},
+		{state.KindTakenDown, func(d deps, a agent.Agent) { appendEvent(d, a, state.KindTakenDown, state.Facts{}) }},
+		{state.KindRelaunched, func(d deps, a agent.Agent) { appendEvent(d, a, state.KindRelaunched, state.Facts{}) }},
+		{state.KindWithdrawn, func(d deps, a agent.Agent) { appendWithdrawn(d, a, state.KindDelivery, []string{"m1"}) }},
 	} {
 		f := sendFakes(state.Done)
 		dir := filepath.Join(t.TempDir(), "hq")
 		files := journal.Files{Dir: dir}
 		d := f.deps()
 		d.journal = files
-		root, id, w := t.TempDir(), agent.NewID(), "@4"
+		// The home window of sendFakes' agent a, taken from it and put
+		// back; the journal is that of an id hq issues.
+		i := slices.IndexFunc(f.tmux.windows, func(w tmux.Window) bool { return w.Options["name"] == "a" })
+		home := f.tmux.windows[i]
+		root, id := t.TempDir(), agent.NewID()
+		a := agent.Agent{ID: id, Window: home.ID}
 		appendLaunched(d, id, state.Facts{Start: "new", Repo: root})
 		if err := files.Remove(root, id); err != nil {
 			t.Fatal(err)
 		}
-		home := f.tmux.windows[1]
-		f.tmux.windows = f.tmux.windows[:1]
-		tc.append(d, id, w)
+		f.tmux.windows = slices.Delete(f.tmux.windows, i, i+1)
+		tc.append(d, a)
 		entries, err := os.ReadDir(filepath.Join(dir, "journals"))
 		if err != nil && !os.IsNotExist(err) {
 			t.Fatal(err)
@@ -321,7 +326,7 @@ func TestHqsOwnEventsLeaveNoFileOfAnAgentRemovedWithItsWindow(t *testing.T) {
 			}
 		}
 		f.tmux.windows = append(f.tmux.windows, home)
-		tc.append(d, id, w)
+		tc.append(d, a)
 		if j, err := files.Read(id); err != nil || journaltest.Kinds(j.Events) != tc.kind {
 			t.Errorf("%s, the window standing: %s %v", tc.kind, journaltest.Kinds(j.Events), err)
 		}

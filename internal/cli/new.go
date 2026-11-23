@@ -259,7 +259,11 @@ func launchAgent(d deps, a agent.Agent, resume, prompt string, fresh bool) error
 		if fresh {
 			removeAgentFiles(d, root, id)
 		} else {
-			appendWithdrawn(d, id, win, state.KindLaunched, nil)
+			// Its window is killed by now, but its journal holds the
+			// launch just appended, so the withdrawal is appended to it;
+			// were a kill to have removed it meanwhile, nothing is.
+			a.Window = win
+			appendWithdrawn(d, a, state.KindLaunched, nil)
 		}
 		return tmuxErr(err)
 	}

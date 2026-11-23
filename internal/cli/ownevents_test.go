@@ -158,8 +158,8 @@ func TestSendAsksTmuxForItsWindowsNoMoreOftenWhileTheJournalIsThere(t *testing.T
 	if code, out, errOut := f.run("send", "a", "hi"); code != 0 || out != "delivered: typed into a as its next prompt\n" {
 		t.Fatalf("exit %d %q %q", code, out, errOut)
 	}
-	const sendWindowsReads = 1 // measured on the base
+	const sendWindowsReads = 1 // one hq send typing in on 19c925a, #318's base
 	if f.tmux.windowsRead != sendWindowsReads {
-		t.Fatalf("tmux listed its windows %d times, %d on the base", f.tmux.windowsRead, sendWindowsReads)
+		t.Fatalf("tmux listed its windows %d times, %d on 19c925a", f.tmux.windowsRead, sendWindowsReads)
 	}
 }

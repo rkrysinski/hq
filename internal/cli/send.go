@@ -371,7 +371,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration, msg string, command boo
 	// so the prompt Claude reports comes after it; it names only the
 	// messages of this prompt, which the held ones are not (#195).
 	names := messageNames(msgs)
-	appendEvent(d, a.ID, a.Window, state.KindDelivery, state.Facts{Messages: names})
+	appendEvent(d, a, state.KindDelivery, state.Facts{Messages: names})
 	texts := make([]string, len(msgs))
 	supervised := true
 	for i, m := range msgs {
@@ -394,7 +394,7 @@ func typeIn(d deps, a agent.Agent, within time.Duration, msg string, command boo
 		for _, m := range all {
 			_, _ = d.postMessage(a.RepoPath, a.ID, m, false)
 		}
-		appendWithdrawn(d, a.ID, a.Window, state.KindDelivery, names)
+		appendWithdrawn(d, a, state.KindDelivery, names)
 		return "", tmuxErr(err)
 	}
 	// The others wait for the agent's next prompts, where the hooks do not
