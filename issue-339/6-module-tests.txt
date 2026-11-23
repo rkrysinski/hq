@@ -1,0 +1,19 @@
+$ go test -count=1 -v -run '^(<the 9 tests of the table)$' ./internal/agent | grep -E '^(--- |ok|FAIL)'
+--- PASS: TestALookLeavesOutAnAgentKilledWhileItLooked (0.00s)
+--- PASS: TestALookReadsTheCounterBeforeItListsTheWindows (0.00s)
+--- PASS: TestALookNotesTheMomentItAsksSbxBeforeItAsks (0.00s)
+--- PASS: TestALookLooksAgainAtAScreenAtRestInTheVariantsThatTakeIt (0.00s)
+--- PASS: TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows (0.00s)
+--- PASS: TestAnAgentsCursorIsTheCounterOfTheLooksReadOfItsJournal (0.00s)
+--- PASS: TestTheCounterBeforeAnActIsTheCounterThen (0.00s)
+--- PASS: TestALookGivesTheAgentNamedOrItsRefusal (0.00s)
+--- PASS: TestTheLookLoopLooksEvery250msAndAsksSbxInTheBackgroundOnceASecond (0.02s)
+ok  	github.com/rkrysinski/hq/internal/agent	0.022s
+
+$ go test -count=1 -v -run '^(TestOnlyTheCommandsWithNoLookComposeTheRefusalOfAMissingName|TestCommandsActOnNothingTheLookRefuses|TestLsJSONFailsWhenALookAgainFails|TestAChordAndExplainFailWhenTmuxCannotListTheWindows|TestWaitFailsWhenTmuxCannotListTheWindows)$' ./internal/cli
+--- PASS: TestOnlyTheCommandsWithNoLookComposeTheRefusalOfAMissingName (0.01s)
+--- PASS: TestLsJSONFailsWhenALookAgainFails (0.00s)
+--- PASS: TestAChordAndExplainFailWhenTmuxCannotListTheWindows (0.00s)
+--- PASS: TestWaitFailsWhenTmuxCannotListTheWindows (0.00s)
+--- PASS: TestCommandsActOnNothingTheLookRefuses (0.00s)
+ok  	github.com/rkrysinski/hq/internal/cli	0.009s

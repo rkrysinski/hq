@@ -1,0 +1,8 @@
+$ git diff spec-336-one-look-module HEAD -- internal/cli/ls_test.go | grep -E '^[-+](func|type)|^@@'   # only two tests removed from ls_test.go
+@@ -235,24 +235,6 @@ func TestLsCutsTheLastMessageToOneColumn(t *testing.T) {
+-func TestLsDoesNotEndAnAgentThatReportedAfterSbxWasAsked(t *testing.T) {
+@@ -378,50 +360,6 @@ func TestLsSaysSessionEndedForAnAgentThatEndedWithoutAMessage(t *testing.T) {
+-func TestLsShowsARewoundTurnDoneOnceItsScreenStaysAtRest(t *testing.T) {
+
+$ git diff spec-336-one-look-module HEAD -G 'onAppend|noJournalOf|TestLsBetweenTheStepsOfAKillWritesNoJournalBack|TestLsAppendsADeadPanesDeathToAJournalNotThereWhileItsWindowStands|TestLsThatAppendsAfterAKillRemovedTheJournalItReadWritesNoJournalBack' --stat
+(none)

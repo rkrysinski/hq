@@ -1,0 +1,27 @@
+$ git grep -n "no agent '" -- 'internal/cli/*.go' ':!*_test.go'   # the refusal written in the commands' package
+internal/cli/code.go:36:		return "", notFoundErr("no agent '%s' (see hq ls)", name)
+internal/cli/dash.go:176:		return fmt.Errorf("no agent '%s'", name)
+internal/cli/dialog.go:100:		return notFoundErr("no agent '%s' (see hq ls)", args[0])
+internal/cli/go.go:47:		return notFoundErr("no agent '%s' (see hq ls)", name)
+internal/cli/kill.go:77:		return notFoundErr("no agent '%s' (see hq ls)", name)
+
+$ git grep -n -w Stands -- '*.go'   # the same lines as on spec-336-one-look-module
+internal/agent/look.go:19:	// Stands says whether home window w still stands, tmux asked now; one
+internal/agent/look.go:21:	Stands(w string) bool
+internal/agent/look.go:134:	_, _ = store.AppendEvidence(a.ID, func() bool { return store.Stands(a.Window) }, e)
+internal/agent/look_integration_test.go:25:// Stands says every home window stands.
+internal/agent/look_integration_test.go:26:func (s filesStore) Stands(string) bool { return true }
+internal/agent/look_integration_test.go:123:func (s killingFiles) Stands(string) bool { return !*s.killed }
+internal/agent/look_test.go:53:func (s *memStore) Stands(w string) bool { return !s.gone[w] }
+internal/agent/look_test.go:151:// Stands says every home window stands.
+internal/agent/look_test.go:152:func (s *replayStore) Stands(string) bool { return true }
+internal/cli/deps.go:398:// Stands says whether home window w is among the windows tmux lists now.
+internal/cli/deps.go:402:func (s lookSources) Stands(w string) bool {
+internal/state/journals_integration_test.go:162:// Stands says the agent's home window stands: the fixture's look is at it.
+internal/state/journals_integration_test.go:163:func (s *lookStore) Stands(string) bool { return true }
+
+$ diff <(git grep -n -w Stands spec-336-one-look-module -- '*.go' | sed 's/^spec-336-one-look-module://') <(git grep -n -w Stands -- '*.go') && echo same
+same
+
+$ git grep -n -w -e agentAppeared -e coverLooks -e lookNow -e waitEvery -e 'type looked' -- 'internal/cli/*.go'   # the forwarders
+(none)

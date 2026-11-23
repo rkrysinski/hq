@@ -1,0 +1,52 @@
+# Each rule's test against the module with its rule broken by hand (internal/agent/looker.go, one change at a time, restored after), on b4d8b745f10701ccb8f0351cc29c01732d83dcbd
+# name KILLED|ALIVE, the test's first failing line; then the test run and the change (before => after)
+kill KILLED looker_test.go:229: killed meanwhile: a1 a2
+     TestALookLeavesOutAnAgentKilledWhileItLooked | if !slices.ContainsFunc(as, Agent.JournalGone) { return as } => if true { return as }
+kill-err KILLED looker_test.go:244: tmux cannot tell: a2
+     TestALookLeavesOutAnAgentKilledWhileItLooked | ws, err := k.Windows() if err != nil { return as } => ws, _ := k.Windows() if false { return as }
+counter-after KILLED looker_test.go:264: counter 2 true, want 1, the counter before the windows (2 now): <nil>
+     TestALookReadsTheCounterBeforeItListsTheWindows | counter, err := k.Sources.Through() counted := err == nil ws, err := k.Windows() if err != => ws, err := k.Windows() if err != nil { return Seen{}, &TmuxError{err} } counter, err := k.
+moment-after KILLED looker_test.go:302: Look: a1 ended, want done: it reported while sbx answered
+     TestALookNotesTheMomentItAsksSbxBeforeItAsks | asked := k.Now() all, err := k.Sandboxes() => all, err := k.Sandboxes() asked := k.Now()
+every-variant-again KILLED looker_test.go:350: Acting: slept [2s]; a1 done, want one look
+     TestALookLooksAgainAtAScreenAtRestInTheVariantsThatTakeIt | !v.again || => false ||
+never-again KILLED looker_test.go:348: Shown: slept []; a1 working since 1970-01-01 02:46:10 +0000 UTC "earlier reply", want done since 1970-01-01 02:46:40 +0000 UTC
+     TestALookLooksAgainAtAScreenAtRestInTheVariantsThatTakeIt | !v.again || => true ||
+cursor-highest KILLED looker_test.go:407: read past the counter: cursor 5, want 4, the lowest read (highest 5, counter 2); windows listed again 2 times
+     TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows | if err != nil || Appeared(s.Windows, ws) { return s.counter } return n => if err != nil || Appeared(s.Windows, ws) { return s.counter } return n + 1
+cursor-noappeared KILLED FAIL	github.com/rkrysinski/hq/internal/agent [build failed]
+     TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows | if err != nil || Appeared(s.Windows, ws) { => if err != nil {
+cursor-nolist KILLED looker_test.go:401: quiet: cursor 1, counter 1, windows listed 3 times
+     TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows | if !ok || n <= s.counter { => if !ok {
+cover-none KILLED looker_test.go:450: covering: 1 looks, cursor 2 (the last look's 2): <nil>
+     TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows | n < CoverLooks && => false &&
+cover-down KILLED looker_test.go:440: still looking at look 7
+     TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows | above(s.Agents, cursor); n++ => above(s.Agents, cursor); n--
+cover-more KILLED looker_test.go:459: changing at every look: 4 looks, want 3; a1 a2: <nil>
+     TestTheLooksCursorStandsForWhatItSawAndCoversEveryAgentItShows | n < CoverLooks && => n <= CoverLooks &&
+cursorof KILLED looker_test.go:489: a1: cursor 2, want 4
+     TestAnAgentsCursorIsTheCounterOfTheLooksReadOfItsJournal | if n := a.Through(); n != 0 { return n } return s.counter => return s.counter
+cursorof2 KILLED looker_test.go:489: a3: cursor 0, want 2
+     TestAnAgentsCursorIsTheCounterOfTheLooksReadOfItsJournal | if n := a.Through(); n != 0 { return n } return s.counter => return a.Through()
+before-look KILLED looker_test.go:508: counter before 1, want 2, the counter now (the look read at 1)
+     TestTheCounterBeforeAnActIsTheCounterThen | n, err := k.Sources.Through() if err != nil { n = a.Through() } => n, err := a.Through(), error(nil) if err != nil { n = a.Through() }
+before-noerr KILLED looker_test.go:512: no counter: 0, want 1, the look's read
+     TestTheCounterBeforeAnActIsTheCounterThen | if err != nil { n = a.Through() } return n => _ = err return n
+usable KILLED looker_test.go:543: usable outdated: <nil>
+     TestALookGivesTheAgentNamedOrItsRefusal | return a, a.Refusal() => return a, nil
+named-outdated KILLED looker_test.go:540: named outdated: {Window:@2 Pane:%2 ID:a2 Name:a2 RepoPath:/w/app Sandbox:claude-app Started:1970-01-01 00:01:40 +0000 UTC Alive:true Docked:
+     TestALookGivesTheAgentNamedOrItsRefusal | a, ok := Find(s.Agents, name) if !ok { return Agent{}, &NotFoundError{Name: name} } return => a, ok := Find(s.Agents, name) if !ok { return Agent{}, &NotFoundError{Name: name} } return
+loop-every KILLED looker_test.go:620: 7 looks, slept [500ms 500ms 500ms 500ms 500ms 500ms], want 13 looks 250ms apart
+     TestTheLookLoopLooksEvery250msAndAsksSbxInTheBackgroundOnceASecond | k.Sleep(LoopEvery) => k.Sleep(2 * LoopEvery)
+loop-nowait KILLED looker_test.go:628: look 0: {at:0 first:true a1:working a2:working}, want at 0s, a1 ended from the first look
+     TestTheLookLoopLooksEvery250msAndAsksSbxInTheBackgroundOnceASecond | answers.running(k.Now(), first) => answers.running(k.Now(), false)
+loop-sbxevery KILLED looker_test.go:617: <nil>; sbx not asked or not answered by the look at [1s 2s] within 5 s, asked at [0s 2.25s]
+     TestTheLookLoopLooksEvery250msAndAsksSbxInTheBackgroundOnceASecond | now.Sub(b.asked) >= SbxEvery => now.Sub(b.asked) >= 2*SbxEvery
+loop-noread KILLED looker_test.go:635: a2 ended at look -1, want after 1s and before 2s: [{at:0 first:true a1:ended a2:working} {at:250000000 first:false a1:ended a2:working} {at:
+     TestTheLookLoopLooksEvery250msAndAsksSbxInTheBackgroundOnceASecond | case b.latest = <-b.answers: b.busy = false => case <-b.answers: b.busy = false
+loop-askevery KILLED looker_test.go:623: asked sbx at [0s 250ms 500ms 750ms 1s 1.25s 1.5s 1.75s 2s 2.25s 2.5s 2.75s], want at 0s, 1s and 2s
+     TestTheLookLoopLooksEvery250msAndAsksSbxInTheBackgroundOnceASecond | if !b.busy && now.Sub(b.asked) >= SbxEvery { => if !b.busy {
+loop-err KILLED looker_test.go:642: a step failing: <nil> after 4 looks
+     TestTheLookLoopLooksEvery250msAndAsksSbxInTheBackgroundOnceASecond | if done, err := step(s, first); done || err != nil { => if done, _ := step(s, first); done {
+loop-lookerr KILLED looker_test.go:649: a look failing: <nil> after 1 looks
+     TestTheLookLoopLooksEvery250msAndAsksSbxInTheBackgroundOnceASecond | s, err := k.see(Acting, answers.running(k.Now(), first), nil) if err != nil { return err } => s, err := k.see(Acting, answers.running(k.Now(), first), nil) if err != nil { return nil }

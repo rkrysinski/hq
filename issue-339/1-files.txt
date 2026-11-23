@@ -1,0 +1,93 @@
+$ git diff --name-status spec-336-one-look-module HEAD
+M	docs/design/hq.md
+A	internal/agent/looker_test.go
+M	internal/agent/numbers_test.go
+M	internal/cli/answer_test.go
+M	internal/cli/cli_test.go
+M	internal/cli/cursor.go
+M	internal/cli/cursor_test.go
+M	internal/cli/explain_test.go
+D	internal/cli/look_loop_test.go
+M	internal/cli/look_rules_test.go
+M	internal/cli/ls.go
+M	internal/cli/ls_test.go
+M	internal/cli/outdated_test.go
+M	internal/cli/read_test.go
+M	internal/cli/send_test.go
+M	internal/cli/wait.go
+M	internal/cli/wait_test.go
+
+$ git diff --name-status spec-336-one-look-module HEAD -- docs/adr   # ADRs
+(none)
+
+$ git diff spec-336-one-look-module HEAD -- internal/cli/cursor.go internal/cli/ls.go internal/cli/wait.go   # the only production files: the forwarders removed
+diff --git a/internal/cli/cursor.go b/internal/cli/cursor.go
+index 7146207..b2f4c85 100644
+--- a/internal/cli/cursor.go
++++ b/internal/cli/cursor.go
+@@ -6,7 +6,6 @@ import (
+ 	"time"
+ 
+ 	"github.com/rkrysinski/hq/internal/agent"
+-	"github.com/rkrysinski/hq/internal/tmux"
+ )
+ 
+ // A cursor is what next_since holds (ADR 0019): an opaque string standing
+@@ -78,15 +77,6 @@ func aheadErr(s since) error {
+ 	return usageErr("--since '%s' is ahead of every change hq has numbered on this host (was its state directory lost?): take a new one from hq ls --json", cursorText(s.cursor))
+ }
+ 
+-// looked is a look's agents (agent.Seen.Agents), as lookNow gives them.
+-type looked struct {
+-	agents []agent.Agent
+-}
+-
+-// agentAppeared reports whether after holds the home window of an agent that
+-// before does not (agent.Appeared).
+-func agentAppeared(before, after []tmux.Window) bool { return agent.Appeared(before, after) }
+-
+ // cursorBefore is the cursor for a change an hq command is about to cause
+ // in agent a (a message, an answer; agent.Looker.CounterBefore).
+ func cursorBefore(d deps, a agent.Agent) string { return cursorText(d.looker().CounterBefore(a)) }
+diff --git a/internal/cli/ls.go b/internal/cli/ls.go
+index 032d2a3..539f213 100644
+--- a/internal/cli/ls.go
++++ b/internal/cli/ls.go
+@@ -69,9 +69,6 @@ func runLs(env Env, d deps, args []string) error {
+ 	return writeTable(env.Stdout, rows)
+ }
+ 
+-// coverLooks bounds the looks of hq ls --json (agent.CoverLooks).
+-const coverLooks = agent.CoverLooks
+-
+ // lsRows are the agents as hq ls shows them now, in the order given, with
+ // how many messages wait for each.
+ func lsRows(d deps, as []agent.Agent) []lsRow {
+@@ -163,13 +160,6 @@ func gatherAgents(d deps) (agent.Seen, error) {
+ 	return seen, nil
+ }
+ 
+-// lookNow is a look at the agents in the variant of hq send and hq answer
+-// (agent.Acting), for the tests that take one this way.
+-func lookNow(d deps) (looked, error) {
+-	seen, err := d.looker().Look(agent.Acting)
+-	return looked{agents: seen.Agents}, lookErr(err)
+-}
+-
+ // runningSandboxes asks sbx which sandboxes run, for hq kill
+ // (agent.Looker.AskSbx); the answer says nothing when sbx fails, does not
+ // answer in time or is too old.
+diff --git a/internal/cli/wait.go b/internal/cli/wait.go
+index bbd915f..5d553d3 100644
+--- a/internal/cli/wait.go
++++ b/internal/cli/wait.go
+@@ -18,9 +18,6 @@ import (
+ // returns "nothing yet" before its caller gives up on it.
+ const DefaultWaitTimeout = 50 * time.Second
+ 
+-// waitEvery is how often hq wait looks (agent.LoopEvery).
+-const waitEvery = agent.LoopEvery
+-
+ // waitStates are the states hq wait returns an agent in (spec §4.1).
+ var waitStates = []string{state.Done, state.Question, state.NeedsInput, state.Ended}
+ 

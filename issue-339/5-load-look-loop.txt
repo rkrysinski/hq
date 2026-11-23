@@ -1,0 +1,14 @@
+commit b4d8b745f10701ccb8f0351cc29c01732d83dcbd
+cores 18, busy workers 18
+processes 3, each: go test -json -count 100 -run '^TestTheLookLoopLooksEvery250msAndAsksSbxInTheBackgroundOnceASecond$' -timeout 6m0s ./internal/agent
+time limit 5m0s (-timeout)
+output in <scratch>/load-loop
+started 2026-11-23T08:32:36Z, load average (1 min) 5.19
+ended 2026-11-23T08:32:38Z, load average (1 min) 5.19
+process 1: exit status 0, output <scratch>/load-loop/process-1.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/agent	1.672s
+process 2: exit status 0, output <scratch>/load-loop/process-2.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/agent	1.651s
+process 3: exit status 0, output <scratch>/load-loop/process-3.out, last lines:
+    ok  	github.com/rkrysinski/hq/internal/agent	1.650s
+load: 300 passed, 0 failed, 0 skipped of 300 runs expected on b4d8b745f10701ccb8f0351cc29c01732d83dcbd
