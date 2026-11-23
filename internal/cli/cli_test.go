@@ -299,11 +299,20 @@ func rawFlagComparisons(fset *token.FileSet, files []*ast.File, exceptions map[s
 // A flag is recognised only through flagSet.is, which checks that the
 // command declares it, so hq help names every flag a command takes: a
 // comparison with any string that starts with - anywhere in the package
-// fails, declared by a command or not, but those of rawFlagExceptions.
+// fails, declared by a command or not, but those of rawFlagExceptions,
+// each of which still stands.
 func TestFlagsAreRecognisedOnlyThroughTheirDeclaration(t *testing.T) {
 	fset := token.NewFileSet()
-	for _, at := range rawFlagComparisons(fset, sourceFiles(t, fset), rawFlagExceptions) {
+	files := sourceFiles(t, fset)
+	for _, at := range rawFlagComparisons(fset, files, rawFlagExceptions) {
 		t.Errorf("%s: compared, not through flagSet.is", at)
+	}
+	all := strings.Join(rawFlagComparisons(fset, files, nil), "\n")
+	for exception := range rawFlagExceptions {
+		file, lit, _ := strings.Cut(exception, " ")
+		if !regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(file) + `:\d+: ` + regexp.QuoteMeta(lit) + `$`).MatchString(all) {
+			t.Errorf("exception %s: no such comparison any more", exception)
+		}
 	}
 }
 

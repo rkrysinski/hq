@@ -401,7 +401,6 @@ func TestAReportHqCannotReadIsStartingUnlessItIsTooLarge(t *testing.T) {
 // and that event's time, whatever reply the journal holds; one too large
 // says so.
 func TestLastReplyOfATurnEndHqCannotReadIsNoTextAtItsTime(t *testing.T) {
-	kept := Reply{Number: 2, Text: "ok"}
 	for _, tc := range []struct {
 		end  Event
 		want string
@@ -410,7 +409,7 @@ func TestLastReplyOfATurnEndHqCannotReadIsNoTextAtItsTime(t *testing.T) {
 		{unreadableEvent(2, "stop", 1), ""},
 		{unreadableEvent(2, "stop", maxFile+1), TooLarge(maxFile + 1)},
 	} {
-		text, at := (Fold{}).With(userPrompt(1, "t1"), tc.end).LastReply(kept)
+		text, at := (Fold{}).With(userPrompt(1, "t1"), tc.end).LastReply(Reply{Number: 2, Text: "ok"})
 		if text != tc.want || !at.Equal(tc.end.Time) || at.IsZero() {
 			t.Errorf("%d bytes: %q at %v, want %q at %v", tc.end.Facts.Size, text, at, tc.want, tc.end.Time)
 		}
