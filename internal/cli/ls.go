@@ -95,8 +95,8 @@ func runLs(env Env, d deps, args []string) error {
 }
 
 // lsRows are the agents as hq ls shows them now, in the order given, with
-// how many messages wait for each: the rows of a list (hq ls, hq wait, hq
-// send --wait), each with its last cut to listLastWidth (#291).
+// how many messages wait for each: the rows of hq ls, hq wait and hq send
+// --wait, each with its last cut to listLastWidth (#291).
 func lsRows(d deps, as []agent.Agent) []lsRow {
 	now := d.now()
 	rows := make([]lsRow, 0, len(as))
@@ -199,8 +199,8 @@ func runningSandboxes(d deps) agent.Sandboxes {
 // lastWidth is how much of the last message hq ls shows in its table.
 const lastWidth = 60
 
-// listLastWidth is how much of the last message a row of a list carries
-// (lsRows), in JSON too; hq read gives it whole (#291).
+// listLastWidth is how much of the last message a row of hq ls, hq wait and
+// hq send --wait carries (lsRows), in JSON too; hq read gives it whole (#291).
 const listLastWidth = 120
 
 // truncate shortens s to n characters, marking the cut with an ellipsis.

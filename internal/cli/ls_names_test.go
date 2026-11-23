@@ -118,7 +118,8 @@ func TestLsRefusesAnUnknownOptionWithItsUsage(t *testing.T) {
 	}
 }
 
-// lastOf is the last of the one row a list command printed as JSON.
+// lastOf is the last of the one row hq ls, hq wait or hq send --wait
+// printed as JSON.
 func lastOf(t *testing.T, args []string, out string) string {
 	t.Helper()
 	var l waitOutput
@@ -128,10 +129,10 @@ func lastOf(t *testing.T, args []string, out string) string {
 	return l.Agents[0].Last
 }
 
-// In JSON, a row of the list carries last cut to 120 characters, counted
-// in characters, not bytes, the cut marked by … as its last one: in hq
-// ls, hq wait and hq send --wait (#291). One of 120 is given whole.
-func TestAListsRowsCarryLastCutTo120Characters(t *testing.T) {
+// In JSON, a row of hq ls, hq wait and hq send --wait carries last cut to
+// 120 characters, counted in characters, not bytes, the cut marked by … as
+// its last one (#291). One of 120 is given whole.
+func TestTheRowsOfLsWaitAndSendWaitCarryLastCutTo120Characters(t *testing.T) {
 	for last, want := range map[string]string{
 		strings.Repeat("ą", 120): strings.Repeat("ą", 120),
 		strings.Repeat("ą", 121): strings.Repeat("ą", 119) + "…",
@@ -157,7 +158,7 @@ func TestAListsRowsCarryLastCutTo120Characters(t *testing.T) {
 
 // hq read gives last whole, as JSON and as text, beside the reply, where
 // hq ls --json gives the same agent's cut: reading an agent is how the
-// rest of a list's last is got. It compares the whole last with the reply,
+// rest of the last of hq ls --json is got. It compares the whole last with the reply,
 // so it still leaves the line last out when the two are the same (#291).
 func TestReadGivesLastWhole(t *testing.T) {
 	long := strings.Repeat("ą", 300)
@@ -185,11 +186,11 @@ func TestReadGivesLastWhole(t *testing.T) {
 }
 
 // The next_since of hq ls NAME... --json is for a wait that names the same
-// agents: from it, a wait naming a does not return the state the list
-// showed, and returns a change of a made after the list, while b, not
-// named, changes at every look and keeps the list looking again
+// agents: from it, a wait naming a does not return the state hq ls
+// showed, and returns a change of a made after it, while b, not named,
+// changes at every look and keeps hq ls looking again
 // (agent.Looker.Cover; #291).
-func TestAWaitFromTheCursorOfAListWithNamesReturnsOnlyWhatChangedAfterIt(t *testing.T) {
+func TestAWaitFromTheCursorOfLsWithNamesReturnsOnlyWhatChangedAfterIt(t *testing.T) {
 	looks := 0
 	f := changingDialogOnB(t, &looks)
 	listed := waitJSON(t, mustRun(t, f, "ls", "a", "--json"))
@@ -202,14 +203,14 @@ func TestAWaitFromTheCursorOfAListWithNamesReturnsOnlyWhatChangedAfterIt(t *test
 		f.tmux.screens["%2"] = strings.Replace(f.tmux.screens["%2"], "level", "level"+strings.Repeat("!", count%2), 1)
 	}
 	if out := mustRun(t, f, "wait", "a", "--since", listed.NextSince, "--timeout", "1s"); !strings.HasPrefix(out, "nothing yet\n") {
-		t.Fatalf("the state the list showed came back: %q", out)
+		t.Fatalf("the state hq ls showed came back: %q", out)
 	}
 	f.after(time.Second, func() {
 		f.states["id-a"] = journaltest.HookState{State: state.Question, Since: f.now, Last: "Shall I go on?"}
 	})
 	got := waitJSON(t, mustRun(t, f, "wait", "a", "--since", listed.NextSince, "--timeout", "10s", "--json"))
 	if len(got.Agents) != 1 || got.Agents[0].Name != "a" || got.Agents[0].State != state.Question {
-		t.Fatalf("the change after the list: %+v", got)
+		t.Fatalf("the change after hq ls: %+v", got)
 	}
 }
 
