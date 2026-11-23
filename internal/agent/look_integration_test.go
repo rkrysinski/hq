@@ -131,11 +131,11 @@ func (s killingFiles) ReadFrom(id string, from int64) (journal.Journal, error) {
 	return s.Files.ReadFrom(id, from)
 }
 
-func (s killingFiles) AppendEvidence(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+func (s killingFiles) AppendWhileWindowStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
 	if err := s.kill(id); err != nil {
 		return nil, err
 	}
-	return s.Files.AppendEvidence(id, stands, events...)
+	return s.Files.AppendWhileWindowStands(id, stands, events...)
 }
 
 // A look that falls between the steps of hq kill, at the read of the
