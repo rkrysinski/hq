@@ -1,0 +1,17 @@
+failed  Docking reads the counter  (TestALookReadsTheCounterBeforeItListsTheWindows)
+      looker_test.go:297: Docking: the counter read 1 times, the look's {N:1 Read:true} (the counter 1), want it read: false
+failed  Updating reads the counter  (TestALookReadsTheCounterBeforeItListsTheWindows)
+      looker_test.go:297: Updating: the counter read 1 times, the look's {N:1 Read:true} (the counter 1), want it read: false
+failed  Explained reads no counter  (TestALookReadsTheCounterBeforeItListsTheWindows)
+      looker_test.go:297: Explained: the counter read 0 times, the look's {N:0 Read:false} (the counter 1), want it read: true
+failed  Acting reads no counter  (TestALookReadsTheCounterBeforeItListsTheWindows)
+      looker_test.go:297: Acting: the counter read 0 times, the look's {N:0 Read:false} (the counter 1), want it read: true
+failed  Shown reads no counter  (TestALookReadsTheCounterBeforeItListsTheWindows)
+      looker_test.go:272: counter {N:0 Read:false}, want 1, the counter before the windows (2 now): <nil>
+failed  every look reads the counter  (TestALookReadsTheCounterBeforeItListsTheWindows)
+      looker_test.go:297: Updating: the counter read 1 times, the look's {N:1 Read:true} (the counter 1), want it read: false
+      looker_test.go:297: Docking: the counter read 1 times, the look's {N:1 Read:true} (the counter 1), want it read: false
+failed  the counter read after the windows  (TestALookReadsTheCounterBeforeItListsTheWindows)
+      looker_test.go:272: counter {N:2 Read:true}, want 1, the counter before the windows (2 now): <nil>
+failed  S2: the counting sbx not put in place  (TestTheChordsAndDockingOnEntryAskSbxNothing)
+      look_variants_test.go:69: [__chord next]: hq ls after it: exit 0 "", asked sbx 0 times: the sbx that counts took no hold

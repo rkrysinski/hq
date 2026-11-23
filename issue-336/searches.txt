@@ -1,0 +1,110 @@
+$ git grep -n -w -E "tick|ticks|tickEvery|tickMsg|sbxEvery" -- internal/dash   # S1: the list's look loop speaks of looks (tea.Tick and the pull requests' prTick are not the look loop)
+(exit 1: nothing found)
+
+$ git grep -n -E "lookEvery|sbxEveryLooks|generationEvery|m\.looks|lookMsg|nextLook" -- internal/dash/dash.go
+internal/dash/dash.go:185:	lookEvery     = agent.LoopEvery
+internal/dash/dash.go:186:	sbxEveryLooks = int(agent.SbxEvery / agent.LoopEvery)
+internal/dash/dash.go:204:	// generationEvery is how often the list looks at the hq on disk: an
+internal/dash/dash.go:207:	generationEvery = 8
+internal/dash/dash.go:225:	lookMsg   struct{}
+internal/dash/dash.go:496:	return tea.Batch(m.collect(), m.poll(), m.checkUpdate(), nextLook(), prTick())
+internal/dash/dash.go:545:// nextLook is the next look of the list's look loop, lookEvery from now.
+internal/dash/dash.go:546:func nextLook() tea.Cmd { return tea.Tick(lookEvery, func(time.Time) tea.Msg { return lookMsg{} }) }
+internal/dash/dash.go:630:	case lookMsg:
+internal/dash/dash.go:631:		m.looks++
+internal/dash/dash.go:632:		cmds := []tea.Cmd{m.collect(), nextLook()}
+internal/dash/dash.go:633:		if m.looks%sbxEveryLooks == 0 {
+internal/dash/dash.go:636:		if m.looks%generationEvery == 0 {
+
+$ git grep -n -i -w "tick" -- docs/design/hq.md   # S1: the design
+(exit 1: nothing found)
+
+$ git grep -n -A3 "func usableAgent\|func findAgent" -- internal/cli/send.go   # S3
+internal/cli/send.go:199:func findAgent(d deps, name string) (agent.Agent, error) {
+internal/cli/send.go-200-	return actingAgent(d, name, agent.Seen.Named)
+internal/cli/send.go-201-}
+internal/cli/send.go-202-
+--
+internal/cli/send.go:205:func usableAgent(d deps, name string) (agent.Agent, error) {
+internal/cli/send.go-206-	return actingAgent(d, name, agent.Seen.Usable)
+internal/cli/send.go-207-}
+internal/cli/send.go-208-
+
+$ git grep -n -w -E "aheadOf|ahead" -- internal/cli/*.go   # S4: one entry point
+internal/cli/cursor.go:63:// ahead reports whether s is a cursor hq did not give: above c, the
+internal/cli/cursor.go:67:func (s since) ahead(c agent.Counter) bool {
+internal/cli/cursor.go:73:	return usageErr("--since '%s' is ahead of every change hq has numbered on this host (was its state directory lost?): take a new one from hq ls --json", cursorText(s.cursor))
+internal/cli/cursor_test.go:125:	if code != ExitUsage || out != "" || errOut != "hq: --since 'c999' is ahead of every change hq has numbered on this host (was its state directory lost?): take a new one from hq ls --json\n" {
+internal/cli/read.go:105:	if r.since.ahead(seen.Counter()) {
+internal/cli/read_test.go:322:		t.Fatalf("a cursor ahead: exit %d %q", code, errOut)
+internal/cli/wait.go:117:			if w.since.ahead(s.Counter()) {
+
+$ git grep -n -E "counted|Counter\(\)|type Counter" -- internal/agent/looker.go internal/cli   # S5: one value
+internal/agent/looker.go:110:type Counter struct {
+internal/agent/looker.go:312:func (s Seen) Counter() Counter { return s.counter }
+internal/cli/cli.go:151:	b.WriteString("hq send --wait takes --timeout DURATION too, as hq wait does, counted from the start of the call.\n")
+internal/cli/cli_test.go:49:	for _, want := range []string{"hq dash", "hq new NAME [DIR] [PROMPT]", "hq new also takes --setup NAME", "hq sandbox also takes --setup NAME", "hq mcp [install] [claude-desktop|claude-code|sbx] | load|unload REPO", "hq mcp load and unload take REPO and those flags", "hq ls [--json]", "hq go NAME", "hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json]", "hq send --wait takes --timeout DURATION too, as hq wait does, counted from the start of the call.", "Exit codes: 0 success, 1 usage or refused, 2 not found, 3 environment, 4 stalled (hq send --wait).", "--wait returns when the turn that took it ends", "hq answer NAME --dialog ID ANSWER...|--cancel [--json]", "hq kill NAME [-y]", "hq stop [-y]", "hq sandbox rm|restart REPO|SANDBOX", "hq update", "hq help", "hq --version", "hq -V", "hq --help", "hq -h", "--yes", "--setup=NAME", "(--setup NAME, --all-setups)", "NAME: letters, digits, '-', '_' and '.', at least one letter or digit, at most 32 characters"} {
+internal/cli/ls_test.go:62:	// message, counted from when the pane died (#73).
+internal/cli/read.go:105:	if r.since.ahead(seen.Counter()) {
+internal/cli/update_test.go:460:// knows is not counted again for a record of another server.
+internal/cli/wait.go:117:			if w.since.ahead(s.Counter()) {
+
+$ git grep -n -E "func \(k Looker\) (Cursor|Cover)|func \(s Seen\)|inBackground" -- internal/agent/looker.go   # S6
+internal/agent/looker.go:312:func (s Seen) Counter() Counter { return s.counter }
+internal/agent/looker.go:323:func (k Looker) Cursor(s Seen) int64 {
+internal/agent/looker.go:347:func (k Looker) Cover(s Seen) (Seen, int64, error) {
+internal/agent/looker.go:384:func (s Seen) CursorOf(a Agent) int64 {
+internal/agent/looker.go:393:func (s Seen) Named(name string) (Agent, error) {
+internal/agent/looker.go:403:func (s Seen) Usable(name string) (Agent, error) {
+
+$ git grep -n -w -E "Appeared|appeared" -- "*.go"   # S7
+internal/agent/looker.go:321:// appeared while it looked, whose changes it did not see but which are all
+internal/agent/looker.go:329:	if err != nil || appeared(s.Windows, ws) {
+internal/agent/looker.go:368:// appeared reports whether after holds the home window of an agent that
+internal/agent/looker.go:370:func appeared(before, after []tmux.Window) bool {
+internal/agent/looker_test.go:397:// once the windows listed again show that no agent appeared meanwhile; the
+internal/agent/looker_test.go:399:// (with no listing again), when an agent appeared or tmux cannot list them
+internal/agent/looker_test.go:443:		"an agent appeared":           func(f *lookerFakes) { f.windows = append(f.windows, lookWindow("4")) },
+internal/state/supervised_integration_test.go:610:	if got := h.on("stop", turnEnd("the file appeared")).TerminalSequence; got != doneNotice {
+
+$ git grep -n -E "func \(a Agent\) Refusal|type OutdatedError|func \(a Agent\) Outdated" -- internal/agent   # S8
+internal/agent/agent.go:73:func (a Agent) Outdated() bool { return a.State == state.Outdated }
+internal/agent/agent.go:91:func (a Agent) OutdatedErr() string { return a.Name + " was " + OutdatedLast(a.Generation) }
+internal/agent/agent.go:95:type OutdatedError struct{ Agent Agent }
+internal/agent/agent.go:101:func (a Agent) Refusal() error {
+
+$ git grep -n -w Stands -- "*.go"   # V4: unchanged
+internal/agent/look.go:19:	// Stands says whether home window w still stands, tmux asked now; one
+internal/agent/look.go:21:	Stands(w string) bool
+internal/agent/look.go:134:	_, _ = store.AppendEvidence(a.ID, func() bool { return store.Stands(a.Window) }, e)
+internal/agent/look_integration_test.go:25:// Stands says every home window stands.
+internal/agent/look_integration_test.go:26:func (s filesStore) Stands(string) bool { return true }
+internal/agent/look_integration_test.go:123:func (s killingFiles) Stands(string) bool { return !*s.killed }
+internal/agent/look_test.go:53:func (s *memStore) Stands(w string) bool { return !s.gone[w] }
+internal/agent/look_test.go:151:// Stands says every home window stands.
+internal/agent/look_test.go:152:func (s *replayStore) Stands(string) bool { return true }
+internal/cli/deps.go:398:// Stands says whether home window w is among the windows tmux lists now.
+internal/cli/deps.go:402:func (s lookSources) Stands(w string) bool {
+internal/state/journals_integration_test.go:162:// Stands says the agent's home window stands: the fixture's look is at it.
+internal/state/journals_integration_test.go:163:func (s *lookStore) Stands(string) bool { return true }
+
+$ git diff --stat b4d8b74 HEAD -- docs/adr   # N1: no ADR
+(nothing)
+
+$ git diff --stat b4d8b74 HEAD
+ docs/design/hq.md                  |  18 ++---
+ internal/agent/agent.go            |  38 +++++++---
+ internal/agent/look_test.go        |   8 +-
+ internal/agent/looker.go           | 149 +++++++++++++++++++------------------
+ internal/agent/looker_test.go      | 106 +++++++++++++++++---------
+ internal/cli/cursor.go             |  16 ++--
+ internal/cli/look_rules_test.go    |   2 +-
+ internal/cli/look_variants_test.go |   6 +-
+ internal/cli/ls.go                 |   2 +-
+ internal/cli/read.go               |   2 +-
+ internal/cli/send.go               |  29 ++++----
+ internal/cli/sendwait.go           |   5 +-
+ internal/cli/wait.go               |   7 +-
+ internal/dash/dash.go              |  32 ++++----
+ internal/dash/dash_test.go         |  40 +++++-----
+ 15 files changed, 257 insertions(+), 203 deletions(-)

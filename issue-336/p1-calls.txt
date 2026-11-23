@@ -1,0 +1,24 @@
+== the base: 476a6ce (before, LOCAL_DEV_BEFORE=476a6ce)
+hq ls            counter read 5, windows listed 1
+hq ls --json     counter read 5, windows listed 1
+hq __chord next  counter read 4, windows listed 1
+hq read a --json counter read 5, windows listed 1
+hq explain a     counter read 6, windows listed 1
+== the integration head: b4d8b74 (before, LOCAL_DEV_BEFORE=b4d8b74)
+hq ls            counter read 5, windows listed 1
+hq ls --json     counter read 5, windows listed 1
+hq __chord next  counter read 5, windows listed 1
+hq read a --json counter read 5, windows listed 1
+hq explain a     counter read 6, windows listed 1
+== the review fixes: ddf327f (after)
+hq ls            counter read 5, windows listed 1
+hq ls --json     counter read 5, windows listed 1
+hq __chord next  counter read 4, windows listed 1
+hq read a --json counter read 5, windows listed 1
+hq explain a     counter read 6, windows listed 1
+== the base again: 476a6ce
+hq ls            counter read 5, windows listed 1
+hq ls --json     counter read 5, windows listed 1
+hq __chord next  counter read 4, windows listed 1
+hq read a --json counter read 5, windows listed 1
+hq explain a     counter read 6, windows listed 1
