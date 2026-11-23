@@ -1,0 +1,104 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b     repo  main    done   52s  Done: say hello
+a     repo  main    done   53s  Done: say hi
+exit 0
+$ hq ls --json
+{
+  "agents": [
+    {
+      "name": "b",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-1190744934/repo",
+      "branch": "main",
+      "state": "done",
+      "state_seq": 8,
+      "completion_seq": 8,
+      "since": "2026-11-23T07:04:20.296368694Z",
+      "age_seconds": 53,
+      "last": "Done: say hello",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    },
+    {
+      "name": "a",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-1190744934/repo",
+      "branch": "main",
+      "state": "done",
+      "state_seq": 5,
+      "completion_seq": 5,
+      "since": "2026-11-23T07:04:19.918839902Z",
+      "age_seconds": 53,
+      "last": "Done: say hi",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c8"
+}
+exit 0
+$ hq read a
+name      a
+repo      repo  /tmp/hq-stub-1190744934/repo
+branch    main
+worktree  /tmp/hq-stub-1190744934/repo
+sandbox   claude-repo
+state     done 53s
+pending   0
+
+reply
+  Done: say hi
+exit 0
+$ hq read a --json
+{
+  "name": "a",
+  "repo": "repo",
+  "repo_path": "/tmp/hq-stub-1190744934/repo",
+  "branch": "main",
+  "state": "done",
+  "state_seq": 5,
+  "completion_seq": 5,
+  "since": "2026-11-23T07:04:19.918839902Z",
+  "age_seconds": 54,
+  "last": "Done: say hi",
+  "sandbox": "claude-repo",
+  "setup": "default",
+  "pending": 0,
+  "own_tasks": [],
+  "asks": null,
+  "worktree": "/tmp/hq-stub-1190744934/repo",
+  "reply": "Done: say hi",
+  "reply_size": 12,
+  "next_offset": null,
+  "next_since": "c8"
+}
+exit 0
+$ hq explain a
+name      a
+state     done 54s, since 2026-11-23 07:04:19.918
+rests on  5
+dialog    at none, never at one
+
+the state rests on, oldest first
+  N  TIME                     SOURCE  WHAT      STATE
+  5  2026-11-23 07:04:19.918  hook    turn end  done
+exit 0
+$ hq read nobody
+hq: no agent 'nobody' (see hq ls)
+exit 2
+$ hq explain nobody
+hq: no agent 'nobody' (see hq ls)
+exit 2
+$ hq send nobody hi
+hq: no agent 'nobody' (see hq ls)
+exit 2
+$ hq answer nobody 1
+hq: no agent 'nobody' (see hq ls)
+exit 2

@@ -1,0 +1,55 @@
+$ git grep -n -E 'd\.look\(|agent\.Look\(|lookWith\(|runningSandboxes\(|askSandboxes\(|pollSandboxes|asked := d\.now\(\)|journal\.Through\(\)|\.cursor\(d\)|no agent '\''' -- internal/cli/ls.go internal/cli/read.go internal/cli/explain.go internal/cli/send.go internal/cli/answer.go internal/cli/update.go internal/cli/chord.go internal/cli/dash.go
+internal/cli/dash.go:176:		return fmt.Errorf("no agent '%s'", name)
+internal/cli/dash.go:286:			as := d.look(ws, running)
+internal/cli/dash.go:302:			asked := d.now() // before the question, as runningSandboxes
+internal/cli/dash.go:303:			sbs, err := d.pollSandboxes()
+internal/cli/ls.go:178:func lookWith(d deps, running agent.Sandboxes) (looked, error) {
+internal/cli/ls.go:179:	counter, err := d.journal.Through()
+internal/cli/ls.go:185:	return looked{agents: d.look(ws, running), windows: ws, counter: counter, counted: counted}, nil
+internal/cli/ls.go:190:func runningSandboxes(d deps) agent.Sandboxes {
+internal/cli/ls.go:191:	running, _ := askSandboxes(d)
+internal/cli/ls.go:197:func askSandboxes(d deps) (agent.Sandboxes, error) {
+internal/cli/ls.go:200:	asked := d.now()
+internal/cli/ls.go:201:	sbs, err := d.pollSandboxes()
+
+$ git grep -n -E 'deliverWaiting|Paste|Type\(|Submit|Press|postMessage|takeMessages' -- internal/agent/looker.go
+(no output)
+
+$ git grep -n -w Stands -- '*.go'
+internal/agent/look.go:19:	// Stands says whether home window w still stands, tmux asked now; one
+internal/agent/look.go:21:	Stands(w string) bool
+internal/agent/look.go:134:	_, _ = store.AppendEvidence(a.ID, func() bool { return store.Stands(a.Window) }, e)
+internal/agent/look_integration_test.go:25:// Stands says every home window stands.
+internal/agent/look_integration_test.go:26:func (s filesStore) Stands(string) bool { return true }
+internal/agent/look_integration_test.go:123:func (s killingFiles) Stands(string) bool { return !*s.killed }
+internal/agent/look_test.go:53:func (s *memStore) Stands(w string) bool { return !s.gone[w] }
+internal/agent/look_test.go:151:// Stands says every home window stands.
+internal/agent/look_test.go:152:func (s *replayStore) Stands(string) bool { return true }
+internal/cli/deps.go:398:// Stands says whether home window w is among the windows tmux lists now.
+internal/cli/deps.go:402:func (s lookSources) Stands(w string) bool {
+internal/state/journals_integration_test.go:162:// Stands says the agent's home window stands: the fixture's look is at it.
+internal/state/journals_integration_test.go:163:func (s *lookStore) Stands(string) bool { return true }
+
+$ git grep -n -w Stands 476a6ce -- '*.go'
+476a6ce:internal/agent/look.go:19:	// Stands says whether home window w still stands, tmux asked now; one
+476a6ce:internal/agent/look.go:21:	Stands(w string) bool
+476a6ce:internal/agent/look.go:134:	_, _ = store.AppendEvidence(a.ID, func() bool { return store.Stands(a.Window) }, e)
+476a6ce:internal/agent/look_integration_test.go:25:// Stands says every home window stands.
+476a6ce:internal/agent/look_integration_test.go:26:func (s filesStore) Stands(string) bool { return true }
+476a6ce:internal/agent/look_integration_test.go:123:func (s killingFiles) Stands(string) bool { return !*s.killed }
+476a6ce:internal/agent/look_test.go:53:func (s *memStore) Stands(w string) bool { return !s.gone[w] }
+476a6ce:internal/agent/look_test.go:151:// Stands says every home window stands.
+476a6ce:internal/agent/look_test.go:152:func (s *replayStore) Stands(string) bool { return true }
+476a6ce:internal/cli/deps.go:398:// Stands says whether home window w is among the windows tmux lists now.
+476a6ce:internal/cli/deps.go:402:func (s lookSources) Stands(w string) bool {
+476a6ce:internal/state/journals_integration_test.go:162:// Stands says the agent's home window stands: the fixture's look is at it.
+476a6ce:internal/state/journals_integration_test.go:163:func (s *lookStore) Stands(string) bool { return true }
+
+$ git grep -n -E '\blookWith\(|\brunningSandboxes\(|\baskSandboxes\(' -- 'internal/*.go' ':!*_test.go'
+internal/cli/kill.go:157:	sandboxes := runningSandboxes(d)
+internal/cli/ls.go:178:func lookWith(d deps, running agent.Sandboxes) (looked, error) {
+internal/cli/ls.go:190:func runningSandboxes(d deps) agent.Sandboxes {
+internal/cli/ls.go:191:	running, _ := askSandboxes(d)
+internal/cli/ls.go:197:func askSandboxes(d deps) (agent.Sandboxes, error) {
+internal/cli/wait.go:187:	sbxs := &sbxPoll{ask: func() agent.Sandboxes { return runningSandboxes(d) }}
+internal/cli/wait.go:189:		l, err := lookWith(d, sbxs.running(d.now(), first))

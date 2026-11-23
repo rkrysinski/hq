@@ -1,0 +1,21 @@
+$ git diff --name-status 476a6ce HEAD
+M	GLOSSARY.md
+M	docs/design/hq.md
+A	internal/agent/looker.go
+M	internal/cli/answer.go
+M	internal/cli/chord.go
+M	internal/cli/cursor.go
+M	internal/cli/dash.go
+M	internal/cli/deps.go
+M	internal/cli/explain.go
+A	internal/cli/look_variants_test.go
+M	internal/cli/ls.go
+M	internal/cli/read.go
+M	internal/cli/send.go
+M	internal/cli/update.go
+
+$ git diff --name-status 847c55f HEAD -- '*_test.go' docs/adr
+(no output: no test file and no ADR changed after the first commit)
+
+$ git diff --name-status 476a6ce 847c55f
+A	internal/cli/look_variants_test.go
