@@ -143,9 +143,9 @@ func (s *replayStore) Append(_ string, es ...state.Event) ([]state.Event, error)
 	return out, nil
 }
 
-// AppendWhileHomeStands appends as Append does: a replayed journal is
+// AppendWhileWindowStands appends as Append does: a replayed journal is
 // there.
-func (s *replayStore) AppendWhileHomeStands(id string, _ func() bool, es ...state.Event) ([]state.Event, error) {
+func (s *replayStore) AppendWhileWindowStands(id string, _ func() bool, es ...state.Event) ([]state.Event, error) {
 	return s.Append(id, es...)
 }
 
@@ -415,7 +415,7 @@ func (failingStore) ReadFrom(string, int64) (journal.Journal, error) {
 
 func (failingStore) Append(string, ...state.Event) ([]state.Event, error) { return nil, errJournal }
 
-func (failingStore) AppendWhileHomeStands(string, func() bool, ...state.Event) ([]state.Event, error) {
+func (failingStore) AppendWhileWindowStands(string, func() bool, ...state.Event) ([]state.Event, error) {
 	return nil, errJournal
 }
 

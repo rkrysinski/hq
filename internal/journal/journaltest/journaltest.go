@@ -115,11 +115,11 @@ func (m *Memory) Append(id string, events ...state.Event) ([]state.Event, error)
 	return m.append(id, nil, events)
 }
 
-// AppendWhileHomeStands appends evidence a look saw, or an event of hq's
+// AppendWhileWindowStands appends evidence a look saw, or an event of hq's
 // own other than the launch, as Append does, but to a journal that is not
 // there only when stands says the agent's home window still stands; else
 // it writes nothing and returns journal.ErrGone (journal.Store).
-func (m *Memory) AppendWhileHomeStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+func (m *Memory) AppendWhileWindowStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
 	return m.append(id, stands, events)
 }
 

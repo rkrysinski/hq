@@ -244,18 +244,18 @@ func finish(dir, path string, names []string) error {
 	return os.Remove(path + ingestSuffix)
 }
 
-// Append numbers events of hq's own and appends them to the journal of
-// agent id (Store), each set aside when the journal holds the same
-// evidence or a later report (Aside).
+// Append numbers evidence and events of hq's own and appends them to the
+// journal of agent id (Store), each set aside when the journal holds the
+// same evidence or a later report (Aside).
 func (s Files) Append(id string, events ...state.Event) ([]state.Event, error) {
 	return s.append(id, nil, events)
 }
 
-// AppendWhileHomeStands appends evidence a look saw, or an event of hq's
+// AppendWhileWindowStands appends evidence a look saw, or an event of hq's
 // own other than the launch, as Append does, but to a journal file that is
 // not there only when stands, asked under the lock, says the agent's home
 // window still stands; else it writes nothing and returns ErrGone (Store).
-func (s Files) AppendWhileHomeStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
+func (s Files) AppendWhileWindowStands(id string, stands func() bool, events ...state.Event) ([]state.Event, error) {
 	return s.append(id, stands, events)
 }
 
