@@ -127,12 +127,12 @@ func TestADialogOfClaudesOwnCountsOnBackgroundWork(t *testing.T) {
 	}
 }
 
-// hq answer moves the cursor of a dialog of Claude's own to an option
-// (#120): the verdict tells a fresh screen of the same dialog, the cursor
-// moved, from another dialog or none, and says when its list scrolls, as
-// the picker of /model does, which hq does not answer. A look that could
-// not capture the screen knows the dialog by what the journal holds, which
-// names it by the same fingerprint.
+// hq answer moves Claude Code's cursor in a dialog of Claude's own to an
+// option (#120): the verdict tells a fresh screen of the same dialog,
+// Claude Code's cursor moved, from another dialog or none, and says when its
+// list scrolls, as the picker of /model does, which hq does not answer. A look
+// that could not capture the screen knows the dialog by what the journal
+// holds, which names it by the same fingerprint.
 func TestTheVerdictOfADialogOfClaudesOwnKnowsItsScreen(t *testing.T) {
 	now := time.Unix(1000, 0)
 	rs := map[string]journaltest.HookState{"a1": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}, "a2": {State: state.Done, Since: now.Add(-time.Minute), Last: "hi"}}

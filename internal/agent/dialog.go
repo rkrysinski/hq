@@ -56,10 +56,10 @@ func (d Dialog) Asks(reported *state.Ask) *state.Ask {
 // does: hq answer does not answer it (#120).
 func (d Dialog) Scrolls() bool { return d.Whose == state.DialogOwn && d.scrolls }
 
-// Shows reports whether a screen's dialog of Claude's own, v, is the open
-// one: the same title and text, wherever its cursor is, as the event that
-// opened it names it (state.OwnFingerprint), whether or not this look saw
-// the screen.
+// Shows reports whether a screen's dialog of Claude's own, v, is the open one:
+// the same title and text, wherever Claude Code's cursor is, as the event that
+// opened it names it (state.OwnFingerprint), whether or not this look saw the
+// screen.
 func (d Dialog) Shows(v state.OwnView) bool {
 	return d.Whose == state.DialogOwn && d.fingerprint != "" && state.OwnFingerprint(v.Ask) == d.fingerprint
 }

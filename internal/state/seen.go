@@ -95,8 +95,8 @@ func (f *Fold) see(e Event) bool {
 			}
 			break
 		}
-		// The same dialog seen again, wherever its cursor is, is the one
-		// first seen; another, or one opened again, counts anew.
+		// The same dialog seen again, wherever Claude Code's cursor is, is
+		// the one first seen; another, or one opened again, counts anew.
 		if !s.own.at(key) || s.own.Facts.Screen != e.Facts.Screen {
 			s.own = mark
 		}

@@ -30,7 +30,7 @@ func TestOwnDialogReadsClaudesDialogAtTheStartOffTheScreen(t *testing.T) {
 	if !ok || !reflect.DeepEqual(ask, want) {
 		t.Fatalf("auto mode: %v %+v", ok, ask)
 	}
-	// The cursor on the second option: the same dialog.
+	// Claude Code's cursor on the second option: the same dialog.
 	moved := strings.Replace(strings.Replace(readScreen(t, "screen-own-auto-mode.txt"), "❯ Yes, set", "  Yes, set", 1), "  No, keep", "❯ No, keep", 1)
 	if ask, ok := OwnDialog(moved); !ok || !reflect.DeepEqual(ask, want) {
 		t.Fatalf("cursor moved: %v %+v", ok, ask)
@@ -109,10 +109,10 @@ func TestOwnDialogSeesTheModelPickerOverBackgroundWork(t *testing.T) {
 	}
 }
 
-// Where the cursor of a dialog of Claude's own stands, and whether its list
-// shows every option, as hq answer needs them (#120). Claude Code 2.1.304
-// draws "Change effort level?" and "Switch model?" (/model NAME) after a
-// turn as 2.1.300 did; Down moves the ❯. The picker of /model scrolls.
+// Where Claude Code's cursor stands in a dialog of Claude's own, and whether
+// its list shows every option, as hq answer needs them (#120). Claude Code
+// 2.1.304 draws "Change effort level?" and "Switch model?" (/model NAME) after
+// a turn as 2.1.300 did; Down moves the ❯. The picker of /model scrolls.
 func TestViewOwnDialogSaysWhereItsCursorIsAndWhetherItsListScrolls(t *testing.T) {
 	for _, tc := range []struct {
 		screen   string
@@ -193,14 +193,14 @@ func TestOwnViewPickTakesOneOptionByItsNumber(t *testing.T) {
 	}
 }
 
-// agentsScreens are the captures of #225 (Claude Code 2.1.326, setup M in
-// testdata/README.md): a session whose turn ended with two background
-// subagents running, at three pane sizes, with a footer of its own and
-// with the notice line above it. In the main view Claude's agents list
-// stands below the footer with no cursor on it (list), the cursor on main
-// (main), on the first subagent's row of it (first) or on the last one's
-// (last); Enter on the last opens its view, with the cursor on its row
-// (view-last), on the other's (view-first) or on main (view-main).
+// agentsScreens are the captures of #225 (Claude Code 2.1.326, capture setup M
+// in testdata/README.md): a session whose turn ended with two background
+// subagents running, at three pane sizes, with a footer of its own and with
+// the notice line above it. In the main view Claude's agents list stands below
+// the footer with Claude Code's cursor off it (list), on main (main), on the
+// first subagent's row of it (first) or on the last one's (last); Enter on the
+// last opens its view, with Claude Code's cursor on its row (view-last), on
+// the other's (view-first) or on main (view-main).
 func agentsScreens(t *testing.T) map[string]string {
 	t.Helper()
 	screens := map[string]string{}
@@ -216,9 +216,9 @@ func agentsScreens(t *testing.T) map[string]string {
 }
 
 // Claude's agents list, which Claude Code draws below its footer while
-// subagents run, with the cursor on it anywhere, and a subagent's view open
-// in the pane, are no dialog of Claude's own: the rows of Claude's agents
-// list are no options, the status line no question (#225).
+// subagents run, with Claude Code's cursor on it anywhere, and a subagent's
+// view open in the pane, are no dialog of Claude's own: the rows of Claude's
+// agents list are no options, the status line no question (#225).
 func TestViewOwnDialogIsNoClaudesAgentsListNorASubagentsView(t *testing.T) {
 	for name, s := range agentsScreens(t) {
 		for _, screen := range []string{s, WithoutHints(s)} {
@@ -249,8 +249,9 @@ func TestViewOwnDialogSeesTheModelPickerOverClaudesAgentsList(t *testing.T) {
 // The picker of /model since Claude Code 2.1.326 ends its list in a row
 // with no number that opens the rest of it, ▸ More models, and shows ▾ on
 // that row once it is open, with a line ↑ 2 more above the options and
-// ↓ 7 more below them (2.1.329, #253): the list scrolls, and none of those
-// lines is an option, wherever the cursor is, at 100 columns and at 40.
+// ↓ 7 more below them (2.1.329, #253; Claude Code's cursor on a model
+// below it, 2.1.330, #330): the list scrolls, and none of those lines is
+// an option, wherever Claude Code's cursor is, at 100 columns and at 40.
 func TestViewOwnDialogSeesThatTheModelPickerOfMoreModelsScrolls(t *testing.T) {
 	models := []string{
 		"Default (recommended) Opus 5.5 · Best for everyday, complex tasks",
@@ -263,10 +264,6 @@ func TestViewOwnDialogSeesThatTheModelPickerOfMoreModelsScrolls(t *testing.T) {
 		"Fable 5.1 Most capable for your hardest and longest-running tasks", "Haiku 4.5 Fastest for quick answers"}
 	text2326 := "Switch between Claude models. Your pick becomes the default for new sessions. For other or older models, use --model."
 	text2329 := "Your pick is the default for new sessions. For other models, use --model."
-	// The opened list with the ❯ moved from ▾ More models down to a model
-	// past it, as Down does: no capture shows it.
-	below := strings.Replace(strings.Replace(readScreen(t, "screen-own-model-2329-opened.txt"),
-		"  ❯ ▾   More models", "    ▾   More models", 1), "    6.  Fable 5.1", "  ❯ 6.  Fable 5.1", 1)
 	for _, tc := range []struct {
 		name, screen, text string
 		wrapped            bool // at 40 columns: the options' wrapped lines are read as options (#321), not checked
@@ -278,7 +275,7 @@ func TestViewOwnDialogSeesThatTheModelPickerOfMoreModelsScrolls(t *testing.T) {
 		{name: "screen-own-model-2329.txt", text: text2329, cursor: 4, options: models},
 		{name: "screen-own-model-2329-more.txt", text: text2329, cursor: -1, options: models},
 		{name: "screen-own-model-2329-opened.txt", text: text2329, cursor: -1, options: opened},
-		{name: "the opened list, the cursor on a model below", screen: below, text: text2329, cursor: 3, options: opened},
+		{name: "screen-own-model-2330-below.txt", text: text2329, cursor: 3, options: opened},
 		{name: "screen-own-model-2329-40.txt", text: text2329, wrapped: true},
 	} {
 		if tc.screen == "" {

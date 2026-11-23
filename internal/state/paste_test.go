@@ -5,13 +5,12 @@ import (
 	"testing"
 )
 
-// The first four cases are the captures' (testdata/README.md, setup L,
-// screen-styled-paste-*): what Claude Code showed in its box for each
-// paste, all of it ASCII. The others are extrapolated from them, backed by
-// no capture: a newline at the end, blank lines, characters against bytes
-// and columns, and the newline counting toward the 800 characters. A
-// capture that shows one of them otherwise settles it (docs/hq/agents.md,
-// Rules).
+// The first four cases are the captures' (testdata/README.md, capture setup L,
+// screen-styled-paste-*): what Claude Code showed in its box for each paste,
+// all of it ASCII. The others are extrapolated from them, backed by no
+// capture: a newline at the end, blank lines, characters against bytes and
+// columns, and the newline counting toward the 800 characters. A capture that
+// shows one of them otherwise settles it (docs/hq/agents.md, Rules).
 func TestAPasteOfMoreThanThreeLinesOrEightHundredCharactersIsCollapsed(t *testing.T) {
 	captured := map[string]bool{
 		"/probe one\ntwo\nthree":       false, // screen-styled-paste-3-lines

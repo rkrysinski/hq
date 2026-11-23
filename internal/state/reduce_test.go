@@ -397,6 +397,26 @@ func TestAReportHqCannotReadIsStartingUnlessItIsTooLarge(t *testing.T) {
 	}
 }
 
+// The latest turn end hq cannot read, not too large to, gives no reply
+// and that event's time, whatever reply the journal holds; one too large
+// says so.
+func TestLastReplyOfATurnEndHqCannotReadIsNoTextAtItsTime(t *testing.T) {
+	kept := Reply{Number: 2, Text: "ok"}
+	for _, tc := range []struct {
+		end  Event
+		want string
+	}{
+		{unreadableEvent(2, "stop", maxFile), ""},
+		{unreadableEvent(2, "stop", 1), ""},
+		{unreadableEvent(2, "stop", maxFile+1), TooLarge(maxFile + 1)},
+	} {
+		text, at := (Fold{}).With(userPrompt(1, "t1"), tc.end).LastReply(kept)
+		if text != tc.want || !at.Equal(tc.end.Time) || at.IsZero() {
+			t.Errorf("%d bytes: %q at %v, want %q at %v", tc.end.Facts.Size, text, at, tc.want, tc.end.Time)
+		}
+	}
+}
+
 // An own task's text is the reply's, which the journal keeps for its
 // latest turn end only.
 func TestOwnTasksTakeTheirTextsFromTheReply(t *testing.T) {

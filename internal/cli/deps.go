@@ -395,11 +395,11 @@ func (s lookSources) Screens(panes []string) (map[string]string, error) { return
 
 func (s lookSources) Withdraw(root, id string) error { return s.withdraw(root, id) }
 
-// Stands says whether home window w is among the windows tmux lists now.
-// When tmux cannot list them it does not: the look then writes no journal
-// that is not there, which a kill under way would leave for good, and the
-// next look writes it once tmux answers.
-func (s lookSources) Stands(w string) bool {
+// WindowStands says whether home window w is among the windows tmux lists
+// now. When tmux cannot list them it does not: the look then writes no
+// journal that is not there, which a kill under way would leave for good,
+// and the next look writes it once tmux answers.
+func (s lookSources) WindowStands(w string) bool {
 	ws, err := s.windows()
 	return err == nil && slices.ContainsFunc(ws, func(x tmux.Window) bool { return x.ID == w })
 }

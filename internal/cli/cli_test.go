@@ -253,18 +253,21 @@ func TestFlagSetIs(t *testing.T) {
 	}
 }
 
-// TestFlagsAreRecognisedOnlyThroughTheirDeclaration fails for a comparison
-// with a declared flag's spelling (a == "--json", case "--json":) anywhere
-// in the package but through flagSet.is, which checks the declaration.
-func TestFlagsAreRecognisedOnlyThroughTheirDeclaration(t *testing.T) {
-	declared := map[string]bool{}
-	for _, c := range append(commands(), versionCommand()) {
-		for _, flag := range c.flags {
-			declared[strconv.Quote(flag)] = true
-		}
-	}
-	fset := token.NewFileSet()
-	for _, f := range sourceFiles(t, fset) {
+// rawFlagExceptions are the comparisons with a string that starts with -
+// that stand outside flagSet.is, by file and literal, each with its
+// reason.
+var rawFlagExceptions = map[string]string{
+	`session.go "--settings"`: "hq __session reads Claude's arguments: --settings is an option of Claude's, not of hq's",
+}
+
+// rawFlagComparisons are the places in files where a string literal that
+// starts with - is compared with == or != or is itself an expression of a
+// case, not through flagSet.is, which checks the command's declaration,
+// each as "FILE:LINE: LITERAL"; but those of exceptions.
+func rawFlagComparisons(fset *token.FileSet, files []*ast.File, exceptions map[string]string) []string {
+	var found []string
+	for _, f := range files {
+		file := filepath.Base(fset.Position(f.Pos()).Filename)
 		ast.Inspect(f, func(n ast.Node) bool {
 			var compared []ast.Expr
 			switch n := n.(type) {
@@ -276,12 +279,65 @@ func TestFlagsAreRecognisedOnlyThroughTheirDeclaration(t *testing.T) {
 				compared = n.List
 			}
 			for _, e := range compared {
-				if lit, ok := e.(*ast.BasicLit); ok && declared[lit.Value] {
-					t.Errorf("%s: compares with %s, not through flagSet.is", fset.Position(lit.Pos()), lit.Value)
+				lit, ok := e.(*ast.BasicLit)
+				if !ok || lit.Kind != token.STRING {
+					continue
+				}
+				if v, err := strconv.Unquote(lit.Value); err != nil || !strings.HasPrefix(v, "-") {
+					continue
+				}
+				if _, exempt := exceptions[file+" "+lit.Value]; !exempt {
+					found = append(found, fmt.Sprintf("%s:%d: %s", file, fset.Position(lit.Pos()).Line, lit.Value))
 				}
 			}
 			return true
 		})
+	}
+	return found
+}
+
+// A flag is recognised only through flagSet.is, which checks that the
+// command declares it, so hq help names every flag a command takes: a
+// comparison with any string that starts with - anywhere in the package
+// fails, declared by a command or not, but those of rawFlagExceptions.
+func TestFlagsAreRecognisedOnlyThroughTheirDeclaration(t *testing.T) {
+	fset := token.NewFileSet()
+	for _, at := range rawFlagComparisons(fset, sourceFiles(t, fset), rawFlagExceptions) {
+		t.Errorf("%s: compared, not through flagSet.is", at)
+	}
+}
+
+// The check of flags reports a flag compared raw, declared nowhere, in an
+// if and in a case, and not one recognised through flagSet.is, a string
+// that does not start with -, nor an exception in its own file.
+func TestTheCheckOfFlagsReportsAnUndeclaredFlagComparedRaw(t *testing.T) {
+	const src = `package cli
+
+func run(f flagSet, a string) {
+	if a == "--force" || f.is(a, "--json") || a != "force" {
+	}
+	switch a {
+	case "-q", "x":
+	case "--settings":
+	}
+	switch {
+	case strings.HasPrefix(a, "-"):
+	}
+}
+`
+	fset := token.NewFileSet()
+	parse := func(name string) *ast.File {
+		f, err := parser.ParseFile(fset, name, src, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return f
+	}
+	exceptions := map[string]string{`other.go "--settings"`: "a reason"}
+	got := rawFlagComparisons(fset, []*ast.File{parse("run.go"), parse("other.go")}, exceptions)
+	want := []string{`run.go:4: "--force"`, `run.go:7: "-q"`, `run.go:8: "--settings"`, `other.go:4: "--force"`, `other.go:7: "-q"`}
+	if !slices.Equal(got, want) {
+		t.Errorf("reported %q, want %q", got, want)
 	}
 }
 

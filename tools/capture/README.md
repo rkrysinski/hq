@@ -4,7 +4,7 @@ hq reads Claude's screen to settle an agent's state (design §3.4). Those reader
 
 ## When
 
-Before a spec, PRD or issue settles a rule that reads Claude's screen, capture the screens the rule depends on, in the setup the agents run in: the same Claude Code version, the same sbx template and its managed settings (renderer, status line, mods, hooks). Check the rule against the captures, then settle it. #68's rule rested on the 2.1.283 fixtures and did not hold on 2.1.301 in the sbx template (#70).
+Before a spec, PRD or issue settles a rule that reads Claude's screen, capture the screens the rule depends on, in a capture setup like the agents' own: the same Claude Code version, the same sbx template and its managed settings (renderer, status line, mods, hooks). Check the rule against the captures, then settle it. #68's rule rested on the 2.1.283 fixtures and did not hold on 2.1.301 in the sbx template (#70).
 
 ## How
 
@@ -25,5 +25,5 @@ tools/capture/capture.sh stop
 
 ## Then
 
-- Copy each capture you use to `internal/state/testdata/screen-<name>.txt`, unedited, and add its row to that folder's `README.md`: the `claude --version`, the setup, the pane, what it shows.
-- When the setup cannot draw a screen (the sbx template's auto-approve hook answers every permission request, so no permission prompt shows), say so in the README rather than making the screen by hand.
+- Copy each capture you use to `internal/state/testdata/screen-<name>.txt`, unedited, and add its row to that folder's `README.md`: the `claude --version`, the capture setup, the pane, what it shows.
+- When the capture setup cannot draw a screen (the sbx template's auto-approve hook answers every permission request, so no permission prompt shows), say so in the README rather than making the screen by hand.

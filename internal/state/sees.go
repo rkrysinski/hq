@@ -36,7 +36,7 @@ func Fingerprint(screen string) string {
 
 // OwnFingerprint names a dialog Claude shows of its own on the agent's
 // screen, ask, by its title and text: not by its options, which a list
-// such as the picker of /model scrolls as the cursor moves.
+// such as the picker of /model scrolls as Claude Code's cursor moves.
 func OwnFingerprint(ask *Ask) string {
 	if ask == nil || len(ask.Questions) == 0 {
 		return ""

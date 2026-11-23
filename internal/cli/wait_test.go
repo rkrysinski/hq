@@ -403,11 +403,10 @@ func TestWaitWithoutSinceReturnsAChangeNumberedRightAfterItsFirstLook(t *testing
 	}
 }
 
-// An agent working only on background work, whose pane shows
-// Claude's agents list with the cursor on a subagent's row of it and then
-// a subagent's view, is not returned: neither is a dialog of Claude's own
-// (Claude Code 2.1.326, #225). The picker of /model opened over that
-// list is.
+// An agent working only on background work, whose pane shows Claude's agents
+// list with Claude Code's cursor on a subagent's row of it and then a
+// subagent's view, is not returned: neither is a dialog of Claude's own
+// (Claude Code 2.1.326, #225). The picker of /model opened over that list is.
 func TestWaitDoesNotReturnAnAgentAtClaudesAgentsListOrASubagentsView(t *testing.T) {
 	f := newWaitFakes()
 	f.tmux.windows[1].Pane = "%1"

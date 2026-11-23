@@ -82,19 +82,19 @@ func TookQueued(screen, queued string) bool {
 	return i >= 0 && isUserEnd(b.lines[i])
 }
 
-// TookSlashCommand reports whether the screen shows Claude at its prompt
-// box after it took a slash command of its own that starts no turn, as
-// /model NAME, or /effort and the picker of /model closed (Claude Code
-// 2.1.329, setup P, #220): the one prompt shown sent, as the first prompt
-// of a session is, is a slash command, with its outcome right below it on
-// a ⎿ line ("⎿ Set model to Opus 5.5…", "⎿ Cancelled", "⎿ Kept model as
-// Haiku 5.5"), nothing of Claude's below that, no spinner, and a footer
-// that does not offer Esc to interrupt. A prompt Claude has taken for a
-// turn, a slash command that starts one included (/probe in setup P), has
-// its spinner below it, also while a SessionStart or UserPromptSubmit hook
-// still runs ahead of the turn, then its reply in a card or under a
-// bullet, never a ⎿ line right below it; a prompt not taken yet is not
-// shown sent at all. What the box holds says nothing here.
+// TookSlashCommand reports whether the screen shows Claude at its prompt box
+// after it took a slash command of its own that starts no turn, as /model
+// NAME, or /effort and the picker of /model closed (Claude Code 2.1.329,
+// capture setup P, #220): the one prompt shown sent, as the first prompt of a
+// session is, is a slash command, with its outcome right below it on a ⎿ line
+// ("⎿ Set model to Opus 5.5…", "⎿ Cancelled", "⎿ Kept model as Haiku 5.5"),
+// nothing of Claude's below that, no spinner, and a footer that does not offer
+// Esc to interrupt. A prompt Claude has taken for a turn, a slash command that
+// starts one included (/probe in capture setup P), has its spinner below it,
+// also while a SessionStart or UserPromptSubmit hook still runs ahead of the
+// turn, then its reply in a card or under a bullet, never a ⎿ line right below
+// it; a prompt not taken yet is not shown sent at all. What the box holds says
+// nothing here.
 func TookSlashCommand(screen string) bool {
 	b, ok := promptBox(screen)
 	if !ok || b.spinning() {

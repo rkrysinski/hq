@@ -9,7 +9,8 @@ import (
 )
 
 // The screens in testdata are real Claude Code panes as capture-pane shows
-// them; testdata/README.md says for each its version, setup and pane.
+// them; testdata/README.md says for each its version, capture setup and
+// pane.
 func screen(t *testing.T, name string) string {
 	t.Helper()
 	b, err := os.ReadFile("testdata/screen-" + name + ".txt")
@@ -577,12 +578,13 @@ func TestTheReadersHoldOnABoxWithAPastePlaceholder(t *testing.T) {
 	}
 }
 
-// In the main view, Claude's agents list below the footer, with the cursor
-// on it anywhere, leaves Claude's prompt box found, at every pane size and with
-// the notice line too: the agent's turn ended, it waits at its box
-// (#225). A subagent's view puts that subagent's box in its place, the
-// upper rule carrying the subagent's description: it tells nothing of the
-// agent's own turn, so none of the readers of that turn finds a box there.
+// In the main view, Claude's agents list below the footer, with
+// Claude Code's cursor on it anywhere, leaves Claude's prompt box found, at
+// every pane size and with the notice line too: the agent's turn ended, it
+// waits at its box (#225). A subagent's view puts that subagent's box in its
+// place, the upper rule carrying the subagent's description: it tells nothing
+// of the agent's own turn, so none of the readers of that turn finds a box
+// there.
 func TestClaudesAgentsListLeavesTheBoxAndASubagentsViewShowsNoneOfTheAgents(t *testing.T) {
 	for name, s := range agentsScreens(t) {
 		view := strings.HasPrefix(name, "screen-agents-view-")
@@ -604,11 +606,11 @@ func TestClaudesAgentsListLeavesTheBoxAndASubagentsViewShowsNoneOfTheAgents(t *t
 	}
 }
 
-// TookSlashCommand reads the one prompt shown sent, a slash command, with
-// its outcome right below it at the box at rest (Claude Code 2.1.329,
-// setup P, #220), also on a screen scrolled so far that the slash command
-// is its top line; not a slash command after other prompts, a prompt at
-// work or a turn's reply below the prompt, nor a session given no prompt.
+// TookSlashCommand reads the one prompt shown sent, a slash command, with its
+// outcome right below it at the box at rest (Claude Code 2.1.329,
+// capture setup P, #220), also on a screen scrolled so far that the slash
+// command is its top line; not a slash command after other prompts, a prompt
+// at work or a turn's reply below the prompt, nor a session given no prompt.
 func TestTookSlashCommandReadsTheOnePromptSentAndItsOutcome(t *testing.T) {
 	for _, name := range tookSlashCommandScreens {
 		s := screen(t, name)
