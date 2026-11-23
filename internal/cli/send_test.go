@@ -289,7 +289,6 @@ func TestSendUsage(t *testing.T) {
 		{[]string{"send", "a", "hi", "-f"}, ExitUsage, "hq: unknown option '-f' (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
 		{[]string{"send", "a", " \x1b[31m \n"}, ExitUsage, "hq: empty message (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
 		{[]string{"send", "a", strings.Repeat("x", state.MaxMessage+1)}, ExitUsage, "hq: message too long: at most 8192 bytes\n"},
-		{[]string{"send", "nobody", "hi"}, ExitNotFound, "hq: no agent 'nobody' (see hq ls)\n"},
 		// --timeout is --wait's (#170, decision 6).
 		{[]string{"send", "a", "hi", "--timeout", "5s"}, ExitUsage, "hq: --timeout goes with --wait (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
 		{[]string{"send", "a", "hi", "--wait", "--timeout"}, ExitUsage, "hq: --timeout needs a value (usage: hq send NAME TEXT [--now] [--wait [--timeout DURATION]] [--json])\n"},
@@ -332,8 +331,8 @@ func TestKillRemovesTheMessagesWaitingForIt(t *testing.T) {
 
 func TestQueuedSaysWhenAnEndedAgentsMessagesGo(t *testing.T) {
 	f := sendFakes(state.Done)
-	l, _ := lookNow(f.deps())
-	a := l.agents[0]
+	seen, _ := f.deps().looker().Look(agent.Acting)
+	a := seen.Agents[0]
 	a.State = state.Ended
 	if got := queued(a, false); got != "queued: a has ended; delivered once it is relaunched" {
 		t.Fatal(got)

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/rkrysinski/hq/internal/agent"
-	"github.com/rkrysinski/hq/internal/tmux"
 )
 
 // A cursor is what next_since holds (ADR 0019): an opaque string standing
@@ -77,15 +76,6 @@ func (s since) aheadOf(counter int64, counted bool) bool {
 func aheadErr(s since) error {
 	return usageErr("--since '%s' is ahead of every change hq has numbered on this host (was its state directory lost?): take a new one from hq ls --json", cursorText(s.cursor))
 }
-
-// looked is a look's agents (agent.Seen.Agents), as lookNow gives them.
-type looked struct {
-	agents []agent.Agent
-}
-
-// agentAppeared reports whether after holds the home window of an agent that
-// before does not (agent.Appeared).
-func agentAppeared(before, after []tmux.Window) bool { return agent.Appeared(before, after) }
 
 // cursorBefore is the cursor for a change an hq command is about to cause
 // in agent a (a message, an answer; agent.Looker.CounterBefore).

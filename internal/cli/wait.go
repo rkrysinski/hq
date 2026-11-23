@@ -18,9 +18,6 @@ import (
 // returns "nothing yet" before its caller gives up on it.
 const DefaultWaitTimeout = 50 * time.Second
 
-// waitEvery is how often hq wait looks (agent.LoopEvery).
-const waitEvery = agent.LoopEvery
-
 // waitStates are the states hq wait returns an agent in (spec §4.1).
 var waitStates = []string{state.Done, state.Question, state.NeedsInput, state.Ended}
 

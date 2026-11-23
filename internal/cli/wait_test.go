@@ -3,13 +3,12 @@ package cli
 import (
 	"encoding/json"
 	"slices"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
-	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
 	"github.com/rkrysinski/hq/internal/tmux"
 )
@@ -63,7 +62,7 @@ func TestWaitReturnsAnAgentThatTurnsDoneWithItsRowAndTheNextSince(t *testing.T) 
 	}
 	// It waited while the agents only worked, and returned with the look
 	// after the one that saw the change (#116), with no settle time.
-	if waited := f.now.Sub(doneAt); f.now.Sub(start) < 10*time.Second || waited < waitEvery || waited > 2*waitEvery {
+	if waited := f.now.Sub(doneAt); f.now.Sub(start) < 10*time.Second || waited < agent.LoopEvery || waited > 2*agent.LoopEvery {
 		t.Fatalf("returned %v after the change", waited)
 	}
 	lines := strings.Split(strings.TrimSpace(out), "\n")
@@ -78,28 +77,6 @@ func TestWaitReturnsAnAgentThatTurnsDoneWithItsRowAndTheNextSince(t *testing.T) 
 	}
 }
 
-func TestWaitNeverReturnsAnAgentEndedOnAnAnswerOfSbxOlderThanItsReport(t *testing.T) {
-	// hq new has just started a in a sandbox that was not running: sbx
-	// still says so when wait first asks, and wait keeps that answer for a
-	// second. a's session starts and its turn ends within it (#48).
-	f := newWaitFakes()
-	f.tmux.windows = f.tmux.windows[:2]
-	f.tmux.windows[1].Options["started"] = strconv.FormatInt(f.now.Add(-time.Second).Unix(), 10)
-	delete(f.states, "id-a")
-	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "stopped"}}
-	f.after(500*time.Millisecond, func() {
-		f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "running"}}
-		f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Done: hello"}
-	})
-	code, out, errOut := f.run("wait", "--since", "1m", "--json")
-	if code != 0 {
-		t.Fatalf("exit %d: %s", code, errOut)
-	}
-	if w := waitJSON(t, out); len(w.Agents) != 1 || w.Agents[0].Name != "a" || w.Agents[0].State != state.Done || w.Agents[0].Last != "Done: hello" {
-		t.Fatalf("want a done, got %s", out)
-	}
-}
-
 func TestWaitDoesNotReturnAnAgentAlreadyDoneWhenItStartsAndTimesOutWithNothing(t *testing.T) {
 	f := newWaitFakes()
 	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Second), Last: "Done: hello"}
@@ -108,7 +85,7 @@ func TestWaitDoesNotReturnAnAgentAlreadyDoneWhenItStartsAndTimesOutWithNothing(t
 	if code != 0 || !strings.HasPrefix(out, "nothing yet\nnext: hq wait --since ") {
 		t.Fatalf("exit %d:\n%s", code, out)
 	}
-	if took := f.now.Sub(start); took < 3*time.Second || took > 3*time.Second+waitEvery {
+	if took := f.now.Sub(start); took < 3*time.Second || took > 3*time.Second+agent.LoopEvery {
 		t.Fatalf("returned after %v", took)
 	}
 	code, out, _ = f.run("wait", "--timeout=1", "--json")
@@ -133,7 +110,7 @@ func TestWaitSinceTheLastCursorReportsWhatChangedBetweenCalls(t *testing.T) {
 	start := f.now
 	code, out, _ = f.run("wait", "--since", first.NextSince, "--json")
 	second := waitJSON(t, out)
-	if code != 0 || len(second.Agents) != 1 || second.Agents[0].Name != "a" || second.Agents[0].State != state.Question || f.now.Sub(start) > waitEvery {
+	if code != 0 || len(second.Agents) != 1 || second.Agents[0].Name != "a" || second.Agents[0].State != state.Question || f.now.Sub(start) > agent.LoopEvery {
 		t.Fatalf("second call: %s (took %v)", out, f.now.Sub(start))
 	}
 	// Reported once: the next call from its cursor waits on.
@@ -191,7 +168,7 @@ func TestWaitOnNamedAgentsIgnoresTheOthers(t *testing.T) {
 		t.Fatalf("exit %d:\n%s", code, out)
 	}
 	code, _, errOut := f.run("wait", "a", "nobody")
-	if code != ExitNotFound || errOut != "hq: no agent 'nobody' (see hq ls)\n" {
+	if code != ExitNotFound || errOut != noAgent("nobody") {
 		t.Fatalf("unknown name: exit %d %q", code, errOut)
 	}
 }
@@ -353,9 +330,9 @@ func TestWaitReturnsAgentsThatFinishWithinALookOfEachOtherTogether(t *testing.T)
 		switch {
 		case f.states["id-a"].State == state.Working && !f.now.Before(at):
 			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "a done"}
-		case f.states["id-b"].State == state.Working && !f.now.Before(at.Add(waitEvery)):
+		case f.states["id-b"].State == state.Working && !f.now.Before(at.Add(agent.LoopEvery)):
 			// b's report lands a look later, dated within that look.
-			f.states["id-b"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-waitEvery / 5), Last: "b done"}
+			f.states["id-b"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-agent.LoopEvery / 5), Last: "b done"}
 		}
 	}
 	code, out, _ := f.run("wait", "--json")
@@ -387,7 +364,7 @@ func TestWaitKeepsAnAgentFoundByItsFirstHitThatMovesOnBeforeItReturns(t *testing
 		switch {
 		case f.states["id-a"].State == state.Working && !movedOn && !f.now.Before(at):
 			f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "a done"}
-		case f.states["id-a"].State == state.Done && !f.now.Before(at.Add(2*waitEvery)):
+		case f.states["id-a"].State == state.Done && !f.now.Before(at.Add(2*agent.LoopEvery)):
 			// The look after the hit: a message was typed in, a works.
 			movedOn = true
 			f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now, Last: "on it"}

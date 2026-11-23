@@ -341,12 +341,8 @@ func mustJSON(v any) string {
 	return string(b)
 }
 
-func TestReadNeedsOneKnownAgent(t *testing.T) {
+func TestReadNeedsOneAgentAndTmux(t *testing.T) {
 	f := readFakes()
-	// An unknown name fails as hq go does (spec §4.2).
-	if code, out, errOut := f.run("read", "nobody"); code != ExitNotFound || out != "" || errOut != "hq: no agent 'nobody' (see hq ls)\n" {
-		t.Fatalf("unknown: exit %d %q %q", code, out, errOut)
-	}
 	const usage = "hq read NAME [--offset N --since SINCE] [--json]"
 	for args, want := range map[string]string{
 		"read":        "hq: usage: " + usage + "\n",

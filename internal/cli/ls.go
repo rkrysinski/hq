@@ -69,9 +69,6 @@ func runLs(env Env, d deps, args []string) error {
 	return writeTable(env.Stdout, rows)
 }
 
-// coverLooks bounds the looks of hq ls --json (agent.CoverLooks).
-const coverLooks = agent.CoverLooks
-
 // lsRows are the agents as hq ls shows them now, in the order given, with
 // how many messages wait for each.
 func lsRows(d deps, as []agent.Agent) []lsRow {
@@ -161,13 +158,6 @@ func gatherAgents(d deps) (agent.Seen, error) {
 	}
 	deliverWaiting(d, seen.Agents)
 	return seen, nil
-}
-
-// lookNow is a look at the agents in the variant of hq send and hq answer
-// (agent.Acting), for the tests that take one this way.
-func lookNow(d deps) (looked, error) {
-	seen, err := d.looker().Look(agent.Acting)
-	return looked{agents: seen.Agents}, lookErr(err)
 }
 
 // runningSandboxes asks sbx which sandboxes run, for hq kill
