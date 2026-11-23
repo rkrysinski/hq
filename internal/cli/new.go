@@ -248,7 +248,7 @@ func launchAgent(d deps, a agent.Agent, resume, prompt string, fresh bool) error
 	if fresh {
 		how = "new"
 	}
-	appendEvent(d, id, state.KindLaunched, state.Facts{Start: how, Session: resume, Repo: root, Tmux: server(d), Prompted: prompt != ""})
+	appendLaunched(d, id, state.Facts{Start: how, Session: resume, Repo: root, Tmux: server(d), Prompted: prompt != ""})
 	if err := d.tmux.Start(win); err != nil {
 		if supervised {
 			_ = d.withdraw(root, id)
@@ -259,7 +259,7 @@ func launchAgent(d deps, a agent.Agent, resume, prompt string, fresh bool) error
 		if fresh {
 			removeAgentFiles(d, root, id)
 		} else {
-			appendWithdrawn(d, id, state.KindLaunched, nil)
+			appendWithdrawn(d, id, win, state.KindLaunched, nil)
 		}
 		return tmuxErr(err)
 	}
