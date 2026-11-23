@@ -409,30 +409,35 @@ func (d deps) sources() agent.Sources {
 	return lookSources{d.journal, d.tmux.Windows, d.tmux.Screens, d.withdraw}
 }
 
-// look is a look at the agents of the home windows ws (agent.Look), with
-// sbx's answer running.
-func (d deps) look(ws []tmux.Window, running agent.Sandboxes) []agent.Agent {
-	return d.withoutKilled(agent.Look(ws, running, d.now(), d.sources(), d.folds))
+// looker takes the look of a command that takes one and returns
+// (agent.Looker), from these dependencies.
+func (d deps) looker() agent.Looker {
+	return agent.Looker{Windows: d.tmux.Windows, Sources: d.sources(), Sandboxes: d.pollSandboxes, Now: d.now, Sleep: d.sleep, Folds: d.folds}
 }
 
-// withoutKilled are the agents of a look but those whose journal it found
-// gone (agent.Agent.JournalGone) and whose home windows are gone by now:
-// hq kill kills an agent's window before it removes its journal, so
-// windows listed after a look that found the journal of an agent it was
-// removing gone show its window gone, and the agent is left out as the
-// next look leaves it out (#239). tmux is asked again only when the look
-// found a journal gone; when it cannot say, every agent stays.
-func (d deps) withoutKilled(as []agent.Agent) []agent.Agent {
-	if !slices.ContainsFunc(as, agent.Agent.JournalGone) {
-		return as
+// lookErr is the error of a look that failed (agent.Looker.Look) as a
+// command's: sbx's or tmux's, as an environment error.
+func lookErr(err error) error {
+	var s *agent.SbxError
+	if errors.As(err, &s) {
+		return sbxErr(s)
 	}
-	ws, err := d.tmux.Windows()
-	if err != nil {
-		return as
+	var t *agent.TmuxError
+	if errors.As(err, &t) {
+		return tmuxErr(t)
 	}
-	return slices.DeleteFunc(as, func(a agent.Agent) bool {
-		return a.JournalGone() && !slices.ContainsFunc(ws, func(w tmux.Window) bool { return w.ID == a.Window })
-	})
+	return err
+}
+
+// refusalErr is the look's refusal of an agent by name as a command's:
+// none of that name (exit 2), or an outdated one (agent.NotFoundError,
+// agent.OutdatedError).
+func refusalErr(err error) error {
+	var none *agent.NotFoundError
+	if errors.As(err, &none) {
+		return notFoundErr("%s", err)
+	}
+	return usageErr("%s", err)
 }
 
 // fromJournals are the agents of the home windows ws with their state

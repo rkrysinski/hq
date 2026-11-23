@@ -284,3 +284,73 @@ func TestFlagsAreRecognisedOnlyThroughTheirDeclaration(t *testing.T) {
 		})
 	}
 }
+
+// composeRefusal are the functions of this package that compose the
+// refusal of a name no agent has themselves, by file and name, each with
+// its reason: the commands that read the agents from their journals with
+// no look (spec #336, O1). Every other command takes the refusal from the
+// look (agent.Seen.Named).
+var composeRefusal = map[string]string{
+	"go.go runGo":             "hq go reads the agents from their journals, with no look",
+	"code.go openCode":        "hq code reads the agents from their journals, with no look",
+	"kill.go runKill":         "hq kill reads the agents from their journals, with no look",
+	"dialog.go runKillDialog": "the dashboard's Kill window reads the agents from their journals, with no look",
+	"dash.go dockAs":          "docking the row pointed at reads the agents from their journals, with no look",
+}
+
+// composedRefusals are the places in files where the text of the refusal
+// of a name no agent has ("no agent '") stands outside the functions of
+// composeRefusal, each as "FILE:LINE in FUNCTION" (no function for one
+// outside every function).
+func composedRefusals(fset *token.FileSet, files []*ast.File) []string {
+	var found []string
+	for _, f := range files {
+		file := filepath.Base(fset.Position(f.Pos()).Filename)
+		for _, decl := range f.Decls {
+			fn := ""
+			if d, ok := decl.(*ast.FuncDecl); ok {
+				fn = d.Name.Name
+			}
+			ast.Inspect(decl, func(n ast.Node) bool {
+				lit, ok := n.(*ast.BasicLit)
+				if !ok || lit.Kind != token.STRING || !strings.Contains(lit.Value, "no agent '") {
+					return true
+				}
+				if _, exempt := composeRefusal[file+" "+fn]; !exempt {
+					found = append(found, fmt.Sprintf("%s:%d in %s", file, fset.Position(lit.Pos()).Line, fn))
+				}
+				return true
+			})
+		}
+	}
+	return found
+}
+
+// No command but those that take no look composes the refusal of a name
+// no agent has: every other one takes it from the look (agent.Seen.Named),
+// so the rule has one place and a command that composes it again, such as
+// hq ls NAME..., fails the build (#336, story 18). The check sees a refusal
+// composed in a command the look serves, and one outside every function.
+func TestOnlyTheCommandsWithNoLookComposeTheRefusalOfAMissingName(t *testing.T) {
+	fset := token.NewFileSet()
+	if found := composedRefusals(fset, sourceFiles(t, fset)); len(found) != 0 {
+		t.Errorf("the refusal of a missing name composed at %v: take it from the look (agent.Seen.Named), or add the function to composeRefusal with its reason", found)
+	}
+	var files []*ast.File
+	for name, src := range map[string]string{
+		"ls.go":   "package cli\n\nfunc runLs(name string) error {\n\treturn notFoundErr(\"no agent '%s' (see hq ls)\", name)\n}\n",
+		"send.go": "package cli\n\nconst refusal = `no agent '`\n",
+		"go.go":   "package cli\n\nfunc runGo(name string) error {\n\treturn notFoundErr(\"no agent '%s' (see hq ls)\", name)\n}\n",
+	} {
+		f, err := parser.ParseFile(fset, name, src, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files = append(files, f)
+	}
+	found := composedRefusals(fset, files)
+	slices.Sort(found)
+	if want := []string{"ls.go:4 in runLs", "send.go:3 in "}; !slices.Equal(found, want) {
+		t.Fatalf("found %q, want %q", found, want)
+	}
+}

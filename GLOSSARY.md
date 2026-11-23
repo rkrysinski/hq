@@ -108,6 +108,10 @@ _Avoid_: silent turn, supervised agent, muted turn
 One reading of every agent's state at a moment, from its journal: it ingests the event files its hooks left, appends what tmux says of its pane, what sbx says of its sandbox and what its screen shows that the journal does not hold yet, and folds the journal, so every hq process reads the same. `hq ls`, `hq read`, `hq wait`, `hq send`, `hq explain`, the list and the chords each take a look; a screen at rest may need a second one.
 _Avoid_: collection, refresh, poll, settling
 
+**Look loop**:
+The looks one hq process takes one after another while it follows the agents: the list's for as long as it runs, and those of `hq wait` and `hq send --wait` until they return. Each is a look like any other.
+_Avoid_: watch (that is the supervisor's own run of `hq wait` calls, or a watch an agent started), poll, refresh, tick
+
 **Event**:
 One thing hq learned about an agent: what it was, when, and its source - the agent's hook, its screen, tmux, sbx, or hq itself. Every event has a number from one count for the whole host, never used twice. An event of hq's own carries its basis, the number of the last event of the hook it was based on; an event hq recorded but did not act on, because another hq process recorded the same thing first (a duplicate) or a later report overtook its basis (overtaken), is set aside.
 _Avoid_: record, marker, log entry

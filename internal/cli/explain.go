@@ -130,22 +130,27 @@ func runExplain(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	l, err := lookDecided(d, func(d deps) (looked, error) { return lookWith(d, runningSandboxes(d)) })
-	if err != nil {
+	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	a, ok := agent.Find(l.agents, x.name)
-	if !ok {
+	seen, err := d.looker().Look(agent.Explained)
+	if err != nil {
+		return lookErr(err)
+	}
+	a, err := seen.Named(x.name)
+	if err != nil {
+		lost, ok := lostAgent(d, x.name)
+		if !ok {
+			return refusalErr(err)
+		}
+		a = lost
 		// An outdated agent's files are its older hook's: not ingested.
-		if a, ok = lostAgent(d, x.name); ok && !a.Outdated() {
+		if !a.Outdated() {
 			_ = d.journal.Ingest(a.RepoPath, a.ID)
 		}
 	}
-	if !ok {
-		return notFoundErr("no agent '%s' (see hq ls)", x.name)
-	}
-	if a.Outdated() {
-		return outdatedErr(a)
+	if err := a.Refusal(); err != nil {
+		return refusalErr(err)
 	}
 	j, err := d.journal.Read(a.ID)
 	if err != nil {

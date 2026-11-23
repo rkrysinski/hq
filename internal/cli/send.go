@@ -129,19 +129,16 @@ func runSend(env Env, d deps, args []string) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	a, err := findAgent(d, s.name)
+	a, err := usableAgent(d, s.name)
 	if err != nil {
 		return err
 	}
-	switch {
-	case a.Outdated():
-		return outdatedErr(a)
-	case a.State == state.Ended:
+	if a.State == state.Ended {
 		return usageErr("%s has ended and cannot receive messages; relaunch it with %s, or kill it and start it again", a.Name, restartCommand(a))
 	}
 	// The cursor before the message is left: the reply it brings is a
 	// change numbered above it, for hq wait --since.
-	sent := counterBefore(d, a)
+	sent := d.looker().CounterBefore(a)
 	msg, err := d.postMessage(a.RepoPath, a.ID, state.Message{Text: s.text, Supervisor: d.supervisor}, s.now)
 	if err != nil {
 		return envErr("cannot leave the message for %s: %v", a.Name, err)
@@ -196,16 +193,30 @@ type sendOutput struct {
 	NextSince string `json:"next_since"`
 }
 
-// findAgent looks at the agents as hq ls does, turns the user ended
-// included, and returns the one named name.
+// findAgent is the agent named name in a look at the agents as hq send
+// and hq answer take it (agent.Acting), turns the user ended included, or
+// the refusal that none is (agent.Seen.Named).
 func findAgent(d deps, name string) (agent.Agent, error) {
-	l, err := lookNow(d)
+	return actingAgent(d, name, agent.Seen.Named)
+}
+
+// usableAgent is findAgent refusing an outdated agent too
+// (agent.Seen.Usable).
+func usableAgent(d deps, name string) (agent.Agent, error) {
+	return actingAgent(d, name, agent.Seen.Usable)
+}
+
+// actingAgent is the agent named name in a look as hq send and hq answer
+// take it (agent.Acting), as pick gives it from the look, or pick's
+// refusal.
+func actingAgent(d deps, name string, pick func(agent.Seen, string) (agent.Agent, error)) (agent.Agent, error) {
+	seen, err := d.looker().Look(agent.Acting)
 	if err != nil {
-		return agent.Agent{}, err
+		return agent.Agent{}, lookErr(err)
 	}
-	a, ok := agent.Find(l.agents, name)
-	if !ok {
-		return agent.Agent{}, notFoundErr("no agent '%s' (see hq ls)", name)
+	a, err := pick(seen, name)
+	if err != nil {
+		return a, refusalErr(err)
 	}
 	return a, nil
 }

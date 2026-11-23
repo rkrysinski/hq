@@ -156,7 +156,7 @@ func (f *fakeSource) askedAbout() string {
 }
 
 // do runs cmd and every command it batches, feeding the messages to m.
-// Timers (ticks, the hourly update check) are not waited for.
+// Timers (the next look, the hourly update check) are not waited for.
 func do(m Model, cmd tea.Cmd) Model {
 	for _, msg := range msgs(cmd) {
 		var next tea.Cmd
@@ -324,22 +324,22 @@ func TestLongCellsAreCutToTheLine(t *testing.T) {
 	}
 }
 
-func TestTicksRefreshFromTmuxAndSbxEverySecond(t *testing.T) {
+func TestTheListLooksAtTmuxEachLookAndAsksSbxEverySecond(t *testing.T) {
 	f := &fakeSource{running: map[string]bool{"claude-x": true}}
 	m := started(f, 100, 10)
 	collects, polls := f.collects, f.polls
 	for range 3 {
 		var cmd tea.Cmd
-		m, cmd = update(m, tickMsg{})
+		m, cmd = update(m, lookMsg{})
 		m = do(m, cmd)
 	}
 	if f.collects != collects+3 || f.polls != polls {
-		t.Errorf("3 ticks: %d collects %d polls, want 3 and 0", f.collects-collects, f.polls-polls)
+		t.Errorf("3 looks: %d collects %d polls, want 3 and 0", f.collects-collects, f.polls-polls)
 	}
-	m, cmd := update(m, tickMsg{})
+	m, cmd := update(m, lookMsg{})
 	do(m, cmd)
 	if f.polls != polls+1 {
-		t.Errorf("4th tick: %d polls, want 1", f.polls-polls)
+		t.Errorf("4th look: %d polls, want 1", f.polls-polls)
 	}
 	if last := f.seen[len(f.seen)-1]; !last.Running["claude-x"] || !last.Asked.Equal(now) {
 		t.Errorf("sbx's answer not passed on: %v", last)
@@ -370,7 +370,7 @@ func TestFailedSbxKeepsTheClockAndLeavesStatesToTmux(t *testing.T) {
 	}
 }
 
-// headerAt is the header redrawn at the moment t, as the next tick does.
+// headerAt is the header redrawn at the moment t, as the next look does.
 func headerAt(m Model, t time.Time) string {
 	m.src.Now = func() time.Time { return t }
 	return lines(m)[0]
@@ -796,7 +796,7 @@ func TestARowActionsErrorGoesAfterAFewSecondsAndTheScrollHintIsBack(t *testing.T
 	}
 	// The timer fires after errFor; nothing else happened meanwhile.
 	m = do(m, gone) // a timer: not waited for
-	m, _ = update(m, tickMsg{})
+	m, _ = update(m, lookMsg{})
 	if footer(m) != "  hq: no pull request for feat/a0" {
 		t.Fatalf("gone before its time: %q", footer(m))
 	}
@@ -1903,9 +1903,9 @@ func TestEachLookDeliversTheMessagesLeftWaitingOneRoundAtATime(t *testing.T) {
 	}
 }
 
-// ticks feeds m n ticks, running what each asks for, and returns every
-// message that came of them.
-func ticks(m Model, n int) (Model, []tea.Msg) {
+// looked feeds m n looks of its look loop, running what each asks for, and
+// returns every message that came of them.
+func looked(m Model, n int) (Model, []tea.Msg) {
 	var got []tea.Msg
 	var run func(cmd tea.Cmd)
 	run = func(cmd tea.Cmd) {
@@ -1918,7 +1918,7 @@ func ticks(m Model, n int) (Model, []tea.Msg) {
 	}
 	for range n {
 		var cmd tea.Cmd
-		m, cmd = update(m, tickMsg{})
+		m, cmd = update(m, lookMsg{})
 		run(cmd)
 	}
 	return m, got
@@ -1927,17 +1927,17 @@ func ticks(m Model, n int) (Model, []tea.Msg) {
 func TestTheListLooksAtTheHqOnDiskEveryTwoSeconds(t *testing.T) {
 	f := &fakeSource{}
 	m := started(f, 100, 10)
-	m, _ = ticks(m, 7)
+	m, _ = looked(m, 7)
 	if f.generationChecks != 0 {
-		t.Fatalf("%d looks within 7 ticks", f.generationChecks)
+		t.Fatalf("%d looks at the hq within 7 looks of the list", f.generationChecks)
 	}
-	m, _ = ticks(m, 1)
+	m, _ = looked(m, 1)
 	if f.generationChecks != 1 {
-		t.Fatalf("%d looks after 8 ticks (2 s), want 1", f.generationChecks)
+		t.Fatalf("%d looks at the hq after 8 looks of the list (2 s), want 1", f.generationChecks)
 	}
-	ticks(m, 8)
+	looked(m, 8)
 	if f.generationChecks != 2 {
-		t.Fatalf("%d looks after 16 ticks, want 2", f.generationChecks)
+		t.Fatalf("%d looks at the hq after 16 looks of the list, want 2", f.generationChecks)
 	}
 }
 
@@ -1957,7 +1957,7 @@ func TestOneLookAtTheHqOnDiskAtATime(t *testing.T) {
 func TestAnUpdateOfTheSameGenerationLeavesTheListRunning(t *testing.T) {
 	f := &fakeSource{}
 	m := started(f, 100, 10)
-	m, got := ticks(m, 16)
+	m, got := looked(m, 16)
 	for _, msg := range got {
 		if _, ok := msg.(tea.QuitMsg); ok {
 			t.Fatal("the list quit")
@@ -1971,7 +1971,7 @@ func TestAnUpdateOfTheSameGenerationLeavesTheListRunning(t *testing.T) {
 func TestTheListMakesWayForAnHqOfAnotherGeneration(t *testing.T) {
 	f := &fakeSource{other: true}
 	m := started(f, 100, 10)
-	m, got := ticks(m, 8)
+	m, got := looked(m, 8)
 	quit := false
 	for _, msg := range got {
 		_, ok := msg.(tea.QuitMsg)

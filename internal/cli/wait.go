@@ -18,16 +18,6 @@ import (
 // returns "nothing yet" before its caller gives up on it.
 const DefaultWaitTimeout = 50 * time.Second
 
-// How hq wait looks (design §3.4 "Changes after a cursor", §5.1).
-const (
-	// waitEvery is how often it looks, as the list does.
-	waitEvery = 250 * time.Millisecond
-	// waitSbxEvery is how often it asks sbx which sandboxes run, as the
-	// list does; the answer comes in the background, so a slow sbx never
-	// holds up a look.
-	waitSbxEvery = time.Second
-)
-
 // waitStates are the states hq wait returns an agent in (spec §4.1).
 var waitStates = []string{state.Done, state.Question, state.NeedsInput, state.Ended}
 
@@ -104,9 +94,9 @@ func parseTimeout(s string) (time.Duration, error) {
 // with those that do so by its next look, or at the timeout with nothing.
 // A change after a cursor is one numbered above it and seen by the look,
 // so it is returned with no settle time; after a moment, one entered after
-// it. Every result carries the cursor of its look. It looks as the list
-// does, through the same look (design §3.8), and leaves nothing running
-// when it returns.
+// it. Every result carries the cursor of its look. It takes its looks from
+// the look loop (agent.Looker.Loop), in the list's rhythm (design §3.8,
+// §5.1).
 func runWait(env Env, d deps, args []string) error {
 	start := d.now()
 	w, err := parseWait(args, start)
@@ -118,20 +108,18 @@ func runWait(env Env, d deps, args []string) error {
 	}
 	var seen map[string]agent.Agent // the agents waited on at the last look, by id
 	var found []agent.Agent         // what the first look with a hit returned
-	return watchLooks(d, func(l looked, next int64, first bool) (bool, error) {
-		as := l.agents
+	k := d.looker()
+	err = k.Loop(func(s agent.Seen, first bool) (bool, error) {
+		next := k.Cursor(s) // taken before what waits is typed in
+		as := s.Agents
 		deliverWaiting(d, as)
 		if first {
-			if w.since.ahead(l) {
+			if w.since.ahead(s.Counter()) {
 				return true, aheadErr(w.since)
 			}
 			for _, n := range w.names {
-				a, ok := agent.Find(as, n)
-				if !ok {
-					return true, notFoundErr("no agent '%s' (see hq ls)", n)
-				}
-				if a.Outdated() {
-					return true, outdatedErr(a)
+				if _, err := s.Usable(n); err != nil {
+					return true, refusalErr(err)
 				}
 			}
 			// An agent already in its state when the call starts is not
@@ -174,27 +162,7 @@ func runWait(env Env, d deps, args []string) error {
 		}
 		return false, nil
 	})
-}
-
-// watchLooks looks at the agents as hq wait does (design §3.4, §5.1), every
-// waitEvery, the same look as the list's, asking sbx in the
-// background after the first look, until step says it is done: hq wait and
-// hq send --wait share it. step is given each look, the cursor it stands
-// for (looked.cursor), which is what a result built on that look prints
-// as next_since, and whether it is the first. watchLooks leaves nothing
-// running when it returns; a look that fails ends it.
-func watchLooks(d deps, step func(l looked, next int64, first bool) (bool, error)) error {
-	sbxs := &sbxPoll{ask: func() agent.Sandboxes { return runningSandboxes(d) }}
-	for first := true; ; first = false {
-		l, err := lookWith(d, sbxs.running(d.now(), first))
-		if err != nil {
-			return err
-		}
-		if done, err := step(l, l.cursor(d), first); done || err != nil {
-			return err
-		}
-		d.sleep(waitEvery)
-	}
+	return lookErr(err)
 }
 
 // joined are the agents of the last look, and those of the look before it
@@ -284,38 +252,4 @@ func printWait(out io.Writer, w waitArgs, rows []lsRow, cursor int64) error {
 	}
 	_, err := fmt.Fprintf(out, "next: hq wait %s--since %s\n", names, next)
 	return err
-}
-
-// sbxPoll asks sbx which sandboxes run at most every waitSbxEvery, in the
-// background, and gives the latest answer (which says nothing when sbx
-// could not say, and changes no agent then).
-type sbxPoll struct {
-	ask     func() agent.Sandboxes
-	answers chan agent.Sandboxes
-	asked   time.Time
-	busy    bool
-	latest  agent.Sandboxes
-}
-
-// running is sbx's latest answer at now; wait asks and waits for the answer.
-func (p *sbxPoll) running(now time.Time, wait bool) agent.Sandboxes {
-	if wait {
-		p.latest, p.asked = p.ask(), now
-		return p.latest
-	}
-	if p.busy {
-		select {
-		case p.latest = <-p.answers:
-			p.busy = false
-		default:
-		}
-	}
-	if !p.busy && now.Sub(p.asked) >= waitSbxEvery {
-		if p.answers == nil {
-			p.answers = make(chan agent.Sandboxes, 1)
-		}
-		p.busy, p.asked = true, now
-		go func() { p.answers <- p.ask() }()
-	}
-	return p.latest
 }

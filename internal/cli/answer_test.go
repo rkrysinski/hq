@@ -527,7 +527,7 @@ func TestAnswerToAnAgentKilledMeanwhile(t *testing.T) {
 		delete(f.answerLeft, "id-a")
 		f.tmux.windows = f.tmux.windows[:1]
 	}
-	if code, _, errOut := f.run("answer", "a", "--dialog", id, "1"); code != ExitNotFound || errOut != "hq: no agent 'a' (see hq ls)\n" {
+	if code, _, errOut := f.run("answer", "a", "--dialog", id, "1"); code != ExitNotFound || errOut != noAgent("a") {
 		t.Fatalf("exit %d %q", code, errOut)
 	}
 }

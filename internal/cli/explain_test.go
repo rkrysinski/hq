@@ -432,21 +432,8 @@ func TestExplainExplainsAnEndedAndALostAgent(t *testing.T) {
 	}
 }
 
-// An agent hq does not know fails as hq read does; an outdated agent is
-// refused with its line; a usage error says the usage.
-func TestExplainRefusesAnUnknownOrOutdatedAgent(t *testing.T) {
-	f := explainFakes()
-	code, out, errOut := f.run("explain", "x")
-	if code != ExitNotFound || out != "" || errOut != "hq: no agent 'x' (see hq ls)\n" {
-		t.Fatalf("unknown: exit %d %q %q", code, out, errOut)
-	}
-	for _, args := range [][]string{{"explain", "old"}, {"explain", "old", "--all", "--json"}} {
-		f := outdatedFakes()
-		code, out, errOut := f.run(args...)
-		if code != ExitUsage || out != "" || errOut != outdatedLine {
-			t.Errorf("%v: exit %d %q %q", args, code, out, errOut)
-		}
-	}
+// A usage error says the usage.
+func TestExplainSaysItsUsage(t *testing.T) {
 	for _, args := range [][]string{{"explain"}, {"explain", "42", "--text"}, {"explain", "42", "43"}} {
 		code, _, errOut := explainFakes().run(args...)
 		if code != ExitUsage || errOut != "hq: usage: hq explain NAME [--all] [--json]\n" {

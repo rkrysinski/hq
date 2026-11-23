@@ -190,9 +190,11 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 		clock  stallClock
 		end    sendEnd
 	)
-	err := watchLooks(d, func(l looked, next int64, _ bool) (bool, error) {
-		i := slices.IndexFunc(l.agents, func(b agent.Agent) bool { return b.ID == w.agent.ID })
-		others := slices.Clone(l.agents)
+	k := d.looker()
+	err := k.Loop(func(s agent.Seen, _ bool) (bool, error) {
+		next := k.Cursor(s) // taken before what waits is typed in, as hq wait takes it
+		i := slices.IndexFunc(s.Agents, func(b agent.Agent) bool { return b.ID == w.agent.ID })
+		others := slices.Clone(s.Agents)
 		if i >= 0 {
 			others = slices.Delete(others, i, i+1)
 		}
@@ -219,7 +221,7 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 			}
 			return true, nil
 		}
-		a := l.agents[i]
+		a := s.Agents[i]
 		w.agent = a
 		if outcome, ok := settled(a, t, next); ok {
 			end = sendEnd{outcome: outcome, agents: []agent.Agent{a}, next: next}
@@ -277,7 +279,7 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 		}
 		return false, nil
 	})
-	return end, err
+	return end, lookErr(err)
 }
 
 // box is what the agent's prompt box holds, Claude's faint hints aside: ""

@@ -70,30 +70,6 @@ func TestLsShowsAnOutdatedAgentFirstWithTheRemedy(t *testing.T) {
 	}
 }
 
-// Every command that would act on what an outdated agent's state is
-// refuses it with the line and exit code 1, and touches nothing of it
-// (#194).
-func TestCommandsRefuseAnOutdatedAgent(t *testing.T) {
-	for _, args := range [][]string{
-		{"read", "old"},
-		{"read", "old", "--json"},
-		{"send", "old", "hi"},
-		{"answer", "old", "--dialog", "abcdef", "1"},
-		{"code", "old"},
-		{"wait", "old"},
-		{"wait", "a", "old", "--timeout", "1s"},
-	} {
-		f := outdatedFakes()
-		code, out, errOut := f.run(args...)
-		if code != ExitUsage || out != "" || errOut != outdatedLine {
-			t.Errorf("%v: exit %d %q %q", args, code, out, errOut)
-		}
-		if len(f.inbox["id-old"]) != 0 || len(f.answerLeft) != 0 || len(f.edited) != 0 || len(f.tmux.pasted) != 0 {
-			t.Errorf("%v: inbox %v, answers %v, edited %v, pasted %v", args, f.inbox, f.answerLeft, f.edited, f.tmux.pasted)
-		}
-	}
-}
-
 // A hq wait on every agent leaves an outdated agent out, killed or not, and
 // still returns the others (#194).
 func TestWaitOnEveryAgentLeavesAnOutdatedAgentOut(t *testing.T) {

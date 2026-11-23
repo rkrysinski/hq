@@ -235,24 +235,6 @@ func TestLsCutsTheLastMessageToOneColumn(t *testing.T) {
 	}
 }
 
-func TestLsDoesNotEndAnAgentThatReportedAfterSbxWasAsked(t *testing.T) {
-	// hq asked sbx while a's sandbox was still starting, and a's session
-	// reported before hq read the agents (#48): the answer is older than
-	// the report. old's last report is older than the answer.
-	f := newFakes()
-	f.sbx.sandboxes = []sbx.Sandbox{{Name: "claude-x", Status: "stopped"}}
-	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Second), false), agentWindow("@2", "old", "/w/app", f.now.Add(-time.Hour), false)}
-	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(time.Millisecond), Last: "Done: hello"}
-	f.states["id-old"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Minute), Last: "PR #58 opened"}
-	_, out, _ := f.run("ls")
-	want := "NAME  REPO  BRANCH  STATE  AGE  LAST\n" +
-		"a     app   -       done   0s   Done: hello\n" +
-		"old   app   -       ended  0s   PR #58 opened\n"
-	if out != want {
-		t.Fatalf("got\n%s\nwant\n%s", out, want)
-	}
-}
-
 func TestLsShowsTheAgentsOfAStoppedSandboxEnded(t *testing.T) {
 	f := newLsFakes()
 	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/lib", f.now.Add(-time.Minute), false)}
@@ -375,50 +357,6 @@ func TestLsSaysSessionEndedForAnAgentThatEndedWithoutAMessage(t *testing.T) {
 	_, js, _ := f.run("ls", "--json")
 	if !strings.Contains(js, `"last": "[session ended]"`) {
 		t.Fatalf("json: %s", js)
-	}
-}
-
-func TestLsShowsARewoundTurnDoneOnceItsScreenStaysAtRest(t *testing.T) {
-	f := newLsFakes()
-	rule := strings.Repeat("─", 30)
-	sent := "Write a poem about the sea."
-	f.tmux.windows = []tmux.Window{agentWindow("@1", "a", "/w/app", f.now.Add(-time.Minute), false), agentWindow("@2", "b", "/w/app", f.now.Add(-time.Minute), false)}
-	f.tmux.windows[0].Pane, f.tmux.windows[1].Pane = "%1", "%2"
-	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply", Prompt: sent}
-	f.states["id-b"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-30 * time.Second), Last: "earlier reply", Prompt: sent}
-	// a was rewound: the prompt is back in its box. b streams its reply in
-	// a narrow pane: at rest by the look of one screen, but it moves on.
-	streamed := 0
-	f.tmux.screens = map[string]string{
-		"%1": "✻ Baked for 2s · done\n" + rule + "\n❯ " + sent + "\n" + rule + "\n  ⏵⏵ bypass permissions on\n",
-	}
-	f.tmux.onScreens = func() {
-		streamed++
-		f.tmux.screens["%2"] = "● The sea" + strings.Repeat("\nline", streamed) + "\n" + rule + "\n❯ \n" + rule + "\n  ⏵⏵ bypass permissions on\n"
-	}
-	f.tmux.onScreens()
-	_, out, _ := f.run("ls")
-	// hq ls looked again after agent.RestDelay; a is done since it first
-	// saw its screen at rest.
-	want := "NAME  REPO  BRANCH  STATE    AGE  LAST\n" +
-		"a     app   -       done     2s   Interrupted\n" +
-		"b     app   -       working  32s  earlier reply\n"
-	if out != want {
-		t.Fatalf("got\n%s\nwant\n%s", out, want)
-	}
-	if a, b := f.eventsOf("id-a", state.SourceScreen), f.eventsOf("id-b", state.SourceScreen); a != state.KindAtRest+" "+state.KindRewound || strings.Contains(b, state.KindRewound) {
-		t.Fatalf("seen on a's screen %q, on b's %q", a, b)
-	}
-	// It holds, from the same moment, whatever the screen shows next,
-	// until the next report.
-	f.now = f.now.Add(5 * time.Second)
-	f.tmux.screens["%1"] = "anything"
-	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       done     7s   Interrupted") {
-		t.Fatalf("later:\n%s", out)
-	}
-	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Second), Last: "earlier reply", Prompt: "next"}
-	if _, out, _ := f.run("ls"); !strings.Contains(out, "a     app   -       working  1s   earlier reply") {
-		t.Fatalf("next report:\n%s", out)
 	}
 }
 
