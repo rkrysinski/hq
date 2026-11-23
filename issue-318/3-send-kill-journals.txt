@@ -1,0 +1,16 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   1m   Done: say hi
+$ hq send a "then say bye"
+delivered: typed into a as its next prompt
+$ sleep 3; hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   1m   Done: then say bye
+$ ls $J
+f0361017b8e7  f0361017b8e7.read	 f0361017b8e7.reply
+$ hq kill a -y
+killed a; the sandbox stays
+$ hq ls
+$ ls -A $J; echo "files left: $(ls -A $J | wc -l)"
+files left: 0
+$

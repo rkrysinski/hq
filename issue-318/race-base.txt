@@ -1,0 +1,40 @@
+$ go test ./internal/cli -count=1 -v -run 'TestHqsOwnEventsForAnAgentKilledMeanwhile|TestSendToAnAgentWhoseJournalIsNotThere|TestNewBeginsTheJournalWithTheLaunch|TestSendAsksTmuxForItsWindows'   # on 19c925a, the base (origin/release-v0.17.0), with the branch's ownevents_test.go and fakes_test.go
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_send,_the_message_typed_in
+    ownevents_test.go:90: a journal of id-a: [69642d61], delivery (<nil> <nil>)
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_ls,_typing_a_waiting_message_in
+    ownevents_test.go:90: a journal of id-a: [69642d61], delivery (<nil> <nil>)
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_a_question_dialog
+    ownevents_test.go:90: a journal of id-a: [69642d61], Answer (<nil> <nil>)
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_a_dialog_of_Claude's_own
+    ownevents_test.go:90: a journal of id-a: [69642d61], Answer (<nil> <nil>)
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_killed_at_TakenDown
+    ownevents_test.go:90: a journal of id-a: [69642d61 69642d62], TakenDown (<nil> <nil>)
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_killed_at_Relaunched
+    ownevents_test.go:90: a journal of id-a: [69642d61 69642d62], Relaunched Withdrawn (<nil> <nil>)
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_send,_the_typing_failing_after_the_kill
+    ownevents_test.go:90: a journal of id-a: [69642d61], Withdrawn (<nil> <nil>)
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_Enter_failing_at_a_dialog_of_Claude's_own_after_the_kill
+    ownevents_test.go:90: a journal of id-a: [69642d61], Withdrawn (<nil> <nil>)
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_the_respawn_failing_after_the_kill
+    ownevents_test.go:90: a journal of id-a: [69642d61 69642d62], Withdrawn (<nil> <nil>)
+--- FAIL: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack (0.00s)
+    --- FAIL: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_send,_the_message_typed_in (0.00s)
+    --- FAIL: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_ls,_typing_a_waiting_message_in (0.00s)
+    --- FAIL: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_a_question_dialog (0.00s)
+    --- FAIL: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_a_dialog_of_Claude's_own (0.00s)
+    --- FAIL: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_killed_at_TakenDown (0.00s)
+    --- FAIL: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_killed_at_Relaunched (0.00s)
+    --- FAIL: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_send,_the_typing_failing_after_the_kill (0.00s)
+    --- FAIL: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_Enter_failing_at_a_dialog_of_Claude's_own_after_the_kill (0.00s)
+    --- FAIL: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_the_respawn_failing_after_the_kill (0.00s)
+=== RUN   TestSendToAnAgentWhoseJournalIsNotThereTypesItInAndWritesItOnlyWhileItsWindowStands
+    ownevents_test.go:127: a journal of id-a: [69642d61], delivery (<nil> <nil>)
+--- FAIL: TestSendToAnAgentWhoseJournalIsNotThereTypesItInAndWritesItOnlyWhileItsWindowStands (0.00s)
+=== RUN   TestNewBeginsTheJournalWithTheLaunchWhenTmuxCannotListItsWindows
+--- PASS: TestNewBeginsTheJournalWithTheLaunchWhenTmuxCannotListItsWindows (0.00s)
+=== RUN   TestSendAsksTmuxForItsWindowsNoMoreOftenWhileTheJournalIsThere
+--- PASS: TestSendAsksTmuxForItsWindowsNoMoreOftenWhileTheJournalIsThere (0.00s)
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	0.007s
+FAIL

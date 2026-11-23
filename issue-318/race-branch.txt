@@ -1,0 +1,31 @@
+$ go test ./internal/cli -count=1 -v -run 'TestHqsOwnEventsForAnAgentKilledMeanwhile|TestSendToAnAgentWhoseJournalIsNotThere|TestNewBeginsTheJournalWithTheLaunch|TestSendAsksTmuxForItsWindows|TestHqsOwnEventsAreNotAppended'   # on the branch
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_send,_the_message_typed_in
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_ls,_typing_a_waiting_message_in
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_a_question_dialog
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_a_dialog_of_Claude's_own
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_killed_at_TakenDown
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_killed_at_Relaunched
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_send,_the_typing_failing_after_the_kill
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_Enter_failing_at_a_dialog_of_Claude's_own_after_the_kill
+=== RUN   TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_the_respawn_failing_after_the_kill
+--- PASS: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack (0.00s)
+    --- PASS: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_send,_the_message_typed_in (0.00s)
+    --- PASS: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_ls,_typing_a_waiting_message_in (0.00s)
+    --- PASS: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_a_question_dialog (0.00s)
+    --- PASS: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_a_dialog_of_Claude's_own (0.00s)
+    --- PASS: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_killed_at_TakenDown (0.00s)
+    --- PASS: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_killed_at_Relaunched (0.00s)
+    --- PASS: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_send,_the_typing_failing_after_the_kill (0.00s)
+    --- PASS: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_answer,_Enter_failing_at_a_dialog_of_Claude's_own_after_the_kill (0.00s)
+    --- PASS: TestHqsOwnEventsForAnAgentKilledMeanwhileWriteNoJournalBack/hq_sandbox_restart,_the_respawn_failing_after_the_kill (0.00s)
+=== RUN   TestHqsOwnEventsAreNotAppendedToAJournalThatCannotBeRead
+--- PASS: TestHqsOwnEventsAreNotAppendedToAJournalThatCannotBeRead (0.00s)
+=== RUN   TestSendToAnAgentWhoseJournalIsNotThereTypesItInAndWritesItOnlyWhileItsWindowStands
+--- PASS: TestSendToAnAgentWhoseJournalIsNotThereTypesItInAndWritesItOnlyWhileItsWindowStands (0.00s)
+=== RUN   TestNewBeginsTheJournalWithTheLaunchWhenTmuxCannotListItsWindows
+--- PASS: TestNewBeginsTheJournalWithTheLaunchWhenTmuxCannotListItsWindows (0.00s)
+=== RUN   TestSendAsksTmuxForItsWindowsNoMoreOftenWhileTheJournalIsThere
+--- PASS: TestSendAsksTmuxForItsWindowsNoMoreOftenWhileTheJournalIsThere (0.00s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/cli	0.008s
