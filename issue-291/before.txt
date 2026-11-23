@@ -1,0 +1,50 @@
+$ LOCAL_DEV_BEFORE=origin/release-v0.17.0 hq --before ls a c; echo "exit $?"
+hq: unexpected argument 'a' (usage: hq ls [--json])
+exit 1
+$ LOCAL_DEV_BEFORE=origin/release-v0.17.0 hq --before ls --json | jq -r '.agents[] | "\(.name) last: \(.last | length) characters"'
+LOCAL_DEV_BEFORE=origin/release-v0.17.0 hq --before ls --json | wc -c
+c last: 14 characters
+b last: 8 characters
+a last: 150 characters
+$ LOCAL_DEV_BEFORE=origin/release-v0.17.0 hq --before ls --json | wc -c
+1453
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

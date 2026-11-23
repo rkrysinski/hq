@@ -1,0 +1,50 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+c     repo  main    done   2m   Done: hi there
+b     repo  main    done   2m   Done: hi
+a     repo  main    done   2m   Done: summarise the plan for the release notes in plain wor…
+$ hq ls a c
+NAME  REPO  BRANCH  STATE  AGE  LAST
+c     repo  main    done   2m   Done: hi there
+a     repo  main    done   2m   Done: summarise the plan for the release notes in plain wor…
+$ hq ls a nope; echo "exit $?"
+hq: no agent 'nope' (see hq ls)
+exit 2
+$ hq wait nope; echo "exit $?"
+hq: no agent 'nope' (see hq ls)
+exit 2
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

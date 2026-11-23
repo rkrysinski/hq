@@ -1,0 +1,3 @@
+not covered internal/cli/mcp.go:482:193 arithmetic base
+not covered internal/cli/mcp.go:482:223 arithmetic base
+mutation: 12 killed, 0 alive, 0 timed out, 2 not covered, 0 not run against origin/release-v0.17.0 on 50b6a21a2b6d64d5627b5a8796a24cb583506125

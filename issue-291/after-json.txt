@@ -1,0 +1,50 @@
+$ hq ls a --json | jq -r '.agents[0].last | "\(.)  (\(length) characters)"'
+Done: summarise the plan for the release notes in plain words: what changed in the list, why the rows are shorter now, …  (120 characters)
+$ hq read a --json | jq -r '.last | "\(.)  (\(length) characters)"'
+Done: summarise the plan for the release notes in plain words: what changed in the list, why the rows are shorter now, and what a script reads instead
+  (150 characters)
+$ hq ls --json | wc -c; hq ls a --json | wc -c
+1428
+578
+$ hq ls a --json | jq -r .next_since
+c12
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,50 @@
+$ since=$(hq ls a --json | jq -r .next_since); echo "next_since $since"
+next_since c12
+$ hq wait a --since $since --timeout 3s
+nothing yet
+next: hq wait a --since c12
+$ hq send a "hi again"
+delivered: typed into a as its next prompt
+$ hq wait a --since $since --timeout 30s
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   Done: hi again
+next: hq wait a --since c15
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
