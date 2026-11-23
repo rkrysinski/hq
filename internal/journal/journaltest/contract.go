@@ -298,6 +298,41 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		expect(t, err != nil, "an id hq did not issue taken")
 	})
 
+	t.Run("hq's own events for a journal that is not there", func(t *testing.T) {
+		h := newHarness(t)
+		root := h.Root()
+		asked := 0
+		gone := func() bool { asked++; return false }
+		standing := func() bool { asked++; return true }
+		delivery := state.Event{Source: state.SourceHQ, Kind: state.KindDelivery, Time: at, Facts: state.Facts{Messages: []string{"m1"}}}
+		withdrawn := state.Event{Source: state.SourceHQ, Kind: state.KindWithdrawn, Time: at, Facts: state.Facts{Withdrawn: state.KindDelivery, Messages: []string{"m1"}}}
+		// An agent killed meanwhile: nothing of hq's own begins its
+		// journal again (#318).
+		_, err := h.Store.Append("a1", state.Event{Source: state.SourceHQ, Kind: state.KindLaunched, Time: at})
+		must(t, err)
+		must(t, h.Store.Remove(root, "a1"))
+		for _, e := range []state.Event{delivery, withdrawn} {
+			asked = 0
+			out, err := h.Store.AppendEvidence("a1", gone, e)
+			expect(t, errors.Is(err, journal.ErrGone) && len(out) == 0 && asked == 1, "%s, the window gone: %v %+v, asked %d", e.Kind, err, out, asked)
+		}
+		{
+			ids, err := h.Store.IDs()
+			expect(t, err == nil && len(ids) == 0, "journals after hq's events for a gone window: %v %v", ids, err)
+		}
+		// While the window stands, they begin it; and to a journal that
+		// is there they are appended as Append appends them, never set
+		// aside, the window not asked about.
+		asked = 0
+		out, err := h.Store.AppendEvidence("a1", standing, delivery)
+		require(t, err == nil && len(out) == 1 && asked == 1, "the window standing: %v %+v, asked %d", err, out, asked)
+		asked = 0
+		out, err = h.Store.AppendEvidence("a1", gone, withdrawn, delivery)
+		require(t, err == nil && asides(out) == "- -" && asked == 0, "to a journal there: %v %+v, asked %d", err, out, asked)
+		j := read(t, h.Store, "a1")
+		expect(t, Kinds(j.Events) == state.KindDelivery+" "+state.KindWithdrawn+" "+state.KindDelivery, "begun: %s", Kinds(j.Events))
+	})
+
 	t.Run("eight writers racing for one first append", func(t *testing.T) {
 		h := newHarness(t)
 		root := h.Root()

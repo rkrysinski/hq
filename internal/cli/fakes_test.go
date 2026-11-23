@@ -99,6 +99,7 @@ type fakeTmux struct {
 	onSubmit func()                 // called at each Submit: Claude takes the prompt
 	onPaste  func()                 // called as each Paste starts
 	onPress  func(pane, key string) // called at each key Press presses
+	enterErr error                  // fails pressing Enter with Press
 	startErr error                  // fails releasing a new window
 	pasteErr error
 	typeErr  error
@@ -140,6 +141,9 @@ func (f *fakeTmux) Submit(pane string) error {
 }
 
 func (f *fakeTmux) Press(pane, key string) error {
+	if key == "Enter" && f.enterErr != nil {
+		return f.enterErr
+	}
 	f.input = append(f.input, "press "+pane+" "+key)
 	if f.onPress != nil {
 		f.onPress(pane, key)

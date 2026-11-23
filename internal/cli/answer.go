@@ -157,16 +157,16 @@ func answer(env Env, d deps, r answerRequest) error {
 	left := cursorBefore(d, a)
 	// The answer is in the agent's journal before the hook can give it, so
 	// what Claude reports of it comes after it (#195).
-	appendEvent(d, a.ID, state.KindAnswer, state.Facts{Whose: state.DialogHooks})
+	appendEvent(d, a, state.KindAnswer, state.Facts{Whose: state.DialogHooks})
 	if err := d.leaveAnswer(a.RepoPath, a.ID, q, decision); err != nil {
-		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
+		appendWithdrawn(d, a, state.KindAnswer, nil)
 		if errors.Is(err, state.ErrAnswerWaiting) {
 			return usageErr("%s not answered: another answer to its dialog is on its way", a.Name)
 		}
 		return envErr("cannot leave the answer for %s: %v", a.Name, err)
 	}
 	if !awaitTaken(d, a, q) {
-		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
+		appendWithdrawn(d, a, state.KindAnswer, nil)
 		// Answered at the agent meanwhile, its hook gone with the dialog?
 		if now, err := findAgent(d, a.Name); err == nil && now.Dialog().ID() != open.ID() {
 			return usageErr("%s left the dialog before hq's answer reached it; nothing was answered from hq: it is %s", a.Name, now.State)
@@ -394,9 +394,9 @@ func answerOwn(env Env, d deps, a agent.Agent, r answerRequest) error {
 	if err := moveTo(d, a, open, v, pick); err != nil {
 		return err
 	}
-	appendEvent(d, a.ID, state.KindAnswer, state.Facts{Whose: state.DialogOwn})
+	appendEvent(d, a, state.KindAnswer, state.Facts{Whose: state.DialogOwn})
 	if err := d.tmux.Press(a.Pane, "Enter"); err != nil {
-		appendWithdrawn(d, a.ID, state.KindAnswer, nil)
+		appendWithdrawn(d, a, state.KindAnswer, nil)
 		return tmuxErr(err)
 	}
 	now, err := awaitLeft(d, a, open, pick)
