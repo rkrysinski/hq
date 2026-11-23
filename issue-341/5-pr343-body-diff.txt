@@ -1,0 +1,4 @@
+120c120
+< - **Two reads differ, neither a call to sbx or tmux more:** `hq update`, the chords and docking on entry now read the journals' counter (one read of the state directory's counter under its lock) before the windows, as every look of the module does; and the plain `hq ls`, which prints no cursor, no longer works one out, so it lists the windows at most once less. Both are in the design's section 10.
+---
+> - **One read differs, no call to sbx or tmux more:** the plain `hq ls`, which prints no cursor, no longer works one out, so it lists the windows at most once less; the design's section 10 says so. At this ticket's head `hq update`, the chords and docking on entry also read the journals' counter before the windows; the review fixes below (P1, `ddf327f`) undid that, so they read none, as at the base (`Updating` and `Docking` read no counter).

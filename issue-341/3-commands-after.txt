@@ -1,0 +1,69 @@
+$ hq ls
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   Done: say pong
+b     repo  main    done   50s  Done: say hello
+exit 0
+$ hq ls a a b
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   Done: say pong
+b     repo  main    done   51s  Done: say hello
+exit 0
+$ hq ls -x
+hq: unknown option '-x' (usage: hq ls [NAME...] [--json])
+exit 1
+$ hq ls a --all
+hq: unknown option '--all' (usage: hq ls [NAME...] [--json])
+exit 1
+$ hq ls a nope
+hq: no agent 'nope' (see hq ls)
+exit 2
+$ hq ls b --json
+{
+  "agents": [
+    {
+      "name": "b",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-555529466/repo",
+      "branch": "main",
+      "state": "done",
+      "state_seq": 8,
+      "completion_seq": 8,
+      "since": "2026-11-23T12:37:21.193818846Z",
+      "age_seconds": 52,
+      "last": "Done: say hello",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c17"
+}
+exit 0
+$ hq wait a --timeout 1s
+nothing yet
+next: hq wait a --since c17
+exit 0
+$ hq explain a
+name      a
+state     done 4s, since 2026-11-23 12:38:11.534
+rests on  17
+dialog    at none, never at one
+
+the state rests on, oldest first
+  N   TIME                     SOURCE  WHAT      STATE
+  17  2026-11-23 12:38:11.534  hook    turn end  done
+exit 0
+$ hq send nope hi
+hq: no agent 'nope' (see hq ls)
+exit 2
+$ hq answer nope --dialog abcdef 1
+hq: no agent 'nope' (see hq ls)
+exit 2
+$ hq send a say pong --wait --timeout 20s
+delivered: typed into a as its next prompt
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   Done: say pong
+next: hq wait a --since c20
+exit 0

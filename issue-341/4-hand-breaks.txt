@@ -1,0 +1,9 @@
+Hand-made breaks of internal/agent/looker.go, each applied alone to the checkout's file and reverted,
+then `go test ./internal/agent -run TestEachKindOfLook`:
+
+break                                                     what it breaks                   result
+mode == sbxAsked && errors.As(err, &old) -> sbxAsked      a failing sbx fails Shown/Acting FAIL
+drop `mode == sbxRequired ||`                             Updating tolerates sbx           FAIL
+if mode == sbxNotAsked -> if false                        Docking asks sbx                 FAIL
+&SbxError{err} -> err                                     the failure is no SbxError       FAIL
+Explained: sbxTolerated -> sbxAsked                       hq explain fails on too old      FAIL
