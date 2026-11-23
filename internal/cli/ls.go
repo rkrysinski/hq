@@ -46,8 +46,8 @@ type lsRow struct {
 const lsUsage = "hq ls [NAME...] [--json]"
 
 // runLs lists the agents named, every agent when none is (spec §4.1,
-// #291). The look it lists is the whole look: messages wait for every
-// agent of it are typed in, and with --json it is covered as a whole, so
+// #291). The look it lists is the whole look: the messages waiting for
+// every agent of it are typed in, and with --json it is covered as a whole, so
 // its cursor stands for every agent, those named among them; the rows are
 // filtered after that, and a name no agent of it has is the look's refusal
 // (agent.Seen.Named), with nothing listed.

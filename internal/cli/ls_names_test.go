@@ -214,12 +214,13 @@ func TestAWaitFromTheCursorOfAListWithNamesReturnsOnlyWhatChangedAfterIt(t *test
 }
 
 // hq ls NAME... types in the messages left waiting for every agent of its
-// look, not only for those it names, as hq ls does (#291); each agent goes
+// look, not only for those it names, as hq ls does, and also when it
+// refuses a name (#291); each agent goes
 // to the delivery as the look gave it, with its home window, so a delivery
 // whose journal is gone meanwhile is still written while that window
 // stands (#318).
 func TestLsWithNamesTypesInWhatWaitsForEveryAgentOfItsLook(t *testing.T) {
-	for _, args := range [][]string{{"ls", "b"}, {"ls", "b", "--json"}} {
+	for args, wantCode := range map[string]int{"ls b": 0, "ls b --json": 0, "ls b nope": ExitNotFound} {
 		f := waitingFakes()
 		f.tmux.windows = append(f.tmux.windows, agentWindow("@5", "b", "/w/app", f.now.Add(-time.Minute), false))
 		f.states["id-b"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Second)}
@@ -233,7 +234,7 @@ func TestLsWithNamesTypesInWhatWaitsForEveryAgentOfItsLook(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if code, _, errOut := f.run(args...); code != 0 || !lost {
+		if code, _, errOut := f.run(strings.Fields(args)...); code != wantCode || !lost {
 			t.Fatalf("%v: exit %d %q, lost %v", args, code, errOut, lost)
 		}
 		if got := strings.Join(f.tmux.pasted, "|"); got != "%4 /effort medium" || len(f.inbox["id-a"]) != 0 {

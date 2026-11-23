@@ -149,7 +149,7 @@ func runHelp(env Env, _ deps, _ []string) error {
 	b.WriteString("hq kill, hq stop and hq sandbox take --yes as well as -y, which skips their confirmation.\n")
 	fmt.Fprintf(&b, "hq wait also takes --since SINCE and --timeout DURATION (default %s; 0 waits with no limit).\n", DefaultWaitTimeout)
 	b.WriteString("hq send --wait takes --timeout DURATION too, as hq wait does, counted from the start of the call.\n")
-	b.WriteString("hq ls --json, hq wait --json and hq send --wait --json cut each agent's last to 120 characters; hq read NAME --json gives it whole.\n")
+	fmt.Fprintf(&b, "hq ls --json, hq wait --json and hq send --wait --json cut each agent's last to %d characters; hq read NAME --json gives it whole.\n", listLastWidth)
 	b.WriteString("SINCE: the next_since hq printed last, passed back as given, which misses no change and repeats none; or a moment (2026-09-28T10:25:01Z) or a duration back from now (10m), both approximate.\n")
 	b.WriteString("hq answer takes one ANSWER per question, in the dialog's order: an option's number, numbers joined with commas where several may be picked, or text; a dialog of Claude's own (as /effort opens) takes one option's number; ID is the dialog's, as hq read shows it.\n")
 	b.WriteString(exitCodesLine())

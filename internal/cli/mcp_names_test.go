@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 )
@@ -15,7 +17,6 @@ import (
 // in attention order; a name no agent has is the command's error; without
 // names, or with none, every agent (#291).
 func TestMCPListListsTheAgentsNamed(t *testing.T) {
-	cs := mcpSession(t, threeAgents())
 	for _, c := range []struct {
 		args map[string]any
 		want string
@@ -25,7 +26,7 @@ func TestMCPListListsTheAgentsNamed(t *testing.T) {
 		{map[string]any{"names": []string{"a"}}, "a"},
 		{map[string]any{"names": []string{"a", "c", "a"}}, "c a"},
 	} {
-		out, isErr := call(t, cs, "list", c.args)
+		out, isErr := call(t, mcpSession(t, threeAgents()), "list", c.args)
 		if isErr {
 			t.Fatalf("%v: %s", c.args, out)
 		}
@@ -33,7 +34,7 @@ func TestMCPListListsTheAgentsNamed(t *testing.T) {
 			t.Errorf("%v: %q, want %q", c.args, got, c.want)
 		}
 	}
-	if out, isErr := call(t, cs, "list", map[string]any{"names": []string{"a", "nobody"}}); !isErr || out != noAgent("nobody") {
+	if out, isErr := call(t, mcpSession(t, threeAgents()), "list", map[string]any{"names": []string{"a", "nobody"}}); !isErr || out != noAgent("nobody") {
 		t.Fatalf("unknown agent %v %q", isErr, out)
 	}
 }
@@ -41,17 +42,23 @@ func TestMCPListListsTheAgentsNamed(t *testing.T) {
 // The rows of the supervisor's list and wait carry last cut to 120
 // characters, and read gives it whole (#291).
 func TestMCPListAndWaitCutLastAndReadGivesItWhole(t *testing.T) {
-	f := sendFakes(state.Done)
 	long := strings.Repeat("ą", 300)
-	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Second), Last: long}
-	f.details["id-a"] = state.Detail{Reply: long}
-	cs := mcpSession(t, f)
+	session := func() *mcp.ClientSession {
+		f := sendFakes(state.Done)
+		f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now.Add(-time.Second), Last: long}
+		f.details["id-a"] = state.Detail{Reply: long}
+		return mcpSession(t, f)
+	}
 	cut := strings.Repeat("ą", 119) + "…"
-	for tool, args := range map[string]map[string]any{
-		"list": {"names": []string{"a"}},
-		"wait": {"since": "c0", "timeout": 1},
+	for _, c := range []struct {
+		tool string
+		args map[string]any
+	}{
+		{"list", map[string]any{"names": []string{"a"}}},
+		{"wait", map[string]any{"since": "c0", "timeout": 1}},
 	} {
-		out, isErr := call(t, cs, tool, args)
+		tool := c.tool
+		out, isErr := call(t, session(), tool, c.args)
 		if isErr || lastOf(t, []string{tool}, out) != cut {
 			t.Errorf("%s: %s", tool, out)
 		}
@@ -59,7 +66,7 @@ func TestMCPListAndWaitCutLastAndReadGivesItWhole(t *testing.T) {
 	var r struct {
 		Last string `json:"last"`
 	}
-	if out, isErr := call(t, cs, "read", map[string]any{"name": "a"}); isErr || json.Unmarshal([]byte(out), &r) != nil || r.Last != long {
+	if out, isErr := call(t, session(), "read", map[string]any{"name": "a"}); isErr || json.Unmarshal([]byte(out), &r) != nil || r.Last != long {
 		t.Fatalf("read: %s", out)
 	}
 }
@@ -95,7 +102,7 @@ func TestMCPTextsNameTheNamesTheirCursorAndTheWholeLast(t *testing.T) {
 		"names": {"the agents to list; every agent when empty"},
 		"instructions": {
 			"list for every agent or those you name",
-			"its whole last message",
+			"its last message whole, which list and wait cut to 120 characters",
 			"A list that names agents gives a next_since for a wait that names the same agents; a watch over every agent keeps the next_since of its own wait or of a list without names.",
 		},
 	} {
