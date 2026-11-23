@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -41,14 +43,27 @@ type lsRow struct {
 	Asks     *state.Ask   `json:"asks"` // what the agent asks while question or needs input, else null
 }
 
+const lsUsage = "hq ls [NAME...] [--json]"
+
+// runLs lists the agents named, every agent when none is (spec §4.1,
+// #291). The look it lists is the whole look: messages wait for every
+// agent of it are typed in, and with --json it is covered as a whole, so
+// its cursor stands for every agent, those named among them; the rows are
+// filtered after that, and a name no agent of it has is the look's refusal
+// (agent.Seen.Named), with nothing listed.
 func runLs(env Env, d deps, args []string) error {
 	asJSON := false
+	var names []string
 	f := flagsOf("ls")
 	for _, a := range args {
-		if !f.is(a, "--json") {
-			return usageErr("unexpected argument '%s' (usage: hq ls [--json])", a)
+		switch {
+		case f.is(a, "--json"):
+			asJSON = true
+		case strings.HasPrefix(a, "-"):
+			return unknownOption(a, lsUsage)
+		case !slices.Contains(names, a):
+			names = append(names, a)
 		}
-		asJSON = true
 	}
 	seen, err := gatherAgents(d)
 	if err != nil {
@@ -61,6 +76,16 @@ func runLs(env Env, d deps, args []string) error {
 		}
 	}
 	as := seen.Agents
+	if len(names) > 0 {
+		as = nil
+		for _, n := range names {
+			a, err := seen.Named(n)
+			if err != nil {
+				return refusalErr(err)
+			}
+			as = append(as, a)
+		}
+	}
 	agent.SortAttention(as)
 	rows := lsRows(d, as)
 	if asJSON {
@@ -70,12 +95,15 @@ func runLs(env Env, d deps, args []string) error {
 }
 
 // lsRows are the agents as hq ls shows them now, in the order given, with
-// how many messages wait for each.
+// how many messages wait for each: the rows of a list (hq ls, hq wait, hq
+// send --wait), each with its last cut to listLastWidth (#291).
 func lsRows(d deps, as []agent.Agent) []lsRow {
 	now := d.now()
 	rows := make([]lsRow, 0, len(as))
 	for _, a := range as {
-		rows = append(rows, newLsRow(d, a, now))
+		r := newLsRow(d, a, now)
+		r.Last = truncate(r.Last, listLastWidth)
+		rows = append(rows, r)
 	}
 	return rows
 }
@@ -168,8 +196,12 @@ func runningSandboxes(d deps) agent.Sandboxes {
 	return running
 }
 
-// lastWidth is how much of the last message hq ls shows; --json has it all.
+// lastWidth is how much of the last message hq ls shows in its table.
 const lastWidth = 60
+
+// listLastWidth is how much of the last message a row of a list carries
+// (lsRows), in JSON too; hq read gives it whole (#291).
+const listLastWidth = 120
 
 // truncate shortens s to n characters, marking the cut with an ellipsis.
 func truncate(s string, n int) string {
