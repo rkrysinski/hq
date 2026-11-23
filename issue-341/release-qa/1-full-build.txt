@@ -1,0 +1,23 @@
+Release QA v0.17.0, step 1: full build
+Candidate 5ee592b75452240cd2393d3c5ad27667be9cda70, run in the release worktree at the candidate, with the default TMPDIR.
+
+Disk space, taken while the build ran (unit step done):
+$ df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+overlay          20G  8.6G   11G  46% /
+
+Started 2026-11-23T14:11:23Z, ended 2026-11-23T14:14:10Z.
+
+$ scripts/check.sh
+check: ok   vet
+check: ok   format
+check: ok   pyramid
+check: ok   platform
+check: ok   timebound
+check: ok   sees
+check: ok   unit
+check: ok   integration
+check: ok   coverage
+check: ok   e2e
+check: all 10 steps passed on 5ee592b75452240cd2393d3c5ad27667be9cda70
+(exit status 0)

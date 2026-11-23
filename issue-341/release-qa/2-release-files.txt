@@ -1,0 +1,44 @@
+Release QA v0.17.0, step 2: release files of all four platforms
+Candidate 5ee592b75452240cd2393d3c5ad27667be9cda70, run in the release worktree at the candidate.
+
+$ scripts/build-release.sh v0.17.0 .local-dev/release-files && ls .local-dev/release-files && ".local-dev/release-files/hq-linux-$(go env GOARCH)" --version
+built hq-darwin-arm64
+built hq-darwin-amd64
+built hq-linux-amd64
+built hq-linux-arm64
+wrote GENERATION (5)
+wrote SHA256SUMS
+GENERATION
+SHA256SUMS
+hq-darwin-amd64
+hq-darwin-arm64
+hq-linux-amd64
+hq-linux-arm64
+install.sh
+hq v0.17.0
+(exit status 0)
+(go env GOARCH here: arm64)
+
+$ cat .local-dev/release-files/GENERATION
+5
+
+$ ls .local-dev/release-files | wc -l
+7
+
+$ cd .local-dev/release-files && sha256sum -c SHA256SUMS
+hq-darwin-amd64: OK
+hq-darwin-arm64: OK
+hq-linux-amd64: OK
+hq-linux-arm64: OK
+install.sh: OK
+GENERATION: OK
+(exit status 0)
+
+$ cd .local-dev/release-files && shasum -a 256 -c SHA256SUMS
+hq-darwin-amd64: OK
+hq-darwin-arm64: OK
+hq-linux-amd64: OK
+hq-linux-arm64: OK
+install.sh: OK
+GENERATION: OK
+(exit status 0)
