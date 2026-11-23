@@ -246,6 +246,7 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 		root := h.Root()
 		asked := 0
 		gone := func() bool { asked++; return false }
+		standing := func() bool { return true }
 		h.Leave(root, "a1", "000000001.1", prompt, at)
 		must(t, h.Store.Ingest(root, "a1"))
 		died := state.Event{Source: state.SourceTmux, Kind: state.KindPaneDied, Time: at, Basis: read(t, h.Store, "a1").Events[0].Number}
@@ -268,7 +269,7 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 			expect(t, err == nil && len(ids) == 0, "journals after evidence of gone windows: %v %v", ids, err)
 		}
 		// While the window stands, the journal is begun with the evidence.
-		out, err = h.Store.AppendWhileHomeStands("c3", func() bool { return true }, died)
+		out, err = h.Store.AppendWhileHomeStands("c3", standing, died)
 		require(t, err == nil && len(out) == 1, "its window standing: %v %+v", err, out)
 		{
 			j := read(t, h.Store, "c3")
@@ -294,7 +295,7 @@ func Contract(t *testing.T, newHarness func(t *testing.T) Harness) {
 			t.Fatal("the removal did not end within 10 s")
 		}
 		expect(t, len(read(t, h.Store, "e5").Events) == 0, "left after the kill: %+v", read(t, h.Store, "e5").Events)
-		_, err = h.Store.AppendWhileHomeStands("../e5", func() bool { return true }, died)
+		_, err = h.Store.AppendWhileHomeStands("../e5", standing, died)
 		expect(t, err != nil, "an id hq did not issue taken")
 	})
 
