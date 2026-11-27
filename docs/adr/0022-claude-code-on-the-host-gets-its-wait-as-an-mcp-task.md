@@ -18,7 +18,7 @@ So, for Claude Code on the host:
 
 - **`hq wait --timeout 0` as a background command, by instruction**: no model request while it waits, but only for a supervisor that an instruction from outside hq has taught it.
 - **Claude Code's messaging socket between sessions, a hook written into the user's settings, typing into the supervisor's terminal**: an interface that is internal and that a setting of the user's holds or refuses; a change to the user's own settings; another mechanism on each platform.
-- **The wait in the memory of the `hq mcp` that took the call**: lost with the process. A resumed Claude Code session would ask a new process for a task none knows, with no end.
+- **The wait in the memory of the `hq mcp` that took the call**: lost with the process. A resumed Claude Code session would ask a new process for a task none knows, for five minutes, and then end it as outcome unknown.
 - **A random id and a record on disk**: hq would know a conversation's tasks, for a state of its own to keep and to clean up.
 - **An id made of the terms alone**: against the extension's rule that a third party cannot guess an id, though over standard input and output the only client is the user's own.
 - **Ending the older task when a new `wait` comes**: needs that record, and each replacement would start a turn.
@@ -28,7 +28,7 @@ So, for Claude Code on the host:
 
 - The spec's "Watching is waiting" (Phase 2) and design §3.12 change with the spec that builds this.
 - Each time Claude Code asks for a task, hq takes a look: an idle supervisor costs hq a look at every interval, tmux and sbx asked, for as long as it waits. No model request.
-- An id hq cannot verify, because the key went with the state directory, is an unknown task, and Claude Code goes on asking for one.
-- Leaving a Claude Code session with a task pending opens a dialog of Claude Code's own ("Exit and stop tasks", "Move to background and exit", "Stay").
+- An id hq cannot verify, because the key went with the state directory, is an unknown task: Claude Code asks for it for about five more minutes, then stops and starts a turn that says its outcome is unknown.
+- Leaving a Claude Code session with a task pending opens a dialog of Claude Code's own ("Exit and stop tasks", "Move to background and exit", "Stay"). No choice cancels the task. After "Exit and stop tasks", the resumed session asks a new `hq mcp` for the same task. "Move to background and exit" stops the task, and the session in the background never asks for it, so a supervision moved to the background ends silently.
 - An agent in a sandbox and a supervisor in Claude Desktop get no task: the sandbox's gateway passes none, and Claude Desktop declares none. They keep the loop until their own decision (#356).
-- Not tried: a task handle returned after a hold, a task with no time limit, two tasks pending, the end of a task's time and when Claude Code cancels one; a task across leaving and resuming and for hours on macOS; a silent call of 30 to 60 minutes over standard input and output on the host; Claude Code on Windows and WSL.
+- Not tried: a task across leaving and resuming and for hours on macOS; a silent call of 30 to 60 minutes over standard input and output on the host; Claude Code on Windows and WSL.
