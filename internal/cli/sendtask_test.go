@@ -472,3 +472,13 @@ func TestASendsWaitTaskKnowsItsAgentById(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 }
+
+// A waited send reads its message's taking off the events numbered above
+// the cursor it took before leaving the message, in its call and in its
+// task alike: the event that cursor names came before the message.
+func TestAWaitedSendReadsTheEventsAboveItsCursor(t *testing.T) {
+	got := above([]state.Event{{Number: 6}, {Number: 7}, {Number: 8}, {Number: 9}}, 7)
+	if len(got) != 2 || got[0].Number != 8 || got[1].Number != 9 {
+		t.Fatalf("%+v", got)
+	}
+}
