@@ -103,12 +103,10 @@ func parseTimeout(s string) (time.Duration, error) {
 
 // runWait returns as soon as an agent it waits on changes into done,
 // question, needs input or ended after --since (spec §4.1, design §3.4),
-// with those that do so by its next look, or at the timeout with nothing.
-// A change after a cursor is one numbered above it and seen by the look,
-// so it is returned with no settle time; after a moment, one entered after
-// it. Every result carries the cursor of its look. It takes its looks from
-// the look loop (agent.Looker.Loop), in the list's rhythm (design §3.8,
-// §5.1).
+// with those that do so by its next look, or at the timeout with nothing:
+// it asks each look for the wait's result (waitTerms.resultAt). Every
+// result carries the cursor of its look. It takes its looks from the look
+// loop (agent.Looker.Loop), in the list's rhythm (design §3.8, §5.1).
 func runWait(env Env, d deps, args []string) error {
 	start := d.now()
 	w, err := parseWait(args, start)
@@ -118,16 +116,19 @@ func runWait(env Env, d deps, args []string) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
-	var seen map[string]agent.Agent // the agents waited on at the last look, by id
-	var found []agent.Agent         // what the first look with a hit returned
+	terms := waitTerms{names: w.names, since: w.since}
+	if w.timeout > 0 {
+		terms.deadline = start.Add(w.timeout)
+	}
+	var found []agent.Agent // what the first look with a hit returned
 	k := d.looker()
 	err = k.Loop(func(s agent.Seen, first bool) (bool, error) {
 		next := k.Cursor(s) // taken before what waits is typed in
 		as := s.Agents
 		deliverWaiting(d, as)
 		if first {
-			if w.since.ahead(s.Counter()) {
-				return true, aheadErr(w.since)
+			if terms.since.ahead(s.Counter()) {
+				return true, aheadErr(terms.since)
 			}
 			for _, n := range w.names {
 				if _, err := s.Usable(n); err != nil {
@@ -144,37 +145,77 @@ func runWait(env Env, d deps, args []string) error {
 			// for an agent after it read another, which its cursor does not
 			// yet stand for.
 			if !w.sinceArg {
-				w.since = since{cursor: next, isCursor: true, from: map[string]int64{}}
+				terms.since = since{cursor: next, isCursor: true, from: map[string]int64{}}
 				for _, a := range as {
-					w.since.from[a.ID], _ = a.StateSeq()
+					terms.since.from[a.ID], _ = a.StateSeq()
 				}
 				if n, err := d.journal.Through(); err == nil {
-					w.since.cursor = n
+					terms.since.cursor = n
 				}
 			}
 		}
-		watched := waitedOn(as, w.names)
-		hits := arrived(watched, w.since, next)
-		hits = append(hits, gone(seen, watched, d.now())...)
+		r := terms.resultAt(s, next, d.now())
 		if found != nil {
-			hits = joined(found, hits)
+			hits := joined(found, r.agents)
 			agent.SortAttention(hits)
 			return true, printWait(env.Stdout, w, lsRows(d, hits), next)
 		}
-		if len(hits) > 0 {
+		if len(r.agents) > 0 {
 			// One look more, so agents that change together are returned
 			// together (#116).
-			found = hits
-		} else if w.timeout > 0 && !d.now().Before(start.Add(w.timeout)) {
+			found = r.agents
+		} else if r.late {
 			return true, printWait(env.Stdout, w, lsRows(d, nil), next)
 		}
-		seen = map[string]agent.Agent{}
-		for _, a := range watched {
-			seen[a.ID] = a
-		}
+		terms.covered = r.covered
 		return false, nil
 	})
 	return lookErr(err)
+}
+
+// waitTerms are what a wait waits for (#358): all that its result at a
+// look depends on but that look. The call holds them from one look to the
+// next (runWait), and any look can be asked for the result of terms no
+// call holds, as a wait task's will be (ADR 0022).
+type waitTerms struct {
+	// names are the agents waited on: every agent but the outdated ones
+	// when none are named (waitedOn).
+	names []string
+	// since is what a change has to come after to be returned (arrived).
+	since since
+	// covered are the agents the previous look waited on, none before the
+	// first look: one a look no longer shows, or shows ended with no
+	// number where it had one, is returned ended (gone).
+	covered []agent.Agent
+	// deadline is when the wait returns with no agents; zero for none.
+	deadline time.Time
+}
+
+// waitResult is what a wait finds at a look (waitTerms.resultAt).
+type waitResult struct {
+	// agents are the agents to return, none while nothing has changed.
+	agents []agent.Agent
+	// late says the deadline has passed with no agent to return: the wait
+	// returns none.
+	late bool
+	// covered are the agents the look waited on, for the next look's
+	// terms.
+	covered []agent.Agent
+}
+
+// resultAt is what a wait with terms t finds at look s, whose cursor is
+// through, at now (design §3.4, "Changes after a cursor"): the agents it
+// waits on that changed after since into a state it returns, by a change
+// numbered at most through (arrived), and those covered that are gone
+// (gone); or, with none, whether the deadline has passed. A change after a
+// cursor is one numbered above it and seen by the look, so it is returned
+// with no settle time; after a moment, one entered after it. A call that
+// finds agents returns them with those of its next look (runWait).
+func (t waitTerms) resultAt(s agent.Seen, through int64, now time.Time) waitResult {
+	watched := waitedOn(s.Agents, t.names)
+	hits := append(arrived(watched, t.since, through), gone(t.covered, watched, now)...)
+	late := len(hits) == 0 && !t.deadline.IsZero() && !now.Before(t.deadline)
+	return waitResult{agents: hits, late: late, covered: watched}
 }
 
 // joined are the agents of the last look, and those of the look before it
@@ -231,11 +272,11 @@ func arrived(as []agent.Agent, s since, through int64) []agent.Agent {
 // behind it since (#166, decision 10 and 3A): those that no longer exist
 // (killed), as ended now with what they last showed (agent.Gone), and those
 // whose journal can no longer be read and whose pane is dead. They have no
-// number to compare, so only the call that saw them before returns them.
-func gone(seen map[string]agent.Agent, now []agent.Agent, at time.Time) []agent.Agent {
+// number to compare, so only a wait that covered them returns them.
+func gone(covered, now []agent.Agent, at time.Time) []agent.Agent {
 	var out []agent.Agent
-	for id, a := range seen {
-		i := slices.IndexFunc(now, func(b agent.Agent) bool { return b.ID == id })
+	for _, a := range covered {
+		i := slices.IndexFunc(now, func(b agent.Agent) bool { return b.ID == a.ID })
 		if i < 0 {
 			out = append(out, a.Gone(at))
 			continue
