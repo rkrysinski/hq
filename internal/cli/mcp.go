@@ -36,8 +36,8 @@ type mcpClient struct {
 	// watch is how the client's supervisor is taught to follow its agents
 	// with wait (#359).
 	watch watching
-	// tasks says that a wait given no timeout goes on as a wait task after
-	// waitHold when its request declares the MCP Tasks extension (ADR
+	// tasks says that a wait, or a send with wait, goes on as a wait task
+	// after its hold when its request declares the MCP Tasks extension (ADR
 	// 0022): Claude Code's on the host does. Claude Desktop declares no
 	// tasks, and through sbx's gateway hq hands off none.
 	tasks bool
@@ -56,7 +56,7 @@ var (
 	// that lasts longer than 120 s to the background, its result starting
 	// the supervisor's next turn; a wait that declares tasks goes on as a
 	// wait task after its hold instead (ADR 0022).
-	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour, watch: inOneCall, tasks: true, updated: hqUpdated, remedy: restartInClient}
+	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour, watch: inOneCall(time.Hour), tasks: true, updated: hqUpdated, remedy: restartInClient}
 	// A Claude Code inside a sandbox reaches hq through sbx's MCP gateway
 	// (#141), which does not bound a tool call itself: that Claude Code
 	// gives a call's result to the same turn up to 120 s and moves a longer
@@ -82,6 +82,10 @@ type watching struct {
 	// instructions is the instructions' line on watching, and wait the
 	// wait tool's sentences on it.
 	instructions, wait string
+	// waitTimeout is what the wait tool says of its timeout, and
+	// sendTimeout what the send tool says of a send with wait's, in
+	// brackets.
+	waitTimeout, sendTimeout string
 	// send is what the send tool says of a send with wait that lasts long.
 	send string
 }
@@ -90,28 +94,37 @@ type watching struct {
 // takes it out of the turn: each call returns within limit, and the
 // supervisor calls wait again.
 func inALoop(limit time.Duration) watching {
+	most := int(limit.Seconds())
 	return watching{
-		instructions: fmt.Sprintf("- To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout, %d s unless you give a shorter one; then call it again.", int(limit.Seconds())),
+		instructions: fmt.Sprintf("- To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout, %d s unless you give a shorter one; then call it again.", most),
 		wait:         "To watch agents, call it in a loop, passing each result's next_since as the next call's since and naming every agent you follow each time (or none, for every agent): no change is then missed or returned twice. React to the agents it returns (read them), then call it again. ",
+		waitTimeout:  fmt.Sprintf("After timeout seconds (default and at most %d) it returns no agents, which is not an error. ", most),
+		sendTimeout:  fmt.Sprintf("default and at most %d, the delivery included", most),
 	}
 }
 
-var (
-	// inOneCall is for Claude Code: its wait holds for waitHold and then
-	// goes on as a wait task, whose completion starts the supervisor's next
-	// turn with the wait's result, or, when its request declares no tasks,
-	// waits on in its call up to an hour, which Claude Code moves to the
-	// background with the same effect; either way the supervisor ends its
-	// turn instead of calling wait again (ADR 0022). A send with wait does
-	// the same for the answer to its message (#364). A task Claude Code can
-	// no longer follow ends as "outcome unknown" or "cannot follow", after
-	// which a wait from the last cursor is safe: wait changes nothing.
-	inOneCall = watching{
-		instructions: "- To watch agents, call wait once, with no timeout and the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it. When Claude Code says a wait or a send with wait started a task or was moved to the background, end your turn: its result starts your next turn. Do not call wait again until the earlier one has brought its result. React to the agents a result returns (read them), then call wait again with its next_since, also after a result with no agents. After a task result of \"outcome unknown\" or \"cannot follow\", call wait again with the last next_since you know, without asking: wait changes nothing.",
-		wait:         "To watch agents, call it once with no timeout, naming every agent you follow (or none, for every agent), and pass each result's next_since as the next call's since: no change is then missed or returned twice. When Claude Code says the call started a task or was moved to the background, end your turn: its result starts your next turn. Do not call it again until the earlier call has brought its result. React to the agents a result returns (read them), then call it again with its next_since, also after a result with no agents. After a task result of \"outcome unknown\" or \"cannot follow\", call it again with the last next_since you know, without asking the user: it changes nothing. ",
-		send:         fmt.Sprintf("A send with wait whose answer has not come within %d seconds goes on as a task: when Claude Code says the call started a task or was moved to the background, end your turn: its result, what the call would have returned, starts your next turn. ", int(waitHold.Seconds())),
+// inOneCall is for Claude Code: its wait holds for waitHold and then goes
+// on as a wait task, whose completion starts the supervisor's next turn
+// with the wait's result, or, when its request declares no tasks, waits on
+// in its call up to most, which Claude Code moves to the background with
+// the same effect; either way the supervisor ends its turn instead of
+// calling wait again (ADR 0022). A send with wait does the same for the
+// answer to its message (#364). A task given a timeout completes at it, not
+// cut to most, since it holds no request open: the texts say to give none
+// to watch, as a timeout only brings a result with no agents, but leave it
+// to the supervisor (#357, story 9). A task Claude Code can no longer
+// follow ends as "outcome unknown" or "cannot follow", after which a wait
+// from the last cursor is safe: wait changes nothing.
+func inOneCall(most time.Duration) watching {
+	limit := int(most.Seconds())
+	return watching{
+		instructions: "- To watch agents, call wait once, best with no timeout, and the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it. When Claude Code says a wait or a send with wait started a task or was moved to the background, end your turn: its result starts your next turn. Do not call wait again until the earlier one has brought its result. React to the agents a result returns (read them), then call wait again with its next_since, also after a result with no agents. After a task result of \"outcome unknown\" or \"cannot follow\", call wait again with the last next_since you know, without asking: wait changes nothing.",
+		wait:         "To watch agents, call it once, naming every agent you follow (or none, for every agent), and pass each result's next_since as the next call's since: no change is then missed or returned twice. When Claude Code says the call started a task or was moved to the background, end your turn: its result starts your next turn. Do not call it again until the earlier call has brought its result. React to the agents a result returns (read them), then call it again with its next_since, also after a result with no agents. After a task result of \"outcome unknown\" or \"cannot follow\", call it again with the last next_since you know, without asking the user: it changes nothing. ",
+		waitTimeout:  fmt.Sprintf("After timeout seconds it returns no agents, which is not an error. A call that starts a task (below) waits that long, and given none until an agent changes; one that does not, at most %d seconds, and that long given none. To watch, give none: a timeout only brings a result with no agents, to call it again. ", limit),
+		sendTimeout:  fmt.Sprintf("the delivery included: a call that starts a task waits that long, and given none until the answer; one that does not, at most %d, and that long given none", limit),
+		send:         fmt.Sprintf("A send with wait whose answer has not come within %d seconds goes on as a task: when Claude Code says the call started a task or was moved to the background, end your turn: its result, what the call would have returned, a stall or no_turn included, starts your next turn. ", int(waitHold.Seconds())),
 	}
-)
+}
 
 const (
 	mcpUsage     = "hq mcp [install] [claude-desktop|claude-code|sbx]"
@@ -685,7 +698,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "wait",
 		Description: "Wait until one of the named agents (every agent when none is named) is done, asks a question, needs input or ends, and return it, with every other that does so within a moment of it, as list gives them (each with its sandbox and setup, its last cut as list cuts it: read gives it whole), with next_since, as JSON. " +
-			waitTimeoutText(client) +
+			client.watch.waitTimeout +
 			"since is required: the next_since of your most recent wait or list result, passed back exactly as given, so a change between that result and this call is not missed; for your watch never that of read, send or answer, which is one agent's and later than what the others did meanwhile. A wait that names one agent alone may start from the next_since of its send or answer, for the answer to that message; what it returns is then that agent's alone, so your watch goes on from its own last result. " +
 			client.watch.wait +
 			"An agent returned done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
@@ -694,16 +707,8 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 		if in.Since == "" {
 			return toolResult("", usageErr("since is required: the next_since of your most recent wait or list result; with none yet, call list first"))
 		}
-		args := append([]string{}, in.Names...)
-		if mcptasks.Offered(ctx) {
-			// It may go on as a wait task after its hold, which completes
-			// at its timeout, not cut to what a call may last: 0 for none.
-			timeout := time.Duration(max(in.Timeout, 0)) * time.Second
-			args = append(args, "--json", "--timeout", timeout.String(), "--since", in.Since)
-			return callCommand(d, func(env Env, d deps, args []string) error { return waitOrHandOff(ctx, env, d, args) }, args...)
-		}
-		args = append(args, "--json", "--timeout", toolTimeout(in.Timeout, client).String(), "--since", in.Since)
-		return callCommand(d, runWait, args...)
+		args := append(append([]string{}, in.Names...), "--json", "--since", in.Since)
+		return waitingCall(ctx, d, client, in.Timeout, args, runWait, waitOrHandOff)
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
@@ -712,7 +717,7 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 			"an agent at work gets it when it would end its turn and goes on with it; one waiting at its prompt gets it as its next prompt; one with a dialog open gets it once the user has closed the dialog. " +
 			"With now, an agent at work gets it after its next tool call, within the running turn. " +
 			"Without wait, it returns at once, as JSON, how the message goes (delivery: queued or delivered) and next_since, an opaque string taken before the message was left, to pass back exactly as given. The agent's answer is its next reply: your next wait, from your watch's since (the next_since of your most recent wait or list result), returns the agent when it answers, even if it answered before wait was called; then read it. When delivery says the message follows as a prompt of its own, an earlier message was typed in first: the next wait returns that prompt's turn, with pending still counting yours, and a later one your answer. A message that starts with a slash command runs only when hq types it in at the agent's prompt; when the agent's hooks deliver it, it arrives as text and does not run, and delivery says so. This next_since is for a wait on this agent alone, never your watch's since. " +
-			"With wait, when you want this one answer and nothing else, it also waits, up to timeout seconds (" + sendLimit(client) + "), and returns delivery, outcome, the agent as wait gives it (agents) and next_since, taken after what it returned. outcome is one of: turn_ended, the agent stopped after taking the message (done, question, needs input or ended), never at a turn end that came before it took it, such as that of an earlier prompt; not_taken, the agent needs input or ended before it took the message, and message says where it is (waiting, delivered once the dialog is closed; kept for a relaunch; gone with the agent); no_turn, a slash command hq typed in left the prompt box and started no turn (a command of Claude Code's own, such as /model with a name); timeout, no agents yet: the message stays where it is, and a wait that names this agent alone, from this next_since, returns its next change, which is its answer once pending no longer counts the message; that wait's next_since is this agent's too, so your watch keeps its own since. " +
+			"With wait, when you want this one answer and nothing else, it also waits, up to timeout seconds (" + client.watch.sendTimeout + "), and returns delivery, outcome, the agent as wait gives it (agents) and next_since, taken after what it returned. outcome is one of: turn_ended, the agent stopped after taking the message (done, question, needs input or ended), never at a turn end that came before it took it, such as that of an earlier prompt; not_taken, the agent needs input or ended before it took the message, and message says where it is (waiting, delivered once the dialog is closed; kept for a relaunch; gone with the agent); no_turn, a slash command hq typed in left the prompt box and started no turn (a command of Claude Code's own, such as /model with a name); timeout, no agents yet: the message stays where it is, and a wait that names this agent alone, from this next_since, returns its next change, which is its answer once pending no longer counts the message; that wait's next_since is this agent's too, so your watch keeps its own since. " +
 			client.watch.send +
 			"A stalled message is the tool's error, stalled: the agent sat at its prompt and did not take the message within " + stallText + " (the user typing in its box, or Claude leaving what hq typed in); hq does not type it again or take it back, so read the agent before sending again. " +
 			"After a send with wait your watch still returns that same change once more, since the watch's since is older: it is no new answer. " +
@@ -727,14 +732,8 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 		switch {
 		case in.Timeout != 0 && !in.Wait:
 			return toolResult("", usageErr("timeout goes with wait"))
-		case in.Wait && mcptasks.Offered(ctx):
-			// It may go on as a wait task after its hold, which completes
-			// at its timeout, not cut to what a call may last: 0 for none.
-			timeout := time.Duration(max(in.Timeout, 0)) * time.Second
-			args = append(args, "--wait", "--timeout", timeout.String())
-			return callCommand(d, func(env Env, d deps, args []string) error { return sendOrHandOff(ctx, env, d, args) }, args...)
 		case in.Wait:
-			args = append(args, "--wait", "--timeout", toolTimeout(in.Timeout, client).String())
+			return waitingCall(ctx, d, client, in.Timeout, append(args, "--wait"), runSend, sendOrHandOff)
 		}
 		return callCommand(d, runSend, args...)
 	})
@@ -834,34 +833,17 @@ func toolTimeout(seconds int, c mcpClient) time.Duration {
 	return min(timeout, c.maxWait)
 }
 
-// waitTimeoutText is what the wait tool tells client c of its timeout: a
-// wait that goes on as a wait task completes at its timeout, not cut to
-// what a call may last, and given none waits until an agent changes (ADR
-// 0022).
-func waitTimeoutText(c mcpClient) string {
-	if c.tasks {
-		most := int(c.maxWait.Seconds())
-		return fmt.Sprintf("After timeout seconds it returns no agents, which is not an error, at most %d unless it has started a task; given none, it waits until an agent changes once it has started a task, and %d seconds if it has not, so to watch give none. ", most, most)
+// waitingCall is a call of a tool that waits (wait, send with wait): run
+// with args and the timeout, the seconds asked for cut to what client c
+// gives a call (toolTimeout); or, when the call may go on as a wait task
+// (mcptasks.Offered), orHandOff with the seconds as asked, 0 for none: a
+// task completes at its timeout and holds no request open (#363).
+func waitingCall(ctx context.Context, d deps, c mcpClient, seconds int, args []string, run func(Env, deps, []string) error, orHandOff func(context.Context, Env, deps, []string) error) (*mcp.CallToolResult, any, error) {
+	if mcptasks.Offered(ctx) {
+		timeout := time.Duration(max(seconds, 0)) * time.Second
+		return callCommand(d, func(env Env, d deps, args []string) error { return orHandOff(ctx, env, d, args) }, append(args, "--timeout", timeout.String())...)
 	}
-	return "After timeout seconds (" + waitLimit(c) + ") it returns no agents, which is not an error. "
-}
-
-// sendLimit is what the send tool tells client c of the timeout of a send
-// with wait, as waitTimeoutText tells it of wait's: a send with wait that
-// goes on as a wait task completes at its timeout, not cut to what a call
-// may last, and given none waits for the answer (#364).
-func sendLimit(c mcpClient) string {
-	if c.tasks {
-		most := int(c.maxWait.Seconds())
-		return fmt.Sprintf("the delivery included; at most %d unless it has started a task, and given none, with no limit once it has started a task and %d seconds if it has not", most, most)
-	}
-	return waitLimit(c) + ", the delivery included"
-}
-
-// waitLimit is how long the tools that wait wait for the client, as their
-// descriptions give it.
-func waitLimit(c mcpClient) string {
-	return fmt.Sprintf("default and at most %d", int(c.maxWait.Seconds()))
+	return callCommand(d, run, append(args, "--timeout", toolTimeout(seconds, c).String())...)
 }
 
 // absDir is dir as hq new takes it from a tool: absolute, with ~/ the

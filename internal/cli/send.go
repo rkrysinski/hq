@@ -122,12 +122,12 @@ func parseSend(args []string) (sendArgs, error) {
 // With --wait it then waits for the turn that takes it to end (waitedSend).
 func runSend(env Env, d deps, args []string) error { return send(env, d, args, nil) }
 
-// send is runSend, whose wait, given handOff, goes on as a wait task
+// send is runSend, whose wait, given toTask, goes on as a wait task
 // through it once waitHold has passed with no end and none to tell
 // (sendOrHandOff, #364), unless its timeout comes first; at a timeout the
 // task's deadline, to the millisecond, has reached by its start, it ends
 // as at a timeout.
-func send(env Env, d deps, args []string, handOff func(sendWaitTask) error) error {
+func send(env Env, d deps, args []string, toTask func(sendToolTask) error) error {
 	start := d.now()
 	s, err := parseSend(args)
 	if err != nil {
@@ -185,7 +185,7 @@ func send(env Env, d deps, args []string, handOff func(sendWaitTask) error) erro
 		fmt.Fprintln(env.Stdout, how)
 	}
 	w := waitedSend{agent: a, msg: msg, slashCommand: isCommand(s.text), sent: sent, ready: ready, start: start, timeout: s.timeout}
-	if handOff != nil {
+	if toTask != nil {
 		// A timeout within the hold ends the call first (waitedSend.wait).
 		w.hold = start.Add(waitHold)
 	}
@@ -193,13 +193,10 @@ func send(env Env, d deps, args []string, handOff func(sendWaitTask) error) erro
 	if err != nil {
 		return err
 	}
-	if end.handOff {
-		t := sendWaitTask{agent: agent.Agent{ID: a.ID, Name: a.Name}, msg: msg, sent: sent, taken: end.taken, delivery: how, created: time.UnixMilli(d.now().UnixMilli())}
-		if s.timeout > 0 {
-			t.deadline = time.UnixMilli(start.Add(s.timeout).UnixMilli())
-		}
-		if t.deadline.IsZero() || t.created.Before(t.deadline) {
-			return handOff(t)
+	if end.toTask {
+		h, due := newTaskHeader(sendToolTaskKind, sent, d.now(), start, s.timeout)
+		if !due {
+			return toTask(sendToolTask{taskHeader: h, agent: agent.Agent{ID: a.ID, Name: a.Name}, msg: msg, taken: end.taken, delivery: how})
 		}
 		end = sendEnd{outcome: endTimeout, next: end.next}
 	}

@@ -166,7 +166,7 @@ type waitedSend struct {
 	start        time.Time   // when the call started, for timeout
 	timeout      time.Duration
 	// hold, when not zero, is when the send may go on as a wait task
-	// (sendWaitTask): at the first look at or past it with no stall to
+	// (sendToolTask): at the first look at or past it with no stall to
 	// tell (#364).
 	hold time.Time
 }
@@ -177,9 +177,9 @@ type sendEnd struct {
 	outcome, message string
 	agents           []agent.Agent
 	next             int64
-	// handOff says it ended with no outcome, its hold passed: it goes on as
+	// toTask says it ended with no outcome, its hold passed: it goes on as
 	// a wait task, and taken says whether the message was taken by then.
-	handOff, taken bool
+	toTask, taken bool
 }
 
 // wait looks at the agents as hq wait does until the send ends in one of
@@ -270,7 +270,7 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 			end = sendEnd{outcome: endTimeout, next: next}
 			return true, nil
 		case !w.hold.IsZero() && key == "" && !now.Before(w.hold):
-			end = sendEnd{next: next, handOff: true, taken: t.taken}
+			end = sendEnd{next: next, toTask: true, taken: t.taken}
 			return true, nil
 		}
 		return false, nil

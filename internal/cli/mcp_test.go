@@ -532,18 +532,21 @@ func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 		never := []string{"background"}
 		if client == claudeCode {
 			want = map[string][]string{
-				"instructions": {"- To watch agents, call wait once, with no timeout and the next_since of the most recent wait or list result",
+				"instructions": {"- To watch agents, call wait once, best with no timeout, and the next_since of the most recent wait or list result",
 					"When Claude Code says a wait or a send with wait started a task or was moved to the background, end your turn: its result starts your next turn.",
 					"Do not call wait again until the earlier one has brought its result.", "then call wait again with its next_since, also after a result with no agents.",
 					`After a task result of "outcome unknown" or "cannot follow", call wait again with the last next_since you know, without asking: wait changes nothing.`},
-				"wait": {"After timeout seconds it returns no agents, which is not an error, at most 3600 unless it has started a task;", "given none, it waits until an agent changes once it has started a task, and 3600 seconds if it has not, so to watch give none.", "To watch agents, call it once with no timeout, naming every agent you follow (or none, for every agent)",
+				"wait": {"After timeout seconds it returns no agents, which is not an error. A call that starts a task (below) waits that long, and given none until an agent changes; one that does not, at most 3600 seconds, and that long given none.",
+					"To watch, give none: a timeout only brings a result with no agents, to call it again.", "To watch agents, call it once, naming every agent you follow (or none, for every agent)",
 					"When Claude Code says the call started a task or was moved to the background, end your turn: its result starts your next turn.",
 					`After a task result of "outcome unknown" or "cannot follow", call it again with the last next_since you know, without asking the user: it changes nothing.`,
 					"Do not call it again until the earlier call has brought its result.", "then call it again with its next_since, also after a result with no agents."},
-				"send": {"up to timeout seconds (the delivery included; at most 3600 unless it has started a task, and given none, with no limit once it has started a task and 3600 seconds if it has not)",
-					"A send with wait whose answer has not come within 50 seconds goes on as a task: when Claude Code says the call started a task or was moved to the background, end your turn: its result, what the call would have returned, starts your next turn."},
+				"send": {"up to timeout seconds (the delivery included: a call that starts a task waits that long, and given none until the answer; one that does not, at most 3600, and that long given none)",
+					"A send with wait whose answer has not come within 50 seconds goes on as a task: when Claude Code says the call started a task or was moved to the background, end your turn: its result, what the call would have returned, a stall or no_turn included, starts your next turn."},
 			}
-			never = []string{"loop", "default 50", "MCP task", "wait task"}
+			// A timeout is the supervisor's to give (#357, story 9): no text
+			// says one keeps the call a call, or forbids it.
+			never = []string{"loop", "default 50", "MCP task", "wait task", "with no timeout and", "once with no timeout", "unless it has started a task", "stays a call"}
 		}
 		for text, words := range want {
 			for _, w := range words {
@@ -579,12 +582,38 @@ func TestClaudeCodeShowsItsSupervisorTheLineOnWatching(t *testing.T) {
 	}
 }
 
+// Claude Code shows its supervisor the instructions only up to their
+// 4096th character (#365, open), and the line on watching of #359 pushed
+// the bullet on own tasks past that cut: nothing of it is lost, since the
+// descriptions of wait and read say each of its facts too, and list's says
+// what own_tasks holds (#357's review).
+func TestWhatClaudeCodeCutsOfTheBulletOnOwnTasksIsInTheTools(t *testing.T) {
+	res, err := connect(t, newMCPServer(newWaitFakes().deps(), claudeCode)).ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"wait": "with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
+		"read": "with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
+		"list": "own_tasks (while it is done or in question: the shell commands and watches of its own still running at that turn end",
+	}
+	for _, tl := range res.Tools {
+		if w, ok := want[tl.Name]; ok && !strings.Contains(tl.Description, w) {
+			t.Errorf("%s: no %q in %q", tl.Name, w, tl.Description)
+		}
+		delete(want, tl.Name)
+	}
+	if len(want) != 0 {
+		t.Errorf("no tools %v", slices.Collect(maps.Keys(want)))
+	}
+}
+
 // The wait tool tells each client the most it waits.
 func TestMCPWaitSaysHowLongItMayWait(t *testing.T) {
 	for client, want := range map[mcpClient]string{
 		claudeDesktop: "After timeout seconds (default and at most 50) it returns no agents",
 		sbxGateway:    "After timeout seconds (default and at most 110) it returns no agents",
-		claudeCode:    "After timeout seconds it returns no agents, which is not an error, at most 3600 unless it has started a task; given none, it waits until an agent changes once it has started a task",
+		claudeCode:    "After timeout seconds it returns no agents, which is not an error. A call that starts a task (below) waits that long, and given none until an agent changes; one that does not, at most 3600 seconds",
 	} {
 		res, err := connect(t, newMCPServer(newWaitFakes().deps(), client)).ListTools(context.Background(), nil)
 		if err != nil {
