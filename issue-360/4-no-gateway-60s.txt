@@ -1,0 +1,40 @@
+$ cd "$W" && sh "$D/check4.sh" spec-357-wait-task; cd - >/dev/null
+1 -> 0  "which gives a tool call 60 s, as Claude Desktop does"
+2 -> 0  "the gateway gives a tool call 60 s"
+1 -> 0  "which give up on a tool call after 60 s"
+1 -> 0  "50 s for Claude Desktop and `sbx`'s gateway"
+1 -> 0  "so `wait` is capped at 50 s"
+1 -> 0  "tool call 60 s: wait is capped as for Claude Desktop"
+
+$ git grep -n -E "\b60 ?s\b" -- *.go README.md docs/design/hq.md docs/requirements/spec.md GLOSSARY.md | grep -i -E "gateway|sbx|sandbox"
+README.md:150: ...s up to an hour, where Claude Desktop's ends after 50 s (Claude Desktop gives a tool call 60 s): Claude Code moves a call that lasts
+ longer than two minut...
+docs/design/hq.md:123: ...no PostToolUse, PostToolUseFailure or Stop, and Claude's `idle_prompt` Notification comes 60 s after a Stop, never after the
+se (verified with Claude Code ...
+docs/design/hq.md:312: ...00 s; 110 s keeps 10 s of margin below the 120 s, as Claude Desktop's 50 s does below its 60 s. In #357's trials (Claude Cod
+e 2.1.330 to 2.1.332, sbx v0.5...
+docs/design/hq.md:338: ...hat the list sees when the list sees it; its default timeout, 50 s, is a little below the 60 s MCP clients commonly allow a
+tool call (the MCP SDKs' defau...
+docs/design/hq.md:548: ... `sandbox` are not offered. Claude Desktop 2.9939.2 ends a local server's tool call after 60 s and does not reset that on pr
+ogress, so `wait` waits 50 s a...
+docs/design/hq.md:638: ....12, spec §4.1, Phase 2, #360, #357): the gateway's 50 s stood on its giving a tool call 60 s, which #357's trials disproved
+: the gateway does not cut a ...
+docs/requirements/spec.md:53: ...o which a longer one is cut: 50 s for Claude Desktop, which gives up on a tool call after 60 s, 110 s for `sbx`'s gat
+eway, whose Claude Code in the sandbo...
+docs/requirements/spec.md:340: ...ives up on a tool call, and given no timeout it waits that long: Claude Desktop gives one 60 s, so its supervisor wa
+its 50 s per call and calls `wait` aga...
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+

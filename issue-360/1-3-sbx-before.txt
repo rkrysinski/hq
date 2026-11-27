@@ -1,0 +1,40 @@
+$ python3 "$D/drive.py" "$W" sbx texts wait wait:600 wait:5 send:a
+$ hq mcp sbx   (driven over stdio)
+instructions, line on watching:
+  - To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result: it returns as soon as an agent is done
+, asks a question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout; then call it agai
+n.
+send description: ...e, it also waits, up to timeout seconds (default and at most 50, the delivery included), and returns...
+wait description: ...t_since, as JSON. After timeout seconds (default and at most 50) it returns no agents, which is not ...
+wait description on watching: To watch agents, call it in a loop, passing each result's next_since as the next call's since and naming every agent you
+...
+wait {"since": "c3"} -> agents 0, error False, after 50.2 s
+wait {"since": "c3", "timeout": 600} -> agents 0, error False, after 50.2 s
+wait {"since": "c3", "timeout": 5} -> agents 0, error False, after 5.1 s
+send {"name": "a", "text": "any news?", "wait": true} -> outcome timeout, delivery 'queued: a is working, delivered when it stops', error False, after
+ 50.1 s
+$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
