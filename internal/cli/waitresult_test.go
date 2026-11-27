@@ -35,10 +35,25 @@ func returned(as []agent.Agent) string {
 	return strings.Join(out, ", ")
 }
 
+// callBound is the most a call of theCallReturns may wait on f's clock:
+// past the default timeout, which no call of these tests goes beyond.
+const callBound = 2 * DefaultWaitTimeout
+
 // theCallReturns are the agents hq wait with args returns from f, as
-// returned gives them.
+// returned gives them. It fails the test once the call has waited past
+// callBound on f's clock, beside what f does at each sleep.
 func theCallReturns(t *testing.T, f *fakes, args ...string) string {
 	t.Helper()
+	start, onSleep := f.now, f.onSleep
+	f.onSleep = func() {
+		if onSleep != nil {
+			onSleep()
+		}
+		if f.now.Sub(start) > callBound {
+			t.Fatalf("hq wait %s still waits after %v", strings.Join(args, " "), f.now.Sub(start))
+		}
+	}
+	defer func() { f.onSleep = onSleep }()
 	w := waitJSON(t, mustRun(t, f, append([]string{"wait", "--json"}, args...)...))
 	var out []string
 	for _, r := range w.Agents {
