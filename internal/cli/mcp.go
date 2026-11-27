@@ -15,6 +15,7 @@ import (
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
+	"github.com/rkrysinski/hq/internal/mcptasks"
 	"github.com/rkrysinski/hq/internal/platform"
 	"github.com/rkrysinski/hq/internal/prefs"
 	"github.com/rkrysinski/hq/internal/sbx"
@@ -35,6 +36,11 @@ type mcpClient struct {
 	// watch is how the client's supervisor is taught to follow its agents
 	// with wait (#359).
 	watch watching
+	// tasks says that a wait given no timeout goes on as a wait task after
+	// waitHold when its request declares the MCP Tasks extension (ADR
+	// 0022): Claude Code's on the host does. Claude Desktop declares no
+	// tasks, and through sbx's gateway hq hands off none.
+	tasks bool
 	// updated is what every tool call answers once the hq on disk is of
 	// another generation, and remedy what the supervisor tells the user
 	// to do about it, each naming what that client's user has (#249).
@@ -48,8 +54,9 @@ var (
 	// Claude Code gives a tool call the timeout of the server's entry,
 	// which hq mcp install sets a minute above maxWait, and moves a call
 	// that lasts longer than 120 s to the background, its result starting
-	// the supervisor's next turn (ADR 0022).
-	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour, watch: inOneCall, updated: hqUpdated, remedy: restartInClient}
+	// the supervisor's next turn; a wait that declares tasks goes on as a
+	// wait task after its hold instead (ADR 0022).
+	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour, watch: inOneCall, tasks: true, updated: hqUpdated, remedy: restartInClient}
 	// A Claude Code inside a sandbox reaches hq through sbx's MCP gateway,
 	// which gives a tool call 60 s, as Claude Desktop does (#141). The
 	// gateway starts hq on the host, where restarting the Claude Code in
@@ -76,14 +83,17 @@ var (
 		instructions: "- To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout; then call it again.",
 		wait:         "To watch agents, call it in a loop, passing each result's next_since as the next call's since and naming every agent you follow each time (or none, for every agent): no change is then missed or returned twice. React to the agents it returns (read them), then call it again. ",
 	}
-	// inOneCall is for Claude Code, whose one call waits up to an hour: a
-	// call moved to the background starts the supervisor's next turn with
-	// its result, so the supervisor ends its turn instead of calling wait
-	// again, and an hour's quiet wait costs two model requests, not one
-	// every 50 s (ADR 0022).
+	// inOneCall is for Claude Code: its wait holds for waitHold and then
+	// goes on as a wait task, whose completion starts the supervisor's next
+	// turn with the wait's result, or, when its request declares no tasks,
+	// waits on in its call up to an hour, which Claude Code moves to the
+	// background with the same effect; either way the supervisor ends its
+	// turn instead of calling wait again (ADR 0022). A task Claude Code can
+	// no longer follow ends as "outcome unknown" or "cannot follow", after
+	// which a wait from the last cursor is safe: wait changes nothing.
 	inOneCall = watching{
-		instructions: "- To watch agents, call wait once, with the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout, an hour unless you give a shorter one. When Claude Code says that a wait, or a send with wait, was moved to the background, end your turn: its result starts your next turn. Do not call wait again until the earlier one has brought its result. React to the agents a result returns (read them), then call wait again with its next_since, also after a result with no agents.",
-		wait:         "To watch agents, call it once, naming every agent you follow (or none, for every agent), and pass each result's next_since as the next call's since: no change is then missed or returned twice. When Claude Code says the call was moved to the background, end your turn: its result starts your next turn. Do not call it again until the earlier call has brought its result. React to the agents a result returns (read them), then call it again with its next_since, also after a result with no agents. ",
+		instructions: "- To watch agents, call wait once, with the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it. When Claude Code says a wait or a send with wait started a task or was moved to the background, end your turn: its result starts your next turn. Do not call wait again until the earlier one has brought its result. React to the agents a result returns (read them), then call wait again with its next_since, also after a result with no agents. After a task result of \"outcome unknown\" or \"cannot follow\", call wait again with the last next_since you know, without asking: wait changes nothing.",
+		wait:         "To watch agents, call it once, naming every agent you follow (or none, for every agent), and pass each result's next_since as the next call's since: no change is then missed or returned twice. When Claude Code says the call started a task or was moved to the background, end your turn: its result starts your next turn. Do not call it again until the earlier call has brought its result. React to the agents a result returns (read them), then call it again with its next_since, also after a result with no agents. After a task result of \"outcome unknown\" or \"cannot follow\", call it again with the last next_since you know, without asking the user: it changes nothing. ",
 		send:         "When Claude Code says a send with wait was moved to the background, end your turn: its result starts your next turn. ",
 	}
 )
@@ -599,6 +609,9 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	d.supervisor = true
 	s := mcp.NewServer(&mcp.Implementation{Name: "hq", Title: "hq", Version: version.Version}, &mcp.ServerOptions{Instructions: client.instructions()})
 	s.AddReceivingMiddleware(stepAside(watchOnDisk(d), client.updated))
+	if client.tasks {
+		mcptasks.Serve(s, waitTasks{d}, d.now)
+	}
 	no, yes := false, true
 
 	mcp.AddTool(s, &mcp.Tool{
@@ -656,17 +669,26 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "wait",
 		Description: "Wait until one of the named agents (every agent when none is named) is done, asks a question, needs input or ends, and return it, with every other that does so within a moment of it, as list gives them (each with its sandbox and setup, its last cut as list cuts it: read gives it whole), with next_since, as JSON. " +
-			"After timeout seconds (" + waitLimit(client) + ") it returns no agents, which is not an error. " +
+			waitTimeoutText(client) +
 			"since is required: the next_since of your most recent wait or list result, passed back exactly as given, so a change between that result and this call is not missed; for your watch never that of read, send or answer, which is one agent's and later than what the others did meanwhile. A wait that names one agent alone may start from the next_since of its send or answer, for the answer to that message; what it returns is then that agent's alone, so your watch goes on from its own last result. " +
 			client.watch.wait +
 			"An agent returned done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
 		Annotations: &mcp.ToolAnnotations{Title: "Wait for agents", ReadOnlyHint: true, OpenWorldHint: &no},
-	}, func(_ context.Context, _ *mcp.CallToolRequest, in mcpWaitIn) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in mcpWaitIn) (*mcp.CallToolResult, any, error) {
 		timeout := toolTimeout(in.Timeout, client)
 		if in.Since == "" {
 			return toolResult("", usageErr("since is required: the next_since of your most recent wait or list result; with none yet, call list first"))
 		}
+		// Given no timeout (toolTimeout), it may go on as a wait task after
+		// its hold; a wait given one stays in its call.
+		task := in.Timeout <= 0 && mcptasks.Offered(ctx)
+		if task {
+			timeout = waitHold
+		}
 		args := append(append([]string{}, in.Names...), "--json", "--timeout", timeout.String(), "--since", in.Since)
+		if task {
+			return callCommand(d, func(env Env, d deps, args []string) error { return waitOrHandOff(ctx, env, d, args) }, args...)
+		}
 		return callCommand(d, runWait, args...)
 	})
 
@@ -783,6 +805,17 @@ func toolTimeout(seconds int, c mcpClient) time.Duration {
 		return c.maxWait
 	}
 	return min(timeout, c.maxWait)
+}
+
+// waitTimeoutText is what the wait tool tells client c of its timeout: a
+// wait given none that goes on as a wait task waits until an agent changes
+// (ADR 0022).
+func waitTimeoutText(c mcpClient) string {
+	if c.tasks {
+		most := int(c.maxWait.Seconds())
+		return fmt.Sprintf("After timeout seconds (at most %d) it returns no agents, which is not an error; given none, it waits until an agent changes once it has started a task, and %d seconds if it has not. ", most, most)
+	}
+	return "After timeout seconds (" + waitLimit(c) + ") it returns no agents, which is not an error. "
 }
 
 // waitLimit is how long the tools that wait wait for the client, as their

@@ -115,16 +115,33 @@ func runWait(env Env, d deps, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := checkTmux(d.tmux); err != nil {
+	r, err := waitFor(d, w, start)
+	if err != nil {
 		return err
+	}
+	return printWait(env.Stdout, w, lsRows(d, r.agents), r.cursor)
+}
+
+// waited is what a wait returns: the agents, none at its timeout, and the
+// cursor of its last look.
+type waited struct {
+	agents []agent.Agent
+	cursor int64
+}
+
+// waitFor is the wait of runWait, started at start, and what it returns.
+func waitFor(d deps, w waitArgs, start time.Time) (waited, error) {
+	if err := checkTmux(d.tmux); err != nil {
+		return waited{}, err
 	}
 	terms := waitTerms{names: w.names, since: w.since}
 	if w.timeout > 0 {
 		terms.deadline = start.Add(w.timeout)
 	}
 	var found []agent.Agent // what the first look with a hit returned
+	var out waited
 	k := d.looker()
-	err = k.Loop(func(s agent.Seen, first bool) (bool, error) {
+	err := k.Loop(func(s agent.Seen, first bool) (bool, error) {
 		next := k.Cursor(s) // taken before what waits is typed in
 		as := s.Agents
 		deliverWaiting(d, as)
@@ -158,21 +175,22 @@ func runWait(env Env, d deps, args []string) error {
 		}
 		r := terms.resultAt(s, next, d.now())
 		if found != nil {
-			hits := joined(found, r.agents)
-			agent.SortAttention(hits)
-			return true, printWait(env.Stdout, w, lsRows(d, hits), next)
+			out = waited{agents: joined(found, r.agents), cursor: next}
+			agent.SortAttention(out.agents)
+			return true, nil
 		}
 		if len(r.agents) > 0 {
 			// One look more, so agents that change together are returned
 			// together (#116).
 			found = r.agents
 		} else if r.late {
-			return true, printWait(env.Stdout, w, lsRows(d, nil), next)
+			out = waited{cursor: next}
+			return true, nil
 		}
 		terms.covered = r.covered
 		return false, nil
 	})
-	return lookErr(err)
+	return out, lookErr(err)
 }
 
 // waitTerms are what a wait waits for (#358): all that its result at a

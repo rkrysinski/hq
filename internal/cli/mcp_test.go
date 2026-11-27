@@ -450,10 +450,11 @@ func TestMCPSendWithWaitForClaudeCodeWithNoTimeoutWaitsAnHour(t *testing.T) {
 }
 
 // Each client gets instructions and descriptions of wait and send of its
-// own (#359, stories 24-27): Claude Code's speak of one call and of a call
-// moved to the background, never of a loop, and promise no MCP task;
-// Claude Desktop's and the gateway's go on describing the loop with their
-// limits. The timeout of wait and send names no number of its own.
+// own (#359, stories 24-27): Claude Code's speak of one call, of a call that
+// started a task or was moved to the background, and of a task Claude Code
+// can no longer follow (#361, story 26), never of a loop; Claude Desktop's
+// and the gateway's go on describing the loop with their limits. The
+// timeout of wait and send names no number of its own.
 func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 	if claudeCode.maxWait != time.Hour {
 		t.Fatalf("Claude Code's instructions say an hour, its wait lasts %v", claudeCode.maxWait)
@@ -486,11 +487,13 @@ func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 		never := []string{"background"}
 		if client == claudeCode {
 			want = map[string][]string{
-				"instructions": {"- To watch agents, call wait once, with the next_since of the most recent wait or list result", "or returns no agents after its timeout, an hour unless you give a shorter one.",
-					"When Claude Code says that a wait, or a send with wait, was moved to the background, end your turn: its result starts your next turn.",
-					"Do not call wait again until the earlier one has brought its result.", "then call wait again with its next_since, also after a result with no agents."},
-				"wait": {"(default and at most 3600)", "To watch agents, call it once, naming every agent you follow (or none, for every agent)",
-					"When Claude Code says the call was moved to the background, end your turn: its result starts your next turn.",
+				"instructions": {"- To watch agents, call wait once, with the next_since of the most recent wait or list result",
+					"When Claude Code says a wait or a send with wait started a task or was moved to the background, end your turn: its result starts your next turn.",
+					"Do not call wait again until the earlier one has brought its result.", "then call wait again with its next_since, also after a result with no agents.",
+					`After a task result of "outcome unknown" or "cannot follow", call wait again with the last next_since you know, without asking: wait changes nothing.`},
+				"wait": {"(at most 3600)", "given none, it waits until an agent changes once it has started a task, and 3600 seconds if it has not.", "To watch agents, call it once, naming every agent you follow (or none, for every agent)",
+					"When Claude Code says the call started a task or was moved to the background, end your turn: its result starts your next turn.",
+					`After a task result of "outcome unknown" or "cannot follow", call it again with the last next_since you know, without asking the user: it changes nothing.`,
 					"Do not call it again until the earlier call has brought its result.", "then call it again with its next_since, also after a result with no agents."},
 				"send": {"(default and at most 3600, the delivery included)", "When Claude Code says a send with wait was moved to the background, end your turn: its result starts your next turn."},
 			}
@@ -531,7 +534,7 @@ func TestMCPWaitSaysHowLongItMayWait(t *testing.T) {
 	for client, want := range map[mcpClient]string{
 		claudeDesktop: "After timeout seconds (default and at most 50) it returns no agents",
 		sbxGateway:    "After timeout seconds (default and at most 50) it returns no agents",
-		claudeCode:    "After timeout seconds (default and at most 3600) it returns no agents",
+		claudeCode:    "After timeout seconds (at most 3600) it returns no agents, which is not an error; given none, it waits until an agent changes once it has started a task",
 	} {
 		res, err := connect(t, newMCPServer(newWaitFakes().deps(), client)).ListTools(context.Background(), nil)
 		if err != nil {
