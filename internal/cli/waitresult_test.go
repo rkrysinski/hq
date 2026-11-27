@@ -13,7 +13,7 @@ import (
 
 // resultAtALook is the wait result for terms at a look of f now, taken as
 // a call takes each of its looks, with that look's cursor.
-func resultAtALook(t *testing.T, f *fakes, terms waitTerms) (waitResult, int64) {
+func resultAtALook(t *testing.T, f *fakes, terms waitTerms) (waitFound, int64) {
 	t.Helper()
 	k := f.deps().looker()
 	s, err := k.Look(agent.Acting)

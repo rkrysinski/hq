@@ -191,8 +191,8 @@ type waitTerms struct {
 	deadline time.Time
 }
 
-// waitResult is what a wait finds at a look (waitTerms.resultAt).
-type waitResult struct {
+// waitFound is what a wait finds at a look (waitTerms.resultAt).
+type waitFound struct {
 	// agents are the agents to return, none while nothing has changed.
 	agents []agent.Agent
 	// late says the deadline has passed with no agent to return: the wait
@@ -211,11 +211,11 @@ type waitResult struct {
 // cursor is one numbered above it and seen by the look, so it is returned
 // with no settle time; after a moment, one entered after it. A call that
 // finds agents returns them with those of its next look (runWait).
-func (t waitTerms) resultAt(s agent.Seen, through int64, now time.Time) waitResult {
+func (t waitTerms) resultAt(s agent.Seen, through int64, now time.Time) waitFound {
 	watched := waitedOn(s.Agents, t.names)
 	hits := append(arrived(watched, t.since, through), gone(t.covered, watched, now)...)
 	late := len(hits) == 0 && !t.deadline.IsZero() && !now.Before(t.deadline)
-	return waitResult{agents: hits, late: late, covered: watched}
+	return waitFound{agents: hits, late: late, covered: watched}
 }
 
 // joined are the agents of the last look, and those of the look before it
