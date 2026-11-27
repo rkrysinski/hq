@@ -29,8 +29,8 @@ type mcpClient struct {
 	title string // as the user knows it
 	// maxWait is how long a tool that waits (wait, send with wait) waits
 	// when given no timeout, and the most it waits when given one: within
-	// the time the client gives a tool call, so that a wait returns
-	// "nothing yet" instead of failing.
+	// the time the client gives a tool call, or keeps it in the turn, so
+	// that a wait returns "nothing yet" instead of failing.
 	maxWait time.Duration
 	// watch is how the client's supervisor is taught to follow its agents
 	// with wait (#359).
@@ -44,19 +44,29 @@ type mcpClient struct {
 var (
 	// Claude Desktop gives a local MCP server's tool call 60 s and does not
 	// extend it for progress notifications.
-	claudeDesktop = mcpClient{name: "claude-desktop", title: "Claude Desktop", maxWait: DefaultWaitTimeout, watch: inALoop, updated: hqUpdated, remedy: restartInClient}
+	claudeDesktop = mcpClient{name: "claude-desktop", title: "Claude Desktop", maxWait: DefaultWaitTimeout, watch: inALoop(DefaultWaitTimeout), updated: hqUpdated, remedy: restartInClient}
 	// Claude Code gives a tool call the timeout of the server's entry,
 	// which hq mcp install sets a minute above maxWait, and moves a call
 	// that lasts longer than 120 s to the background, its result starting
 	// the supervisor's next turn (ADR 0022).
 	claudeCode = mcpClient{name: "claude-code", title: "Claude Code", maxWait: time.Hour, watch: inOneCall, updated: hqUpdated, remedy: restartInClient}
-	// A Claude Code inside a sandbox reaches hq through sbx's MCP gateway,
-	// which gives a tool call 60 s, as Claude Desktop does (#141). The
+	// A Claude Code inside a sandbox reaches hq through sbx's MCP gateway
+	// (#141), which does not bound a tool call itself: that Claude Code
+	// gives a call's result to the same turn up to 120 s and moves a longer
+	// call to the background, so its wait lasts gatewayWait (#360). The
 	// gateway starts hq on the host, where restarting the Claude Code in
 	// the sandbox does not replace it, and hq sandbox restart does (#249).
-	sbxGateway = mcpClient{name: "sbx", title: "sbx", maxWait: DefaultWaitTimeout, watch: inALoop, updated: hqUpdatedInSandbox, remedy: restartTheSandbox}
+	sbxGateway = mcpClient{name: "sbx", title: "sbx", maxWait: gatewayWait, watch: inALoop(gatewayWait), updated: hqUpdatedInSandbox, remedy: restartTheSandbox}
 	mcpClients = []mcpClient{claudeDesktop, claudeCode, sbxGateway}
 )
+
+// gatewayWait is how long a wait lasts for a Claude Code inside a sandbox:
+// 10 s below the 120 s that Claude Code keeps a tool call in the turn, as
+// DefaultWaitTimeout is below Claude Desktop's 60 s, so the result comes
+// back in the turn that called wait. In #357's trials a call of 90 s
+// through the gateway came back in its turn, and the gateway did not cut
+// short one of 65 minutes.
+const gatewayWait = 110 * time.Second
 
 // watching is what a client's instructions and the descriptions of its
 // wait and send tools say of following agents with wait, which depends on
@@ -69,13 +79,17 @@ type watching struct {
 	send string
 }
 
-var (
-	// inALoop is for a client that gives up on a tool call past its limit:
-	// each call returns within it, and the supervisor calls wait again.
-	inALoop = watching{
-		instructions: "- To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout; then call it again.",
+// inALoop is for a client that gives up on a tool call past its limit, or
+// takes it out of the turn: each call returns within limit, and the
+// supervisor calls wait again.
+func inALoop(limit time.Duration) watching {
+	return watching{
+		instructions: fmt.Sprintf("- To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout, %d s unless you give a shorter one; then call it again.", int(limit.Seconds())),
 		wait:         "To watch agents, call it in a loop, passing each result's next_since as the next call's since and naming every agent you follow each time (or none, for every agent): no change is then missed or returned twice. React to the agents it returns (read them), then call it again. ",
 	}
+}
+
+var (
 	// inOneCall is for Claude Code, whose one call waits up to an hour: a
 	// call moved to the background starts the supervisor's next turn with
 	// its result, so the supervisor ends its turn instead of calling wait

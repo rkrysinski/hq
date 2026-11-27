@@ -1042,7 +1042,7 @@ func TestASandboxsClaudeCodeSupervisesFromTheRegistrationHqMcpInstallSbxMade(t *
 	var names []string
 	for _, tl := range tools.Tools {
 		names = append(names, tl.Name)
-		if tl.Name == "wait" && !strings.Contains(tl.Description, "(default and at most 50)") {
+		if tl.Name == "wait" && !strings.Contains(tl.Description, "(default and at most 110)") {
 			t.Fatalf("wait: %s", tl.Description)
 		}
 	}

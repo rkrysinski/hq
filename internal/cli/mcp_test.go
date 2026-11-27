@@ -358,6 +358,48 @@ func TestMCPWaitNeverOutlastsClaudeDesktopsToolCall(t *testing.T) {
 	}
 }
 
+// A Claude Code inside a sandbox keeps a tool call in its turn up to 120 s,
+// and sbx's gateway does not cut it short: wait, and send with wait, last
+// 110 s when given no timeout, and at most that when given one (#360,
+// stories 28 and 30).
+func TestMCPWaitThroughTheGatewayLasts110Seconds(t *testing.T) {
+	for timeout, want := range map[int]time.Duration{0: 110 * time.Second, 5: 5 * time.Second, 51: 51 * time.Second, 110: 110 * time.Second, 111: 110 * time.Second, 600: 110 * time.Second} {
+		f := newWaitFakes()
+		f.tty = false
+		cs := connect(t, newMCPServer(f.deps(), sbxGateway))
+		start := f.now
+		args := map[string]any{"since": "0s"}
+		if timeout != 0 {
+			args["timeout"] = timeout
+		}
+		if out, _ := call(t, cs, "wait", args); len(waitJSON(t, out).Agents) != 0 {
+			t.Fatalf("%d: %s", timeout, out)
+		}
+		if took := f.now.Sub(start); took < want || took > want+time.Second {
+			t.Errorf("wait, timeout %d: waited %v, want %v", timeout, took, want)
+		}
+	}
+	for timeout, want := range map[int]time.Duration{0: 110 * time.Second, 30: 30 * time.Second, 600: 110 * time.Second} {
+		f := sendFakes(state.Done)
+		f.tty = false
+		onSubmit(f, func() { turnFor(f, 1<<30, "") })
+		cs := connect(t, newMCPServer(f.deps(), sbxGateway))
+		start := f.now
+		args := map[string]any{"name": "a", "text": "Any news?", "wait": true}
+		if timeout != 0 {
+			args["timeout"] = timeout
+		}
+		out, isErr := call(t, cs, "send", args)
+		var got sendWaitOutput
+		if err := json.Unmarshal([]byte(out), &got); isErr || err != nil || got.Outcome != endTimeout {
+			t.Fatalf("send, timeout %d: %v %q", timeout, isErr, out)
+		}
+		if took := f.now.Sub(start); took < want || took > want+time.Second {
+			t.Errorf("send, timeout %d: waited %v, want %v", timeout, took, want)
+		}
+	}
+}
+
 // Claude Code gives a tool call as long as its entry says: one wait may
 // last an hour (#115), and lasts that long when given no timeout (#359); a
 // timeout up to 50 s ends it as before.
@@ -453,7 +495,8 @@ func TestMCPSendWithWaitForClaudeCodeWithNoTimeoutWaitsAnHour(t *testing.T) {
 // own (#359, stories 24-27): Claude Code's speak of one call and of a call
 // moved to the background, never of a loop, and promise no MCP task;
 // Claude Desktop's and the gateway's go on describing the loop with their
-// limits. The timeout of wait and send names no number of its own.
+// limits, 50 s and 110 s (#360). The timeout of wait and send names no
+// number of its own.
 func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 	if claudeCode.maxWait != time.Hour {
 		t.Fatalf("Claude Code's instructions say an hour, its wait lasts %v", claudeCode.maxWait)
@@ -478,10 +521,11 @@ func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 				}
 			}
 		}
+		limit := map[string]string{"claude-desktop": "50", "sbx": "110"}[client.name]
 		want := map[string][]string{
-			"instructions": {"- To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result", "or returns no agents after its timeout; then call it again."},
-			"wait":         {"(default and at most 50)", "To watch agents, call it in a loop, passing each result's next_since as the next call's since", "React to the agents it returns (read them), then call it again."},
-			"send":         {"(default and at most 50, the delivery included)"},
+			"instructions": {"- To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result", "or returns no agents after its timeout, " + limit + " s unless you give a shorter one; then call it again."},
+			"wait":         {"(default and at most " + limit + ")", "To watch agents, call it in a loop, passing each result's next_since as the next call's since", "React to the agents it returns (read them), then call it again."},
+			"send":         {"(default and at most " + limit + ", the delivery included)"},
 		}
 		never := []string{"background"}
 		if client == claudeCode {
@@ -517,12 +561,16 @@ func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 // Claude Code 2.1.332 shows the model a server's instructions only up to
 // their 4096th character (its debug log: "Server instructions truncated
 // from 6365 to 4096 chars", #365): Claude Code's line on watching stands
-// within them. Bytes count at least as many as Claude Code's characters.
+// within them, as does that of the gateway's, whose client is a Claude
+// Code too, with its 110 s (#360). Bytes count at least as many as Claude
+// Code's characters.
 func TestClaudeCodeShowsItsSupervisorTheLineOnWatching(t *testing.T) {
-	got := claudeCode.instructions()
-	i := strings.Index(got, claudeCode.watch.instructions)
-	if end := i + len(claudeCode.watch.instructions); i < 0 || end > 4096 {
-		t.Fatalf("the line on watching ends at byte %d of %d: past what Claude Code shows", end, len(got))
+	for _, client := range []mcpClient{claudeCode, sbxGateway} {
+		got := client.instructions()
+		i := strings.Index(got, client.watch.instructions)
+		if end := i + len(client.watch.instructions); i < 0 || end > 4096 {
+			t.Errorf("%s: the line on watching ends at byte %d of %d: past what Claude Code shows", client.name, end, len(got))
+		}
 	}
 }
 
@@ -530,7 +578,7 @@ func TestClaudeCodeShowsItsSupervisorTheLineOnWatching(t *testing.T) {
 func TestMCPWaitSaysHowLongItMayWait(t *testing.T) {
 	for client, want := range map[mcpClient]string{
 		claudeDesktop: "After timeout seconds (default and at most 50) it returns no agents",
-		sbxGateway:    "After timeout seconds (default and at most 50) it returns no agents",
+		sbxGateway:    "After timeout seconds (default and at most 110) it returns no agents",
 		claudeCode:    "After timeout seconds (default and at most 3600) it returns no agents",
 	} {
 		res, err := connect(t, newMCPServer(newWaitFakes().deps(), client)).ListTools(context.Background(), nil)
@@ -575,7 +623,11 @@ func TestAToolWaitsAsLongAsItsClientAllows(t *testing.T) {
 		want    time.Duration
 	}{
 		{0, claudeDesktop, DefaultWaitTimeout},
-		{0, sbxGateway, DefaultWaitTimeout},
+		{0, sbxGateway, 110 * time.Second},
+		{-5, sbxGateway, 110 * time.Second},
+		{30, sbxGateway, 30 * time.Second},
+		{110, sbxGateway, 110 * time.Second},
+		{111, sbxGateway, 110 * time.Second},
 		{0, claudeCode, time.Hour},
 		{-5, claudeCode, time.Hour},
 		{1, claudeCode, time.Second},
@@ -1382,10 +1434,10 @@ func TestMCPInstallOnWSLWarnsThatHQPlatformIsNoLongerNeeded(t *testing.T) {
 	}
 }
 
-// Served for a sandbox's Claude Code, through sbx's gateway, which gives a
-// tool call 60 s: wait is capped as for Claude Desktop.
-func TestMCPForSbxServesClaudeDesktopsWait(t *testing.T) {
-	if _, c, err := parseMCP([]string{"sbx"}); err != nil || c != sbxGateway || c.maxWait != claudeDesktop.maxWait {
+// hq mcp sbx is served for a sandbox's Claude Code, through sbx's gateway,
+// with the gateway's wait (#360).
+func TestMCPForSbxServesTheGatewaysWait(t *testing.T) {
+	if _, c, err := parseMCP([]string{"sbx"}); err != nil || c != sbxGateway || c.maxWait != 110*time.Second {
 		t.Fatalf("%+v %v", c, err)
 	}
 }
