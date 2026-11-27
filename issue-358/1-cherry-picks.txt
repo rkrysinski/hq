@@ -1,0 +1,55 @@
+$ git log --format="%h %s%n%b" spec-357-wait-task..b705950
+b705950 Set ADR 0022 against the trial of the wait task
+The trial of 2026-11-27 (Claude Code 2.1.332 in a sandbox, a probe
+server over standard input and output) tried the task contract before
+the tickets: a handle after a hold, a task with no time limit, two
+tasks pending, the end of a task's time and its cancellation.
+
+- An unknown task is not asked for with no end: Claude Code asks for
+  about five more minutes, then ends it as outcome unknown
+- Leaving a session: no choice of the dialog cancels the task; after
+  "Exit and stop tasks" the resumed session asks for it again, while
+  "Move to background and exit" stops it and supervision in the
+  background ends silently
+- Not tried no longer lists what the trial tried; what is on macOS,
+  Windows and WSL stays
+
+Refs #342, #357
+
+Closes #358
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+51e78c1 Record the wait task: ADR 0022 and its glossary term
+Claude Code on the host gets its wait as an MCP task when its request
+declares the Tasks extension, and as one long call when it does not, so
+a supervisor there makes no model request while nothing changes and
+needs no instruction from outside hq. Decided for the spec that builds
+the host's part before the standing wait of #356.
+
+- ADR 0022: the task's id carries the wait and is signed, one task for
+  each wait, an hour by default without tasks, instructions per client
+- GLOSSARY.md: Wait task
+
+The commit stands by itself on dev: it names neither ADR 0021 nor the
+terms that came with it.
+
+Refs #342, #356, #357
+
+Closes #358
+
+Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>
+
+$ for c in 551d6ce 51e78c1 b9dae36 b705950; do echo "$c $(git show $c | git patch-id --stable | cut -d" " -f1)"; done
+551d6ce c00150050ac2cca66ba6611b0ff763389d952a6d
+51e78c1 c00150050ac2cca66ba6611b0ff763389d952a6d
+b9dae36 60e010df389849b214e6952120d9fb00e6db11cc
+b705950 60e010df389849b214e6952120d9fb00e6db11cc
+$ git diff --stat b9dae36 b705950 -- docs/adr/0022-claude-code-on-the-host-gets-its-wait-as-an-mcp-task.md
+(no output: the ADR is the same file as on issue-342-standing-wait)
+$ git diff --stat spec-357-wait-task b705950
+ GLOSSARY.md                                        |  4 +++
+ ...ode-on-the-host-gets-its-wait-as-an-mcp-task.md | 34 ++++++++++++++++++++++
+ 2 files changed, 38 insertions(+)
+$ git log --oneline spec-357-wait-task..b705950 -- docs/adr/0021-a-wait-outlives-its-call.md
+(no output: nothing of ADR 0021 came along)

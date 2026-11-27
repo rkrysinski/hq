@@ -1,0 +1,11 @@
+$ C=$(hq ls --json | jq -r .next_since); echo "cursor: $C"
+cursor: c4
+$ hq wait a --since $C & sleep 3; echo "-- a changes now:"; hq send a "how are you"; wait
+[1] 1570644
+-- a changes now:
+delivered: typed into a as its next prompt
+NAME  REPO  BRANCH  STATE  AGE  LAST
+a     repo  main    done   0s   Done: how are you
+next: hq wait a --since c7
+[1]+  Done                       hq wait a --since $C
+$

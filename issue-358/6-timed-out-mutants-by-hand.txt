@@ -1,0 +1,67 @@
+# on 00e169d0f8c59c72fcbc1d06ff67472a88eb1499, each mutant applied to internal/cli/wait.go by hand, then the file restored (git checkout)
+
+== wait.go:120 now: if w.timeout <= 0 {
+$ go test -count=1 -run TestWaitResult ./internal/cli
+--- FAIL: TestWaitResultDoesNotReturnAChangeBeforeTheCursor (0.00s)
+    waitresult_test.go:53: hq wait --since c3 --timeout 1s still waits after 1m40.25s
+--- FAIL: TestWaitResultIsLateWithNoAgentsOnceTheDeadlineHasPassed (0.00s)
+    waitresult_test.go:53: hq wait --since c4 --timeout 2s still waits after 1m40.25s
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	0.008s
+FAIL
+$ go test -count=1 -timeout 30s ./internal/cli   # the whole package
+panic: test timed out after 30s
+    running tests:
+        TestWaitWithACursorMissesNothingWhenTheClockMovesBackAndForth (30s)
+
+== wait.go:163 now: if len(r.agents) >= 0 {
+$ go test -count=1 -run TestWaitResult ./internal/cli
+--- FAIL: TestWaitResultDoesNotReturnAChangeBeforeTheCursor (0.00s)
+    waitresult_test.go:53: hq wait --since c3 --timeout 1s still waits after 1m40.25s
+--- FAIL: TestWaitResultIsLateWithNoAgentsOnceTheDeadlineHasPassed (0.00s)
+    waitresult_test.go:53: hq wait --since c4 --timeout 2s still waits after 1m40.25s
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	0.008s
+FAIL
+$ go test -count=1 -timeout 30s ./internal/cli   # the whole package
+panic: test timed out after 30s
+    running tests:
+        TestWaitWithACursorMissesNothingWhenTheClockMovesBackAndForth (30s)
+
+== wait.go:163 now: if len(r.agents) <= 0 {
+$ go test -count=1 -run TestWaitResult ./internal/cli
+--- FAIL: TestWaitResultReturnsAnAgentChangedAfterTheCursor (0.00s)
+    waitresult_test.go:53: hq wait --since c4 --timeout 1s still waits after 1m40.25s
+--- FAIL: TestWaitResultDoesNotReturnAChangeBeforeTheCursor (0.00s)
+    waitresult_test.go:53: hq wait --since c3 --timeout 1s still waits after 1m40.25s
+--- FAIL: TestWaitResultReturnsAnAgentKilledSinceThePreviousLookAsEnded (0.00s)
+    waitresult_test.go:53: hq wait b --since c4 still waits after 1m40.25s
+--- FAIL: TestWaitResultReturnsAnAgentWhoseJournalCannotBeReadAsToday (0.00s)
+    waitresult_test.go:53: hq wait --since c4 still waits after 1m40.25s
+--- FAIL: TestWaitResultIsLateWithNoAgentsOnceTheDeadlineHasPassed (0.00s)
+    waitresult_test.go:53: hq wait --since c4 --timeout 2s still waits after 1m40.25s
+--- FAIL: TestWaitResultOnEveryAgentLeavesAnOutdatedAgentOut (0.00s)
+    waitresult_test.go:53: hq wait --since c2 still waits after 1m40.25s
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	0.016s
+FAIL
+$ go test -count=1 -timeout 30s ./internal/cli   # the whole package
+panic: test timed out after 30s
+    running tests:
+        TestRowsCarryTheTwoNumbersAndAnOutdatedOneNone (30s)
+
+== wait.go:217 now: late := len(hits) != 0 && !t.deadline.IsZero() && !now.Before(t.deadline)
+$ go test -count=1 -run TestWaitResult ./internal/cli
+--- FAIL: TestWaitResultDoesNotReturnAChangeBeforeTheCursor (0.00s)
+    waitresult_test.go:53: hq wait --since c3 --timeout 1s still waits after 1m40.25s
+--- FAIL: TestWaitResultIsLateWithNoAgentsOnceTheDeadlineHasPassed (0.00s)
+    waitresult_test.go:204: at it:  late false, want late true
+    waitresult_test.go:204: after it:  late false, want late true
+    waitresult_test.go:53: hq wait --since c4 --timeout 2s still waits after 1m40.25s
+FAIL
+FAIL	github.com/rkrysinski/hq/internal/cli	0.009s
+FAIL
+$ go test -count=1 -timeout 30s ./internal/cli   # the whole package
+panic: test timed out after 30s
+    running tests:
+        TestWaitWithACursorMissesNothingWhenTheClockMovesBackAndForth (30s)

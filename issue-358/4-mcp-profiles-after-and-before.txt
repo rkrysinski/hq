@@ -1,0 +1,62 @@
+$ git rev-parse origin/dev spec-357-wait-task   # what --before builds (git archive origin/dev), and the integration base
+36d00aaefe9491cfd552f2d3546339f497666818
+36d00aaefe9491cfd552f2d3546339f497666818
+$ cat mcp-drive.sh
+#!/bin/bash
+# mcp-drive.sh WORKTREE PROFILE [--before]: serves hq mcp PROFILE from the
+# checkout's local-dev build (or the before build) over stdio and calls
+# wait (on b, timeout 2), send with wait (to b, timeout 20), wait with no
+# since and send with a timeout but no wait, in turn.
+w=$1 profile=$2 before=$3
+cursor=$(cd "$w" && scripts/local-dev.sh --stub native ls --json 2>/dev/null | jq -r .next_since)
+{
+  printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"qa","version":"1"}}}'
+  printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+  sleep 1
+  printf '%s\n' "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"wait\",\"arguments\":{\"names\":[\"b\"],\"since\":\"$cursor\",\"timeout\":2}}}"
+  sleep 4
+  printf '%s\n' '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"send","arguments":{"name":"b","text":"once more","wait":true,"timeout":20}}}'
+  sleep 8
+  printf '%s\n' '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"wait","arguments":{"names":["b"]}}}'
+  printf '%s\n' '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"send","arguments":{"name":"b","text":"x","timeout":3}}}'
+  sleep 2
+} | (cd "$w" && scripts/local-dev.sh --stub native $before mcp "$profile" 2>/dev/null) |
+  jq -c 'select(.id>=2) | {id, isError: .result.isError, text: (.result.content[0].text | fromjson? // .)}'
+
+# norm: next_since, state_seq, completion_seq, since and age_seconds replaced, as they move with every run
+$ mcp-drive.sh $PWD claude-desktop        # after
+{"id":2,"isError":null,"text":{"agents":[],"next_since":"c19"}}
+{"id":3,"isError":null,"text":{"delivery":"delivered: typed into b as its next prompt","outcome":"turn_ended","agents":[{"name":"b","repo":"repo","repo_path":"/tmp/hq-stub-710068215/repo","branch":"main","state":"done","state_seq":22,"completion_seq":22,"since":"2026-11-27T19:13:39.333897545Z","age_seconds":0,"last":"Done: once more","sandbox":"claude-repo","setup":"default","pending":0,"own_tasks":[],"asks":null}],"next_since":"c22"}}
+{"id":4,"isError":true,"text":"validating \"arguments\": validating root: required: missing properties: [\"since\"]"}
+{"id":5,"isError":true,"text":"hq: timeout goes with wait\n"}
+$ mcp-drive.sh $PWD claude-desktop --before   # before
+{"id":2,"isError":null,"text":{"agents":[],"next_since":"c22"}}
+{"id":3,"isError":null,"text":{"delivery":"delivered: typed into b as its next prompt","outcome":"turn_ended","agents":[{"name":"b","repo":"repo","repo_path":"/tmp/hq-stub-710068215/repo","branch":"main","state":"done","state_seq":25,"completion_seq":25,"since":"2026-11-27T19:13:54.781579552Z","age_seconds":0,"last":"Done: once more","sandbox":"claude-repo","setup":"default","pending":0,"own_tasks":[],"asks":null}],"next_since":"c25"}}
+{"id":4,"isError":true,"text":"validating \"arguments\": validating root: required: missing properties: [\"since\"]"}
+{"id":5,"isError":true,"text":"hq: timeout goes with wait\n"}
+$ diff <(norm < after) <(norm < before) && echo same
+same
+$ mcp-drive.sh $PWD claude-code        # after
+{"id":2,"isError":null,"text":{"agents":[],"next_since":"c25"}}
+{"id":3,"isError":null,"text":{"delivery":"delivered: typed into b as its next prompt","outcome":"turn_ended","agents":[{"name":"b","repo":"repo","repo_path":"/tmp/hq-stub-710068215/repo","branch":"main","state":"done","state_seq":28,"completion_seq":28,"since":"2026-11-27T19:14:10.168552185Z","age_seconds":0,"last":"Done: once more","sandbox":"claude-repo","setup":"default","pending":0,"own_tasks":[],"asks":null}],"next_since":"c28"}}
+{"id":4,"isError":true,"text":"validating \"arguments\": validating root: required: missing properties: [\"since\"]"}
+{"id":5,"isError":true,"text":"hq: timeout goes with wait\n"}
+$ mcp-drive.sh $PWD claude-code --before   # before
+{"id":2,"isError":null,"text":{"agents":[],"next_since":"c28"}}
+{"id":3,"isError":null,"text":{"delivery":"delivered: typed into b as its next prompt","outcome":"turn_ended","agents":[{"name":"b","repo":"repo","repo_path":"/tmp/hq-stub-710068215/repo","branch":"main","state":"done","state_seq":31,"completion_seq":31,"since":"2026-11-27T19:14:25.545579067Z","age_seconds":0,"last":"Done: once more","sandbox":"claude-repo","setup":"default","pending":0,"own_tasks":[],"asks":null}],"next_since":"c31"}}
+{"id":4,"isError":true,"text":"validating \"arguments\": validating root: required: missing properties: [\"since\"]"}
+{"id":5,"isError":true,"text":"hq: timeout goes with wait\n"}
+$ diff <(norm < after) <(norm < before) && echo same
+same
+$ mcp-drive.sh $PWD sbx        # after
+{"id":2,"isError":null,"text":{"agents":[],"next_since":"c31"}}
+{"id":3,"isError":null,"text":{"delivery":"delivered: typed into b as its next prompt","outcome":"turn_ended","agents":[{"name":"b","repo":"repo","repo_path":"/tmp/hq-stub-710068215/repo","branch":"main","state":"done","state_seq":34,"completion_seq":34,"since":"2026-11-27T19:14:40.945256116Z","age_seconds":0,"last":"Done: once more","sandbox":"claude-repo","setup":"default","pending":0,"own_tasks":[],"asks":null}],"next_since":"c34"}}
+{"id":4,"isError":true,"text":"validating \"arguments\": validating root: required: missing properties: [\"since\"]"}
+{"id":5,"isError":true,"text":"hq: timeout goes with wait\n"}
+$ mcp-drive.sh $PWD sbx --before   # before
+{"id":2,"isError":null,"text":{"agents":[],"next_since":"c34"}}
+{"id":3,"isError":null,"text":{"delivery":"delivered: typed into b as its next prompt","outcome":"turn_ended","agents":[{"name":"b","repo":"repo","repo_path":"/tmp/hq-stub-710068215/repo","branch":"main","state":"done","state_seq":37,"completion_seq":37,"since":"2026-11-27T19:14:56.356159165Z","age_seconds":0,"last":"Done: once more","sandbox":"claude-repo","setup":"default","pending":0,"own_tasks":[],"asks":null}],"next_since":"c37"}}
+{"id":4,"isError":true,"text":"validating \"arguments\": validating root: required: missing properties: [\"since\"]"}
+{"id":5,"isError":true,"text":"hq: timeout goes with wait\n"}
+$ diff <(norm < after) <(norm < before) && echo same
+same

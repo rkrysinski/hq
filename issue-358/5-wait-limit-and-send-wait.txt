@@ -1,0 +1,12 @@
+$ time hq wait a --since c7 --timeout 3s
+nothing yet
+next: hq wait a --since c7
+real	0m3.547s
+user	0m0.607s
+sys	0m0.301s
+$ hq send a "and now?" --wait
+delivered: typed into a as its next prompt
+NAME  REPO  BRANCH  STATE     AGE  LAST
+a     repo  main    question  0s   Done: and now?
+next: hq wait a --since c10
+$

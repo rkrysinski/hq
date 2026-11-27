@@ -1,0 +1,11 @@
+$ time hq send a "go slow" --wait --timeout 3s
+delivered: typed into a as its next prompt
+nothing yet
+next: hq wait a --since c12
+real	0m3.441s
+user	0m0.581s
+sys	0m0.219s
+$ hq ls
+NAME  REPO  BRANCH  STATE    AGE  LAST
+a     repo  main    working  9s   Done: and now?
+$

@@ -1,0 +1,8 @@
+$ go test -count=1 -v -run TestWaitResult ./internal/cli | grep -E "^(--- |ok|FAIL)"
+--- PASS: TestWaitResultReturnsAnAgentChangedAfterTheCursor (0.00s)
+--- PASS: TestWaitResultDoesNotReturnAChangeBeforeTheCursor (0.00s)
+--- PASS: TestWaitResultReturnsAnAgentKilledSinceThePreviousLookAsEnded (0.00s)
+--- PASS: TestWaitResultReturnsAnAgentWhoseJournalCannotBeReadAsToday (0.00s)
+--- PASS: TestWaitResultIsLateWithNoAgentsOnceTheDeadlineHasPassed (0.00s)
+--- PASS: TestWaitResultOnEveryAgentLeavesAnOutdatedAgentOut (0.00s)
+ok  	github.com/rkrysinski/hq/internal/cli	0.004s
