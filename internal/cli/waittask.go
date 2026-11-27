@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"slices"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/mcptasks"
+	"github.com/rkrysinski/hq/internal/taskid"
 )
 
 // waitHold is how long the wait tool waits in its call under Claude Code
@@ -33,8 +35,10 @@ const waitHold = DefaultWaitTimeout
 const waitTaskPoll = 5 * time.Second
 
 // A waitTask is a wait that goes on after its call as an MCP task
-// (GLOSSARY.md, ADR 0022). Its id carries all it waits for, so any hq mcp
-// answers for it by taking a look, and none holds it in memory.
+// (GLOSSARY.md, ADR 0022). Its id carries all it waits for, signed with
+// the key of hq's state directory (taskid), so any hq mcp answers for it by
+// taking a look, none holds it in memory, and no one builds one from the
+// terms alone.
 type waitTask struct {
 	// names are the agents it waits for, every agent when none, and cursor
 	// what a change has to come after: the cursor of its call's last look.
@@ -49,17 +53,17 @@ type waitTask struct {
 // waitTaskKind starts the id of every wait task: its kind and version.
 const waitTaskKind = "w1"
 
-// id is t's task id: its kind, cursor, creation (milliseconds in base 36),
-// nonce and names, between colons, the names between commas, which no name
-// holds.
-func (t waitTask) id() string {
+// terms are what t's task id carries, which taskid.Sign signs: its kind,
+// cursor, creation (milliseconds in base 36), nonce and names, between
+// colons, the names between commas, which no name holds.
+func (t waitTask) terms() string {
 	return strings.Join([]string{waitTaskKind, cursorText(t.cursor), strconv.FormatInt(t.created.UnixMilli(), 36), t.nonce, strings.Join(t.names, ",")}, ":")
 }
 
-// parseWaitTask is the wait task id stands for, or false for an id no wait
-// task has.
-func parseWaitTask(id string) (waitTask, bool) {
-	f := strings.Split(id, ":")
+// parseWaitTask is the wait task whose id carries terms, or false for
+// terms no wait task's id carries.
+func parseWaitTask(terms string) (waitTask, bool) {
+	f := strings.Split(terms, ":")
 	if len(f) != 5 || f[0] != waitTaskKind {
 		return waitTask{}, false
 	}
@@ -73,9 +77,9 @@ func parseWaitTask(id string) (waitTask, bool) {
 	return t, ok
 }
 
-// task is t as the MCP server hands it off.
-func (t waitTask) task() mcptasks.Task {
-	return mcptasks.Task{ID: t.id(), Created: t.created, PollInterval: waitTaskPoll}
+// task is t as the MCP server knows it, by its id.
+func (t waitTask) task(id string) mcptasks.Task {
+	return mcptasks.Task{ID: id, Created: t.created, PollInterval: waitTaskPoll}
 }
 
 // newNonce is a nonce for a wait task's id: two calls of wait in one
@@ -91,7 +95,9 @@ func newNonce() string {
 // what it returns within the hold, as runWait prints it; or, when the hold
 // passes with no agents, nothing, the call going on as a wait task from
 // the cursor of its last look, which stands for every change that look saw
-// (ADR 0022).
+// (ADR 0022), its id signed with the key of hq's state directory, which
+// the first such task makes; or the error of a key it can neither read nor
+// make, since no hq mcp could tell its task from one made up.
 func waitOrHandOff(ctx context.Context, env Env, d deps, args []string) error {
 	start := d.now()
 	w, err := parseWait(args, start)
@@ -105,25 +111,36 @@ func waitOrHandOff(ctx context.Context, env Env, d deps, args []string) error {
 	if len(r.agents) > 0 {
 		return printWait(env.Stdout, w, lsRows(d, r.agents), r.cursor)
 	}
+	key, err := d.taskKey()
+	if err != nil {
+		return fmt.Errorf("the wait cannot go on as a task: %w", err)
+	}
 	t := waitTask{names: w.names, cursor: r.cursor, created: time.UnixMilli(d.now().UnixMilli()), nonce: newNonce()}
-	mcptasks.HandOff(ctx, t.task())
+	mcptasks.HandOff(ctx, t.task(taskid.Sign(key, t.terms())))
 	return nil
 }
 
 // waitTasks answers for the wait tasks of hq's MCP server (mcptasks.Tasks).
 type waitTasks struct{ d deps }
 
-// Task is the wait task id stands for.
+// Task is the wait task id stands for: none when the key of hq's state
+// directory did not sign it, or cannot be read, as when it went with the
+// directory; reading it makes none.
 func (w waitTasks) Task(id string) (mcptasks.Task, bool) {
-	t, ok := parseWaitTask(id)
-	return t.task(), ok
+	key, err := w.d.readTaskKey()
+	if err != nil {
+		return mcptasks.Task{}, false
+	}
+	terms, signed := taskid.Verify(key, id)
+	t, ok := parseWaitTask(terms)
+	return t.task(id), signed && ok
 }
 
 // Result is what wait task t has come to at a look taken now: the wait
 // tool's result once the look finds agents to return, or fails; nil while
 // it finds none.
 func (w waitTasks) Result(_ context.Context, task mcptasks.Task) *mcp.CallToolResult {
-	t, _ := parseWaitTask(task.ID)
+	t, _ := parseWaitTask(taskid.Terms(task.ID))
 	done := false
 	r, _, _ := callCommand(w.d, func(env Env, d deps, _ []string) error {
 		var err error

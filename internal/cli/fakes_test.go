@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"hash/fnv"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -686,6 +688,12 @@ type fakes struct {
 	installErrs    map[string]error
 	served         *mcp.Server
 	serveErr       error
+
+	// taskKey is the key in the state directory that signs the ids of MCP
+	// tasks: none until hq makes it, a new one of random bytes, and none
+	// again once a test takes it away; taskKeyErr fails making it.
+	taskKey    []byte
+	taskKeyErr error
 }
 
 // fakeName is the name the fakes' inbox gives a message, by its text (as
@@ -1040,6 +1048,22 @@ func (f *fakes) deps() deps {
 			return f.installResult, f.installErr
 		},
 		serveMCP: func(s *mcp.Server) error { f.served = s; return f.serveErr },
+		taskKey: func() ([]byte, error) {
+			if f.taskKeyErr != nil {
+				return nil, f.taskKeyErr
+			}
+			if f.taskKey == nil {
+				f.taskKey = make([]byte, 32)
+				_, _ = rand.Read(f.taskKey)
+			}
+			return f.taskKey, nil
+		},
+		readTaskKey: func() ([]byte, error) {
+			if f.taskKey == nil {
+				return nil, fs.ErrNotExist
+			}
+			return f.taskKey, nil
+		},
 	}
 }
 

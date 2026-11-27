@@ -761,6 +761,12 @@ func (s *supervisor) raw() *rawSupervisor {
 // test on an error or when no answer comes within bound.
 func (r *rawSupervisor) request(method string, params map[string]any, bound time.Duration) rawResult {
 	r.t.Helper()
+	return r.answer(r.send(method, params), bound)
+}
+
+// send sends method with params and returns the request's id.
+func (r *rawSupervisor) send(method string, params map[string]any) int {
+	r.t.Helper()
 	p := map[string]any{"_meta": map[string]any{
 		"io.modelcontextprotocol/protocolVersion":    "2026-07-28",
 		"io.modelcontextprotocol/clientInfo":         map[string]any{"name": "claude-code", "version": "2.1.332"},
@@ -774,38 +780,49 @@ func (r *rawSupervisor) request(method string, params map[string]any, bound time
 	if _, err := r.in.Write(append(b, '\n')); err != nil {
 		r.t.Fatalf("%s: %v", method, err)
 	}
+	return r.n
+}
+
+// answer is the result of request id, failing the test on an error or when
+// no answer comes within bound.
+func (r *rawSupervisor) answer(id int, bound time.Duration) rawResult {
+	r.t.Helper()
 	timeout := time.After(bound)
 	for {
 		select {
 		case l, ok := <-r.lines:
 			if !ok {
-				r.t.Fatalf("%s: hq mcp ended its output", method)
+				r.t.Fatalf("request %d: hq mcp ended its output", id)
 			}
 			var m struct {
 				ID     int             `json:"id"`
 				Result json.RawMessage `json:"result"`
 				Error  json.RawMessage `json:"error"`
 			}
-			if json.Unmarshal([]byte(l), &m) != nil || m.ID != r.n {
+			if json.Unmarshal([]byte(l), &m) != nil || m.ID != id {
 				continue
 			}
 			var res rawResult
 			if m.Error != nil || json.Unmarshal(m.Result, &res) != nil {
-				r.t.Fatalf("%s: %s", method, l)
+				r.t.Fatalf("request %d: %s", id, l)
 			}
 			return res
 		case <-timeout:
-			r.t.Fatalf("%s: no answer within %v", method, bound)
+			r.t.Fatalf("request %d: no answer within %v", id, bound)
 		}
 	}
 }
 
-// A wait that sees no change within its hold goes on as a wait task (#361,
-// story 36): one hq mcp claude-code answers the call with the task's handle
-// after 50 s, the agent it waits for ends its turn, and another, started
-// afresh as a resumed Claude Code session starts one, answers for the task
-// with the wait's result. Neither holds the wait in memory.
-func TestAWaitTaskOneHqMcpHandedOffIsAnsweredByAnother(t *testing.T) {
+// A wait that sees no change within its hold goes on as a wait task, and
+// another hq mcp answers for it (#361, story 36), hq mcps started at once
+// signing their tasks with one key (#362). Two hq mcp claude-code, started
+// at once on a state directory that holds no key yet, each take a wait at
+// the same moment and answer it with a task's handle after 50 s, each
+// making the key if none is there; each knows the other's task. The agent
+// they wait for ends its turn, and a third, started afresh as a resumed
+// Claude Code session starts one, answers for both tasks with the wait's
+// result. None holds a wait in memory.
+func TestWaitTasksOfHqMcpsStartedAtOnceAreAnsweredByAnother(t *testing.T) {
 	s := supervisorEnv(t)
 	app := testutil.GitRepo(t, "app")
 	s.shell("new", "a", app, "slow job")
@@ -814,29 +831,45 @@ func TestAWaitTaskOneHqMcpHandedOffIsAnsweredByAnother(t *testing.T) {
 			t.Fatalf("a not working: %s", s.shell("ls", "a"))
 		}
 	}
-	first := s.raw()
+	first, second := s.raw(), s.raw()
 	var ls waited
 	if r := first.request("tools/call", map[string]any{"name": "list", "arguments": map[string]any{"names": []string{"a"}}}, 10*time.Second); len(r.Content) != 1 || json.Unmarshal([]byte(r.Content[0].Text), &ls) != nil {
 		t.Fatalf("list: %+v", r)
 	}
+	wait := map[string]any{"name": "wait", "arguments": map[string]any{"names": []string{"a"}, "since": ls.NextSince}}
 	start := time.Now()
-	h := first.request("tools/call", map[string]any{"name": "wait", "arguments": map[string]any{"names": []string{"a"}, "since": ls.NextSince}}, 90*time.Second)
-	if h.ResultType != "task" || h.Status != "working" || h.TaskID == "" || time.Since(start) < 50*time.Second {
-		t.Fatalf("after %v: %+v", time.Since(start), h)
+	ids := []int{first.send("tools/call", wait), second.send("tools/call", wait)}
+	var tasks []string
+	for i, r := range []*rawSupervisor{first, second} {
+		h := r.answer(ids[i], 90*time.Second)
+		if h.ResultType != "task" || h.Status != "working" || h.TaskID == "" || time.Since(start) < 50*time.Second {
+			t.Fatalf("hq mcp %d after %v: %+v", i+1, time.Since(start), h)
+		}
+		tasks = append(tasks, h.TaskID)
+	}
+	if tasks[0] == tasks[1] {
+		t.Fatalf("one id for two tasks: %s", tasks[0])
+	}
+	for i, r := range []*rawSupervisor{second, first} {
+		if g := r.request("tasks/get", map[string]any{"taskId": tasks[i]}, 10*time.Second); g.Status != "working" || g.TaskID != tasks[i] {
+			t.Fatalf("the other hq mcp, of task %s: %+v", tasks[i], g)
+		}
 	}
 	s.typeIn("a", "finish it")
-	second := s.raw()
-	for deadline := time.Now().Add(30 * time.Second); ; time.Sleep(200 * time.Millisecond) {
-		g := second.request("tasks/get", map[string]any{"taskId": h.TaskID}, 10*time.Second)
-		if g.Status == "working" && time.Now().Before(deadline) {
-			continue
+	third := s.raw()
+	for _, task := range tasks {
+		for deadline := time.Now().Add(30 * time.Second); ; time.Sleep(200 * time.Millisecond) {
+			g := third.request("tasks/get", map[string]any{"taskId": task}, 10*time.Second)
+			if g.Status == "working" && time.Now().Before(deadline) {
+				continue
+			}
+			var w waited
+			if g.Status != "completed" || g.Result == nil || g.Result.IsError || len(g.Result.Content) != 1 || json.Unmarshal([]byte(g.Result.Content[0].Text), &w) != nil ||
+				len(w.Agents) != 1 || w.Agents[0].Name != "a" || w.Agents[0].State != "done" || w.Agents[0].Last != "Done: slow job" || w.NextSince == "" {
+				t.Fatalf("tasks/get %s: %+v", task, g)
+			}
+			break
 		}
-		var w waited
-		if g.Status != "completed" || g.Result == nil || g.Result.IsError || len(g.Result.Content) != 1 || json.Unmarshal([]byte(g.Result.Content[0].Text), &w) != nil ||
-			len(w.Agents) != 1 || w.Agents[0].Name != "a" || w.Agents[0].State != "done" || w.Agents[0].Last != "Done: slow job" || w.NextSince == "" {
-			t.Fatalf("tasks/get: %+v", g)
-		}
-		return
 	}
 }
 

@@ -3,6 +3,8 @@ package cli
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -441,6 +443,105 @@ func TestAnUnknownWaitTaskIsRefusedAsInvalidParams(t *testing.T) {
 				t.Errorf("%s %q: %+v", method, id, err)
 			}
 		}
+	}
+}
+
+// unknownTask fails the test unless tasks/get and tasks/cancel both refuse
+// id as an unknown task.
+func (c *rawClient) unknownTask(id string) {
+	c.t.Helper()
+	for _, method := range []string{"tasks/get", "tasks/cancel"} {
+		if err := c.refused(method, map[string]any{"taskId": id}, true); err.Code != -32602 || err.Message != "Failed to retrieve task: Task not found" {
+			c.t.Errorf("%s %q: %+v", method, id, err)
+		}
+	}
+}
+
+// A wait task's id is known only as hq gave it (#362, story 35): with any
+// one character changed, in the terms it waits on or in what signs them,
+// with one added or one cut, tasks/get and tasks/cancel refuse it as an
+// unknown task, as they refuse an id hq never gave; as given it still
+// answers. The id holds no key.
+func TestAWaitTaskIdChangedInAnyWayIsAnUnknownTask(t *testing.T) {
+	f, c, since := taskSession(t)
+	h := c.call("wait", map[string]any{"names": []string{"b"}, "since": since}, true)
+	id := h.TaskID
+	changed := []string{id + "x", id[:len(id)-1], "x" + id, id[1:]}
+	for i := range len(id) {
+		other := byte('A')
+		if id[i] == other {
+			other = 'B'
+		}
+		changed = append(changed, id[:i]+string(other)+id[i+1:])
+	}
+	for _, ch := range changed {
+		c.unknownTask(ch)
+	}
+	if g := c.get(id); g.Status != "working" || g.TaskID != id {
+		t.Fatalf("as given: %s", g.line)
+	}
+	for _, key := range []string{hex.EncodeToString(f.taskKey), base64.StdEncoding.EncodeToString(f.taskKey), base64.RawURLEncoding.EncodeToString(f.taskKey), string(f.taskKey)} {
+		if len(f.taskKey) == 0 || strings.Contains(id, key) {
+			t.Fatalf("the id %q holds the key %q", id, key)
+		}
+	}
+}
+
+// The key that signs a wait task's id is made at the first wait that goes
+// on as a task, and kept: no list, no wait that returns within its hold
+// makes it, and a later task's id is signed with the same (#362). An id
+// signed with the key of another state directory is an unknown task, both
+// ways; so is one hq cannot check, the key gone with its state directory,
+// and asking for it makes no key: the next wait that goes on as a task makes
+// a new one, its id known and the old id unknown still.
+func TestAWaitTaskIdSignedWithAnotherKeyIsAnUnknownTask(t *testing.T) {
+	f, c, since := taskSession(t)
+	f.after(10*time.Second, func() {
+		f.states["id-b"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "PR #58 opened"}
+	})
+	since = waitJSON(t, c.call("wait", map[string]any{"since": since}, true).text()).NextSince
+	if f.taskKey != nil {
+		t.Fatalf("a key before any task: %x", f.taskKey)
+	}
+	first := c.call("wait", map[string]any{"since": since}, true)
+	key := f.taskKey
+	second := c.call("wait", map[string]any{"names": []string{"a"}, "since": since}, true)
+	if key == nil || string(f.taskKey) != string(key) || c.get(first.TaskID).Status != "working" || c.get(second.TaskID).Status != "working" {
+		t.Fatalf("key %x, then %x", key, f.taskKey)
+	}
+
+	elsewhere := newWaitFakes()
+	elsewhere.tty = false
+	o := rawConnect(t, newMCPServer(elsewhere.deps(), claudeCode))
+	o.ok("server/discover", nil, true)
+	theirs := o.call("wait", map[string]any{"since": waitJSON(t, o.call("list", nil, true).text()).NextSince}, true)
+	if !isHandle(theirs) || o.get(theirs.TaskID).Status != "working" {
+		t.Fatalf("elsewhere: %s", theirs.line)
+	}
+	o.unknownTask(first.TaskID)
+	c.unknownTask(theirs.TaskID)
+
+	f.taskKey = nil
+	c.unknownTask(first.TaskID)
+	if f.taskKey != nil {
+		t.Fatalf("asking for a task made a key: %x", f.taskKey)
+	}
+	again := c.call("wait", map[string]any{"since": since}, true)
+	if g := c.get(again.TaskID); f.taskKey == nil || string(f.taskKey) == string(key) || g.Status != "working" {
+		t.Fatalf("after the key went: key %x, %s", f.taskKey, g.line)
+	}
+	c.unknownTask(first.TaskID)
+}
+
+// A wait whose hold passes with no change when hq cannot make the key that
+// signs a task's id fails in its call with the error, as a wait that cannot
+// look does: it cannot go on as a task no hq mcp could check (#362).
+func TestAWaitThatCannotSignItsTaskFailsInTheCall(t *testing.T) {
+	f, c, since := taskSession(t)
+	f.taskKeyErr = errors.New("mkdir /s/hq: permission denied")
+	r := c.call("wait", map[string]any{"since": since}, true)
+	if isHandle(r) || !r.IsError || r.text() != "hq: the wait cannot go on as a task: mkdir /s/hq: permission denied\n" {
+		t.Fatalf("%s", r.line)
 	}
 }
 
