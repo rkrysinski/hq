@@ -133,7 +133,7 @@ What hq gives as `next_since` and takes back as `--since`: an opaque text standi
 _Avoid_: moment, timestamp, offset, token
 
 **Wait task**:
-A wait that goes on after its call as an MCP task, for a supervisor whose client takes one (Claude Code on the host): `wait`, or `send` with `wait`, saw no change before its call ended, the client asks hq for the task without the model, and the task's completion starts the supervisor's turn with what `wait` would have returned. Each gives one outcome, and a new `wait` replaces none.
+A wait that goes on after its call as an MCP task, for a supervisor whose client takes one (Claude Code on the host): `wait` saw no change, or `send` with `wait` no answer to its message, before its call ended, the client asks hq for the task without the model, and the task's completion starts the supervisor's turn with what the call would have returned. Each gives one outcome, and a new `wait` replaces none.
 _Avoid_: background wait, subscription, job, watch (that is the supervisor's own run of waits)
 
 **Evidence**:

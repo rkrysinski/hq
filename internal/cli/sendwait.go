@@ -165,6 +165,10 @@ type waitedSend struct {
 	ready        time.Time   // when the send began to deliver it
 	start        time.Time   // when the call started, for timeout
 	timeout      time.Duration
+	// hold, when not zero, is when the send may go on as a wait task
+	// (sendWaitTask): at the first look at or past it with no stall to
+	// tell (#364).
+	hold time.Time
 }
 
 // sendEnd is how a waited send ended: its outcome, where a message not
@@ -173,6 +177,9 @@ type sendEnd struct {
 	outcome, message string
 	agents           []agent.Agent
 	next             int64
+	// handOff says it ended with no outcome, its hold passed: it goes on as
+	// a wait task, and taken says whether the message was taken by then.
+	handOff, taken bool
 }
 
 // wait looks at the agents as hq wait does until the send ends in one of
@@ -182,7 +189,11 @@ type sendEnd struct {
 // the timeout. Meanwhile it types the message in itself as soon as the
 // agent waits at its prompt with an empty box at rest, and leaves the
 // others' messages to deliverWaiting, as hq wait does; it never types the
-// message in again and takes nothing back.
+// message in again and takes nothing back. With a hold, it ends at the
+// first look at or past it whose stall clock does not run, to go on as a
+// wait task (#364): a stall, and a slash command that started no turn, are
+// told within stallBound and stay the call's, also when that runs past the
+// hold.
 func (w waitedSend) wait(d deps) (sendEnd, error) {
 	var (
 		events []state.Event // the agent's events numbered above sent
@@ -193,43 +204,24 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 	k := d.looker()
 	err := k.Loop(func(s agent.Seen, _ bool) (bool, error) {
 		next := k.Cursor(s) // taken before what waits is typed in, as hq wait takes it
-		i := slices.IndexFunc(s.Agents, func(b agent.Agent) bool { return b.ID == w.agent.ID })
-		others := slices.Clone(s.Agents)
-		if i >= 0 {
-			others = slices.Delete(others, i, i+1)
-		}
-		deliverWaiting(d, others)
+		deliverWaiting(d, othersThan(s.Agents, w.agent.ID))
 		if j, err := d.journal.ReadFrom(w.agent.ID, pos); err == nil {
 			if j.From != pos {
 				events = nil
 			}
-			for _, e := range j.Events {
-				if e.Number > w.sent {
-					events = append(events, e)
-				}
-			}
+			events = append(events, above(j.Events, w.sent)...)
 			pos = j.Next
 		}
 		t := takingOf(events, w.msg)
 		now := d.now()
-		if i < 0 {
-			// Killed since the last look: gone with its inbox, as hq wait
-			// returns it (gone).
-			end = sendEnd{outcome: endTurn, agents: []agent.Agent{w.agent.Gone(now)}, next: next}
-			if !t.taken {
-				end.outcome, end.message = endNotTaken, msgGone
-			}
+		var (
+			a     agent.Agent
+			ended bool
+		)
+		if end, a, ended = w.endAt(d, s.Agents, t, next, now); ended {
 			return true, nil
 		}
-		a := s.Agents[i]
 		w.agent = a
-		if outcome, ok := settled(a, t, next); ok {
-			end = sendEnd{outcome: outcome, agents: []agent.Agent{a}, next: next}
-			if outcome == endNotTaken {
-				end.message = notTakenWhere(d, a)
-			}
-			return true, nil
-		}
 		var key string
 		origin := w.ready
 		switch {
@@ -273,13 +265,61 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 				return true, stalledErr(a, "it left "+a.Name+"'s prompt box and started no turn")
 			}
 		}
-		if late {
+		switch {
+		case late:
 			end = sendEnd{outcome: endTimeout, next: next}
+			return true, nil
+		case !w.hold.IsZero() && key == "" && !now.Before(w.hold):
+			end = sendEnd{next: next, handOff: true, taken: t.taken}
 			return true, nil
 		}
 		return false, nil
 	})
 	return end, lookErr(err)
+}
+
+// endAt is how the waited send ends by what a look whose agents are as and
+// whose cursor is next shows of its agent at now, the message's taking
+// being t, if it does: killed since it was last seen, gone with its inbox
+// (gone), as the end of the turn that took the message or with the message
+// gone with it; or settled, its row with where a message not taken is.
+// Otherwise it gives the agent as the look shows it. The call asks it at
+// each look, and a send's wait task at each poll (#364).
+func (w waitedSend) endAt(d deps, as []agent.Agent, t taking, next int64, now time.Time) (sendEnd, agent.Agent, bool) {
+	i := slices.IndexFunc(as, func(b agent.Agent) bool { return b.ID == w.agent.ID })
+	if i < 0 {
+		end := sendEnd{outcome: endTurn, agents: []agent.Agent{w.agent.Gone(now)}, next: next}
+		if !t.taken {
+			end.outcome, end.message = endNotTaken, msgGone
+		}
+		return end, agent.Agent{}, true
+	}
+	a := as[i]
+	outcome, ok := settled(a, t, next)
+	if !ok {
+		return sendEnd{}, a, false
+	}
+	end := sendEnd{outcome: outcome, agents: []agent.Agent{a}, next: next}
+	if outcome == endNotTaken {
+		end.message = notTakenWhere(d, a)
+	}
+	return end, a, true
+}
+
+// othersThan are the agents as but the one whose id is id.
+func othersThan(as []agent.Agent, id string) []agent.Agent {
+	return slices.DeleteFunc(slices.Clone(as), func(b agent.Agent) bool { return b.ID == id })
+}
+
+// above are the events numbered above n.
+func above(events []state.Event, n int64) []state.Event {
+	var out []state.Event
+	for _, e := range events {
+		if e.Number > n {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // box is what the agent's prompt box holds, Claude's faint hints aside: ""

@@ -494,7 +494,9 @@ func TestMCPSendWithWaitForClaudeCodeWithNoTimeoutWaitsAnHour(t *testing.T) {
 // Each client gets instructions and descriptions of wait and send of its
 // own (#359, stories 24-27): Claude Code's speak of one call, of a call that
 // started a task or was moved to the background, and of a task Claude Code
-// can no longer follow (#361, story 26), never of a loop; Claude Desktop's
+// can no longer follow (#361, story 26), never of a loop; its send says that
+// a send with wait goes on as a task after 50 s, and what to do then
+// (#364); Claude Desktop's
 // and the gateway's go on describing the loop with their limits, 50 s and
 // 110 s (#360). The timeout of wait and send names no number of its own.
 func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
@@ -538,7 +540,8 @@ func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 					"When Claude Code says the call started a task or was moved to the background, end your turn: its result starts your next turn.",
 					`After a task result of "outcome unknown" or "cannot follow", call it again with the last next_since you know, without asking the user: it changes nothing.`,
 					"Do not call it again until the earlier call has brought its result.", "then call it again with its next_since, also after a result with no agents."},
-				"send": {"(default and at most 3600, the delivery included)", "When Claude Code says a send with wait was moved to the background, end your turn: its result starts your next turn."},
+				"send": {"up to timeout seconds (the delivery included; at most 3600 unless it has started a task, and given none, with no limit once it has started a task and 3600 seconds if it has not)",
+					"A send with wait whose answer has not come within 50 seconds goes on as a task: when Claude Code says the call started a task or was moved to the background, end your turn: its result, what the call would have returned, starts your next turn."},
 			}
 			never = []string{"loop", "default 50", "MCP task", "wait task"}
 		}

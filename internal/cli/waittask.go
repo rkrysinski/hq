@@ -70,15 +70,29 @@ const waitTaskKind = "w1"
 // its id), between colons, the names and the agents between commas, which
 // neither a name nor an agent's id holds.
 func (t waitTask) terms() string {
-	deadline := ""
-	if !t.deadline.IsZero() {
-		deadline = strconv.FormatInt(t.deadline.UnixMilli(), 36)
-	}
 	covered := make([]string, len(t.covered))
 	for i, a := range t.covered {
 		covered[i] = a.Name + "=" + a.ID
 	}
-	return strings.Join([]string{waitTaskKind, cursorText(t.cursor), strconv.FormatInt(t.created.UnixMilli(), 36), deadline, t.nonce, strings.Join(t.names, ","), strings.Join(covered, ",")}, ":")
+	return strings.Join([]string{waitTaskKind, cursorText(t.cursor), millis(t.created), millis(t.deadline), t.nonce, strings.Join(t.names, ","), strings.Join(covered, ",")}, ":")
+}
+
+// millis is a moment as a task's terms carry it: milliseconds in base 36,
+// empty for the zero time (no deadline).
+func millis(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return strconv.FormatInt(t.UnixMilli(), 36)
+}
+
+// parseMillis is the moment millis gave s for, the zero time for "".
+func parseMillis(s string) (time.Time, error) {
+	if s == "" {
+		return time.Time{}, nil
+	}
+	ms, err := strconv.ParseInt(s, 36, 64)
+	return time.UnixMilli(ms), err
 }
 
 // parseWaitTask is the wait task whose id carries terms, or false for
@@ -89,13 +103,9 @@ func parseWaitTask(terms string) (waitTask, bool) {
 		return waitTask{}, false
 	}
 	s, sinceErr := parseSince(f[1], time.Time{})
-	ms, msErr := strconv.ParseInt(f[2], 36, 64)
-	t := waitTask{cursor: s.cursor, created: time.UnixMilli(ms), nonce: f[4]}
-	var deadlineErr error
-	if f[3] != "" {
-		ms, deadlineErr = strconv.ParseInt(f[3], 36, 64)
-		t.deadline = time.UnixMilli(ms)
-	}
+	created, createdErr := parseMillis(f[2])
+	deadline, deadlineErr := parseMillis(f[3])
+	t := waitTask{cursor: s.cursor, created: created, deadline: deadline, nonce: f[4]}
 	if f[5] != "" {
 		t.names = strings.Split(f[5], ",")
 	}
@@ -107,18 +117,55 @@ func parseWaitTask(terms string) (waitTask, bool) {
 			t.covered = append(t.covered, agent.Agent{ID: id, Name: name})
 		}
 	}
-	ok := sinceErr == nil && s.isCursor && msErr == nil && deadlineErr == nil && coveredOK && !slices.ContainsFunc(t.names, func(n string) bool { return checkName(n) != nil })
+	ok := sinceErr == nil && s.isCursor && f[2] != "" && createdErr == nil && deadlineErr == nil && coveredOK && !slices.ContainsFunc(t.names, func(n string) bool { return checkName(n) != nil })
 	return t, ok
 }
 
-// task is t as the MCP server knows it, by its id: one with a deadline
-// lives until then, as the client is told.
-func (t waitTask) task(id string) mcptasks.Task {
-	mt := mcptasks.Task{ID: id, Created: t.created, PollInterval: waitTaskPoll}
-	if !t.deadline.IsZero() {
-		mt.TTL = t.deadline.Sub(t.created)
+// task is t as the MCP server knows it, by its id.
+func (t waitTask) task(id string) mcptasks.Task { return taskOf(id, t.created, t.deadline) }
+
+// taskOf is the wait task known by id, created at created, as the MCP
+// server knows it: one with a deadline lives until then, as the client is
+// told.
+func taskOf(id string, created, deadline time.Time) mcptasks.Task {
+	mt := mcptasks.Task{ID: id, Created: created, PollInterval: waitTaskPoll}
+	if !deadline.IsZero() {
+		mt.TTL = deadline.Sub(created)
 	}
 	return mt
+}
+
+// A pendingWait is a wait task of either kind, as its id carries it: a
+// wait's (waitTask) or a send's with wait (sendWaitTask).
+type pendingWait interface {
+	// terms are what its id carries, which taskid.Sign signs.
+	terms() string
+	// task is it as the MCP server knows it, by its id.
+	task(id string) mcptasks.Task
+	// poll takes a look for it, printing its result to out once done.
+	poll(out io.Writer, d deps) (done bool, err error)
+}
+
+// parseTask is the wait task whose id carries terms, of either kind, or
+// false for terms no wait task's id carries.
+func parseTask(terms string) (pendingWait, bool) {
+	if t, ok := parseWaitTask(terms); ok {
+		return t, true
+	}
+	return parseSendWaitTask(terms)
+}
+
+// handOff makes the tool call of ctx go on as the wait task p, its id
+// signed with the key of hq's state directory, which the first such task
+// makes; or it is the error of a key hq can neither read nor make, since
+// no hq mcp could tell its task from one made up.
+func handOff(ctx context.Context, d deps, p pendingWait) error {
+	key, err := d.taskKey()
+	if err != nil {
+		return err
+	}
+	mcptasks.HandOff(ctx, p.task(taskid.Sign(key, p.terms())))
+	return nil
 }
 
 // carried are the agents a wait task covers of those the last look of its
@@ -179,15 +226,14 @@ func waitOrHandOff(ctx context.Context, env Env, d deps, args []string) error {
 			return printWait(env.Stdout, w, lsRows(d, nil), r.cursor)
 		}
 	}
-	key, err := d.taskKey()
-	if err != nil {
+	if err := handOff(ctx, d, t); err != nil {
 		return fmt.Errorf("the wait cannot go on as a task: %w", err)
 	}
-	mcptasks.HandOff(ctx, t.task(taskid.Sign(key, t.terms())))
 	return nil
 }
 
 // waitTasks answers for the wait tasks of hq's MCP server (mcptasks.Tasks),
+// of either kind (pendingWait),
 // which steps aside once the hq on disk is of another generation (disk),
 // as each tool call does (stepAside), with the client's line (updated).
 type waitTasks struct {
@@ -205,13 +251,17 @@ func (w waitTasks) Task(id string) (mcptasks.Task, bool) {
 		return mcptasks.Task{}, false
 	}
 	terms, signed := taskid.Verify(key, id)
-	t, ok := parseWaitTask(terms)
-	return t.task(id), signed && ok
+	p, ok := parseTask(terms)
+	if !signed || !ok {
+		return mcptasks.Task{}, false
+	}
+	return p.task(id), true
 }
 
-// Result is what wait task t has come to at a look taken now: the wait
-// tool's result once the look finds agents to return, its deadline has
-// passed, or it fails; nil while it finds none. Once the hq on disk is of
+// Result is what wait task t has come to at a look taken now: the result
+// of its tool once its poll is done (pendingWait), the wait's once the
+// look finds agents to return, its deadline has passed, or it fails; nil
+// while it is not. Once the hq on disk is of
 // another generation it is the line every tool call fails with, as a tool
 // error, and no look is taken: a JSON-RPC error would carry no message to
 // the supervisor (#363).
@@ -219,11 +269,11 @@ func (w waitTasks) Result(_ context.Context, task mcptasks.Task) *mcp.CallToolRe
 	if w.disk.otherGeneration() {
 		return updatedResult(w.updated)
 	}
-	t, _ := parseWaitTask(taskid.Terms(task.ID))
+	p, _ := parseTask(taskid.Terms(task.ID))
 	done := false
 	r, _, _ := callCommand(w.d, func(env Env, d deps, _ []string) error {
 		var err error
-		done, err = t.poll(env.Stdout, d)
+		done, err = p.poll(env.Stdout, d)
 		return err
 	})
 	if !done {
