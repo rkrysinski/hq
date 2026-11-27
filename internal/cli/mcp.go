@@ -106,8 +106,8 @@ var (
 	// no longer follow ends as "outcome unknown" or "cannot follow", after
 	// which a wait from the last cursor is safe: wait changes nothing.
 	inOneCall = watching{
-		instructions: "- To watch agents, call wait once, with the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it. When Claude Code says a wait or a send with wait started a task or was moved to the background, end your turn: its result starts your next turn. Do not call wait again until the earlier one has brought its result. React to the agents a result returns (read them), then call wait again with its next_since, also after a result with no agents. After a task result of \"outcome unknown\" or \"cannot follow\", call wait again with the last next_since you know, without asking: wait changes nothing.",
-		wait:         "To watch agents, call it once, naming every agent you follow (or none, for every agent), and pass each result's next_since as the next call's since: no change is then missed or returned twice. When Claude Code says the call started a task or was moved to the background, end your turn: its result starts your next turn. Do not call it again until the earlier call has brought its result. React to the agents a result returns (read them), then call it again with its next_since, also after a result with no agents. After a task result of \"outcome unknown\" or \"cannot follow\", call it again with the last next_since you know, without asking the user: it changes nothing. ",
+		instructions: "- To watch agents, call wait once, with no timeout and the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a question, needs input or ends, with every other that does so within a moment of it. When Claude Code says a wait or a send with wait started a task or was moved to the background, end your turn: its result starts your next turn. Do not call wait again until the earlier one has brought its result. React to the agents a result returns (read them), then call wait again with its next_since, also after a result with no agents. After a task result of \"outcome unknown\" or \"cannot follow\", call wait again with the last next_since you know, without asking: wait changes nothing.",
+		wait:         "To watch agents, call it once with no timeout, naming every agent you follow (or none, for every agent), and pass each result's next_since as the next call's since: no change is then missed or returned twice. When Claude Code says the call started a task or was moved to the background, end your turn: its result starts your next turn. Do not call it again until the earlier call has brought its result. React to the agents a result returns (read them), then call it again with its next_since, also after a result with no agents. After a task result of \"outcome unknown\" or \"cannot follow\", call it again with the last next_since you know, without asking the user: it changes nothing. ",
 		send:         "When Claude Code says a send with wait was moved to the background, end your turn: its result starts your next turn. ",
 	}
 )
@@ -827,7 +827,7 @@ func toolTimeout(seconds int, c mcpClient) time.Duration {
 func waitTimeoutText(c mcpClient) string {
 	if c.tasks {
 		most := int(c.maxWait.Seconds())
-		return fmt.Sprintf("After timeout seconds (at most %d) it returns no agents, which is not an error; given none, it waits until an agent changes once it has started a task, and %d seconds if it has not. ", most, most)
+		return fmt.Sprintf("After timeout seconds (at most %d) it returns no agents, which is not an error; given none, it waits until an agent changes once it has started a task, and %d seconds if it has not, so to watch give none. ", most, most)
 	}
 	return "After timeout seconds (" + waitLimit(c) + ") it returns no agents, which is not an error. "
 }

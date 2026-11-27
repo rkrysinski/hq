@@ -22,9 +22,14 @@ import (
 // background.
 const waitHold = DefaultWaitTimeout
 
-// waitTaskPoll is how often Claude Code is told to ask for a wait task:
-// each time is one look of hq's, no model request, and the most the
-// task's result comes later than the change it returns (#361).
+// waitTaskPoll is how often Claude Code is told to ask for a wait task
+// (pollIntervalMs, which it takes from 250 ms to 30 s), set by measurement
+// (#361): Claude Code 2.1.332 asked every 5.01 s, never with a model
+// request, and hq answered each poll with one look and one sbx ls in 6 to
+// 22 ms, about 14 ms of CPU, against the stub sbx. So a task's result comes
+// at most 5 s after the change it returns, little beside the minutes of an
+// agent's turn, for about 720 looks an hour; and a poll whose sbx ls takes
+// all of sbxPollTimeout, as long, ends before the next one comes.
 const waitTaskPoll = 5 * time.Second
 
 // A waitTask is a wait that goes on after its call as an MCP task
