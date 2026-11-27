@@ -622,9 +622,10 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 	// What its tools give agents is the supervisor's, not the user's.
 	d.supervisor = true
 	s := mcp.NewServer(&mcp.Implementation{Name: "hq", Title: "hq", Version: version.Version}, &mcp.ServerOptions{Instructions: client.instructions()})
-	s.AddReceivingMiddleware(stepAside(watchOnDisk(d), client.updated))
+	disk := watchOnDisk(d)
+	s.AddReceivingMiddleware(stepAside(disk, client.updated))
 	if client.tasks {
-		mcptasks.Serve(s, waitTasks{d}, d.now)
+		mcptasks.Serve(s, waitTasks{d: d, disk: disk, updated: client.updated}, d.now)
 	}
 	no, yes := false, true
 
@@ -689,20 +690,18 @@ func newMCPServer(d deps, client mcpClient) *mcp.Server {
 			"An agent returned done or in question with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
 		Annotations: &mcp.ToolAnnotations{Title: "Wait for agents", ReadOnlyHint: true, OpenWorldHint: &no},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in mcpWaitIn) (*mcp.CallToolResult, any, error) {
-		timeout := toolTimeout(in.Timeout, client)
 		if in.Since == "" {
 			return toolResult("", usageErr("since is required: the next_since of your most recent wait or list result; with none yet, call list first"))
 		}
-		// Given no timeout (toolTimeout), it may go on as a wait task after
-		// its hold; a wait given one stays in its call.
-		task := in.Timeout <= 0 && mcptasks.Offered(ctx)
-		if task {
-			timeout = waitHold
-		}
-		args := append(append([]string{}, in.Names...), "--json", "--timeout", timeout.String(), "--since", in.Since)
-		if task {
+		args := append([]string{}, in.Names...)
+		if mcptasks.Offered(ctx) {
+			// It may go on as a wait task after its hold, which completes
+			// at its timeout, not cut to what a call may last: 0 for none.
+			timeout := time.Duration(max(in.Timeout, 0)) * time.Second
+			args = append(args, "--json", "--timeout", timeout.String(), "--since", in.Since)
 			return callCommand(d, func(env Env, d deps, args []string) error { return waitOrHandOff(ctx, env, d, args) }, args...)
 		}
+		args = append(args, "--json", "--timeout", toolTimeout(in.Timeout, client).String(), "--since", in.Since)
 		return callCommand(d, runWait, args...)
 	})
 
@@ -802,12 +801,19 @@ func stepAside(disk *onDisk, line string) mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 			if method == "tools/call" && disk.otherGeneration() {
-				r, _, _ := toolResult("", usageErr("%s", line))
-				return r, nil
+				return updatedResult(line), nil
 			}
 			return next(ctx, method, req)
 		}
 	}
+}
+
+// updatedResult is what a tool call answers once the hq on disk is of
+// another generation, and a wait task completes with: the client's line
+// (mcpClient's updated), as a tool error.
+func updatedResult(line string) *mcp.CallToolResult {
+	r, _, _ := toolResult("", usageErr("%s", line))
+	return r
 }
 
 // toolTimeout is how long a tool that waits (wait, send with wait) waits
@@ -822,12 +828,13 @@ func toolTimeout(seconds int, c mcpClient) time.Duration {
 }
 
 // waitTimeoutText is what the wait tool tells client c of its timeout: a
-// wait given none that goes on as a wait task waits until an agent changes
-// (ADR 0022).
+// wait that goes on as a wait task completes at its timeout, not cut to
+// what a call may last, and given none waits until an agent changes (ADR
+// 0022).
 func waitTimeoutText(c mcpClient) string {
 	if c.tasks {
 		most := int(c.maxWait.Seconds())
-		return fmt.Sprintf("After timeout seconds (at most %d) it returns no agents, which is not an error; given none, it waits until an agent changes once it has started a task, and %d seconds if it has not, so to watch give none. ", most, most)
+		return fmt.Sprintf("After timeout seconds it returns no agents, which is not an error, at most %d unless it has started a task; given none, it waits until an agent changes once it has started a task, and %d seconds if it has not, so to watch give none. ", most, most)
 	}
 	return "After timeout seconds (" + waitLimit(c) + ") it returns no agents, which is not an error. "
 }

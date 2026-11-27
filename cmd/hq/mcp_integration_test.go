@@ -648,7 +648,7 @@ func TestClaudeCodeSupervisesFromTheEntryHqMcpInstallWrote(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tl := range tools.Tools {
-		if tl.Name == "wait" && !strings.Contains(tl.Description, "After timeout seconds (at most 3600)") {
+		if tl.Name == "wait" && !strings.Contains(tl.Description, "After timeout seconds it returns no agents, which is not an error, at most 3600 unless it has started a task") {
 			t.Fatalf("wait: %s", tl.Description)
 		}
 	}

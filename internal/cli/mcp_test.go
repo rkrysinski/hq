@@ -534,7 +534,7 @@ func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 					"When Claude Code says a wait or a send with wait started a task or was moved to the background, end your turn: its result starts your next turn.",
 					"Do not call wait again until the earlier one has brought its result.", "then call wait again with its next_since, also after a result with no agents.",
 					`After a task result of "outcome unknown" or "cannot follow", call wait again with the last next_since you know, without asking: wait changes nothing.`},
-				"wait": {"(at most 3600)", "given none, it waits until an agent changes once it has started a task, and 3600 seconds if it has not, so to watch give none.", "To watch agents, call it once with no timeout, naming every agent you follow (or none, for every agent)",
+				"wait": {"After timeout seconds it returns no agents, which is not an error, at most 3600 unless it has started a task;", "given none, it waits until an agent changes once it has started a task, and 3600 seconds if it has not, so to watch give none.", "To watch agents, call it once with no timeout, naming every agent you follow (or none, for every agent)",
 					"When Claude Code says the call started a task or was moved to the background, end your turn: its result starts your next turn.",
 					`After a task result of "outcome unknown" or "cannot follow", call it again with the last next_since you know, without asking the user: it changes nothing.`,
 					"Do not call it again until the earlier call has brought its result.", "then call it again with its next_since, also after a result with no agents."},
@@ -581,7 +581,7 @@ func TestMCPWaitSaysHowLongItMayWait(t *testing.T) {
 	for client, want := range map[mcpClient]string{
 		claudeDesktop: "After timeout seconds (default and at most 50) it returns no agents",
 		sbxGateway:    "After timeout seconds (default and at most 110) it returns no agents",
-		claudeCode:    "After timeout seconds (at most 3600) it returns no agents, which is not an error; given none, it waits until an agent changes once it has started a task",
+		claudeCode:    "After timeout seconds it returns no agents, which is not an error, at most 3600 unless it has started a task; given none, it waits until an agent changes once it has started a task",
 	} {
 		res, err := connect(t, newMCPServer(newWaitFakes().deps(), client)).ListTools(context.Background(), nil)
 		if err != nil {

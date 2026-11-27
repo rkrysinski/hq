@@ -33,6 +33,9 @@ type Task struct {
 	Created time.Time
 	// PollInterval is how often the client is told to ask for it.
 	PollInterval time.Duration
+	// TTL is how long from Created the client is told the task lives
+	// (ttlMs): zero for no limit, the task standing until it completes.
+	TTL time.Duration
 }
 
 // Tasks answers for the tasks of a server's tool calls, which the server
@@ -177,7 +180,7 @@ type task struct {
 	Status        string `json:"status"`
 	CreatedAt     string `json:"createdAt"`
 	LastUpdatedAt string `json:"lastUpdatedAt"`
-	// TTLMs is null: a task stands until it completes.
+	// TTLMs is null for a task with no limit.
 	TTLMs          *int64 `json:"ttlMs"`
 	PollIntervalMs int64  `json:"pollIntervalMs"`
 }
@@ -185,7 +188,12 @@ type task struct {
 // working is t as it stands until it completes.
 func working(t Task) task {
 	at := stamp(t.Created)
-	return task{TaskID: t.ID, Status: "working", CreatedAt: at, LastUpdatedAt: at, PollIntervalMs: t.PollInterval.Milliseconds()}
+	w := task{TaskID: t.ID, Status: "working", CreatedAt: at, LastUpdatedAt: at, PollIntervalMs: t.PollInterval.Milliseconds()}
+	if t.TTL > 0 {
+		ms := t.TTL.Milliseconds()
+		w.TTLMs = &ms
+	}
+	return w
 }
 
 // stamp is a moment as the extension's timestamps give it: ISO 8601, in UTC,

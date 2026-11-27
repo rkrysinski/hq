@@ -127,6 +127,9 @@ func runWait(env Env, d deps, args []string) error {
 type waited struct {
 	agents []agent.Agent
 	cursor int64
+	// covered are the agents the last look waited on, at the timeout: what
+	// a wait that goes on as a task covers (waitTask).
+	covered []agent.Agent
 }
 
 // waitFor is the wait of runWait, started at start, and what it returns.
@@ -134,11 +137,10 @@ func waitFor(d deps, w waitArgs, start time.Time) (waited, error) {
 	if err := checkTmux(d.tmux); err != nil {
 		return waited{}, err
 	}
-	terms := waitTerms{names: w.names, since: w.since}
+	wg := waiting{terms: waitTerms{names: w.names, since: w.since}}
 	if w.timeout > 0 {
-		terms.deadline = start.Add(w.timeout)
+		wg.terms.deadline = start.Add(w.timeout)
 	}
-	var found []agent.Agent // what the first look with a hit returned
 	var out waited
 	k := d.looker()
 	err := k.Loop(func(s agent.Seen, first bool) (bool, error) {
@@ -146,8 +148,8 @@ func waitFor(d deps, w waitArgs, start time.Time) (waited, error) {
 		as := s.Agents
 		deliverWaiting(d, as)
 		if first {
-			if terms.since.ahead(s.Counter()) {
-				return true, aheadErr(terms.since)
+			if wg.terms.since.ahead(s.Counter()) {
+				return true, aheadErr(wg.terms.since)
 			}
 			for _, n := range w.names {
 				if _, err := s.Usable(n); err != nil {
@@ -164,33 +166,49 @@ func waitFor(d deps, w waitArgs, start time.Time) (waited, error) {
 			// for an agent after it read another, which its cursor does not
 			// yet stand for.
 			if !w.sinceArg {
-				terms.since = since{cursor: next, isCursor: true, from: map[string]int64{}}
+				wg.terms.since = since{cursor: next, isCursor: true, from: map[string]int64{}}
 				for _, a := range as {
-					terms.since.from[a.ID], _ = a.StateSeq()
+					wg.terms.since.from[a.ID], _ = a.StateSeq()
 				}
 				if n, err := d.journal.Through(); err == nil {
-					terms.since.cursor = n
+					wg.terms.since.cursor = n
 				}
 			}
 		}
-		r := terms.resultAt(s, next, d.now())
-		if found != nil {
-			out = waited{agents: joined(found, r.agents), cursor: next}
-			agent.SortAttention(out.agents)
-			return true, nil
-		}
-		if len(r.agents) > 0 {
-			// One look more, so agents that change together are returned
-			// together (#116).
-			found = r.agents
-		} else if r.late {
-			out = waited{cursor: next}
-			return true, nil
-		}
-		terms.covered = r.covered
-		return false, nil
+		var done bool
+		out, done = wg.at(s, next, d.now())
+		return done, nil
 	})
 	return out, lookErr(err)
+}
+
+// waiting is a wait from one look to the next: its terms, and the agents
+// the first look that found any returned.
+type waiting struct {
+	terms waitTerms
+	found []agent.Agent
+}
+
+// at is what the wait comes to at look s, whose cursor is next, at now
+// (waitTerms.resultAt): done once it returns, with the agents of the first
+// look that found any and those of the look after it, so agents that
+// change together are returned together (#116), or with none once its
+// deadline has passed; not done while it finds none, or has just found
+// some and takes one look more.
+func (w *waiting) at(s agent.Seen, next int64, now time.Time) (out waited, done bool) {
+	r := w.terms.resultAt(s, next, now)
+	if w.found != nil {
+		out = waited{agents: joined(w.found, r.agents), cursor: next}
+		agent.SortAttention(out.agents)
+		return out, true
+	}
+	if len(r.agents) > 0 {
+		w.found = r.agents
+	} else if r.late {
+		return waited{cursor: next, covered: r.covered}, true
+	}
+	w.terms.covered = r.covered
+	return waited{}, false
 }
 
 // waitTerms are what a wait waits for (#358): all that its result at a

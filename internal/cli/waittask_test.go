@@ -10,14 +10,19 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
+	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcptasks"
 	"github.com/rkrysinski/hq/internal/state"
+	"github.com/rkrysinski/hq/internal/tmux"
+	"github.com/rkrysinski/hq/internal/version"
 )
 
 // rawClient speaks JSON-RPC to hq's MCP server in memory, in lines of JSON,
@@ -214,6 +219,16 @@ func isHandle(r rawResult) bool { return r.ResultType == "task" || r.TaskID != "
 // stampOf is a moment as the extension's timestamps give it.
 func stampOf(at time.Time) string { return at.UTC().Format("2006-01-02T15:04:05.000Z07:00") }
 
+// completedWith is the wait's result that task answer g completed with,
+// not a tool error; it fails the test when g is anything else.
+func completedWith(t *testing.T, g rawResult) waitOutput {
+	t.Helper()
+	if g.Status != "completed" || g.Result == nil || g.Result.IsError {
+		t.Fatalf("not completed with a result: %s", g.line)
+	}
+	return waitJSON(t, g.Result.text())
+}
+
 // Claude Code's hq declares the MCP Tasks extension in its answer to
 // server/discover, where the extension has it declared (#361); Claude
 // Desktop's and the gateway's, whose waits never become tasks, do not.
@@ -264,8 +279,8 @@ func TestAWaitThatSeesAChangeWithinItsHoldReturnsItInTheCall(t *testing.T) {
 // tasks is answered with a wait task's handle (#361, stories 1, 3): working,
 // with no time to live, at the poll interval hq names. One whose request
 // does not declare them goes on in its call, and returns the change when it
-// comes; so does one given a timeout (the task takes a deadline in #363),
-// and one given a timeout within the hold ends at it, as before.
+// comes, or ends at its timeout; one given a timeout within the hold ends at
+// it in its call, as before, whatever its request declares (#363).
 func TestAWaitGoesOnAsAWaitTaskAfterItsHoldOnlyWhenItsRequestDeclaresTasks(t *testing.T) {
 	f, c, since := taskSession(t)
 	start := f.now
@@ -290,13 +305,195 @@ func TestAWaitGoesOnAsAWaitTaskAfterItsHoldOnlyWhenItsRequestDeclaresTasks(t *te
 		t.Fatalf("not declaring tasks: returned after %v", took)
 	}
 
-	for _, timeout := range []int{120, 30} {
-		f.onSleep = nil
-		start = f.now
-		r = c.call("wait", map[string]any{"since": w.NextSince, "timeout": timeout}, true)
-		if got := waitJSON(t, r.text()); isHandle(r) || len(got.Agents) != 0 || f.now.Sub(start) != time.Duration(timeout)*time.Second {
-			t.Fatalf("timeout %d: after %v: %s", timeout, f.now.Sub(start), r.line)
+	for timeout, tasks := range map[int]bool{120: false, 50: true, 30: true} {
+		f, c, since := taskSession(t)
+		start := f.now
+		r := c.call("wait", map[string]any{"since": since, "timeout": timeout}, tasks)
+		if got := waitJSON(t, r.text()); isHandle(r) || r.IsError || got.Agents == nil || len(got.Agents) != 0 || got.NextSince == "" || f.now.Sub(start) != time.Duration(timeout)*time.Second {
+			t.Errorf("timeout %d, declaring tasks %v: after %v: %s", timeout, tasks, f.now.Sub(start), r.line)
 		}
+	}
+}
+
+// A wait task given a timeout completes at it with no agents and the
+// cursor of the look that saw it pass, not an error (#363, story 9): its
+// id carries the deadline, and the time to live hq gives the client is
+// the time from the handoff to it, also past the hour a call may last. A
+// change after its next_since comes back from a wait from it.
+func TestAWaitTaskGivenATimeoutCompletesAtItWithNoAgents(t *testing.T) {
+	f, c, since := taskSession(t)
+	start := f.now
+	h := c.call("wait", map[string]any{"since": since, "timeout": 120}, true)
+	if !isHandle(h) || h.Status != "working" || string(h.TTLMs) != "70000" || h.CreatedAt != stampOf(start.Add(waitHold)) {
+		t.Fatalf("handle: %s", h.line)
+	}
+	f.now = start.Add(120*time.Second - time.Millisecond)
+	if g := c.get(h.TaskID); g.Status != "working" || string(g.TTLMs) != "70000" || g.Result != nil {
+		t.Fatalf("a moment before the deadline: %s", g.line)
+	}
+	f.now = start.Add(123 * time.Second)
+	g := c.get(h.TaskID)
+	got := completedWith(t, g)
+	if g.LastUpdatedAt != stampOf(f.now) || string(g.TTLMs) != "70000" {
+		t.Fatalf("after the deadline: %s", g.line)
+	}
+	if got.Agents == nil || len(got.Agents) != 0 || got.NextSince == "" {
+		t.Fatalf("after the deadline: %s", g.Result.text())
+	}
+	f.now = f.now.Add(time.Second)
+	f.states["id-a"] = journaltest.HookState{State: state.Question, Since: f.now, Last: "Shall I go on?"}
+	start = f.now
+	w := waitJSON(t, c.call("wait", map[string]any{"since": got.NextSince}, true).text())
+	if len(w.Agents) != 1 || w.Agents[0].Name != "a" || f.now.Sub(start) > time.Second {
+		t.Fatalf("from the task's next_since: %+v", w)
+	}
+
+	if h := c.call("wait", map[string]any{"since": w.NextSince, "timeout": 7200}, true); !isHandle(h) || string(h.TTLMs) != "7150000" {
+		t.Fatalf("past an hour: %s", h.line)
+	}
+}
+
+// A wait task given a timeout returns a change that comes before it as one
+// with none does (#363, story 9).
+func TestAWaitTaskGivenATimeoutReturnsAChangeBeforeItAsWithoutOne(t *testing.T) {
+	f, c, since := taskSession(t)
+	start := f.now
+	h := c.call("wait", map[string]any{"names": []string{"b"}, "since": since, "timeout": 300}, true)
+	f.now = start.Add(100 * time.Second)
+	f.states["id-b"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "PR #58 opened"}
+	g := c.get(h.TaskID)
+	if w := completedWith(t, g); len(w.Agents) != 1 || w.Agents[0].Name != "b" || w.Agents[0].State != state.Done {
+		t.Fatalf("%s", g.line)
+	}
+}
+
+// A wait given a timeout whose hold ends at or past it, a look having taken
+// long, returns no agents in its call, as at a timeout: a task would be
+// late before it began.
+func TestAWaitWhoseHoldEndsPastItsTimeoutReturnsNoAgentsInTheCall(t *testing.T) {
+	f, c, since := taskSession(t)
+	start := f.now
+	f.after(49*time.Second, func() { f.now = f.now.Add(5 * time.Second) })
+	r := c.call("wait", map[string]any{"since": since, "timeout": 51}, true)
+	if w := waitJSON(t, r.text()); isHandle(r) || r.IsError || w.Agents == nil || len(w.Agents) != 0 || w.NextSince == "" || f.now.Before(start.Add(51*time.Second)) {
+		t.Fatalf("after %v: %s", f.now.Sub(start), r.line)
+	}
+	if f.taskKey != nil {
+		t.Fatalf("a key made for no task: %x", f.taskKey)
+	}
+}
+
+// Agents that change together come back in one result of a wait task, as
+// in one call (#363, story 7): once a poll's look finds an agent, it takes
+// one look more and returns those of both, with the cursor of the last,
+// from which neither comes back again.
+func TestAWaitTaskReturnsAgentsThatChangeTogetherInOneResult(t *testing.T) {
+	f, c, since := taskSession(t)
+	h := c.call("wait", map[string]any{"since": since}, true)
+	f.now = f.now.Add(time.Minute)
+	f.states["id-b"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "PR #58 opened"}
+	f.after(0, func() {
+		f.states["id-a"] = journaltest.HookState{State: state.Question, Since: f.now, Last: "Shall I go on?"}
+	})
+	g := c.get(h.TaskID)
+	w := completedWith(t, g)
+	if len(w.Agents) != 2 || w.Agents[0].Name+w.Agents[1].Name != "ab" {
+		t.Fatalf("%s", g.line)
+	}
+	f.onSleep = nil
+	if again := waitJSON(t, c.call("wait", map[string]any{"since": w.NextSince, "timeout": 1}, true).text()); len(again.Agents) != 0 {
+		t.Fatalf("from its next_since: %+v", again.Agents)
+	}
+}
+
+// An agent the wait covered when its call ended, killed between two polls,
+// comes back from the wait task ended (#363, story 12), as from a call: its
+// id carries each covered agent's id and name, and the trace of kills
+// gives the repository and sandbox of one hq killed. An agent the wait did
+// not cover is not returned.
+func TestAWaitTaskReturnsAnAgentKilledBetweenTwoPollsAsEnded(t *testing.T) {
+	f, c, since := taskSession(t)
+	f.tmux.windows = append(f.tmux.windows, agentWindow("@3", "c", "/w/lib", f.now.Add(-time.Hour), false))
+	f.states["id-c"] = journaltest.HookState{State: state.Working, Since: f.now.Add(-time.Minute), Last: "on it"}
+	h := c.call("wait", map[string]any{"names": []string{"b"}, "since": since}, true)
+	if g := c.get(h.TaskID); g.Status != "working" {
+		t.Fatalf("before the kills: %s", g.line)
+	}
+	f.now = f.now.Add(time.Minute)
+	f.tmux.windows = slices.DeleteFunc(f.tmux.windows, func(w tmux.Window) bool { return w.ID == "@3" })
+	if g := c.get(h.TaskID); g.Status != "working" {
+		t.Fatalf("c, not covered, killed: %s", g.line)
+	}
+	f.kills = append(f.kills, kills.Kill{At: f.now, Name: "old", ID: "id-old", Repo: "/w/other", Sandbox: "claude-other"},
+		kills.Kill{At: f.now, Name: "b", ID: "id-b", Repo: "/w/app", Sandbox: "claude-x"})
+	f.tmux.windows = slices.DeleteFunc(f.tmux.windows, func(w tmux.Window) bool { return w.ID == "@2" })
+	f.now = f.now.Add(5 * time.Second)
+	at := f.now
+	g := c.get(h.TaskID)
+	w := completedWith(t, g)
+	if len(w.Agents) != 1 {
+		t.Fatalf("b killed: %s", g.line)
+	}
+	if b := w.Agents[0]; b.Name != "b" || b.State != state.Ended || b.StateSeq != nil || !b.Since.Equal(at) || b.Last != agent.EndedLast ||
+		b.Repo != "app" || b.RepoPath != "/w/app" || b.Sandbox != "claude-x" || b.Setup != "default" {
+		t.Fatalf("b killed: %+v", b)
+	}
+}
+
+// A wait task on every agent returns each covered agent that is killed, also
+// one the trace of kills does not hold (a window closed by hand), with no
+// repository then, the first in the trace with its own.
+func TestAWaitTaskOnEveryAgentReturnsEachKilledAgentAsEnded(t *testing.T) {
+	f, c, since := taskSession(t)
+	h := c.call("wait", map[string]any{"since": since}, true)
+	f.kills = append(f.kills, kills.Kill{At: f.now, Name: "a", ID: "id-a", Repo: "/w/app", Sandbox: "claude-x"})
+	f.tmux.windows = f.tmux.windows[:1]
+	g := c.get(h.TaskID)
+	w := completedWith(t, g)
+	if len(w.Agents) != 2 {
+		t.Fatalf("%s", g.line)
+	}
+	got := map[string]lsRow{}
+	for _, r := range w.Agents {
+		got[r.Name] = r
+	}
+	if a, b := got["a"], got["b"]; a.State != state.Ended || a.RepoPath != "/w/app" || b.State != state.Ended || b.RepoPath != "" || b.Sandbox != "" || b.Last != agent.EndedLast {
+		t.Fatalf("a %+v, b %+v", a, b)
+	}
+}
+
+// A wait task on every agent with no agent at all covers none, and returns
+// an agent started after its handoff once it changes, as a call does.
+func TestAWaitTaskThatCoversNoAgentReturnsOneStartedLater(t *testing.T) {
+	f, c, since := taskSession(t)
+	windows := f.tmux.windows
+	f.tmux.windows = windows[:1]
+	h := c.call("wait", map[string]any{"since": since}, true)
+	if g := c.get(h.TaskID); g.Status != "working" {
+		t.Fatalf("no agents: %s", g.line)
+	}
+	f.now = f.now.Add(time.Minute)
+	f.tmux.windows = windows
+	f.states["id-b"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "PR #58 opened"}
+	if w := completedWith(t, c.get(h.TaskID)); len(w.Agents) != 1 || w.Agents[0].Name != "b" {
+		t.Fatalf("b started and done: %+v", w.Agents)
+	}
+}
+
+// An agent that had ended with no number when the wait's call ended (its
+// journal gone, its pane dead) is not returned by the wait task while it
+// stays so, as a call does not return it again.
+func TestAWaitTaskDoesNotReturnAnAgentAlreadyEndedWithNoNumber(t *testing.T) {
+	f, c, since := taskSession(t)
+	f.unreadable = map[string]bool{"id-b": true}
+	f.tmux.windows[2].PaneDead = true
+	h := c.call("wait", map[string]any{"since": since}, true)
+	if !isHandle(h) {
+		t.Fatalf("returned in the call: %s", h.line)
+	}
+	f.now = f.now.Add(time.Minute)
+	if g := c.get(h.TaskID); g.Status != "working" {
+		t.Fatalf("%s", g.line)
 	}
 }
 
@@ -602,14 +799,56 @@ func TestClaudeDesktopsAndTheGatewaysWaitsNeverBecomeTasks(t *testing.T) {
 	}
 }
 
-// A poll whose look fails completes the task with the error, as the wait's
-// call would have ended with it: the supervisor hears of it at once.
-func TestAPollThatCannotLookCompletesTheWaitTaskWithTheError(t *testing.T) {
-	f, c, since := taskSession(t)
-	h := c.call("wait", map[string]any{"since": since}, true)
-	f.tmux.windowsErr = errors.New("no server running")
+// A poll that fails as a wait's call would end, tmux gone or a look that
+// fails, completes the wait task with that error as a tool error, the text
+// a call would end with (#363, story 13): Claude Code tells the supervisor
+// "Task failed" at once.
+func TestAPollThatFailsCompletesTheWaitTaskWithTheCallsError(t *testing.T) {
+	for name, fail := range map[string]func(f *fakes){
+		"tmux gone":  func(f *fakes) { f.tmux.missing = true },
+		"look fails": func(f *fakes) { f.tmux.windowsErr = errors.New("no server running") },
+	} {
+		f, c, since := taskSession(t)
+		h := c.call("wait", map[string]any{"since": since}, true)
+		fail(f)
+		g := c.get(h.TaskID)
+		call := c.call("wait", map[string]any{"since": since}, true)
+		if g.Status != "completed" || g.Result == nil || !g.Result.IsError || !strings.HasPrefix(g.Result.text(), "hq: ") || g.Result.text() != call.text() || !call.IsError {
+			t.Errorf("%s: the task %s, the call %s", name, g.line, call.line)
+		}
+	}
+}
+
+// Once the hq on disk is of another generation, hq mcp answers a question
+// for a wait task with the task completed with the line every tool call
+// fails with, as a tool error, never a JSON-RPC error, which carries no
+// message to the supervisor (#363, story 16); it takes no look, so not even
+// a message waiting is typed in; a cancel is still acknowledged.
+func TestAfterAnUpdateToAnotherGenerationAWaitTaskCompletesWithTheUpdatesLine(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.tty = false
+	c := rawConnect(t, newMCPServer(f.deps(), claudeCode))
+	since := waitJSON(t, c.call("list", nil, true).text()).NextSince
+	h := c.call("wait", map[string]any{"names": []string{"a"}, "since": since}, true)
+	f.inbox["id-a"] = []string{"any news?"}
+	f.oldest["id-a"] = f.now.Add(-time.Minute)
+	f.disk.ino++
+	f.diskGeneration = version.Generation + 1
+	f.now = f.now.Add(time.Minute)
 	g := c.get(h.TaskID)
-	if g.Status != "completed" || !g.Result.IsError || !strings.HasPrefix(g.Result.text(), "hq: ") || !strings.Contains(g.Result.text(), "no server running") {
+	if g.Status != "completed" || g.Result == nil || !g.Result.IsError || g.Result.text() != "hq: "+hqUpdated+"\n" || g.LastUpdatedAt != stampOf(f.now) {
 		t.Fatalf("%s", g.line)
+	}
+	if len(f.tmux.pasted) != 0 || len(f.inbox["id-a"]) != 1 {
+		t.Fatalf("a look was taken: pasted %q, inbox %v", f.tmux.pasted, f.inbox)
+	}
+	if r := c.ok("tasks/cancel", map[string]any{"taskId": h.TaskID}, true); r.ResultType != "complete" {
+		t.Fatalf("cancel: %s", r.line)
+	}
+	if r := c.call("list", nil, true); !r.IsError || r.text() != "hq: "+hqUpdated+"\n" {
+		t.Fatalf("a tool call: %s", r.line)
+	}
+	if f.generationAsks != 1 {
+		t.Errorf("the hq on disk asked %d times, want once", f.generationAsks)
 	}
 }
