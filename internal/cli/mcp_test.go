@@ -514,6 +514,18 @@ func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 	}
 }
 
+// Claude Code 2.1.332 shows the model a server's instructions only up to
+// their 4096th character (its debug log: "Server instructions truncated
+// from 6365 to 4096 chars", #365): Claude Code's line on watching stands
+// within them. Bytes count at least as many as Claude Code's characters.
+func TestClaudeCodeShowsItsSupervisorTheLineOnWatching(t *testing.T) {
+	got := claudeCode.instructions()
+	i := strings.Index(got, claudeCode.watch.instructions)
+	if end := i + len(claudeCode.watch.instructions); i < 0 || end > 4096 {
+		t.Fatalf("the line on watching ends at byte %d of %d: past what Claude Code shows", end, len(got))
+	}
+}
+
 // The wait tool tells each client the most it waits.
 func TestMCPWaitSaysHowLongItMayWait(t *testing.T) {
 	for client, want := range map[mcpClient]string{
