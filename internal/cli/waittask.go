@@ -282,7 +282,8 @@ func traced(d deps, covered, as []agent.Agent) []agent.Agent {
 	ks, _ := d.readKills() // what it cannot read leaves the agents as they are
 	out := slices.Clone(covered)
 	for _, i := range gone {
-		if j := slices.IndexFunc(ks, func(k kills.Kill) bool { return k.ID == out[i].ID }); j >= 0 {
+		j := slices.IndexFunc(ks, func(k kills.Kill) bool { return k.ID == out[i].ID })
+		if j >= 0 {
 			out[i].RepoPath, out[i].Sandbox = ks[j].Repo, ks[j].Sandbox
 		}
 	}
