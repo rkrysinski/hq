@@ -1,0 +1,1 @@
+2026-11-27T22:29:13.276Z said: Wait with hq's tools for the hq agent i1: call wait once, naming i1, with a timeout of 120 seconds. When that wait brings its result, tell me in one line what it returned, and stop.

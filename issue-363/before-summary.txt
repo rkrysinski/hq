@@ -1,0 +1,34 @@
+before (summarize.py, polls answered working folded)
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started g1 in repo (sandbox claude-repo); enter it with: hq go g1
+started g2 in repo (sandbox claude-repo); enter it with: hq go g2
+started g3 in repo (sandbox claude-repo); enter it with: hq go g3
+NAME  REPO  BRANCH  STATE    AGE  LAST
+g3    repo  main    working  3s   -
+g2    repo  main    working  4s   -
+g1    repo  main    working  5s   -
+== check 1 before: wait on g1 with a timeout of 120 s, the request declaring tasks
+    0.0s 22:05:36Z >> tools/call {"name": "list", "arguments": {"names": ["g1"]}}
+    0.7s 22:05:37Z << result: agents [g1 working '' (repo_path '/tmp/hq-stub-t363b/repo', sandbox 'claude-repo')] next_since c9 structuredContent False isError False
+    0.7s 22:05:37Z >> tools/call {"name": "wait", "arguments": {"names": ["g1"], "since": "c9", "timeout": 120}}
+  121.0s 22:07:37Z << result: agents [] next_since c9 structuredContent False isError False
+== check 3 before: wait on g2 goes on as a task, then g2 is killed, and the task is asked for
+    0.0s 22:07:37Z >> tools/call {"name": "list", "arguments": {"names": ["g2"]}}
+    0.8s 22:07:38Z << result: agents [g2 working '' (repo_path '/tmp/hq-stub-t363b/repo', sandbox 'claude-repo')] next_since c9 structuredContent False isError False
+    0.8s 22:07:38Z >> tools/call {"name": "wait", "arguments": {"names": ["g2"], "since": "c9"}}
+   50.9s 22:08:28Z << TASK HANDLE taskId w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g status working ttlMs null pollIntervalMs 5000
+   50.9s 22:08:28Z << task w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g working
+killed g2; the sandbox stays
+    0.8s 22:08:29Z << task w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g working
+    5.8s 22:08:34Z << task w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g working
+== check 5 before: wait on g3 goes on as a task; 55 s in, the hq on disk becomes another generation; the task is asked for, then a tool
+    0.0s 22:08:34Z >> tools/call {"name": "list", "arguments": {"names": ["g3"]}}
+    0.8s 22:08:35Z << result: agents [g3 working '' (repo_path '/tmp/hq-stub-t363b/repo', sandbox 'claude-repo')] next_since c9 structuredContent False isError False
+    0.8s 22:08:35Z >> tools/call {"name": "wait", "arguments": {"names": ["g3"], "since": "c9"}}
+   50.9s 22:09:25Z << TASK HANDLE taskId w1:c9:mwzjajqm:M8P2aADV:g3:_iKY_tVV5GoO-DYaVV6yXQ status working ttlMs null pollIntervalMs 5000
+22:09:30Z the hq on disk now answers __generation with 999
+   58.9s 22:09:33Z << task w1:c9:mwzjajqm:M8P2aADV:g3:_iKY_tVV5GoO-DYaVV6yXQ working
+   58.9s 22:09:33Z >> tools/call {"name": "list", "arguments": {"names": ["g3"]}}
+   58.9s 22:09:33Z << result text: hq: hq was updated: restart hq in this client
+ isError True
+exit 0

@@ -1,0 +1,10 @@
+s1b-before-deadline (summarize.py, polls answered working folded)
+    0.0s 22:22:12Z >> tools/call {"name": "list", "arguments": {"names": ["h2"]}}
+    0.4s 22:22:12Z << result: agents [h2 working '' (repo_path '/tmp/hq-stub-t363/repo', sandbox 'claude-repo')] next_since c27 structuredContent False isError False
+    0.4s 22:22:12Z >> tools/call {"name": "wait", "arguments": {"names": ["h2"], "since": "c27", "timeout": 300}}
+   50.6s 22:23:02Z << TASK HANDLE taskId w1:c27:mwzjs26d:mwzjxewi:kj9LMNwE:h2:h2=e9405043b17d:AdfCliOJGyPL9LvNU6Qv0Q status working ttlMs 249773 pollIntervalMs 5000
+   50.6s 22:23:02Z << task w1:c27:mwzjs26d:mwzjxewi:kj9LMNwE:h2:h2=e9405043b17d:AdfCliOJGyPL9LvNU6Qv0Q working
+      ... 3 more tasks/get answered working ...
+   70.7s 22:23:22Z << task w1:c27:mwzjs26d:mwzjxewi:kj9LMNwE:h2:h2=e9405043b17d:AdfCliOJGyPL9LvNU6Qv0Q working
+22:23:24Z typed 'finish' into h2
+   75.9s 22:23:28Z << task w1:c27:mwzjs26d:mwzjxewi:kj9LMNwE:h2:h2=e9405043b17d:AdfCliOJGyPL9LvNU6Qv0Q completed; result: agents [h2 done 'Done: slow job of h2' (repo_path '/tmp/hq-stub-t363/repo', sandbox 'claude-repo')] next_since c32 structuredContent False isError False

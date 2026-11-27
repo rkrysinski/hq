@@ -1,0 +1,11 @@
+s4-error (summarize.py, polls answered working folded)
+    0.0s 22:22:27Z >> tools/call {"name": "list", "arguments": {"names": ["h7"]}}
+    0.4s 22:22:27Z << result: agents [h7 working '' (repo_path '/tmp/hq-stub-t363/repo', sandbox 'claude-repo')] next_since c27 structuredContent False isError False
+    0.4s 22:22:27Z >> tools/call {"name": "wait", "arguments": {"names": ["h7"], "since": "c27"}}
+   50.6s 22:23:17Z << TASK HANDLE taskId w1:c29:mwzjsdra::CxPvXlJz:h7:h7=93c66f999f24:I3RxB3EoZvyoGd_ITA3-DQ status working ttlMs null pollIntervalMs 5000
+22:23:23Z tmux now fails for this hq mcp
+   58.6s 22:23:25Z << task w1:c29:mwzjsdra::CxPvXlJz:h7:h7=93c66f999f24:I3RxB3EoZvyoGd_ITA3-DQ completed; result text: hq: tmux: tmux: simulated failure of tmux (check 4)
+ isError True
+   58.6s 22:23:25Z >> tools/call {"name": "wait", "arguments": {"names": ["h7"], "since": "c27"}}
+   58.6s 22:23:25Z << result text: hq: tmux: tmux: simulated failure of tmux (check 4)
+ isError True

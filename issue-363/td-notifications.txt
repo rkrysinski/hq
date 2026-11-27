@@ -1,0 +1,60 @@
+== run limit: the task notification that started the supervisor's turn, and its reply
+<task-notification>
+<task-id>kebfg8gls</task-id>
+<status>completed</status>
+<summary>MCP task w1:c43:mwzk15ce:mwzk2n8v:ICw2_LLB:i1:i1=fa8788805576:EmuOuQ7_Tvkaj1Ix4uMnPQ (hq/wait) completed.</summary>
+<result>
+{
+  "agents": [],
+  "next_since": "c43"
+}
+
+</result>
+</task-notification>
+reply: The wait for i1 timed out after 120 seconds with no agents returned, so i1 had no change to report.
+
+== run killed: the task notification that started the supervisor's turn, and its reply
+<task-notification>
+<task-id>ky33j0n4d</task-id>
+<status>completed</status>
+<summary>MCP task w1:c43:mwzk1827::REs7AePD:i2:i2=8090f35de9b3:C21ehlGotOYT-I8iUovb-w (hq/wait) completed.</summary>
+<result>
+{
+  "agents": [
+    {
+      "name": "i2",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-t363/repo",
+      "branch": "",
+      "state": "ended",
+      "state_seq": null,
+      "completion_seq": null,
+      "since": "2026-11-27T22:30:25.505134341Z",
+      "age_seconds": 0,
+      "last": "[session ended]",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c43"
+}
+
+</result>
+</task-notification>
+reply: i2 has ended (its session is gone), so I've stopped watching it.
+
+== run failed: the task notification that started the supervisor's turn, and its reply
+<task-notification>
+<task-id>klj1nkxq3</task-id>
+<status>failed</status>
+<summary>MCP task w1:c43:mwzk1aom::lVDu0q7t:i3:i3=6be869bb1a24:VXrPmHmtWx8Tt4uHNzxnog (hq/wait) failed.</summary>
+<result>
+Task failed: hq: hq was updated: restart hq in this client
+</result>
+</task-notification>
+reply: The wait failed because hq was updated and needs a restart in this client. I'll check whether i3's status is still readable.
+reply: I couldn't see i3 through the end: hq was updated mid-watch, the wait failed with "hq was updated: restart hq in this client", and listing i3 now fails the same way. I've stopped watching, so i3's outcome is unknown. Restart hq in this client and I can pick the watch back up.
+

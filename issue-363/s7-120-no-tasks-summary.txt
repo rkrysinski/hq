@@ -1,0 +1,5 @@
+s7-120-no-tasks (summarize.py, polls answered working folded)
+    0.0s 22:22:37Z >> tools/call {"name": "list", "arguments": {"names": ["h9"]}}
+    0.4s 22:22:37Z << result: agents [h9 working '' (repo_path '/tmp/hq-stub-t363/repo', sandbox 'claude-repo')] next_since c27 structuredContent False isError False
+    0.4s 22:22:37Z >> tools/call {"name": "wait", "arguments": {"names": ["h9"], "since": "c27", "timeout": 120}}
+  120.4s 22:24:37Z << result: agents [] next_since c32 structuredContent False isError False

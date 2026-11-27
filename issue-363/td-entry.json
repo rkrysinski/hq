@@ -1,0 +1,26 @@
+{
+ "mcpServers": {
+  "hq": {
+   "type": "stdio",
+   "command": "python3",
+   "args": [
+    "<trial>/tap.py",
+    "@HQ@",
+    "mcp",
+    "claude-code"
+   ],
+   "env": {
+    "HQ_TMUX_SOCKET": "hq-dev-t363",
+    "PATH": "/tmp/hq-stub-t363/bin:/tmp/hq-stub-t363/stubs:/tmp/hq-stub-t363/path/1:/tmp/hq-stub-t363/path/2:/usr/local/share/npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "XDG_CONFIG_HOME": "/tmp/hq-stub-t363/home/.config",
+    "XDG_STATE_HOME": "/tmp/hq-stub-t363/home/.local/state",
+    "SBX_STUB_DIR": "/tmp/hq-stub-t363/sbx",
+    "SBX_STUB_CLAUDE": "/tmp/hq-stub-t363/claude",
+    "HQ_PLATFORM": "native",
+    "TMPDIR": "/tmp/hq-dev-t363",
+    "TAP_LOG": "@TAP_LOG@"
+   },
+   "timeout": 3660000
+  }
+ }
+}

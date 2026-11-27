@@ -1,0 +1,36 @@
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started g1 in repo (sandbox claude-repo); enter it with: hq go g1
+started g2 in repo (sandbox claude-repo); enter it with: hq go g2
+started g3 in repo (sandbox claude-repo); enter it with: hq go g3
+NAME  REPO  BRANCH  STATE    AGE  LAST
+g3    repo  main    working  3s   -
+g2    repo  main    working  4s   -
+g1    repo  main    working  5s   -
+== check 1 before: wait on g1 with a timeout of 120 s, the request declaring tasks
+    0.0s 22:05:36Z >> tools/call {"name": "list", "arguments": {"names": ["g1"]}}
+    0.7s 22:05:37Z << {"jsonrpc": "2.0", "id": 1, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "content": [{"type": "text", "text": "{\n  \"agents\": [\n    {\n      \"name\": \"g1\",\n      \"repo\": \"repo\",\n      \"repo_path\": \"/tmp/hq-stub-t363b/repo\",\n      \"branch\": \"main\",\n      \"state\": \"working\",\n      \"state_seq\": 5,\n      \"completion_seq\": null,\n      \"since\": \"2026-11-27T22:05:31.298615545Z\",\n      \"age_seconds\": 5,\n      \"last\": \"\",\n      \"sandbox\": \"claude-repo\",\n      \"setup\": \"default\",\n      \"pending\": 0,\n      \"own_tasks\": [],\n      \"asks\": null\n    }\n  ],\n  \"next_since\": \"c9\"\n}\n"}], "resultType": "complete"}}
+    0.7s 22:05:37Z >> tools/call {"name": "wait", "arguments": {"names": ["g1"], "since": "c9", "timeout": 120}}
+  121.0s 22:07:37Z << {"jsonrpc": "2.0", "id": 2, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "content": [{"type": "text", "text": "{\n  \"agents\": [],\n  \"next_since\": \"c9\"\n}\n"}], "resultType": "complete"}}
+== check 3 before: wait on g2 goes on as a task, then g2 is killed, and the task is asked for
+    0.0s 22:07:37Z >> tools/call {"name": "list", "arguments": {"names": ["g2"]}}
+    0.8s 22:07:38Z << {"jsonrpc": "2.0", "id": 1, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "content": [{"type": "text", "text": "{\n  \"agents\": [\n    {\n      \"name\": \"g2\",\n      \"repo\": \"repo\",\n      \"repo_path\": \"/tmp/hq-stub-t363b/repo\",\n      \"branch\": \"main\",\n      \"state\": \"working\",\n      \"state_seq\": 7,\n      \"completion_seq\": null,\n      \"since\": \"2026-11-27T22:05:32.061183338Z\",\n      \"age_seconds\": 126,\n      \"last\": \"\",\n      \"sandbox\": \"claude-repo\",\n      \"setup\": \"default\",\n      \"pending\": 0,\n      \"own_tasks\": [],\n      \"asks\": null\n    }\n  ],\n  \"next_since\": \"c9\"\n}\n"}], "resultType": "complete"}}
+    0.8s 22:07:38Z >> tools/call {"name": "wait", "arguments": {"names": ["g2"], "since": "c9"}}
+   50.9s 22:08:28Z << {"jsonrpc": "2.0", "id": 2, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "task", "taskId": "w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g", "status": "working", "createdAt": "2026-11-27T22:08:28.233Z", "lastUpdatedAt": "2026-11-27T22:08:28.233Z", "ttlMs": null, "pollIntervalMs": 5000}}
+   50.9s 22:08:28Z >> tasks/get {"taskId": "w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g"}
+   50.9s 22:08:28Z << {"jsonrpc": "2.0", "id": 3, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "complete", "taskId": "w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g", "status": "working", "createdAt": "2026-11-27T22:08:28.233Z", "lastUpdatedAt": "2026-11-27T22:08:28.233Z", "ttlMs": null, "pollIntervalMs": 5000}}
+killed g2; the sandbox stays
+    0.0s 22:08:29Z >> tasks/get {"taskId": "w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g"}
+    0.8s 22:08:29Z << {"jsonrpc": "2.0", "id": 1, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "complete", "taskId": "w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g", "status": "working", "createdAt": "2026-11-27T22:08:28.233Z", "lastUpdatedAt": "2026-11-27T22:08:28.233Z", "ttlMs": null, "pollIntervalMs": 5000}}
+    5.8s 22:08:34Z >> tasks/get {"taskId": "w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g"}
+    5.8s 22:08:34Z << {"jsonrpc": "2.0", "id": 2, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "complete", "taskId": "w1:c9:mwzj9b9l:K3cER89G:g2:bVTYZvg-iZQdhI1ECK430g", "status": "working", "createdAt": "2026-11-27T22:08:28.233Z", "lastUpdatedAt": "2026-11-27T22:08:28.233Z", "ttlMs": null, "pollIntervalMs": 5000}}
+== check 5 before: wait on g3 goes on as a task; 55 s in, the hq on disk becomes another generation; the task is asked for, then a tool
+    0.0s 22:08:34Z >> tools/call {"name": "list", "arguments": {"names": ["g3"]}}
+    0.8s 22:08:35Z << {"jsonrpc": "2.0", "id": 1, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "content": [{"type": "text", "text": "{\n  \"agents\": [\n    {\n      \"name\": \"g3\",\n      \"repo\": \"repo\",\n      \"repo_path\": \"/tmp/hq-stub-t363b/repo\",\n      \"branch\": \"main\",\n      \"state\": \"working\",\n      \"state_seq\": 9,\n      \"completion_seq\": null,\n      \"since\": \"2026-11-27T22:05:32.792184838Z\",\n      \"age_seconds\": 182,\n      \"last\": \"\",\n      \"sandbox\": \"claude-repo\",\n      \"setup\": \"default\",\n      \"pending\": 0,\n      \"own_tasks\": [],\n      \"asks\": null\n    }\n  ],\n  \"next_since\": \"c9\"\n}\n"}], "resultType": "complete"}}
+    0.8s 22:08:35Z >> tools/call {"name": "wait", "arguments": {"names": ["g3"], "since": "c9"}}
+   50.9s 22:09:25Z << {"jsonrpc": "2.0", "id": 2, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "task", "taskId": "w1:c9:mwzjajqm:M8P2aADV:g3:_iKY_tVV5GoO-DYaVV6yXQ", "status": "working", "createdAt": "2026-11-27T22:09:25.870Z", "lastUpdatedAt": "2026-11-27T22:09:25.870Z", "ttlMs": null, "pollIntervalMs": 5000}}
+22:09:30Z the hq on disk now answers __generation with 999
+   58.9s 22:09:33Z >> tasks/get {"taskId": "w1:c9:mwzjajqm:M8P2aADV:g3:_iKY_tVV5GoO-DYaVV6yXQ"}
+   58.9s 22:09:33Z << {"jsonrpc": "2.0", "id": 3, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "complete", "taskId": "w1:c9:mwzjajqm:M8P2aADV:g3:_iKY_tVV5GoO-DYaVV6yXQ", "status": "working", "createdAt": "2026-11-27T22:09:25.870Z", "lastUpdatedAt": "2026-11-27T22:09:25.870Z", "ttlMs": null, "pollIntervalMs": 5000}}
+   58.9s 22:09:33Z >> tools/call {"name": "list", "arguments": {"names": ["g3"]}}
+   58.9s 22:09:33Z << {"jsonrpc": "2.0", "id": 4, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "content": [{"type": "text", "text": "hq: hq was updated: restart hq in this client\n"}], "isError": true}}
+exit 0

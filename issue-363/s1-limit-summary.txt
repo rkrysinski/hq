@@ -1,0 +1,9 @@
+s1-limit (summarize.py, polls answered working folded)
+    0.0s 22:22:07Z >> tools/call {"name": "list", "arguments": {"names": ["h1"]}}
+    0.4s 22:22:07Z << result: agents [h1 working '' (repo_path '/tmp/hq-stub-t363/repo', sandbox 'claude-repo')] next_since c27 structuredContent False isError False
+    0.4s 22:22:07Z >> tools/call {"name": "wait", "arguments": {"names": ["h1"], "since": "c27", "timeout": 120}}
+   50.4s 22:22:57Z << TASK HANDLE taskId w1:c27:mwzjry5i:mwzjtg5p:hOtfDgaz:h1:h1=bd3ab90914a1:01EKFcyD_wVP5_zSgPOhRA status working ttlMs 69991 pollIntervalMs 5000
+   50.4s 22:22:57Z << task w1:c27:mwzjry5i:mwzjtg5p:hOtfDgaz:h1:h1=bd3ab90914a1:01EKFcyD_wVP5_zSgPOhRA working
+      ... 12 more tasks/get answered working ...
+  115.6s 22:24:02Z << task w1:c27:mwzjry5i:mwzjtg5p:hOtfDgaz:h1:h1=bd3ab90914a1:01EKFcyD_wVP5_zSgPOhRA working
+  120.6s 22:24:07Z << task w1:c27:mwzjry5i:mwzjtg5p:hOtfDgaz:h1:h1=bd3ab90914a1:01EKFcyD_wVP5_zSgPOhRA completed; result: agents [] next_since c32 structuredContent False isError False

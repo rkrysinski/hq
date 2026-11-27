@@ -1,0 +1,5 @@
+s7-30 (summarize.py, polls answered working folded)
+    0.0s 22:22:32Z >> tools/call {"name": "list", "arguments": {"names": ["h9"]}}
+    0.4s 22:22:32Z << result: agents [h9 working '' (repo_path '/tmp/hq-stub-t363/repo', sandbox 'claude-repo')] next_since c27 structuredContent False isError False
+    0.4s 22:22:32Z >> tools/call {"name": "wait", "arguments": {"names": ["h9"], "since": "c27", "timeout": 30}}
+   30.6s 22:23:02Z << result: agents [] next_since c27 structuredContent False isError False
