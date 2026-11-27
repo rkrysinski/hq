@@ -1,0 +1,20 @@
+== hq mcp claude-desktop, wait with no timeout
+19:45:46Z call wait {"names": ["a"], "since": "0s"}
+19:46:36Z returned after 50.1 s, isError False:
+  "agents": [],
+== hq mcp sbx, wait with no timeout
+19:46:37Z call wait {"names": ["a"], "since": "0s"}
+19:47:27Z returned after 50.0 s, isError False:
+  "agents": [],
+== hq mcp claude-code, wait with timeout 50
+19:47:27Z call wait {"names": ["a"], "since": "0s", "timeout": 50}
+19:48:17Z returned after 50.1 s, isError False:
+  "agents": [],
+== hq mcp claude-code, wait with timeout 3
+19:48:18Z call wait {"names": ["a"], "since": "0s", "timeout": 3}
+19:48:21Z returned after 3.1 s, isError False:
+  "agents": [],
+== hq wait a (the command line, no --timeout)
+nothing yet
+next: hq wait a --since c13
+returned after 50 s

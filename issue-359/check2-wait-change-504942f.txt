@@ -1,0 +1,50 @@
+19:44:16Z call list {"names": ["a"]}
+19:44:16Z returned after 0.0 s, isError False:
+{
+  "agents": [
+    {
+      "name": "a",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-2113981193/repo",
+      "branch": "main",
+      "state": "working",
+      "state_seq": 12,
+      "completion_seq": 10,
+      "since": "2026-11-27T19:44:12.826449794Z",
+      "age_seconds": 3,
+      "last": "Done: slow round three",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c12"
+}
+
+19:44:16Z call wait {"names": ["a"], "since": "c12"}
+19:45:36Z returned after 80.3 s, isError False:
+{
+  "agents": [
+    {
+      "name": "a",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-2113981193/repo",
+      "branch": "main",
+      "state": "done",
+      "state_seq": 13,
+      "completion_seq": 13,
+      "since": "2026-11-27T19:45:36.005521834Z",
+      "age_seconds": 0,
+      "last": "Done: slow round four",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c13"
+}
+

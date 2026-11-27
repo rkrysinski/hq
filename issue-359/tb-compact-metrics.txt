@@ -1,0 +1,6 @@
+run compact: 5 model requests in all
+wait {"names": ["q"], "since": "c3", "timeout": 480}
+  called          2026-11-27T19:08:23.413Z
+  moved to the background 2026-11-27T19:10:23.420Z (120.0 s after the call); model requests within 1 s of it: 1
+  result          2026-11-27T19:16:23.530Z (480.1 s = 8.0 min after the call); model requests within 2 s of it: 1
+  model requests between the move and the result: 0 []

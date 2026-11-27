@@ -1,0 +1,9 @@
+== spec-357-wait-task (00e169d)
+README.md:150:d that adds the entry by hand. Under Claude Code one `wait` may last up to an hour, where Claude Desktop's ends after 50 s (Claud
+docs/design/hq.md:293:n agent; ask with `send` and `read` the answer at the stop; watch with `wait` in a loop; never answer a permission prompt or an
+docs/design/hq.md:301:o keep. For Claude Code `wait`'s maximum is an hour and its default stays 50 s, so a supervisor that passes no timeout
+docs/requirements/spec.md:340:or `ended`, with every other that is within a moment of it; called in a loop, each call passing the cursor of the su
+docs/requirements/spec.md:340:s, so its supervisor waits at most 50 s per call and loops; Claude Code's may wait up to an hour in one call. An agent returned `done` o
+docs/requirements/spec.md:348: set up with `hq mcp install claude-code`, where one `wait` may last longer than 50 s and returns as soon as an agent it wait
+== HEAD (504942f)
+(none)

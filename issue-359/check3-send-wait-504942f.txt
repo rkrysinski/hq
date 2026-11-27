@@ -1,0 +1,27 @@
+19:42:45Z call send {"name": "a", "text": "slow round three", "wait": true}
+19:43:59Z returned after 73.9 s, isError False:
+{
+  "delivery": "delivered: typed into a as its next prompt",
+  "outcome": "turn_ended",
+  "agents": [
+    {
+      "name": "a",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-2113981193/repo",
+      "branch": "main",
+      "state": "done",
+      "state_seq": 10,
+      "completion_seq": 10,
+      "since": "2026-11-27T19:43:59.072699788Z",
+      "age_seconds": 0,
+      "last": "Done: slow round three",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c10"
+}
+

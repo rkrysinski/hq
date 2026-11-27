@@ -1,0 +1,32 @@
+18:58:43Z call list {}
+18:58:43Z returned after 0.0 s, isError False:
+{
+  "agents": [
+    {
+      "name": "a",
+      "repo": "repo",
+      "repo_path": "/tmp/hq-stub-2113981193/repo",
+      "branch": "main",
+      "state": "working",
+      "state_seq": 3,
+      "completion_seq": null,
+      "since": "2026-11-27T18:58:36.249680073Z",
+      "age_seconds": 7,
+      "last": "",
+      "sandbox": "claude-repo",
+      "setup": "default",
+      "pending": 0,
+      "own_tasks": [],
+      "asks": null
+    }
+  ],
+  "next_since": "c3"
+}
+
+18:58:43Z call wait {"since": "c3"}
+18:59:34Z returned after 50.2 s, isError False:
+{
+  "agents": [],
+  "next_since": "c3"
+}
+

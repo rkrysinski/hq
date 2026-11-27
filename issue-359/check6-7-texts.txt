@@ -1,0 +1,18 @@
+== hq mcp claude-code: the instructions' line on watching
+- To watch agents, call wait once, with the next_since of the most recent wait or list result: it returns as soon as an agent is done, asks a 
+question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout, an hour unless you give a 
+shorter one. When Claude Code says that a wait, or a send with wait, was moved to the background, end your turn: its result starts your next turn. Do 
+not call wait again until the earlier one has brought its result. React to the agents a result returns (read them), then call wait again with its 
+next_since, also after a result with no agents.
+   before "loop": 2, "moved to the background": 0, wait "After timeout seconds (default 50, at most 3600)"
+   after  "loop": 0, "moved to the background": 3, wait "After timeout seconds (default and at most 3600)"
+== hq mcp claude-desktop: the instructions' line on watching
+- To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result: it returns as soon as an agent is done, 
+asks a question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout; then call it again.
+   before "loop": 2, "moved to the background": 0, wait "After timeout seconds (default and at most 50)"
+   after  "loop": 2, "moved to the background": 0, wait "After timeout seconds (default and at most 50)"
+== hq mcp sbx: the instructions' line on watching
+- To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result: it returns as soon as an agent is done, 
+asks a question, needs input or ends, with every other that does so within a moment of it, or returns no agents after its timeout; then call it again.
+   before "loop": 2, "moved to the background": 0, wait "After timeout seconds (default and at most 50)"
+   after  "loop": 2, "moved to the background": 0, wait "After timeout seconds (default and at most 50)"

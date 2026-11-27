@@ -1,0 +1,42 @@
+$ CLAUDE_CONFIG_DIR=<trial>/cfg LOCAL_DEV_ID=tb359 scripts/local-dev.sh --stub native mcp install claude-code
+added hq to Claude Code (<trial>/cfg/.claude.json)
+the file as it was: <trial>/cfg/.claude.json.hq-backup-20261127-190556
+restart Claude Code to load it
+
+The entry it wrote (mcpServers.hq of <trial>/cfg/.claude.json), env values left out:
+{
+ "type": "stdio",
+ "command": "/tmp/hq-stub-tb359/bin/hq",
+ "args": [
+  "mcp",
+  "claude-code"
+ ],
+ "env": [
+  "HQ_TMUX_SOCKET",
+  "PATH",
+  "XDG_CONFIG_HOME",
+  "XDG_STATE_HOME"
+ ],
+ "timeout": 3660000
+}
+
+The trial's --mcp-config: the same entry, with the stub environment's variables added to env (the stub sbx and fake claude, as scripts/local-dev.sh --stub native gives them), env values left out:
+{
+ "type": "stdio",
+ "command": "/tmp/hq-stub-tb359/bin/hq",
+ "args": [
+  "mcp",
+  "claude-code"
+ ],
+ "env": [
+  "HQ_PLATFORM",
+  "HQ_TMUX_SOCKET",
+  "PATH",
+  "SBX_STUB_CLAUDE",
+  "SBX_STUB_DIR",
+  "TMPDIR",
+  "XDG_CONFIG_HOME",
+  "XDG_STATE_HOME"
+ ],
+ "timeout": 3660000
+}
