@@ -1,0 +1,17 @@
+$ go run ./tools/testgate mutation spec-357-wait-task   # on 169fe4b, Go 1.27.3
+not run    internal/cli/mcp.go:730
+alive      internal/cli/send.go:187:52 conditionals boundary
+not run    internal/cli/sendwait.go:269
+not run    internal/cli/sendwait.go:272
+not covered internal/cli/sendwait.go:272:32 conditionals negation
+alive      internal/cli/sendwait.go:318:15 conditionals boundary
+mutation: 42 killed, 2 alive, 0 timed out, 1 not covered, 3 not run against spec-357-wait-task on 169fe4b1dc51ea6374d9ad22b159950ccc90fb23
+mutation: staging the tree in /tmp/hq-mutation-401408633
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 47s
+mutation: 3 changed lines are not run so far, running the integration tests once with coverage
+mutation: the integration tests done in 2m46s
+mutation: 3 changed lines are not run so far, running the journeys once with coverage
+mutation: the journeys done in 17s
+exit status 1

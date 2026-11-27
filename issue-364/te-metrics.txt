@@ -1,0 +1,14 @@
+run send1: 1 hq processes started, 4 model requests in the run's transcripts
+  23:21:09.362Z  hq process 4025724: start
+  23:21:22.543Z  said: Send the hq agent j1 the message "slow job" with wait. When its answer comes, tell me in one line what its last message says.
+  23:23:08.164Z  finished j1
+send {"name": "j1", "text": "slow job", "wait": true}, called 23:21:24.534Z by process 4025724
+  answered with a task handle after 50.2 s: taskId s1:c63:mwzlw6r7::t:j1=7c2496b37a91:1795821684544160425-fccf3ddd.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGoxIGFzIGl0cyBuZXh0IHByb21wdA:OyW71b6RU1vl6JwkGK8p2g, status working, ttlMs None, pollIntervalMs 5000
+  tasks/get: 12, the first 0.015 s after the handle, by processes [4025724]
+  gaps between tasks/get of one process: min 5.01 s, median 5.02 s, max 5.03 s (11 gaps)
+  hq's time to answer a tasks/get: median 14.8 ms, max 22.5 ms
+  the turn that took the handle ended 23:22:15.828Z, 1.1 s after it, with 1 model request(s) after the handle ['23:22:14.737Z']
+  completed at 23:23:09.977Z (105.4 s = 1.8 min after the call), structuredContent False, isError False: {   "delivery": "delivered: typed into j1 as its next prompt",   "outcome": "turn_ended",   "agents": [     {       "name": "j1",       "repo": "repo",       "repo_path": "/tmp/hq-stub-t364/repo",    
+  model requests between the end of that turn and the completion (54.1 s): 0 []
+  first model request after the completion: 23:23:10.004Z, 27 ms after it
+  completed 1.81 s after the agent was let finish (23:23:08.164Z)

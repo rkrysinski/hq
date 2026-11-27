@@ -1,0 +1,8 @@
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started b1 in repo (sandbox claude-repo); enter it with: hq go b1
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b1    repo  main    done   4s   Done: hello
+== check 1 before: send with wait to b1 (done, at its prompt), the request declaring tasks; b1's turn ends 70 s in
+    0.0s 22:56:49Z >> tools/call {"name": "send", "arguments": {"name": "b1", "text": "slow job", "wait": true}}
+22:57:59Z typed 'finish' into b1
+   70.2s 22:57:59Z << result: keys ['agents', 'delivery', 'next_since', 'outcome'] delivery 'delivered: typed into b1 as its next prompt' outcome turn_ended message None agents [b1 done 'Done: slow job' (repo_path '/tmp/hq-stub-t364b/repo', sandbox 'claude-repo')] next_since c7 structuredContent False isError False

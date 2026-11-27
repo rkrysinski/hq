@@ -1,0 +1,20 @@
+    0.0s 23:11:42Z >> server/discover {}
+    0.6s 23:11:42Z << 
+    0.6s 23:11:42Z >> tools/call {"name": "send", "arguments": {"name": "e4", "text": "status?", "wait": true, "timeout": 80}}
+   50.8s 23:12:32Z << TASK HANDLE taskId s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw status working ttlMs 29783 pollIntervalMs 5000
+   50.8s 23:12:32Z >> tasks/get {"taskId": "s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw"}
+   50.8s 23:12:32Z << task s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw working
+   55.8s 23:12:37Z >> tasks/get {"taskId": "s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw"}
+   55.8s 23:12:37Z << task s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw working
+   60.8s 23:12:42Z >> tasks/get {"taskId": "s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw"}
+   60.9s 23:12:42Z << task s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw working
+   65.9s 23:12:47Z >> tasks/get {"taskId": "s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw"}
+   65.9s 23:12:47Z << task s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw working
+   70.9s 23:12:52Z >> tasks/get {"taskId": "s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw"}
+   70.9s 23:12:52Z << task s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw working
+   75.9s 23:12:57Z >> tasks/get {"taskId": "s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw"}
+   75.9s 23:12:57Z << task s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw working
+   80.9s 23:13:02Z >> tasks/get {"taskId": "s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw"}
+   80.9s 23:13:03Z << task s1:c34:mwzljpss:mwzlkcs3::e4=caf3bc135a3d:1795821102650466106-8cdfa3fd.sup:cXVldWVkOiBlNCBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:QI-MpsKeiuIvcs3WMzBplw completed; result: keys ['agents', 'delivery', 'next_since', 'outcome'] delivery 'queued: e4 is working, delivered when it stops' outcome timeout message None agents [] next_since c46 structuredContent False isError False
+== hq ls e4 (PENDING-like: the message still waits)
+e4 working pending 1

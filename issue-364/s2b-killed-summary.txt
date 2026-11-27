@@ -1,0 +1,12 @@
+    0.0s 23:11:42Z >> server/discover {}
+    0.6s 23:11:42Z << 
+    0.6s 23:11:42Z >> tools/call {"name": "send", "arguments": {"name": "e3", "text": "anything new?", "wait": true}}
+   50.8s 23:12:32Z << TASK HANDLE taskId s1:c34:mwzljpss:::e3=c6afe84c6e7a:1795821102660220856-46a6590d.sup:cXVldWVkOiBlMyBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:Y9bzB4S7xJFJnHm-UKyd3g status working ttlMs null pollIntervalMs 5000
+   50.8s 23:12:32Z >> tasks/get {"taskId": "s1:c34:mwzljpss:::e3=c6afe84c6e7a:1795821102660220856-46a6590d.sup:cXVldWVkOiBlMyBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:Y9bzB4S7xJFJnHm-UKyd3g"}
+   50.8s 23:12:32Z << task s1:c34:mwzljpss:::e3=c6afe84c6e7a:1795821102660220856-46a6590d.sup:cXVldWVkOiBlMyBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:Y9bzB4S7xJFJnHm-UKyd3g working
+== hq kill e3 -y
+killed e3; the sandbox stays
+    0.0s 23:12:33Z >> server/discover {}
+    0.4s 23:12:33Z << 
+    0.4s 23:12:33Z >> tasks/get {"taskId": "s1:c34:mwzljpss:::e3=c6afe84c6e7a:1795821102660220856-46a6590d.sup:cXVldWVkOiBlMyBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:Y9bzB4S7xJFJnHm-UKyd3g"}
+    0.4s 23:12:33Z << task s1:c34:mwzljpss:::e3=c6afe84c6e7a:1795821102660220856-46a6590d.sup:cXVldWVkOiBlMyBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:Y9bzB4S7xJFJnHm-UKyd3g completed; result: keys ['agents', 'delivery', 'message', 'next_since', 'outcome'] delivery 'queued: e3 is working, delivered when it stops' outcome not_taken message 'gone' agents [e3 ended '[session ended]' (repo_path '/tmp/hq-stub-t364/repo', sandbox 'claude-repo')] next_since c38 structuredContent False isError False

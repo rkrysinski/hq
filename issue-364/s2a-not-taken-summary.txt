@@ -1,0 +1,16 @@
+delivered: typed into e2 as its next prompt
+queued: e2 is working, delivered when it stops
+    0.0s 23:16:55Z >> server/discover {}
+    0.4s 23:16:55Z << 
+    0.4s 23:16:55Z >> tools/call {"name": "send", "arguments": {"name": "e2", "text": "/model test-model", "wait": true}}
+   50.4s 23:17:45Z << TASK HANDLE taskId s1:c50:mwzlqf64:::e2=ec70136f87d4:1795821415663335838-80d8d3d8.sup:cXVldWVkOiBlMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wczsgaWYgaXRzIGhvb2tzIGRlbGl2ZXIgaXQsIHRoZSBzbGFzaCBjb21tYW5kIGFycml2ZXMgYXMgdGV4dCBhbmQgZG9lcyBub3QgcnVu:KmOH0VtGOPNA2tDxDOtG2g status working ttlMs null pollIntervalMs 5000
+   50.4s 23:17:45Z >> tasks/get {"taskId": "s1:c50:mwzlqf64:::e2=ec70136f87d4:1795821415663335838-80d8d3d8.sup:cXVldWVkOiBlMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wczsgaWYgaXRzIGhvb2tzIGRlbGl2ZXIgaXQsIHRoZSBzbGFzaCBjb21tYW5kIGFycml2ZXMgYXMgdGV4dCBhbmQgZG9lcyBub3QgcnVu:KmOH0VtGOPNA2tDxDOtG2g"}
+   50.4s 23:17:45Z << task s1:c50:mwzlqf64:::e2=ec70136f87d4:1795821415663335838-80d8d3d8.sup:cXVldWVkOiBlMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wczsgaWYgaXRzIGhvb2tzIGRlbGl2ZXIgaXQsIHRoZSBzbGFzaCBjb21tYW5kIGFycml2ZXMgYXMgdGV4dCBhbmQgZG9lcyBub3QgcnVu:KmOH0VtGOPNA2tDxDOtG2g working
+   55.4s 23:17:50Z >> tasks/get {"taskId": "s1:c50:mwzlqf64:::e2=ec70136f87d4:1795821415663335838-80d8d3d8.sup:cXVldWVkOiBlMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wczsgaWYgaXRzIGhvb2tzIGRlbGl2ZXIgaXQsIHRoZSBzbGFzaCBjb21tYW5kIGFycml2ZXMgYXMgdGV4dCBhbmQgZG9lcyBub3QgcnVu:KmOH0VtGOPNA2tDxDOtG2g"}
+   55.4s 23:17:50Z << task s1:c50:mwzlqf64:::e2=ec70136f87d4:1795821415663335838-80d8d3d8.sup:cXVldWVkOiBlMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wczsgaWYgaXRzIGhvb2tzIGRlbGl2ZXIgaXQsIHRoZSBzbGFzaCBjb21tYW5kIGFycml2ZXMgYXMgdGV4dCBhbmQgZG9lcyBub3QgcnVu:KmOH0VtGOPNA2tDxDOtG2g working
+23:17:53Z typed 'esc' into e2
+   60.4s 23:17:55Z >> tasks/get {"taskId": "s1:c50:mwzlqf64:::e2=ec70136f87d4:1795821415663335838-80d8d3d8.sup:cXVldWVkOiBlMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wczsgaWYgaXRzIGhvb2tzIGRlbGl2ZXIgaXQsIHRoZSBzbGFzaCBjb21tYW5kIGFycml2ZXMgYXMgdGV4dCBhbmQgZG9lcyBub3QgcnVu:KmOH0VtGOPNA2tDxDOtG2g"}
+   60.4s 23:17:55Z << task s1:c50:mwzlqf64:::e2=ec70136f87d4:1795821415663335838-80d8d3d8.sup:cXVldWVkOiBlMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wczsgaWYgaXRzIGhvb2tzIGRlbGl2ZXIgaXQsIHRoZSBzbGFzaCBjb21tYW5kIGFycml2ZXMgYXMgdGV4dCBhbmQgZG9lcyBub3QgcnVu:KmOH0VtGOPNA2tDxDOtG2g completed; result: keys ['agents', 'delivery', 'message', 'next_since', 'outcome'] delivery 'queued: e2 is working, delivered when it stops; if its hooks deliver it, the slash command arrives as text and does not run' outcome not_taken message 'waiting' agents [e2 needs input 'Which colour do you pick?' (repo_path '/tmp/hq-stub-t364/repo', sandbox 'claude-repo')] next_since c57 structuredContent False isError False
+== hq ls e2
+NAME  REPO  BRANCH  STATE        AGE  LAST
+e2    repo  main    needs input  1s   Which colour do you pick?

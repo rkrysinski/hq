@@ -1,0 +1,7 @@
+$ GOTOOLCHAIN=go1.26.0 go run ./tools/testgate mutation spec-357-wait-task   # on fe29725
+not covered internal/cli/sendwait.go:272:32 conditionals negation
+mutation: 41 killed, 0 alive, 0 timed out, 1 not covered, 0 not run against spec-357-wait-task on fe29725a9ad134dd0285c281978a9c99172f4f94
+mutation: staging the tree in /tmp/hq-mutation-4153386038
+mutation: installing go-gremlins v0.6.0
+mutation: running the unit tests once, then once per mutant
+mutation: done in 46s

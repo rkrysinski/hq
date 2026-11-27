@@ -1,0 +1,5 @@
+== check 8: another hq mcp claude-code asks for the task while it works
+    0.0s 23:17:44Z >> server/discover {}
+    0.4s 23:17:44Z << 
+    0.4s 23:17:44Z >> tasks/get {"taskId": "s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA"}
+    0.4s 23:17:44Z << task s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA working

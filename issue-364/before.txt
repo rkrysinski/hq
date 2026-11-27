@@ -1,0 +1,8 @@
+creating a sandbox for repo (first time only; log in to Claude when the session asks)
+started b1 in repo (sandbox claude-repo); enter it with: hq go b1
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b1    repo  main    done   4s   Done: hello
+== check 1 before: send with wait to b1 (done, at its prompt), the request declaring tasks; b1's turn ends 70 s in
+    0.0s 22:56:49Z >> tools/call {"name": "send", "arguments": {"name": "b1", "text": "slow job", "wait": true}}
+22:57:59Z typed 'finish' into b1
+   70.2s 22:57:59Z << {"jsonrpc": "2.0", "id": 1, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "content": [{"type": "text", "text": "{\n  \"delivery\": \"delivered: typed into b1 as its next prompt\",\n  \"outcome\": \"turn_ended\",\n  \"agents\": [\n    {\n      \"name\": \"b1\",\n      \"repo\": \"repo\",\n      \"repo_path\": \"/tmp/hq-stub-t364b/repo\",\n      \"branch\": \"main\",\n      \"state\": \"done\",\n      \"state_seq\": 7,\n      \"completion_seq\": 7,\n      \"since\": \"2026-11-27T22:57:59.565863922Z\",\n      \"age_seconds\": 0,\n      \"last\": \"Done: slow job\",\n      \"sandbox\": \"claude-repo\",\n      \"setup\": \"default\",\n      \"pending\": 0,\n      \"own_tasks\": [],\n      \"asks\": null\n    }\n  ],\n  \"next_since\": \"c7\"\n}\n"}], "resultType": "complete"}}

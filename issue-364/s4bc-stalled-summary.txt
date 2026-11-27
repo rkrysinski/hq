@@ -1,0 +1,15 @@
+== (a)
+    0.0s 23:11:42Z >> server/discover {}
+the server closed its output
+== (b)
+23:11:42Z typed 'draft' into e6
+    0.0s 23:11:44Z >> server/discover {}
+    0.4s 23:11:45Z << 
+    0.4s 23:11:45Z >> tools/call {"name": "send", "arguments": {"name": "e6", "text": "hi", "wait": true}}
+    5.6s 23:11:50Z << result text: hq: stalled: e6 did not take the message: it still waits in e6's inbox, and nothing was typed in; see hq read e6 before sending again isError True
+== (c)
+    0.0s 23:11:50Z >> server/discover {}
+    0.4s 23:11:50Z << 
+    0.4s 23:11:50Z >> tools/call {"name": "send", "arguments": {"name": "e7", "text": "unsent please", "wait": true}}
+23:12:34Z typed 'esc' into e7
+   50.7s 23:12:41Z << result text: hq: stalled: e7 did not take the message: it is typed into e7's prompt box and not sent; see hq read e7 before sending again isError True

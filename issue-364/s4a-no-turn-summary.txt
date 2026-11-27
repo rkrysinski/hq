@@ -1,0 +1,4 @@
+    0.0s 23:17:10Z >> server/discover {}
+    0.4s 23:17:10Z << 
+    0.4s 23:17:10Z >> tools/call {"name": "send", "arguments": {"name": "e5", "text": "/model test-model", "wait": true}}
+    5.7s 23:17:15Z << result: keys ['agents', 'delivery', 'next_since', 'outcome'] delivery 'delivered: typed into e5 as its next prompt' outcome no_turn message None agents [e5 done 'Done: hello from e5' (repo_path '/tmp/hq-stub-t364/repo', sandbox 'claude-repo')] next_since c51 structuredContent False isError False

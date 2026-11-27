@@ -1,0 +1,26 @@
+    0.0s 23:16:46Z >> server/discover {}
+    0.4s 23:16:46Z << 
+    0.4s 23:16:46Z >> tools/call {"name": "send", "arguments": {"name": "e1", "text": "slow job", "wait": true}}
+   50.5s 23:17:36Z << TASK HANDLE taskId s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA status working ttlMs null pollIntervalMs 5000
+   50.5s 23:17:36Z >> tasks/get {"taskId": "s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA"}
+   50.5s 23:17:36Z << task s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA working
+   50.5s 23:17:36Z >> tasks/get {"taskId": "s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA"}
+   50.6s 23:17:36Z << task s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA working
+   55.6s 23:17:41Z >> tasks/get {"taskId": "s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA"}
+   55.6s 23:17:41Z << task s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA working
+   60.6s 23:17:46Z >> tasks/get {"taskId": "s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA"}
+   60.6s 23:17:46Z << task s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA working
+   65.6s 23:17:51Z >> tasks/get {"taskId": "s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA"}
+   65.6s 23:17:51Z << task s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA working
+23:17:56Z typed 'finish' into e1
+   70.6s 23:17:56Z >> tasks/get {"taskId": "s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA"}
+   70.6s 23:17:56Z << task s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA completed; result: keys ['agents', 'delivery', 'next_since', 'outcome'] delivery 'delivered: typed into e1 as its next prompt' outcome turn_ended message None agents [e1 done 'Done: slow job' (repo_path '/tmp/hq-stub-t364/repo', sandbox 'claude-repo')] next_since c58 structuredContent False isError False
+   70.6s 23:17:56Z >> tools/call {"name": "wait", "arguments": {"names": ["e1"], "since": "c58", "timeout": 5}}
+   75.8s 23:18:01Z << result: agents [] next_since c58 structuredContent False isError False
+== check 8: another hq mcp claude-code asks for the completed task, and for it with one character of its agent's name changed
+    0.0s 23:18:01Z >> server/discover {}
+    0.4s 23:18:02Z << 
+    0.4s 23:18:02Z >> tasks/get {"taskId": "s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA"}
+    0.4s 23:18:02Z << task s1:c46:mwzlq866::t:e1=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA completed; result: keys ['agents', 'delivery', 'next_since', 'outcome'] delivery 'delivered: typed into e1 as its next prompt' outcome turn_ended message None agents [e1 done 'Done: slow job' (repo_path '/tmp/hq-stub-t364/repo', sandbox 'claude-repo')] next_since c58 structuredContent False isError False
+    0.4s 23:18:02Z >> tasks/get {"taskId": "s1:c46:mwzlq866::t:e9=aa4b719caa96:1795821406448992584-1e23773b.sup:ZGVsaXZlcmVkOiB0eXBlZCBpbnRvIGUxIGFzIGl0cyBuZXh0IHByb21wdA:NgcSwF9VdMkGrkwe6PA6IA"}
+    0.4s 23:18:02Z << error -32602 Failed to retrieve task: Task not found

@@ -1,0 +1,4 @@
+queued: e10 is working, delivered when it stops
+nothing yet
+next: hq wait e10 --since c59
+== hq send --wait e10 returned after 50.540017274 s (the build already done)

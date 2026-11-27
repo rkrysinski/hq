@@ -1,0 +1,5 @@
+    0.0s 23:11:42Z >> server/discover {}
+    0.6s 23:11:42Z << 
+    0.6s 23:11:42Z >> tools/call {"name": "send", "arguments": {"name": "e8", "text": "slow job", "wait": true}}
+23:12:52Z typed 'finish' into e8
+   70.0s 23:12:52Z << result: keys ['agents', 'delivery', 'next_since', 'outcome'] delivery 'delivered: typed into e8 as its next prompt' outcome turn_ended message None agents [e8 done 'Done: slow job' (repo_path '/tmp/hq-stub-t364/repo', sandbox 'claude-repo')] next_since c45 structuredContent False isError False
