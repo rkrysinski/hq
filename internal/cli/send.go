@@ -124,8 +124,9 @@ func runSend(env Env, d deps, args []string) error { return send(env, d, args, n
 
 // send is runSend, whose wait, given handOff, goes on as a wait task
 // through it once waitHold has passed with no end and none to tell
-// (sendOrHandOff, #364), unless its timeout comes within the hold; at a
-// timeout reached before the task could start, it ends as at a timeout.
+// (sendOrHandOff, #364), unless its timeout comes first; at a timeout the
+// task's deadline, to the millisecond, has reached by its start, it ends
+// as at a timeout.
 func send(env Env, d deps, args []string, handOff func(sendWaitTask) error) error {
 	start := d.now()
 	s, err := parseSend(args)
@@ -184,7 +185,8 @@ func send(env Env, d deps, args []string, handOff func(sendWaitTask) error) erro
 		fmt.Fprintln(env.Stdout, how)
 	}
 	w := waitedSend{agent: a, msg: msg, slashCommand: isCommand(s.text), sent: sent, ready: ready, start: start, timeout: s.timeout}
-	if handOff != nil && (s.timeout == 0 || s.timeout > waitHold) {
+	if handOff != nil {
+		// A timeout within the hold ends the call first (waitedSend.wait).
 		w.hold = start.Add(waitHold)
 	}
 	end, err := w.wait(d)
