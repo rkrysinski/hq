@@ -646,9 +646,13 @@ func TestClaudeCodeSupervisesFromTheEntryHqMcpInstallWrote(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tl := range tools.Tools {
-		if tl.Name == "wait" && !strings.Contains(tl.Description, "(default 50, at most 3600)") {
+		if tl.Name == "wait" && !strings.Contains(tl.Description, "(default and at most 3600)") {
 			t.Fatalf("wait: %s", tl.Description)
 		}
+	}
+	// Its instructions are Claude Code's own: one call, no loop (#359).
+	if got := s.cs.InitializeResult().Instructions; !strings.Contains(got, "- To watch agents, call wait once") || strings.Contains(got, "in a loop") {
+		t.Fatalf("instructions: %s", got)
 	}
 	// A turn the supervisor started ends without a notification; a wait
 	// longer than Claude Desktop's returns as soon as it ends (an agent

@@ -13,9 +13,11 @@ import (
 )
 
 // DefaultWaitTimeout is how long hq wait waits when --timeout is not given,
-// and the most the MCP wait tool waits: below the 60 s Claude Desktop allows
-// a tool call of a local server (design §3.12), so hq wait called as a tool
-// returns "nothing yet" before its caller gives up on it.
+// and how long the MCP wait tool waits for Claude Desktop, given no timeout
+// and at most: below the 60 s Claude Desktop allows a tool call of a local
+// server (design §3.12), so hq wait called as a tool returns "nothing yet"
+// before its caller gives up on it. Claude Code's wait lasts up to an hour
+// (mcpClient's maxWait).
 const DefaultWaitTimeout = 50 * time.Second
 
 // waitStates are the states hq wait returns an agent in (spec §4.1).
