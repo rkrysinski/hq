@@ -1,0 +1,21 @@
+    0.0s 21:42:38Z >> tasks/get {"taskId": "nope"}
+    0.4s 21:42:38Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:42:38Z >> tasks/get {"taskId": "w1"}
+    0.4s 21:42:38Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:42:38Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:42:38Z << error -32021 Missing required client capability
+    0.0s 21:42:38Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.0s 21:42:38Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:42:39Z << acknowledged {"resultType": "complete"}
+    0.4s 21:42:39Z << acknowledged {"resultType": "complete"}
+    0.4s 21:42:39Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:42:39Z << task w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w working
+    0.0s 21:42:39Z >> tools/call {"name": "list", "arguments": {"names": ["b3"]}}
+    0.4s 21:42:39Z << result: agents [b3 working ''] next_since c9 structuredContent False isError False
+    0.4s 21:42:39Z >> tools/call {"name": "wait", "arguments": {"names": ["b3"], "since": "c9"}}
+21:42:54Z typed 'finish' into b3
+   15.3s 21:42:54Z << result: agents [b3 done 'Done: slow job of b3'] next_since c10 structuredContent False isError False
+    0.0s 21:42:54Z >> tools/call {"name": "list", "arguments": {"names": ["b2"]}}
+    0.4s 21:42:54Z << result: agents [b2 working ''] next_since c10 structuredContent False isError False
+    0.4s 21:42:54Z >> tools/call {"name": "wait", "arguments": {"names": ["b2"], "since": "c10"}}
+   50.4s 21:43:45Z << result: agents [] next_since c10 structuredContent False isError False

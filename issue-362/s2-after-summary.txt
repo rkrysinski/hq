@@ -1,0 +1,23 @@
+== t362b's state directory before: journals lock 
+    0.0s 21:37:46Z >> tools/call {"name": "list", "arguments": {}}
+    0.4s 21:37:46Z << result: agents [] next_since c0 structuredContent False isError False
+    0.4s 21:37:46Z >> tools/call {"name": "wait", "arguments": {"since": "c0"}}
+   50.4s 21:38:36Z << TASK HANDLE taskId w1:c0:mwzi6wyv:TmRiLpR1::CXkQNl385SJza5ySlVD0iw status working ttlMs null pollIntervalMs 5000
+== t362b's state directory after: journals lock task-key 
+== t362b asked for t362's id, then for its own
+    0.0s 21:38:36Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:38:37Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:38:37Z >> tasks/get {"taskId": "w1:c0:mwzi6wyv:TmRiLpR1::CXkQNl385SJza5ySlVD0iw"}
+    0.4s 21:38:37Z << task w1:c0:mwzi6wyv:TmRiLpR1::CXkQNl385SJza5ySlVD0iw working
+== t362 asked for t362b's id
+    0.0s 21:38:37Z >> tasks/get {"taskId": "w1:c0:mwzi6wyv:TmRiLpR1::CXkQNl385SJza5ySlVD0iw"}
+    0.4s 21:38:37Z << error -32602 Failed to retrieve task: Task not found
+== t362's state directory moved aside: hq.aside 
+    0.0s 21:38:37Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:38:38Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:38:38Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:38:38Z << error -32602 Failed to retrieve task: Task not found
+== after the refused asks: hq.aside 
+== moved back: counter journals lock task-key 
+    0.0s 21:38:38Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:38:38Z << task w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w working

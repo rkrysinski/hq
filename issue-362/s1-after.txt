@@ -1,0 +1,45 @@
+    0.0s 21:36:55Z >> tools/call {"name": "list", "arguments": {"names": ["b1"]}}
+    0.5s 21:36:55Z << {"jsonrpc": "2.0", "id": 1, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "content": [{"type": "text", "text": "{\n  \"agents\": [\n    {\n      \"name\": \"b1\",\n      \"repo\": \"repo\",\n      \"repo_path\": \"/tmp/hq-stub-t362/repo\",\n      \"branch\": \"main\",\n      \"state\": \"working\",\n      \"state_seq\": 3,\n      \"completion_seq\": null,\n      \"since\": \"2026-11-27T21:27:13.843887492Z\",\n      \"age_seconds\": 581,\n      \"last\": \"\",\n      \"sandbox\": \"claude-repo\",\n      \"setup\": \"default\",\n      \"pending\": 0,\n      \"own_tasks\": [],\n      \"asks\": null\n    }\n  ],\n  \"next_since\": \"c6\"\n}\n"}], "resultType": "complete"}}
+    0.5s 21:36:55Z >> tools/call {"name": "wait", "arguments": {"names": ["b1"], "since": "c6"}}
+   50.7s 21:37:45Z << {"jsonrpc": "2.0", "id": 2, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "task", "taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w", "status": "working", "createdAt": "2026-11-27T21:37:45.897Z", "lastUpdatedAt": "2026-11-27T21:37:45.897Z", "ttlMs": null, "pollIntervalMs": 5000}}
+== the id and its variants
+as-given w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w
+cursor w1:c5:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w
+names w1:c6:mwzi5tpl:prpvw2OK:b2:Gd-peL0IQ6q26fPpWTWh5w
+nonce w1:c6:mwzi5tpl:Arpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w
+moment w1:c6:mwzi5tpm:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w
+signature w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5A
+added w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5wx
+cut w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5
+    0.0s 21:37:45Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 1, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "complete", "taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w", "status": "working", "createdAt": "2026-11-27T21:37:45.897Z", "lastUpdatedAt": "2026-11-27T21:37:45.897Z", "ttlMs": null, "pollIntervalMs": 5000}}
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c5:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 2, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c5:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 3, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b2:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 4, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b2:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 5, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:Arpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 6, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:Arpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 7, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpm:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 8, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpm:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 9, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5A"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 10, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5A"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 11, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5wx"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 12, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5wx"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 13, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 14, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 15, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 16, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "complete", "taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w", "status": "working", "createdAt": "2026-11-27T21:37:45.897Z", "lastUpdatedAt": "2026-11-27T21:37:45.897Z", "ttlMs": null, "pollIntervalMs": 5000}}

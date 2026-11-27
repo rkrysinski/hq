@@ -1,0 +1,36 @@
+== the state directory before: counter journals lock 
+the server closed its output
+Traceback (most recent call last):
+  File "<qa>/qac.py", line 150, in <module>
+    main()
+    ~~~~^^
+  File "<qa>/qac.py", line 117, in main
+    m = c.request("tasks/get", {"taskId": open(rest).read().strip()})
+                                          ~~~~^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 's3-2.task'
+== first hq mcp
+    0.0s 21:38:38Z >> tools/call {"name": "list", "arguments": {"names": ["c1"]}}
+    0.4s 21:38:38Z << result: agents [c1 working ''] next_since c3 structuredContent False isError False
+   19.6s 21:38:58Z >> tools/call {"name": "wait", "arguments": {"names": ["c1"], "since": "c3"}}
+   69.8s 21:39:48Z << TASK HANDLE taskId w1:c3:mwzi8g4j:J8Z92-Zn:c1:24Rp_Ym3SyIlIeDEwXpXYg status working ttlMs null pollIntervalMs 5000
+== second hq mcp
+    0.0s 21:38:38Z >> tools/call {"name": "list", "arguments": {"names": ["c1"]}}
+== the state directory after
+drwx------ 3 agent agent 4096 Nov 27 22:39 .
+drwx------ 3 agent agent 4096 Nov 27 22:36 ..
+-rw------- 1 agent agent    2 Nov 27 22:38 counter
+drwx------ 2 agent agent 4096 Nov 27 22:38 journals
+-rw------- 1 agent agent    0 Nov 27 22:36 lock
+-rw------- 1 agent agent   32 Nov 27 22:39 task-key
+21:39:51Z typed 'finish' into c1
+== a third hq mcp, started afresh
+Traceback (most recent call last):
+  File "<qa>/qac.py", line 150, in <module>
+    main()
+    ~~~~^^
+  File "<qa>/qac.py", line 117, in main
+    m = c.request("tasks/get", {"taskId": open(rest).read().strip()})
+                                          ~~~~^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 's3-2.task'
+    0.0s 21:39:51Z >> tasks/get {"taskId": "w1:c3:mwzi8g4j:J8Z92-Zn:c1:24Rp_Ym3SyIlIeDEwXpXYg"}
+    0.4s 21:39:51Z << task w1:c3:mwzi8g4j:J8Z92-Zn:c1:24Rp_Ym3SyIlIeDEwXpXYg completed; result: agents [c1 done 'Done: slow job of c1'] next_since c4 structuredContent False isError False

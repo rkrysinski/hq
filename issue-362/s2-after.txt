@@ -1,0 +1,23 @@
+== t362b's state directory before: journals lock 
+    0.0s 21:37:46Z >> tools/call {"name": "list", "arguments": {}}
+    0.4s 21:37:46Z << {"jsonrpc": "2.0", "id": 1, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "content": [{"type": "text", "text": "{\n  \"agents\": [],\n  \"next_since\": \"c0\"\n}\n"}], "resultType": "complete"}}
+    0.4s 21:37:46Z >> tools/call {"name": "wait", "arguments": {"since": "c0"}}
+   50.4s 21:38:36Z << {"jsonrpc": "2.0", "id": 2, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "task", "taskId": "w1:c0:mwzi6wyv:TmRiLpR1::CXkQNl385SJza5ySlVD0iw", "status": "working", "createdAt": "2026-11-27T21:38:36.775Z", "lastUpdatedAt": "2026-11-27T21:38:36.775Z", "ttlMs": null, "pollIntervalMs": 5000}}
+== t362b's state directory after: journals lock task-key 
+== t362b asked for t362's id, then for its own
+    0.0s 21:38:36Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:38:37Z << {"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:38:37Z >> tasks/get {"taskId": "w1:c0:mwzi6wyv:TmRiLpR1::CXkQNl385SJza5ySlVD0iw"}
+    0.4s 21:38:37Z << {"jsonrpc": "2.0", "id": 2, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "complete", "taskId": "w1:c0:mwzi6wyv:TmRiLpR1::CXkQNl385SJza5ySlVD0iw", "status": "working", "createdAt": "2026-11-27T21:38:36.775Z", "lastUpdatedAt": "2026-11-27T21:38:36.775Z", "ttlMs": null, "pollIntervalMs": 5000}}
+== t362 asked for t362b's id
+    0.0s 21:38:37Z >> tasks/get {"taskId": "w1:c0:mwzi6wyv:TmRiLpR1::CXkQNl385SJza5ySlVD0iw"}
+    0.4s 21:38:37Z << {"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+== t362's state directory moved aside: hq.aside 
+    0.0s 21:38:37Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:38:38Z << {"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:38:38Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:38:38Z << {"jsonrpc": "2.0", "id": 2, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+== after the refused asks: hq.aside 
+== moved back: counter journals lock task-key 
+    0.0s 21:38:38Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:38:38Z << {"jsonrpc": "2.0", "id": 1, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "complete", "taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w", "status": "working", "createdAt": "2026-11-27T21:37:45.897Z", "lastUpdatedAt": "2026-11-27T21:37:45.897Z", "ttlMs": null, "pollIntervalMs": 5000}}

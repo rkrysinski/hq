@@ -1,0 +1,45 @@
+    0.0s 21:36:55Z >> tools/call {"name": "list", "arguments": {"names": ["b1"]}}
+    0.5s 21:36:55Z << result: agents [b1 working ''] next_since c6 structuredContent False isError False
+    0.5s 21:36:55Z >> tools/call {"name": "wait", "arguments": {"names": ["b1"], "since": "c6"}}
+   50.7s 21:37:45Z << TASK HANDLE taskId w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w status working ttlMs null pollIntervalMs 5000
+== the id and its variants
+as-given w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w
+cursor w1:c5:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w
+names w1:c6:mwzi5tpl:prpvw2OK:b2:Gd-peL0IQ6q26fPpWTWh5w
+nonce w1:c6:mwzi5tpl:Arpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w
+moment w1:c6:mwzi5tpm:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w
+signature w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5A
+added w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5wx
+cut w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5
+    0.0s 21:37:45Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << task w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w working
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c5:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c5:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b2:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b2:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:Arpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:Arpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpm:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpm:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5A"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5A"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5wx"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5wx"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/cancel {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5"}
+    0.4s 21:37:46Z << error -32602 Failed to retrieve task: Task not found
+    0.4s 21:37:46Z >> tasks/get {"taskId": "w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w"}
+    0.4s 21:37:46Z << task w1:c6:mwzi5tpl:prpvw2OK:b1:Gd-peL0IQ6q26fPpWTWh5w working

@@ -1,0 +1,41 @@
+$ git diff --stat spec-357-wait-task..HEAD
+ cmd/hq/mcp_integration_test.go             |  83 ++++++++++++++------
+ docs/design/hq.md                          |  13 ++--
+ internal/cli/deps.go                       |  11 ++-
+ internal/cli/fakes_test.go                 |  24 ++++++
+ internal/cli/waittask.go                   |  55 +++++++++-----
+ internal/cli/waittask_test.go              | 101 ++++++++++++++++++++++++
+ internal/taskid/taskid.go                  | 118 +++++++++++++++++++++++++++++
+ internal/taskid/taskid_integration_test.go | 114 ++++++++++++++++++++++++++++
+ 8 files changed, 469 insertions(+), 50 deletions(-)
+
+$ git grep -n -o -i "signed[^.]*\|task key[^.]*\|task-key[^.]*" -- docs/design/hq.md docs/adr/0022-claude-code-on-the-host-gets-its-wait-as-an-mcp-task.md | cut -c1-240
+docs/adr/0022-claude-code-on-the-host-gets-its-wait-as-an-mcp-task.md:10:signed with a key in hq's state directory, so that it cannot be built from the terms alone, as the extension requires of an id
+docs/design/hq.md:101:task-key: what signs the ids of MCP tasks (3
+docs/design/hq.md:303:signed
+docs/design/hq.md:303:task key, in 22 characters of base64url: `w1:c42:mujrox8w:-k3qtLzR:a,b:7DkqY0b2xN4Lw9sPq1ZtVg`, short, since Claude Code prints it into the model's context with the handle and again with the result
+docs/design/hq.md:303:task key is 32 random bytes in hq's state directory, `$XDG_STATE_HOME/hq/task-key` (`0600`, `internal/taskid`), out of every sandbox's reach as the journals are, and the id never holds it
+docs/design/hq.md:303:signed in another state directory, and one hq cannot check because the key went with the state directory are unknown tasks (below), and asking for one reads the key and makes none
+docs/design/hq.md:303:task key did not sign, is an unknown task, refused with -32602, after which Claude Code asks for it about five more minutes and then starts a turn with "outcome unknown"; a task method whose request does not declare th
+docs/design/hq.md:398:Task key | `$XDG_STATE_HOME/hq/task-key` (3
+docs/design/hq.md:449:signed with the task key in the user's state directory, out of every sandbox's reach (3
+docs/design/hq.md:644:signed with a key in hq's state directory (3
+docs/design/hq.md:644:task key, 32 random bytes in `$XDG_STATE_HOME/hq/task-key` that the first wait going on as a task makes, written aside and hard-linked into place, so `hq mcp`s that make it at once sign with one key and none overwrites
+docs/design/hq.md:644:signed in another state directory, or that hq cannot check because the key went with the directory is an unknown task (-32602), and asking for one makes no key; a valid id works as before, in any `hq mcp`
+
+$ git grep -n "w1:c42:mujrox8w" -- docs README.md GLOSSARY.md | cut -c1-200
+docs/design/hq.md:303:**The wait task (#361, ADR 0022).** Under Claude Code (`mcpClient`'s `tasks`) a `wait` given no timeout holds for 50 s (`waitHold`), as long as a `wait` lasted there before #359,
+
+$ git grep -n -e "tasks/get" -e "resultType" -e "io.modelcontextprotocol/tasks" -- "*.go" ":!*_test.go" | cut -c1-160
+internal/mcptasks/mcptasks.go:1:// Package mcptasks is the MCP Tasks extension (io.modelcontextprotocol/tasks,
+internal/mcptasks/mcptasks.go:6:// as a task, tasks/get and tasks/cancel. When the SDK has tasks, this package
+internal/mcptasks/mcptasks.go:26:const Extension = "io.modelcontextprotocol/tasks"
+internal/mcptasks/mcptasks.go:54://   - tasks/get answers with the task, working until ts gives its result,
+internal/mcptasks/mcptasks.go:58://   - tasks/get and tasks/cancel refuse a request that does not declare the
+internal/mcptasks/mcptasks.go:63:		mcp.AddReceivingCustomMethod(s, "tasks/get", func(ctx context.Context, _ *mcp.ServerSession, p *taskParams) (*getResult, erro
+internal/mcptasks/mcptasks.go:146:// find is the task a tasks/get or tasks/cancel asks for; or the refusal of
+internal/mcptasks/mcptasks.go:165:// complete is the resultType of every result but a task handle's.
+internal/mcptasks/mcptasks.go:168:// taskParams are the params of tasks/get and tasks/cancel.
+internal/mcptasks/mcptasks.go:199:	ResultType string `json:"resultType"`
+internal/mcptasks/mcptasks.go:207:	ResultType string `json:"resultType"`
+internal/mcptasks/mcptasks.go:215:	ResultType string `json:"resultType"`

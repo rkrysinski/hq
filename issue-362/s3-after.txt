@@ -1,0 +1,28 @@
+== the state directory before: counter journals lock 
+== first hq mcp
+    0.0s 21:41:04Z >> tools/call {"name": "list", "arguments": {"names": ["d1"]}}
+    0.4s 21:41:04Z << result: agents [d1 working ''] next_since c3 structuredContent False isError False
+   19.8s 21:41:24Z >> tools/call {"name": "wait", "arguments": {"names": ["d1"], "since": "c3"}}
+   70.1s 21:42:14Z << TASK HANDLE taskId w1:c3:mwzibkqn:vTBTX3Ww:d1:JSnmFawt4Zovz402Azp5JQ status working ttlMs null pollIntervalMs 5000
+   73.1s 21:42:17Z >> tasks/get {"taskId": "w1:c3:mwzibkqn:Wg3xP6Ox:d1:E8g1iAsMTGN_8PDjeVyLbA"}
+   73.1s 21:42:17Z << task w1:c3:mwzibkqn:Wg3xP6Ox:d1:E8g1iAsMTGN_8PDjeVyLbA working
+== second hq mcp
+    0.0s 21:41:09Z >> tools/call {"name": "list", "arguments": {"names": ["d1"]}}
+    0.4s 21:41:09Z << result: agents [d1 working ''] next_since c3 structuredContent False isError False
+   14.8s 21:41:24Z >> tools/call {"name": "wait", "arguments": {"names": ["d1"], "since": "c3"}}
+   65.0s 21:42:14Z << TASK HANDLE taskId w1:c3:mwzibkqn:Wg3xP6Ox:d1:E8g1iAsMTGN_8PDjeVyLbA status working ttlMs null pollIntervalMs 5000
+   68.1s 21:42:17Z >> tasks/get {"taskId": "w1:c3:mwzibkqn:vTBTX3Ww:d1:JSnmFawt4Zovz402Azp5JQ"}
+   68.1s 21:42:17Z << task w1:c3:mwzibkqn:vTBTX3Ww:d1:JSnmFawt4Zovz402Azp5JQ working
+== the state directory after
+drwx------ 3 agent agent 4096 Nov 27 22:42 .
+drwx------ 3 agent agent 4096 Nov 27 22:40 ..
+-rw------- 1 agent agent    2 Nov 27 22:41 counter
+drwx------ 2 agent agent 4096 Nov 27 22:41 journals
+-rw------- 1 agent agent    0 Nov 27 22:40 lock
+-rw------- 1 agent agent   32 Nov 27 22:42 task-key
+21:42:17Z typed 'finish' into d1
+== a third hq mcp, started afresh
+    0.0s 21:42:17Z >> tasks/get {"taskId": "w1:c3:mwzibkqn:vTBTX3Ww:d1:JSnmFawt4Zovz402Azp5JQ"}
+    0.4s 21:42:17Z << task w1:c3:mwzibkqn:vTBTX3Ww:d1:JSnmFawt4Zovz402Azp5JQ completed; result: agents [d1 done 'Done: slow job of d1'] next_since c4 structuredContent False isError False
+    0.4s 21:42:17Z >> tasks/get {"taskId": "w1:c3:mwzibkqn:Wg3xP6Ox:d1:E8g1iAsMTGN_8PDjeVyLbA"}
+    0.4s 21:42:17Z << task w1:c3:mwzibkqn:Wg3xP6Ox:d1:E8g1iAsMTGN_8PDjeVyLbA completed; result: agents [d1 done 'Done: slow job of d1'] next_since c4 structuredContent False isError False

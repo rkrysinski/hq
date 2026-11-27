@@ -1,0 +1,41 @@
+    0.0s 21:28:04Z >> tools/call {"name": "list", "arguments": {"names": ["b1"]}}
+    0.4s 21:28:05Z << result: agents [b1 working ''] next_since c6 structuredContent False isError False
+    0.4s 21:28:05Z >> tools/call {"name": "wait", "arguments": {"names": ["b1"], "since": "c6"}}
+   50.4s 21:28:55Z << TASK HANDLE taskId w1:c6:mwzhugal:r30UQiiT:b1 status working ttlMs null pollIntervalMs 5000
+== the id and its variants
+as-given w1:c6:mwzhugal:r30UQiiT:b1
+cursor w1:c5:mwzhugal:r30UQiiT:b1
+names w1:c6:mwzhugal:r30UQiiT:b2
+nonce w1:c6:mwzhugal:A30UQiiT:b1
+moment w1:c6:mwzhugam:r30UQiiT:b1
+added w1:c6:mwzhugal:r30UQiiT:b1x
+cut w1:c6:mwzhugal:r30UQiiT:b
+    0.0s 21:28:55Z >> tasks/get {"taskId": "w1:c6:mwzhugal:r30UQiiT:b1"}
+    0.4s 21:28:55Z << task w1:c6:mwzhugal:r30UQiiT:b1 working
+    0.4s 21:28:55Z >> tasks/get {"taskId": "w1:c5:mwzhugal:r30UQiiT:b1"}
+    0.4s 21:28:55Z << task w1:c5:mwzhugal:r30UQiiT:b1 working
+    0.4s 21:28:55Z >> tasks/cancel {"taskId": "w1:c5:mwzhugal:r30UQiiT:b1"}
+    0.4s 21:28:55Z << acknowledged {"resultType": "complete"}
+    0.4s 21:28:55Z >> tasks/get {"taskId": "w1:c6:mwzhugal:r30UQiiT:b2"}
+    0.4s 21:28:55Z << task w1:c6:mwzhugal:r30UQiiT:b2 working
+    0.4s 21:28:55Z >> tasks/cancel {"taskId": "w1:c6:mwzhugal:r30UQiiT:b2"}
+    0.4s 21:28:55Z << acknowledged {"resultType": "complete"}
+    0.4s 21:28:55Z >> tasks/get {"taskId": "w1:c6:mwzhugal:A30UQiiT:b1"}
+    0.4s 21:28:55Z << task w1:c6:mwzhugal:A30UQiiT:b1 working
+    0.4s 21:28:55Z >> tasks/cancel {"taskId": "w1:c6:mwzhugal:A30UQiiT:b1"}
+    0.4s 21:28:55Z << acknowledged {"resultType": "complete"}
+    0.4s 21:28:55Z >> tasks/get {"taskId": "w1:c6:mwzhugam:r30UQiiT:b1"}
+    0.4s 21:28:55Z << task w1:c6:mwzhugam:r30UQiiT:b1 working
+    0.4s 21:28:55Z >> tasks/cancel {"taskId": "w1:c6:mwzhugam:r30UQiiT:b1"}
+    0.4s 21:28:55Z << acknowledged {"resultType": "complete"}
+    0.4s 21:28:55Z >> tasks/get {"taskId": "w1:c6:mwzhugal:r30UQiiT:b1x"}
+    0.4s 21:28:55Z << task w1:c6:mwzhugal:r30UQiiT:b1x working
+    0.4s 21:28:55Z >> tasks/cancel {"taskId": "w1:c6:mwzhugal:r30UQiiT:b1x"}
+    0.4s 21:28:55Z << acknowledged {"resultType": "complete"}
+    0.4s 21:28:55Z >> tasks/get {"taskId": "w1:c6:mwzhugal:r30UQiiT:b"}
+    0.4s 21:28:55Z << task w1:c6:mwzhugal:r30UQiiT:b working
+    0.4s 21:28:55Z >> tasks/cancel {"taskId": "w1:c6:mwzhugal:r30UQiiT:b"}
+    0.4s 21:28:55Z << acknowledged {"resultType": "complete"}
+== check 2, before: t362b asked for t362's id
+    0.0s 21:28:55Z >> tasks/get {"taskId": "w1:c6:mwzhugal:r30UQiiT:b1"}
+    0.4s 21:28:56Z << task w1:c6:mwzhugal:r30UQiiT:b1 working

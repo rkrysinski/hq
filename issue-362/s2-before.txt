@@ -1,0 +1,2 @@
+    0.0s 21:28:55Z >> tasks/get {"taskId": "w1:c6:mwzhugal:r30UQiiT:b1"}
+    0.4s 21:28:56Z << {"jsonrpc": "2.0", "id": 1, "result": {"_meta": {"io.modelcontextprotocol/serverInfo": {"name": "hq", "title": "hq", "version": "dev"}}, "resultType": "complete", "taskId": "w1:c6:mwzhugal:r30UQiiT:b1", "status": "working", "createdAt": "2026-11-27T21:28:55.293Z", "lastUpdatedAt": "2026-11-27T21:28:55.293Z", "ttlMs": null, "pollIntervalMs": 5000}}
