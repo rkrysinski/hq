@@ -1,0 +1,82 @@
+# Trial T-c, round 2 (texts that say: call wait with no timeout), hq 683f6f1 + no-timeout texts (uncommitted)
+
+run try1: 1 hq processes started, 5 model requests in the run's transcripts
+  20:50:32.410Z  hq process 496902: start
+  20:57:24.906Z  hq process 496902: signal 2
+  20:57:24.907Z  hq process 496902: exit -2
+  20:50:36.791Z  said: Watch the hq agent a with hq's tools until it is done, then tell me in one line what its last message says, and stop watching.
+  20:56:11.635Z  finished a
+  20:57:24.892Z  said: /exit
+wait {"names": ["a"], "since": "c15"}, called 20:50:40.025Z by process 496902
+  answered with a task handle after 50.2 s: taskId w1:c15:mwzgic0e:muIEtjVj:a, status working, ttlMs None, pollIntervalMs 5000
+  tasks/get: 58, the first 0.014 s after the handle, by processes [496902]
+  gaps between tasks/get of one process: min 5.01 s, median 5.01 s, max 5.03 s (57 gaps)
+  hq's time to answer a tasks/get: median 11.9 ms, max 21.6 ms
+  the turn that took the handle ended 20:51:31.066Z, 0.8 s after it, with 1 model request(s) after the handle ['20:51:30.280Z']
+  completed at 20:56:16.101Z (336.1 s = 5.6 min after the call), structuredContent False, isError False: {   "agents": [     {       "name": "a",       "repo": "repo",       "repo_path": "/tmp/hq-stub-t361/repo",       "branch": "main",       "state": "done",       "state_seq": 19,       "completion_seq"
+  model requests between the end of that turn and the completion (285.0 s): 0 []
+  first model request after the completion: 20:56:16.169Z, 67 ms after it
+  completed 4.47 s after the agent was let finish (20:56:11.635Z)
+
+run clear2: 1 hq processes started, 5 model requests in the run's transcripts
+  20:51:05.979Z  hq process 503879: start
+  20:57:25.509Z  hq process 503879: signal 2
+  20:57:25.509Z  hq process 503879: exit -2
+  20:51:09.841Z  said: Watch the hq agent b with hq's tools until it is done, then tell me in one line what its last message says, and stop watching.
+  20:52:17.957Z  said: /clear
+  20:53:18.267Z  finished b
+  20:57:25.499Z  said: /exit
+wait {"names": ["b"], "since": "c15"}, called 20:51:13.139Z by process 503879
+  answered with a task handle after 50.0 s: taskId w1:c15:mwzgj1eu:cXTdUgFW:b, status working, ttlMs None, pollIntervalMs 5000
+  tasks/get: 16, the first 0.026 s after the handle, by processes [503879]
+  gaps between tasks/get of one process: min 5.01 s, median 5.02 s, max 5.03 s (15 gaps)
+  hq's time to answer a tasks/get: median 12.9 ms, max 19.7 ms
+  the turn that took the handle ended 20:52:04.269Z, 1.1 s after it, with 1 model request(s) after the handle ['20:52:03.215Z']
+  completed at 20:53:18.488Z (125.3 s = 2.1 min after the call), structuredContent False, isError False: {   "agents": [     {       "name": "b",       "repo": "repo",       "repo_path": "/tmp/hq-stub-t361/repo",       "branch": "main",       "state": "done",       "state_seq": 16,       "completion_seq"
+  model requests between the end of that turn and the completion (74.2 s): 0 []
+  first model request after the completion: 20:53:18.539Z, 51 ms after it
+  completed 0.22 s after the agent was let finish (20:53:18.267Z)
+
+run compact2: 1 hq processes started, 5 model requests in the run's transcripts
+  20:51:05.936Z  hq process 503808: start
+  20:57:26.129Z  hq process 503808: signal 2
+  20:57:26.130Z  hq process 503808: exit -2
+  20:51:10.448Z  said: Watch the hq agent c with hq's tools until it is done, then tell me in one line what its last message says, and stop watching.
+  20:52:18.567Z  said: /compact
+  20:53:18.272Z  finished c
+  20:57:26.110Z  said: /exit
+wait {"names": ["c"], "since": "c15"}, called 20:51:13.486Z by process 503808
+  answered with a task handle after 50.1 s: taskId w1:c15:mwzgj1r0:onpEJmCW:c, status working, ttlMs None, pollIntervalMs 5000
+  tasks/get: 16, the first 0.008 s after the handle, by processes [503808]
+  gaps between tasks/get of one process: min 5.01 s, median 5.01 s, max 5.02 s (15 gaps)
+  hq's time to answer a tasks/get: median 6.0 ms, max 7.7 ms
+  the turn that took the handle ended 20:52:04.774Z, 1.2 s after it, with 1 model request(s) after the handle ['20:52:03.629Z']
+  completed at 20:53:18.758Z (125.3 s = 2.1 min after the call), structuredContent False, isError False: {   "agents": [     {       "name": "c",       "repo": "repo",       "repo_path": "/tmp/hq-stub-t361/repo",       "branch": "main",       "state": "done",       "state_seq": 17,       "completion_seq"
+  model requests between the end of that turn and the completion (74.0 s): 0 []
+  first model request after the completion: 20:53:18.798Z, 39 ms after it
+  completed 0.49 s after the agent was let finish (20:53:18.272Z)
+
+run resume2: 2 hq processes started, 5 model requests in the run's transcripts
+  20:51:06.237Z  hq process 504020: start
+  20:52:28.183Z  hq process 504020: signal 2
+  20:52:28.184Z  hq process 504020: exit -2
+  20:52:54.862Z  hq process 542542: start
+  20:57:26.731Z  hq process 542542: signal 2
+  20:57:26.731Z  hq process 542542: exit -2
+  20:51:11.634Z  said: Watch the hq agent d with hq's tools until it is done, then tell me in one line what its last message says, and stop watching.
+  20:52:19.182Z  said: /exit
+  20:52:28.178Z  chose: Exit and stop tasks
+  20:52:54.386Z  resumed: claude --resume (session of the run)
+  20:53:18.275Z  finished d
+  20:57:26.719Z  said: /exit
+wait {"names": ["d"], "since": "c15"}, called 20:51:14.060Z by process 504020
+  answered with a task handle after 50.1 s: taskId w1:c15:mwzgj25t:9mWrtfgh:d, status working, ttlMs None, pollIntervalMs 5000
+  tasks/get: 11, the first 0.029 s after the handle, by processes [504020, 542542]
+  gaps between tasks/get of one process: min 5.01 s, median 5.01 s, max 5.03 s (9 gaps)
+  hq's time to answer a tasks/get: median 8.1 ms, max 15.7 ms
+  process 504020's last tasks/get 20:52:24.240Z, process 542542's first 20:52:55.140Z (30.9 s later)
+  the turn that took the handle ended 20:52:05.138Z, 1.0 s after it, with 1 model request(s) after the handle ['20:52:04.192Z']
+  completed at 20:53:20.197Z (126.1 s = 2.1 min after the call), structuredContent False, isError False: {   "agents": [     {       "name": "d",       "repo": "repo",       "repo_path": "/tmp/hq-stub-t361/repo",       "branch": "main",       "state": "done",       "state_seq": 18,       "completion_seq"
+  model requests between the end of that turn and the completion (75.1 s): 0 []
+  first model request after the completion: 20:53:20.261Z, 63 ms after it
+  completed 1.92 s after the agent was let finish (20:53:18.275Z)

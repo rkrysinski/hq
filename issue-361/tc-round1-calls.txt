@@ -1,0 +1,13 @@
+# Trial T-c, round 1 (texts of 63978a9, before 'with no timeout'): the tool calls each supervisor made
+== quiet
+  tools/call list {"names": ["a"]}
+  tools/call wait {"names": ["a"], "since": "c15", "timeout": 600}
+== clear
+  tools/call list {"names": ["b"]}
+  tools/call wait {"names": ["b"], "since": "c15", "timeout": 600}
+== compact
+  tools/call list {"names": ["c"]}
+  tools/call wait {"names": ["c"], "since": "c15", "timeout": 600}
+== resume
+  tools/call list {"names": ["d"]}
+  tools/call wait {"names": ["d"], "since": "c15", "timeout": 600}

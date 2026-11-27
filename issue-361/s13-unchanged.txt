@@ -1,0 +1,18 @@
+$ git diff --stat spec-357-wait-task...HEAD
+ README.md                      |   2 +-
+ cmd/hq/mcp_integration_test.go | 157 ++++++++++++-
+ docs/design/hq.md              |  15 +-
+ docs/requirements/spec.md      |   8 +-
+ internal/cli/mcp.go            |  55 ++++-
+ internal/cli/mcp_test.go       |  24 +-
+ internal/cli/wait.go           |  32 ++-
+ internal/cli/waittask.go       | 163 +++++++++++++
+ internal/cli/waittask_test.go  | 514 +++++++++++++++++++++++++++++++++++++++++
+ internal/mcptasks/mcptasks.go  | 216 +++++++++++++++++
+ 10 files changed, 1145 insertions(+), 41 deletions(-)
+
+$ git diff spec-357-wait-task...HEAD -- internal/version internal/state internal/mcpconfig scripts/ | wc -l
+0
+
+$ hq mcp install claude-code (into an empty .claude.json of the trial), the entry it wrote:
+{"type": "stdio", "args": ["mcp", "claude-code"], "timeout": 3660000}

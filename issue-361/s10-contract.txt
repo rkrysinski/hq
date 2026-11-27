@@ -1,0 +1,29 @@
+$ git grep -n -E "tasks/(get|cancel)|io\.modelcontextprotocol/tasks|resultType|pollIntervalMs|ttlMs|AddReceivingCustomMethod" -- "*.go" ":!*_test.go"
+internal/cli/waittask.go:26:// (pollIntervalMs, which it takes from 250 ms to 30 s), set by measurement
+internal/mcptasks/mcptasks.go:1:// Package mcptasks is the MCP Tasks extension (io.modelcontextprotocol/tasks,
+internal/mcptasks/mcptasks.go:6:// as a task, tasks/get and tasks/cancel. When the SDK has tasks, this package
+internal/mcptasks/mcptasks.go:26:const Extension = "io.modelcontextprotocol/tasks"
+internal/mcptasks/mcptasks.go:54://   - tasks/get answers with the task, working until ts gives its result,
+internal/mcptasks/mcptasks.go:56://   - tasks/cancel is acknowledged and changes nothing: nothing runs that
+internal/mcptasks/mcptasks.go:58://   - tasks/get and tasks/cancel refuse a request that does not declare the
+internal/mcptasks/mcptasks.go:63:		mcp.AddReceivingCustomMethod(s, "tasks/get", func(ctx context.Context, _ *mcp.ServerSession, p *taskParams) (*getResult, error) {
+internal/mcptasks/mcptasks.go:74:		mcp.AddReceivingCustomMethod(s, "tasks/cancel", func(_ context.Context, _ *mcp.ServerSession, p *taskParams) (*ackResult, error) {
+internal/mcptasks/mcptasks.go:146:// find is the task a tasks/get or tasks/cancel asks for; or the refusal of
+internal/mcptasks/mcptasks.go:165:// complete is the resultType of every result but a task handle's.
+internal/mcptasks/mcptasks.go:168:// taskParams are the params of tasks/get and tasks/cancel.
+internal/mcptasks/mcptasks.go:181:	TTLMs          *int64 `json:"ttlMs"`
+internal/mcptasks/mcptasks.go:182:	PollIntervalMs int64  `json:"pollIntervalMs"`
+internal/mcptasks/mcptasks.go:199:	ResultType string `json:"resultType"`
+internal/mcptasks/mcptasks.go:207:	ResultType string `json:"resultType"`
+internal/mcptasks/mcptasks.go:215:	ResultType string `json:"resultType"`
+
+$ git grep -n "mcptasks\." -- "*.go" ":!*_test.go" ":!internal/mcptasks"
+internal/cli/mcp.go:627:		mcptasks.Serve(s, waitTasks{d}, d.now)
+internal/cli/mcp.go:698:		task := in.Timeout <= 0 && mcptasks.Offered(ctx)
+internal/cli/waittask.go:77:func (t waitTask) task() mcptasks.Task {
+internal/cli/waittask.go:78:	return mcptasks.Task{ID: t.id(), Created: t.created, PollInterval: waitTaskPoll}
+internal/cli/waittask.go:90:// go on as a task (mcptasks.Offered), args holding waitHold as its timeout:
+internal/cli/waittask.go:109:	mcptasks.HandOff(ctx, t.task())
+internal/cli/waittask.go:113:// waitTasks answers for the wait tasks of hq's MCP server (mcptasks.Tasks).
+internal/cli/waittask.go:117:func (w waitTasks) Task(id string) (mcptasks.Task, bool) {
+internal/cli/waittask.go:125:func (w waitTasks) Result(_ context.Context, task mcptasks.Task) *mcp.CallToolResult {

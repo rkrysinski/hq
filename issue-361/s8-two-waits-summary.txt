@@ -1,0 +1,22 @@
+== list's next_since: c37
+21:06:21Z typed 'finish' into e6
+== first wait
+    0.0s 21:05:19Z >> tools/call {"name": "wait", "arguments": {"names": ["e6"], "since": "c37"}}
+   50.6s 21:06:09Z << TASK HANDLE taskId w1:c38:mwzh16so:44UO-EGz:e6 status working ttlMs null pollIntervalMs 5000
+   50.6s 21:06:09Z >> tasks/get {"taskId": "w1:c38:mwzh16so:44UO-EGz:e6"}
+   50.6s 21:06:09Z << task w1:c38:mwzh16so:44UO-EGz:e6 working
+   55.6s 21:06:14Z >> tasks/get {"taskId": "w1:c38:mwzh16so:44UO-EGz:e6"}
+   55.6s 21:06:14Z << task w1:c38:mwzh16so:44UO-EGz:e6 working
+   60.6s 21:06:19Z >> tasks/get {"taskId": "w1:c38:mwzh16so:44UO-EGz:e6"}
+   60.6s 21:06:19Z << task w1:c38:mwzh16so:44UO-EGz:e6 working
+   65.6s 21:06:24Z >> tasks/get {"taskId": "w1:c38:mwzh16so:44UO-EGz:e6"}
+   65.6s 21:06:24Z << task w1:c38:mwzh16so:44UO-EGz:e6 completed; result: agents [e6 done 'Done: slow job of e6'] next_since c41 structuredContent False isError False
+== second wait
+    0.0s 21:05:22Z >> tools/call {"name": "wait", "arguments": {"names": ["e6"], "since": "c37"}}
+   50.4s 21:06:12Z << TASK HANDLE taskId w1:c38:mwzh18ze:BnHNL8rI:e6 status working ttlMs null pollIntervalMs 5000
+   50.4s 21:06:12Z >> tasks/get {"taskId": "w1:c38:mwzh18ze:BnHNL8rI:e6"}
+   50.4s 21:06:12Z << task w1:c38:mwzh18ze:BnHNL8rI:e6 working
+   55.4s 21:06:17Z >> tasks/get {"taskId": "w1:c38:mwzh18ze:BnHNL8rI:e6"}
+   55.4s 21:06:17Z << task w1:c38:mwzh18ze:BnHNL8rI:e6 working
+   60.4s 21:06:22Z >> tasks/get {"taskId": "w1:c38:mwzh18ze:BnHNL8rI:e6"}
+   60.4s 21:06:22Z << task w1:c38:mwzh18ze:BnHNL8rI:e6 completed; result: agents [e6 done 'Done: slow job of e6'] next_since c41 structuredContent False isError False

@@ -1,0 +1,17 @@
+    0.0s 21:05:22Z >> tools/call {"name": "list", "arguments": {"names": ["e7"]}}
+    0.4s 21:05:23Z << result: agents [e7 working ''] next_since c37 structuredContent False isError False
+    0.4s 21:05:23Z >> tools/call {"name": "wait", "arguments": {"names": ["e7"], "since": "c37"}}
+   50.6s 21:06:13Z << result: agents [] next_since c38 structuredContent False isError False
+nothing yet
+next: hq wait e7 --since c41
+== hq wait e7 returned after 51 s
+== sbx
+    0.0s 21:05:25Z >> tools/call {"name": "list", "arguments": {"names": ["e7"]}}
+    0.4s 21:05:26Z << result: agents [e7 working ''] next_since c38 structuredContent False isError False
+    0.4s 21:05:26Z >> tools/call {"name": "wait", "arguments": {"names": ["e7"], "since": "c38"}}
+  110.5s 21:07:16Z << result: agents [] next_since c42 structuredContent False isError False
+== claude-code, timeout 70
+    0.0s 21:05:28Z >> tools/call {"name": "list", "arguments": {"names": ["e7"]}}
+    0.4s 21:05:29Z << result: agents [e7 working ''] next_since c38 structuredContent False isError False
+    0.4s 21:05:29Z >> tools/call {"name": "wait", "arguments": {"names": ["e7"], "since": "c38", "timeout": 70}}
+   70.5s 21:06:39Z << result: agents [] next_since c42 structuredContent False isError False

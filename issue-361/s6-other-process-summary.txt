@@ -1,0 +1,16 @@
+    0.0s 21:05:14Z >> tools/call {"name": "list", "arguments": {"names": ["e5"]}}
+    0.4s 21:05:15Z << result: agents [e5 working ''] next_since c37 structuredContent False isError False
+    0.4s 21:05:15Z >> tools/call {"name": "wait", "arguments": {"names": ["e5"], "since": "c37"}}
+   50.6s 21:06:05Z << TASK HANDLE taskId w1:c38:mwzh13ej:OjoCzqIu:e5 status working ttlMs null pollIntervalMs 5000
+== the first hq mcp has ended; a second one is asked for w1:c38:mwzh13ej:OjoCzqIu:e5
+    0.0s 21:06:05Z >> tasks/get {"taskId": "w1:c38:mwzh13ej:OjoCzqIu:e5"}
+    0.4s 21:06:05Z << task w1:c38:mwzh13ej:OjoCzqIu:e5 working
+    0.4s 21:06:05Z >> tasks/get {"taskId": "w1:c38:mwzh13ej:OjoCzqIu:e5"}
+    0.4s 21:06:05Z << task w1:c38:mwzh13ej:OjoCzqIu:e5 working
+    5.4s 21:06:10Z >> tasks/get {"taskId": "w1:c38:mwzh13ej:OjoCzqIu:e5"}
+    5.4s 21:06:10Z << task w1:c38:mwzh13ej:OjoCzqIu:e5 working
+   10.4s 21:06:15Z >> tasks/get {"taskId": "w1:c38:mwzh13ej:OjoCzqIu:e5"}
+   10.4s 21:06:15Z << task w1:c38:mwzh13ej:OjoCzqIu:e5 working
+21:06:17Z typed 'finish' into e5
+   15.4s 21:06:20Z >> tasks/get {"taskId": "w1:c38:mwzh13ej:OjoCzqIu:e5"}
+   15.4s 21:06:20Z << task w1:c38:mwzh13ej:OjoCzqIu:e5 completed; result: agents [e5 done 'Done: slow job of e5'] next_since c40 structuredContent False isError False

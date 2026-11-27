@@ -1,0 +1,33 @@
+    0.0s 21:05:06Z >> tools/call {"name": "list", "arguments": {"names": ["e3"]}}
+    0.4s 21:05:07Z << result: agents [e3 working ''] next_since c37 structuredContent False isError False
+    0.4s 21:05:07Z >> tools/call {"name": "wait", "arguments": {"names": ["e3"], "since": "c37"}}
+   50.5s 21:05:57Z << TASK HANDLE taskId w1:c38:mwzh0x74:itu0z7pW:e3 status working ttlMs null pollIntervalMs 5000
+   50.5s 21:05:57Z >> tasks/get {"taskId": "w1:c38:mwzh0x74:itu0z7pW:e3"}
+   50.5s 21:05:57Z << task w1:c38:mwzh0x74:itu0z7pW:e3 working
+   50.5s 21:05:57Z >> tasks/get {"taskId": "w1:c38:mwzh0x74:itu0z7pW:e3"}
+   50.5s 21:05:57Z << task w1:c38:mwzh0x74:itu0z7pW:e3 working
+   55.5s 21:06:02Z >> tasks/get {"taskId": "w1:c38:mwzh0x74:itu0z7pW:e3"}
+   55.6s 21:06:02Z << task w1:c38:mwzh0x74:itu0z7pW:e3 working
+   60.6s 21:06:07Z >> tasks/get {"taskId": "w1:c38:mwzh0x74:itu0z7pW:e3"}
+   60.6s 21:06:07Z << task w1:c38:mwzh0x74:itu0z7pW:e3 working
+   65.6s 21:06:12Z >> tasks/get {"taskId": "w1:c38:mwzh0x74:itu0z7pW:e3"}
+   65.6s 21:06:12Z << task w1:c38:mwzh0x74:itu0z7pW:e3 working
+   70.6s 21:06:17Z >> tasks/get {"taskId": "w1:c38:mwzh0x74:itu0z7pW:e3"}
+   70.6s 21:06:17Z << task w1:c38:mwzh0x74:itu0z7pW:e3 working
+21:06:18Z typed 'finish' into e3
+   75.6s 21:06:22Z >> tasks/get {"taskId": "w1:c38:mwzh0x74:itu0z7pW:e3"}
+   75.6s 21:06:22Z << task w1:c38:mwzh0x74:itu0z7pW:e3 completed; result: agents [e3 done 'Done: slow job of e3'] next_since c41 structuredContent False isError False
+   75.6s 21:06:22Z >> tools/call {"name": "wait", "arguments": {"names": ["e3"], "since": "c41"}}
+  125.6s 21:07:12Z << TASK HANDLE taskId w1:c42:mwzh2j5a:tXsUq5XY:e3 status working ttlMs null pollIntervalMs 5000
+== hq ls e3 before the cancels
+NAME  REPO  BRANCH  STATE  AGE  LAST
+e3    repo  main    done   54s  Done: slow job of e3
+    0.0s 21:07:13Z >> tasks/cancel {"taskId": "w1:c42:mwzh2j5a:tXsUq5XY:e3"}
+    0.0s 21:07:13Z >> tasks/cancel {"taskId": "w1:c42:mwzh2j5a:tXsUq5XY:e3"}
+    0.4s 21:07:13Z << acknowledged {"resultType": "complete"}
+    0.4s 21:07:13Z << acknowledged {"resultType": "complete"}
+    0.4s 21:07:13Z >> tasks/get {"taskId": "w1:c42:mwzh2j5a:tXsUq5XY:e3"}
+    0.4s 21:07:13Z << task w1:c42:mwzh2j5a:tXsUq5XY:e3 working
+== hq ls e3 after the cancels
+NAME  REPO  BRANCH  STATE  AGE  LAST
+e3    repo  main    done   54s  Done: slow job of e3

@@ -1,0 +1,52 @@
+== in a loop
+docs/requirements/spec.md:340:aude Desktop gives one 60 s, so its supervisor waits 50 s per call and calls `wait` again in a loop; `sbx`'s gateway does not cut a call short, and the Claude Code in the sandbox gives a ca
+docs/requirements/spec.md:340:ll's result to the same turn up to 120 s, so a supervisor there waits 110 s per call, in a loop as well. Claude Code's `wait` holds 50 s, so a change within them comes back in the same 
+docs/design/hq.md:293:by asking an agent; ask with `send` and `read` the answer at the stop; watch with `wait`, in a loop for Claude Desktop and the gateway and one call at a time for Claude Code (below); never 
+docs/design/hq.md:312:d with Claude Code 2.1.302: 12 `claude mcp add-json` saves while hq rewrote the same file in a loop (about 3,000 installs per run) lost 21 of 72 saves in 6 runs with the hq before this chan
+docs/design/hq.md:314:native` already registered, so their next install leaves it alone (#153). `mcp sbx` waits in a loop as Claude Desktop's does, its own limit 110 s (`gatewayWait`, #360): the gateway does not
+README.md:168: lasts longer than two minutes to the background. The supervisor there calls `wait` again in a loop, as under Claude Desktop. The sandbox must be running: start the supervisor there first (
+== an hour
+docs/requirements/spec.md:53: whose Claude Code in the sandbox gives a call's result to the same turn up to 120 s, and an hour for Claude Code, whose `wait` given none that sees no change within 50 s goes on as a wai
+docs/requirements/spec.md:339:hen given no timeout (that of `wait`: 50 s for Claude Desktop, 110 s for `sbx`'s gateway, an hour for Claude Code), returning `next_since` at that limit to go on with a `wait` that names 
+docs/requirements/spec.md:340:oes not declare the extension, and a `wait` given a timeout, wait on in their call, up to an hour, which Claude Code moves to the background after 120 s, the result starting the superviso
+docs/requirements/spec.md:340:r's next turn, so an hour with nothing to report costs two model requests. Each client gets instructions and `wait`
+docs/requirements/spec.md:348: and where a request that does not declare the MCP Tasks extension gets one call of up to an hour, its result starting a turn once Claude Code has moved the call to the background.
+docs/design/hq.md:232:github.com/repos/.../releases/latest`: a second base URL, and 60 unauthenticated requests an hour per address, shared behind a company's NAT); asking GitHub inline with a short timeout (s
+docs/design/hq.md:301:initialize request, which no client promises to keep. For Claude Code `wait`'s maximum is an hour, and so is its default for a call that does not go on as a wait task (below), as for a `s
+docs/design/hq.md:301:er than 120 s to the background and starts the supervisor's next turn with its result, so an hour with nothing to report costs two model requests, where the default of 50 s Claude Code ha
+docs/design/hq.md:303:lt comes at most 5 s after its change, little beside an agent's turn, for about 720 looks an hour, and a poll whose `sbx ls` takes all of its 5 s (`sbxPollTimeout`) ends before the next o
+docs/design/hq.md:340:Desktop's measured limit (`cli.DefaultWaitTimeout`), and `hq mcp claude-code` waits up to an hour, or holds 50 s and goes on as a wait task (3.12). The two figures are written once, `agen
+docs/design/hq.md:584:iguration, and `hq mcp claude-code`, the entry's command line, lets one `wait` last up to an hour, with the entry's `timeout` set above that. Claude Desktop's setup and limit do not chang
+docs/design/hq.md:639: (draft): under Claude Code a `wait` or a `send` with `wait` given no timeout lasts up to an hour, and each client gets instructions and `wait` and `send` descriptions of its own (3.12, 5
+docs/design/hq.md:639:en no timeout is given, so Claude Desktop and the gateway keep 50 s and Claude Code waits an hour; a timeout given is cut to `maxWait` as before, and the entry `hq mcp install claude-code
+docs/design/hq.md:641:2, 5.1, 7.2, spec §4.1, Phase 2, #361, ADR 0022): before, it waited on in its call up to an hour, which Claude Code moved to the background at 120 s, two model requests for an hour with 
+README.md:150:ude Code that takes no MCP tasks, or a `wait` given a timeout, waits in one call of up to an hour instead: Claude Code moves it to the background after two minutes and its result starts C
+README.md:150:laude's next turn, two model requests for an hour with nothing to report. If you added hq to Claude Code by hand before, at local or projec
+== two model requests
+docs/requirements/spec.md:340:, the result starting the supervisor's next turn, so an hour with nothing to report costs two model requests. Each client gets instructions and `wait` and `send` descriptions of its own: Claude Desk
+docs/design/hq.md:301:tarts the supervisor's next turn with its result, so an hour with nothing to report costs two model requests, where the default of 50 s Claude Code had before cost one every 50 s. The texts follow t
+docs/design/hq.md:641: waited on in its call up to an hour, which Claude Code moved to the background at 120 s, two model requests for an hour with nothing to report. The call is answered with a task handle, Claude Code 
+README.md:150:de moves it to the background after two minutes and its result starts Claude's next turn, two model requests for an hour with nothing to report. If you added hq to Claude Code by hand before, at loc
+== with no timeout
+docs/requirements/spec.md:340:the gateway's describe the loop with their limits; Claude Code's say to call `wait` once, with no timeout, to end the turn when Claude Code says a `wait` or a `send` with `wait` started a task or
+docs/design/hq.md:301:laude Code's instructions and its `wait` and `send` descriptions say to call `wait` once, with no timeout (a supervisor that was not told so gave one, 600 s, which keeps a call from going on as a
+docs/design/hq.md:641: tool, hands it off. Claude Code's instructions and `wait` description say to call `wait` with no timeout, and what to do when a call started a task and after "outcome unknown" or "cannot follow"
+== wait task
+docs/requirements/spec.md:53:our for Claude Code, whose `wait` given none that sees no change within 50 s goes on as a wait task when its request declares the MCP Tasks extension (Phase 2); `new` takes an optional `set
+docs/requirements/spec.md:340:in the same call and turn; given no timeout and seeing no change by then, it goes on as a wait task when its request declares the MCP Tasks extension: the call ends with the task's handle, 
+docs/requirements/spec.md:340:s the supervisor's next turn with what `wait` would have returned, its cursor included. A wait task stands until the first change, so waiting with nothing to report costs no model request. 
+docs/requirements/spec.md:345:A tool call is a request and its answer; the supervisor acts only on a turn of its own. A wait task is no push either: the client asks hq for it, and hq answers by taking a look when asked,
+docs/requirements/spec.md:348: set up with `hq mcp install claude-code`, where one `wait` given no timeout goes on as a wait task after 50 s, whose completion starts a turn as soon as an agent it waits for is done, with
+docs/design/hq.md:131:r's `wait` through it, and a look can be asked for terms no call holds, as each poll of a wait task asks it (3.12, ADR 0022); the look more after a hit stays the call's. `hq kill` kills an 
+docs/design/hq.md:287:quest that declares the MCP Tasks extension, T is 50 s, after which the call goes on as a wait task (below) | read-only |
+docs/design/hq.md:301:de `wait`'s maximum is an hour, and so is its default for a call that does not go on as a wait task (below), as for a `send` with `wait` (#359, ADR 0022): Claude Code moves a call that last
+docs/design/hq.md:301:(a supervisor that was not told so gave one, 600 s, which keeps a call from going on as a wait task, #361), to end the turn when Claude Code says a `wait` or a `send` with `wait` started a 
+docs/design/hq.md:303:**The wait task (#361, ADR 0022).** Under Claude Code (`mcpClient`'s `tasks`) a `wait` given no timeout h
+docs/design/hq.md:303:sks, the first declaring none and the second passing none. **The id carries the wait.** A wait task's id holds its kind (`w1`), the cursor of the call's last look, the moment of the handoff
+docs/design/hq.md:303:de sends it twice when the user stops a task, and both are acknowledged. An id that is no wait task's is an unknown task, refused with -32602, after which Claude Code asks for it about five
+docs/design/hq.md:340:itTimeout`), and `hq mcp claude-code` waits up to an hour, or holds 50 s and goes on as a wait task (3.12). The two figures are written once, `agent.LoopEvery` and `agent.SbxEvery`, which t
+docs/design/hq.md:427: built binary's `hq mcp` driven over stdio by the SDK's client, and by a raw client for a wait task, one process taking the call and another answering for its task; `hq mcp install` on a te
+docs/design/hq.md:641: under Claude Code a `wait` given no timeout that sees no change within 50 s goes on as a wait task when its request declares the MCP Tasks extension (3.4, 3.12, 5.1, 7.2, spec §4.1, Phase
+README.md:150:hq` server in the project's `.mcp.json`): it takes precedence in its project, without the wait task or the longer `wait`. For a Claude Code inside a sandbox, see below.
+== push into
+docs/requirements/spec.md:345:- **No push into the client.** A tool call is a request and its answer; the supervisor acts only on a turn

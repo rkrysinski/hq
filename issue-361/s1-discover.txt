@@ -1,0 +1,6 @@
+== hq mcp claude-code: server/discover, its capabilities
+   {"extensions": {"io.modelcontextprotocol/tasks": {}}, "logging": {}, "tools": {"listChanged": true}}
+== hq mcp claude-desktop: server/discover, its capabilities
+   {"logging": {}, "tools": {"listChanged": true}}
+== hq mcp sbx: server/discover, its capabilities
+   {"logging": {}, "tools": {"listChanged": true}}

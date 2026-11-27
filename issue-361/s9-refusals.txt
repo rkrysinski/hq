@@ -1,0 +1,6 @@
+    0.0s 21:04:58Z >> tasks/get {"taskId": "nope"}
+    0.4s 21:04:59Z << {"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:04:59Z >> tasks/get {"taskId": "w1"}
+    0.4s 21:04:59Z << {"jsonrpc": "2.0", "id": 2, "error": {"code": -32602, "message": "Failed to retrieve task: Task not found"}}
+    0.4s 21:04:59Z >> tasks/get {"taskId": "nope"}
+    0.4s 21:04:59Z << {"jsonrpc": "2.0", "id": 3, "error": {"code": -32021, "message": "Missing required client capability", "data": {"requiredCapabilities": {"extensions": {"io.modelcontextprotocol/tasks": {}}}}}}

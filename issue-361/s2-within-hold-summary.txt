@@ -1,0 +1,5 @@
+    0.0s 21:05:02Z >> tools/call {"name": "list", "arguments": {"names": ["e2"]}}
+    0.4s 21:05:03Z << result: agents [e2 working ''] next_since c37 structuredContent False isError False
+    0.4s 21:05:03Z >> tools/call {"name": "wait", "arguments": {"names": ["e2"], "since": "c37"}}
+21:05:23Z typed 'finish' into e2
+   21.4s 21:05:24Z << result: agents [e2 done 'Done: slow job of e2'] next_since c38 structuredContent False isError False
