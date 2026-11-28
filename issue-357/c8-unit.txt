@@ -1,0 +1,26 @@
+=== RUN   TestEachClientIsTaughtToWatchItsOwnWay
+--- PASS: TestEachClientIsTaughtToWatchItsOwnWay (0.00s)
+=== RUN   TestWhatClaudeCodeCutsOfTheBulletOnOwnTasksIsInTheTools
+--- PASS: TestWhatClaudeCodeCutsOfTheBulletOnOwnTasksIsInTheTools (0.00s)
+=== RUN   TestAStallAndNoTurnStayInTheCall
+--- PASS: TestAStallAndNoTurnStayInTheCall (0.01s)
+=== RUN   TestASendsWaitTaskTellsAStallOrNoTurnThatAriseAfterTheHandoff
+--- PASS: TestASendsWaitTaskTellsAStallOrNoTurnThatAriseAfterTheHandoff (0.02s)
+=== RUN   TestASendsWaitTaskCountsAStallOnBackgroundWorkFromItsTurnEnd
+--- PASS: TestASendsWaitTaskCountsAStallOnBackgroundWorkFromItsTurnEnd (0.00s)
+=== RUN   TestASendsWaitTaskIdCarriesItsDeliveryInACharacterOrTwo
+--- PASS: TestASendsWaitTaskIdCarriesItsDeliveryInACharacterOrTwo (0.00s)
+=== RUN   TestAWaitedSendReadsOnTheEventsAboveItsCursor
+--- PASS: TestAWaitedSendReadsOnTheEventsAboveItsCursor (0.00s)
+=== RUN   TestAWaitThatFailsWithinItsHoldFailsInTheCall
+--- PASS: TestAWaitThatFailsWithinItsHoldFailsInTheCall (0.00s)
+=== RUN   TestAnUnknownWaitTaskIsRefusedAsInvalidParams
+--- PASS: TestAnUnknownWaitTaskIsRefusedAsInvalidParams (0.00s)
+=== RUN   TestAWaitTaskIdChangedInAnyWayIsAnUnknownTask
+--- PASS: TestAWaitTaskIdChangedInAnyWayIsAnUnknownTask (0.06s)
+=== RUN   TestTheTaskMethodsRefuseARequestThatDoesNotDeclareTasks
+--- PASS: TestTheTaskMethodsRefuseARequestThatDoesNotDeclareTasks (0.00s)
+=== RUN   TestTheExperimentalTasksOf20251125AreNotTheDeclaration
+--- PASS: TestTheExperimentalTasksOf20251125AreNotTheDeclaration (0.01s)
+PASS
+ok  	github.com/rkrysinski/hq/internal/cli	0.135s

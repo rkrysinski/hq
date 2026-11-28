@@ -1,0 +1,28 @@
+    0.0s 00:18:01Z >> server/discover {}
+    0.4s 00:18:02Z << 
+    0.4s 00:18:02Z >> tools/call {"name": "list", "arguments": {"names": ["w1"]}}
+    0.4s 00:18:02Z << result: agents [w1 working '' (repo_path '/tmp/hq-stub-t357r/repo', sandbox 'claude-repo')] next_since c26 structuredContent False isError False
+    0.4s 00:18:02Z >> tools/call {"name": "wait", "arguments": {"names": ["w1"], "since": "c26"}}
+   50.5s 00:18:52Z << TASK HANDLE taskId w1:c30:mwznx0fd::uhV6Sfon:w1:w1=ff554951e16a:NQBuAO80nKLGZWisSuZ-4w status working ttlMs null pollIntervalMs 5000
+   50.5s 00:18:52Z >> tasks/get {"taskId": "w1:c30:mwznx0fd::uhV6Sfon:w1:w1=ff554951e16a:NQBuAO80nKLGZWisSuZ-4w"}
+   50.6s 00:18:52Z << task w1:c30:mwznx0fd::uhV6Sfon:w1:w1=ff554951e16a:NQBuAO80nKLGZWisSuZ-4w working
+   55.6s 00:18:57Z >> tasks/get {"taskId": "w1:c30:mwznx0fd::uhV6Sfon:w1:w1=ff554951e16a:NQBuAO80nKLGZWisSuZ-4w"}
+   55.6s 00:18:57Z << task w1:c30:mwznx0fd::uhV6Sfon:w1:w1=ff554951e16a:NQBuAO80nKLGZWisSuZ-4w working
+   60.6s 00:19:02Z >> tasks/get {"taskId": "w1:c30:mwznx0fd::uhV6Sfon:w1:w1=ff554951e16a:NQBuAO80nKLGZWisSuZ-4w"}
+   60.6s 00:19:02Z << task w1:c30:mwznx0fd::uhV6Sfon:w1:w1=ff554951e16a:NQBuAO80nKLGZWisSuZ-4w working
+00:19:06Z typed 'finish' into w1
+   65.6s 00:19:07Z >> tasks/get {"taskId": "w1:c30:mwznx0fd::uhV6Sfon:w1:w1=ff554951e16a:NQBuAO80nKLGZWisSuZ-4w"}
+   65.9s 00:19:07Z << task w1:c30:mwznx0fd::uhV6Sfon:w1:w1=ff554951e16a:NQBuAO80nKLGZWisSuZ-4w completed; result: agents [w1 done 'Done: slow job of w1' (repo_path '/tmp/hq-stub-t357r/repo', sandbox 'claude-repo')] next_since c34 structuredContent False isError False
+== the wait on p2 with timeout 60
+    0.0s 00:18:05Z >> server/discover {}
+    0.4s 00:18:06Z << 
+    0.4s 00:18:06Z >> tools/call {"name": "list", "arguments": {"names": ["p2"]}}
+    0.4s 00:18:06Z << result: agents [p2 done 'Done: hello from p2' (repo_path '/tmp/hq-stub-t357r/repo', sandbox 'claude-repo')] next_since c26 structuredContent False isError False
+    0.4s 00:18:06Z >> tools/call {"name": "wait", "arguments": {"names": ["p2"], "since": "c26", "timeout": 60}}
+   50.4s 00:18:56Z << TASK HANDLE taskId w1:c30:mwznx3f0:mwznxb3e:CfJheiEF:p2:p2=c177a93f4173:engMEPuDkuPbpiss-Q-98Q status working ttlMs 9950 pollIntervalMs 5000
+   50.4s 00:18:56Z >> tasks/get {"taskId": "w1:c30:mwznx3f0:mwznxb3e:CfJheiEF:p2:p2=c177a93f4173:engMEPuDkuPbpiss-Q-98Q"}
+   50.4s 00:18:56Z << task w1:c30:mwznx3f0:mwznxb3e:CfJheiEF:p2:p2=c177a93f4173:engMEPuDkuPbpiss-Q-98Q working
+   55.4s 00:19:01Z >> tasks/get {"taskId": "w1:c30:mwznx3f0:mwznxb3e:CfJheiEF:p2:p2=c177a93f4173:engMEPuDkuPbpiss-Q-98Q"}
+   55.4s 00:19:01Z << task w1:c30:mwznx3f0:mwznxb3e:CfJheiEF:p2:p2=c177a93f4173:engMEPuDkuPbpiss-Q-98Q working
+   60.4s 00:19:06Z >> tasks/get {"taskId": "w1:c30:mwznx3f0:mwznxb3e:CfJheiEF:p2:p2=c177a93f4173:engMEPuDkuPbpiss-Q-98Q"}
+   60.5s 00:19:06Z << task w1:c30:mwznx3f0:mwznxb3e:CfJheiEF:p2:p2=c177a93f4173:engMEPuDkuPbpiss-Q-98Q completed; result: agents [] next_since c33 structuredContent False isError False

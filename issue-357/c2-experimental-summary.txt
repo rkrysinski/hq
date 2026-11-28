@@ -1,0 +1,21 @@
+== initialize, protocol 2025-11-25, capabilities.tasks
+    0.0s 00:18:09Z >> initialize {"protocolVersion": "2025-11-25", "capabilities": {"tasks": {"list": {}, "cancel": {}, "requests": {"tools": {"call": {}}, "sampling": {"createMessage": {}}}}}, "clientInfo": {"name": "qa-client", "version": "1"}}
+    0.4s 00:18:10Z << 
+    0.4s 00:18:10Z >> notifications/initialized {}
+    0.4s 00:18:10Z >> tools/call {"name": "list", "arguments": {"names": ["p3"]}}
+    0.4s 00:18:10Z << result: agents [p3 done 'Done: hello from p3' (repo_path '/tmp/hq-stub-t357r/repo', sandbox 'claude-repo')] next_since c28 structuredContent False isError False
+    0.4s 00:18:10Z >> tools/call {"name": "wait", "arguments": {"names": ["p3"], "since": "c28", "timeout": 60}, "task": {"ttl": 600000}}
+   60.6s 00:19:10Z << result: agents [] next_since c35 structuredContent False isError False
+   60.6s 00:19:10Z -- no handle: the call's own result, isError False
+   60.6s 00:19:10Z >> tasks/get {"taskId": "w1"}
+   60.6s 00:19:10Z << error -32021 Missing required client capability
+== protocol 2026-07-28, tasks in _meta's client capabilities outside extensions
+    0.0s 00:18:14Z >> server/discover {}
+    0.4s 00:18:15Z << 
+    0.4s 00:18:15Z >> tools/call {"name": "list", "arguments": {"names": ["p3"]}}
+    0.4s 00:18:15Z << result: agents [p3 done 'Done: hello from p3' (repo_path '/tmp/hq-stub-t357r/repo', sandbox 'claude-repo')] next_since c28 structuredContent False isError False
+    0.4s 00:18:15Z >> tools/call {"name": "wait", "arguments": {"names": ["p3"], "since": "c28", "timeout": 60}, "task": {"ttl": 600000}}
+   60.5s 00:19:15Z << result: agents [] next_since c35 structuredContent False isError False
+   60.5s 00:19:15Z -- no handle: the call's own result, isError False
+   60.5s 00:19:15Z >> tasks/get {"taskId": "w1"}
+   60.5s 00:19:15Z << error -32021 Missing required client capability

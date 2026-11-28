@@ -1,0 +1,16 @@
+    0.0s 00:17:13Z >> server/discover {}
+    0.4s 00:17:14Z << 
+    0.4s 00:17:14Z >> tools/call {"name": "send", "arguments": {"name": "s1", "text": "/model test-model", "wait": true}}
+   50.4s 00:18:04Z << TASK HANDLE taskId s1:c24:mwznvza7::c:s1=9a2000f6bc24:1795825034184581564-d89df6e5.sup:wa:PYsFFxU2ehI7si7m7YT_eQ status working ttlMs null pollIntervalMs 5000
+   50.4s 00:18:04Z >> tasks/get {"taskId": "s1:c24:mwznvza7::c:s1=9a2000f6bc24:1795825034184581564-d89df6e5.sup:wa:PYsFFxU2ehI7si7m7YT_eQ"}
+   50.5s 00:18:04Z << task s1:c24:mwznvza7::c:s1=9a2000f6bc24:1795825034184581564-d89df6e5.sup:wa:PYsFFxU2ehI7si7m7YT_eQ working
+   55.5s 00:18:09Z >> tasks/get {"taskId": "s1:c24:mwznvza7::c:s1=9a2000f6bc24:1795825034184581564-d89df6e5.sup:wa:PYsFFxU2ehI7si7m7YT_eQ"}
+   55.5s 00:18:09Z << task s1:c24:mwznvza7::c:s1=9a2000f6bc24:1795825034184581564-d89df6e5.sup:wa:PYsFFxU2ehI7si7m7YT_eQ working
+00:18:09Z typed 'esc' into s1
+   60.5s 00:18:14Z >> tasks/get {"taskId": "s1:c24:mwznvza7::c:s1=9a2000f6bc24:1795825034184581564-d89df6e5.sup:wa:PYsFFxU2ehI7si7m7YT_eQ"}
+   60.5s 00:18:14Z << task s1:c24:mwznvza7::c:s1=9a2000f6bc24:1795825034184581564-d89df6e5.sup:wa:PYsFFxU2ehI7si7m7YT_eQ working
+   65.5s 00:18:19Z >> tasks/get {"taskId": "s1:c24:mwznvza7::c:s1=9a2000f6bc24:1795825034184581564-d89df6e5.sup:wa:PYsFFxU2ehI7si7m7YT_eQ"}
+   65.5s 00:18:19Z << task s1:c24:mwznvza7::c:s1=9a2000f6bc24:1795825034184581564-d89df6e5.sup:wa:PYsFFxU2ehI7si7m7YT_eQ completed; result: keys ['agents', 'delivery', 'next_since', 'outcome'] delivery 'queued: s1 is working, delivered when it stops; if its hooks deliver it, the slash command arrives as text and does not run' outcome no_turn message None agents [s1 done 'Interrupted' (repo_path '/tmp/hq-stub-t357r/repo', sandbox 'claude-repo')] next_since c30 structuredContent False isError False
+== hq ls s1
+NAME  REPO  BRANCH  STATE  AGE  LAST
+s1    repo  main    done   9s   Interrupted

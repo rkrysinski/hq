@@ -1,0 +1,37 @@
+    0.0s 00:17:45Z >> server/discover {}
+    0.7s 00:17:46Z << 
+    0.7s 00:17:46Z >> tools/call {"name": "send", "arguments": {"name": "b2", "text": "unsent please", "wait": true}}
+   51.7s 00:18:37Z << TASK HANDLE taskId s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA status working ttlMs null pollIntervalMs 5000
+   51.7s 00:18:37Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+   51.7s 00:18:37Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+00:18:41Z typed 'esc' into b2
+   56.7s 00:18:42Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+   63.3s 00:18:49Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+   68.3s 00:18:54Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+   68.3s 00:18:54Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+   73.3s 00:18:59Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+   73.3s 00:18:59Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+   78.3s 00:19:04Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+   78.4s 00:19:04Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+   83.4s 00:19:09Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+   83.4s 00:19:09Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+   88.4s 00:19:14Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+   88.4s 00:19:14Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+   93.4s 00:19:19Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+   93.4s 00:19:19Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+   98.4s 00:19:24Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+   98.4s 00:19:24Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+  103.4s 00:19:29Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+  103.4s 00:19:29Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+  108.4s 00:19:34Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+  108.4s 00:19:34Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+  113.4s 00:19:39Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+  113.4s 00:19:39Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+  118.4s 00:19:44Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+  118.5s 00:19:44Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+  123.5s 00:19:49Z >> tasks/get {"taskId": "s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA"}
+  123.5s 00:19:49Z << task s1:c6:mwznwoyb:::b2=733f859faced:1795825066559035329-58a4debd.sup:cXVldWVkOiBiMiBpcyB3b3JraW5nLCBkZWxpdmVyZWQgd2hlbiBpdCBzdG9wcw:iEJX0lq0JYS78Ad30L8PeA working
+  123.5s 00:19:49Z -- still working at QAC_POLL_UNTIL=120s: stopped asking
+== hq ls b2
+NAME  REPO  BRANCH  STATE  AGE  LAST
+b2    repo  main    done   1m   Interrupted

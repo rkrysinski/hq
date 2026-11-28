@@ -1,0 +1,31 @@
+    0.0s 00:17:53Z >> server/discover {}
+    0.4s 00:17:54Z << 
+    0.4s 00:17:54Z >> tools/call {"name": "send", "arguments": {"name": "p1", "text": "slow job", "wait": true}}
+   50.6s 00:18:44Z << TASK HANDLE taskId s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A status working ttlMs null pollIntervalMs 5000
+   50.6s 00:18:44Z >> tasks/get {"taskId": "s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A"}
+   50.6s 00:18:44Z << task s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A working
+   55.6s 00:18:49Z >> tasks/get {"taskId": "s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A"}
+   55.6s 00:18:49Z << task s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A working
+   60.6s 00:18:54Z >> tasks/get {"taskId": "s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A"}
+   60.6s 00:18:54Z << task s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A working
+   65.6s 00:18:59Z >> tasks/get {"taskId": "s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A"}
+   65.6s 00:18:59Z << task s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A working
+00:19:03Z typed 'finish' into p1
+   70.6s 00:19:04Z >> tasks/get {"taskId": "s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A"}
+   70.7s 00:19:04Z << task s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A completed; result: keys ['agents', 'delivery', 'next_since', 'outcome'] delivery 'delivered: typed into p1 as its next prompt' outcome turn_ended message None agents [p1 done 'Done: slow job' (repo_path '/tmp/hq-stub-t357r/repo', sandbox 'claude-repo')] next_since c31 structuredContent False isError False
+== the task id: s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A
+== its length: 92 characters
+== check 5: p1 given another slow job (plain send), then the completed task asked again
+delivered: typed into p1 as its next prompt
+    0.0s 00:19:09Z >> server/discover {}
+    0.4s 00:19:09Z << 
+    0.4s 00:19:09Z >> tasks/get {"taskId": "s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A"}
+    0.4s 00:19:09Z << task s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A working
+00:19:09Z typed 'finish' into p1
+    0.0s 00:19:13Z >> server/discover {}
+    0.4s 00:19:14Z << 
+    0.4s 00:19:14Z >> tasks/get {"taskId": "s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A"}
+    0.4s 00:19:14Z << task s1:c24:mwznwu93::t:p1=4c3a2ab9d492:1795825074210067708-576dac0f.sup:p:ceVT4nh4H9h810mc5rSI7A completed; result: keys ['agents', 'delivery', 'next_since', 'outcome'] delivery 'delivered: typed into p1 as its next prompt' outcome turn_ended message None agents [p1 done 'Done: slow job again' (repo_path '/tmp/hq-stub-t357r/repo', sandbox 'claude-repo')] next_since c35 structuredContent False isError False
+== hq ls p1
+NAME  REPO  BRANCH  STATE  AGE  LAST
+p1    repo  main    done   4s   Done: slow job again

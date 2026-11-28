@@ -1,0 +1,16 @@
+    0.0s 00:17:21Z >> server/discover {}
+    0.4s 00:17:22Z << 
+    0.4s 00:17:22Z >> tools/call {"name": "send", "arguments": {"name": "s2", "text": "unsent please", "wait": true}}
+   50.6s 00:18:12Z << TASK HANDLE taskId s1:c24:mwznw5kw:::s2=e81d74989f58:1795825042201224818-c6cbcd26.sup:w:bfXislm5kn9pdj0gB0ClqA status working ttlMs null pollIntervalMs 5000
+   50.6s 00:18:12Z >> tasks/get {"taskId": "s1:c24:mwznw5kw:::s2=e81d74989f58:1795825042201224818-c6cbcd26.sup:w:bfXislm5kn9pdj0gB0ClqA"}
+   50.6s 00:18:12Z << task s1:c24:mwznw5kw:::s2=e81d74989f58:1795825042201224818-c6cbcd26.sup:w:bfXislm5kn9pdj0gB0ClqA working
+   55.6s 00:18:17Z >> tasks/get {"taskId": "s1:c24:mwznw5kw:::s2=e81d74989f58:1795825042201224818-c6cbcd26.sup:w:bfXislm5kn9pdj0gB0ClqA"}
+   55.6s 00:18:17Z << task s1:c24:mwznw5kw:::s2=e81d74989f58:1795825042201224818-c6cbcd26.sup:w:bfXislm5kn9pdj0gB0ClqA working
+00:18:17Z typed 'esc' into s2
+   60.6s 00:18:22Z >> tasks/get {"taskId": "s1:c24:mwznw5kw:::s2=e81d74989f58:1795825042201224818-c6cbcd26.sup:w:bfXislm5kn9pdj0gB0ClqA"}
+   60.6s 00:18:22Z << task s1:c24:mwznw5kw:::s2=e81d74989f58:1795825042201224818-c6cbcd26.sup:w:bfXislm5kn9pdj0gB0ClqA working
+   65.6s 00:18:27Z >> tasks/get {"taskId": "s1:c24:mwznw5kw:::s2=e81d74989f58:1795825042201224818-c6cbcd26.sup:w:bfXislm5kn9pdj0gB0ClqA"}
+   65.7s 00:18:27Z << task s1:c24:mwznw5kw:::s2=e81d74989f58:1795825042201224818-c6cbcd26.sup:w:bfXislm5kn9pdj0gB0ClqA completed; result text: hq: stalled: s2 did not take the message: it is typed into s2's prompt box and not sent; see hq read s2 before sending again isError True
+== hq ls s2
+NAME  REPO  BRANCH  STATE  AGE  LAST
+s2    repo  main    done   9s   Interrupted

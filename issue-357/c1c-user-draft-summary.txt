@@ -1,0 +1,39 @@
+    0.0s 00:17:29Z >> server/discover {}
+    0.4s 00:17:30Z << 
+    0.4s 00:17:30Z >> tools/call {"name": "send", "arguments": {"name": "s3", "text": "hi", "wait": true}}
+   50.6s 00:18:20Z << TASK HANDLE taskId s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ status working ttlMs null pollIntervalMs 5000
+   50.6s 00:18:20Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+   50.6s 00:18:20Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+   55.6s 00:18:25Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+   55.6s 00:18:25Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+00:18:25Z typed 'esc' and 'draft' into s3
+   60.6s 00:18:30Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+   60.6s 00:18:30Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+   65.6s 00:18:35Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+   65.7s 00:18:35Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+   70.7s 00:18:40Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+   70.7s 00:18:40Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+   75.7s 00:18:45Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+   75.7s 00:18:45Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+   80.7s 00:18:50Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+   80.7s 00:18:50Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+   85.7s 00:18:55Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+   85.7s 00:18:55Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+   90.8s 00:19:00Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+   90.8s 00:19:00Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+   95.8s 00:19:05Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+   95.8s 00:19:05Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+  100.8s 00:19:10Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+  100.8s 00:19:10Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+  105.8s 00:19:15Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+  105.8s 00:19:15Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+  110.9s 00:19:20Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+  110.9s 00:19:20Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+  115.9s 00:19:25Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+  115.9s 00:19:25Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+  120.9s 00:19:30Z >> tasks/get {"taskId": "s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ"}
+  120.9s 00:19:30Z << task s1:c24:mwznwbqb:::s3=ec8425a9014d:1795825050195379072-90e79933.sup:w:uVQNNPciCe50S50i82USFQ working
+  120.9s 00:19:30Z -- still working at QAC_POLL_UNTIL=120s: stopped asking
+== hq ls s3
+NAME  REPO  BRANCH  STATE    AGE  LAST
+s3    repo  main    working  2m   -
