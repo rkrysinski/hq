@@ -38,8 +38,9 @@ type rawClient struct {
 	n     int
 }
 
-// rawBound is how long the raw client waits for an answer, in real time:
-// the server's waits run on the fakes' clock.
+// rawBound is how long the raw client waits for an answer, for the server
+// to read a request and for the server to end, in real time: the server's
+// waits run on the fakes' clock.
 const rawBound = 10 * time.Second
 
 // rawConnect connects a raw client to s.
@@ -60,8 +61,34 @@ func rawConnect(t *testing.T, s *mcp.Server) *rawClient {
 		}
 		close(c.lines)
 	}()
-	t.Cleanup(func() { _ = cw.Close(); _ = ss.Wait(); _ = cr.Close() })
+	t.Cleanup(func() {
+		_ = cw.Close()
+		ended := make(chan struct{})
+		go func() { _ = ss.Wait(); close(ended) }()
+		select {
+		case <-ended:
+		case <-time.After(rawBound):
+			t.Errorf("the server did not end within %v of its input's end", rawBound)
+		}
+		_ = cr.Close()
+	})
 	return c
+}
+
+// writeBounded writes b to w, failing the test when w does not take it
+// within rawBound: a pipe's write waits for its reader.
+func writeBounded(t *testing.T, w io.Writer, b []byte) {
+	t.Helper()
+	wrote := make(chan error, 1)
+	go func() { _, err := w.Write(b); wrote <- err }()
+	select {
+	case err := <-wrote:
+		if err != nil {
+			t.Fatalf("write: %v", err)
+		}
+	case <-time.After(rawBound):
+		t.Fatalf("the server did not read a request within %v", rawBound)
+	}
 }
 
 // rawError is a JSON-RPC error as the raw client reads it.
@@ -123,12 +150,10 @@ func (c *rawClient) write(method string, params map[string]any, tasks bool) int 
 	maps.Copy(p, params)
 	c.n++
 	b, err := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": c.n, "method": method, "params": p})
-	if err == nil {
-		_, err = c.w.Write(append(b, '\n'))
-	}
 	if err != nil {
 		c.t.Fatalf("%s: %v", method, err)
 	}
+	writeBounded(c.t, c.w, append(b, '\n'))
 	return c.n
 }
 
@@ -208,9 +233,29 @@ func taskSession(t *testing.T) (*fakes, *rawClient, string) {
 	t.Helper()
 	f := newWaitFakes()
 	f.tty = false
+	c := sessionOn(t, f)
+	return f, c, waitJSON(t, c.call("list", nil, true).text()).NextSince
+}
+
+// sessionOn is a raw client of a new hq MCP server for Claude Code on the
+// fakes f, that has said server/discover.
+func sessionOn(t *testing.T, f *fakes) *rawClient {
+	t.Helper()
 	c := rawConnect(t, newMCPServer(f.deps(), claudeCode))
 	c.ok("server/discover", nil, true)
-	return f, c, waitJSON(t, c.call("list", nil, true).text()).NextSince
+	return c
+}
+
+// keyed is a raw client of a new hq MCP server for Claude Code on wait
+// fakes of its own whose state directory holds key, a copy of it, that has
+// said server/discover: a case of a table test that asks for a task hq
+// gave builds its own session with it.
+func keyed(t *testing.T, key []byte) *rawClient {
+	t.Helper()
+	f := newWaitFakes()
+	f.tty = false
+	f.taskKey = slices.Clone(key)
+	return sessionOn(t, f)
 }
 
 // isHandle reports whether r is a task's handle.
@@ -501,13 +546,13 @@ func TestAWaitTaskDoesNotReturnAnAgentAlreadyEndedWithNoNumber(t *testing.T) {
 // declares tasks, as it always has: a since hq does not take, a name no
 // agent has.
 func TestAWaitThatFailsWithinItsHoldFailsInTheCall(t *testing.T) {
-	_, c, since := taskSession(t)
-	for args, want := range map[string]map[string]any{
-		"hq: --since 'soon' is neither": {"since": "soon"},
-		"hq: no agent 'nobody'":         {"names": []string{"nobody"}, "since": since},
+	for want, args := range map[string]func(since string) map[string]any{
+		"hq: --since 'soon' is neither": func(string) map[string]any { return map[string]any{"since": "soon"} },
+		"hq: no agent 'nobody'":         func(since string) map[string]any { return map[string]any{"names": []string{"nobody"}, "since": since} },
 	} {
-		if r := c.call("wait", want, true); isHandle(r) || !r.IsError || !strings.HasPrefix(r.text(), args) {
-			t.Errorf("%v: %s", want, r.line)
+		_, c, since := taskSession(t)
+		if r := c.call("wait", args(since), true); isHandle(r) || !r.IsError || !strings.HasPrefix(r.text(), want) {
+			t.Errorf("%s: %s", want, r.line)
 		}
 	}
 }
@@ -582,7 +627,7 @@ func TestCancellingAWaitTaskTwiceIsAcknowledgedAndChangesNothing(t *testing.T) {
 	h := c.call("wait", map[string]any{"names": []string{"a"}, "since": since}, true)
 	f.inbox["id-a"] = []string{"any news?"}
 	f.oldest["id-a"] = f.now.Add(-time.Minute)
-	events := journalEvents(f, "id-a")
+	events := journalEvents(t, f, "id-a")
 	first := c.write("tasks/cancel", map[string]any{"taskId": h.TaskID}, true)
 	second := c.write("tasks/cancel", map[string]any{"taskId": h.TaskID}, true)
 	for _, id := range []int{first, second} {
@@ -590,17 +635,22 @@ func TestCancellingAWaitTaskTwiceIsAcknowledgedAndChangesNothing(t *testing.T) {
 			t.Fatalf("cancel %d: %s %+v", id, r.line, err)
 		}
 	}
-	if len(f.tmux.pasted) != 0 || len(f.inbox["id-a"]) != 1 || journalEvents(f, "id-a") != events {
-		t.Fatalf("pasted %q, inbox %v, events %d of %d", f.tmux.pasted, f.inbox, journalEvents(f, "id-a"), events)
+	if len(f.tmux.pasted) != 0 || len(f.inbox["id-a"]) != 1 || journalEvents(t, f, "id-a") != events {
+		t.Fatalf("pasted %q, inbox %v, events %d of %d", f.tmux.pasted, f.inbox, journalEvents(t, f, "id-a"), events)
 	}
 	if g := c.get(h.TaskID); g.Status != "working" || strings.Join(f.tmux.pasted, "|") != "%4 any news?" {
 		t.Fatalf("after: %s, pasted %q", g.line, f.tmux.pasted)
 	}
 }
 
-// journalEvents is how many events agent id's journal holds.
-func journalEvents(f *fakes, id string) int {
-	j, _ := f.journal.Read(id)
+// journalEvents is how many events agent id's journal holds, failing the
+// test when it holds none: the fakes' journal keeps it under journalID.
+func journalEvents(t *testing.T, f *fakes, id string) int {
+	t.Helper()
+	j, err := f.journal.Read(journalID(id))
+	if err != nil || len(j.Events) == 0 {
+		t.Fatalf("no events in %s's journal: %v", id, err)
+	}
 	return len(j.Events)
 }
 
@@ -633,9 +683,9 @@ func TestTwoWaitsAreTwoWaitTasksThatEachComplete(t *testing.T) {
 // An id hq gave no wait task is an unknown task: tasks/get and
 // tasks/cancel refuse it with -32602, as the extension requires (#361).
 func TestAnUnknownWaitTaskIsRefusedAsInvalidParams(t *testing.T) {
-	_, c, _ := taskSession(t)
 	for _, id := range []string{"", "nope", "w1"} {
 		for _, method := range []string{"tasks/get", "tasks/cancel"} {
+			_, c, _ := taskSession(t)
 			if err := c.refused(method, map[string]any{"taskId": id}, true); err.Code != -32602 || err.Message != "Failed to retrieve task: Task not found" {
 				t.Errorf("%s %q: %+v", method, id, err)
 			}
@@ -643,13 +693,14 @@ func TestAnUnknownWaitTaskIsRefusedAsInvalidParams(t *testing.T) {
 	}
 }
 
-// unknownTask fails the test unless tasks/get and tasks/cancel both refuse
-// id as an unknown task.
-func (c *rawClient) unknownTask(id string) {
-	c.t.Helper()
+// unknownTask fails the test unless tasks/get and tasks/cancel, each asked
+// on a session of its own that session makes, refuse id as an unknown
+// task.
+func unknownTask(t *testing.T, session func() *rawClient, id string) {
+	t.Helper()
 	for _, method := range []string{"tasks/get", "tasks/cancel"} {
-		if err := c.refused(method, map[string]any{"taskId": id}, true); err.Code != -32602 || err.Message != "Failed to retrieve task: Task not found" {
-			c.t.Errorf("%s %q: %+v", method, id, err)
+		if err := session().refused(method, map[string]any{"taskId": id}, true); err.Code != -32602 || err.Message != "Failed to retrieve task: Task not found" {
+			t.Errorf("%s %q: %+v", method, id, err)
 		}
 	}
 }
@@ -672,7 +723,7 @@ func TestAWaitTaskIdChangedInAnyWayIsAnUnknownTask(t *testing.T) {
 		changed = append(changed, id[:i]+string(other)+id[i+1:])
 	}
 	for _, ch := range changed {
-		c.unknownTask(ch)
+		unknownTask(t, func() *rawClient { return keyed(t, f.taskKey) }, ch)
 	}
 	if g := c.get(id); g.Status != "working" || g.TaskID != id {
 		t.Fatalf("as given: %s", g.line)
@@ -715,11 +766,11 @@ func TestAWaitTaskIdSignedWithAnotherKeyIsAnUnknownTask(t *testing.T) {
 	if !isHandle(theirs) || o.get(theirs.TaskID).Status != "working" {
 		t.Fatalf("elsewhere: %s", theirs.line)
 	}
-	o.unknownTask(first.TaskID)
-	c.unknownTask(theirs.TaskID)
+	unknownTask(t, func() *rawClient { return sessionOn(t, elsewhere) }, first.TaskID)
+	unknownTask(t, func() *rawClient { return sessionOn(t, f) }, theirs.TaskID)
 
 	f.taskKey = nil
-	c.unknownTask(first.TaskID)
+	unknownTask(t, func() *rawClient { return sessionOn(t, f) }, first.TaskID)
 	if f.taskKey != nil {
 		t.Fatalf("asking for a task made a key: %x", f.taskKey)
 	}
@@ -727,7 +778,7 @@ func TestAWaitTaskIdSignedWithAnotherKeyIsAnUnknownTask(t *testing.T) {
 	if g := c.get(again.TaskID); f.taskKey == nil || string(f.taskKey) == string(key) || g.Status != "working" {
 		t.Fatalf("after the key went: key %x, %s", f.taskKey, g.line)
 	}
-	c.unknownTask(first.TaskID)
+	unknownTask(t, func() *rawClient { return sessionOn(t, f) }, first.TaskID)
 }
 
 // A wait whose hold passes with no change when hq cannot make the key that
@@ -746,25 +797,25 @@ func TestAWaitThatCannotSignItsTaskFailsInTheCall(t *testing.T) {
 // naming it (-32021, as the extension requires), also on a session begun
 // with the older initialize, whose requests carry no capabilities.
 func TestTheTaskMethodsRefuseARequestThatDoesNotDeclareTasks(t *testing.T) {
-	_, c, since := taskSession(t)
+	f, c, since := taskSession(t)
 	h := c.call("wait", map[string]any{"since": since}, true)
 	for _, method := range []string{"tasks/get", "tasks/cancel"} {
-		err := c.refused(method, map[string]any{"taskId": h.TaskID}, false)
+		err := keyed(t, f.taskKey).refused(method, map[string]any{"taskId": h.TaskID}, false)
 		if err.Code != -32021 || string(err.Data) != `{"requiredCapabilities":{"extensions":{"io.modelcontextprotocol/tasks":{}}}}` {
 			t.Errorf("%s: %+v", method, err)
 		}
 	}
-	f := newWaitFakes()
-	f.tty = false
-	old := rawConnect(t, newMCPServer(f.deps(), claudeCode))
-	old.writeLine(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"old","version":"1"}}}`)
-	if _, err := old.read(1); err != nil {
-		t.Fatalf("initialize: %+v", *err)
-	}
-	old.writeLine(`{"jsonrpc":"2.0","method":"notifications/initialized"}`)
-	for i, method := range []string{"tasks/get", "tasks/cancel"} {
-		old.writeLine(fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"method":%q}`, 2+i, method))
-		if _, err := old.read(2 + i); err == nil || err.Code != -32021 {
+	for _, method := range []string{"tasks/get", "tasks/cancel"} {
+		f := newWaitFakes()
+		f.tty = false
+		old := rawConnect(t, newMCPServer(f.deps(), claudeCode))
+		old.writeLine(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"old","version":"1"}}}`)
+		if _, err := old.read(1); err != nil {
+			t.Fatalf("initialize: %+v", *err)
+		}
+		old.writeLine(`{"jsonrpc":"2.0","method":"notifications/initialized"}`)
+		old.writeLine(fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":%q}`, method))
+		if _, err := old.read(2); err == nil || err.Code != -32021 {
 			t.Errorf("%s with no params: %+v", method, err)
 		}
 	}
@@ -773,8 +824,58 @@ func TestTheTaskMethodsRefuseARequestThatDoesNotDeclareTasks(t *testing.T) {
 // writeLine sends a line as it is.
 func (c *rawClient) writeLine(l string) {
 	c.t.Helper()
-	if _, err := io.WriteString(c.w, l+"\n"); err != nil {
-		c.t.Fatal(err)
+	writeBounded(c.t, c.w, []byte(l+"\n"))
+}
+
+// The experimental tasks of the protocol's revision 2025-11-25 are not the
+// declaration of the MCP Tasks extension (#357, Implementation Decisions):
+// a wait that asks to be a task as that revision has it (params.task), on
+// a session begun with initialize that declares them in its capabilities,
+// or with the 2026-07-28 protocol's capabilities naming them outside
+// extensions, goes on in its call past the hold and returns the change
+// there; the task methods refuse it.
+func TestTheExperimentalTasksOf20251125AreNotTheDeclaration(t *testing.T) {
+	const experimental = `{"list":{},"cancel":{},"requests":{"tools":{"call":{}},"sampling":{"createMessage":{}}}}`
+	for name, meta := range map[string]string{
+		"initialize": "",
+		"2026-07-28": `,"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"claude-code","version":"2.1.332"},"io.modelcontextprotocol/clientCapabilities":{"tasks":` + experimental + `}}`,
+	} {
+		f := newWaitFakes()
+		f.tty = false
+		c := rawConnect(t, newMCPServer(f.deps(), claudeCode))
+		if meta == "" {
+			c.writeLine(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"tasks":` + experimental + `},"clientInfo":{"name":"claude-code","version":"2.1.332"}}}`)
+			if _, err := c.read(1); err != nil {
+				t.Fatalf("%s: initialize: %+v", name, *err)
+			}
+			c.writeLine(`{"jsonrpc":"2.0","method":"notifications/initialized"}`)
+		} else {
+			c.writeLine(`{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{` + meta[1:] + `}}`)
+			if _, err := c.read(1); err != nil {
+				t.Fatalf("%s: discover: %+v", name, *err)
+			}
+		}
+		c.writeLine(`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list","arguments":{}` + meta + `}}`)
+		l, err := c.read(2)
+		if err != nil {
+			t.Fatalf("%s: list: %+v", name, *err)
+		}
+		start := f.now
+		f.after(80*time.Second, func() {
+			f.states["id-b"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "PR #58 opened"}
+		})
+		c.writeLine(fmt.Sprintf(`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"wait","arguments":{"since":%q},"task":{"ttl":600000}%s}}`, waitJSON(t, l.text()).NextSince, meta))
+		r, err := c.read(3)
+		if err != nil || isHandle(r) || r.IsError {
+			t.Fatalf("%s: %s", name, r.line)
+		}
+		if w := waitJSON(t, r.text()); len(w.Agents) != 1 || w.Agents[0].Name != "b" || f.now.Sub(start) < 80*time.Second {
+			t.Fatalf("%s: after %v: %s", name, f.now.Sub(start), r.line)
+		}
+		c.writeLine(`{"jsonrpc":"2.0","id":4,"method":"tasks/get","params":{"taskId":"w1"` + meta + `}}`)
+		if _, err := c.read(4); err == nil || err.Code != -32021 {
+			t.Errorf("%s: tasks/get: %+v", name, err)
+		}
 	}
 }
 

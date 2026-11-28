@@ -151,14 +151,16 @@ func handOff(ctx context.Context, d deps, p waitTask) error {
 // lookFor takes the looks of a wait task's tasks/get, as its call took
 // each look after its first (agent.Looker.Loop): each with the look's
 // cursor, taken before what waits is typed in, until each says to take no
-// more. It fails as the call would: tmux gone, or a look that fails.
-func lookFor(d deps, each func(s agent.Seen, next int64, first bool) (more bool)) error {
+// more or fails. It fails as the call would: tmux gone, or a look that
+// fails.
+func lookFor(d deps, each func(s agent.Seen, next int64, first bool) (more bool, err error)) error {
 	if err := checkTmux(d.tmux); err != nil {
 		return err
 	}
 	k := d.looker()
 	return lookErr(k.Loop(func(s agent.Seen, first bool) (bool, error) {
-		return !each(s, k.Cursor(s), first), nil
+		more, err := each(s, k.Cursor(s), first)
+		return !more, err
 	}))
 }
 

@@ -777,8 +777,16 @@ func (r *rawSupervisor) send(method string, params map[string]any) int {
 	}
 	r.n++
 	b, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": r.n, "method": method, "params": p})
-	if _, err := r.in.Write(append(b, '\n')); err != nil {
-		r.t.Fatalf("%s: %v", method, err)
+	// A pipe's write waits for hq mcp to read: bounded, as the answer is.
+	wrote := make(chan error, 1)
+	go func() { _, err := r.in.Write(append(b, '\n')); wrote <- err }()
+	select {
+	case err := <-wrote:
+		if err != nil {
+			r.t.Fatalf("%s: %v", method, err)
+		}
+	case <-time.After(10 * time.Second):
+		r.t.Fatalf("%s: hq mcp did not read it within 10 s", method)
 	}
 	return r.n
 }

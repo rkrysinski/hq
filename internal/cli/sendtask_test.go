@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -415,8 +416,9 @@ func TestAnotherHqMcpAnswersForASendsWaitTask(t *testing.T) {
 		t.Fatalf("completed: %+v", got)
 	}
 	before, after, _ := strings.Cut(h.TaskID, ":a=")
-	c.unknownTask(before + ":b=" + after)
-	c.unknownTask(strings.Replace(h.TaskID, "s1:", "w1:", 1))
+	for _, id := range []string{before + ":b=" + after, strings.Replace(h.TaskID, "s1:", "w1:", 1)} {
+		unknownTask(t, func() *rawClient { return keyed(t, f.taskKey) }, id)
+	}
 }
 
 // A poll that fails as the call would, tmux gone or a look that fails,
@@ -480,5 +482,144 @@ func TestAWaitedSendReadsTheEventsAboveItsCursor(t *testing.T) {
 	got := above([]state.Event{{Number: 6}, {Number: 7}, {Number: 8}, {Number: 9}}, 7)
 	if len(got) != 2 || got[0].Number != 8 || got[1].Number != 9 {
 		t.Fatalf("%+v", got)
+	}
+}
+
+// interrupted has agent a's turn end as one the user interrupts: back at
+// its prompt, showing screen, with no hook to deliver what waits for it.
+func interrupted(f *fakes, screen string) {
+	f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "Interrupted"}
+	f.tmux.screens["%4"] = screen
+}
+
+// deliveredAt is the time of the latest delivery in agent a's journal,
+// which hq appends before it types a prompt in; it fails the test when
+// there is none.
+func deliveredAt(t *testing.T, f *fakes) time.Time {
+	t.Helper()
+	j, _ := f.journal.Read(journalID("id-a"))
+	for i := len(j.Events) - 1; i >= 0; i-- {
+		if j.Events[i].Kind == state.KindDelivery {
+			return j.Events[i].Time
+		}
+	}
+	t.Fatalf("no delivery in a's journal: %+v", j.Events)
+	return time.Time{}
+}
+
+// A stall or no_turn that arises only after the handoff, the message typed
+// in by a later look, completes the send's wait task with the call's error
+// or outcome (#357's review, stories 18, 19): told from the journal, once
+// the agent has sat at its prompt stallBound since the latest of the
+// handoff, the event that brought it there and the typing, as the call
+// tells it from its own looks.
+func TestASendsWaitTaskTellsAStallOrNoTurnThatAriseAfterTheHandoff(t *testing.T) {
+	typing := strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1)
+	stalled := func(where string) string {
+		return "hq: stalled: a did not take the message: " + where + "; see hq read a before sending again\n"
+	}
+	for name, tc := range map[string]struct {
+		text   string
+		screen string // when its turn ends
+		left   string // what Claude leaves in its box once hq typed the message in, if it does
+		typed  bool   // a look types the message in
+		error  string // the task's error, none for no_turn
+	}{
+		"a slash command that started no turn":   {text: "/model test-model", screen: emptyBox, typed: true},
+		"typed in, and left in the box":          {text: "Any news?", screen: emptyBox, left: "❯ Any news?\n", typed: true, error: stalled("it is typed into a's prompt box and not sent")},
+		"typed in, and left the box, no turn":    {text: "Any news?", screen: emptyBox, typed: true, error: stalled("it left a's prompt box and started no turn")},
+		"waiting, the user typing in its box":    {text: "Any news?", screen: typing, error: stalled("it still waits in a's inbox, and nothing was typed in")},
+		"a slash command, the user typing there": {text: "/model test-model", screen: typing, error: stalled("it still waits in a's inbox, and nothing was typed in")},
+	} {
+		f, c := sendTaskSession(t, state.Done)
+		h := sendTask(t, f, c, map[string]any{"text": tc.text})
+		if tc.left != "" {
+			onSubmit(f, func() { f.tmux.screens["%4"] = strings.Replace(emptyBox, "❯ \n", tc.left, 1) })
+		}
+		f.now = f.now.Add(time.Minute)
+		interrupted(f, tc.screen)
+		from := f.now
+		if g := c.get(h.TaskID); g.Status != "working" || len(f.tmux.pasted) == 0 != !tc.typed {
+			t.Fatalf("%s: back at its prompt: %s, pasted %q", name, g.line, f.tmux.pasted)
+		}
+		if tc.typed {
+			from = deliveredAt(t, f)
+		}
+		f.now = from.Add(stallBound - time.Millisecond)
+		if g := c.get(h.TaskID); g.Status != "working" {
+			t.Fatalf("%s: a moment before the bound: %s", name, g.line)
+		}
+		f.now = from.Add(stallBound)
+		g := c.get(h.TaskID)
+		if g.Status != "completed" || g.Result == nil || g.Result.IsError != (tc.error != "") {
+			t.Fatalf("%s: at the bound: %s", name, g.line)
+		}
+		if tc.error != "" {
+			if g.Result.text() != tc.error {
+				t.Errorf("%s: %q", name, g.Result.text())
+			}
+			continue
+		}
+		got := sendWaitOf(t, g.Result.text())
+		if got.Outcome != endNoTurn || got.Delivery != "queued: a is working, delivered when it stops; if its hooks deliver it, the slash command arrives as text and does not run" ||
+			len(got.Agents) != 1 || got.Agents[0].Name != "a" || got.Agents[0].State != state.Done || got.NextSince == "" {
+			t.Errorf("%s: %+v", name, got)
+		}
+	}
+}
+
+// The bound of a stall after the handoff runs from when the agent came to
+// its prompt: for one on background work, from the turn end that left it
+// there, which its state, working since an earlier prompt, does not show
+// (#357's review).
+func TestASendsWaitTaskCountsAStallOnBackgroundWorkFromItsTurnEnd(t *testing.T) {
+	typing := strings.Replace(emptyBox, "❯ \n", "❯ half a thought\n", 1)
+	f, c := sendTaskSession(t, state.Done)
+	h := sendTask(t, f, c, nil)
+	prompt := f.now.Add(-time.Second)
+	f.now = f.now.Add(time.Minute)
+	f.states["id-a"] = journaltest.HookState{State: state.Working, Since: prompt, Latest: f.now, Background: true, Prompt: "p"}
+	f.tmux.screens["%4"] = typing
+	from := f.now
+	f.now = from.Add(stallBound - time.Millisecond)
+	if g := c.get(h.TaskID); g.Status != "working" {
+		t.Fatalf("a moment before the bound: %s", g.line)
+	}
+	f.now = from.Add(stallBound)
+	if g := c.get(h.TaskID); g.Status != "completed" || g.Result == nil || !g.Result.IsError || !strings.Contains(g.Result.text(), "it still waits in a's inbox") {
+		t.Fatalf("at the bound: %s", g.line)
+	}
+}
+
+// A send's wait task's id carries its delivery line in a character or two,
+// the line of hq send that it is, so the result's delivery is the call's
+// line whole; a line of no such kind it carries whole (#357's review):
+// Claude Code prints the id into the supervisor's context twice.
+func TestASendsWaitTaskIdCarriesItsDeliveryInACharacterOrTwo(t *testing.T) {
+	for code, tmpl := range deliveryLines {
+		for _, words := range []string{"", asTextWords} {
+			line := fmt.Sprintf(tmpl, "a-1") + words
+			term := deliveryTerm(line, "a-1")
+			got, ok := deliveryOf(term, "a-1")
+			if len(term) > 2 || !strings.HasPrefix(term, code) || !ok || got != line {
+				t.Errorf("%q: term %q gives %q, %v", line, term, got, ok)
+			}
+		}
+	}
+	for _, line := range []string{"queued: a-1 is busy: a new line", "delivered: typed into b as its next prompt"} {
+		term := deliveryTerm(line, "a-1")
+		if got, ok := deliveryOf(term, "a-1"); !strings.HasPrefix(term, "=") || strings.Contains(term, ":") || !ok || got != line {
+			t.Errorf("%q: term %q gives %q, %v", line, term, got, ok)
+		}
+	}
+	for _, term := range []string{"", "a", "q", "pp", "=!"} {
+		if got, ok := deliveryOf(term, "a-1"); ok {
+			t.Errorf("%q gives %q", term, got)
+		}
+	}
+	f, c := sendTaskSession(t, state.Done)
+	h := sendTask(t, f, c, nil)
+	if terms := strings.Split(h.TaskID, ":"); len(terms) != 9 || terms[7] != "w" {
+		t.Fatalf("id %s", h.TaskID)
 	}
 }

@@ -503,7 +503,6 @@ func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 	if claudeCode.maxWait != time.Hour {
 		t.Fatalf("Claude Code's instructions say an hour, its wait lasts %v", claudeCode.maxWait)
 	}
-	instructions := map[string]string{} // by client
 	for _, client := range mcpClients {
 		f := goFakes()
 		f.tty = false
@@ -513,7 +512,6 @@ func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 			t.Fatal(err)
 		}
 		texts := map[string]string{"instructions": cs.InitializeResult().Instructions}
-		instructions[client.name] = texts["instructions"]
 		for _, tl := range res.Tools {
 			if tl.Name == "wait" || tl.Name == "send" {
 				texts[tl.Name] = tl.Description
@@ -561,8 +559,8 @@ func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
 			}
 		}
 	}
-	if len(instructions) != 3 || instructions["claude-code"] == instructions["claude-desktop"] || instructions["claude-desktop"] == instructions["sbx"] || instructions["sbx"] == instructions["claude-code"] {
-		t.Errorf("not every client's own instructions: %v", slices.Collect(maps.Keys(instructions)))
+	if claudeCode.instructions() == claudeDesktop.instructions() || claudeDesktop.instructions() == sbxGateway.instructions() || sbxGateway.instructions() == claudeCode.instructions() {
+		t.Errorf("not every client's own instructions")
 	}
 }
 

@@ -79,13 +79,13 @@ func parseWaitToolTask(f []string) (waitToolTask, bool) {
 func (t waitToolTask) look(out io.Writer, d deps) (done bool, err error) {
 	ongoing := ongoingWait{terms: waitTerms{names: t.names, since: since{cursor: t.cursor, isCursor: true}, covered: t.covered, deadline: t.deadline}}
 	var r waitEnd
-	err = lookFor(d, func(s agent.Seen, next int64, first bool) bool {
+	err = lookFor(d, func(s agent.Seen, next int64, first bool) (bool, error) {
 		deliverWaiting(d, s.Agents)
 		if first {
 			ongoing.terms.covered = traced(d, ongoing.terms.covered, s.Agents)
 		}
 		r, done = ongoing.at(s, next, d.now())
-		return !done && ongoing.found != nil
+		return !done && ongoing.found != nil, nil
 	})
 	if err != nil {
 		return true, err
