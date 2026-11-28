@@ -3,10 +3,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -646,9 +648,13 @@ func TestClaudeCodeSupervisesFromTheEntryHqMcpInstallWrote(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tl := range tools.Tools {
-		if tl.Name == "wait" && !strings.Contains(tl.Description, "(default 50, at most 3600)") {
+		if tl.Name == "wait" && !strings.Contains(tl.Description, "one that does not, at most 3600 seconds, and that long given none") {
 			t.Fatalf("wait: %s", tl.Description)
 		}
+	}
+	// Its instructions are Claude Code's own: one call, no loop (#359).
+	if got := s.cs.InitializeResult().Instructions; !strings.Contains(got, "- To watch agents, call wait once") || strings.Contains(got, "in a loop") {
+		t.Fatalf("instructions: %s", got)
 	}
 	// A turn the supervisor started ends without a notification; a wait
 	// longer than Claude Desktop's returns as soon as it ends (an agent
@@ -679,6 +685,200 @@ func TestClaudeCodeSupervisesFromTheEntryHqMcpInstallWrote(t *testing.T) {
 	}
 	b, _ = os.ReadFile(record)
 	t.Fatalf("hq send from a shell: notified %q", b)
+}
+
+// rawSupervisor is hq mcp claude-code spoken to over its standard input and
+// output in lines of JSON, as Claude Code 2.1.332 speaks to it: protocol
+// 2026-07-28, server/discover and no initialize, each request declaring the
+// MCP Tasks extension in its _meta (#361). The go-sdk client cannot see a
+// task handle.
+type rawSupervisor struct {
+	t     *testing.T
+	in    io.WriteCloser
+	lines chan string
+	n     int
+}
+
+// rawResult is what a raw supervisor reads in a result: a tool's, a task's
+// handle or a task.
+type rawResult struct {
+	ResultType string `json:"resultType"`
+	TaskID     string `json:"taskId"`
+	Status     string `json:"status"`
+	Content    []struct {
+		Text string `json:"text"`
+	} `json:"content"`
+	Result *struct {
+		Content []struct {
+			Text string `json:"text"`
+		} `json:"content"`
+		IsError bool `json:"isError"`
+	} `json:"result"`
+}
+
+// raw starts an hq mcp claude-code in the supervisor's environment, as a
+// Claude Code session starts one, and says server/discover to it.
+func (s *supervisor) raw() *rawSupervisor {
+	s.t.Helper()
+	cmd := exec.Command(s.bin, "mcp", "claude-code")
+	cmd.Env = s.env
+	in, err := cmd.StdinPipe()
+	if err != nil {
+		s.t.Fatal(err)
+	}
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		s.t.Fatal(err)
+	}
+	if err := cmd.Start(); err != nil {
+		s.t.Fatal(err)
+	}
+	r := &rawSupervisor{t: s.t, in: in, lines: make(chan string, 64)}
+	go func() {
+		sc := bufio.NewScanner(out)
+		sc.Buffer(make([]byte, 1<<20), 1<<20)
+		for sc.Scan() {
+			r.lines <- sc.Text()
+		}
+		close(r.lines)
+	}()
+	s.t.Cleanup(func() {
+		_ = in.Close()
+		ended := make(chan error, 1)
+		go func() { ended <- cmd.Wait() }()
+		select {
+		case <-ended:
+		case <-time.After(10 * time.Second):
+			_ = cmd.Process.Kill()
+			s.t.Errorf("hq mcp claude-code did not end within 10 s of its input's end")
+		}
+	})
+	r.request("server/discover", nil, 10*time.Second)
+	return r
+}
+
+// request sends method with params and returns its result, failing the
+// test on an error or when no answer comes within bound.
+func (r *rawSupervisor) request(method string, params map[string]any, bound time.Duration) rawResult {
+	r.t.Helper()
+	return r.answer(r.send(method, params), bound)
+}
+
+// send sends method with params and returns the request's id.
+func (r *rawSupervisor) send(method string, params map[string]any) int {
+	r.t.Helper()
+	p := map[string]any{"_meta": map[string]any{
+		"io.modelcontextprotocol/protocolVersion":    "2026-07-28",
+		"io.modelcontextprotocol/clientInfo":         map[string]any{"name": "claude-code", "version": "2.1.332"},
+		"io.modelcontextprotocol/clientCapabilities": map[string]any{"extensions": map[string]any{"io.modelcontextprotocol/tasks": map[string]any{}}},
+	}}
+	for k, v := range params {
+		p[k] = v
+	}
+	r.n++
+	b, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": r.n, "method": method, "params": p})
+	// A pipe's write waits for hq mcp to read: bounded, as the answer is.
+	wrote := make(chan error, 1)
+	go func() { _, err := r.in.Write(append(b, '\n')); wrote <- err }()
+	select {
+	case err := <-wrote:
+		if err != nil {
+			r.t.Fatalf("%s: %v", method, err)
+		}
+	case <-time.After(10 * time.Second):
+		r.t.Fatalf("%s: hq mcp did not read it within 10 s", method)
+	}
+	return r.n
+}
+
+// answer is the result of request id, failing the test on an error or when
+// no answer comes within bound.
+func (r *rawSupervisor) answer(id int, bound time.Duration) rawResult {
+	r.t.Helper()
+	timeout := time.After(bound)
+	for {
+		select {
+		case l, ok := <-r.lines:
+			if !ok {
+				r.t.Fatalf("request %d: hq mcp ended its output", id)
+			}
+			var m struct {
+				ID     int             `json:"id"`
+				Result json.RawMessage `json:"result"`
+				Error  json.RawMessage `json:"error"`
+			}
+			if json.Unmarshal([]byte(l), &m) != nil || m.ID != id {
+				continue
+			}
+			var res rawResult
+			if m.Error != nil || json.Unmarshal(m.Result, &res) != nil {
+				r.t.Fatalf("request %d: %s", id, l)
+			}
+			return res
+		case <-timeout:
+			r.t.Fatalf("request %d: no answer within %v", id, bound)
+		}
+	}
+}
+
+// A wait that sees no change within its hold goes on as a wait task, and
+// another hq mcp answers for it (#361, story 36), hq mcps started at once
+// signing their tasks with one key (#362). Two hq mcp claude-code, started
+// at once on a state directory that holds no key yet, each take a wait at
+// the same moment and answer it with a task's handle after 50 s, each
+// making the key if none is there; each knows the other's task. The agent
+// they wait for ends its turn, and a third, started afresh as a resumed
+// Claude Code session starts one, answers for both tasks with the wait's
+// result. None holds a wait in memory.
+func TestWaitTasksOfHqMcpsStartedAtOnceAreAnsweredByAnother(t *testing.T) {
+	s := supervisorEnv(t)
+	app := testutil.GitRepo(t, "app")
+	s.shell("new", "a", app, "slow job")
+	for deadline := time.Now().Add(20 * time.Second); !strings.Contains(s.shell("ls", "a"), "working"); time.Sleep(100 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatalf("a not working: %s", s.shell("ls", "a"))
+		}
+	}
+	first, second := s.raw(), s.raw()
+	var ls waited
+	if r := first.request("tools/call", map[string]any{"name": "list", "arguments": map[string]any{"names": []string{"a"}}}, 10*time.Second); len(r.Content) != 1 || json.Unmarshal([]byte(r.Content[0].Text), &ls) != nil {
+		t.Fatalf("list: %+v", r)
+	}
+	wait := map[string]any{"name": "wait", "arguments": map[string]any{"names": []string{"a"}, "since": ls.NextSince}}
+	start := time.Now()
+	ids := []int{first.send("tools/call", wait), second.send("tools/call", wait)}
+	var tasks []string
+	for i, r := range []*rawSupervisor{first, second} {
+		h := r.answer(ids[i], 90*time.Second)
+		if h.ResultType != "task" || h.Status != "working" || h.TaskID == "" || time.Since(start) < 50*time.Second {
+			t.Fatalf("hq mcp %d after %v: %+v", i+1, time.Since(start), h)
+		}
+		tasks = append(tasks, h.TaskID)
+	}
+	if tasks[0] == tasks[1] {
+		t.Fatalf("one id for two tasks: %s", tasks[0])
+	}
+	for i, r := range []*rawSupervisor{second, first} {
+		if g := r.request("tasks/get", map[string]any{"taskId": tasks[i]}, 10*time.Second); g.Status != "working" || g.TaskID != tasks[i] {
+			t.Fatalf("the other hq mcp, of task %s: %+v", tasks[i], g)
+		}
+	}
+	s.typeIn("a", "finish it")
+	third := s.raw()
+	for _, task := range tasks {
+		for deadline := time.Now().Add(30 * time.Second); ; time.Sleep(200 * time.Millisecond) {
+			g := third.request("tasks/get", map[string]any{"taskId": task}, 10*time.Second)
+			if g.Status == "working" && time.Now().Before(deadline) {
+				continue
+			}
+			var w waited
+			if g.Status != "completed" || g.Result == nil || g.Result.IsError || len(g.Result.Content) != 1 || json.Unmarshal([]byte(g.Result.Content[0].Text), &w) != nil ||
+				len(w.Agents) != 1 || w.Agents[0].Name != "a" || w.Agents[0].State != "done" || w.Agents[0].Last != "Done: slow job" || w.NextSince == "" {
+				t.Fatalf("tasks/get %s: %+v", task, g)
+			}
+			break
+		}
+	}
 }
 
 // desktopConfig is where Claude Desktop keeps its configuration under home
@@ -1038,7 +1238,7 @@ func TestASandboxsClaudeCodeSupervisesFromTheRegistrationHqMcpInstallSbxMade(t *
 	var names []string
 	for _, tl := range tools.Tools {
 		names = append(names, tl.Name)
-		if tl.Name == "wait" && !strings.Contains(tl.Description, "(default and at most 50)") {
+		if tl.Name == "wait" && !strings.Contains(tl.Description, "(default and at most 110)") {
 			t.Fatalf("wait: %s", tl.Description)
 		}
 	}

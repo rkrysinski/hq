@@ -165,6 +165,10 @@ type waitedSend struct {
 	ready        time.Time   // when the send began to deliver it
 	start        time.Time   // when the call started, for timeout
 	timeout      time.Duration
+	// hold, when not zero, is when the send may go on as a wait task
+	// (sendToolTask): at the first look at or past it with no stall to
+	// tell (#364).
+	hold time.Time
 }
 
 // sendEnd is how a waited send ended: its outcome, where a message not
@@ -173,6 +177,9 @@ type sendEnd struct {
 	outcome, message string
 	agents           []agent.Agent
 	next             int64
+	// toTask says it ended with no outcome, its hold passed: it goes on as
+	// a wait task, and taken says whether the message was taken by then.
+	toTask, taken bool
 }
 
 // wait looks at the agents as hq wait does until the send ends in one of
@@ -182,63 +189,33 @@ type sendEnd struct {
 // the timeout. Meanwhile it types the message in itself as soon as the
 // agent waits at its prompt with an empty box at rest, and leaves the
 // others' messages to deliverWaiting, as hq wait does; it never types the
-// message in again and takes nothing back.
+// message in again and takes nothing back. With a hold, it ends at the
+// first look at or past it whose stall clock does not run, to go on as a
+// wait task (#364): a stall, and a slash command that started no turn, are
+// told within stallBound and stay the call's, also when that runs past the
+// hold.
 func (w waitedSend) wait(d deps) (sendEnd, error) {
 	var (
-		events []state.Event // the agent's events numbered above sent
-		pos    int64         // where the next read of its journal starts
+		events sentEvents
 		clock  stallClock
 		end    sendEnd
 	)
 	k := d.looker()
 	err := k.Loop(func(s agent.Seen, _ bool) (bool, error) {
 		next := k.Cursor(s) // taken before what waits is typed in, as hq wait takes it
-		i := slices.IndexFunc(s.Agents, func(b agent.Agent) bool { return b.ID == w.agent.ID })
-		others := slices.Clone(s.Agents)
-		if i >= 0 {
-			others = slices.Delete(others, i, i+1)
-		}
-		deliverWaiting(d, others)
-		if j, err := d.journal.ReadFrom(w.agent.ID, pos); err == nil {
-			if j.From != pos {
-				events = nil
-			}
-			for _, e := range j.Events {
-				if e.Number > w.sent {
-					events = append(events, e)
-				}
-			}
-			pos = j.Next
-		}
-		t := takingOf(events, w.msg)
+		deliverWaiting(d, othersThan(s.Agents, w.agent.ID))
+		w.readOn(d, &events)
+		t := takingOf(events.events, w.msg)
 		now := d.now()
-		if i < 0 {
-			// Killed since the last look: gone with its inbox, as hq wait
-			// returns it (gone).
-			end = sendEnd{outcome: endTurn, agents: []agent.Agent{w.agent.Gone(now)}, next: next}
-			if !t.taken {
-				end.outcome, end.message = endNotTaken, msgGone
-			}
+		var (
+			a     agent.Agent
+			ended bool
+		)
+		if end, a, ended = w.endAt(d, s.Agents, t, next, now); ended {
 			return true, nil
 		}
-		a := s.Agents[i]
 		w.agent = a
-		if outcome, ok := settled(a, t, next); ok {
-			end = sendEnd{outcome: outcome, agents: []agent.Agent{a}, next: next}
-			if outcome == endNotTaken {
-				end.message = notTakenWhere(d, a)
-			}
-			return true, nil
-		}
-		var key string
-		origin := w.ready
-		switch {
-		case !atPrompt(a):
-		case !t.taken:
-			key = keyWaiting
-		case t.byHQ && t.prompt == 0:
-			key, origin = fmt.Sprint("typed ", t.delivery), t.at
-		}
+		key, origin := stallKey(a, t, w.ready)
 		late := w.timeout > 0 && !now.Before(w.start.Add(w.timeout))
 		if key == keyWaiting && !late && boxAtRest(d, a, 0) {
 			// Typed in now, by the send that left it: deliverWaiting
@@ -256,25 +233,16 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 			}
 		}
 		if clock.lasted(key, origin, now) >= stallBound {
-			switch box := w.box(d); {
-			case !t.taken && d.pending(a.RepoPath, a.ID) > 0:
-				return true, stalledErr(a, "it still waits in "+a.Name+"'s inbox, and nothing was typed in")
-			case !t.taken:
-				// Taken by another process with no delivery of it in the
-				// journal, or a journal hq cannot read: where it went is
-				// not known.
-				return true, stalledErr(a, "it is no longer in "+a.Name+"'s inbox, and no delivery of it is in "+a.Name+"'s journal")
-			case box != "":
-				return true, stalledErr(a, "it is typed into "+a.Name+"'s prompt box and not sent")
-			case w.slashCommand:
-				end = sendEnd{outcome: endNoTurn, agents: []agent.Agent{a}, next: next}
-				return true, nil
-			default:
-				return true, stalledErr(a, "it left "+a.Name+"'s prompt box and started no turn")
-			}
+			var err error
+			end, err = w.stalled(d, a, t, next)
+			return true, err
 		}
-		if late {
+		switch {
+		case late:
 			end = sendEnd{outcome: endTimeout, next: next}
+			return true, nil
+		case !w.hold.IsZero() && key == "" && !now.Before(w.hold):
+			end = sendEnd{next: next, toTask: true, taken: t.taken}
 			return true, nil
 		}
 		return false, nil
@@ -282,10 +250,122 @@ func (w waitedSend) wait(d deps) (sendEnd, error) {
 	return end, lookErr(err)
 }
 
-// box is what the agent's prompt box holds, Claude's faint hints aside: ""
+// sentEvents are the events of a waited send's agent numbered above the
+// cursor the send took before it left the message (waitedSend.sent), as
+// far as its journal has been read (readOn).
+type sentEvents struct {
+	events []state.Event
+	pos    int64 // where the next read of the journal starts
+}
+
+// readOn reads on the events of w's agent numbered above its cursor into
+// e, from where e's last read ended: the call reads on at each look, and a
+// send's wait task reads them whole at each look, from a new sentEvents.
+// A journal that cannot be read leaves e as it was.
+func (w waitedSend) readOn(d deps, e *sentEvents) {
+	j, err := d.journal.ReadFrom(w.agent.ID, e.pos)
+	if err != nil {
+		return
+	}
+	if j.From != e.pos {
+		e.events = nil
+	}
+	e.events = append(e.events, above(j.Events, w.sent)...)
+	e.pos = j.Next
+}
+
+// stallKey is the condition the stall clock of a waited send measures at a
+// look that shows its agent as a, the message's taking being t, and the
+// moment it counts from when it is new (stallClock): keyWaiting while the
+// message waits, not taken, from ready; that hq typed it in, with the
+// delivery's number, while Claude has reported no prompt since, from the
+// delivery's time; "" for none, while the agent is not at its prompt
+// (atPrompt) or the message was taken otherwise (#170, decision 3).
+func stallKey(a agent.Agent, t taking, ready time.Time) (key string, origin time.Time) {
+	switch {
+	case !atPrompt(a):
+	case !t.taken:
+		key, origin = keyWaiting, ready
+	case t.byHQ && t.prompt == 0:
+		key, origin = fmt.Sprint("typed ", t.delivery), t.at
+	}
+	return key, origin
+}
+
+// stalled is how the waited send ends once the stall clock of its message
+// has run stallBound, at a look whose cursor is next that shows its agent
+// as a, the message's taking being t (#170, decisions 4 and 5): stalled
+// with the message still in the inbox, or gone from it with no delivery of
+// it in the journal; typed in, the box decides: text in it is a prompt not
+// sent (stalled), and an empty or gone box is a slash command that started
+// no turn (no_turn) or any other message that left the box with no turn
+// (stalled). The call asks it of its own looks, and a send's wait task of
+// the journal (sendToolTask.look).
+func (w waitedSend) stalled(d deps, a agent.Agent, t taking, next int64) (sendEnd, error) {
+	switch box := boxOf(d, a); {
+	case !t.taken && d.pending(a.RepoPath, a.ID) > 0:
+		return sendEnd{}, stalledErr(a, "it still waits in "+a.Name+"'s inbox, and nothing was typed in")
+	case !t.taken:
+		// Taken by another process with no delivery of it in the journal,
+		// or a journal hq cannot read: where it went is not known.
+		return sendEnd{}, stalledErr(a, "it is no longer in "+a.Name+"'s inbox, and no delivery of it is in "+a.Name+"'s journal")
+	case box != "":
+		return sendEnd{}, stalledErr(a, "it is typed into "+a.Name+"'s prompt box and not sent")
+	case w.slashCommand:
+		return sendEnd{outcome: endNoTurn, agents: []agent.Agent{a}, next: next}, nil
+	default:
+		return sendEnd{}, stalledErr(a, "it left "+a.Name+"'s prompt box and started no turn")
+	}
+}
+
+// endAt is how the waited send ends by what a look whose agents are as and
+// whose cursor is next shows of its agent at now, the message's taking
+// being t, if it does: killed since it was last seen, gone with its inbox
+// (gone), as the end of the turn that took the message or with the message
+// gone with it; or settled, its row with where a message not taken is.
+// Otherwise it gives the agent as the look shows it. The call asks it at
+// each look, and a send's wait task at each poll (#364).
+func (w waitedSend) endAt(d deps, as []agent.Agent, t taking, next int64, now time.Time) (sendEnd, agent.Agent, bool) {
+	i := slices.IndexFunc(as, func(b agent.Agent) bool { return b.ID == w.agent.ID })
+	if i < 0 {
+		end := sendEnd{outcome: endTurn, agents: []agent.Agent{w.agent.Gone(now)}, next: next}
+		if !t.taken {
+			end.outcome, end.message = endNotTaken, msgGone
+		}
+		return end, agent.Agent{}, true
+	}
+	a := as[i]
+	outcome, ok := settled(a, t, next)
+	if !ok {
+		return sendEnd{}, a, false
+	}
+	end := sendEnd{outcome: outcome, agents: []agent.Agent{a}, next: next}
+	if outcome == endNotTaken {
+		end.message = notTakenWhere(d, a)
+	}
+	return end, a, true
+}
+
+// othersThan are the agents as but the one whose id is id.
+func othersThan(as []agent.Agent, id string) []agent.Agent {
+	return slices.DeleteFunc(slices.Clone(as), func(b agent.Agent) bool { return b.ID == id })
+}
+
+// above are the events numbered above n.
+func above(events []state.Event, n int64) []state.Event {
+	var out []state.Event
+	for _, e := range events {
+		if e.Number > n {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+// boxOf is what agent a's prompt box holds, Claude's faint hints aside: ""
 // when it is empty or gone, as once Claude has taken a prompt.
-func (w waitedSend) box(d deps) string {
-	styled, err := d.tmux.StyledScreen(w.agent.Pane)
+func boxOf(d deps, a agent.Agent) string {
+	styled, err := d.tmux.StyledScreen(a.Pane)
 	if err != nil {
 		return ""
 	}

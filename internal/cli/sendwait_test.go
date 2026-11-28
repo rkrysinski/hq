@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/state"
 )
@@ -537,5 +538,39 @@ func TestSendWaitFailsAsSendDoesWhenTypingItInFails(t *testing.T) {
 	}
 	if got := f.eventsOf("id-a", state.SourceHQ); got != "delivery Withdrawn" {
 		t.Fatalf("hq's events %q: one delivery, withdrawn", got)
+	}
+}
+
+// A waited send's read of its agent's events numbered above its cursor
+// takes on from where its last read ended, starts over when the journal was
+// removed since, and leaves what it read when the journal cannot be read.
+func TestAWaitedSendReadsOnTheEventsAboveItsCursor(t *testing.T) {
+	j := journaltest.NewMemory()
+	d := deps{journal: j}
+	id := journalID("id-a")
+	j.Put(id, state.Event{Kind: state.KindPrompt}, state.Event{Kind: state.KindPrompt, Facts: state.Facts{Turn: "two"}})
+	w := waitedSend{agent: agent.Agent{ID: id}, sent: 1}
+	var e sentEvents
+	w.readOn(d, &e)
+	if len(e.events) != 1 || e.events[0].Facts.Turn != "two" || e.pos != 2 {
+		t.Fatalf("first read: %+v", e)
+	}
+	j.Put(id, state.Event{Kind: state.KindPrompt, Facts: state.Facts{Turn: "three"}})
+	w.readOn(d, &e)
+	if len(e.events) != 2 || e.events[1].Facts.Turn != "three" || e.pos != 3 || j.Reads(id) != 3 {
+		t.Fatalf("read on: %+v, %d events read", e, j.Reads(id))
+	}
+	if err := j.Remove("", id); err != nil {
+		t.Fatal(err)
+	}
+	j.Put(id, state.Event{Kind: state.KindPrompt, Facts: state.Facts{Turn: "four"}})
+	w.readOn(d, &e)
+	if len(e.events) != 1 || e.events[0].Facts.Turn != "four" || e.pos != 1 {
+		t.Fatalf("after the journal was removed: %+v", e)
+	}
+	before := e
+	waitedSend{agent: agent.Agent{ID: "not an id"}, sent: 1}.readOn(d, &e)
+	if len(e.events) != 1 || e.events[0].Facts.Turn != "four" || e.pos != before.pos {
+		t.Fatalf("a journal that cannot be read: %+v", e)
 	}
 }

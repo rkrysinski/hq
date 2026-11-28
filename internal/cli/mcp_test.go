@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/rkrysinski/hq/internal/proc"
 	"github.com/rkrysinski/hq/internal/sbx"
+	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/rkrysinski/hq/internal/agent"
 	"github.com/rkrysinski/hq/internal/journal/journaltest"
 	"github.com/rkrysinski/hq/internal/kills"
 	"github.com/rkrysinski/hq/internal/mcpconfig"
@@ -130,11 +132,11 @@ func TestMCPOffersTheSupervisorsToolsAndTeachesTheProtocol(t *testing.T) {
 			t.Errorf("%s: no %q in %q", name, want, tools[name].Description)
 		}
 	}
-	if want := "a dialog open (a permission, questions with options, an MCP server's form, or a dialog of Claude Code's own such as Change effort level? after /effort;"; !strings.Contains(mcpInstructions, want) {
+	if want := "a dialog open (a permission, questions with options, an MCP server's form, or a dialog of Claude Code's own such as Change effort level? after /effort;"; !strings.Contains(cs.InitializeResult().Instructions, want) {
 		t.Errorf("no %q in the instructions", want)
 	}
 	// The bound of a waited send is given as stallBound is.
-	if stallText != "5 seconds" || !strings.Contains(mcpInstructions, "after 5 seconds for a slash command") ||
+	if stallText != "5 seconds" || !strings.Contains(cs.InitializeResult().Instructions, "after 5 seconds for a slash command") ||
 		!strings.Contains(tools["send"].Description, "did not take the message within 5 seconds (") {
 		t.Errorf("the bound %q is not in the instructions or the send tool's description", stallText)
 	}
@@ -356,10 +358,53 @@ func TestMCPWaitNeverOutlastsClaudeDesktopsToolCall(t *testing.T) {
 	}
 }
 
+// A Claude Code inside a sandbox keeps a tool call in its turn up to 120 s,
+// and sbx's gateway does not cut it short: wait, and send with wait, last
+// 110 s when given no timeout, and at most that when given one (#360,
+// stories 28 and 30).
+func TestMCPWaitThroughTheGatewayLasts110Seconds(t *testing.T) {
+	for timeout, want := range map[int]time.Duration{0: 110 * time.Second, 5: 5 * time.Second, 51: 51 * time.Second, 110: 110 * time.Second, 111: 110 * time.Second, 600: 110 * time.Second} {
+		f := newWaitFakes()
+		f.tty = false
+		cs := connect(t, newMCPServer(f.deps(), sbxGateway))
+		start := f.now
+		args := map[string]any{"since": "0s"}
+		if timeout != 0 {
+			args["timeout"] = timeout
+		}
+		if out, _ := call(t, cs, "wait", args); len(waitJSON(t, out).Agents) != 0 {
+			t.Fatalf("%d: %s", timeout, out)
+		}
+		if took := f.now.Sub(start); took < want || took > want+time.Second {
+			t.Errorf("wait, timeout %d: waited %v, want %v", timeout, took, want)
+		}
+	}
+	for timeout, want := range map[int]time.Duration{0: 110 * time.Second, 30: 30 * time.Second, 600: 110 * time.Second} {
+		f := sendFakes(state.Done)
+		f.tty = false
+		onSubmit(f, func() { turnFor(f, 1<<30, "") })
+		cs := connect(t, newMCPServer(f.deps(), sbxGateway))
+		start := f.now
+		args := map[string]any{"name": "a", "text": "Any news?", "wait": true}
+		if timeout != 0 {
+			args["timeout"] = timeout
+		}
+		out, isErr := call(t, cs, "send", args)
+		var got sendWaitOutput
+		if err := json.Unmarshal([]byte(out), &got); isErr || err != nil || got.Outcome != endTimeout {
+			t.Fatalf("send, timeout %d: %v %q", timeout, isErr, out)
+		}
+		if took := f.now.Sub(start); took < want || took > want+time.Second {
+			t.Errorf("send, timeout %d: waited %v, want %v", timeout, took, want)
+		}
+	}
+}
+
 // Claude Code gives a tool call as long as its entry says: one wait may
-// last an hour (#115).
+// last an hour (#115), and lasts that long when given no timeout (#359); a
+// timeout up to 50 s ends it as before.
 func TestMCPWaitForClaudeCodeMayLastAnHour(t *testing.T) {
-	for timeout, want := range map[int]time.Duration{0: DefaultWaitTimeout, 51: 51 * time.Second, 600: 10 * time.Minute, 3600: time.Hour, 7200: time.Hour} {
+	for timeout, want := range map[int]time.Duration{0: time.Hour, 10: 10 * time.Second, 50: 50 * time.Second, 51: 51 * time.Second, 600: 10 * time.Minute, 3600: time.Hour, 7200: time.Hour} {
 		f := newWaitFakes()
 		f.tty = false
 		cs := connect(t, newMCPServer(f.deps(), claudeCode))
@@ -377,11 +422,196 @@ func TestMCPWaitForClaudeCodeMayLastAnHour(t *testing.T) {
 	}
 }
 
+// Under Claude Code a wait given no timeout is one call of up to an hour
+// (#359, stories 20-22): it returns a change when it comes, returns no
+// agents after the hour, and a wait from that result's next_since misses
+// nothing that came between.
+func TestMCPWaitForClaudeCodeWithNoTimeoutWaitsAnHourAndMissesNothing(t *testing.T) {
+	f := newWaitFakes()
+	f.tty = false
+	cs := connect(t, newMCPServer(f.deps(), claudeCode))
+	out, _ := call(t, cs, "list", nil)
+	ls := waitJSON(t, out)
+	// a's turn ends 40 minutes in: the call returns it then.
+	start := f.now
+	f.after(40*time.Minute, func() {
+		f.states["id-a"] = journaltest.HookState{State: state.Done, Since: f.now, Last: "PR #58 opened"}
+	})
+	out, _ = call(t, cs, "wait", map[string]any{"since": ls.NextSince})
+	first := waitJSON(t, out)
+	if took := f.now.Sub(start); len(first.Agents) != 1 || first.Agents[0].Name != "a" || took < 40*time.Minute || took > 40*time.Minute+time.Second {
+		t.Fatalf("first call after %v: %s", took, out)
+	}
+	// Nothing changes: the next call returns no agents after the hour.
+	f.onSleep = nil
+	start = f.now
+	out, isErr := call(t, cs, "wait", map[string]any{"since": first.NextSince})
+	second := waitJSON(t, out)
+	if took := f.now.Sub(start); isErr || len(second.Agents) != 0 || second.NextSince == "" || took < time.Hour || took > time.Hour+time.Second {
+		t.Fatalf("second call after %v: %s", took, out)
+	}
+	// b asks a question between that result and the next call: the call
+	// from its next_since returns it at once.
+	f.now = f.now.Add(5 * time.Second)
+	f.states["id-b"] = journaltest.HookState{State: state.Question, Since: f.now, Last: "Shall I go on?"}
+	f.now = f.now.Add(5 * time.Second)
+	start = f.now
+	out, _ = call(t, cs, "wait", map[string]any{"since": second.NextSince})
+	if third := waitJSON(t, out); len(third.Agents) != 1 || third.Agents[0].Name != "b" || third.Agents[0].State != state.Question || f.now.Sub(start) > time.Second {
+		t.Fatalf("third call after %v: %s", f.now.Sub(start), out)
+	}
+}
+
+// Under Claude Code a send with wait given no timeout waits for the answer
+// up to an hour (#359, story 23): a turn of 30 minutes is returned when it
+// ends, and with no turn ending the call returns timeout after the hour.
+func TestMCPSendWithWaitForClaudeCodeWithNoTimeoutWaitsAnHour(t *testing.T) {
+	f := sendFakes(state.Done)
+	f.tty = false
+	onSubmit(f, func() { turnFor(f, int(30*time.Minute/agent.LoopEvery), "Done: the long one") })
+	cs := connect(t, newMCPServer(f.deps(), claudeCode))
+	start := f.now
+	out, isErr := call(t, cs, "send", map[string]any{"name": "a", "text": "Take your time", "wait": true})
+	var got sendWaitOutput
+	if err := json.Unmarshal([]byte(out), &got); isErr || err != nil || got.Outcome != endTurn || len(got.Agents) != 1 || got.Agents[0].Last != "Done: the long one" {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	if took := f.now.Sub(start); took < 30*time.Minute || took > 30*time.Minute+5*time.Second {
+		t.Fatalf("turn_ended after %v", took)
+	}
+	// No turn ends: timeout after the hour, the delivery included.
+	turnFor(f, 1<<30, "")
+	start = f.now
+	out, isErr = call(t, cs, "send", map[string]any{"name": "a", "text": "and then?", "wait": true})
+	if err := json.Unmarshal([]byte(out), &got); isErr || err != nil || got.Outcome != endTimeout {
+		t.Fatalf("%v %q", isErr, out)
+	}
+	if took := f.now.Sub(start); took < time.Hour || took > time.Hour+time.Second {
+		t.Fatalf("timeout after %v", took)
+	}
+}
+
+// Each client gets instructions and descriptions of wait and send of its
+// own (#359, stories 24-27): Claude Code's speak of one call, of a call that
+// started a task or was moved to the background, and of a task Claude Code
+// can no longer follow (#361, story 26), never of a loop; its send says that
+// a send with wait goes on as a task after 50 s, and what to do then
+// (#364); Claude Desktop's
+// and the gateway's go on describing the loop with their limits, 50 s and
+// 110 s (#360). The timeout of wait and send names no number of its own.
+func TestEachClientIsTaughtToWatchItsOwnWay(t *testing.T) {
+	if claudeCode.maxWait != time.Hour {
+		t.Fatalf("Claude Code's instructions say an hour, its wait lasts %v", claudeCode.maxWait)
+	}
+	for _, client := range mcpClients {
+		f := goFakes()
+		f.tty = false
+		cs := connect(t, newMCPServer(f.deps(), client))
+		res, err := cs.ListTools(context.Background(), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		texts := map[string]string{"instructions": cs.InitializeResult().Instructions}
+		for _, tl := range res.Tools {
+			if tl.Name == "wait" || tl.Name == "send" {
+				texts[tl.Name] = tl.Description
+				schema, _ := json.Marshal(tl.InputSchema)
+				if !strings.Contains(string(schema), "as long as the tool's description says") || strings.Contains(string(schema), "default 50") {
+					t.Errorf("%s: %s: timeout %s", client.name, tl.Name, schema)
+				}
+			}
+		}
+		limit := map[string]string{"claude-desktop": "50", "sbx": "110"}[client.name]
+		want := map[string][]string{
+			"instructions": {"- To watch agents, call wait in a loop, each time with the next_since of the most recent wait or list result", "or returns no agents after its timeout, " + limit + " s unless you give a shorter one; then call it again."},
+			"wait":         {"(default and at most " + limit + ")", "To watch agents, call it in a loop, passing each result's next_since as the next call's since", "React to the agents it returns (read them), then call it again."},
+			"send":         {"(default and at most " + limit + ", the delivery included)"},
+		}
+		never := []string{"background"}
+		if client == claudeCode {
+			want = map[string][]string{
+				"instructions": {"- To watch agents, call wait once, best with no timeout, and the next_since of the most recent wait or list result",
+					"When Claude Code says a wait or a send with wait started a task or was moved to the background, end your turn: its result starts your next turn.",
+					"Do not call wait again until the earlier one has brought its result.", "then call wait again with its next_since, also after a result with no agents.",
+					`After a task result of "outcome unknown" or "cannot follow", call wait again with the last next_since you know, without asking: wait changes nothing.`},
+				"wait": {"After timeout seconds it returns no agents, which is not an error. A call that starts a task (below) waits that long, and given none until an agent changes; one that does not, at most 3600 seconds, and that long given none.",
+					"To watch, give none: a timeout only brings a result with no agents, to call it again.", "To watch agents, call it once, naming every agent you follow (or none, for every agent)",
+					"When Claude Code says the call started a task or was moved to the background, end your turn: its result starts your next turn.",
+					`After a task result of "outcome unknown" or "cannot follow", call it again with the last next_since you know, without asking the user: it changes nothing.`,
+					"Do not call it again until the earlier call has brought its result.", "then call it again with its next_since, also after a result with no agents."},
+				"send": {"up to timeout seconds (the delivery included: a call that starts a task waits that long, and given none until the answer; one that does not, at most 3600, and that long given none)",
+					"A send with wait whose answer has not come within 50 seconds goes on as a task: when Claude Code says the call started a task or was moved to the background, end your turn: its result, what the call would have returned, a stall or no_turn included, starts your next turn."},
+			}
+			// A timeout is the supervisor's to give (#357, story 9): no text
+			// says one keeps the call a call, or forbids it.
+			never = []string{"loop", "default 50", "MCP task", "wait task", "with no timeout and", "once with no timeout", "unless it has started a task", "stays a call"}
+		}
+		for text, words := range want {
+			for _, w := range words {
+				if !strings.Contains(texts[text], w) {
+					t.Errorf("%s: %s: no %q in %q", client.name, text, w, texts[text])
+				}
+			}
+			for _, w := range never {
+				if strings.Contains(texts[text], w) {
+					t.Errorf("%s: %s: %q in %q", client.name, text, w, texts[text])
+				}
+			}
+		}
+	}
+	if claudeCode.instructions() == claudeDesktop.instructions() || claudeDesktop.instructions() == sbxGateway.instructions() || sbxGateway.instructions() == claudeCode.instructions() {
+		t.Errorf("not every client's own instructions")
+	}
+}
+
+// Claude Code 2.1.332 shows the model a server's instructions only up to
+// their 4096th character (its debug log: "Server instructions truncated
+// from 6365 to 4096 chars", #365): Claude Code's line on watching stands
+// within them, as does that of the gateway's, whose client is a Claude
+// Code too, with its 110 s (#360). Bytes count at least as many as Claude
+// Code's characters.
+func TestClaudeCodeShowsItsSupervisorTheLineOnWatching(t *testing.T) {
+	for _, client := range []mcpClient{claudeCode, sbxGateway} {
+		got := client.instructions()
+		i := strings.Index(got, client.watch.instructions)
+		if end := i + len(client.watch.instructions); i < 0 || end > 4096 {
+			t.Errorf("%s: the line on watching ends at byte %d of %d: past what Claude Code shows", client.name, end, len(got))
+		}
+	}
+}
+
+// Claude Code shows its supervisor the instructions only up to their
+// 4096th character (#365, open), and the line on watching of #359 pushed
+// the bullet on own tasks past that cut: nothing of it is lost, since the
+// descriptions of wait and read say each of its facts too, and list's says
+// what own_tasks holds (#357's review).
+func TestWhatClaudeCodeCutsOfTheBulletOnOwnTasksIsInTheTools(t *testing.T) {
+	res, err := connect(t, newMCPServer(newWaitFakes().deps(), claudeCode)).ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"wait": "with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
+		"read": "with own_tasks still runs a shell command or watch of its own: Claude takes another turn when one ends, so wait for it again if you need that result (a dev server may never end); the list is that turn end's and may be stale.",
+		"list": "own_tasks (while it is done or in question: the shell commands and watches of its own still running at that turn end",
+	}
+	for _, tl := range res.Tools {
+		if w, ok := want[tl.Name]; ok && !strings.Contains(tl.Description, w) {
+			t.Errorf("%s: no %q in %q", tl.Name, w, tl.Description)
+		}
+		delete(want, tl.Name)
+	}
+	if len(want) != 0 {
+		t.Errorf("no tools %v", slices.Collect(maps.Keys(want)))
+	}
+}
+
 // The wait tool tells each client the most it waits.
 func TestMCPWaitSaysHowLongItMayWait(t *testing.T) {
 	for client, want := range map[mcpClient]string{
 		claudeDesktop: "After timeout seconds (default and at most 50) it returns no agents",
-		claudeCode:    "After timeout seconds (default 50, at most 3600) it returns no agents",
+		sbxGateway:    "After timeout seconds (default and at most 110) it returns no agents",
+		claudeCode:    "After timeout seconds it returns no agents, which is not an error. A call that starts a task (below) waits that long, and given none until an agent changes; one that does not, at most 3600 seconds",
 	} {
 		res, err := connect(t, newMCPServer(newWaitFakes().deps(), client)).ListTools(context.Background(), nil)
 		if err != nil {
@@ -425,8 +655,15 @@ func TestAToolWaitsAsLongAsItsClientAllows(t *testing.T) {
 		want    time.Duration
 	}{
 		{0, claudeDesktop, DefaultWaitTimeout},
-		{-5, claudeCode, DefaultWaitTimeout},
+		{0, sbxGateway, 110 * time.Second},
+		{-5, sbxGateway, 110 * time.Second},
+		{30, sbxGateway, 30 * time.Second},
+		{110, sbxGateway, 110 * time.Second},
+		{111, sbxGateway, 110 * time.Second},
+		{0, claudeCode, time.Hour},
+		{-5, claudeCode, time.Hour},
 		{1, claudeCode, time.Second},
+		{50, claudeCode, 50 * time.Second},
 		{10, claudeDesktop, 10 * time.Second},
 		{3600, claudeDesktop, DefaultWaitTimeout},
 		{3600, claudeCode, time.Hour},
@@ -1229,10 +1466,10 @@ func TestMCPInstallOnWSLWarnsThatHQPlatformIsNoLongerNeeded(t *testing.T) {
 	}
 }
 
-// Served for a sandbox's Claude Code, through sbx's gateway, which gives a
-// tool call 60 s: wait is capped as for Claude Desktop.
-func TestMCPForSbxServesClaudeDesktopsWait(t *testing.T) {
-	if _, c, err := parseMCP([]string{"sbx"}); err != nil || c != sbxGateway || c.maxWait != claudeDesktop.maxWait {
+// hq mcp sbx is served for a sandbox's Claude Code, through sbx's gateway,
+// with the gateway's wait (#360).
+func TestMCPForSbxServesTheGatewaysWait(t *testing.T) {
+	if _, c, err := parseMCP([]string{"sbx"}); err != nil || c != sbxGateway || c.maxWait != 110*time.Second {
 		t.Fatalf("%+v %v", c, err)
 	}
 }
@@ -1495,8 +1732,8 @@ func TestMCPInstructionsNameTheRemedyOfTheClient(t *testing.T) {
 		f := goFakes()
 		f.tty = false
 		got := connect(t, newMCPServer(f.deps(), client)).InitializeResult().Instructions
-		// The rest is every client's, as before.
-		if got != mcpInstructions+want || !strings.HasPrefix(got, "hq runs Claude Code agents") {
+		// The rest is the client's own (TestEachClientIsTaughtToWatchItsOwnWay).
+		if !strings.HasSuffix(got, want) || !strings.HasPrefix(got, "hq runs Claude Code agents") {
 			t.Errorf("%s: instructions end %q", client.name, got[max(0, len(got)-len(want)-40):])
 		}
 	}

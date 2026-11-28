@@ -132,6 +132,14 @@ _Avoid_: completed turn count, version, timestamp
 What hq gives as `next_since` and takes back as `--since`: an opaque text standing for a number of the host's one count such that the look that gave it saw every change numbered up to it, so a watch that passes each result's cursor to its next call misses no change and repeats none. Not the cursor row of the list.
 _Avoid_: moment, timestamp, offset, token
 
+**Wait task**:
+A wait that goes on after its call as an MCP task, for a supervisor whose client takes one (Claude Code on the host): `wait` saw no change, or `send` with `wait` no answer to its message, before its call ended, the client asks hq for the task without the model, and the task's completion starts the supervisor's turn with what the call would have returned. Each gives one outcome, and a new `wait` replaces none.
+_Avoid_: background wait, subscription, job, watch (that is the supervisor's own run of waits)
+
+**Hold**:
+The first 50 s of a `wait`, or of a `send` with `wait`, for a supervisor whose client takes wait tasks: a change, or the answer, within it comes back in the call, and once it has passed with none the call goes on as a wait task. A stall or a slash command that started no turn whose 5 s began within it is still told in the call.
+_Avoid_: held (a held message is another thing), grace, timeout (that is the caller's)
+
 **Evidence**:
 An event of what a look saw of an agent that no hook reports: what its screen shows, tmux's word that its pane died, sbx's that its sandbox does not run. The same evidence stands once in a journal, since the agent was last launched: of hq processes that see it at once, the first to append it wins, and evidence a later report of the hook overtook is set aside.
 _Avoid_: observation, sighting, marker

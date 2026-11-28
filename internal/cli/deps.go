@@ -29,6 +29,7 @@ import (
 	"github.com/rkrysinski/hq/internal/repo"
 	"github.com/rkrysinski/hq/internal/sbx"
 	"github.com/rkrysinski/hq/internal/state"
+	"github.com/rkrysinski/hq/internal/taskid"
 	"github.com/rkrysinski/hq/internal/tmux"
 	"github.com/rkrysinski/hq/internal/update"
 	"github.com/rkrysinski/hq/internal/version"
@@ -245,6 +246,12 @@ type deps struct {
 	// serveMCP runs an MCP server over stdin and stdout until the client
 	// closes them.
 	serveMCP func(*mcp.Server) error
+	// taskKey is the key in hq's state directory that signs the ids of
+	// hq's MCP tasks, made at its first use (taskid.Key); readTaskKey is
+	// that key as it stands, an error when there is none, making nothing
+	// (taskid.ReadKey; ADR 0022).
+	taskKey     func() ([]byte, error)
+	readTaskKey func() ([]byte, error)
 }
 
 // ghTimeout bounds gh pr list, which goes to GitHub.
@@ -376,7 +383,9 @@ func defaultDeps() deps {
 		installConfig: func(f mcpconfig.File, s mcpconfig.Server) (mcpconfig.Result, error) {
 			return mcpconfig.Install(f, s, time.Now())
 		},
-		serveMCP: func(s *mcp.Server) error { return s.Run(context.Background(), &mcp.StdioTransport{}) },
+		serveMCP:    func(s *mcp.Server) error { return s.Run(context.Background(), &mcp.StdioTransport{}) },
+		taskKey:     func() ([]byte, error) { return taskid.Key(journal.Dir(os.Getenv)) },
+		readTaskKey: func() ([]byte, error) { return taskid.ReadKey(journal.Dir(os.Getenv)) },
 	}
 }
 
