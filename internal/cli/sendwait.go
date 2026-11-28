@@ -284,13 +284,12 @@ func (w waitedSend) readOn(d deps, e *sentEvents) {
 func stallKey(a agent.Agent, t taking, ready time.Time) (key string, origin time.Time) {
 	switch {
 	case !atPrompt(a):
-		return "", time.Time{}
 	case !t.taken:
-		return keyWaiting, ready
+		key, origin = keyWaiting, ready
 	case t.byHQ && t.prompt == 0:
-		return fmt.Sprint("typed ", t.delivery), t.at
+		key, origin = fmt.Sprint("typed ", t.delivery), t.at
 	}
-	return "", time.Time{}
+	return key, origin
 }
 
 // stalled is how the waited send ends once the stall clock of its message
